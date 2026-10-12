@@ -23,7 +23,7 @@ func clean(t *testing.T) {
 		"EXCITER_OIDC_REDIRECT_URL", "EXCITER_OIDC_BACKCHANNEL", "EXCITER_TRUSTED_PROXIES",
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
-		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
+		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL", "EXCITER_TEST_ENDPOINTS", "EXCITER_TEST_ENDPOINTS_TOKEN",
 	} {
 		t.Setenv(key, "")
 	}
@@ -407,5 +407,36 @@ func TestAnEndpointWithoutCredentialsIsRefused(t *testing.T) {
 	}
 	if c.S3 != (S3{Endpoint: "seaweedfs:8333", Bucket: "elsewhere", AccessKey: "exciter", SecretKey: "secret", Region: "eu-central-1", UseSSL: true}) {
 		t.Errorf("storage = %+v", c.S3)
+	}
+}
+
+func TestTheTestEndpointsNeedATokenAProviderAndNoProduction(t *testing.T) {
+	clean(t)
+	if c, err := Load(); err != nil || c.TestEndpoints.Enabled {
+		t.Fatalf("the test endpoints are on by default: %+v, %v", c.TestEndpoints, err)
+	}
+	t.Setenv("EXCITER_TEST_ENDPOINTS", "1")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "EXCITER_TEST_ENDPOINTS_TOKEN") || !strings.Contains(err.Error(), "EXCITER_BOOTSTRAP_OIDC_ISSUER") {
+		t.Fatalf("on without a token or a provider = %v", err)
+	}
+	t.Setenv("EXCITER_TEST_ENDPOINTS_TOKEN", "short")
+	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_EMAIL", "admin@exciter.test")
+	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_PASSWORD", "a long enough password")
+	t.Setenv("EXCITER_BOOTSTRAP_OIDC_ISSUER", "http://localhost:8180/realms/suite-dev")
+	t.Setenv("EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "exciter")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_TEST_ENDPOINTS_TOKEN") {
+		t.Fatalf("a short token = %v", err)
+	}
+	t.Setenv("EXCITER_TEST_ENDPOINTS_TOKEN", "a token long enough to use")
+	c, err := Load()
+	if err != nil || !c.TestEndpoints.Enabled || c.TestEndpoints.Token != "a token long enough to use" {
+		t.Fatalf("on with a token = %+v, %v", c.TestEndpoints, err)
+	}
+	t.Setenv("EXCITER_ENV", EnvProduction)
+	t.Setenv("EXCITER_SECURE_COOKIES", "true")
+	t.Setenv("EXCITER_SECRET_KEY", testKey)
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_TEST_ENDPOINTS is on in production") {
+		t.Fatalf("on in production = %v", err)
 	}
 }

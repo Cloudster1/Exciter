@@ -56,7 +56,7 @@ export function OrgDefaultTheme() {
         {!isLoading && shared.length === 0 && (
           <p className="text-sm text-ink-muted">
             {t.themes.orgDefault.noneShared}{" "}
-            <Link to={THEMES_PATH} className="text-accent hover:underline">
+            <Link to={THEMES_PATH} className="text-accent underline underline-offset-2">
               {t.themes.orgDefault.openThemes}
             </Link>
           </p>

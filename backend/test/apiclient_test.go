@@ -53,6 +53,12 @@ func cheapPasswords() auth.PasswordParams {
 // newAPIServer starts the api in this process, its every answer checked against the document.
 func newAPIServer(t *testing.T, h *harness) *apiServer {
 	t.Helper()
+	return newAPIServerWith(t, h, nil)
+}
+
+// newAPIServerWith is newAPIServer with the server set up further by configure, when given, before it starts.
+func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *httpapi.Server)) *apiServer {
+	t.Helper()
 	key := make([]byte, secret.KeySize)
 	if _, err := rand.Read(key); err != nil {
 		t.Fatal(err)
@@ -73,6 +79,9 @@ func newAPIServer(t *testing.T, h *harness) *apiServer {
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
 		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes,
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+	}
+	if configure != nil {
+		configure(a, server)
 	}
 	srv.Config.Handler = observed(t, server.Routes(nil))
 	srv.Start()

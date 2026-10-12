@@ -1,0 +1,18 @@
+{
+  "name": "exciter-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
+    "openapi-fetch": "^0.17.0",
+    "pg": "^8.23.0",
+    "typescript": "^5.9.0"
+  }
+}

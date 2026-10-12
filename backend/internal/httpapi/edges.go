@@ -60,7 +60,7 @@ func (s *Server) sameSite(allowed []string) func(http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if safeMethod(r.Method) || !carriesCookie(r, s.CookieName) {
+			if safeMethod(r.Method) || !carriesCookie(r, s.CookieName) || isTestPath(r) {
 				next.ServeHTTP(w, r)
 				return
 			}

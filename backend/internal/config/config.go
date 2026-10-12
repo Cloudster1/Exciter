@@ -78,6 +78,8 @@ type Config struct {
 	Telemetry Telemetry
 	Bootstrap Bootstrap
 	S3        S3
+	// TestEndpoints serves the throwaway organizations of the browser suite.
+	TestEndpoints TestEndpoints
 
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
@@ -149,6 +151,18 @@ type BootstrapMember struct {
 	Email string
 	Role  string
 }
+
+// TestEndpoints make and remove throwaway organizations under /api/v1/test.
+// Off, they answer 404 like any path that does not exist.
+type TestEndpoints struct {
+	Enabled bool
+	// Token is the shared secret every call carries, so an endpoint switched
+	// on by accident is still closed.
+	Token string
+}
+
+// MinTestTokenLength keeps the test endpoints' token from being guessable.
+const MinTestTokenLength = 16
 
 // S3 is the bucket uploaded files live in: theme assets now, attachments
 // later. A blank endpoint leaves uploads off, refused with the setting to fix.
@@ -242,6 +256,10 @@ func Load() (Config, error) {
 			Region:    l.str("EXCITER_S3_REGION", DefaultS3Region),
 			UseSSL:    l.boolean("EXCITER_S3_USE_SSL", false),
 		},
+		TestEndpoints: TestEndpoints{
+			Enabled: l.boolean("EXCITER_TEST_ENDPOINTS", false),
+			Token:   l.str("EXCITER_TEST_ENDPOINTS_TOKEN", ""),
+		},
 		Telemetry: Telemetry{
 			MetricsAddr:  l.strOrBlank("EXCITER_METRICS_ADDR", DefaultMetricsAddr),
 			OTLPEndpoint: l.str("EXCITER_OTEL_ENDPOINT", ""),
@@ -304,6 +322,7 @@ func Load() (Config, error) {
 		l.problem(fmt.Sprintf("EXCITER_OIDC_REDIRECT_URL is %q; set it to an absolute URL ending in %s.", c.Auth.OIDCRedirectURL, OIDCCallbackPath))
 	}
 	c.checkBootstrapProvider(l)
+	c.checkTestEndpoints(l)
 	if c.RetainAudit != 0 && c.RetainAudit < MinRetainAudit {
 		l.problem(fmt.Sprintf("EXCITER_RETAIN_AUDIT is %s, but the audit log keeps every entry for at least %.0fh; set it to that or longer, such as 8760h, or to 0 to keep the log forever.", c.RetainAudit, MinRetainAudit.Hours()))
 	}
@@ -334,6 +353,23 @@ func (c Config) checkBootstrapProvider(l *loader) {
 	}
 	if b.OIDCIssuer != "" && b.AdminEmail == "" {
 		l.problem("EXCITER_BOOTSTRAP_OIDC_ISSUER is set but EXCITER_BOOTSTRAP_ADMIN_EMAIL is not; set the administrator the provider is configured in the name of.")
+	}
+}
+
+// checkTestEndpoints refuses the test endpoints in production, without a token hard to guess, or without the
+// provider every throwaway organization signs in through.
+func (c Config) checkTestEndpoints(l *loader) {
+	if !c.TestEndpoints.Enabled {
+		return
+	}
+	if c.Env == EnvProduction {
+		l.problem("EXCITER_TEST_ENDPOINTS is on in production, where it would let anybody with its token make and delete organizations. Turn it off.")
+	}
+	if len(c.TestEndpoints.Token) < MinTestTokenLength {
+		l.problem(fmt.Sprintf("EXCITER_TEST_ENDPOINTS is on, so set EXCITER_TEST_ENDPOINTS_TOKEN to a secret of at least %d characters.", MinTestTokenLength))
+	}
+	if c.Bootstrap.OIDCIssuer == "" {
+		l.problem("EXCITER_TEST_ENDPOINTS is on, so set EXCITER_BOOTSTRAP_OIDC_ISSUER and its client: every throwaway organization signs in through that provider.")
 	}
 }
 

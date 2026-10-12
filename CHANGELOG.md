@@ -9,6 +9,22 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A browser suite with an accessibility check on every page (#9).
+  `make test-e2e` runs Playwright in its own container against the compose
+  stack, and joins `./run-tests.sh` and CI, which splits it in two shards and
+  merges their reports into one. axe checks every page of the shell, a new
+  theme's editor, the not-found page and the sign-in page in light and dark,
+  at desktop and phone widths. The specs sign in with a password and out
+  again, sign in through the stack's Keycloak as alice@suite.test and land in
+  the organization with the role her groups give, switch light and dark from
+  the rail, import Armature's Minecraft theme, name the organization's default
+  theme and see it as another member, add, re-role and remove members, and
+  page through the audit log by mouse and keyboard. Each spec file works in a
+  throwaway organization of its own, which the api makes and removes through
+  test endpoints that only the development stack switches on
+  (`EXCITER_TEST_ENDPOINTS`, refused in production) and that the API's
+  document leaves out. `make test-e2e ONLY=<grep>` runs part of it. The link
+  to the themes on the default theme page is underlined, which axe asked for.
 - Themes (#8), in Armature's `armature-theme/1` format, so a theme exported
   from Armature or Stator imports unchanged and leaves the same way. The rail
   switches between Auto, Light and Dark; under the account menu, Themes lists

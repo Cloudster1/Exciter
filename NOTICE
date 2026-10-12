@@ -102,6 +102,24 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   features/shell/ThemeButton.tsx; routes/themes.tsx and theme-editor.tsx,
   from Stator's, which are Armature's, without following the Armature
   theme; api/themes.ts; and the glyphs the theme screens draw
+- backend/internal/testorg with its test, httpapi/test_handlers.go with its
+  test, the test endpoints' settings of internal/config and their wiring in
+  cmd/api and deploy/docker-compose.yml, and backend/test/testorgs_test.go:
+  the throwaway organizations of the browser suite, without spaces, guests,
+  example spaces and tokens, owned by the bootstrap administrator in whose
+  name their provider is configured
+- mk/e2e.mk, e2e/package.json, package-lock.json, playwright.config.ts,
+  merge.config.ts, tsconfig.json and biome.json: the same files, renamed to
+  Exciter, with the timeouts named
+- e2e/fixtures/api.ts, auth.ts, db.ts, org.ts, shell.ts, stack.ts, mail.ts,
+  seed.ts and replica.ts, e2e/tests/auth.setup.ts and demo.teardown.ts:
+  renamed, without what concerns spaces, pages, the editor, files, Word and
+  archives, and without skipping while sign-in did not exist
+- e2e/tests/a11y.spec.ts, themes.spec.ts, audit.spec.ts, members.spec.ts
+  from add-member.spec.ts, and login.spec.ts and sso.spec.ts from
+  login.spec.ts: over Exciter's pages, the audit log planted on a theme
+  rather than a space, and a role change, a removal and the role a provider
+  group gives added
 
 Adapted from Stator at 2ab5252:
 - mk/branding.mk, scripts/branding.sh, web/src/branding.test.ts and
