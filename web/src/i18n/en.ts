@@ -4,6 +4,7 @@ import type { Language } from "./index";
 import { accessEn, permissionsEn } from "./permissions.en";
 import { projectsEn } from "./projects.en";
 import { editorEn, requirementsEn } from "./requirements.en";
+import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
 
 /** The English strings, and the shape every other language has to fill. */
@@ -255,6 +256,8 @@ export const en = {
   access: accessEn,
   requirements: requirementsEn,
   editor: editorEn,
+  types: typesEn,
+  attributes: attributesEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

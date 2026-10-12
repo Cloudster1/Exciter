@@ -313,9 +313,16 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			}
 		}
 		if in.Settings != nil {
-			// Types arrive with #14; until then no project has one to name.
 			if in.Settings.DefaultTypeID != nil {
-				return &FieldError{"settings.defaultTypeId", "That type is not one of this project's. Pick one from its types."}
+				var usable bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM requirement_type WHERE project_id = $1 AND id = $2 AND NOT retired)`,
+					p.ID, *in.Settings.DefaultTypeID).Scan(&usable); err != nil {
+					return err
+				}
+				if !usable {
+					return &FieldError{"settings.defaultTypeId", "That type is not one of this project's, or it is retired. Pick one from its types."}
+				}
+				settings.DefaultTypeID = in.Settings.DefaultTypeID
 			}
 			if in.Settings.RequireRevisionComment != nil {
 				settings.RequireRevisionComment = *in.Settings.RequireRevisionComment

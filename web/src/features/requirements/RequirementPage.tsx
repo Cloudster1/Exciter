@@ -11,13 +11,16 @@ import {
   type Requirement,
   type RequirementChanges,
 } from "@/api/requirements";
-import { Button, Card, ErrorBanner, Field, IconButton, Labelled, PageHeader, SectionTitle, SelectInput, Tag } from "@/components/ui";
+import { useAttributes, useTypes } from "@/api/attributes";
+import { Button, Card, ErrorBanner, Field, IconButton, Labelled, PageHeader, SectionTitle, Select, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REQUIREMENT_TITLE_MAX_LENGTH, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { DocView } from "@/features/editor/DocView";
 import { Editor } from "@/features/editor/Editor";
 import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { SubjectPicker } from "@/features/permissions/SubjectPicker";
+import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
+import { TypeIcon } from "@/features/types/TypeIcon";
 import { t } from "@/i18n";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
@@ -41,6 +44,12 @@ export function RequirementPage({ project, requirement }: { project: Project; re
               {requirement.key}
             </span>
             {section && <Tag>{t.requirements.kinds.section}</Tag>}
+            {requirement.type && (
+              <span className="flex items-center gap-1" data-requirement-type={requirement.type.name}>
+                <TypeIcon icon={requirement.type.icon} colour={requirement.type.colour} />
+                {requirement.type.name}
+              </span>
+            )}
             <span data-revision={requirement.revision}>{t.requirements.revision(requirement.revision)}</span>
           </span>
         }
@@ -70,6 +79,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       {editing ? (
         <Edit
           key={requirement.id}
+          project={project}
           requirement={requirement}
           onDone={(message) => {
             setNotice(message);
@@ -78,7 +88,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <Content requirement={requirement} />
+        <Content project={project} requirement={requirement} />
       )}
       {!section && <Facts requirement={requirement} />}
       {mayEdit && <TrashSection project={project} requirement={requirement} />}
@@ -86,7 +96,8 @@ export function RequirementPage({ project, requirement }: { project: Project; re
   );
 }
 
-function Content({ requirement }: { requirement: Requirement }) {
+function Content({ project, requirement }: { project: Project; requirement: Requirement }) {
+  const { data: attributes } = useAttributes(project.key);
   return (
     <Card className="space-y-4 p-4">
       <section aria-labelledby="statement-title" className="space-y-2">
@@ -103,13 +114,28 @@ function Content({ requirement }: { requirement: Requirement }) {
           )}
         </section>
       )}
+      {attributes && <AttributeValues attributes={attributes} values={requirement.attributes as Values} />}
     </Card>
   );
 }
 
 /** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
-function Edit({ requirement, onDone, onCancel }: { requirement: Requirement; onDone: (notice: string) => void; onCancel: () => void }) {
+function Edit({
+  project,
+  requirement,
+  onDone,
+  onCancel,
+}: {
+  project: Project;
+  requirement: Requirement;
+  onDone: (notice: string) => void;
+  onCancel: () => void;
+}) {
   const update = useUpdateRequirement(requirement.key);
+  const { data: types } = useTypes(project.key);
+  const { data: attributes } = useAttributes(project.key);
+  const [typeId, setTypeId] = useState<string | null>(requirement.type?.id ?? null);
+  const [values, setValues] = useState<Values>((requirement.attributes as Values) ?? {});
   const [title, setTitle] = useState(requirement.title);
   const [statement, setStatement] = useState<Doc>((requirement.statement as Doc | null) ?? emptyDoc);
   const [rationale, setRationale] = useState<Doc | null>((requirement.rationale as Doc | null) ?? null);
@@ -125,7 +151,18 @@ function Edit({ requirement, onDone, onCancel }: { requirement: Requirement; onD
     event?.preventDefault();
     setBase(over);
     const changes: RequirementChanges = { title, statement, baseRevision: over, comment };
-    if (requirement.kind === "requirement") changes.rationale = rationale && !isEmptyDoc(rationale) ? rationale : null;
+    if (requirement.kind === "requirement") {
+      changes.rationale = rationale && !isEmptyDoc(rationale) ? rationale : null;
+      if (typeId && typeId !== requirement.type?.id) changes.typeId = typeId;
+      // Only what changed is sent, so a value cleared is sent as null and the rest stay as they are.
+      const before = (requirement.attributes as Values) ?? {};
+      const changed = Object.fromEntries(
+        Object.entries(values)
+          .filter(([id, value]) => JSON.stringify(value ?? null) !== JSON.stringify(before[id] ?? null))
+          .map(([id, value]) => [id, value ?? null]),
+      );
+      if (Object.keys(changed).length > 0) changes.attributes = changed;
+    }
     update.mutate(changes, {
       onSuccess: (saved) => onDone(saved.revision > requirement.revision ? t.requirements.saved(saved.revision) : t.requirements.savedNoRevision),
     });
@@ -155,9 +192,33 @@ function Edit({ requirement, onDone, onCancel }: { requirement: Requirement; onD
           <Editor id="edit-statement" value={statement} onChange={setStatement} mentions={findPeople} aria-label={t.requirements.statement} />
         </Labelled>
         {requirement.kind === "requirement" && (
+          <Select
+            label={t.types.type}
+            value={typeId ?? ""}
+            onChange={(event) => {
+              const next = event.target.value || null;
+              setTypeId(next);
+              setValues(valuesFor(attributes ?? [], next, values));
+            }}
+            error={fields.typeId}
+            data-type-select
+          >
+            {(types ?? [])
+              .filter((type) => !type.retired || type.id === requirement.type?.id)
+              .map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+          </Select>
+        )}
+        {requirement.kind === "requirement" && (
           <Labelled id="edit-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
             <Editor id="edit-rationale" value={rationale} onChange={setRationale} mentions={findPeople} aria-label={t.requirements.rationale} />
           </Labelled>
+        )}
+        {requirement.kind === "requirement" && attributes && (
+          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
         )}
         <Field
           label={t.requirements.comment}

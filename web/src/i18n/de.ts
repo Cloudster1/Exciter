@@ -2,6 +2,7 @@ import type { Messages } from "./en";
 import { accessDe, permissionsDe } from "./permissions.de";
 import { projectsDe } from "./projects.de";
 import { editorDe, requirementsDe } from "./requirements.de";
+import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
@@ -259,6 +260,8 @@ export const de: Messages = {
   access: accessDe,
   requirements: requirementsDe,
   editor: editorDe,
+  types: typesDe,
+  attributes: attributesDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

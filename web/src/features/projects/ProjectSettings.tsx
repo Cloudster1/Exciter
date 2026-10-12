@@ -1,27 +1,57 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
-import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project } from "@/api/projects";
-import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle } from "@/components/ui";
+import { useTypes } from "@/api/attributes";
+import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
+import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
+import { AttributeList } from "@/features/types/AttributeList";
+import { TypeList } from "@/features/types/TypeList";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-/** A project's details, its key, archiving and deleting it; changing anything is its administrators'. */
+type SettingsTab = "details" | "types" | "attributes";
+
+/** A project's details, its key, its types and attributes, archiving and deleting it; changing anything is its administrators'. */
 export function ProjectSettings({ project }: { project: Project }) {
   const readOnly = !project.can.administer;
+  const [tab, setTab] = useState<SettingsTab>("details");
   return (
     <div className="mx-auto max-w-3xl space-y-6" data-project-settings={project.key}>
-      <PageHeader title={t.projects.settingsTitle} meta={t.projects.projectAndKey(project.name, project.key)} />
+      <PageHeader
+        title={t.projects.settingsTitle}
+        meta={t.projects.projectAndKey(project.name, project.key)}
+        tabs={
+          <Tabs<SettingsTab>
+            label={t.projects.settingsTitle}
+            value={tab}
+            onChange={setTab}
+            panelId="project-settings-panel"
+            tabs={[
+              { value: "details", label: t.projects.detailsTitle, attrs: { "data-tab": "details" } },
+              { value: "types", label: t.types.tab, attrs: { "data-tab": "types" } },
+              { value: "attributes", label: t.attributes.tab, attrs: { "data-tab": "attributes" } },
+            ]}
+          />
+        }
+      />
       {project.archivedAt && (
         <p role="status" className="rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-archived-notice>
           {t.projects.archivedNotice}
         </p>
       )}
       {readOnly && <p className="text-sm text-ink-muted">{t.projects.notProjectAdmin}</p>}
-      <Details key={`${project.id}-${project.updatedAt}`} project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
-      <KeySection project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
-      {!readOnly && <ArchiveSection project={project} />}
-      {!readOnly && project.archivedAt && <DeleteSection project={project} />}
+      <TabPanel id="project-settings-panel" className="space-y-6">
+        {tab === "details" && (
+          <>
+            <Details key={`${project.id}-${project.updatedAt}`} project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
+            <KeySection project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
+            {!readOnly && <ArchiveSection project={project} />}
+            {!readOnly && project.archivedAt && <DeleteSection project={project} />}
+          </>
+        )}
+        {tab === "types" && <TypeList project={project} />}
+        {tab === "attributes" && <AttributeList project={project} />}
+      </TabPanel>
     </div>
   );
 }
@@ -31,13 +61,17 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
   const [requireComment, setRequireComment] = useState(project.settings.requireRevisionComment);
+  const [defaultType, setDefaultType] = useState(project.settings.defaultTypeId ?? "");
+  const { data: types } = useTypes(project.key);
   const [notice, setNotice] = useState("");
   const fields = update.error instanceof ApiError ? update.error.fields : {};
 
   function save(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    update.mutate({ name, description, settings: { requireRevisionComment: requireComment } }, { onSuccess: () => setNotice(t.projects.saved) });
+    const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment };
+    if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
+    update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
   }
 
   return (
@@ -62,6 +96,22 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
           readOnly={readOnly}
           error={fields.description}
         />
+        <Select
+          label={t.types.defaultType}
+          hint={t.types.defaultTypeHint}
+          value={defaultType}
+          disabled={readOnly}
+          onChange={(event) => setDefaultType(event.target.value)}
+          error={fields["settings.defaultTypeId"]}
+        >
+          {(types ?? [])
+            .filter((type) => !type.retired || type.id === defaultType)
+            .map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+        </Select>
         <div>
           <Checkbox
             label={t.projects.requireComment}

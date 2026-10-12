@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { REQUIREMENT_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { TypeIcon } from "@/features/types/TypeIcon";
 
 const changedAt = localDateFormat({ dateStyle: "medium" });
 
@@ -78,6 +79,12 @@ export function RequirementList({ project }: { project: Project }) {
                       {row.title}
                     </Link>
                     {row.kind === "section" && <Tag className="ml-2 align-middle">{t.requirements.kinds.section}</Tag>}
+                    {row.type && (
+                      <span className="ml-2 inline-flex items-center gap-1 align-middle text-xs text-ink-muted" data-row-type={row.type.name}>
+                        <TypeIcon icon={row.type.icon} colour={row.type.colour} />
+                        {row.type.name}
+                      </span>
+                    )}
                   </Td>
                   <Td>
                     <span className="text-ink-muted">{row.owner?.name ?? ""}</span>

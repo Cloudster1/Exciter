@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
@@ -63,7 +64,9 @@ type Server struct {
 	// routes that they are not set up.
 	Requirements *requirement.Service
 	Search       *search.Service
-	Log          *slog.Logger
+	// Attributes keeps a project's requirement types and attributes; nil answers their routes that they are not set up.
+	Attributes *attribute.Service
+	Log        *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -202,6 +205,20 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/projects/{projectKey}/trash", s.handleEmptyRequirementTrash)
 			r.Post("/projects/{projectKey}/trash/{requirementID}/restore", s.handleRestoreRequirement)
 			r.Delete("/projects/{projectKey}/trash/{requirementID}", s.handlePurgeRequirement)
+		})
+
+		// Types and attributes: read by whoever views their project, changed by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.attributesOn)
+			r.Get("/attribute-kinds", s.handleListAttributeKinds)
+			r.Get("/projects/{projectKey}/types", s.handleListRequirementTypes)
+			r.Post("/projects/{projectKey}/types", s.handleCreateRequirementType)
+			r.Patch("/projects/{projectKey}/types/{typeID}", s.handleUpdateRequirementType)
+			r.Delete("/projects/{projectKey}/types/{typeID}", s.handleDeleteRequirementType)
+			r.Get("/projects/{projectKey}/attributes", s.handleListAttributes)
+			r.Post("/projects/{projectKey}/attributes", s.handleCreateAttribute)
+			r.Patch("/projects/{projectKey}/attributes/{attributeID}", s.handleUpdateAttribute)
+			r.Delete("/projects/{projectKey}/attributes/{attributeID}", s.handleDeleteAttribute)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

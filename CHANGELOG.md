@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirement types and attributes (#14). A project's administrators define
+  its types, each with an icon and a colour, and the attributes it records:
+  text, rich text, number, select, multi-select, date, person, yes or no and
+  web address, each showing on some types or all of them and required or
+  not. A requirement takes the project's default type unless its author picks
+  another, and its values are part of what it says, so changing one writes a
+  revision. What was ever used is retired rather than deleted, so history
+  keeps it, and renaming an option renames it everywhere.
 - Requirements (#13). An editor writes a requirement or a section with a
   title, a statement and a rationale in the shared editor, and gives it an
   owner and a priority. Its key is the project's key and its number, such as

@@ -66,7 +66,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			return err
 		}
 		where := `
-			FROM requirement r LEFT JOIN app_user o ON o.id = r.owner_id
+			FROM requirement r LEFT JOIN app_user o ON o.id = r.owner_id LEFT JOIN requirement_type t ON t.id = r.type_id
 			WHERE r.org_id = current_org_id() AND r.project_id = $2 AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + `
 			  AND (cardinality($3::text[]) = 0 OR r.kind = ANY ($3))
 			  AND (cardinality($4::uuid[]) = 0 OR r.owner_id = ANY ($4))
@@ -89,6 +89,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		}
 		rows, err := tx.Query(ctx, `
 			SELECT r.id, r.number, r.kind, r.title, r.revision, r.owner_id, COALESCE(o.name, ''), r.priority, r.updated_at,
+			       r.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.attributes,
 			       perm_project_holds(r.project_id, $1, 'edit'), perm_project_holds(r.project_id, $1, 'approve'),
 			       perm_project_holds(r.project_id, $1, 'comment')`+where+`
 			ORDER BY r.number LIMIT $6 OFFSET $7`, append(args, limit, offset)...)
@@ -103,8 +104,15 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 				ownerName             string
 				priority              *string
 				edit, approve, remark bool
+				typeID                *uuid.UUID
+				typ                   requirement.TypeRef
+				attrs                 []byte
 			)
-			err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &ownerID, &ownerName, &priority, &r.UpdatedAt, &edit, &approve, &remark)
+			err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &ownerID, &ownerName, &priority, &r.UpdatedAt,
+				&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &edit, &approve, &remark)
+			if err != nil {
+				return r, err
+			}
 			r.ProjectKey = p.Key
 			r.Key = requirement.Key(p.Key, number)
 			if ownerID != nil {
@@ -115,9 +123,15 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 				r.Priority = &pr
 			}
 			r.Labels = []string{}
-			r.Attributes = map[string]json.RawMessage{}
+			if typeID != nil {
+				typ.ID = *typeID
+				r.Type = &typ
+			}
+			if err := json.Unmarshal(attrs, &r.Attributes); err != nil {
+				return r, fmt.Errorf("read the attributes of %s: %w", r.Key, err)
+			}
 			r.Can = requirement.Can{Edit: edit, Transition: edit || approve, Delete: edit, Link: edit, Comment: remark}
-			return r, err
+			return r, nil
 		})
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil

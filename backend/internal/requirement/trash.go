@@ -1,0 +1,189 @@
+package requirement
+
+import (
+	"context"
+	"fmt"
+	"slices"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
+)
+
+// trashedNote is how the activity log words a requirement going to the trash and coming back.
+const (
+	trashedNote  = "trashed"
+	restoredNote = "restored"
+)
+
+// Trash moves a requirement to its project's trash; one already there stays as it is.
+func (s *Service) Trash(ctx context.Context, actor uuid.UUID, key string) (db.LSN, error) {
+	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		cur, err := changing(ctx, tx, actor, key)
+		if err != nil || cur.TrashedAt != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE requirement SET trashed_at = now(), trashed_by = $2, trash_id = id, updated_by = $2 WHERE id = $1`, cur.ID, actor); err != nil {
+			return fmt.Errorf("trash %s: %w", cur.Key, err)
+		}
+		if err := logChange(ctx, tx, actor, cur.ID, ChangeTrash, "", trashedNote); err != nil {
+			return err
+		}
+		return events.Emit(ctx, tx, TopicTrashed, map[string]any{"actorId": actor, "requirementId": cur.ID})
+	})
+}
+
+// trashOf reads a project for its trash, which its editors open and its administrators empty.
+func trashOf(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectKey string, purge bool) (*project.Project, error) {
+	p, err := project.Find(ctx, tx, actor, projectKey)
+	switch {
+	case err != nil:
+		return nil, err
+	case p.ArchivedAt != nil:
+		return nil, project.ErrArchived
+	case purge && !p.Can.Administer:
+		return nil, ErrNotAdministrator
+	case !p.Can.Edit:
+		return nil, ErrForbidden
+	}
+	return p, nil
+}
+
+// TrashItems lists what went to a project's trash, the latest first, each with what went with it.
+func (s *Service) TrashItems(ctx context.Context, actor uuid.UUID, projectKey string) ([]TrashItem, error) {
+	out := []TrashItem{}
+	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+		p, err := trashOf(ctx, tx, actor, projectKey, false)
+		if err != nil {
+			return err
+		}
+		rows, err := tx.Query(ctx, `
+			SELECT r.id, r.number, r.kind, r.title, r.trashed_at, COALESCE(u.name, ''),
+			       (SELECT count(*)::int FROM requirement x WHERE x.org_id = r.org_id AND x.trash_id = r.id)
+			FROM requirement r LEFT JOIN app_user u ON u.id = r.trashed_by
+			WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trash_id = r.id
+			ORDER BY r.trashed_at DESC, r.number DESC`, p.ID)
+		if err != nil {
+			return err
+		}
+		items, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (TrashItem, error) {
+			var (
+				item   TrashItem
+				number int
+			)
+			err := row.Scan(&item.ID, &number, &item.Kind, &item.Title, &item.TrashedAt, &item.TrashedByName, &item.Requirements)
+			item.Key = Key(p.Key, number)
+			// Without a tree (#15) every requirement goes back to the top, where it was.
+			item.ParentInTree = true
+			return item, err
+		})
+		if items != nil {
+			out = items
+		}
+		return err
+	})
+	return out, err
+}
+
+// Restore puts a trashed requirement, and what went with it, back.
+func (s *Service) Restore(ctx context.Context, actor uuid.UUID, projectKey string, id uuid.UUID) (*Requirement, db.LSN, error) {
+	var out *Requirement
+	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		p, err := trashOf(ctx, tx, actor, projectKey, false)
+		if err != nil {
+			return err
+		}
+		rows, err := tx.Query(ctx, `
+			UPDATE requirement SET trashed_at = NULL, trashed_by = NULL, trash_id = NULL, updated_by = $3
+			WHERE org_id = current_org_id() AND project_id = $1 AND trash_id = $2 RETURNING id`, p.ID, id, actor)
+		if err != nil {
+			return err
+		}
+		restored, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+		if err != nil {
+			return err
+		}
+		if len(restored) == 0 {
+			return ErrNotFound
+		}
+		for _, each := range restored {
+			if err := logChange(ctx, tx, actor, each, ChangeTrash, trashedNote, restoredNote); err != nil {
+				return err
+			}
+			if err := events.Emit(ctx, tx, TopicRestored, map[string]any{"actorId": actor, "requirementId": each}); err != nil {
+				return err
+			}
+		}
+		l, err := findByID(ctx, tx, actor, id)
+		if err == nil {
+			out = &l.Requirement
+		}
+		return err
+	})
+	return out, lsn, err
+}
+
+// Purge deletes a trashed requirement, what went with it and their history for good.
+func (s *Service) Purge(ctx context.Context, actor uuid.UUID, projectKey string, id uuid.UUID) (db.LSN, error) {
+	return s.purge(ctx, actor, projectKey, &id)
+}
+
+// EmptyTrash deletes everything in a project's trash for good.
+func (s *Service) EmptyTrash(ctx context.Context, actor uuid.UUID, projectKey string) (db.LSN, error) {
+	return s.purge(ctx, actor, projectKey, nil)
+}
+
+// purge deletes one item of the trash, or all of it when item is nil, and keeps in the audit log which keys
+// went, since their history goes with them.
+func (s *Service) purge(ctx context.Context, actor uuid.UUID, projectKey string, item *uuid.UUID) (db.LSN, error) {
+	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		p, err := trashOf(ctx, tx, actor, projectKey, true)
+		if err != nil {
+			return err
+		}
+		// What went with a root goes by the cascade on trash_id; the count is taken first, to say it.
+		var gone int
+		if err := tx.QueryRow(ctx, `
+			SELECT count(*)::int FROM requirement x JOIN requirement r ON r.org_id = x.org_id AND r.id = x.trash_id
+			WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trash_id = r.id AND ($2::uuid IS NULL OR r.id = $2)`,
+			p.ID, item).Scan(&gone); err != nil {
+			return err
+		}
+		rows, err := tx.Query(ctx, `
+			DELETE FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND trash_id = id AND ($2::uuid IS NULL OR id = $2)
+			RETURNING number`, p.ID, item)
+		if err != nil {
+			return err
+		}
+		numbers, err := pgx.CollectRows(rows, pgx.RowTo[int])
+		if err != nil {
+			return err
+		}
+		if item != nil && len(numbers) == 0 {
+			return ErrNotFound
+		}
+		slices.Sort(numbers)
+		keys := make([]string, 0, len(numbers))
+		for _, n := range numbers {
+			keys = append(keys, Key(p.Key, n))
+		}
+		org, err := tenant.MustFromContext(ctx)
+		if err != nil {
+			return err
+		}
+		action := audit.ActionTrashEmptied
+		target := p.ID
+		targetType := "project"
+		if item != nil {
+			action, target, targetType = audit.ActionRequirementPurged, *item, "requirement"
+		}
+		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: targetType, TargetID: &target, Actor: actor,
+			Data: map[string]any{"project": p.Key, "keys": keys, "requirements": gone}})
+	})
+}
