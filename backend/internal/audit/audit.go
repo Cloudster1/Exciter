@@ -44,6 +44,9 @@ const (
 	ActionProjectDeleted    = "project.deleted"
 	// ActionProjectGrantsChanged keeps a project's grants before and after.
 	ActionProjectGrantsChanged = "project.grants_changed"
+	// ActionRequirementPurged and ActionTrashEmptied keep which keys went for good, since their history goes too.
+	ActionRequirementPurged = "requirement.purged"
+	ActionTrashEmptied      = "trash.emptied"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -52,7 +55,7 @@ var Actions = []string{
 	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
-	ActionProjectDeleted, ActionProjectGrantsChanged,
+	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

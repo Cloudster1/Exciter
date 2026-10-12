@@ -15,8 +15,10 @@ const (
 	MaxCommentLength = 500
 	// MaxDocumentBytes bounds a statement, a rationale or a rich text attribute.
 	MaxDocumentBytes = 1 << 20
-	DefaultLimit     = 20
-	MaxLimit         = 100
+	// MaxBodyBytes bounds a request that writes one: a statement and a rationale, and room for the rest.
+	MaxBodyBytes = 2*MaxDocumentBytes + 1<<16
+	DefaultLimit = 20
+	MaxLimit     = 100
 	// MaxSpecLimit bounds one window of the specification view.
 	MaxSpecLimit = 200
 	// MaxCopy bounds the requirements one copy makes, children included.

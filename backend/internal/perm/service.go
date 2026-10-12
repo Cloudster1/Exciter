@@ -313,3 +313,9 @@ func (s *Service) Groups(ctx context.Context, q string, limit int) ([]Group, err
 	})
 	return out, err
 }
+
+// ViewableRequirement is the SQL condition every query that lists requirements narrows itself with, so a count
+// counts only what the actor, bound as parameter $actorParam, may read of the requirements aliased alias.
+func ViewableRequirement(alias string, actorParam int) string {
+	return fmt.Sprintf("perm_requirement_viewable(%s.id, $%d::uuid)", alias, actorParam)
+}

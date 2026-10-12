@@ -114,7 +114,9 @@ func (s *Service) List(ctx context.Context, reader uuid.UUID, archived bool) ([]
 	return out, err
 }
 
-func readOne(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*Project, error) {
+// Find reads, in the caller's transaction, the project reader may view by its key or a key it had; ErrNotFound
+// when there is none they may view.
+func Find(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*Project, error) {
 	p, err := scan(tx.QueryRow(ctx, selectProjects+byKey, reader, NormalizeKey(key)))
 	if err != nil {
 		return nil, err
@@ -129,7 +131,7 @@ func readOne(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*Pr
 func (s *Service) Get(ctx context.Context, reader uuid.UUID, key string) (*Project, error) {
 	var out *Project
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		p, err := readOne(ctx, tx, reader, key)
+		p, err := Find(ctx, tx, reader, key)
 		out = p
 		return err
 	})
@@ -258,7 +260,7 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 		if err != nil {
 			return err
 		}
-		if out, err = readOne(ctx, tx, reader, key); err != nil {
+		if out, err = Find(ctx, tx, reader, key); err != nil {
 			return err
 		}
 		return s.note(ctx, tx, reader, audit.ActionProjectCreated, out, map[string]any{"key": key, "name": name})
@@ -278,7 +280,7 @@ func (s *Service) note(ctx context.Context, tx db.DBTX, actor uuid.UUID, action 
 // administered reads a project for a change only its administrators make; an archived one refuses all but
 // unarchiving and deleting, which say so with keepArchived.
 func administered(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string, keepArchived bool) (*Project, error) {
-	p, err := readOne(ctx, tx, reader, key)
+	p, err := Find(ctx, tx, reader, key)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +329,7 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			p.ID, name, description, raw); err != nil {
 			return err
 		}
-		out, err = readOne(ctx, tx, reader, p.Key)
+		out, err = Find(ctx, tx, reader, p.Key)
 		return err
 	})
 	return out, lsn, err
@@ -356,7 +358,7 @@ func (s *Service) ChangeKey(ctx context.Context, reader uuid.UUID, key, newKey s
 		if err != nil {
 			return err
 		}
-		if out, err = readOne(ctx, tx, reader, next); err != nil {
+		if out, err = Find(ctx, tx, reader, next); err != nil {
 			return err
 		}
 		if err := events.Emit(ctx, tx, TopicKeyChanged, map[string]any{
@@ -391,7 +393,7 @@ func (s *Service) SetArchived(ctx context.Context, reader uuid.UUID, key string,
 		if err != nil {
 			return err
 		}
-		if out, err = readOne(ctx, tx, reader, p.Key); err != nil {
+		if out, err = Find(ctx, tx, reader, p.Key); err != nil {
 			return err
 		}
 		return s.note(ctx, tx, reader, action, out, map[string]any{"key": p.Key})

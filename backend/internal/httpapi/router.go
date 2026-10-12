@@ -18,6 +18,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -57,7 +59,11 @@ type Server struct {
 	// Perms keeps who may do what in a project, and names people and groups to pick; nil answers its routes
 	// that it is not set up.
 	Perms *perm.Service
-	Log   *slog.Logger
+	// Requirements keeps requirements, their revisions and trash, and Search lists them; nil answers their
+	// routes that they are not set up.
+	Requirements *requirement.Service
+	Search       *search.Service
+	Log          *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -181,6 +187,21 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(s.permsOn).Get("/projects/{projectKey}/grants", s.handleListProjectGrants)
 			r.With(s.permsOn).Put("/projects/{projectKey}/grants", s.handleSetProjectGrants)
 			r.With(s.permsOn).Get("/projects/{projectKey}/access/{userID}", s.handleInspectProjectAccess)
+		})
+
+		// Requirements: read by whoever views their project, written by its editors, purged by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.requirementsOn)
+			r.Post("/projects/{projectKey}/requirements", s.handleCreateRequirement)
+			r.Get("/projects/{projectKey}/requirements", s.handleListGrid)
+			r.Get("/requirements/by-id/{requirementID}", s.handleGetRequirementByID)
+			r.Get("/requirements/{reqKey}", s.handleGetRequirement)
+			r.Patch("/requirements/{reqKey}", s.handleUpdateRequirement)
+			r.Delete("/requirements/{reqKey}", s.handleTrashRequirement)
+			r.Get("/projects/{projectKey}/trash", s.handleListRequirementTrash)
+			r.Delete("/projects/{projectKey}/trash", s.handleEmptyRequirementTrash)
+			r.Post("/projects/{projectKey}/trash/{requirementID}/restore", s.handleRestoreRequirement)
+			r.Delete("/projects/{projectKey}/trash/{requirementID}", s.handlePurgeRequirement)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

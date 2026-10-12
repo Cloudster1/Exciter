@@ -129,3 +129,16 @@ export const KEY_SUGGEST_DEBOUNCE_MS = 300;
 /** How many people or groups a picker offers at once, and how long typing rests before it asks; the server's perm.DefaultPickerLimit. */
 export const PICKER_LIMIT = 20;
 export const PICKER_DEBOUNCE_MS = 200;
+
+/** The heading levels the editor offers; the server's document.MaxHeadingLevel is the deepest. */
+export const EDITOR_HEADING_LEVELS = [1, 2, 3] as const;
+/** How many people an at sign offers at once. */
+export const MENTION_LIMIT = 8;
+/** The size of a table the toolbar inserts. */
+export const NEW_TABLE_ROWS = 3;
+export const NEW_TABLE_COLUMNS = 3;
+/** How many requirements a page of the list shows; the server's search.MaxGridLimit is the most it gives. */
+export const REQUIREMENT_PAGE_SIZE = 50;
+/** The longest title and comment the server takes, its requirement.MaxTitleLength and MaxCommentLength. */
+export const REQUIREMENT_TITLE_MAX_LENGTH = 300;
+export const REVISION_COMMENT_MAX_LENGTH = 500;

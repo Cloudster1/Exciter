@@ -3,6 +3,7 @@ import type { OrgRole } from "@/api/auth";
 import type { Language } from "./index";
 import { accessEn, permissionsEn } from "./permissions.en";
 import { projectsEn } from "./projects.en";
+import { editorEn, requirementsEn } from "./requirements.en";
 import { themesEn } from "./themes.en";
 
 /** The English strings, and the shape every other language has to fill. */
@@ -235,6 +236,8 @@ export const en = {
       "project.unarchived": "Project unarchived",
       "project.deleted": "Project deleted",
       "project.grants_changed": "Project permissions changed",
+      "requirement.purged": "Requirement deleted for good",
+      "trash.emptied": "Trash emptied",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -244,11 +247,14 @@ export const en = {
       group_role: "Group role",
       theme: "Theme",
       project: "Project",
+      requirement: "Requirement",
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
   permissions: permissionsEn,
   access: accessEn,
+  requirements: requirementsEn,
+  editor: editorEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

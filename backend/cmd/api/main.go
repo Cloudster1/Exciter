@@ -27,6 +27,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/seed"
 	"github.com/cloudster1/exciter/backend/internal/testorg"
@@ -131,6 +133,8 @@ func run() error {
 		Themes:          theme.NewService(cluster, store),
 		Projects:        project.NewService(cluster),
 		Perms:           perm.NewService(cluster),
+		Requirements:    requirement.NewService(cluster),
+		Search:          search.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

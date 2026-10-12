@@ -44,6 +44,8 @@ at 73d72dd. Where Exciter departs from them it says so, and
   `orderedList`, `listItem`, `blockquote`, `codeBlock`, `horizontalRule`,
   `table`, `tableRow`, `tableHeader`, `tableCell`, `text`, `hardBreak` and
   `mention`, with the marks `bold`, `italic`, `strike`, `code` and `link`.
+  `api/document-allowlist.json` is the table as `make openapi` writes it,
+  which the web editor's test holds its schema to.
   #21 adds `image` and `attachment`. The marks `diffInsert` and `diffDelete`
   exist only in comparisons (#16), and the allowlist refuses them in a save.
 - **Normative content** is a requirement's title, statement, rationale, type
@@ -348,8 +350,24 @@ New audit actions: `project.created`, `project.key_changed`,
   number.
 - **The editor** is a slimmed port of Stator's `Editor`, `Toolbar`, `DocView`
   and `MentionList`, with the allowlist above. A vitest test holds the
-  client's node and mark list equal to the server's.
-- UI: `/p/$projectKey/r/$reqKey` shows the statement, rationale, attributes,
+  client's node and mark list equal to the server's, attributes included,
+  which is why table cells take Tiptap's `align` (left, center, right).
+- **Numbers** are handed out by a trigger on `requirement`, whatever an insert
+  says, so even a write straight through SQL takes the next one.
+- **A trashed requirement** changes only by its restore: a `PATCH` is 409
+  `requirement_trashed`, "This requirement is in the trash. Restore it from
+  the project's trash to change it."
+- **`requireRevisionComment`** asks for a comment on every revision after the
+  first; revision 1 is the requirement's writing.
+- **Until the later issues land**, `typeId` and `attributes` are 422 (#14),
+  `labels` is 422 (#19), `place` is 422 and a new requirement goes last at the
+  top (#15), and `status` is null (#17). `GET
+  /projects/{projectKey}/requirements` is built here, in key order and paged,
+  narrowed by `kind`, `owner` and `priority`; its other parameters are 422
+  until #20 builds them. Its tool is `list_requirements`.
+- UI: `/p/$projectKey` lists the requirements and is where a new project
+  opens, `/p/$projectKey/new` writes one, and `/p/$projectKey/trash` holds the
+  trash. `/p/$projectKey/r/$reqKey` shows the statement, rationale, attributes,
   status, owner, priority, labels, links and files, edited in place.
 
 ## #14 Types and attributes

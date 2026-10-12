@@ -139,6 +139,15 @@ Adapted from Stator at cf0f6f7, for projects (#11):
   with the key asked of the server, key changes, and archiving in place of
   personal spaces, templates and guests
 
+Adapted from Stator at cf0f6f7, for requirements (#13):
+- backend/internal/document: validate.go, allowlist.go and text.go, cut to
+  the nodes and marks a requirement says, and cmd/docallowlist
+- backend/migrations/00120_requirements.sql: the revision sequence trigger of
+  00070_versions.sql and the trash columns of 00022_trash.sql, on requirements
+- web/src/features/editor Editor, MentionList, DocView and schema.ts, and
+  web/src/test/allowlist.ts: features/editor's, slimmed to the allowlist's
+  nodes and marks
+
 Adapted from Stator at cf0f6f7, for permissions (#12):
 - backend/internal/perm/service.go and inspect.go: the subject columns,
   subject resolution, pickers and the access inspector's layout of

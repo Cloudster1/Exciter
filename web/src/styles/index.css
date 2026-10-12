@@ -302,6 +302,109 @@
   background: radial-gradient(120% 80% at 20% 0%, var(--color-backdrop-from), var(--color-backdrop-to));
 }
 
+/* A requirement's statement and rationale, in the editor and read-only alike, as Stator draws a page's document.
+ * Every colour is a theme role, so a custom theme recolours it without knowing it exists. */
+@layer components {
+  .doc-content {
+    line-height: var(--text-base--line-height);
+    overflow-wrap: anywhere;
+  }
+  .doc-content > * + *,
+  .doc-content :is(li, blockquote, td, th) > * + * {
+    margin-top: 0.5rem;
+  }
+  .doc-content :is(h1, h2, h3) {
+    font-weight: 600;
+  }
+  .doc-content h1 {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    margin-top: 1.25rem;
+  }
+  .doc-content h2 {
+    font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
+    margin-top: 1rem;
+  }
+  .doc-content h3 {
+    font-size: var(--text-base);
+    margin-top: 0.75rem;
+  }
+  .doc-content > :first-child {
+    margin-top: 0;
+  }
+  .doc-content ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+  }
+  .doc-content ol {
+    list-style: decimal;
+    padding-left: 1.5rem;
+  }
+  .doc-content blockquote {
+    border-left: 2px solid var(--color-border-strong);
+    padding-left: 0.75rem;
+    color: var(--color-ink-muted);
+  }
+  .doc-content a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .doc-content hr {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    margin-block: 1rem;
+  }
+  .doc-content :not(pre) > code {
+    border-radius: var(--radius-control);
+    background: var(--color-surface-sunken);
+    padding: 0 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  .doc-content pre {
+    border-radius: var(--radius-control);
+    background: var(--color-surface-sunken);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    overflow-x: auto;
+  }
+  .doc-content .tableWrapper,
+  .doc-content .doc-table-wrap {
+    overflow-x: auto;
+  }
+  .doc-content table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .doc-content :is(td, th) {
+    border: 1px solid var(--color-border);
+    padding: 0.25rem 0.5rem;
+    vertical-align: top;
+    text-align: left;
+  }
+  .doc-content th {
+    background: var(--color-surface-raised);
+    font-weight: 600;
+  }
+  .doc-content .mention {
+    border-radius: var(--radius-control);
+    background: var(--color-accent-subtle);
+    padding: 0 0.2rem;
+    color: var(--color-accent);
+  }
+  .doc-content .ProseMirror-selectednode {
+    outline: 2px solid var(--color-focus);
+  }
+  /* The editing surface: a field's frame around the document, tall enough to write in. */
+  .doc-editor {
+    min-height: 6rem;
+    outline: none;
+  }
+}
+
 /* Print: the chrome goes and colours are kept, so a printed page looks like the one on screen. */
 @media print {
   [data-print-hide] {

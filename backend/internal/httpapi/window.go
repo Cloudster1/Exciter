@@ -34,6 +34,23 @@ func queryLimit(r *http.Request, defaultLimit, maxLimit int) (int, *APIError) {
 	return n, nil
 }
 
+// offsetWindow reads a list's window by count: how many, up to maxLimit, and how many to pass over first.
+func offsetWindow(r *http.Request, defaultLimit, maxLimit int) (int, int, *APIError) {
+	limit, apiErr := queryLimit(r, defaultLimit, maxLimit)
+	if apiErr != nil {
+		return 0, 0, apiErr
+	}
+	offset := 0
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 0 {
+			return 0, 0, ErrValidation(map[string]string{"offset": "Start at 0 or later."})
+		}
+		offset = n
+	}
+	return limit, offset, nil
+}
+
 // download says the answer is a file to save, never to run or show in place.
 func download(w http.ResponseWriter, contentType, name string) {
 	h := w.Header()

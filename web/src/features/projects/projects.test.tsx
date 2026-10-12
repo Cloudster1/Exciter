@@ -47,13 +47,14 @@ describe("a new project", () => {
       },
       "POST /projects": { status: 201, body: { project: aProject({ key: "CS2", name: "Checkout service" }) } },
       "GET /projects/CS2": { status: 200, body: { project: aProject({ key: "CS2", name: "Checkout service" }) } },
+      "GET /projects/CS2/requirements": { status: 200, body: { rows: [], total: 0, limit: 50, offset: 0 } },
     });
     const router = await renderAt(NEW_PROJECT_PATH);
     await userEvent.type(await screen.findByLabelText("Name"), "Checkout service");
     await waitFor(() => expect(screen.getByLabelText("Key")).toHaveValue("CS2"));
     await userEvent.click(screen.getByRole("button", { name: "Create project" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CS2/settings"));
-    await arrival(router, "/p/CS2/settings");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CS2"));
+    await arrival(router, "/p/CS2");
     expect(sent.find((r) => r.method === "POST")?.body).toEqual({ name: "Checkout service", key: "CS2", description: "" });
   });
 
@@ -165,6 +166,7 @@ describe("the sidebar inside a project", () => {
       "GET /projects": { status: 200, body: { projects: [billing, checkout] } },
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
       "GET /projects/BIL": { status: 200, body: { project: billing } },
+      "GET /projects/BIL/requirements": { status: 200, body: { rows: [], total: 0, limit: 50, offset: 0 } },
     });
     const router = await renderAt("/p/CHK/settings");
     const nav = await waitFor(() => {
@@ -175,7 +177,7 @@ describe("the sidebar inside a project", () => {
     expect(within(nav).getByRole("link", { name: "Project settings" })).toHaveAttribute("href", "/p/CHK/settings");
     await userEvent.click(within(nav).getByRole("button", { name: /Switch project/ }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Billing (BIL)" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/BIL/settings"));
-    await arrival(router, "/p/BIL/settings");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/p/BIL"));
+    await arrival(router, "/p/BIL");
   });
 });

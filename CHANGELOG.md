@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements (#13). An editor writes a requirement or a section with a
+  title, a statement and a rationale in the shared editor, and gives it an
+  owner and a priority. Its key is the project's key and its number, such as
+  `CHK-R42`, and numbers are never handed out twice. A save that changes what
+  it says writes the next revision, made over the revision it was opened at;
+  a save over a revision somebody else saved first is refused and keeps the
+  draft to save again over theirs. Owner and priority changes are logged
+  without a revision. Deleted requirements wait in the project's trash until
+  an editor restores them or an administrator deletes them for good. Old
+  keys, after a project's key changes, still find their requirements, and
+  `/r/<id>` is a permalink that never breaks. A project now opens on its
+  requirements.
 - Project roles (#12). A project's administrators give people, groups and
   everyone the role viewer, reviewer, editor or admin under
   `/p/<key>/permissions`, and roles add up: an editor through a group who is
