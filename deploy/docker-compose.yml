@@ -1,0 +1,154 @@
+# The development and test stack. Run it through make (mk/stack.mk), which names the project and picks the host
+# ports from the checkout's path; the defaults below are what a bare `docker compose` gets.
+name: exciter
+
+x-db-env: &db-env
+  POSTGRES_USER: exciter
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-exciter}
+  POSTGRES_DB: exciter
+
+services:
+  postgres-primary:
+    image: postgres:18-alpine
+    environment:
+      <<: *db-env
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-exciter_app}
+      ADMIN_DB_PASSWORD: ${ADMIN_DB_PASSWORD:-exciter_admin}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator}
+      # scram-sha-256 for replication connections as well as client ones.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      - -c
+      - hot_standby=on
+      # Surfaces the standby's replay position on the primary, which the api's replica health check reads.
+      - -c
+      - track_commit_timestamp=on
+      # A commit does not wait for its WAL to reach the disk, which on a busy host took longer than the browser
+      # suite waits; a crash loses under a second of writes, never consistency. Never in a deployment.
+      - -c
+      - synchronous_commit=off
+    volumes:
+      - primary-data:/var/lib/postgresql/18/docker
+      - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      # Over TCP on purpose: the first-boot server listens on the socket only, so this passes once init has run.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U exciter -d exciter"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+      start_interval: 1s
+
+  # A genuine streaming replica rather than a second database: read routing and the replica health checks only
+  # mean something against real replication.
+  postgres-replica:
+    image: postgres:18-alpine
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      <<: *db-env
+      PRIMARY_HOST: postgres-primary
+      REPLICATION_USER: replicator
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator}
+      REPLICATION_SLOT: exciter_replica_1
+    entrypoint: ["/usr/local/bin/replica-entrypoint.sh"]
+    volumes:
+      - replica-data:/var/lib/postgresql/18/docker
+      - ./postgres/replica-entrypoint.sh:/usr/local/bin/replica-entrypoint.sh:ro
+    ports:
+      - "127.0.0.1:${POSTGRES_REPLICA_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U exciter -d exciter"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+      start_interval: 1s
+
+  # Valkey, the BSD licensed fork of Redis: read-your-writes positions, the outbox stream, caches of Armature and
+  # Stator answers and the webhook replay window.
+  valkey:
+    image: valkey/valkey:8-alpine
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:-exciter_valkey}
+    command: ["valkey-server", "--appendonly", "yes", "--requirepass", "${VALKEY_PASSWORD:-exciter_valkey}"]
+    volumes:
+      - valkey-data:/data
+    ports:
+      - "127.0.0.1:${VALKEY_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a $$VALKEY_PASSWORD --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+      start_interval: 1s
+
+  # Catches every outbound mail; nothing ever leaves the host. The image carries its own health check.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8025}:8025"
+
+  # S3 compatible attachment storage, so the storage code path is the same in development and production. Given
+  # these two variables it refuses unsigned requests, so there is no credentials file to keep in step.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-master.volumeSizeLimitMB=256"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-exciter}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-exciter-dev-secret}
+    volumes:
+      - seaweedfs-data:/data
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    healthcheck:
+      # The master says the cluster is up; a 403 to an unsigned request proves the S3 port is listening.
+      test: ["CMD", "sh", "-c", "curl -fsS http://localhost:9333/cluster/healthz >/dev/null && curl -s -o /dev/null http://localhost:8333/"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+      start_interval: 1s
+
+  # The identity provider, with one realm for Exciter, Armature and Stator so a person is one subject in all three.
+  # The realm is imported afresh on every start; the browser uses the published port, containers keycloak:8080.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:-admin}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
+    healthcheck:
+      # The image has no curl; bash can open a socket to the management port.
+      test:
+        - CMD-SHELL
+        - 'exec 3<>/dev/tcp/127.0.0.1/9000; printf ''GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n'' >&3; grep -q UP <&3'
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+      start_interval: 2s
+
+volumes:
+  primary-data:
+  replica-data:
+  valkey-data:
+  seaweedfs-data:

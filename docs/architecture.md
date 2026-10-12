@@ -94,4 +94,19 @@ jobs cover them all.
 
 ## Deployment
 
-Docker Compose for development (#2); a Helm chart follows the first release.
+Docker Compose for development (`deploy/docker-compose.yml`, run through
+`mk/stack.mk`, #2); a Helm chart follows the first release.
+
+- Every checkout gets a compose project `exciter-<hash of its path>` and a
+  slot of twenty host ports from `scripts/stack-ports.sh`, all bound to
+  `127.0.0.1`: web +0, api +1, Keycloak +2, Mailpit +3, Postgres +4, its
+  replica +5, Valkey +6, S3 +7, `armature-stub` +8, `stator-stub` +9.
+- Postgres runs as a primary with a genuine streaming replica. The init script
+  creates `exciter_app`, bound by every row level security policy,
+  `exciter_admin`, exempt by policy rather than as superuser, and the
+  replication role.
+- Keycloak imports `deploy/keycloak/realm.json` on every start: realm
+  `suite-dev` with clients `exciter`, `armature` and `stator` (PKCE, a
+  `groups` claim) and the development people.
+- The services of the product join the file with the issues that build them:
+  `migrate`, `seed` and `api` (#3), `worker` (#4), `web` (#6).

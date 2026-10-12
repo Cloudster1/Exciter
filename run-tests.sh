@@ -31,7 +31,8 @@ has_target() { [[ -f Makefile ]] && make -n "$1" >/dev/null 2>&1; }
 
 # Chained rather than relying on set -e, which a call from run_layer turns off.
 shell_tests() {
-  ./tests/test-release.sh && ./tests/test-ci.sh && ./.claude/hooks/tests/branch-guard-test.sh
+  ./tests/test-release.sh && ./tests/test-ci.sh && ./tests/test-ports.sh && ./tests/test-stack.sh \
+    && ./.claude/hooks/tests/branch-guard-test.sh
 }
 
 rm -rf "$REPORTS"
@@ -71,9 +72,10 @@ for layer in check-format check-go check-web; do
   fi
 done
 
+# The stack starts only for a layer that exists, so a gate with no stack layer yet never waits for one.
 needs_stack=""
 for layer in "${STACK_LAYERS[@]}"; do
-  wanted "$layer" && needs_stack=1
+  if wanted "$layer" && has_target "$layer"; then needs_stack=1; fi
 done
 
 if [[ -n "$needs_stack" ]] && has_target stack-up; then
