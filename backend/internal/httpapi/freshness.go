@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
@@ -62,9 +64,12 @@ func (s *Server) readYourWrites(next http.Handler) http.Handler {
 	})
 }
 
-// freshnessKey is the client cookie, minted for a request that may write; a read
-// with none has no write to respect. Sessions and tokens key their own with #5.
+// freshnessKey is the session, else the client cookie, minted for a request that
+// may write; a read with neither has no write to respect.
 func (s *Server) freshnessKey(w http.ResponseWriter, r *http.Request) string {
+	if p := PrincipalFrom(r.Context()); p != nil && p.SessionID != nil {
+		return sessionFreshnessKey(*p.SessionID)
+	}
 	if c, err := r.Cookie(ClientCookie); err == nil && validClientID(c.Value) {
 		return "c:" + c.Value
 	}
@@ -77,6 +82,9 @@ func (s *Server) freshnessKey(w http.ResponseWriter, r *http.Request) string {
 	http.SetCookie(w, &http.Cookie{Name: ClientCookie, Value: id, Path: "/", HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
 	return "c:" + id
 }
+
+// sessionFreshnessKey is where a session's writes are remembered.
+func sessionFreshnessKey(id uuid.UUID) string { return "s:" + id.String() }
 
 // validClientID accepts only what freshnessKey hands out, so a cookie cannot
 // put arbitrary keys in the store.

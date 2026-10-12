@@ -185,6 +185,9 @@ services:
         condition: service_completed_successfully
     environment:
       <<: *app-db-env
+      # A way in before single sign-on: the demo organization's owner, for development only.
+      EXCITER_BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@exciter.test}
+      EXCITER_BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-exciter admin password}
     restart: "no"
 
   api:

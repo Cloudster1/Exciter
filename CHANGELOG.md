@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Organizations, members and password sessions (#5). `POST /auth/login` signs
+  a local account in with an argon2id password and sets an http-only session
+  cookie; `/auth/me`, `/auth/switch-org` and `/auth/logout` follow it. An
+  administrator lists, adds, re-roles (admin, member, guest) and removes
+  members, each act in the audit log, which administrators now read, filter
+  and export through `/audit`. `seed bootstrap` makes the first organization
+  and its owner; `make up` signs in as `admin@exciter.test`.
 - The outbox, the worker and the audit log (#4). A change and the event it
   causes commit together or not at all; the worker drains the outbox, any
   number of copies at once, retries a failing event a little later each time

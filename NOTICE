@@ -42,3 +42,7 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   its worker, the audit log and its retention, with no topics yet, the given
   up event recorded in the audit log, and the log's readers checked against
   org_member until the permission functions arrive
+- backend/internal/auth and the auth, member and audit handlers, with
+  migration 00012 from Stator's 00012: passwords, sessions and members,
+  without tokens, guests' spaces, groups and join requests, and with a role
+  change, admin-only membership policies and a last-owner trigger added

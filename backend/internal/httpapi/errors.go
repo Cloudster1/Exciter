@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
@@ -103,6 +104,40 @@ func toAPIError(err error) *APIError {
 		return apiErr
 	case errors.Is(err, tenant.ErrNoTenant):
 		return &APIError{Status: http.StatusBadRequest, Code: "no_organization", Message: "Select an organization first."}
+	case errors.Is(err, auth.ErrInvalidToken):
+		return ErrUnauthorized("Your session has expired. Sign in again.")
+	case errors.Is(err, auth.ErrInvalidCredentials):
+		return &APIError{Status: http.StatusUnauthorized, Code: "invalid_credentials",
+			Message: "That email and password do not match an account. Check both and try again, or sign in through your organization's provider."}
+	case errors.Is(err, auth.ErrUserInactive):
+		return &APIError{Status: http.StatusForbidden, Code: "account_inactive",
+			Message: "This account has been deactivated. Ask an administrator of your organization to turn it back on."}
+	case errors.Is(err, auth.ErrNotAMember):
+		return &APIError{Status: http.StatusForbidden, Code: "not_a_member",
+			Message: "You are not a member of that organization. Check its name, or ask one of its administrators to let you in."}
+	case errors.Is(err, auth.ErrSessionStaysHome):
+		return &APIError{Status: http.StatusForbidden, Code: "session_stays_home",
+			Message: "Your sign-in does not reach that organization. Sign in there through its own sign-in page."}
+	case errors.Is(err, auth.ErrBadLocale):
+		return ErrValidation(map[string]string{"locale": "Choose English, German, or the language of your browser."})
+	case errors.Is(err, auth.ErrNoSuchMember):
+		return ErrNotFound("That person is not a member here. Reload the list; somebody may have removed them already.")
+	case errors.Is(err, auth.ErrOwnerStays):
+		return ErrConflict("The owner of an organization stays its owner. Change somebody else, or ask the owner.")
+	case errors.Is(err, auth.ErrRemoveSelf):
+		return ErrConflict("You cannot remove yourself. Ask another administrator to do it.")
+	case errors.Is(err, auth.ErrChangeOwnRole):
+		return ErrConflict("You cannot change your own role. Ask another administrator to do it.")
+	case errors.Is(err, auth.ErrBadRole):
+		return ErrValidation(map[string]string{"role": "Make the person an admin, a member or a guest."})
+	case errors.Is(err, auth.ErrBadMemberEmail):
+		return ErrValidation(map[string]string{"email": sentence(err.Error())})
+	case errors.Is(err, auth.ErrBadMemberName):
+		return ErrValidation(map[string]string{"name": sentence(err.Error())})
+	case errors.Is(err, auth.ErrPasswordTooShort):
+		return ErrValidation(map[string]string{"password": sentence(err.Error()) + " Leave it empty to have one made."})
+	case errors.Is(err, auth.ErrAlreadyMember):
+		return ErrConflict("That person is already a member of this organization. Reload the list to find them.")
 	default:
 		return ErrInternal(err)
 	}

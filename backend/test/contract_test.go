@@ -117,6 +117,10 @@ func (c *contract) observe(t *testing.T, method, path string, status int, conten
 		t.Errorf("contract: %s has no operation in the document", r.key())
 		return
 	}
+	// A file is described by its media type, not a schema, and the document says which operations answer one.
+	if r.Binary && status == http.StatusOK {
+		return
+	}
 	if status/100 == 3 {
 		t.Errorf("contract: %s %s answered %d, but no operation redirects", method, path, status)
 		return

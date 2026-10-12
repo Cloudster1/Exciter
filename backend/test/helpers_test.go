@@ -43,6 +43,16 @@ func (h *harness) namedPerson(t *testing.T, org uuid.UUID, name string) uuid.UUI
 	return id
 }
 
+// slugOf is the slug an organization is addressed by.
+func (h *harness) slugOf(t *testing.T, org uuid.UUID) string {
+	t.Helper()
+	var slug string
+	if err := h.super.QueryRow(context.Background(), `SELECT slug FROM org WHERE id = $1`, org).Scan(&slug); err != nil {
+		t.Fatal(err)
+	}
+	return slug
+}
+
 // countRows counts as the superuser, past every policy, to see what is really there.
 func (h *harness) countRows(t *testing.T, sql string, args ...any) int {
 	t.Helper()

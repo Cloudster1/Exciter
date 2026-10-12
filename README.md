@@ -28,6 +28,9 @@ make down               # stop (make clean also drops the volumes)
 make help               # every target
 ```
 
+The demo organization's owner is `admin@exciter.test` with the password
+`exciter admin password`; sign in with `POST /api/v1/auth/login`.
+
 Every port is bound to `127.0.0.1` and derived from the checkout's path, so
 worktrees, Armature and a Stator checkout run side by side; the ports are also
 written to `.cache/stack.env`. Keycloak's realm `suite-dev` (admin console

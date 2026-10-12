@@ -4,9 +4,13 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
+
+// bootstrapSlug is the shape the org table's org_slug_shape check accepts.
+var bootstrapSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$`)
 
 // Environments a deployment may declare itself as.
 const (
@@ -28,6 +32,12 @@ const (
 	DefaultMaxReplicaLag   = 2 * time.Second
 	DefaultLagSamples      = 3
 	DefaultReadYourWrites  = 30 * time.Second
+	DefaultSessionCookie   = "exciter_session"
+	DefaultSessionTTL      = 720 * time.Hour
+	// DefaultBootstrapOrgSlug and DefaultBootstrapOrgName are seed.DemoOrgSlug
+	// and seed.DemoOrgName, which a test holds the two to.
+	DefaultBootstrapOrgSlug = "demo"
+	DefaultBootstrapOrgName = "Demo"
 	// DefaultRetainAudit and MinRetainAudit are audit.DefaultRetention and
 	// audit.MinRetention, which a test holds the two to.
 	DefaultRetainAudit = 365 * 24 * time.Hour
@@ -52,7 +62,9 @@ type Config struct {
 
 	DB        DB
 	Valkey    Valkey
+	Auth      Auth
 	Telemetry Telemetry
+	Bootstrap Bootstrap
 
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
@@ -86,6 +98,22 @@ type DB struct {
 	// ReadYourWritesTTL is how long a reader's last write position keeps
 	// their reads off any replica that has not replayed it.
 	ReadYourWritesTTL time.Duration
+}
+
+// Auth holds the session cookie's settings.
+type Auth struct {
+	SessionCookie string
+	SecureCookies bool
+	SessionTTL    time.Duration
+}
+
+// Bootstrap is what cmd/seed sets up: the organization and its first local
+// administrator, so somebody can sign in before any identity provider exists.
+type Bootstrap struct {
+	OrgSlug       string
+	OrgName       string
+	AdminEmail    string
+	AdminPassword string
 }
 
 // Valkey is the shared store behind read-your-writes. A blank URL keeps the
@@ -144,6 +172,18 @@ func Load() (Config, error) {
 		Valkey: Valkey{
 			URL: l.str("EXCITER_VALKEY_URL", ""),
 		},
+		Auth: Auth{
+			SessionCookie: l.str("EXCITER_SESSION_COOKIE", DefaultSessionCookie),
+			SecureCookies: l.boolean("EXCITER_SECURE_COOKIES", false),
+			SessionTTL:    l.duration("EXCITER_SESSION_TTL", DefaultSessionTTL),
+		},
+		Bootstrap: Bootstrap{
+			OrgSlug:    l.str("EXCITER_BOOTSTRAP_ORG_SLUG", DefaultBootstrapOrgSlug),
+			OrgName:    l.str("EXCITER_BOOTSTRAP_ORG_NAME", DefaultBootstrapOrgName),
+			AdminEmail: l.str("EXCITER_BOOTSTRAP_ADMIN_EMAIL", ""),
+			// Not trimmed: a password is exactly what was typed.
+			AdminPassword: l.raw("EXCITER_BOOTSTRAP_ADMIN_PASSWORD"),
+		},
 		Telemetry: Telemetry{
 			MetricsAddr:  l.strOrBlank("EXCITER_METRICS_ADDR", DefaultMetricsAddr),
 			OTLPEndpoint: l.str("EXCITER_OTEL_ENDPOINT", ""),
@@ -179,6 +219,25 @@ func Load() (Config, error) {
 	}
 	if c.RequestTimeout <= 0 {
 		l.problem("EXCITER_REQUEST_TIMEOUT must be longer than zero, such as 30s.")
+	}
+	// Staging is reached over a network, so it is held to what production is held to.
+	if c.Env != EnvDevelopment && !c.Auth.SecureCookies {
+		l.problem("Set EXCITER_SECURE_COOKIES to true outside development, so the session cookie never travels in clear.")
+	}
+	if c.Auth.SessionTTL <= 0 {
+		l.problem("EXCITER_SESSION_TTL must be longer than zero, such as 720h.")
+	}
+	if !bootstrapSlug.MatchString(c.Bootstrap.OrgSlug) {
+		l.problem(fmt.Sprintf("EXCITER_BOOTSTRAP_ORG_SLUG is %q; use 3 to 40 lowercase letters, digits and hyphens, not starting or ending with a hyphen.", c.Bootstrap.OrgSlug))
+	}
+	if c.Bootstrap.OrgName == "" {
+		l.problem("EXCITER_BOOTSTRAP_ORG_NAME is empty; give the organization a name.")
+	}
+	if (c.Bootstrap.AdminEmail == "") != (c.Bootstrap.AdminPassword == "") {
+		l.problem("Set both EXCITER_BOOTSTRAP_ADMIN_EMAIL and EXCITER_BOOTSTRAP_ADMIN_PASSWORD, or neither.")
+	}
+	if c.Bootstrap.AdminEmail != "" && !strings.Contains(c.Bootstrap.AdminEmail, "@") {
+		l.problem(fmt.Sprintf("EXCITER_BOOTSTRAP_ADMIN_EMAIL is %q; set it to an email address.", c.Bootstrap.AdminEmail))
 	}
 	if c.RetainAudit != 0 && c.RetainAudit < MinRetainAudit {
 		l.problem(fmt.Sprintf("EXCITER_RETAIN_AUDIT is %s, but the audit log keeps every entry for at least %.0fh; set it to that or longer, such as 8760h, or to 0 to keep the log forever.", c.RetainAudit, MinRetainAudit.Hours()))

@@ -71,6 +71,19 @@ holds even for a query that forgot it.
   administrators, never updated or deleted, and pruned by `audit_log_prune`
   after `EXCITER_RETAIN_AUDIT`.
 
+### Identity (#5)
+
+- People are global (`app_user`); `org_member` gives each a role per
+  organization: owner, admin, member or guest. Through the app role only an
+  owner or admin changes memberships, nobody becomes an owner, and the
+  database keeps an organization's last owner.
+- A sign-in opens a `user_session` whose secret lives only in an http-only
+  cookie; the row holds its SHA-256. A session acts in one organization at a
+  time and switches only where its proof reaches (`session_reaches`).
+- `authenticate` puts the principal, its organization and the person it acts
+  for on every request, so row level security sees both; `requireAuth`,
+  `requireOrg` and `requireAdmin` guard the routes.
+
 ## Frontend (`web/`, #6)
 
 React 19, Vite, TypeScript strict, TanStack Router and Query, Tailwind v4,

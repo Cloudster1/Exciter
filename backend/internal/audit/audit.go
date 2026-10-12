@@ -21,11 +21,16 @@ const (
 	ActionEventDeadLettered = "event.dead_lettered"
 	// ActionAuditExported is the record itself leaving as a file.
 	ActionAuditExported = "audit.exported"
+	// ActionMemberCreated is a person an administrator added with a password.
+	ActionMemberCreated = "member.created"
+	// ActionMemberRoleChanged is a member's standing an administrator changed.
+	ActionMemberRoleChanged = "member.role_changed"
+	ActionMemberRemoved     = "member.removed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
 // client to name.
-var Actions = []string{ActionEventDeadLettered, ActionAuditExported}
+var Actions = []string{ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved}
 
 // Redacted stands in the record for a value that looked like a credential.
 const Redacted = "[redacted]"

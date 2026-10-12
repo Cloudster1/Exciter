@@ -16,7 +16,13 @@
       "name": "audit"
     },
     {
+      "name": "auth"
+    },
+    {
       "name": "health"
+    },
+    {
+      "name": "members"
     }
   ],
   "paths": {
@@ -36,7 +42,10 @@
               "type": "string",
               "enum": [
                 "event.dead_lettered",
-                "audit.exported"
+                "audit.exported",
+                "member.created",
+                "member.role_changed",
+                "member.removed"
               ]
             }
           },
@@ -128,16 +137,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -167,7 +166,10 @@
               "type": "string",
               "enum": [
                 "event.dead_lettered",
-                "audit.exported"
+                "audit.exported",
+                "member.created",
+                "member.role_changed",
+                "member.removed"
               ]
             }
           },
@@ -236,16 +238,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -285,12 +277,186 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Sign in a local account with email and password, and set the session cookie.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "End the session.",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "me",
+        "summary": "Who is signed in, and the organizations they may act in.",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "summary": "Change the caller's own settings, such as the interface language.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/switch-org": {
+      "post": {
+        "operationId": "switchOrg",
+        "summary": "Act in another of the caller's organizations from now on.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchOrgRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "$ref": "#/components/schemas/CurrentOrg"
+                    }
+                  },
+                  "required": [
+                    "organization"
+                  ]
                 }
               }
             }
@@ -441,6 +607,188 @@
           }
         }
       }
+    },
+    "/users": {
+      "get": {
+        "operationId": "listMembers",
+        "summary": "The organization's members, owners first. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Member"
+                      }
+                    }
+                  },
+                  "required": [
+                    "members"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMember",
+        "summary": "Add a person with a password, made for them when none is given and shown once in the answer. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "member": {
+                      "$ref": "#/components/schemas/CreatedMember"
+                    }
+                  },
+                  "required": [
+                    "member"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userID}": {
+      "delete": {
+        "operationId": "removeMember",
+        "summary": "Take a member out of the organization; their sessions stop reaching it at once. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "setMemberRole",
+        "summary": "Give a member another role; the owner's and the caller's own stay. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "member": {
+                      "$ref": "#/components/schemas/Member"
+                    }
+                  },
+                  "required": [
+                    "member"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -492,7 +840,10 @@
             "type": "string",
             "enum": [
               "event.dead_lettered",
-              "audit.exported"
+              "audit.exported",
+              "member.created",
+              "member.role_changed",
+              "member.removed"
             ]
           },
           "actorId": {
@@ -551,7 +902,10 @@
               "type": "string",
               "enum": [
                 "event.dead_lettered",
-                "audit.exported"
+                "audit.exported",
+                "member.created",
+                "member.role_changed",
+                "member.removed"
               ]
             }
           },
@@ -620,6 +974,102 @@
         },
         "required": [
           "schemas"
+        ]
+      },
+      "CreateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "role",
+          "password"
+        ]
+      },
+      "CreatedMember": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "newAccount": {
+            "type": "boolean"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "role",
+          "newAccount"
+        ]
+      },
+      "CurrentOrg": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "role"
         ]
       },
       "Document": {
@@ -711,6 +1161,50 @@
           "version"
         ]
       },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CurrentOrg"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Membership"
+            }
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user",
+          "organization",
+          "organizations"
+        ]
+      },
       "MediaType": {
         "type": "object",
         "properties": {
@@ -718,6 +1212,71 @@
             "$ref": "#/components/schemas/Schema"
           }
         }
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "role",
+          "joinedAt"
+        ]
+      },
+      "Membership": {
+        "type": "object",
+        "properties": {
+          "orgId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "orgSlug": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          }
+        },
+        "required": [
+          "orgId",
+          "orgSlug",
+          "orgName",
+          "role"
+        ]
       },
       "MetaResponse": {
         "type": "object",
@@ -1008,6 +1567,23 @@
           "url"
         ]
       },
+      "SetRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
       "Stats": {
         "type": "object",
         "properties": {
@@ -1053,6 +1629,17 @@
           "status"
         ]
       },
+      "SwitchOrgRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      },
       "Tag": {
         "type": "object",
         "properties": {
@@ -1066,7 +1653,65 @@
         "required": [
           "name"
         ]
+      },
+      "UpdateMeRequest": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "",
+              "en",
+              "de"
+            ]
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "avatarUrl": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "",
+              "en",
+              "de"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "locale"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "exciter_session",
+        "description": "The cookie a sign-in sets."
       }
     }
-  }
+  },
+  "security": [
+    {
+      "session": []
+    }
+  ]
 }

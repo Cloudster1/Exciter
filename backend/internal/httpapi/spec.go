@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -28,6 +30,9 @@ func isErrorEnvelope(body any) bool {
 func specBuilder() *openapi.Builder {
 	b := openapi.NewBuilder()
 	b.Names[reflect.TypeOf(version.Info{})] = "BuildInfo"
+	b.Enums[reflect.TypeOf(auth.OrgRole(""))] = enumStrings(auth.OrgRoles)
+	b.Enums[reflect.TypeOf(auth.Locale(""))] = enumStrings(auth.Locales)
+	b.Enums[reflect.TypeOf(auth.Proof(""))] = []string{string(auth.ProofPassword), string(auth.ProofOIDC)}
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	return b
@@ -47,6 +52,12 @@ func Spec() *openapi.Document {
 		},
 		Servers: []openapi.Server{{URL: APIPrefix, Description: "This deployment"}},
 		Paths:   map[string]openapi.PathItem{},
+		Components: openapi.Components{
+			SecuritySchemes: map[string]openapi.SecurityScheme{
+				"session": {Type: "apiKey", In: "cookie", Name: config.DefaultSessionCookie, Description: "The cookie a sign-in sets."},
+			},
+		},
+		Security: []map[string][]string{{"session": {}}},
 	}
 
 	errorSchema := b.Schema(reflect.TypeOf(errorEnvelope{}))
@@ -172,6 +183,16 @@ func pathParamSchema(name string) *openapi.Schema {
 }
 
 func ok(body any) map[int]any { return map[int]any{http.StatusOK: body} }
+func none() map[int]any       { return map[int]any{http.StatusNoContent: nil} }
+
+// enumStrings spells a named string type's values for a schema.
+func enumStrings[T ~string](values []T) []string {
+	out := make([]string, len(values))
+	for i, v := range values {
+		out[i] = string(v)
+	}
+	return out
+}
 
 // Route is one operation as the integration suite sees it: which request it
 // answers, and whether it is built yet.
