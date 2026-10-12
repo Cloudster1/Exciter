@@ -110,7 +110,8 @@ func Nullable(s *Schema) *Schema {
 	if s == nil {
 		return &Schema{Type: "null"}
 	}
-	if s.Ref != "" || len(s.OneOf) > 0 {
+	// An enum lists the values allowed, so null joins as an alternative rather than as a type.
+	if s.Ref != "" || len(s.OneOf) > 0 || len(s.Enum) > 0 {
 		return &Schema{OneOf: []*Schema{s, {Type: "null"}}}
 	}
 	copied := *s

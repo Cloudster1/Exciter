@@ -7,12 +7,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
+	"github.com/cloudster1/exciter/backend/internal/perm"
+	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // ProductName is what the document and /meta call this API, which Armature and
@@ -43,7 +52,102 @@ func specBuilder() *openapi.Builder {
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
 	b.Enums[reflect.TypeOf(theme.Source(""))] = enumStrings(theme.Sources)
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
+	coreSchemas(b)
 	return b
+}
+
+// coreSchemas names the requirements core's types (#10), whose packages reuse
+// short names such as CreateInput, and spells their enums.
+func coreSchemas(b *openapi.Builder) {
+	names := map[reflect.Type]string{
+		reflect.TypeFor[project.CreateInput]():      "NewProject",
+		reflect.TypeFor[project.UpdateInput]():      "ProjectUpdate",
+		reflect.TypeFor[project.Settings]():         "ProjectSettings",
+		reflect.TypeFor[project.SettingsInput]():    "ProjectSettingsInput",
+		reflect.TypeFor[project.KeyInput]():         "ProjectKeyInput",
+		reflect.TypeFor[project.KeyCheck]():         "ProjectKeyCheck",
+		reflect.TypeFor[project.Template]():         "ProjectTemplate",
+		reflect.TypeFor[perm.Grant]():               "ProjectGrant",
+		reflect.TypeFor[perm.GrantInput]():          "ProjectGrantInput",
+		reflect.TypeFor[perm.GrantsInput]():         "ProjectGrantsInput",
+		reflect.TypeFor[requirement.CreateInput]():  "NewRequirement",
+		reflect.TypeFor[requirement.UpdateInput]():  "RequirementUpdate",
+		reflect.TypeFor[requirement.Can]():          "RequirementCan",
+		reflect.TypeFor[requirement.Ref]():          "RequirementRef",
+		reflect.TypeFor[requirement.TypeRef]():      "RequirementTypeRef",
+		reflect.TypeFor[requirement.MoveInput]():    "MoveRequirement",
+		reflect.TypeFor[requirement.CopyInput]():    "CopyRequirement",
+		reflect.TypeFor[requirement.RestoreInput](): "RestoreRevision",
+		reflect.TypeFor[requirement.Change]():       "RequirementChange",
+		reflect.TypeFor[attribute.Type]():           "RequirementType",
+		reflect.TypeFor[attribute.TypeInput]():      "RequirementTypeInput",
+		reflect.TypeFor[attribute.Def]():            "Attribute",
+		reflect.TypeFor[attribute.DefInput]():       "AttributeInput",
+		reflect.TypeFor[attribute.KindInfo]():       "AttributeKind",
+		reflect.TypeFor[attribute.Option]():         "AttributeOption",
+		reflect.TypeFor[attribute.OptionInput]():    "AttributeOptionInput",
+		reflect.TypeFor[workflow.Option]():          "RuleOption",
+		reflect.TypeFor[workflow.Rule]():            "TransitionRule",
+		reflect.TypeFor[workflow.RuleInput]():       "TransitionRuleInput",
+		reflect.TypeFor[workflow.Point]():           "WorkflowPoint",
+		reflect.TypeFor[workflow.Step]():            "WorkflowStep",
+		reflect.TypeFor[workflow.StepInput]():       "WorkflowStepInput",
+		reflect.TypeFor[workflow.GraphInput]():      "WorkflowInput",
+		reflect.TypeFor[workflow.AssignInput]():     "WorkflowAssignment",
+		reflect.TypeFor[workflow.Available]():       "AvailableTransition",
+		reflect.TypeFor[trace.TypeRule]():           "LinkTypeRule",
+		reflect.TypeFor[trace.Link]():               "TraceLink",
+		reflect.TypeFor[trace.LinkInput]():          "TraceLinkInput",
+		reflect.TypeFor[label.Input]():              "LabelInput",
+		reflect.TypeFor[label.Suggestion]():         "LabelSuggestion",
+		reflect.TypeFor[label.Labelled]():           "LabelledRequirement",
+		reflect.TypeFor[search.Filter]():            "ViewFilter",
+		reflect.TypeFor[search.Sort]():              "ViewSort",
+		reflect.TypeFor[search.Row]():               "GridRow",
+		reflect.TypeFor[search.Hit]():               "SearchHit",
+		reflect.TypeFor[search.QuickHit]():          "QuickSearchHit",
+		reflect.TypeFor[csvio.Column]():             "ImportColumn",
+		reflect.TypeFor[csvio.Word]():               "ImportWord",
+		reflect.TypeFor[csvio.PersonFound]():        "ImportPerson",
+		reflect.TypeFor[csvio.Problem]():            "ImportProblem",
+		reflect.TypeFor[csvio.Preview]():            "ImportPreview",
+		reflect.TypeFor[csvio.Refusal]():            "ImportRefusal",
+		reflect.TypeFor[csvio.PersonChoice]():       "ImportPersonChoice",
+		reflect.TypeFor[csvio.MappingInput]():       "ImportMapping",
+	}
+	for t, name := range names {
+		b.Names[t] = name
+	}
+	b.Enums[reflect.TypeOf(perm.SubjectType(""))] = enumStrings(perm.SubjectTypes)
+	b.Enums[reflect.TypeOf(perm.Role(""))] = enumStrings(perm.Roles)
+	b.Enums[reflect.TypeOf(perm.Right(""))] = enumStrings(perm.Rights)
+	b.Enums[reflect.TypeOf(perm.StepKind(""))] = enumStrings(perm.StepKinds)
+	b.Enums[reflect.TypeOf(requirement.Kind(""))] = enumStrings(requirement.Kinds)
+	b.Enums[reflect.TypeOf(requirement.Priority(""))] = enumStrings(requirement.Priorities)
+	b.Enums[reflect.TypeOf(requirement.DiffChange(""))] = enumStrings(requirement.DiffChanges)
+	b.Enums[reflect.TypeOf(requirement.ActivityKind(""))] = enumStrings(requirement.ActivityKinds)
+	b.Enums[reflect.TypeOf(requirement.ChangeField(""))] = enumStrings(requirement.ChangeFields)
+	b.Enums[reflect.TypeOf(attribute.Kind(""))] = enumStrings(attribute.Kinds)
+	b.Enums[reflect.TypeOf(workflow.Category(""))] = enumStrings(workflow.Categories)
+	b.Enums[reflect.TypeOf(workflow.RuleKind(""))] = enumStrings(workflow.RuleKinds)
+	b.Enums[reflect.TypeOf(workflow.OptionKind(""))] = enumStrings(workflow.OptionKinds)
+	b.Enums[reflect.TypeOf(trace.SuspectEnd(""))] = enumStrings(trace.SuspectEnds)
+	b.Enums[reflect.TypeOf(trace.Counts(""))] = enumStrings(trace.CountsValues)
+	b.Enums[reflect.TypeOf(trace.Scope(""))] = enumStrings(trace.Scopes)
+	b.Enums[reflect.TypeOf(trace.Direction(""))] = enumStrings(trace.Directions)
+	b.Enums[reflect.TypeOf(search.Op(""))] = enumStrings(search.Ops)
+	b.Enums[reflect.TypeOf(csvio.State(""))] = enumStrings(csvio.States)
+
+	category := &openapi.Schema{Type: "string", Enum: enumStrings(workflow.Categories)}
+	b.FieldOverrides["StatusRef.category"] = category
+	b.FieldOverrides["ViewFilter.categories"] = &openapi.Schema{Type: "array", Items: category}
+	b.FieldOverrides["ViewFilter.priorities"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: enumStrings(requirement.Priorities)}}
+	b.FieldOverrides["APIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead}}}
+	b.FieldOverrides["NewAPIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead}}}
+	// A requirement update clears an owner, a priority or a rationale with null, and leaves out what it keeps.
+	b.FieldOverrides["RequirementUpdate.ownerId"] = openapi.Nullable(&openapi.Schema{Type: "string", Format: "uuid"})
+	b.FieldOverrides["RequirementUpdate.priority"] = openapi.Nullable(&openapi.Schema{Type: "string", Enum: enumStrings(requirement.Priorities)})
+	b.FieldOverrides["RequirementUpdate.rationale"] = &openapi.Schema{Description: "A document of the shared editor, or null to clear it."}
 }
 
 // Spec builds the OpenAPI document from the table.

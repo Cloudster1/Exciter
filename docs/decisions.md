@@ -3,6 +3,60 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-12: A project key can change, and the old one keeps resolving (#10)
+
+Neither Armature nor Stator lets a project or space key change. Exciter does,
+because a specification often outlives the name it began with, and every
+requirement key carries the project key. A changed key stays behind in
+`project_key_alias`, so `CHK-R5` still finds `SYS-R5` in links pasted into
+mail, Armature issues and Stator pages. A key is taken while any project has
+it now or had it before, so an old key never points at two projects. A move to
+another project keeps each requirement's old key in `requirement_old_key`, as
+Armature's `issue_old_key` does.
+**Reconsider if** aliases pile up enough that freeing old keys matters.
+
+## 2026-10-12: Statuses and workflows belong to a project (#10)
+
+Armature's statuses and workflows are the organization's, assigned through
+schemes. Exciter keeps them per project, with no schemes: the project's
+administrators own the whole of their process, and templates can set it up
+without touching anybody else's. Questions across projects key on the five
+status categories, which are fixed, never on status names.
+
+## 2026-10-12: Project roles add up, and reviewers approve without editing (#10)
+
+A grant gives one role per subject in a project, and a person holds the union
+of every grant that reaches them. Reviewer and editor are separate roles
+rather than steps on one ladder, so a reviewer can approve without being able
+to change what they approve, and somebody who should do both holds both. A
+reviewer takes only the transitions whose conditions name the reviewer role,
+which is how the default workflow's Approve works.
+
+## 2026-10-12: Sections are requirements of their own kind (#10)
+
+A section is a row of `requirement` with `kind = 'section'`: a title, an
+optional introduction, a key and revisions, and no type, status, attributes or
+links. One table keeps one tree, one rank, one trash, one permalink and one
+cycle guard. The price is that sections use up requirement numbers, which only
+need to be unique, not dense in meaning.
+
+## 2026-10-12: Retire rather than delete what history names (#10)
+
+Types, attributes, options, statuses and link types that a requirement, a
+revision or a link ever used are retired: they stay readable where they were
+used and cannot be chosen again. Deleting is only for what nothing ever used.
+A revision must read tomorrow as it read the day it was written, which a
+deleted option or type would break.
+
+## 2026-10-12: An import runs in the worker (#10)
+
+Armature imports a CSV file within the request. Exciter's imports build a tree
+and links in a second pass over files of up to 5000 rows, which can outlast a
+request. So an upload only previews and checks. Starting hands the import to
+the worker through the outbox, and the client polls its progress. Every
+problem the file has is reported before anything is written, so a started
+import refuses rows only when the project changed meanwhile.
+
 ## 2026-10-12: Each browser spec file gets a throwaway organization (#9)
 
 As in Stator: specs that change what an organization shows, such as its

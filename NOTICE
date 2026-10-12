@@ -121,6 +121,20 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   rather than a space, and a role change, a removal and the role a provider
   group gives added
 
+Adapted from Stator at cf0f6f7:
+- the API types of backend/internal/perm (subjects, pickers and the access
+  inspector, with space permissions made project roles), label, attachment,
+  search (segments and hits), requirement (versions, comparison and trash
+  items made revisions) and auth/tokens.go (token projects for token
+  spaces), the pending test of httpapi, and the layout of
+  docs/api-contract-m1.md
+
+Adapted from Armature at 73d72dd:
+- the API types of backend/internal/workflow (statuses, steps, transitions,
+  rules and the rule registry, without schemes), attribute (custom field
+  kinds and values, with options given ids) and csvio (mapping, preview,
+  people and refusals, run as a job)
+
 Adapted from Stator at 2ab5252:
 - mk/branding.mk, scripts/branding.sh, web/src/branding.test.ts and
   web/src/components/Logo.tsx: the same files, with the face cut from
