@@ -209,17 +209,32 @@ func (o *offerer) offer(t *testing.T, attempts int) uuid.UUID {
 		o.mu.Lock()
 		o.ours[id] = true
 		o.mu.Unlock()
-		select {
-		case got := <-o.claimed:
-			return got
-		case <-time.After(claimWait):
-			if o.h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1 AND processed_at IS NULL`, id) > 0 {
-				t.Fatalf("the worker did not take event %s within %s", id, claimWait)
-			}
+		if o.awaitClaim(t, id) {
+			return id
 		}
 	}
 	t.Fatalf("the stack's worker took every one of %d events first", claimTries)
 	return uuid.Nil
+}
+
+// awaitClaim waits for the worker to take id, and says false when the stack's worker took it instead. An earlier
+// event of this test coming due again is no answer: the worker takes the oldest first, so it may come before id.
+func (o *offerer) awaitClaim(t *testing.T, id uuid.UUID) bool {
+	t.Helper()
+	deadline := time.After(claimWait)
+	for {
+		select {
+		case got := <-o.claimed:
+			if got == id {
+				return true
+			}
+		case <-deadline:
+			if o.h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1 AND processed_at IS NULL`, id) > 0 {
+				t.Fatalf("the worker did not take event %s within %s", id, claimWait)
+			}
+			return false
+		}
+	}
 }
 
 // A failed event is tried again later, each time later still, and after the

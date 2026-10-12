@@ -21,6 +21,7 @@ import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
+import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { t } from "@/i18n";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
@@ -51,6 +52,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
               </span>
             )}
             <span data-revision={requirement.revision}>{t.requirements.revision(requirement.revision)}</span>
+            {requirement.outline && <span data-outline={requirement.outline}>{requirement.outline}</span>}
           </span>
         }
         actions={
@@ -68,6 +70,17 @@ export function RequirementPage({ project, requirement }: { project: Project; re
         </p>
       )}
       {!mayEdit && !requirement.trashedAt && <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>}
+      {requirement.copiedFrom && (
+        <p className="text-sm text-ink-muted" data-copied-from>
+          <Link
+            to="/p/$projectKey/r/$reqKey"
+            params={{ projectKey: requirement.copiedFrom.projectKey, reqKey: requirement.copiedFrom.key }}
+            className="hover:text-accent hover:underline"
+          >
+            {t.tree.copiedFrom(requirement.copiedFrom.key)}
+          </Link>
+        </p>
+      )}
       {requirement.formerKeys.length > 0 && (
         <p className="text-sm text-ink-muted" data-former-keys>
           {t.requirements.formerKeys(requirement.formerKeys.join(", "))}
@@ -77,7 +90,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
         {notice}
       </p>
       {editing ? (
-        <Edit
+        <RequirementEdit
           key={requirement.id}
           project={project}
           requirement={requirement}
@@ -120,7 +133,7 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
 }
 
 /** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
-function Edit({
+export function RequirementEdit({
   project,
   requirement,
   onDone,
@@ -290,8 +303,27 @@ function Facts({ requirement }: { requirement: Requirement }) {
 function TrashSection({ project, requirement }: { project: Project; requirement: Requirement }) {
   const navigate = useNavigate();
   const trash = useTrashRequirement(requirement.key, project.key);
+  const [placing, setPlacing] = useState<"move" | "copy" | null>(null);
+  const placed = { id: requirement.id, key: requirement.key, title: requirement.title, projectKey: project.key };
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Button variant="secondary" onClick={() => setPlacing("move")} data-action="move-requirement">
+        {t.tree.move}
+      </Button>
+      <Button variant="secondary" onClick={() => setPlacing("copy")} data-action="copy-requirement">
+        {t.tree.copy}
+      </Button>
+      {placing && (
+        <PlaceDialog
+          placed={placed}
+          mode={placing}
+          onClose={() => setPlacing(null)}
+          onDone={(r) => {
+            setPlacing(null);
+            void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
+          }}
+        />
+      )}
       <Button
         variant="secondary"
         icon={<Icon.Trash />}

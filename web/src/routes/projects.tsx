@@ -10,12 +10,19 @@ import { ProjectSettings } from "@/features/projects/ProjectSettings";
 import { NewRequirementForm } from "@/features/requirements/NewRequirementForm";
 import { RequirementList } from "@/features/requirements/RequirementList";
 import { TrashPage } from "@/features/requirements/TrashPage";
+import { SpecPage } from "@/features/tree/SpecPage";
 import { appRoute } from "./app";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
 export const newProjectRoute = createRoute({ getParentRoute: () => appRoute, path: NEW_PROJECT_PATH, component: NewProjectForm });
 
-type ProjectPath = "/p/$projectKey" | "/p/$projectKey/settings" | "/p/$projectKey/permissions" | "/p/$projectKey/new" | "/p/$projectKey/trash";
+type ProjectPath =
+  | "/p/$projectKey"
+  | "/p/$projectKey/settings"
+  | "/p/$projectKey/permissions"
+  | "/p/$projectKey/new"
+  | "/p/$projectKey/trash"
+  | "/p/$projectKey/spec";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -47,6 +54,15 @@ export const newRequirementRoute = createRoute({
   component: function NewRequirementPage() {
     const { projectKey } = newRequirementRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/new" render={(project) => <NewRequirementForm key={project.id} project={project} />} />;
+  },
+});
+
+export const specRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/spec",
+  component: function ProjectSpecPage() {
+    const { projectKey } = specRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/spec" render={(project) => <SpecPage key={project.id} project={project} />} />;
   },
 });
 

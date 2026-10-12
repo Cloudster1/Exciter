@@ -71,7 +71,6 @@ func TestRequirementsOverTheAPI(t *testing.T) {
 			"an owner without access":  {"title": "X", "ownerId": f.away.user},
 			"a priority that is none":  {"title": "X", "priority": "maybe"},
 			"a type before types":      {"title": "X", "typeId": uuid.New()},
-			"a place before the tree":  {"title": "X", "place": map[string]any{"parentId": nil, "afterId": nil}},
 			"a kind that is none":      {"title": "X", "kind": "chapter"},
 		} {
 			refuse(t, what, editor.post(t, "/api/v1/projects/RQ/requirements", body), http.StatusUnprocessableEntity, "validation_failed")

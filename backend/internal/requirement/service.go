@@ -68,7 +68,9 @@ type loaded struct {
 	archived  bool
 	// editor says the reader edits in the project, which a trashed requirement's Can leaves out.
 	editor bool
-	hash   string
+	// rank is its place among its siblings, which a copy of the tree below it keeps.
+	rank string
+	hash string
 	// requireComment is the project's ask for a comment on every new revision.
 	requireComment bool
 }
@@ -83,6 +85,8 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
        COALESCE((p.settings ->> 'requireRevisionComment')::boolean, false),
        perm_project_holds(r.project_id, $1, 'edit'), perm_project_holds(r.project_id, $1, 'approve'),
        perm_project_holds(r.project_id, $1, 'comment'),
+       r.parent_id, r.rank, cf.id, COALESCE(cp.key, ''), COALESCE(cf.number, 0), COALESCE(cf.kind, ''), COALESCE(cf.title, ''),
+       COALESCE(cf.revision, 0), cf.trashed_at IS NOT NULL,
        COALESCE((SELECT array_agg(k.key ORDER BY k.created_at DESC) FROM requirement_old_key k
                  WHERE k.org_id = r.org_id AND k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
@@ -92,7 +96,9 @@ JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
 LEFT JOIN app_user cu ON cu.id = r.created_by
 LEFT JOIN app_user uu ON uu.id = r.updated_by
-LEFT JOIN requirement_type t ON t.id = r.type_id`
+LEFT JOIN requirement_type t ON t.id = r.type_id
+LEFT JOIN requirement cf ON cf.org_id = r.org_id AND cf.id = r.copied_from
+LEFT JOIN project cp ON cp.org_id = cf.org_id AND cp.id = cf.project_id`
 
 // typeID is the requirement's type, nil for a section or one written before types.
 func (l *loaded) typeID() *uuid.UUID {
@@ -114,12 +120,16 @@ func scan(row pgx.Row) (*loaded, error) {
 		edit, approve, alter bool
 		typeID               *uuid.UUID
 		typ                  TypeRef
+		copiedID             *uuid.UUID
+		copied               Ref
+		copiedNumber         int
 	)
 	r := &l.Requirement
 	err := row.Scan(&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
 		&ownerID, &ownerName, &priority, &r.CreatedAt, &r.CreatedByName, &r.UpdatedAt, &r.UpdatedByName,
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
-		&l.requireComment, &edit, &approve, &alter, &r.FormerKeys)
+		&l.requireComment, &edit, &approve, &alter, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
+		&copied.Revision, &copied.Trashed, &r.FormerKeys)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -139,6 +149,12 @@ func scan(row pgx.Row) (*loaded, error) {
 	if typeID != nil {
 		typ.ID = *typeID
 		r.Type = &typ
+	}
+	// The original shows only to whoever may still read it; the join finds nothing for anybody else.
+	if copiedID != nil && copied.ProjectKey != "" {
+		copied.ID = *copiedID
+		copied.Key = Key(copied.ProjectKey, copiedNumber)
+		r.CopiedFrom = &copied
 	}
 	if priority != nil {
 		p := Priority(*priority)
@@ -162,17 +178,30 @@ func find(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*loade
 		WHERE r.org_id = current_org_id() AND r.id = (SELECT k.requirement_id FROM requirement_old_key k
 		      WHERE k.org_id = current_org_id() AND k.key = $2)`, reader, Key(projectKey, number)))
 	if !errors.Is(err, ErrNotFound) {
-		return l, err
+		return placed(ctx, tx, l, err)
 	}
-	return scan(tx.QueryRow(ctx, selectRequirement+`
+	l, err = scan(tx.QueryRow(ctx, selectRequirement+`
 		WHERE r.org_id = current_org_id() AND r.number = $3 AND r.project_id = (
 		      SELECT x.id FROM project x WHERE x.org_id = current_org_id() AND x.key = $2
 		      UNION ALL SELECT a.project_id FROM project_key_alias a WHERE a.org_id = current_org_id() AND a.key = $2
 		      LIMIT 1)`, reader, projectKey, number))
+	return placed(ctx, tx, l, err)
 }
 
 func findByID(ctx context.Context, tx db.DBTX, reader, id uuid.UUID) (*loaded, error) {
-	return scan(tx.QueryRow(ctx, selectRequirement+` WHERE r.org_id = current_org_id() AND r.id = $2`, reader, id))
+	l, err := scan(tx.QueryRow(ctx, selectRequirement+` WHERE r.org_id = current_org_id() AND r.id = $2`, reader, id))
+	return placed(ctx, tx, l, err)
+}
+
+// placed numbers a requirement read where it stands in its project's tree.
+func placed(ctx context.Context, tx db.DBTX, l *loaded, err error) (*loaded, error) {
+	if err != nil {
+		return nil, err
+	}
+	if l.Outline, err = outline(ctx, tx, l.projectID, l.ID); err != nil {
+		return nil, fmt.Errorf("number %s: %w", l.Key, err)
+	}
+	return l, nil
 }
 
 // Get answers a requirement by its key or a key it had; the answer carries its current key.
@@ -235,13 +264,10 @@ func checkDocument(field string, raw json.RawMessage) (json.RawMessage, error) {
 	return raw, nil
 }
 
-// untilLater refuses what the requirements core does not have yet: labels (#19) and a place in the tree (#15).
-func untilLater(labels []string, place *Place) error {
-	switch {
-	case len(labels) > 0:
+// untilLater refuses what the requirements core does not have yet: labels (#19).
+func untilLater(labels []string) error {
+	if len(labels) > 0 {
 		return &FieldError{"labels", "Requirements take no labels yet. Leave them out."}
-	case place != nil:
-		return &FieldError{"place", "This project has no tree yet. Leave the place out, and the requirement goes last."}
 	}
 	return nil
 }
