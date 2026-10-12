@@ -157,6 +157,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := projectError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := permError(err); apiErr != nil {
+			return apiErr
+		}
 		return themeError(err)
 	}
 }

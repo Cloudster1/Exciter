@@ -9,14 +9,22 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Project roles (#12). A project's administrators give people, groups and
+  everyone the role viewer, reviewer, editor or admin under
+  `/p/<key>/permissions`, and roles add up: an editor through a group who is
+  a reviewer on their own both edits and approves. A new project is its
+  maker's to run and everyone's to edit. Guests are let in only by grants
+  that name them or their groups, and never run a project. The access
+  inspector shows, for any member, what they may do in the project and which
+  grant decides it, as the database answers it. The organization's owners and
+  administrators still hold every right in every project.
 - Projects (#11). Owners and administrators of the organization make a
   project with a key such as `CHK`, which the form suggests from the name and
   the server keeps free. A project can be renamed, given a new key, archived
   and deleted once archived. A key it had keeps finding it, and stays taken.
   `/projects` lists them, `/p/<key>/settings` holds a project's details, key,
   archive and deletion, and the sidebar names the project the reader is in and
-  switches to another. Until project roles arrive (#12), every member reads
-  and edits every project and guests see none.
+  switches to another.
 - The API of the requirements core, agreed before it is built (#10). Projects,
   permissions, requirements and their revisions, types and attributes, the
   tree, history, workflow, trace links, labels, search, attachments, tokens,

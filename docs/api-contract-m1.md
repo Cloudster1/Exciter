@@ -168,9 +168,9 @@ New audit actions: `project.created`, `project.key_changed`,
   named (#24), or blank: one type `Requirement` that is the default type, the
   default statuses and workflow (#17), every organization link type enabled,
   and no sections. The creator is granted `admin` and everyone `editor` (#12).
-  Each of #12, #14, #17, #18 and #24 adds its part to create as it lands: until
-  then a blank project is the row alone, a `template` is 422, and so is a
-  `settings.defaultTypeId`, since no project has types yet.
+  Each of #14, #17, #18 and #24 adds its part to create as it lands: until
+  then a blank project is the row and its grants alone, a `template` is 422,
+  and so is a `settings.defaultTypeId`, since no project has types yet.
 - **A new key** (`PUT .../key`) keeps the old one as an alias: `CHK-R5`
   becomes `SYS-R5`, and both `CHK` and `CHK-R5` keep resolving. Taking back a
   key the project had before removes it from the aliases. The same key is no
@@ -191,9 +191,9 @@ New audit actions: `project.created`, `project.key_changed`,
   requirements and sections out of the trash. `formerKeys` are its aliases,
   the latest first.
 - UI: `/projects` lists and creates. `/p/$projectKey/settings` holds details,
-  key, archive and delete, with types, attributes, workflow, link types and
-  grants as tabs that #12, #14, #17 and #18 fill. The sidebar shows the
-  current project's pages under a project switcher.
+  key, archive and delete, with types, attributes, workflow and link types as
+  tabs that #14, #17 and #18 fill. The grants have their own page (#12). The
+  sidebar shows the current project's pages under a project switcher.
 
 ## #12 Permissions
 
@@ -228,13 +228,17 @@ New audit actions: `project.created`, `project.key_changed`,
   types, purging and emptying the trash, imports and deletion.
 - **Everyone** is every member of the organization, guests left out. A guest
   is reached only by grants that name them or one of their groups, and holds
-  at most `editor`. A grant of `admin` to `everyone` or a guest is 422.
+  at most `editor`. A grant of `admin` to `everyone` or a guest is 422, and
+  the database refuses both. A group's `admin` grant counts as `editor` for a
+  guest in that group.
 - **Organization owners and administrators** hold `admin` in every project,
   so no project is orphaned. A token limited to other projects does not.
 - **Defaults.** A new project grants its creator `admin` and everyone
-  `editor`, which a template may narrow (#24).
+  `editor`, which a template may narrow (#24). A trigger on `project` makes
+  these grants, so a project made any other way gets them too.
 - **PUT** replaces the whole table. A row without a role, a role that is not
-  one of the four, or an unknown subject is 422. A table with no `admin` row
+  one of the four, an unknown subject, or a subject named twice is 422 on
+  `grants.<n>.role` or `grants.<n>.subject`. A table with no `admin` row
   naming a user or a group is 409 `no_administrator`: "Give at least one
   person or group the admin role, so somebody besides the organization's
   administrators can manage the project." The change is audited.
@@ -243,13 +247,16 @@ New audit actions: `project.created`, `project.key_changed`,
   word of it, ignoring case. `limit` outside 1 to 50 is 422. The owner picker
   of a requirement uses `/people`.
 - **The access inspector** answers for one member and one project each of
-  the five rights, with `allowed` and `steps`. A step is one of `orgAdmin`,
-  `guest` (passed when the person is not a guest; failed explains why
-  everyone's grants do not reach them), `grant` (with the project's `grants`
-  that reach the person and give the right) and `archived` (failed for
-  comment, edit and approve). The first step not passed is the reason for a no. Every
-  verdict is what `perm_project_holds` answers for that person, so the
-  explanation is what the database enforces.
+  the five rights, with `allowed` and `steps`. An organization owner or
+  administrator gets the one step `orgAdmin`. Anybody else gets `guest`, then
+  `grant`. `guest` is passed unless the person is a guest whom only
+  everyone's grant would have given the right. `grant` lists the project's
+  `grants` that reach the person and give the right. An archived project adds
+  a failed `archived` step to comment, edit and approve. The first step not
+  passed is the reason for a no. Every verdict is what `perm_project_holds`
+  answers for that person, so the explanation is what the database enforces.
+- **Reading the grants** needs `administer`, in the database too, and
+  changing them also needs the project not to be archived.
 - **In the database.** `perm_project_holds(project uuid, actor uuid,
   permission text)`, `perm_requirement_viewable(requirement uuid, actor uuid)`
   and `perm_requirement_editable(requirement uuid, actor uuid)` are `STABLE
@@ -266,10 +273,9 @@ New audit actions: `project.created`, `project.key_changed`,
   An archived project keeps `view` and `administer`, which is what unarchives
   and deletes it; every other change to it is 409 `project_archived`. The web
   client offers only what `can` allows.
-- **Until #12 is built**, `perm_project_holds` (migration 00100) gives every
-  member view, comment and edit in every project, owners and administrators
-  every right, and guests none; #12 replaces its body, and every policy that
-  calls it follows.
+- UI: `/p/$projectKey/permissions`, linked from the project's sidebar for
+  its administrators: a table of subjects with a role each, a picker of
+  people, groups and everyone, and the access inspector in a dialog.
 
 ## #13 Requirements
 

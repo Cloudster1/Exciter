@@ -100,16 +100,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -310,7 +300,8 @@
                 "project.key_changed",
                 "project.archived",
                 "project.unarchived",
-                "project.deleted"
+                "project.deleted",
+                "project.grants_changed"
               ]
             }
           },
@@ -446,7 +437,8 @@
                 "project.key_changed",
                 "project.archived",
                 "project.unarchived",
-                "project.deleted"
+                "project.deleted",
+                "project.grants_changed"
               ]
             }
           },
@@ -883,16 +875,6 @@
                   "required": [
                     "groups"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -2121,16 +2103,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2551,16 +2523,6 @@
                   "required": [
                     "access"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -3206,16 +3168,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -3288,16 +3240,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9311,7 +9253,8 @@
               "project.key_changed",
               "project.archived",
               "project.unarchived",
-              "project.deleted"
+              "project.deleted",
+              "project.grants_changed"
             ]
           },
           "actorId": {
@@ -9385,7 +9328,8 @@
                 "project.key_changed",
                 "project.archived",
                 "project.unarchived",
-                "project.deleted"
+                "project.deleted",
+                "project.grants_changed"
               ]
             }
           },
