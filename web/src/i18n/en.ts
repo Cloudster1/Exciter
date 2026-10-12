@@ -1,6 +1,7 @@
 import type { AuditAction } from "@/api/audit";
 import type { OrgRole } from "@/api/auth";
 import type { Language } from "./index";
+import { projectsEn } from "./projects.en";
 import { themesEn } from "./themes.en";
 
 /** The English strings, and the shape every other language has to fill. */
@@ -17,6 +18,7 @@ export const en = {
     unexpected: (status: number) => `The server answered with status ${status} and no explanation. Try again in a moment.`,
   },
   nav: {
+    projects: "Projects",
     everywhere: "Everywhere",
     whereYouAre: "Where you are",
     home: "Home",
@@ -136,7 +138,10 @@ export const en = {
     title: "Home",
     emptyTitle: "No projects yet",
     emptyBody:
-      "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. Projects to hold them arrive soon.",
+      "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. Make a project to hold them.",
+    emptyBodyMember:
+      "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. An owner or administrator of your organization makes the projects that hold them.",
+    yourProjects: "Your projects",
   },
   members: {
     title: "Members",
@@ -223,6 +228,11 @@ export const en = {
       "sso.group_role_set": "Group mapped to a role",
       "sso.group_role_removed": "Group unmapped",
       "theme.default_set": "Default theme named",
+      "project.created": "Project created",
+      "project.key_changed": "Project key changed",
+      "project.archived": "Project archived",
+      "project.unarchived": "Project unarchived",
+      "project.deleted": "Project deleted",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -231,8 +241,10 @@ export const en = {
       oidc_provider: "Identity provider",
       group_role: "Group role",
       theme: "Theme",
+      project: "Project",
     } as Record<string, string | undefined>,
   },
+  projects: projectsEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

@@ -154,6 +154,9 @@ func toAPIError(err error) *APIError {
 		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
 			Message: "That organization does not sign in through an identity provider. Check its name, or sign in with a password."}
 	default:
+		if apiErr := projectError(err); apiErr != nil {
+			return apiErr
+		}
 		return themeError(err)
 	}
 }

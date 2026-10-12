@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
-import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, SSO_PATH, THEMES_PATH } from "@/config";
+import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, PROJECTS_PATH, SSO_PATH, THEMES_PATH } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 
@@ -32,7 +32,7 @@ describe("the shell", () => {
     expect(document.querySelector("[data-top-bar]")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Your account" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
-    expect(screen.getByText("No projects yet")).toBeInTheDocument();
+    expect(await screen.findByText("No projects yet")).toBeInTheDocument();
   });
 
   it("keeps the settings from somebody who does not administer the organization", async () => {
@@ -136,6 +136,7 @@ describe("the quick switcher", () => {
     const options = () => within(screen.getByRole("listbox")).getAllByRole("option");
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
+      `place:${PROJECTS_PATH}`,
       `place:${MEMBERS_PATH}`,
       `place:${SSO_PATH}`,
       `place:${DEFAULT_THEME_PATH}`,
@@ -151,9 +152,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[7]).toHaveAttribute("aria-selected", "true");
+    expect(options()[8]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[7]).toHaveAttribute("aria-selected", "true");
+    expect(options()[8]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
@@ -167,8 +168,8 @@ describe("the quick switcher", () => {
   it("offers only the places a member may go, and says when nothing matches", async () => {
     await renderAt("/", { me: member });
     await userEvent.keyboard("{Control>}k{/Control}");
-    // Home, their own themes and their organization.
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(3);
+    // Home, the projects, their own themes and their organization.
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(4);
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(document.querySelector("[data-quick-switcher-empty]")).not.toBeNull();

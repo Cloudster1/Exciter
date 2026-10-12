@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Projects (#11). Owners and administrators of the organization make a
+  project with a key such as `CHK`, which the form suggests from the name and
+  the server keeps free. A project can be renamed, given a new key, archived
+  and deleted once archived. A key it had keeps finding it, and stays taken.
+  `/projects` lists them, `/p/<key>/settings` holds a project's details, key,
+  archive and deletion, and the sidebar names the project the reader is in and
+  switches to another. Until project roles arrive (#12), every member reads
+  and edits every project and guests see none.
 - The API of the requirements core, agreed before it is built (#10). Projects,
   permissions, requirements and their revisions, types and attributes, the
   tree, history, workflow, trace links, labels, search, attachments, tokens,

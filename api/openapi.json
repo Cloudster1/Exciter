@@ -305,7 +305,12 @@
                 "sso.provider_saved",
                 "sso.group_role_set",
                 "sso.group_role_removed",
-                "theme.default_set"
+                "theme.default_set",
+                "project.created",
+                "project.key_changed",
+                "project.archived",
+                "project.unarchived",
+                "project.deleted"
               ]
             }
           },
@@ -436,7 +441,12 @@
                 "sso.provider_saved",
                 "sso.group_role_set",
                 "sso.group_role_removed",
-                "theme.default_set"
+                "theme.default_set",
+                "project.created",
+                "project.key_changed",
+                "project.archived",
+                "project.unarchived",
+                "project.deleted"
               ]
             }
           },
@@ -2225,16 +2235,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2284,16 +2284,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2359,16 +2349,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2405,16 +2385,6 @@
           },
           "409": {
             "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2466,16 +2436,6 @@
                   "required": [
                     "project"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -2533,16 +2493,6 @@
                   "required": [
                     "project"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -2664,16 +2614,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2717,16 +2657,6 @@
                   "required": [
                     "project"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -3535,16 +3465,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9386,7 +9306,12 @@
               "sso.provider_saved",
               "sso.group_role_set",
               "sso.group_role_removed",
-              "theme.default_set"
+              "theme.default_set",
+              "project.created",
+              "project.key_changed",
+              "project.archived",
+              "project.unarchived",
+              "project.deleted"
             ]
           },
           "actorId": {
@@ -9455,7 +9380,12 @@
                 "sso.provider_saved",
                 "sso.group_role_set",
                 "sso.group_role_removed",
-                "theme.default_set"
+                "theme.default_set",
+                "project.created",
+                "project.key_changed",
+                "project.archived",
+                "project.unarchived",
+                "project.deleted"
               ]
             }
           },

@@ -3,10 +3,11 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH, THEMES_PATH } from "@/config";
+import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, NEW_PROJECT_PATH, PROJECTS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH, THEMES_PATH } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
 import { renderAt, setViewportWidth, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
+import { aProject } from "@/test/projects";
 
 // jsdom's own width, which is what every other shell test runs at.
 const WIDE = 1024;
@@ -59,8 +60,19 @@ const sharedTheme = {
   createdAt: "2026-09-29T08:00:00Z",
   updatedAt: "2026-09-29T08:00:00Z",
 };
+const checkout = aProject();
+const archived = aProject({
+  id: "0195f000-0000-7000-8000-0000000000f2",
+  key: "OLD",
+  name: "Old checkout",
+  archivedAt: "2026-10-02T08:00:00Z",
+  formerKeys: ["PAY"],
+});
 const settingsApi = () =>
   stubApi({
+    "GET /projects": { status: 200, body: { projects: [checkout] } },
+    "GET /projects/CHK": { status: 200, body: { project: checkout } },
+    "GET /projects/OLD": { status: 200, body: { project: archived } },
     "GET /themes": { status: 200, body: { themes: [sharedTheme] } },
     "GET /themes/active": { status: 200, body: { theme: sharedTheme, source: "organization" } },
     "GET /themes/examples": { status: 200, body: { examples: [] } },
@@ -289,7 +301,18 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it.each([MEMBERS_PATH, SSO_PATH, AUDIT_PATH, THEMES_PATH, DEFAULT_THEME_PATH, `${THEMES_PATH}/new`])("finds nothing on %s", async (path) => {
+  it.each([
+    MEMBERS_PATH,
+    SSO_PATH,
+    AUDIT_PATH,
+    THEMES_PATH,
+    DEFAULT_THEME_PATH,
+    `${THEMES_PATH}/new`,
+    PROJECTS_PATH,
+    NEW_PROJECT_PATH,
+    "/p/CHK/settings",
+    "/p/OLD/settings",
+  ])("finds nothing on %s", async (path) => {
     settingsApi();
     await renderAt(path);
     await screen.findByRole("heading", { level: 1 });

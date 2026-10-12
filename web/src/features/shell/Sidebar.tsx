@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { LogoMark } from "@/components/Logo";
 import { APP_NAME, APP_VERSION, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH } from "@/config";
 import { t } from "@/i18n";
+import { ProjectNav } from "@/features/projects/ProjectNav";
 import { NavItem } from "./nav";
 import { placesFor } from "./places";
 import { Rail } from "./Rail";
@@ -78,11 +79,12 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
     <>
       <SidebarGroup id="requirements" title={t.nav.groupRequirements} open={isOpen("requirements", true)} onToggle={() => toggleGroup("requirements", true)}>
         {pages.map((place) => (
-          <NavItem key={place.path} to={place.path} exact icon={place.icon} rail={false} onNavigate={onNavigate}>
+          <NavItem key={place.path} to={place.path} exact={place.path === "/"} icon={place.icon} rail={false} onNavigate={onNavigate}>
             {place.label}
           </NavItem>
         ))}
       </SidebarGroup>
+      <ProjectNav open={isOpen("project", true)} onToggle={() => toggleGroup("project", true)} onNavigate={onNavigate} />
       {settings.length > 0 && (
         <SidebarGroup id="settings" title={t.nav.settings} open={isOpen("settings", true)} onToggle={() => toggleGroup("settings", true)}>
           {settings.map((place) => (

@@ -36,6 +36,12 @@ const (
 	ActionGroupRoleRemoved = "sso.group_role_removed"
 	// ActionThemeDefaultSet is the theme the organization shows to whoever has not chosen one, named or cleared.
 	ActionThemeDefaultSet = "theme.default_set"
+	// Projects (#11): made, given a new key, archived and back, and deleted for good.
+	ActionProjectCreated    = "project.created"
+	ActionProjectKeyChanged = "project.key_changed"
+	ActionProjectArchived   = "project.archived"
+	ActionProjectUnarchived = "project.unarchived"
+	ActionProjectDeleted    = "project.deleted"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -43,7 +49,8 @@ const (
 var Actions = []string{
 	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
-	ActionThemeDefaultSet,
+	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
+	ActionProjectDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

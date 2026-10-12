@@ -5,6 +5,8 @@ import { expectAccessible, openShell, startInScheme, type ColourScheme } from ".
 // place of web/src/features/shell/places.ts, a new theme's editor and a path that leads nowhere, as alice, an admin.
 const PATHS = [
   "/",
+  "/projects",
+  "/projects/new",
   "/settings/members",
   "/settings/sso",
   "/settings/default-theme",

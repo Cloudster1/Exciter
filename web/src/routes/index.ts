@@ -9,6 +9,7 @@ import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { loginRoute } from "./login";
+import { newProjectRoute, projectRoute, projectSettingsRoute, projectsRoute } from "./projects";
 import { membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
@@ -17,7 +18,21 @@ import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  appRoute.addChildren([homeRoute, settingsRoute, membersRoute, ssoRoute, auditRoute, defaultThemeRoute, themesRoute, themeNewRoute, themeEditRoute]),
+  appRoute.addChildren([
+    homeRoute,
+    projectsRoute,
+    newProjectRoute,
+    projectRoute,
+    projectSettingsRoute,
+    settingsRoute,
+    membersRoute,
+    ssoRoute,
+    auditRoute,
+    defaultThemeRoute,
+    themesRoute,
+    themeNewRoute,
+    themeEditRoute,
+  ]),
 ]);
 
 /** The application's router; tests pass a memory history to start anywhere. */

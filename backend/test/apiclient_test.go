@@ -26,6 +26,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 )
@@ -77,7 +78,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		themes: theme.NewService(h.cluster, store), h: h}
 	server := &httpapi.Server{
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
-		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes,
+		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes, Projects: project.NewService(h.cluster),
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

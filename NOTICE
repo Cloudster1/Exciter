@@ -129,6 +129,16 @@ Adapted from Stator at cf0f6f7:
   spaces), the pending test of httpapi, and the layout of
   docs/api-contract-m1.md
 
+Adapted from Stator at cf0f6f7, for projects (#11):
+- backend/internal/project/keys.go: ValidKey, NormalizeKey and SuggestKey of
+  internal/space/space.go, which are Armature's, with keys numbered to free
+  one added
+- web/src/api/projects.ts and features/projects ProjectDirectory,
+  NewProjectForm, ProjectSettings and ProjectNav: api/spaces.ts and
+  features/spaces SpaceDirectory, NewSpaceForm, SpaceSettings and SpaceNav,
+  with the key asked of the server, key changes, and archiving in place of
+  personal spaces, templates and guests
+
 Adapted from Armature at 73d72dd:
 - the API types of backend/internal/workflow (statuses, steps, transitions,
   rules and the rule registry, without schemes), attribute (custom field
