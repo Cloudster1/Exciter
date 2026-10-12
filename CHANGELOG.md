@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Exciter has a logo and a favicon (#56). The sign-in page shows the logo, the
+  sidebar shows the gopher's face beside the organization's name, and the
+  browser tab, touch icon and web app manifest use the same face, which still
+  reads at 16 pixels. `make branding` makes them from
+  `assets/branding/logo.jpg`.
 - The web client's skeleton (#6). nginx serves the React app on the web port
   and passes `/api` to the api, so `make up` now opens Exciter at
   `http://localhost:<web port>`. A person signs in with a password, lands on a

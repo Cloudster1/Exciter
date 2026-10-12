@@ -28,7 +28,7 @@ export function LoginPage({ next }: { next?: string }) {
     <main className="flex min-h-full items-center justify-center bg-backdrop px-4 py-12" data-login>
       <div className="w-full max-w-sm">
         <div className="mb-6">
-          <Logo className="mb-3" />
+          <Logo className="mb-3 rounded-overlay" />
           <p className="font-mono text-sm font-medium tracking-wide text-ink-muted">{APP_NAME}</p>
           <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink">{t.login.title}</h1>
           <p className="mt-1 text-sm text-ink-muted">{t.login.subtitle}</p>

@@ -48,3 +48,8 @@ GitHub release.
 ## License
 
 Apache-2.0, see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+The logo and the icons show the Go gopher, designed by
+[Renee French](https://reneefrench.blogspot.com/) and licensed under
+[Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/);
+see [`NOTICE`](NOTICE).
