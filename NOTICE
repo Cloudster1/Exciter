@@ -139,6 +139,13 @@ Adapted from Stator at cf0f6f7, for projects (#11):
   with the key asked of the server, key changes, and archiving in place of
   personal spaces, templates and guests
 
+Adapted from Stator at cf0f6f7, for history (#16):
+- backend/internal/requirement/diff.go and diff_test.go: internal/page's,
+  without the gallery Exciter has no node for
+- web/src/features/history/RequirementHistory.tsx and the DocDiffView and
+  comparison styles: features/pages/PageHistory.tsx, routes/page-history.tsx
+  and features/editor DocView's diff, on revisions without drafts
+
 Adapted from Stator at cf0f6f7, for the tree (#15):
 - backend/internal/rank: internal/rank, which Stator has from Armature
 - backend/migrations/00150_tree.sql: the tree guard of 00021_page_tree.sql,

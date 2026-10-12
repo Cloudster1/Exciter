@@ -547,8 +547,16 @@ New audit actions: `project.created`, `project.key_changed`,
   change entry its field, what it was and became as a reader sees them, and
   why when it was not the actor's own choice (such as a revision taking an
   approved requirement back to Draft).
+- **As built.** A revision has no id of its own, so the activity names one by
+  a uuid made from its requirement and number, which the cursor keys on. A
+  restore of a revision written before a move to another project carries its
+  type and values over by name, as the move did. In a comparison a boolean
+  reads Yes or No and rich text as its plain text, and a value no attribute of
+  the project names any more, such as one a move left behind, comes last by
+  its key. Restoring a requirement in the trash is 409 `requirement_trashed`.
 - UI: `/p/$projectKey/r/$reqKey/history`, ported from Stator's `PageHistory`
-  and `page-history.tsx`.
+  and `page-history.tsx`: the revisions, one revision, a comparison and the
+  activity, each its own address.
 
 ## #17 Statuses and workflow
 

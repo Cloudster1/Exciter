@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- History, compare and restore (#16). A requirement's history lists its
+  revisions with who wrote each, when and why. Any two compare side by side:
+  changed words are marked in the statement and the rationale, and attribute
+  values show before and after, options and people by name. Restoring an old
+  revision writes it again as the next one, so nothing in between is lost.
+  The activity merges revisions with owner, priority, place and trash changes.
 - The tree and the specification (#15). Requirements and sections sit below
   one another, numbered as they read (2.3.1), and `/p/<key>/spec` reads a
   project as one numbered document beside its tree, each entry edited in

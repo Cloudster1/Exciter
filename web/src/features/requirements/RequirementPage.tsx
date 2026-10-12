@@ -53,6 +53,15 @@ export function RequirementPage({ project, requirement }: { project: Project; re
             )}
             <span data-revision={requirement.revision}>{t.requirements.revision(requirement.revision)}</span>
             {requirement.outline && <span data-outline={requirement.outline}>{requirement.outline}</span>}
+            <Link
+              to="/p/$projectKey/r/$reqKey/history"
+              params={{ projectKey: project.key, reqKey: requirement.key }}
+              search={{}}
+              className="hover:text-accent hover:underline"
+              data-history-link=""
+            >
+              {t.history.link}
+            </Link>
           </span>
         }
         actions={

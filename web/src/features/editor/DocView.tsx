@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/components/ui";
+import { t } from "@/i18n";
 import { safeHref, type DocMark, type DocNode } from "./schema";
 
 /** A document read without its editor, as Stator's DocView draws a page; what the allowlist does not name is left out. */
@@ -7,6 +8,27 @@ export function DocView({ doc, className, ...rest }: { doc: DocNode | null; clas
   return (
     <div className={cx("doc-content", className)} {...rest}>
       {(doc?.content ?? []).map((node, i) => block(node, i))}
+    </div>
+  );
+}
+
+/** One block of a comparison and what happened to it. */
+export interface DiffBlockView {
+  change: "equal" | "inserted" | "deleted" | "modified";
+  node: DocNode;
+}
+
+/** Two revisions of a document compared, block by block, each changed block labelled so colour is never the only sign. */
+export function DocDiffView({ blocks, ...rest }: { blocks: DiffBlockView[]; [attr: `data-${string}`]: string | undefined }) {
+  const labels = { inserted: t.history.added, deleted: t.history.removed, modified: t.history.changed };
+  return (
+    <div className="doc-content text-ink" data-diff-view {...rest}>
+      {blocks.map((b, i) => (
+        <div key={i} className="doc-diff-block" data-diff-block={b.change}>
+          {b.change !== "equal" && <span className="doc-diff-label">{labels[b.change]}</span>}
+          {block(b.node, 0)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -95,6 +117,24 @@ function marked(mark: DocMark, inner: ReactNode, key: number): ReactNode {
       return <s key={key}>{inner}</s>;
     case "code":
       return <code key={key}>{inner}</code>;
+    // Only a comparison carries these two; a screen reader is told where each starts and ends, since it
+    // announces neither element by itself.
+    case "diffInsert":
+      return (
+        <ins key={key} data-diff="insert">
+          <span className="sr-only">{t.history.insertedStart}</span>
+          {inner}
+          <span className="sr-only">{t.history.insertedEnd}</span>
+        </ins>
+      );
+    case "diffDelete":
+      return (
+        <del key={key} data-diff="delete">
+          <span className="sr-only">{t.history.deletedStart}</span>
+          {inner}
+          <span className="sr-only">{t.history.deletedEnd}</span>
+        </del>
+      );
     case "link": {
       const href = safeHref(mark.attrs?.href);
       return href ? (

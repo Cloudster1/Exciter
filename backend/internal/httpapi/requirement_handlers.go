@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -205,6 +206,10 @@ func requirementError(err error) *APIError {
 		return ErrForbidden("You may read this project but not change its requirements. Ask one of its administrators to make you an editor.")
 	case errors.Is(err, requirement.ErrNotAdministrator):
 		return ErrForbidden("Only the project's administrators delete from the trash for good. Restore the requirement instead, or ask one of them.")
+	case errors.Is(err, requirement.ErrNoRevision):
+		return ErrNotFound("That revision does not exist. Pick one from the requirement's history.")
+	case errors.Is(err, requirement.ErrNoChange):
+		return &APIError{Status: http.StatusConflict, Code: "no_change", Message: "That revision says what the requirement says now. Pick another to restore."}
 	case errors.Is(err, requirement.ErrTrashed):
 		return &APIError{Status: http.StatusConflict, Code: "requirement_trashed",
 			Message: "This requirement is in the trash. Restore it from the project's trash to change it."}
@@ -263,4 +268,107 @@ func (s *Server) handleCopyRequirement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusCreated, map[string]any{"requirement": made, "copied": copied})
+}
+
+// revisionParam reads a revision number out of the route.
+func revisionParam(r *http.Request) (int, *APIError) {
+	n, err := strconv.Atoi(chi.URLParam(r, "revisionNumber"))
+	if err != nil || n < 1 {
+		return 0, ErrBadRequest("That is not a revision number. Check the address.")
+	}
+	return n, nil
+}
+
+// optionalInt reads a number from the query; absent is nil.
+func optionalInt(r *http.Request, name string) (*int, *APIError) {
+	raw := r.URL.Query().Get(name)
+	if raw == "" {
+		return nil, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 0 {
+		return nil, ErrValidation(map[string]string{name: "Name a revision by its number, 0 for the empty requirement."})
+	}
+	return &n, nil
+}
+
+func (s *Server) handleListRevisions(w http.ResponseWriter, r *http.Request) {
+	limit, offset, apiErr := offsetWindow(r, requirement.DefaultLimit, requirement.MaxLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	revisions, total, err := s.Requirements.Revisions(r.Context(), userFrom(r), reqKeyParam(r), limit, offset)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"revisions": revisions, "total": total, "limit": limit, "offset": offset})
+}
+
+func (s *Server) handleGetRevision(w http.ResponseWriter, r *http.Request) {
+	n, apiErr := revisionParam(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	got, err := s.Requirements.Revision(r.Context(), userFrom(r), reqKeyParam(r), n)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"revision": got})
+}
+
+func (s *Server) handleDiffRevisions(w http.ResponseWriter, r *http.Request) {
+	from, apiErr := optionalInt(r, "from")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	to, apiErr := optionalInt(r, "to")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	got, err := s.Requirements.Compare(r.Context(), userFrom(r), reqKeyParam(r), from, to)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"comparison": got})
+}
+
+func (s *Server) handleRestoreRevision(w http.ResponseWriter, r *http.Request) {
+	n, apiErr := revisionParam(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	var req requirement.RestoreInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	got, revision, lsn, err := s.Requirements.RestoreRevision(r.Context(), userFrom(r), reqKeyParam(r), n, req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got, "revision": revision})
+}
+
+func (s *Server) handleListActivity(w http.ResponseWriter, r *http.Request) {
+	limit, after, apiErr := keysetWindow(r, requirement.DefaultLimit, requirement.MaxLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	entries, next, err := s.Requirements.Activity(r.Context(), userFrom(r), reqKeyParam(r), after, limit)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "next": next})
 }

@@ -155,3 +155,6 @@ export const SPEC_PAGE_SIZE = 50;
 /** How far a level of the tree is indented, and how much of a row's height its edges take as a drop beside it. */
 export const TREE_INDENT_PX = 14;
 export const TREE_DROP_EDGE = 0.25;
+
+/** How many revisions, or entries of the activity, one window of a requirement's history shows. */
+export const HISTORY_PAGE_SIZE = 20;

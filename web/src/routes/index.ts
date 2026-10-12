@@ -19,7 +19,7 @@ import {
   specRoute,
   trashRoute,
 } from "./projects";
-import { permalinkRoute, requirementRoute } from "./requirements";
+import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
 import { membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
@@ -40,6 +40,7 @@ const routeTree = rootRoute.addChildren([
     specRoute,
     requirementRoute,
     permalinkRoute,
+    historyRoute,
     settingsRoute,
     membersRoute,
     ssoRoute,
