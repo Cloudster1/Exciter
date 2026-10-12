@@ -78,6 +78,7 @@ stack-env:
 .PHONY: up
 up: stack-env ## Build and start the whole stack in the background, and say where it is
 	docker compose up -d --build --wait
+	@echo "Web        http://localhost:$(WEB_PORT)"
 	@echo "API        http://localhost:$(API_PORT)/api/v1/meta"
 	@echo "Keycloak   http://localhost:$(KEYCLOAK_PORT) (admin / admin; realm $(KEYCLOAK_REALM))"
 	@echo "Mailpit    http://localhost:$(MAILPIT_PORT)"

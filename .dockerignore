@@ -1,0 +1,9 @@
+.cache
+.git
+.claude
+**/node_modules
+backend/bin
+web/dist
+web/coverage
+e2e
+reports

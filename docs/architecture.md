@@ -88,8 +88,21 @@ holds even for a query that forgot it.
 
 React 19, Vite, TypeScript strict, TanStack Router and Query, Tailwind v4,
 the `components/ui` kit and the Clay tokens of Armature's
-`docs/design/01-tokens.md`. Themes use Armature's `armature-theme/1` format
-(#8). Strings live in `web/src/i18n`, English and German.
+`docs/design/01-tokens.md`, which follow `prefers-color-scheme` until themes
+arrive in Armature's `armature-theme/1` format (#8). Strings live in
+`web/src/i18n`, English and German.
+
+- `api/client.ts` is the one place that calls the API, typed by
+  `api/schema.d.ts`, which `make web-schema` generates from
+  `api/openapi.json`. A 401 from any request sends the reader to `/login` and
+  back afterwards.
+- Routes are defined in code (`routes/index.ts`); everything but `/login`
+  sits in the shell (`features/shell`): a rail, a sidebar that becomes a
+  drawer below the `shell` breakpoint, a top bar with breadcrumbs, the
+  account and organization menus, and the Ctrl K quick switcher. The places
+  of a build are listed once, in `features/shell/places.ts`.
+- `deploy/Dockerfile.web` builds the static files into nginx, which proxies
+  `/api`, `/healthz` and `/readyz` to the api, so the browser sees one origin.
 
 ## Armature and Stator integration (M2, M4)
 
@@ -137,4 +150,4 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
 - `migrate` applies the embedded migrations as the database owner, `seed`
   makes the demo organization, and `api` serves on `API_PORT` once both are
   done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`
-  joins with #6.
+  serves the client on `WEB_PORT` once the api is healthy (#6).

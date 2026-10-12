@@ -239,6 +239,26 @@ services:
       start_period: 30s
       start_interval: 1s
 
+  # The SPA behind nginx, which proxies /api to the api, so the browser sees one origin.
+  web:
+    image: ${COMPOSE_PROJECT_NAME:-exciter}-web
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8000}:80"
+    healthcheck:
+      # Through nginx to the api and its database: healthy means the whole chain a browser uses answers.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
 volumes:
   primary-data:
   replica-data:

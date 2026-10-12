@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The web client's skeleton (#6). nginx serves the React app on the web port
+  and passes `/api` to the api, so `make up` now opens Exciter at
+  `http://localhost:<web port>`. A person signs in with a password, lands on a
+  home page that says what Exciter is for, and finds their way by a rail, a
+  sidebar that folds or becomes a drawer on a phone, breadcrumbs, and Ctrl K,
+  which goes to any page or organization from the keyboard. The account menu
+  switches between English and German and signs out; a person in more than
+  one organization switches between them in the top bar. Administrators
+  add members (a made password is shown once), change their roles, remove
+  them after a confirmation, and read, filter and export the audit log. A
+  session that ends sends the reader to sign in and back. `make check-web`
+  and `make check-format` join the gate.
 - Organizations, members and password sessions (#5). `POST /auth/login` signs
   a local account in with an argon2id password and sets an http-only session
   cookie; `/auth/me`, `/auth/switch-org` and `/auth/logout` follow it. An

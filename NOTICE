@@ -46,3 +46,23 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   migration 00012 from Stator's 00012: passwords, sessions and members,
   without tokens, guests' spaces, groups and join requests, and with a role
   change, admin-only membership policies and a last-owner trigger added
+- mk/web.mk, mk/biome.mk, biome.json and the web client's tooling, renamed
+  to Exciter: web/biome.json, package.json and its lock cut to what the
+  skeleton uses, vite.config.ts without the Excalidraw plugin,
+  tsconfig.json, eslint.config.js, index.html, scripts/schema.mjs,
+  deploy/Dockerfile.web, deploy/nginx.conf without the routes of pages and
+  public links, and .dockerignore
+- web/src: config.ts, main.tsx, lib/format, focus and session,
+  the i18n mechanism and its test with catalogues written for Exciter,
+  api/client.ts, auth.ts and audit.ts, components/ui with its tests and
+  icons.tsx, features/shell without themes, spaces, the hub and the
+  permission screens, with a quick switcher modelled on the quick search,
+  routes/index.ts, root.tsx, app.tsx, login.tsx (password only) and
+  audit.tsx, features/auth/LoginPage, Members and AddMember (in a dialog,
+  with a role change added), features/audit/AuditLog, test/setup.ts, axe.ts,
+  layout.ts and app.tsx, and styles/contrast.test.ts for the Clay palettes
+
+Adapted from Armature at 7380763:
+- web/src/styles/index.css: the Clay tokens, base layer and utilities, with
+  the shell breakpoint and the drawer's animation of Stator's added and the
+  workflow canvas and hatching left out

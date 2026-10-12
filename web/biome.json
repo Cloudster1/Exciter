@@ -1,0 +1,7 @@
+{
+  "root": false,
+  "extends": "//",
+  "files": {
+    "includes": ["**", "!src/api/schema.d.ts", "!dist", "!coverage", "!node_modules"]
+  }
+}

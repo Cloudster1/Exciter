@@ -1,0 +1,8 @@
+{
+  "name": "Exciter",
+  "short_name": "Exciter",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "theme_color": "#2f5fd0",
+  "background_color": "#f6f4f0",
+  "display": "standalone"
+}

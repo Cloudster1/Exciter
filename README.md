@@ -20,16 +20,17 @@ Every toolchain runs in a container, driven by the `Makefile`; Docker and
 make are the only requirements. [`CLAUDE.md`](CLAUDE.md) holds the rules.
 
 ```sh
-make up                 # the stack: Postgres with a replica, Valkey, SeaweedFS, Mailpit, Keycloak, the api
+make up                 # the stack: Postgres with a replica, Valkey, SeaweedFS, Mailpit, Keycloak, the api, the web client
 make ports              # this checkout's compose project and its twenty ports
 make down               # stop (make clean also drops the volumes)
+make web-dev            # the web client with hot reload, against the running stack's api
 ./run-tests.sh          # the whole gate, as CI and the push hook run it
 ./run-tests.sh --list   # its layers
 make help               # every target
 ```
 
 The demo organization's owner is `admin@exciter.test` with the password
-`exciter admin password`; sign in with `POST /api/v1/auth/login`.
+`exciter admin password`; sign in at the web address `make up` prints.
 
 Every port is bound to `127.0.0.1` and derived from the checkout's path, so
 worktrees, Armature and a Stator checkout run side by side; the ports are also

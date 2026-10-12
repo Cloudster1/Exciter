@@ -1,0 +1,19 @@
+# The production image: the SPA built to static files and served by nginx, which also proxies the API so the
+# browser sees one origin.
+FROM node:26-alpine AS deps
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+# No cache mount: kaniko ignores them, and this layer is cached whole until the lock file changes.
+RUN npm ci --no-audit --no-fund
+
+# The build reads ../VERSION and ../api/openapi.json, as it does in a checkout.
+FROM deps AS build
+COPY VERSION /src/VERSION
+COPY api/ /src/api/
+COPY web/ ./
+RUN npm run build
+
+FROM nginx:1.29-alpine
+COPY --from=build /src/web/dist /usr/share/nginx/html
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
