@@ -20,7 +20,7 @@ Every toolchain runs in a container, driven by the `Makefile`; Docker and
 make are the only requirements. [`CLAUDE.md`](CLAUDE.md) holds the rules.
 
 ```sh
-make up                 # the stack: Postgres primary and replica, Valkey, SeaweedFS, Mailpit, Keycloak
+make up                 # the stack: Postgres with a replica, Valkey, SeaweedFS, Mailpit, Keycloak, the api
 make ports              # this checkout's compose project and its twenty ports
 make down               # stop (make clean also drops the volumes)
 ./run-tests.sh          # the whole gate, as CI and the push hook run it

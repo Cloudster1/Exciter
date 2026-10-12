@@ -29,6 +29,12 @@ wanted() { [[ " ${selected[*]} " == *" $1 "* ]]; }
 # so this file only decides the order.
 has_target() { [[ -f Makefile ]] && make -n "$1" >/dev/null 2>&1; }
 
+# Without make every layer would look absent and the gate would pass having run nothing but the shell tests.
+if [[ -f Makefile ]] && ! command -v make >/dev/null && [[ " ${selected[*]} " != " shell " ]]; then
+  echo "make is not installed, so no layer but the shell tests could run. Install make (sudo apt install make) and run the gate again." >&2
+  exit 2
+fi
+
 # Chained rather than relying on set -e, which a call from run_layer turns off.
 shell_tests() {
   ./tests/test-release.sh && ./tests/test-ci.sh && ./tests/test-ports.sh && ./tests/test-stack.sh \

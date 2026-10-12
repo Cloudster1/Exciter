@@ -7,6 +7,22 @@ x-db-env: &db-env
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-exciter}
   POSTGRES_DB: exciter
 
+# The api and the seed connect as exciter_app, which row level security constrains, and as exciter_admin for
+# what runs before a tenant is known.
+x-app-db-env: &app-db-env
+  EXCITER_ENV: development
+  EXCITER_DB_PRIMARY_URL: postgres://exciter_app:${APP_DB_PASSWORD:-exciter_app}@postgres-primary:5432/exciter?sslmode=disable
+  EXCITER_DB_REPLICA_URLS: postgres://exciter_app:${APP_DB_PASSWORD:-exciter_app}@postgres-replica:5432/exciter?sslmode=disable
+  EXCITER_DB_ADMIN_URL: postgres://exciter_admin:${ADMIN_DB_PASSWORD:-exciter_admin}@postgres-primary:5432/exciter?sslmode=disable
+  # Read-your-writes positions, shared by every api process.
+  EXCITER_VALKEY_URL: redis://:${VALKEY_PASSWORD:-exciter_valkey}@valkey:6379/0
+
+# Every Go service runs the same image, which migrate alone builds: two builds racing to tag one name would fail
+# the stack's start.
+x-backend: &backend
+  image: ${COMPOSE_PROJECT_NAME:-exciter}-backend
+  pull_policy: never
+
 services:
   postgres-primary:
     image: postgres:18-alpine
@@ -146,6 +162,58 @@ services:
       retries: 30
       start_period: 90s
       start_interval: 2s
+
+  # Migrations run as the database owner, which is what lets them create the runtime roles' default privileges.
+  migrate:
+    <<: *backend
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    command: ["/app/migrate", "up"]
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    environment:
+      EXCITER_DB_PRIMARY_URL: postgres://exciter:${POSTGRES_PASSWORD:-exciter}@postgres-primary:5432/exciter?sslmode=disable
+    restart: "no"
+
+  seed:
+    <<: *backend
+    command: ["/app/seed"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-db-env
+    restart: "no"
+
+  api:
+    <<: *backend
+    command: ["/app/api"]
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      postgres-replica:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      # After the seed rather than beside it: `up --wait` accepts a one-shot container only when something waits for it.
+      seed:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-db-env
+      EXCITER_HTTP_ADDR: ":8080"
+      EXCITER_LOG_LEVEL: debug
+      EXCITER_APP_URL: http://localhost:${WEB_PORT:-8000}
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "/app/api", "-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
 
 volumes:
   primary-data:

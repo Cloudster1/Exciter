@@ -1,0 +1,672 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Exciter",
+    "version": "1",
+    "description": "The requirements management HTTP API. Every endpoint answers JSON; errors share one envelope. Sign in with a session cookie or an API token sent as a bearer token."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "This deployment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "health"
+    }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "liveness",
+        "summary": "Whether the process is running.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta": {
+      "get": {
+        "operationId": "meta",
+        "summary": "Which product and build answers here.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openAPI",
+        "summary": "This document.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readiness",
+        "summary": "Whether the process can serve traffic, and how reads are routed.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "APIError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "BuildInfo": {
+        "type": "object",
+        "properties": {
+          "builtAt": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "Components": {
+        "type": "object",
+        "properties": {
+          "schemas": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "securitySchemes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SecurityScheme"
+            }
+          }
+        },
+        "required": [
+          "schemas"
+        ]
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "components": {
+            "$ref": "#/components/schemas/Components"
+          },
+          "info": {
+            "$ref": "#/components/schemas/Info"
+          },
+          "openapi": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operation"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "security": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Server"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          }
+        },
+        "required": [
+          "openapi",
+          "info",
+          "paths",
+          "components"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/APIError"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Info": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "version"
+        ]
+      },
+      "MediaType": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "$ref": "#/components/schemas/Schema"
+          }
+        }
+      },
+      "MetaResponse": {
+        "type": "object",
+        "properties": {
+          "build": {
+            "$ref": "#/components/schemas/BuildInfo"
+          },
+          "product": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "build"
+        ]
+      },
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "operationId": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Parameter"
+            }
+          },
+          "requestBody": {
+            "$ref": "#/components/schemas/RequestBody"
+          },
+          "responses": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Response"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "security": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "operationId",
+          "responses"
+        ]
+      },
+      "Parameter": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "in": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Schema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "in",
+          "schema"
+        ]
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "routing": {
+            "$ref": "#/components/schemas/Stats"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "routing"
+        ]
+      },
+      "ReplicaStatus": {
+        "type": "object",
+        "properties": {
+          "healthy": {
+            "type": "boolean"
+          },
+          "lastError": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "healthy"
+        ]
+      },
+      "RequestBody": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MediaType"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MediaType"
+            }
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "Schema": {
+        "type": "object",
+        "properties": {
+          "$defs": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "$ref": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/components/schemas/Schema"
+          },
+          "description": {
+            "type": "string"
+          },
+          "enum": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "format": {
+            "type": "string"
+          },
+          "items": {
+            "$ref": "#/components/schemas/Schema"
+          },
+          "oneOf": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "description": "A JSON value."
+          }
+        }
+      },
+      "SecurityScheme": {
+        "type": "object",
+        "properties": {
+          "bearerFormat": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "in": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "Server": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "Stats": {
+        "type": "object",
+        "properties": {
+          "lagFallbacks": {
+            "type": "integer"
+          },
+          "noHealthyReplicaHits": {
+            "type": "integer"
+          },
+          "readsToPrimary": {
+            "type": "integer"
+          },
+          "readsToReplica": {
+            "type": "integer"
+          },
+          "replicas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplicaStatus"
+            }
+          },
+          "staleFallbacks": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "replicas",
+          "readsToPrimary",
+          "readsToReplica",
+          "staleFallbacks",
+          "lagFallbacks",
+          "noHealthyReplicaHits"
+        ]
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    }
+  }
+}
