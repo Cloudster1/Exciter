@@ -54,3 +54,22 @@ func TestValidateAgainstTheBuiltSchema(t *testing.T) {
 		t.Errorf("extra properties should pass: %v", err)
 	}
 }
+
+// A pointer to an enum is null or one of its values: null joins as an
+// alternative, since a type list beside the enum would still refuse it.
+func TestANullableEnumTakesNullAndItsValues(t *testing.T) {
+	b := NewBuilder()
+	b.Enums[reflect.TypeOf(priority(""))] = []string{"low", "high"}
+	s := b.SchemaOf(struct {
+		Priority *priority `json:"priority"`
+	}{})
+	d := &Document{Components: Components{Schemas: b.Components()}}
+	for _, raw := range []string{`{"priority":null}`, `{"priority":"low"}`} {
+		if err := d.ValidateJSON(s, []byte(raw)); err != nil {
+			t.Errorf("%s should pass: %v", raw, err)
+		}
+	}
+	if err := d.ValidateJSON(s, []byte(`{"priority":"urgent"}`)); err == nil {
+		t.Error("a value outside the enum should fail")
+	}
+}

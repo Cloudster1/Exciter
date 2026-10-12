@@ -33,7 +33,8 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   consistency tests between them. An operation agreed before it is built
   carries `pending: true` and answers 501 `not_implemented`.
 - Migrations: goose, embedded in the binary, applied by `cmd/migrate`. Each
-  milestone's contract divides a range of migration numbers among its issues.
+  milestone's contract divides a range of migration numbers among its issues:
+  `docs/api-contract-m1.md` for the requirements core (#10).
 - Configuration: environment variables only, prefix `EXCITER_`.
 - Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
   speaks S3, signing its few calls itself with the standard library rather

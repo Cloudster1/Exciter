@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API of the requirements core, agreed before it is built (#10). Projects,
+  permissions, requirements and their revisions, types and attributes, the
+  tree, history, workflow, trace links, labels, search, attachments, tokens,
+  CSV import and templates are in `api/openapi.json` and answer 501 until each
+  is built. `docs/api-contract-m1.md` says what each operation means and
+  divides the migration numbers among the issues.
 - A browser suite with an accessibility check on every page (#9).
   `make test-e2e` runs Playwright in its own container against the compose
   stack, and joins `./run-tests.sh` and CI, which splits it in two shards and
