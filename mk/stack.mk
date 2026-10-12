@@ -36,6 +36,19 @@ export COMPOSE_PROJECT_NAME := $(STACK_PROJECT)
 export WEB_PORT API_PORT KEYCLOAK_PORT MAILPIT_PORT POSTGRES_PORT POSTGRES_REPLICA_PORT VALKEY_PORT S3_PORT ARMATURE_STUB_PORT STATOR_STUB_PORT
 export POSTGRES_PASSWORD APP_DB_PASSWORD ADMIN_DB_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY VALKEY_PASSWORD
 
+STACK_PG_URL = postgres://$(1):$(2)@$(3):5432/exciter?sslmode=disable
+
+# The Go toolchain container on the stack's network, with everything the integration suite reads. Reads go to the
+# replica as they do in the running api, so the suite proves read-your-writes rather than stepping around it.
+DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
+	-e EXCITER_DB_PRIMARY_URL='$(call STACK_PG_URL,exciter_app,$(APP_DB_PASSWORD),postgres-primary)' \
+	-e EXCITER_DB_REPLICA_URLS='$(call STACK_PG_URL,exciter_app,$(APP_DB_PASSWORD),postgres-replica)' \
+	-e EXCITER_DB_ADMIN_URL='$(call STACK_PG_URL,exciter_admin,$(ADMIN_DB_PASSWORD),postgres-primary)' \
+	-e EXCITER_VALKEY_URL='redis://:$(VALKEY_PASSWORD)@valkey:6379/0' \
+	-e EXCITER_TEST_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-primary)' \
+	-e EXCITER_TEST_REPLICA_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-replica)' \
+	$(1))
+
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.
 STACK_ENV_FILE := $(ROOT)/.cache/stack.env
 
@@ -65,6 +78,7 @@ stack-env:
 .PHONY: up
 up: stack-env ## Build and start the whole stack in the background, and say where it is
 	docker compose up -d --build --wait
+	@echo "API        http://localhost:$(API_PORT)/api/v1/meta"
 	@echo "Keycloak   http://localhost:$(KEYCLOAK_PORT) (admin / admin; realm $(KEYCLOAK_REALM))"
 	@echo "Mailpit    http://localhost:$(MAILPIT_PORT)"
 	@echo "Postgres   127.0.0.1:$(POSTGRES_PORT) (replica $(POSTGRES_REPLICA_PORT))"
@@ -88,6 +102,14 @@ logs: ## Follow the stack's logs: make logs S=keycloak for one service
 .PHONY: ports
 ports: ## Print this checkout's compose project and ports
 	@echo "project $(STACK_PROJECT), ports $(STACK_PORT_BASE) to $(shell echo $$(($(STACK_PORT_BASE) + 19)))"
+
+.PHONY: shell
+shell: | $(GO_CACHE) ## Interactive shell in the Go toolchain container, on the stack's network
+	$(call DOCKER_GO_STACK,-it) sh
+
+.PHONY: seed
+seed: ## Run the seed again against the running stack
+	docker compose run --rm seed
 
 .PHONY: stack-up
 stack-up: stack-env ## The gate's stack: build and start it, and wait until every service is healthy

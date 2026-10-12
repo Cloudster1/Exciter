@@ -1,0 +1,179 @@
+package config
+
+import (
+	"errors"
+	"strings"
+	"testing"
+	"time"
+)
+
+// clean starts every test from an environment with only the required setting,
+// so a variable exported on the developer's machine cannot change the outcome.
+func clean(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"EXCITER_ENV", "EXCITER_HTTP_ADDR", "EXCITER_LOG_LEVEL", "EXCITER_APP_URL", "EXCITER_CORS_ORIGINS",
+		"EXCITER_REQUEST_TIMEOUT", "EXCITER_DB_REPLICA_URLS", "EXCITER_DB_ADMIN_URL", "EXCITER_DB_MAX_CONNS",
+		"EXCITER_DB_PRIMARY_MAX_CONNS", "EXCITER_DB_REPLICA_MAX_CONNS",
+		"EXCITER_DB_MIN_CONNS", "EXCITER_DB_CONN_MAX_LIFETIME", "EXCITER_DB_HEALTH_INTERVAL",
+		"EXCITER_DB_MAX_REPLICA_LAG", "EXCITER_DB_REPLICA_LAG_SAMPLES", "EXCITER_READ_YOUR_WRITES_TTL",
+		"EXCITER_VALKEY_URL", "EXCITER_METRICS_ADDR", "EXCITER_OTEL_ENDPOINT", "EXCITER_OTEL_SAMPLE_RATIO",
+		"EXCITER_SECRET_KEY",
+	} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("EXCITER_DB_PRIMARY_URL", "postgres://app@db/exciter")
+}
+
+func TestDefaults(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_METRICS_ADDR", DefaultMetricsAddr)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Env != EnvDevelopment || c.HTTPAddr != DefaultHTTPAddr || c.RequestTimeout != DefaultRequestTimeout {
+		t.Errorf("process defaults = %+v", c)
+	}
+	if c.DB.PrimaryMaxConns != DefaultMaxConns || c.DB.ReplicaMaxConns != DefaultMaxConns || c.DB.MinConns != DefaultMinConns || c.DB.HealthInterval != DefaultHealthInterval {
+		t.Errorf("pool defaults = %+v", c.DB)
+	}
+	if c.DB.AdminURL != c.DB.PrimaryURL {
+		t.Errorf("the admin URL should fall back to the primary, got %q", c.DB.AdminURL)
+	}
+	if c.DB.ReplicaLagSamples != DefaultLagSamples || c.DB.ReadYourWritesTTL != DefaultReadYourWrites || c.Valkey.URL != "" {
+		t.Errorf("replica and freshness defaults = %+v, %+v", c.DB, c.Valkey)
+	}
+	if c.Telemetry.MetricsAddr != DefaultMetricsAddr || c.Telemetry.SampleRatio != 1 {
+		t.Errorf("telemetry defaults = %+v", c.Telemetry)
+	}
+}
+
+func TestListsAreTrimmed(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_DB_REPLICA_URLS", " postgres://a , ,postgres://b ")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.DB.ReplicaURLs) != 2 || c.DB.ReplicaURLs[0] != "postgres://a" || c.DB.ReplicaURLs[1] != "postgres://b" {
+		t.Fatalf("replicas = %q", c.DB.ReplicaURLs)
+	}
+}
+
+func TestMetricsAddressBlankMeansOff(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_METRICS_ADDR", "")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Telemetry.MetricsAddr != "" {
+		t.Fatalf("metrics address = %q, want it off", c.Telemetry.MetricsAddr)
+	}
+}
+
+func TestEveryProblemIsReportedAtOnceAsSentences(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_DB_PRIMARY_URL", "")
+	t.Setenv("EXCITER_ENV", "moon")
+	t.Setenv("EXCITER_DB_MAX_CONNS", "many")
+	t.Setenv("EXCITER_REQUEST_TIMEOUT", "soon")
+	t.Setenv("EXCITER_OTEL_SAMPLE_RATIO", "7")
+
+	_, err := Load()
+	var cfgErr *Error
+	if !errors.As(err, &cfgErr) {
+		t.Fatalf("error = %v, want a *config.Error", err)
+	}
+	for _, want := range []string{
+		"EXCITER_DB_PRIMARY_URL", "EXCITER_ENV", "EXCITER_DB_MAX_CONNS", "EXCITER_REQUEST_TIMEOUT",
+		"EXCITER_OTEL_SAMPLE_RATIO",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the error should name %s:\n%v", want, err)
+		}
+	}
+	for _, p := range cfgErr.Problems {
+		if p == "" || p[0] < 'A' || p[0] > 'Z' || !strings.HasSuffix(p, ".") {
+			t.Errorf("%q is not a sentence", p)
+		}
+	}
+}
+
+func TestPoolBoundsMustAgree(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_DB_MAX_CONNS", "2")
+	t.Setenv("EXCITER_DB_MIN_CONNS", "5")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_DB_MIN_CONNS") {
+		t.Fatalf("a minimum above the maximum should be refused: %v", err)
+	}
+	t.Setenv("EXCITER_DB_MAX_CONNS", "")
+	t.Setenv("EXCITER_DB_MIN_CONNS", "")
+	t.Setenv("EXCITER_DB_REPLICA_MAX_CONNS", "0")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_DB_REPLICA_MAX_CONNS must be at least 1.") {
+		t.Fatalf("an empty read pool should be refused: %v", err)
+	}
+}
+
+func TestThePoolsAreSizedApart(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_DB_MAX_CONNS", "12")
+	t.Setenv("EXCITER_DB_REPLICA_MAX_CONNS", "40")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.DB.PrimaryMaxConns != 12 || c.DB.ReplicaMaxConns != 40 {
+		t.Fatalf("pools = %d write, %d read; want 12 from EXCITER_DB_MAX_CONNS and 40 of its own", c.DB.PrimaryMaxConns, c.DB.ReplicaMaxConns)
+	}
+}
+
+func TestDurationsAreParsed(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_REQUEST_TIMEOUT", "45s")
+	t.Setenv("EXCITER_DB_MAX_REPLICA_LAG", "250ms")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.RequestTimeout != 45*time.Second || c.DB.MaxReplicaLag != 250*time.Millisecond {
+		t.Fatalf("durations = %s, %s", c.RequestTimeout, c.DB.MaxReplicaLag)
+	}
+}
+
+func TestReplicaSamplesAndFreshnessMustBePositive(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_DB_REPLICA_LAG_SAMPLES", "0")
+	t.Setenv("EXCITER_READ_YOUR_WRITES_TTL", "0s")
+	_, err := Load()
+	var cfgErr *Error
+	if !errors.As(err, &cfgErr) || len(cfgErr.Problems) != 2 {
+		t.Fatalf("want both settings refused, got %v", err)
+	}
+}
+
+// testKey is 32 zero bytes, which is a well formed key and nothing more.
+const testKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+func TestTheSecretKeyIsThirtyTwoBytesAndRequiredOutsideDevelopment(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_SECRET_KEY", testKey)
+	c, err := Load()
+	if err != nil || len(c.SecretKey) != SecretKeyBytes {
+		t.Fatalf("a good key = %d bytes, %v", len(c.SecretKey), err)
+	}
+
+	for _, bad := range []string{"short", "AAAA", "not base64 at all!"} {
+		t.Setenv("EXCITER_SECRET_KEY", bad)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_SECRET_KEY") {
+			t.Errorf("key %q should be refused: %v", bad, err)
+		}
+	}
+
+	t.Setenv("EXCITER_SECRET_KEY", "")
+	t.Setenv("EXCITER_ENV", EnvProduction)
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_SECRET_KEY") {
+		t.Fatalf("production without a key should be refused: %v", err)
+	}
+}

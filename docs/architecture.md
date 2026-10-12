@@ -23,7 +23,7 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
 
 ## Backend (`backend/`, #3)
 
-- Module `github.com/Cloudster1/exciter/backend`, Go 1.26.
+- Module `github.com/cloudster1/exciter/backend`, Go 1.26.
 - Binaries in `cmd/`: `api`, `worker`, `migrate`, `seed`, `openapi`, and the
   stand-ins `armature-stub` and `stator-stub` used by the test layers.
 - One package per domain in `internal/`, each with a `Service`, a model and
@@ -108,5 +108,7 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
 - Keycloak imports `deploy/keycloak/realm.json` on every start: realm
   `suite-dev` with clients `exciter`, `armature` and `stator` (PKCE, a
   `groups` claim) and the development people.
-- The services of the product join the file with the issues that build them:
-  `migrate`, `seed` and `api` (#3), `worker` (#4), `web` (#6).
+- `migrate` applies the embedded migrations as the database owner, `seed`
+  makes the demo organization, and `api` serves on `API_PORT` once both are
+  done (#3). The services still to come join with the issues that build them:
+  `worker` (#4), `web` (#6).

@@ -17,9 +17,13 @@ if config="$(docker compose -f "$COMPOSE" config --format json 2>&1)"; then
   pass "compose accepts deploy/docker-compose.yml"
   open="$(jq -r '.services | to_entries[] | .key as $s | (.value.ports // [])[] | select(.host_ip != "127.0.0.1") | "\($s):\(.published)"' <<< "$config")"
   [[ -z "$open" ]] && pass "every published port is bound to 127.0.0.1" || fail "published beyond the loopback: $open"
-  missing="$(jq -r '.services | to_entries[] | select(.value.healthcheck == null and .key != "mailpit") | .key' <<< "$config")"
-  [[ -z "$missing" ]] && pass "every service but mailpit, whose image has one, declares a health check" \
+  missing="$(jq -r '.services | to_entries[] | select(.value.healthcheck == null and .key != "mailpit" and .value.restart != "no") | .key' <<< "$config")"
+  [[ -z "$missing" ]] && pass "every long-running service but mailpit, whose image has one, declares a health check" \
     || fail "no health check: $missing"
+  oneshot="$(jq -r '.services | to_entries[] | select(.value.restart == "no") | .key' <<< "$config" | sort | tr '\n' ' ')"
+  waited="$(jq -r '[.services[] | (.depends_on // {}) | to_entries[] | select(.value.condition == "service_completed_successfully") | .key] | unique | join(" ")' <<< "$config")"
+  [[ "${oneshot% }" == "$waited" ]] && pass "every one-shot service is waited for, so up --wait accepts it" \
+    || fail "one-shot services ($oneshot) and the ones something waits for ($waited) differ"
 else
   fail "compose refuses the file: $config"
 fi

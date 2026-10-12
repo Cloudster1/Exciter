@@ -24,3 +24,16 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   the port slots moved to 10000-19999 by scripts/stack-ports.sh
 - deploy/keycloak/realm.json: the client definition, given to three clients
   in one realm
+- backend/internal/config, db, freshness, tenant, secret, keyset, openapi,
+  observability and version, which Stator adapted from Armature's: renamed,
+  config cut to what the skeleton reads, db's token spaces made token
+  projects, the anonymous and public link readers left out
+- backend/internal/httpapi: the route table, the document it builds, the
+  errors, request helpers, middleware, edges and read-your-writes of Stator's,
+  without the routes of features Exciter does not have yet
+- backend/cmd/api, migrate, openapi and seed, backend/internal/seed,
+  backend/migrations/00001_foundation.sql with current_actor_id from 00090,
+  deploy/Dockerfile.backend, mk/go.mk and scripts/go-test.sh
+- backend/test: the harness, its watchdog, the contract and coverage tests,
+  the probe, tenant isolation and replication tests, the last writing by
+  renaming an organization rather than making a theme

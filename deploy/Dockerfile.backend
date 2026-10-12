@@ -1,0 +1,39 @@
+# One image carries every backend binary; compose picks the one a service runs with its command, so a stack
+# build compiles the shared packages once. The dependencies compile in a layer that stays cached until an import changes.
+
+FROM golang:1.26-alpine AS modules
+WORKDIR /src
+ENV GOFLAGS=-buildvcs=false GOTOOLCHAIN=local CGO_ENABLED=0
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+
+# The list changes only when an import does, so the layer below that reads it is reused by every such commit.
+FROM modules AS deplist
+COPY backend/ ./
+RUN go list -deps -f '{{if and (not .Standard) (ne .Module.Path "github.com/cloudster1/exciter/backend")}}{{.ImportPath}}{{end}}' ./cmd/... | sort -u > /deps.txt
+
+FROM modules AS builder
+# The flags match the final build's, or its cache would not be consulted.
+COPY --from=deplist /deps.txt /deps.txt
+RUN go build -trimpath $(cat /deps.txt)
+
+COPY backend/ ./
+COPY VERSION /VERSION
+
+# goose drops the database drivers Exciter never uses under these tags.
+ARG GOOSE_TAGS="no_sqlite3 no_mysql no_clickhouse no_vertica no_ydb no_libsql no_mssql no_turso no_duckdb"
+ARG COMMIT=""
+RUN PKG=github.com/cloudster1/exciter/backend/internal/version && \
+    LDFLAGS="-s -w -X $PKG.Version=$(cat /VERSION) -X $PKG.Commit=$COMMIT -X $PKG.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
+    go build -trimpath -ldflags="$LDFLAGS" -o /out/ ./cmd/api ./cmd/seed && \
+    go build -trimpath -ldflags="$LDFLAGS" -tags "$GOOSE_TAGS" -o /out/migrate ./cmd/migrate
+
+# Alpine rather than scratch: the health checks want a shell and wget.
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates tzdata && \
+    adduser -D -u 10001 exciter
+WORKDIR /app
+COPY --from=builder /out/ /app/
+USER exciter
+EXPOSE 8080
+CMD ["/app/api"]
