@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"net/netip"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -107,6 +109,54 @@ func (l *loader) secretKey(key, env string) []byte {
 		return nil
 	}
 	return decoded
+}
+
+// members parses "email=role,email=role", each role owner, admin or member.
+func (l *loader) members(key string) []BootstrapMember {
+	var out []BootstrapMember
+	for _, pair := range splitList(l.str(key, "")) {
+		email, role, _ := strings.Cut(pair, "=")
+		email, role = strings.TrimSpace(email), strings.TrimSpace(role)
+		if !strings.Contains(email, "@") || (role != "owner" && role != "admin" && role != "member") {
+			l.problem(fmt.Sprintf("%s has %q; write each entry as email=role, with the role owner, admin or member.", key, pair))
+			continue
+		}
+		out = append(out, BootstrapMember{Email: email, Role: role})
+	}
+	return out
+}
+
+// rewrites parses "public=reachable,public=reachable", refusing a pair it
+// cannot read rather than quietly dropping it.
+func (l *loader) rewrites(key string) map[string]string {
+	out := map[string]string{}
+	for _, pair := range splitList(l.str(key, "")) {
+		from, to, ok := strings.Cut(pair, "=")
+		from, to = strings.TrimSuffix(strings.TrimSpace(from), "/"), strings.TrimSuffix(strings.TrimSpace(to), "/")
+		fromURL, errFrom := url.Parse(from)
+		toURL, errTo := url.Parse(to)
+		if !ok || errFrom != nil || errTo != nil || fromURL.Host == "" || toURL.Host == "" {
+			l.problem(fmt.Sprintf("%s has %q; write each entry as public-origin=reachable-origin, such as http://localhost:8180=http://keycloak:8080.", key, pair))
+			continue
+		}
+		out[from] = to
+	}
+	return out
+}
+
+// prefixes parses a comma separated list of CIDRs, refusing one it cannot read
+// rather than trusting less, or more, than the operator meant.
+func (l *loader) prefixes(key string) []netip.Prefix {
+	var out []netip.Prefix
+	for _, each := range splitList(l.str(key, "")) {
+		prefix, err := netip.ParsePrefix(each)
+		if err != nil {
+			l.problem(fmt.Sprintf("%s has %q; write each entry as an address range in CIDR notation, such as 172.16.0.0/12.", key, each))
+			continue
+		}
+		out = append(out, prefix.Masked())
+	}
+	return out
 }
 
 // splitList parses a comma separated list, trimming blanks.

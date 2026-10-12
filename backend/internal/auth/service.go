@@ -33,6 +33,9 @@ func NewService(cluster *db.Cluster, params PasswordParams, sessionTTL time.Dura
 	return &Service{db: cluster, params: params, sessionTTL: sessionTTL, now: time.Now}
 }
 
+// SessionTTL is how long a new session lasts.
+func (s *Service) SessionTTL() time.Duration { return s.sessionTTL }
+
 // Credentials is the result of a successful sign-in: the principal, the
 // session secret for the cookie, and the write's LSN for read-your-writes.
 type Credentials struct {
@@ -272,6 +275,37 @@ func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale
 	})
 }
 
+// OrgBySlug finds an organization by the slug in a URL. It runs on the admin
+// path because a sign-in has to know its tenant before anybody is signed in.
+func (s *Service) OrgBySlug(ctx context.Context, slug string) (*tenant.Org, error) {
+	var org tenant.Org
+	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		return tx.QueryRow(ctx, `SELECT id, slug FROM org WHERE slug = $1 AND archived_at IS NULL`,
+			strings.ToLower(strings.TrimSpace(slug)),
+		).Scan(&org.ID, &org.Slug)
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotAMember
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find organization: %w", err)
+	}
+	return &org, nil
+}
+
+// AccountID finds the account of an address, for a bootstrap acting in that
+// person's name; ErrNoSuchMember when there is none.
+func (s *Service) AccountID(ctx context.Context, email string) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		return tx.QueryRow(ctx, `SELECT id FROM app_user WHERE email = $1`, NormalizeEmail(email)).Scan(&id)
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, ErrNoSuchMember
+	}
+	return id, err
+}
+
 // EnsureAdmin makes email a local owner of the organization, reporting whether
 // the account is new. Run again it changes nothing, or resets a changed password.
 func (s *Service) EnsureAdmin(ctx context.Context, orgSlug, email, name, password string) (bool, error) {
@@ -329,7 +363,7 @@ func (s *Service) EnsureAdmin(ctx context.Context, orgSlug, email, name, passwor
 		}
 		_, err = tx.Exec(ctx, `
 			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'owner')
-			ON CONFLICT (org_id, user_id) DO UPDATE SET org_role = 'owner'
+			ON CONFLICT (org_id, user_id) DO UPDATE SET org_role = 'owner', role_source = 'manual'
 			WHERE org_member.org_role <> 'owner'`, orgID, userID)
 		return err
 	})

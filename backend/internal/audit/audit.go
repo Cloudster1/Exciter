@@ -23,14 +23,25 @@ const (
 	ActionAuditExported = "audit.exported"
 	// ActionMemberCreated is a person an administrator added with a password.
 	ActionMemberCreated = "member.created"
-	// ActionMemberRoleChanged is a member's standing an administrator changed.
+	// ActionMemberRoleChanged is a member's standing an administrator, or the identity provider's groups, changed.
 	ActionMemberRoleChanged = "member.role_changed"
 	ActionMemberRemoved     = "member.removed"
+	// ActionMemberJoined is somebody let in by a mapped group on their first sign-in, with nobody as its actor.
+	ActionMemberJoined = "member.joined"
+	// ActionMemberAdmitted and ActionMemberDeclined answer somebody waiting to be let in.
+	ActionMemberAdmitted   = "member.admitted"
+	ActionMemberDeclined   = "member.declined"
+	ActionSSOProviderSaved = "sso.provider_saved"
+	ActionGroupRoleSet     = "sso.group_role_set"
+	ActionGroupRoleRemoved = "sso.group_role_removed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
 // client to name.
-var Actions = []string{ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved}
+var Actions = []string{
+	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
+	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
+}
 
 // Redacted stands in the record for a value that looked like a credential.
 const Redacted = "[redacted]"

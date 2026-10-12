@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
@@ -99,9 +100,12 @@ var errNotImplemented = &APIError{Status: http.StatusNotImplemented, Code: "not_
 // stops handlers leaking internals into responses by accident.
 func toAPIError(err error) *APIError {
 	var apiErr *APIError
+	var invalid *oidc.ValidationError
 	switch {
 	case errors.As(err, &apiErr):
 		return apiErr
+	case errors.As(err, &invalid):
+		return ErrValidation(map[string]string{invalid.Field: invalid.Message})
 	case errors.Is(err, tenant.ErrNoTenant):
 		return &APIError{Status: http.StatusBadRequest, Code: "no_organization", Message: "Select an organization first."}
 	case errors.Is(err, auth.ErrInvalidToken):
@@ -138,6 +142,15 @@ func toAPIError(err error) *APIError {
 		return ErrValidation(map[string]string{"password": sentence(err.Error()) + " Leave it empty to have one made."})
 	case errors.Is(err, auth.ErrAlreadyMember):
 		return ErrConflict("That person is already a member of this organization. Reload the list to find them.")
+	case errors.Is(err, auth.ErrNoSuchRequest):
+		return ErrNotFound("That person is not waiting to be let in. Reload the list; somebody may have answered already.")
+	case errors.Is(err, auth.ErrBadJoinRole):
+		return ErrValidation(map[string]string{"role": "Let the person in as member or admin."})
+	case errors.Is(err, oidc.ErrNoSuchGroupRole):
+		return ErrNotFound("That group is not mapped to a role. Reload the list; somebody may have removed it already.")
+	case errors.Is(err, oidc.ErrNotConfigured):
+		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
+			Message: "That organization does not sign in through an identity provider. Check its name, or sign in with a password."}
 	default:
 		return ErrInternal(err)
 	}

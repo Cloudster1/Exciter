@@ -5,6 +5,7 @@ package test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -23,12 +24,17 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/secret"
 )
 
 // apiServer is the real router over the real database, signing callers in with real sessions.
 type apiServer struct {
-	srv      *httptest.Server
+	srv *httptest.Server
+	// URL is where the server listens, and sso signs people in through the realm with it as the callback's home.
+	URL      string
 	accounts *auth.Service
+	sso      *oidc.Service
 	h        *harness
 
 	mu         sync.Mutex
@@ -43,15 +49,28 @@ func cheapPasswords() auth.PasswordParams {
 // newAPIServer starts the api in this process, its every answer checked against the document.
 func newAPIServer(t *testing.T, h *harness) *apiServer {
 	t.Helper()
-	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
-	a := &apiServer{accounts: accounts, h: h}
-	server := &httpapi.Server{
-		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts,
-		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit,
-		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie,
+	key := make([]byte, secret.KeySize)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatal(err)
 	}
-	a.srv = httptest.NewServer(observed(t, server.Routes(nil)))
-	t.Cleanup(a.srv.Close)
+	box, err := secret.New(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Unstarted, so the callback address can name the port before any request arrives.
+	srv := httptest.NewUnstartedServer(nil)
+	base := "http://" + srv.Listener.Addr().String()
+	callback := base + httpapi.APIPrefix + "/auth/oidc/callback"
+	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
+	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), h: h}
+	server := &httpapi.Server{
+		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
+		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit,
+		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+	}
+	srv.Config.Handler = observed(t, server.Routes(nil))
+	srv.Start()
+	t.Cleanup(srv.Close)
 	return a
 }
 
@@ -147,6 +166,9 @@ func (c *client) post(t *testing.T, path string, body any) response {
 }
 func (c *client) patch(t *testing.T, path string, body any) response {
 	return c.call(t, http.MethodPatch, path, body)
+}
+func (c *client) put(t *testing.T, path string, body any) response {
+	return c.call(t, http.MethodPut, path, body)
 }
 func (c *client) delete(t *testing.T, path string) response {
 	return c.call(t, http.MethodDelete, path, nil)

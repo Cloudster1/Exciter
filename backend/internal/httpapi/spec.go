@@ -33,6 +33,12 @@ func specBuilder() *openapi.Builder {
 	b.Enums[reflect.TypeOf(auth.OrgRole(""))] = enumStrings(auth.OrgRoles)
 	b.Enums[reflect.TypeOf(auth.Locale(""))] = enumStrings(auth.Locales)
 	b.Enums[reflect.TypeOf(auth.Proof(""))] = []string{string(auth.ProofPassword), string(auth.ProofOIDC)}
+	b.Enums[reflect.TypeOf(auth.RoleSource(""))] = enumStrings(auth.RoleSources)
+	// A mapped group and an answered request make a member or an admin; ownership is the bootstrap's alone.
+	granted := &openapi.Schema{Type: "string", Enum: []string{string(auth.RoleMember), string(auth.RoleAdmin)}}
+	b.FieldOverrides["GroupRole.role"] = granted
+	b.FieldOverrides["SetGroupRoleRequest.role"] = granted
+	b.FieldOverrides["AdmitRequest.role"] = granted
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	return b
@@ -119,6 +125,9 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 		}
 		o.Responses[strconv.Itoa(status)] = r
 	}
+	if op.redirect {
+		o.Responses["302"] = &openapi.Response{Description: "Found: the browser is sent on."}
+	}
 	if op.pending {
 		o.Responses["501"] = &openapi.Response{Description: "Not Implemented: agreed, not built yet.",
 			Content: map[string]openapi.MediaType{"application/json": {Schema: errorSchema}}}
@@ -199,6 +208,8 @@ func enumStrings[T ~string](values []T) []string {
 type Route struct {
 	Method, Path, ID string
 	Public, Binary   bool
+	// Redirect operations answer by sending the browser on, a refusal included.
+	Redirect bool
 	// Pending operations answer 501 until they are built.
 	Pending bool
 	// OrgWide operations are refused a token limited to projects.
@@ -209,7 +220,7 @@ type Route struct {
 func Catalog() []Route {
 	out := make([]Route, 0, len(operations))
 	for _, op := range operations {
-		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Binary: op.binary, Pending: op.pending, OrgWide: op.orgWide})
+		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Binary: op.binary, Redirect: op.redirect, Pending: op.pending, OrgWide: op.orgWide})
 	}
 	return out
 }
