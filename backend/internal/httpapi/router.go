@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -47,7 +48,9 @@ type Server struct {
 	// both. AuditRetention is how long the worker keeps an entry, zero forever.
 	Audit          *audit.Service
 	AuditRetention time.Duration
-	Log            *slog.Logger
+	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
+	Themes *theme.Service
+	Log    *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -127,6 +130,29 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/audit", s.handleListAudit)
 			r.Get("/audit/facets", s.handleAuditFacets)
 			r.Get("/audit/export", s.handleExportAudit)
+		})
+
+		// Themes are a person's in an organization; the examples are anybody's who is signed in.
+		r.With(requireAuth).Get("/themes/examples", s.handleThemeExamples)
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg)
+			r.With(requireAdmin, s.themesOn).Put("/themes/default", s.handleSetDefaultTheme)
+			r.Group(func(r chi.Router) {
+				r.Use(s.themesOn)
+				r.Get("/themes", s.handleListThemes)
+				r.Post("/themes", s.handleCreateTheme)
+				r.Get("/themes/active", s.handleActiveTheme)
+				r.Put("/themes/active", s.handleChooseTheme)
+				r.Get("/themes/default", s.handleDefaultTheme)
+				r.Post("/themes/import", s.handleImportTheme)
+				r.Get("/themes/{themeID}/export", s.handleExportTheme)
+				r.Get("/themes/{themeID}", s.handleGetTheme)
+				r.Patch("/themes/{themeID}", s.handleUpdateTheme)
+				r.Delete("/themes/{themeID}", s.handleDeleteTheme)
+				r.Post("/themes/{themeID}/assets", s.handleUploadThemeAsset)
+				r.Get("/themes/{themeID}/assets/{assetID}", s.handleThemeAsset)
+				r.Delete("/themes/{themeID}/assets/{assetID}", s.handleDeleteThemeAsset)
+			})
 		})
 
 		r.Group(func(r chi.Router) {

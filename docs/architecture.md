@@ -35,6 +35,14 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
 - Migrations: goose, embedded in the binary, applied by `cmd/migrate`. Each
   milestone's contract divides a range of migration numbers among its issues.
 - Configuration: environment variables only, prefix `EXCITER_`.
+- Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
+  speaks S3, signing its few calls itself with the standard library rather
+  than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,
+  `_REGION` and `_USE_SSL` name the bucket, which the api makes when missing;
+  without an endpoint an upload is refused with the setting to fix. Every
+  object of an organization lives under `org/<org>/`, and a row in the
+  database says the object exists, so a removed row leaves at worst an
+  unreachable object, never a broken link.
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### Multi-tenancy
@@ -57,6 +65,25 @@ holds even for a query that forgot it.
 - **Trace links** (#18): typed and directed links between requirements; a
   link turns suspect when its upstream end has a newer revision (#36).
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
+
+### Themes (#8)
+
+- `internal/theme` keeps a person's themes: a spec of overridden colour
+  tokens, fonts, radii, shadows, cursors, icons, a backdrop, a moving
+  picture and extra CSS, validated as Armature validates it, so nothing in a
+  theme can load from another site; its pictures and fonts sit in the object
+  store under `org/<org>/theme/<theme>/`. `armature-theme/1` packs a theme
+  with its files as one JSON file; an import gives the files new ids and
+  rewrites the spec and the CSS to name them. The examples and Armature's
+  own theme files (`internal/theme/testdata`, byte for byte) are tested to
+  validate.
+- `theme` is its maker's: through the app role a person sees their own
+  themes and the shared ones, changes their own or, as an administrator, a
+  shared one, and never takes one over. `user_theme` is each person's
+  choice, of a theme they may see or of the built-in theme;
+  `org.default_theme_id` is the shared theme everybody sees until they
+  choose, which only administrators name, and which a theme taken private
+  stops being at once.
 
 ### Events and the audit log (#4)
 
@@ -107,9 +134,8 @@ holds even for a query that forgot it.
 
 React 19, Vite, TypeScript strict, TanStack Router and Query, Tailwind v4,
 the `components/ui` kit and the Clay tokens of Armature's
-`docs/design/01-tokens.md`, which follow `prefers-color-scheme` until themes
-arrive in Armature's `armature-theme/1` format (#8). Strings live in
-`web/src/i18n`, English and German.
+`docs/design/01-tokens.md`. Strings live in `web/src/i18n`, English and
+German.
 
 - `api/client.ts` is the one place that calls the API, typed by
   `api/schema.d.ts`, which `make web-schema` generates from
@@ -120,6 +146,16 @@ arrive in Armature's `armature-theme/1` format (#8). Strings live in
   drawer below the `shell` breakpoint, a top bar with breadcrumbs, the
   account and organization menus, and the Ctrl K quick switcher. The places
   of a build are listed once, in `features/shell/places.ts`.
+- Theming (#8): `styles/index.css` holds the tokens, light and dark, which
+  follow `prefers-color-scheme` unless the rail's theme button stamps
+  `data-theme` on the root; `lib/theme.ts` remembers the choice. A custom
+  theme compiles (`lib/theme-css.ts`, Armature's compiler) to one unlayered
+  stylesheet that `features/themes/ThemeLoader` puts in the head, cached so
+  a reload paints it before the server answers, and `BackdropEffect` draws
+  the moving picture a theme asks for. `lib/theme-tokens.ts` lists the tokens
+  the editor offers, which a test holds equal to the stylesheet's.
+  `styles/ratchet.test.ts` refuses a hand-typed size, colour or control
+  outside the kit, the stylesheet and `config.ts`.
 - `deploy/Dockerfile.web` builds the static files into nginx, which proxies
   `/api`, `/healthz` and `/readyz` to the api, so the browser sees one origin.
 
@@ -166,6 +202,9 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
 - Keycloak imports `deploy/keycloak/realm.json` on every start: realm
   `suite-dev` with clients `exciter`, `armature` and `stator` (PKCE, a
   `groups` claim) and the development people.
+- The api keeps its files in SeaweedFS's bucket `exciter-files`; the
+  integration suite writes to `exciter-test`, so what it leaves never shows
+  among the app's files.
 - `migrate` applies the embedded migrations as the database owner, `seed`
   makes the demo organization, and `api` serves on `API_PORT` once both are
   done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`

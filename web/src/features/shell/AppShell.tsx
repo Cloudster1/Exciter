@@ -1,6 +1,8 @@
 import { useCallback, useState, type MouseEvent, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { ShellHeaderContext } from "@/components/ui";
+import { BackdropEffect } from "@/features/themes/BackdropEffect";
+import { ThemeLoader } from "@/features/themes/ThemeLoader";
 import { t } from "@/i18n";
 import { QuickSwitcher } from "./QuickSwitcher";
 import { Sidebar } from "./Sidebar";
@@ -46,7 +48,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar narrow={narrow} drawerOpen={drawerOpen} onOpenDrawer={() => setDrawer(true)} switching={switching} onSwitch={openSwitcher} />
         {/* Focusable only from the skip link, and not ringed then: it is where reading starts, not a control. */}
-        <main id={MAIN_ID} tabIndex={-1} className="relative isolate min-h-0 flex-1 overflow-auto bg-backdrop focus:outline-none">
+        <ThemeLoader />
+        <main id={MAIN_ID} tabIndex={-1} className="relative isolate min-h-0 flex-1 overflow-auto bg-backdrop focus:outline-none" data-backdrop-host>
+          <BackdropEffect />
           <div
             ref={setStrip}
             className="sticky top-0 z-20 border-b border-border/60 bg-surface-glass px-4 pt-5 backdrop-blur-md empty:hidden shell:px-8"

@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AUDIT_PATH, MEMBERS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH } from "@/config";
+import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH, THEMES_PATH } from "@/config";
+import { emptySpec } from "@/lib/theme-css";
 import { renderAt, setViewportWidth, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
@@ -44,8 +45,25 @@ const provider = {
   enabled: true,
   updatedAt: "2026-09-29T08:00:00Z",
 };
+const sharedTheme = {
+  id: "0195f000-0000-7000-8000-0000000000e1",
+  ownerId: member.userId,
+  ownerName: member.name,
+  name: "Blocks",
+  shared: true,
+  spec: emptySpec(),
+  assets: [],
+  inUse: 2,
+  active: false,
+  default: true,
+  createdAt: "2026-09-29T08:00:00Z",
+  updatedAt: "2026-09-29T08:00:00Z",
+};
 const settingsApi = () =>
   stubApi({
+    "GET /themes": { status: 200, body: { themes: [sharedTheme] } },
+    "GET /themes/active": { status: 200, body: { theme: sharedTheme, source: "organization" } },
+    "GET /themes/examples": { status: 200, body: { examples: [] } },
     "GET /users": { status: 200, body: { members: [member] } },
     "GET /audit": { status: 200, body: { entries: [], next: null } },
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
@@ -124,19 +142,16 @@ describe("the account menu", () => {
     const menu = screen.getByRole("menu", { name: "Your account" });
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
+    const themes = within(menu).getByRole("menuitem", { name: "Themes" });
     const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
     const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
-    expect(browser).toHaveFocus();
-    await userEvent.keyboard("{ArrowDown}");
-    expect(english).toHaveFocus();
-    await userEvent.keyboard("{ArrowDown}");
-    expect(german).toHaveFocus();
-    await userEvent.keyboard("{ArrowDown}");
-    expect(signOut).toHaveFocus();
-    await userEvent.keyboard("{ArrowDown}");
-    expect(browser).toHaveFocus();
+    expect(themes).toHaveFocus();
+    for (const next of [browser, english, german, signOut, themes]) {
+      await userEvent.keyboard("{ArrowDown}");
+      expect(next).toHaveFocus();
+    }
 
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).toBeNull();
@@ -187,7 +202,7 @@ describe("on a narrow screen", () => {
     await userEvent.click(menuButton());
     const panel = drawer() as HTMLElement;
     const close = within(panel).getByRole("button", { name: "Close the navigation" });
-    const last = within(panel).getByRole("link", { name: "Audit log" });
+    const last = within(panel).getByRole("button", { name: "Auto" });
 
     last.focus();
     await userEvent.tab();
@@ -274,11 +289,27 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it.each([MEMBERS_PATH, SSO_PATH, AUDIT_PATH])("finds nothing on %s", async (path) => {
+  it.each([MEMBERS_PATH, SSO_PATH, AUDIT_PATH, THEMES_PATH, DEFAULT_THEME_PATH, `${THEMES_PATH}/new`])("finds nothing on %s", async (path) => {
     settingsApi();
     await renderAt(path);
     await screen.findByRole("heading", { level: 1 });
     await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("finds nothing on the themes shared with the reader, a theme's menu open", async () => {
+    settingsApi();
+    await renderAt(THEMES_PATH);
+    await userEvent.click(await screen.findByRole("button", { name: "Shared with me" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Actions for Blocks" }));
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("finds nothing on the organization's default with a shared theme chosen", async () => {
+    settingsApi();
+    await renderAt(DEFAULT_THEME_PATH);
+    expect(await screen.findByRole("radio", { name: /Blocks/ })).toHaveAttribute("aria-checked", "true");
     expect(await axeViolations()).toEqual([]);
   });
 

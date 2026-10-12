@@ -6,13 +6,19 @@ import { Skeleton } from "@/components/ui";
 import { LOGIN_PATH } from "@/config";
 import { appRoute } from "./app";
 import { auditRoute } from "./audit";
+import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { loginRoute } from "./login";
 import { membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
+import { themeEditRoute, themeNewRoute } from "./theme-editor";
+import { themesRoute } from "./themes";
 import { RouteError, rootRoute } from "./root";
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([homeRoute, settingsRoute, membersRoute, ssoRoute, auditRoute])]);
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  appRoute.addChildren([homeRoute, settingsRoute, membersRoute, ssoRoute, auditRoute, defaultThemeRoute, themesRoute, themeNewRoute, themeEditRoute]),
+]);
 
 /** The application's router; tests pass a memory history to start anywhere. */
 export function buildRouter(queryClient: QueryClient, history?: RouterHistory) {

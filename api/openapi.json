@@ -26,6 +26,9 @@
     },
     {
       "name": "sso"
+    },
+    {
+      "name": "themes"
     }
   ],
   "paths": {
@@ -54,7 +57,8 @@
                 "member.declined",
                 "sso.provider_saved",
                 "sso.group_role_set",
-                "sso.group_role_removed"
+                "sso.group_role_removed",
+                "theme.default_set"
               ]
             }
           },
@@ -184,7 +188,8 @@
                 "member.declined",
                 "sso.provider_saved",
                 "sso.group_role_set",
-                "sso.group_role_removed"
+                "sso.group_role_removed",
+                "theme.default_set"
               ]
             }
           },
@@ -906,6 +911,751 @@
         }
       }
     },
+    "/themes": {
+      "get": {
+        "operationId": "listThemes",
+        "summary": "Themes the caller may use: theirs, then the shared ones.",
+        "tags": [
+          "themes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "themes": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Theme"
+                      }
+                    }
+                  },
+                  "required": [
+                    "themes"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTheme",
+        "summary": "Make a theme.",
+        "tags": [
+          "themes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "$ref": "#/components/schemas/Theme"
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/active": {
+      "get": {
+        "operationId": "activeTheme",
+        "summary": "The theme the caller sees: chosen, the organization's default, or null for the built-in one; source says which.",
+        "tags": [
+          "themes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "chosen",
+                        "organization",
+                        ""
+                      ]
+                    },
+                    "theme": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Theme"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "chooseTheme",
+        "summary": "Use a theme; null returns to the organization's default, null with builtIn keeps the built-in one.",
+        "tags": [
+          "themes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChooseThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Theme"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/default": {
+      "get": {
+        "operationId": "defaultTheme",
+        "summary": "The organization's default theme, whatever the caller chose for themselves, or null for the built-in one.",
+        "tags": [
+          "themes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Theme"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setDefaultTheme",
+        "summary": "Name the shared theme everybody sees until they choose, or null for the built-in one. For administrators.",
+        "tags": [
+          "themes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefaultThemeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Theme"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/examples": {
+      "get": {
+        "operationId": "themeExamples",
+        "summary": "The themes shipped with the product, to start a theme from.",
+        "tags": [
+          "themes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "examples": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Example"
+                      }
+                    }
+                  },
+                  "required": [
+                    "examples"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/import": {
+      "post": {
+        "operationId": "importTheme",
+        "summary": "Make a theme of the caller's own from an exported theme file, sent as a multipart part named file.",
+        "tags": [
+          "themes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "$ref": "#/components/schemas/Theme"
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/{themeID}": {
+      "delete": {
+        "operationId": "deleteTheme",
+        "summary": "Delete a theme; everybody using it returns to the built-in one.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getTheme",
+        "summary": "One theme.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "$ref": "#/components/schemas/Theme"
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTheme",
+        "summary": "Change a theme; the owner's to do, or an administrator's once shared.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "theme": {
+                      "$ref": "#/components/schemas/Theme"
+                    }
+                  },
+                  "required": [
+                    "theme"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/{themeID}/assets": {
+      "post": {
+        "operationId": "uploadThemeAsset",
+        "summary": "Put a picture or a font on a theme, as a multipart part named file.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asset": {
+                      "$ref": "#/components/schemas/Asset"
+                    }
+                  },
+                  "required": [
+                    "asset"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/{themeID}/assets/{assetID}": {
+      "delete": {
+        "operationId": "deleteThemeAsset",
+        "summary": "Take a file off a theme it no longer uses.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assetID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "themeAsset",
+        "summary": "The bytes of a theme's file, as a download.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assetID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/themes/{themeID}/export": {
+      "get": {
+        "operationId": "exportTheme",
+        "summary": "The theme as one file in the armature-theme/1 format, its pictures and fonts inside, as a download.",
+        "tags": [
+          "themes"
+        ],
+        "parameters": [
+          {
+            "name": "themeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "operationId": "listMembers",
@@ -1267,6 +2017,35 @@
           "role"
         ]
       },
+      "Asset": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contentType",
+          "size",
+          "createdAt"
+        ]
+      },
       "AuditActor": {
         "type": "object",
         "properties": {
@@ -1299,7 +2078,8 @@
               "member.declined",
               "sso.provider_saved",
               "sso.group_role_set",
-              "sso.group_role_removed"
+              "sso.group_role_removed",
+              "theme.default_set"
             ]
           },
           "actorId": {
@@ -1367,7 +2147,8 @@
                 "member.declined",
                 "sso.provider_saved",
                 "sso.group_role_set",
-                "sso.group_role_removed"
+                "sso.group_role_removed",
+                "theme.default_set"
               ]
             }
           },
@@ -1394,6 +2175,22 @@
           "retentionDays"
         ]
       },
+      "Backdrop": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId",
+          "fit"
+        ]
+      },
       "BuildInfo": {
         "type": "object",
         "properties": {
@@ -1409,6 +2206,24 @@
         },
         "required": [
           "version"
+        ]
+      },
+      "ChooseThemeRequest": {
+        "type": "object",
+        "properties": {
+          "builtIn": {
+            "type": "boolean"
+          },
+          "themeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "themeId"
         ]
       },
       "Components": {
@@ -1534,6 +2349,41 @@
           "role"
         ]
       },
+      "Cursor": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hotspotX": {
+            "type": "integer"
+          },
+          "hotspotY": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assetId",
+          "hotspotX",
+          "hotspotY"
+        ]
+      },
+      "DefaultThemeRequest": {
+        "type": "object",
+        "properties": {
+          "themeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "themeId"
+        ]
+      },
       "Document": {
         "type": "object",
         "properties": {
@@ -1605,6 +2455,55 @@
           "error"
         ]
       },
+      "Example": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/Spec"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description",
+          "spec"
+        ]
+      },
+      "Font": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "family": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "family"
+        ]
+      },
+      "Fonts": {
+        "type": "object",
+        "properties": {
+          "mono": {
+            "$ref": "#/components/schemas/Font"
+          },
+          "sans": {
+            "$ref": "#/components/schemas/Font"
+          }
+        }
+      },
       "GroupRole": {
         "type": "object",
         "properties": {
@@ -1634,6 +2533,21 @@
           "updatedAt"
         ]
       },
+      "Icon": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "Info": {
         "type": "object",
         "properties": {
@@ -1651,6 +2565,20 @@
           "title",
           "version"
         ]
+      },
+      "Input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/Spec"
+          }
+        }
       },
       "JoinRequest": {
         "type": "object",
@@ -1873,6 +2801,27 @@
         "required": [
           "operationId",
           "responses"
+        ]
+      },
+      "Palette": {
+        "type": "object",
+        "properties": {
+          "dark": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "light": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "light",
+          "dark"
         ]
       },
       "Parameter": {
@@ -2221,6 +3170,67 @@
           "role"
         ]
       },
+      "Shape": {
+        "type": "object",
+        "properties": {
+          "radiusControl": {
+            "type": "integer"
+          },
+          "radiusOverlay": {
+            "type": "integer"
+          }
+        }
+      },
+      "Spec": {
+        "type": "object",
+        "properties": {
+          "backdrop": {
+            "$ref": "#/components/schemas/Backdrop"
+          },
+          "colors": {
+            "$ref": "#/components/schemas/Palette"
+          },
+          "css": {
+            "type": "string"
+          },
+          "cursors": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Cursor"
+            }
+          },
+          "effect": {
+            "type": "string"
+          },
+          "fonts": {
+            "$ref": "#/components/schemas/Fonts"
+          },
+          "icons": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Icon"
+            }
+          },
+          "shadows": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "shape": {
+            "$ref": "#/components/schemas/Shape"
+          }
+        },
+        "required": [
+          "colors",
+          "fonts",
+          "shape",
+          "shadows",
+          "cursors",
+          "icons",
+          "css"
+        ]
+      },
       "Stats": {
         "type": "object",
         "properties": {
@@ -2289,6 +3299,68 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "Theme": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "default": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inUse": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/Spec"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "ownerName",
+          "name",
+          "shared",
+          "spec",
+          "assets",
+          "inUse",
+          "active",
+          "default",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "UpdateMeRequest": {

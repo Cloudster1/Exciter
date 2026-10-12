@@ -73,3 +73,46 @@ export const AUDIT_PATH = "/settings/audit";
 export const AUDIT_PAGE_SIZE = 50;
 /** Where the audit log is downloaded as a spreadsheet, under the API's base. */
 export const AUDIT_EXPORT_PATH = "/audit/export";
+
+/** Where a person picks, makes and imports themes, and where an administrator names the organization's default. */
+export const THEMES_PATH = "/settings/themes";
+export const DEFAULT_THEME_PATH = "/settings/default-theme";
+/** The largest file a theme takes, matching the API's limit. */
+export const THEME_ASSET_MAX_BYTES = 12 * 1024 * 1024;
+/** The most extra CSS a theme carries, matching the API's limit. */
+export const THEME_CSS_MAX_BYTES = 32 * 1024;
+/** How long a draft settles before the live preview is recompiled. */
+export const THEME_PREVIEW_DEBOUNCE_MS = 150;
+/** The size an icon is drawn at in the theme editor's list. */
+export const THEME_ICON_PREVIEW_PX = 20;
+/** Lines the extra CSS box shows before it scrolls. */
+export const THEME_CSS_ROWS = 12;
+/** The largest radius a theme may set, matching the API's limit. */
+export const THEME_MAX_RADIUS = 32;
+/** The furthest a cursor's point may sit from its picture's corner, matching the API's limit. */
+export const THEME_MAX_HOTSPOT = 128;
+/** The size a cursor picture is best drawn at; larger ones are refused by some browsers. */
+export const THEME_CURSOR_PX = 32;
+/** What a colour field shows, and its picker starts at, when the stylesheet's own value cannot be read. */
+export const THEME_COLOUR_PLACEHOLDER = "#000000";
+/** The example a shadow field shows, written the way box-shadow takes it. */
+export const THEME_SHADOW_PLACEHOLDER = "0 1px 2px rgb(0 0 0 / 0.1)";
+/** Bytes in a kilobyte, for the sizes the editor prints. */
+export const KILOBYTE = 1024;
+
+/** How many pieces a click throws, how long each lives, and how hard they fall. */
+export const CONFETTI_PIECES_PER_CLICK = 28;
+export const CONFETTI_LIFE_MS = 1100;
+export const CONFETTI_GRAVITY_PX_PER_S2 = 1600;
+/** The colours of the paper scraps, and the characters thrown with them, as Stator throws them. */
+export const CONFETTI_COLOURS = ["#ff1744", "#ffab00", "#00c853", "#2979ff", "#d500f9", "#00e5ff", "#ff2e88", "#ffd600"];
+export const CONFETTI_GLYPHS = ["\u{1F389}", "\u{2728}", "\u{1F9E7}", "\u{1F308}", "\u{1F4A5}", "\u{1F340}", "\u{1F38A}", "\u{2B50}"];
+
+/** How many wandering points the constellation backdrop draws per million pixels of page. */
+export const CONSTELLATION_POINTS_PER_MEGAPIXEL = 70;
+/** How close two of them have to be for a line to join them, in pixels. */
+export const CONSTELLATION_LINK_PX = 150;
+/** How fast a point wanders, in pixels per second, before its own variation. */
+export const CONSTELLATION_SPEED_PX_PER_S = 14;
+/** The grey a point or a line is drawn in when the theme's colour cannot be read. */
+export const CONSTELLATION_FALLBACK_COLOUR = "#808080";

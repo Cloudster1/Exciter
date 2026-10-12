@@ -76,6 +76,32 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   features/auth/ProviderSettings, GroupRoles and JoinRequests with their
   tests, routes/sso.tsx without the members list, and the provider, group
   role and join request hooks of api/auth.ts
+- backend/internal/objectstore with its tests and the S3 settings of
+  internal/config, which Stator adapted from the S3 client of Armature's
+  internal/attachment: renamed, with the client's tunables named
+- backend/internal/theme with its tests, from Stator's, which is Armature's
+  internal/theme: without following the Armature theme, its service split
+  in two, and with Armature's example theme files as fixtures pinned to
+  their bytes
+- backend/internal/httpapi/theme_handlers.go, from Stator's, which is
+  Armature's theme handlers and routes: the administrator read off the
+  session, and a server without themes refused plainly
+- migrations 00030 and 00031 from Stator's 00002 and 00003, which are
+  Armature's 00050_themes, 00902_org_default_theme and
+  00906_theme_names_per_organization: with policies added so that only the
+  owner, or an administrator once shared, changes a theme and its files, a
+  choice is the chooser's own, only administrators name the default, and a
+  theme keeps its owner
+- backend/test: the theme, theme file and missing bucket tests, adapted to
+  Exciter's harness, with a raw SQL test of the theme policies added
+- web/src: lib/theme.ts with its test; lib/theme-tokens.ts, theme-css.ts,
+  constellation.ts and confetti.ts with their tests, from Stator's, which
+  are Armature's, the literals moved to config.ts; features/themes
+  ThemeLoader, BackdropEffect and ThemeEditor with their tests, from
+  Stator's, which are Armature's, the editor split in three;
+  features/shell/ThemeButton.tsx; routes/themes.tsx and theme-editor.tsx,
+  from Stator's, which are Armature's, without following the Armature
+  theme; api/themes.ts; and the glyphs the theme screens draw
 
 Adapted from Stator at 2ab5252:
 - mk/branding.mk, scripts/branding.sh, web/src/branding.test.ts and
@@ -86,6 +112,11 @@ Adapted from Armature at 7380763:
 - web/src/styles/index.css: the Clay tokens, base layer and utilities, with
   the shell breakpoint and the drawer's animation of Stator's added and the
   workflow canvas and hatching left out
+- web/src/styles/ratchet.test.ts: web/src/styles/ratchet.test.ts, with
+  hand-typed pixel sizes and colour literals refused as well and the
+  controls drawn by hand before it listed with their reasons
+- backend/internal/theme/testdata/minecraft.armature-theme.json and
+  lucky-rainbow.armature-theme.json: docs/design/themes, unchanged
 
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is

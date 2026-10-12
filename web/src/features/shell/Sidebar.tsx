@@ -12,9 +12,10 @@ import { placesFor } from "./places";
 import { Rail } from "./Rail";
 import { SidebarGroup } from "./SidebarGroup";
 import { DRAWER_ID, SIDEBAR_ID, useSidebarGroups, useSidebarMode } from "./state";
+import { ThemeButton } from "./ThemeButton";
 
-// The sidebar is the map: where you are is highlighted and where you can go is listed in groups that
-// fold. On a narrow screen there is no room for a column, so the map becomes a drawer the top bar opens.
+// The sidebar is the map: where you are is highlighted and where you can go is listed in groups that fold. On a
+// narrow screen there is no room for a column, so the map becomes a drawer the top bar opens, the theme with it.
 export function Sidebar({ narrow, drawerOpen, onCloseDrawer }: { narrow: boolean; drawerOpen: boolean; onCloseDrawer: () => void }) {
   const [mode, toggleMode] = useSidebarMode();
   const open = mode === "open";
@@ -72,7 +73,7 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
   const isOpen = (id: string, defaultOpen: boolean) => groups[id] ?? defaultOpen;
   const places = placesFor(me);
   const pages = places.filter((place) => !place.section);
-  const settings = places.filter((place) => place.section);
+  const settings = places.filter((place) => place.section && !place.personal);
   return (
     <>
       <SidebarGroup id="requirements" title={t.nav.groupRequirements} open={isOpen("requirements", true)} onToggle={() => toggleGroup("requirements", true)}>
@@ -124,8 +125,11 @@ function SidebarDrawer({ onClose, children }: { onClose: () => void; children: R
         <nav aria-label={t.nav.whereYouAre} className="flex-1 overflow-y-auto px-2 py-3">
           {children}
         </nav>
-        <div className="truncate border-t border-border px-3 py-2 text-2xs text-ink-subtle" data-build>
-          {APP_NAME} {APP_VERSION}
+        <div className="flex items-center gap-2 border-t border-border px-2 py-2">
+          <ThemeButton side="top" />
+          <span className="min-w-0 flex-1 truncate text-right text-2xs text-ink-subtle" data-build>
+            {APP_NAME} {APP_VERSION}
+          </span>
         </div>
       </div>
     </div>,

@@ -22,6 +22,8 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_ORG_SLUG", "EXCITER_BOOTSTRAP_ORG_NAME", "EXCITER_BOOTSTRAP_ADMIN_EMAIL", "EXCITER_BOOTSTRAP_ADMIN_PASSWORD",
 		"EXCITER_OIDC_REDIRECT_URL", "EXCITER_OIDC_BACKCHANNEL", "EXCITER_TRUSTED_PROXIES",
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
+		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
+		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -376,5 +378,34 @@ func TestTrustedProxiesAreAddressRanges(t *testing.T) {
 		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_TRUSTED_PROXIES") {
 			t.Errorf("%q should be refused: %v", bad, err)
 		}
+	}
+}
+
+// A bucket with no credentials would be refused on the first upload, long
+// after the operator has stopped watching the start-up.
+func TestAnEndpointWithoutCredentialsIsRefused(t *testing.T) {
+	clean(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.S3.Endpoint != "" || c.S3.Bucket != DefaultS3Bucket || c.S3.Region != DefaultS3Region || c.S3.UseSSL {
+		t.Errorf("storage defaults = %+v", c.S3)
+	}
+	t.Setenv("EXCITER_S3_ENDPOINT", "seaweedfs:8333")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_S3_ACCESS_KEY") {
+		t.Fatalf("an endpoint without keys = %v, want the keys asked for", err)
+	}
+	t.Setenv("EXCITER_S3_ACCESS_KEY", "exciter")
+	t.Setenv("EXCITER_S3_SECRET_KEY", "secret")
+	t.Setenv("EXCITER_S3_BUCKET", "elsewhere")
+	t.Setenv("EXCITER_S3_REGION", "eu-central-1")
+	t.Setenv("EXCITER_S3_USE_SSL", "true")
+	c, err = Load()
+	if err != nil {
+		t.Fatalf("a complete bucket was refused: %v", err)
+	}
+	if c.S3 != (S3{Endpoint: "seaweedfs:8333", Bucket: "elsewhere", AccessKey: "exciter", SecretKey: "secret", Region: "eu-central-1", UseSSL: true}) {
+		t.Errorf("storage = %+v", c.S3)
 	}
 }

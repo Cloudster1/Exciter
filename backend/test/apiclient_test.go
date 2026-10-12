@@ -24,17 +24,21 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
-// apiServer is the real router over the real database, signing callers in with real sessions.
+// apiServer is the real router over the real database and the real bucket, signing callers in with real sessions.
 type apiServer struct {
 	srv *httptest.Server
 	// URL is where the server listens, and sso signs people in through the realm with it as the callback's home.
 	URL      string
 	accounts *auth.Service
 	sso      *oidc.Service
+	store    objectstore.Store
+	themes   *theme.Service
 	h        *harness
 
 	mu         sync.Mutex
@@ -62,10 +66,12 @@ func newAPIServer(t *testing.T, h *harness) *apiServer {
 	base := "http://" + srv.Listener.Addr().String()
 	callback := base + httpapi.APIPrefix + "/auth/oidc/callback"
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
-	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), h: h}
+	store := h.bucket(t)
+	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), store: store,
+		themes: theme.NewService(h.cluster, store), h: h}
 	server := &httpapi.Server{
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
-		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit,
+		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes,
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	srv.Config.Handler = observed(t, server.Routes(nil))
@@ -153,6 +159,11 @@ func (c *client) call(t *testing.T, method, path string, body any) response {
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
+	return decoded(resp, raw)
+}
+
+// decoded is an answer with its JSON body read, when it has one.
+func decoded(resp *http.Response, raw []byte) response {
 	out := response{Status: resp.StatusCode, Header: resp.Header, Raw: raw}
 	if len(raw) > 0 && strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json") {
 		_ = json.Unmarshal(raw, &out.Body)
