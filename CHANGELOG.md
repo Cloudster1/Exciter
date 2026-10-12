@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Exciter has a logo and a favicon (#56). The sign-in page shows the logo, the
+  sidebar shows the gopher's face beside the organization's name, and the
+  browser tab, touch icon and web app manifest use the same face, which still
+  reads at 16 pixels. `make branding` makes them from
+  `assets/branding/logo.jpg`.
 - Single sign-on through the organization's identity provider (#7). The
   sign-in page takes the organization's name and sends the reader to its
   provider (authorization code with PKCE); a person is matched by the

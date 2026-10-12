@@ -3,6 +3,23 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-12: The logo is a resized picture and the icons are a crop of it (#56)
+
+Exciter's mark was a hand-drawn E on the accent. The picture now given is a
+detailed illustration with small text, clear at a few hundred pixels and a
+smudge at sixteen. It is handled as Stator handles its own:
+
+- **Two kinds of image from one source.** The whole picture, resized to 128,
+  256 and 512 pixels in WebP, is the logo, with `srcset` so a screen takes the
+  one it needs. The favicon, touch icon, manifest icons and the sidebar's mark
+  are a square cut of the gopher's face, which is what still reads small.
+- **Made by a target, from a container.** `make branding` runs ImageMagick in
+  an Alpine image and writes `web/public`, so nothing is installed on the host
+  and `assets/branding/logo.jpg` stays the one thing to replace. The made
+  files are committed, so a build needs no ImageMagick.
+- **Served from the site's own origin.** `img-src 'self'` already lets them
+  load, and nginx already names the manifest's type.
+
 ## 2026-10-12: Requirement keys are `CHK-R42` (#1)
 
 A requirement's key is its project key, `-R` and a number per project:
