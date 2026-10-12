@@ -215,6 +215,27 @@ services:
       start_period: 30s
       start_interval: 1s
 
+  # Drains the outbox and keeps the audit log's retention; it serves nothing but its metrics.
+  worker:
+    <<: *backend
+    command: ["/app/worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    environment:
+      <<: *app-db-env
+      EXCITER_LOG_LEVEL: debug
+    healthcheck:
+      # The worker's metrics are its sign of life.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/metrics"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
 volumes:
   primary-data:
   replica-data:

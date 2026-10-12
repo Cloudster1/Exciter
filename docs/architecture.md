@@ -58,6 +58,19 @@ holds even for a query that forgot it.
   link turns suspect when its upstream end has a newer revision (#36).
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
+### Events and the audit log (#4)
+
+- `events.Emit(ctx, tx, topic, payload)` writes to `outbox_event` in the
+  caller's transaction. The app role may only insert, and only events whose
+  `actorId` is the person the transaction acts for.
+- `cmd/worker` claims events with `FOR UPDATE SKIP LOCKED` in a transaction of
+  its own, handles them by topic through `events.Mux`, retries a failure
+  after a growing delay and after `MaxAttempts` marks it done with an
+  `event.dead_lettered` entry in the audit log.
+- `audit_log` is written with the act, read only by owners and
+  administrators, never updated or deleted, and pruned by `audit_log_prune`
+  after `EXCITER_RETAIN_AUDIT`.
+
 ## Frontend (`web/`, #6)
 
 React 19, Vite, TypeScript strict, TanStack Router and Query, Tailwind v4,
@@ -110,5 +123,5 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
   `groups` claim) and the development people.
 - `migrate` applies the embedded migrations as the database owner, `seed`
   makes the demo organization, and `api` serves on `API_PORT` once both are
-  done (#3). The services still to come join with the issues that build them:
-  `worker` (#4), `web` (#6).
+  done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`
+  joins with #6.

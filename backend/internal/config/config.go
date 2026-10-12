@@ -28,6 +28,10 @@ const (
 	DefaultMaxReplicaLag   = 2 * time.Second
 	DefaultLagSamples      = 3
 	DefaultReadYourWrites  = 30 * time.Second
+	// DefaultRetainAudit and MinRetainAudit are audit.DefaultRetention and
+	// audit.MinRetention, which a test holds the two to.
+	DefaultRetainAudit = 365 * 24 * time.Hour
+	MinRetainAudit     = 24 * time.Hour
 	// SecretKeyBytes is the AES-256 key length EXCITER_SECRET_KEY decodes to.
 	SecretKeyBytes = 32
 )
@@ -49,6 +53,10 @@ type Config struct {
 	DB        DB
 	Valkey    Valkey
 	Telemetry Telemetry
+
+	// RetainAudit is how long the worker keeps an audit entry; zero keeps
+	// every one forever.
+	RetainAudit time.Duration
 
 	// SecretKey encrypts secrets stored in the database, such as a person's
 	// Armature token. Nil in development when it is not set.
@@ -142,6 +150,7 @@ func Load() (Config, error) {
 			SampleRatio:  l.float("EXCITER_OTEL_SAMPLE_RATIO", 1),
 		},
 	}
+	c.RetainAudit = l.duration("EXCITER_RETAIN_AUDIT", DefaultRetainAudit)
 	c.SecretKey = l.secretKey("EXCITER_SECRET_KEY", c.Env)
 
 	if c.DB.PrimaryURL == "" {
@@ -170,6 +179,9 @@ func Load() (Config, error) {
 	}
 	if c.RequestTimeout <= 0 {
 		l.problem("EXCITER_REQUEST_TIMEOUT must be longer than zero, such as 30s.")
+	}
+	if c.RetainAudit != 0 && c.RetainAudit < MinRetainAudit {
+		l.problem(fmt.Sprintf("EXCITER_RETAIN_AUDIT is %s, but the audit log keeps every entry for at least %.0fh; set it to that or longer, such as 8760h, or to 0 to keep the log forever.", c.RetainAudit, MinRetainAudit.Hours()))
 	}
 	if c.Telemetry.SampleRatio < 0 || c.Telemetry.SampleRatio > 1 {
 		l.problem("EXCITER_OTEL_SAMPLE_RATIO must be between 0 and 1.")

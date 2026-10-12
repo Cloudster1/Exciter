@@ -37,3 +37,8 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
 - backend/test: the harness, its watchdog, the contract and coverage tests,
   the probe, tenant isolation and replication tests, the last writing by
   renaming an organization rather than making a theme
+- backend/internal/events, backend/internal/audit, backend/cmd/worker and
+  migrations 00020 and 00021 from Stator's 00150, 00013 and 00230: the outbox,
+  its worker, the audit log and its retention, with no topics yet, the given
+  up event recorded in the audit log, and the log's readers checked against
+  org_member until the permission functions arrive
