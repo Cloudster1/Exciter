@@ -46,6 +46,17 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   migration 00012 from Stator's 00012: passwords, sessions and members,
   without tokens, guests' spaces, groups and join requests, and with a role
   change, admin-only membership policies and a last-owner trigger added
+- backend/internal/oidc with its tests, backend/internal/auth/joinrequests.go,
+  httpapi/oidc_handlers.go and join_handlers.go with the group role handlers,
+  the OIDC and bootstrap settings of internal/config and seed.Populate:
+  single sign-on, group sync, group roles and join requests, with the
+  provider configured in the bootstrap administrator's name
+- migrations 00010, 00011, 00013 and 00014 from Stator's 00010, 00011, 00013
+  (without its audit log) and 00050, and session_reaches of Stator's 00012 in
+  00015, with admin-only policies added for the provider, the group roles and
+  the join requests, and the owner trigger renamed beside Exciter's own
+- backend/test: the sign-in harness, sign-in, sign-in row security, session,
+  group role and join request tests, adapted to Exciter's harness
 - mk/web.mk, mk/biome.mk, biome.json and the web client's tooling, renamed
   to Exciter: web/biome.json, package.json and its lock cut to what the
   skeleton uses, vite.config.ts without the Excalidraw plugin,
@@ -61,6 +72,10 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   audit.tsx, features/auth/LoginPage, Members and AddMember (in a dialog,
   with a role change added), features/audit/AuditLog, test/setup.ts, axe.ts,
   layout.ts and app.tsx, and styles/contrast.test.ts for the Clay palettes
+- web/src: the single sign-on of LoginPage and routes/login.tsx,
+  features/auth/ProviderSettings, GroupRoles and JoinRequests with their
+  tests, routes/sso.tsx without the members list, and the provider, group
+  role and join request hooks of api/auth.ts
 
 Adapted from Armature at 7380763:
 - web/src/styles/index.css: the Clay tokens, base layer and utilities, with

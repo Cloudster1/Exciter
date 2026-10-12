@@ -42,7 +42,7 @@ func (s *Server) handleCreateMember(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	member, lsn, err := s.Accounts.CreateMember(r.Context(), auth.NewMember{Email: req.Email, Name: req.Name, Role: req.Role, Password: req.Password}, userFrom(r), clientIP(r))
+	member, lsn, err := s.Accounts.CreateMember(r.Context(), auth.NewMember{Email: req.Email, Name: req.Name, Role: req.Role, Password: req.Password}, userFrom(r), s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
@@ -71,7 +71,7 @@ func (s *Server) handleSetMemberRole(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	member, lsn, err := s.Accounts.SetRole(r.Context(), userID, req.Role, userFrom(r), clientIP(r))
+	member, lsn, err := s.Accounts.SetRole(r.Context(), userID, req.Role, userFrom(r), s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
@@ -90,7 +90,7 @@ func (s *Server) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, apiErr)
 		return
 	}
-	lsn, err := s.Accounts.RemoveMember(r.Context(), userID, userFrom(r), clientIP(r))
+	lsn, err := s.Accounts.RemoveMember(r.Context(), userID, userFrom(r), s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)

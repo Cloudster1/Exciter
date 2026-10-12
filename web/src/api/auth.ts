@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ME_STALE_MS } from "@/config";
+import { API_BASE, ME_STALE_MS } from "@/config";
 import { applyLanguage, type LanguageChoice } from "@/i18n";
 import { HANDLES_UNAUTHORIZED } from "@/lib/session";
 import { api } from "./client";
@@ -17,9 +17,19 @@ export type CreatedMember = Wire["CreatedMember"];
 /** The roles an administrator hands out; nobody is made an owner from here. */
 export type AssignableRole = Exclude<OrgRole, "owner">;
 export const ASSIGNABLE_ROLES: readonly AssignableRole[] = ["admin", "member", "guest"];
+export type Provider = Wire["Provider"];
+export type ProviderView = Wire["ProviderView"];
+export type SaveProviderInput = Wire["SaveOIDCProviderRequest"];
+export type JoinRequest = Wire["JoinRequest"];
+export type GroupRole = Wire["GroupRole"];
+/** The roles a mapped group or an answered request gives; ownership is never handed out. */
+export type GrantedRole = GroupRole["role"];
 
 export const meQueryKey = ["auth", "me"] as const;
 export const membersQueryKey = ["users", "members"] as const;
+export const providerQueryKey = ["oidc-provider"] as const;
+export const groupRolesQueryKey = ["oidc-provider", "group-roles"] as const;
+export const joinRequestsQueryKey = ["users", "requests"] as const;
 
 /** The session query, never retried: a 401 is a definite answer, which the route guards act on themselves. */
 export const meQuery = {
@@ -55,6 +65,12 @@ export function useSetLanguage() {
 /** Whether a role may change the organization's settings. */
 export function administers(role: OrgRole | undefined): boolean {
   return role === "owner" || role === "admin";
+}
+
+/** Where the browser goes to sign in through an organization's provider; a navigation, since it follows redirects. */
+export function ssoStartURL(orgSlug: string, next?: string): string {
+  const start = `${API_BASE}/auth/oidc/${encodeURIComponent(orgSlug.trim().toLowerCase())}/start`;
+  return next ? `${start}?next=${encodeURIComponent(next)}` : start;
 }
 
 export function useLogin() {
@@ -121,5 +137,76 @@ export function useRemoveMember() {
       await api.DELETE("/users/{userID}", { params: { path: { userID: userId } } });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: membersQueryKey }),
+  });
+}
+
+/** The organization's identity provider and the callback address to register with it; asked only of administrators. */
+export function useProvider() {
+  return useQuery({
+    queryKey: providerQueryKey,
+    queryFn: async (): Promise<ProviderView> => (await api.GET("/oidc-provider")).data!,
+  });
+}
+
+export function useSaveProvider() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: SaveProviderInput): Promise<ProviderView> => (await api.PUT("/oidc-provider", { body })).data!,
+    onSuccess: (view) => queryClient.setQueryData(providerQueryKey, view),
+  });
+}
+
+/** Which provider groups grant which role here. */
+export function useGroupRoles() {
+  return useQuery({
+    queryKey: groupRolesQueryKey,
+    queryFn: async (): Promise<GroupRole[]> => (await api.GET("/oidc-provider/group-roles")).data!.groupRoles,
+  });
+}
+
+export function useSetGroupRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { group: string; role: GrantedRole }): Promise<GroupRole> =>
+      (await api.POST("/oidc-provider/group-roles", { body })).data!.groupRole,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: groupRolesQueryKey }),
+  });
+}
+
+export function useRemoveGroupRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      await api.DELETE("/oidc-provider/group-roles/{groupRoleID}", { params: { path: { groupRoleID: id } } });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: groupRolesQueryKey }),
+  });
+}
+
+/** Who signed in through the provider and waits to be let in; asked only of administrators. */
+export function useJoinRequests() {
+  return useQuery({
+    queryKey: joinRequestsQueryKey,
+    queryFn: async (): Promise<JoinRequest[]> => (await api.GET("/users/requests")).data!.requests,
+  });
+}
+
+export function useAdmitJoinRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: GrantedRole }) =>
+      (await api.POST("/users/requests/{userID}/admit", { params: { path: { userID: userId } }, body: { role } })).data!.membership,
+    onSettled: () =>
+      Promise.all([queryClient.invalidateQueries({ queryKey: joinRequestsQueryKey }), queryClient.invalidateQueries({ queryKey: membersQueryKey })]),
+  });
+}
+
+export function useDeclineJoinRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      await api.DELETE("/users/requests/{userID}", { params: { path: { userID: userId } } });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: joinRequestsQueryKey }),
   });
 }

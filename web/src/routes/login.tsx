@@ -6,12 +6,18 @@ import { rootRoute } from "./root";
 
 interface LoginSearch {
   next?: string;
+  sso?: string;
+  org?: string;
 }
 
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  validateSearch: (search: Record<string, unknown>): LoginSearch => (typeof search.next === "string" ? { next: search.next } : {}),
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    ...(typeof search.next === "string" ? { next: search.next } : {}),
+    ...(typeof search.sso === "string" ? { sso: search.sso } : {}),
+    ...(typeof search.org === "string" ? { org: search.org } : {}),
+  }),
   // Somebody already signed in has nothing to do here. The answer is settled
   // before the redirect is thrown, so the catch cannot swallow the redirect.
   beforeLoad: async ({ context, search }) => {
@@ -25,7 +31,7 @@ export const loginRoute = createRoute({
     }
   },
   component: function Login() {
-    const { next } = loginRoute.useSearch();
-    return <LoginPage next={next} />;
+    const { next, sso, org } = loginRoute.useSearch();
+    return <LoginPage next={next} sso={sso} org={org} />;
   },
 });

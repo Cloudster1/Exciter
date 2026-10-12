@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
-import { AUDIT_PATH, MEMBERS_PATH } from "@/config";
+import { AUDIT_PATH, MEMBERS_PATH, SSO_PATH } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 
@@ -137,6 +137,7 @@ describe("the quick switcher", () => {
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
       `place:${MEMBERS_PATH}`,
+      `place:${SSO_PATH}`,
       `place:${AUDIT_PATH}`,
       "org:demo",
       "org:acme",
@@ -148,9 +149,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[4]).toHaveAttribute("aria-selected", "true");
+    expect(options()[5]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[4]).toHaveAttribute("aria-selected", "true");
+    expect(options()[5]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 

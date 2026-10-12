@@ -1,6 +1,6 @@
 import { administers, type Me } from "@/api/auth";
 import type { IconName } from "@/components/icons";
-import { AUDIT_PATH, MEMBERS_PATH } from "@/config";
+import { AUDIT_PATH, MEMBERS_PATH, SSO_PATH } from "@/config";
 import { t } from "@/i18n";
 
 /** A page of this build the reader can go to: the sidebar lists it, the quick switcher finds it, the breadcrumbs name it. */
@@ -22,6 +22,7 @@ function allPlaces(): Place[] {
   return [
     { path: "/", icon: "Home", label: t.nav.home },
     { path: MEMBERS_PATH, icon: "Users", label: t.nav.members, section: t.nav.settings, adminOnly: true },
+    { path: SSO_PATH, icon: "Lock", label: t.nav.sso, section: t.nav.settings, adminOnly: true },
     { path: AUDIT_PATH, icon: "Shield", label: t.nav.audit, section: t.nav.settings, adminOnly: true },
   ];
 }

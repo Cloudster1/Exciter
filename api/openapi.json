@@ -23,6 +23,9 @@
     },
     {
       "name": "members"
+    },
+    {
+      "name": "sso"
     }
   ],
   "paths": {
@@ -45,7 +48,13 @@
                 "audit.exported",
                 "member.created",
                 "member.role_changed",
-                "member.removed"
+                "member.removed",
+                "member.joined",
+                "member.admitted",
+                "member.declined",
+                "sso.provider_saved",
+                "sso.group_role_set",
+                "sso.group_role_removed"
               ]
             }
           },
@@ -169,7 +178,13 @@
                 "audit.exported",
                 "member.created",
                 "member.role_changed",
-                "member.removed"
+                "member.removed",
+                "member.joined",
+                "member.admitted",
+                "member.declined",
+                "sso.provider_saved",
+                "sso.group_role_set",
+                "sso.group_role_removed"
               ]
             }
           },
@@ -425,6 +440,95 @@
         }
       }
     },
+    "/auth/oidc/callback": {
+      "get": {
+        "operationId": "oIDCCallback",
+        "summary": "Where the identity provider sends the browser back; sets the session cookie.",
+        "tags": [
+          "auth"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/oidc/{orgSlug}/start": {
+      "get": {
+        "operationId": "oIDCStart",
+        "summary": "Begin signing in through the organization's identity provider.",
+        "tags": [
+          "auth"
+        ],
+        "parameters": [
+          {
+            "name": "orgSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "next",
+            "in": "query",
+            "description": "A path of this application to land on afterwards.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/switch-org": {
       "post": {
         "operationId": "switchOrg",
@@ -536,6 +640,200 @@
         }
       }
     },
+    "/oidc-provider": {
+      "get": {
+        "operationId": "getOIDCProvider",
+        "summary": "The organization's identity provider, if one is configured, and the callback address to register with it. For administrators.",
+        "tags": [
+          "sso"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveOIDCProvider",
+        "summary": "Configure the organization's identity provider; a client secret left out keeps the stored one. For administrators.",
+        "tags": [
+          "sso"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveOIDCProviderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oidc-provider/group-roles": {
+      "get": {
+        "operationId": "listGroupRoles",
+        "summary": "Which provider groups grant which role. For administrators.",
+        "tags": [
+          "sso"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groupRoles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/GroupRole"
+                      }
+                    }
+                  },
+                  "required": [
+                    "groupRoles"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "setGroupRole",
+        "summary": "Map a provider group to a role, or change the role it maps to; members follow at their next sign-in. For administrators.",
+        "tags": [
+          "sso"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetGroupRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groupRole": {
+                      "$ref": "#/components/schemas/GroupRole"
+                    }
+                  },
+                  "required": [
+                    "groupRole"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oidc-provider/group-roles/{groupRoleID}": {
+      "delete": {
+        "operationId": "removeGroupRole",
+        "summary": "Unmap a provider group; the roles it granted go at each person's next sign-in. For administrators.",
+        "tags": [
+          "sso"
+        ],
+        "parameters": [
+          {
+            "name": "groupRoleID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/openapi.json": {
       "get": {
         "operationId": "openAPI",
@@ -611,7 +909,7 @@
     "/users": {
       "get": {
         "operationId": "listMembers",
-        "summary": "The organization's members, owners first. For administrators.",
+        "summary": "The organization's members, owners first, with whether the identity provider's groups decide their roles. For administrators.",
         "tags": [
           "members"
         ],
@@ -679,6 +977,143 @@
                   },
                   "required": [
                     "member"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/requests": {
+      "get": {
+        "operationId": "listJoinRequests",
+        "summary": "Who signed in through the identity provider and is waiting to be let in. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JoinRequest"
+                      }
+                    }
+                  },
+                  "required": [
+                    "requests"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/requests/{userID}": {
+      "delete": {
+        "operationId": "declineJoinRequest",
+        "summary": "Turn a waiting person away; they may ask again. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/requests/{userID}/admit": {
+      "post": {
+        "operationId": "admitJoinRequest",
+        "summary": "Let a waiting person in with the standing given. For administrators.",
+        "tags": [
+          "members"
+        ],
+        "parameters": [
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "membership": {
+                      "$ref": "#/components/schemas/Membership"
+                    }
+                  },
+                  "required": [
+                    "membership"
                   ]
                 }
               }
@@ -817,6 +1252,21 @@
           "message"
         ]
       },
+      "AdmitRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "member",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
       "AuditActor": {
         "type": "object",
         "properties": {
@@ -843,7 +1293,13 @@
               "audit.exported",
               "member.created",
               "member.role_changed",
-              "member.removed"
+              "member.removed",
+              "member.joined",
+              "member.admitted",
+              "member.declined",
+              "sso.provider_saved",
+              "sso.group_role_set",
+              "sso.group_role_removed"
             ]
           },
           "actorId": {
@@ -905,7 +1361,13 @@
                 "audit.exported",
                 "member.created",
                 "member.role_changed",
-                "member.removed"
+                "member.removed",
+                "member.joined",
+                "member.admitted",
+                "member.declined",
+                "sso.provider_saved",
+                "sso.group_role_set",
+                "sso.group_role_removed"
               ]
             }
           },
@@ -1143,6 +1605,35 @@
           "error"
         ]
       },
+      "GroupRole": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "member",
+              "admin"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "group",
+          "role",
+          "updatedAt"
+        ]
+      },
       "Info": {
         "type": "object",
         "properties": {
@@ -1159,6 +1650,31 @@
         "required": [
           "title",
           "version"
+        ]
+      },
+      "JoinRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "requestedAt"
         ]
       },
       "LoginRequest": {
@@ -1235,6 +1751,13 @@
               "guest"
             ]
           },
+          "roleSource": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "oidc"
+            ]
+          },
           "userId": {
             "type": "string",
             "format": "uuid"
@@ -1245,6 +1768,7 @@
           "email",
           "name",
           "role",
+          "roleSource",
           "joinedAt"
         ]
       },
@@ -1383,6 +1907,68 @@
           "schema"
         ]
       },
+      "Provider": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "createGroups": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "groupsClaim": {
+            "type": "string"
+          },
+          "hasSecret": {
+            "type": "boolean"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "issuer",
+          "clientId",
+          "hasSecret",
+          "groupsClaim",
+          "scopes",
+          "createGroups",
+          "enabled",
+          "updatedAt"
+        ]
+      },
+      "ProviderView": {
+        "type": "object",
+        "properties": {
+          "callbackUrl": {
+            "type": "string"
+          },
+          "provider": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Provider"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "callbackUrl"
+        ]
+      },
       "ReadinessResponse": {
         "type": "object",
         "properties": {
@@ -1451,6 +2037,38 @@
         },
         "required": [
           "description"
+        ]
+      },
+      "SaveOIDCProviderRequest": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          },
+          "createGroups": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "groupsClaim": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer",
+          "clientId",
+          "createGroups",
+          "enabled"
         ]
       },
       "Schema": {
@@ -1565,6 +2183,25 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "SetGroupRoleRequest": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "member",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "group",
+          "role"
         ]
       },
       "SetRoleRequest": {

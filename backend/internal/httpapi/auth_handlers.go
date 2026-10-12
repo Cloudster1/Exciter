@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -46,15 +45,6 @@ func (s *Server) noteSession(ctx context.Context, sessionID uuid.UUID, lsn db.LS
 	if s.Fresh != nil && lsn != 0 {
 		s.Fresh.Note(ctx, sessionFreshnessKey(sessionID), lsn)
 	}
-}
-
-// clientIP is the peer's address, recorded on a session and in the audit log.
-func clientIP(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return ""
-	}
-	return host
 }
 
 // errSignInOff answers for a server built without the identity services, which only a test does.
@@ -113,7 +103,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creds, err := s.Accounts.Login(r.Context(), req.Email, req.Password, r.UserAgent(), clientIP(r))
+	creds, err := s.Accounts.Login(r.Context(), req.Email, req.Password, r.UserAgent(), s.clientIP(r))
 	if err != nil {
 		respondError(w, r, err)
 		return

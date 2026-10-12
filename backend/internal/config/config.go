@@ -4,6 +4,8 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -44,6 +46,9 @@ const (
 	MinRetainAudit     = 24 * time.Hour
 	// SecretKeyBytes is the AES-256 key length EXCITER_SECRET_KEY decodes to.
 	SecretKeyBytes = 32
+	// OIDCCallbackPath is where an identity provider sends the browser back,
+	// under the web client's origin, which proxies the API.
+	OIDCCallbackPath = "/api/v1/auth/oidc/callback"
 )
 
 // Config is the fully resolved configuration for every binary.
@@ -59,6 +64,9 @@ type Config struct {
 	CORSOrigins []string
 	// RequestTimeout bounds every request's handler.
 	RequestTimeout time.Duration
+	// TrustedProxies are the peers whose X-Real-IP header names the client,
+	// such as the web container's nginx; empty trusts nobody's.
+	TrustedProxies []netip.Prefix
 
 	DB        DB
 	Valkey    Valkey
@@ -100,20 +108,41 @@ type DB struct {
 	ReadYourWritesTTL time.Duration
 }
 
-// Auth holds the session cookie's settings.
+// Auth holds the session cookie's settings and how sign-in reaches identity
+// providers.
 type Auth struct {
 	SessionCookie string
 	SecureCookies bool
 	SessionTTL    time.Duration
+	// OIDCRedirectURL is the callback address providers are told to send the
+	// browser back to.
+	OIDCRedirectURL string
+	// OIDCBackchannel maps a provider's public origin to the one this process
+	// reaches it at, for a stack where the two differ.
+	OIDCBackchannel map[string]string
 }
 
-// Bootstrap is what cmd/seed sets up: the organization and its first local
-// administrator, so somebody can sign in before any identity provider exists.
+// Bootstrap is what cmd/seed sets up: the organization, its first local
+// administrator, and an identity provider with its first members when named.
 type Bootstrap struct {
 	OrgSlug       string
 	OrgName       string
 	AdminEmail    string
 	AdminPassword string
+
+	OIDCIssuer       string
+	OIDCClientID     string
+	OIDCClientSecret string
+
+	// Members are let into the organization ahead of their first sign-in,
+	// so a development stack needs nobody to approve them.
+	Members []BootstrapMember
+}
+
+// BootstrapMember is one address and the standing it is given.
+type BootstrapMember struct {
+	Email string
+	Role  string
 }
 
 // Valkey is the shared store behind read-your-writes. A blank URL keeps the
@@ -183,6 +212,11 @@ func Load() (Config, error) {
 			AdminEmail: l.str("EXCITER_BOOTSTRAP_ADMIN_EMAIL", ""),
 			// Not trimmed: a password is exactly what was typed.
 			AdminPassword: l.raw("EXCITER_BOOTSTRAP_ADMIN_PASSWORD"),
+
+			OIDCIssuer:       l.str("EXCITER_BOOTSTRAP_OIDC_ISSUER", ""),
+			OIDCClientID:     l.str("EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", ""),
+			OIDCClientSecret: l.str("EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", ""),
+			Members:          l.members("EXCITER_BOOTSTRAP_MEMBERS"),
 		},
 		Telemetry: Telemetry{
 			MetricsAddr:  l.strOrBlank("EXCITER_METRICS_ADDR", DefaultMetricsAddr),
@@ -192,6 +226,9 @@ func Load() (Config, error) {
 	}
 	c.RetainAudit = l.duration("EXCITER_RETAIN_AUDIT", DefaultRetainAudit)
 	c.SecretKey = l.secretKey("EXCITER_SECRET_KEY", c.Env)
+	c.Auth.OIDCRedirectURL = l.str("EXCITER_OIDC_REDIRECT_URL", c.AppBaseURL+OIDCCallbackPath)
+	c.Auth.OIDCBackchannel = l.rewrites("EXCITER_OIDC_BACKCHANNEL")
+	c.TrustedProxies = l.prefixes("EXCITER_TRUSTED_PROXIES")
 
 	if c.DB.PrimaryURL == "" {
 		l.problem("Set EXCITER_DB_PRIMARY_URL to the connection URL of the primary database.")
@@ -239,6 +276,10 @@ func Load() (Config, error) {
 	if c.Bootstrap.AdminEmail != "" && !strings.Contains(c.Bootstrap.AdminEmail, "@") {
 		l.problem(fmt.Sprintf("EXCITER_BOOTSTRAP_ADMIN_EMAIL is %q; set it to an email address.", c.Bootstrap.AdminEmail))
 	}
+	if u, err := url.Parse(c.Auth.OIDCRedirectURL); err != nil || u.Scheme == "" || u.Host == "" {
+		l.problem(fmt.Sprintf("EXCITER_OIDC_REDIRECT_URL is %q; set it to an absolute URL ending in %s.", c.Auth.OIDCRedirectURL, OIDCCallbackPath))
+	}
+	c.checkBootstrapProvider(l)
 	if c.RetainAudit != 0 && c.RetainAudit < MinRetainAudit {
 		l.problem(fmt.Sprintf("EXCITER_RETAIN_AUDIT is %s, but the audit log keeps every entry for at least %.0fh; set it to that or longer, such as 8760h, or to 0 to keep the log forever.", c.RetainAudit, MinRetainAudit.Hours()))
 	}
@@ -252,6 +293,21 @@ func Load() (Config, error) {
 		return Config{}, &Error{Problems: l.problems}
 	}
 	return c, nil
+}
+
+// checkBootstrapProvider refuses a provider the seed could not configure: one without its client, a secret with
+// no key to seal it, or nobody whose name it is configured in, since only an administrator configures one.
+func (c Config) checkBootstrapProvider(l *loader) {
+	b := c.Bootstrap
+	if (b.OIDCIssuer == "") != (b.OIDCClientID == "") {
+		l.problem("Set both EXCITER_BOOTSTRAP_OIDC_ISSUER and EXCITER_BOOTSTRAP_OIDC_CLIENT_ID, or neither.")
+	}
+	if b.OIDCClientSecret != "" && c.SecretKey == nil {
+		l.problem("EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET is set but EXCITER_SECRET_KEY is not; set the key so the secret can be stored sealed.")
+	}
+	if b.OIDCIssuer != "" && b.AdminEmail == "" {
+		l.problem("EXCITER_BOOTSTRAP_OIDC_ISSUER is set but EXCITER_BOOTSTRAP_ADMIN_EMAIL is not; set the administrator the provider is configured in the name of.")
+	}
 }
 
 // IsProduction reports whether this is the production deployment.

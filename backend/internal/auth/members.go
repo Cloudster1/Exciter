@@ -23,7 +23,7 @@ func (s *Service) Members(ctx context.Context) ([]Member, error) {
 	out := []Member{}
 	err = s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
-			SELECT u.id, u.email::text, u.name, m.org_role, m.created_at
+			SELECT u.id, u.email::text, u.name, m.org_role, m.role_source, m.created_at
 			FROM org_member m JOIN app_user u ON u.id = m.user_id
 			WHERE m.org_id = $1
 			ORDER BY CASE m.org_role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END, lower(u.name), u.email`, org.ID)
@@ -33,7 +33,7 @@ func (s *Service) Members(ctx context.Context) ([]Member, error) {
 		defer rows.Close()
 		for rows.Next() {
 			var m Member
-			if err := rows.Scan(&m.UserID, &m.Email, &m.Name, &m.Role, &m.JoinedAt); err != nil {
+			if err := rows.Scan(&m.UserID, &m.Email, &m.Name, &m.Role, &m.RoleSource, &m.JoinedAt); err != nil {
 				return err
 			}
 			out = append(out, m)
@@ -53,8 +53,8 @@ func memberRole(ctx context.Context, tx db.DBTX, org, userID uuid.UUID) (OrgRole
 	return role, err
 }
 
-// SetRole gives a member of the organization on ctx another standing. The owner keeps theirs, and nobody changes
-// their own, so an administrator cannot lock themselves or everybody else out.
+// SetRole gives a member of the organization on ctx another standing, which the provider then leaves alone until a
+// mapped group applies. The owner and the caller keep theirs, so nobody locks themselves or everybody else out.
 func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, actor uuid.UUID, ip string) (*Member, db.LSN, error) {
 	org, err := tenant.MustFromContext(ctx)
 	if err != nil {
@@ -76,10 +76,10 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, a
 			return ErrOwnerStays
 		}
 		if err := tx.QueryRow(ctx, `
-			UPDATE org_member m SET org_role = $3, updated_at = now()
+			UPDATE org_member m SET org_role = $3, role_source = 'manual', updated_at = now()
 			FROM app_user u WHERE u.id = m.user_id AND m.org_id = $1 AND m.user_id = $2
-			RETURNING u.id, u.email::text, u.name, m.org_role, m.created_at`, org.ID, userID, string(role),
-		).Scan(&out.UserID, &out.Email, &out.Name, &out.Role, &out.JoinedAt); err != nil {
+			RETURNING u.id, u.email::text, u.name, m.org_role, m.role_source, m.created_at`, org.ID, userID, string(role),
+		).Scan(&out.UserID, &out.Email, &out.Name, &out.Role, &out.RoleSource, &out.JoinedAt); err != nil {
 			return err
 		}
 		if was == role {
@@ -111,6 +111,10 @@ func (s *Service) RemoveMember(ctx context.Context, userID, actor uuid.UUID, ip 
 		}
 		if role == RoleOwner {
 			return ErrOwnerStays
+		}
+		// The group rows would outlive the membership otherwise: their guard checks membership only when a row is written.
+		if _, err := tx.Exec(ctx, `DELETE FROM group_member WHERE org_id = $1 AND user_id = $2`, org.ID, userID); err != nil {
+			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM org_member WHERE org_id = $1 AND user_id = $2`, org.ID, userID); err != nil {
 			return err

@@ -23,6 +23,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -97,20 +99,32 @@ func run() error {
 	}
 
 	accounts := auth.NewService(cluster, auth.DefaultPasswordParams(), cfg.Auth.SessionTTL)
+	var box *secret.Box
+	if cfg.SecretKey != nil {
+		if box, err = secret.New(cfg.SecretKey); err != nil {
+			return err
+		}
+	} else {
+		log.Warn("EXCITER_SECRET_KEY is not set, so an identity provider's client secret cannot be stored")
+	}
+	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
 	server := &httpapi.Server{
-		DB:             cluster,
-		Auth:           accounts,
-		Accounts:       accounts,
-		Audit:          audit.NewService(cluster),
-		AuditRetention: cfg.RetainAudit,
-		Log:            log,
-		Telemetry:      tel,
-		Fresh:          freshnessTracker(cfg, valkey, log),
-		CookieName:     cfg.Auth.SessionCookie,
-		Secure:         cfg.Auth.SecureCookies,
-		AppBaseURL:     cfg.AppBaseURL,
-		CheckOrigin:    cfg.IsProduction(),
-		RequestTimeout: cfg.RequestTimeout,
+		DB:              cluster,
+		Auth:            accounts,
+		Accounts:        accounts,
+		OIDC:            sso,
+		OIDCCallbackURL: cfg.Auth.OIDCRedirectURL,
+		TrustedProxies:  cfg.TrustedProxies,
+		Audit:           audit.NewService(cluster),
+		AuditRetention:  cfg.RetainAudit,
+		Log:             log,
+		Telemetry:       tel,
+		Fresh:           freshnessTracker(cfg, valkey, log),
+		CookieName:      cfg.Auth.SessionCookie,
+		Secure:          cfg.Auth.SecureCookies,
+		AppBaseURL:      cfg.AppBaseURL,
+		CheckOrigin:     cfg.IsProduction(),
+		RequestTimeout:  cfg.RequestTimeout,
 	}
 	origins := cfg.CORSOrigins
 	if len(origins) == 0 && !cfg.IsProduction() {

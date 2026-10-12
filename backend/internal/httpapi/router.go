@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -37,6 +39,10 @@ type Server struct {
 	// Accounts signs people in and out and keeps the organization's members;
 	// nil answers every sign-in route that it is not set up.
 	Accounts *auth.Service
+	// OIDC runs sign-in through an organization's identity provider; nil answers its routes that it is not set
+	// up. OIDCCallbackURL is the address to register with a provider.
+	OIDC            *oidc.Service
+	OIDCCallbackURL string
 	// Audit reads the record for administrators and keeps exports; nil refuses
 	// both. AuditRetention is how long the worker keeps an entry, zero forever.
 	Audit          *audit.Service
@@ -58,6 +64,8 @@ type Server struct {
 	CheckOrigin bool
 	// RequestTimeout bounds each handler; zero means the configured default.
 	RequestTimeout time.Duration
+	// TrustedProxies are the peers whose X-Real-IP names the client, such as the web container's nginx.
+	TrustedProxies []netip.Prefix
 }
 
 // Routes builds the HTTP surface. The order matters: an id first so every later
@@ -90,6 +98,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Get("/openapi.json", s.handleOpenAPI)
 		r.Get("/meta", s.handleMeta)
 		r.Post("/auth/login", s.handleLogin)
+		r.Get("/auth/oidc/{orgSlug}/start", s.handleOIDCStart)
+		r.Get("/auth/oidc/callback", s.handleOIDCCallback)
 		mountPending(r, true)
 
 		r.Group(func(r chi.Router) {
@@ -106,6 +116,14 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/users", s.handleCreateMember)
 			r.Patch("/users/{userID}", s.handleSetMemberRole)
 			r.Delete("/users/{userID}", s.handleRemoveMember)
+			r.Get("/users/requests", s.handleListJoinRequests)
+			r.Post("/users/requests/{userID}/admit", s.handleAdmitJoinRequest)
+			r.Delete("/users/requests/{userID}", s.handleDeclineJoinRequest)
+			r.Get("/oidc-provider", s.handleGetOIDCProvider)
+			r.Put("/oidc-provider", s.handleSaveOIDCProvider)
+			r.Get("/oidc-provider/group-roles", s.handleListGroupRoles)
+			r.Post("/oidc-provider/group-roles", s.handleSetGroupRole)
+			r.Delete("/oidc-provider/group-roles/{groupRoleID}", s.handleRemoveGroupRole)
 			r.Get("/audit", s.handleListAudit)
 			r.Get("/audit/facets", s.handleAuditFacets)
 			r.Get("/audit/export", s.handleExportAudit)

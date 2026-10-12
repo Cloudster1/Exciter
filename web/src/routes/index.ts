@@ -9,9 +9,10 @@ import { auditRoute } from "./audit";
 import { homeRoute } from "./home";
 import { loginRoute } from "./login";
 import { membersRoute, settingsRoute } from "./settings";
+import { ssoRoute } from "./sso";
 import { RouteError, rootRoute } from "./root";
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([homeRoute, settingsRoute, membersRoute, auditRoute])]);
+const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren([homeRoute, settingsRoute, membersRoute, ssoRoute, auditRoute])]);
 
 /** The application's router; tests pass a memory history to start anywhere. */
 export function buildRouter(queryClient: QueryClient, history?: RouterHistory) {

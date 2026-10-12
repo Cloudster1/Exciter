@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AUDIT_PATH, MEMBERS_PATH, SIDEBAR_DRAWER_BELOW_PX } from "@/config";
-import { renderAt, setViewportWidth, signedIn, stubApi } from "@/test/app";
+import { AUDIT_PATH, MEMBERS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH } from "@/config";
+import { renderAt, setViewportWidth, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 // jsdom's own width, which is what every other shell test runs at.
@@ -33,11 +33,28 @@ const member = {
   role: "member",
   joinedAt: "2026-09-01T08:00:00Z",
 };
+const waiting = { userId: "0195f000-0000-7000-8000-00000000c0c0", email: "carol@suite.test", name: "Carol New", requestedAt: "2026-09-29T08:00:00Z" };
+const provider = {
+  issuer: "http://localhost:8180/realms/suite-dev",
+  clientId: "exciter",
+  hasSecret: true,
+  groupsClaim: "groups",
+  scopes: "openid profile email",
+  createGroups: true,
+  enabled: true,
+  updatedAt: "2026-09-29T08:00:00Z",
+};
 const settingsApi = () =>
   stubApi({
     "GET /users": { status: 200, body: { members: [member] } },
     "GET /audit": { status: 200, body: { entries: [], next: null } },
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
+    "GET /users/requests": { status: 200, body: { requests: [waiting] } },
+    "GET /oidc-provider": { status: 200, body: { provider, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" } },
+    "GET /oidc-provider/group-roles": {
+      status: 200,
+      body: { groupRoles: [{ id: "0195f000-0000-7000-8000-0000000000a1", group: "exciter-administrators", role: "admin", updatedAt: "2026-09-29T08:00:00Z" }] },
+    },
   });
 
 describe("the skip link", () => {
@@ -257,11 +274,26 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it.each([MEMBERS_PATH, AUDIT_PATH])("finds nothing on %s", async (path) => {
+  it.each([MEMBERS_PATH, SSO_PATH, AUDIT_PATH])("finds nothing on %s", async (path) => {
     settingsApi();
     await renderAt(path);
     await screen.findByRole("heading", { level: 1 });
     await waitFor(() => expect(document.querySelector("[data-skeleton]")).toBeNull());
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("finds nothing on single sign-on with a provider, its mapping and a waiting person", async () => {
+    settingsApi();
+    await renderAt(SSO_PATH);
+    await screen.findByText("Carol New");
+    await screen.findByText("exciter-administrators", { selector: "td" });
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it.each(["unreachable", "not_a_member"])("finds nothing on the sign-in page told %s", async (reason) => {
+    stubApi({ "GET /auth/me": unauthorized });
+    await renderAt(`/login?sso=${reason}`, { me: null });
+    await screen.findByRole(reason === "not_a_member" ? "status" : "alert");
     expect(await axeViolations()).toEqual([]);
   });
 
