@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { LOGO_WIDTH_PX, MEMBERS_PATH } from "@/config";
 import { LAST_ORG_KEY, MEMBERS_PATH } from "@/config";
 import { safeNext } from "@/lib/session";
 import { renderAt, signedIn, stubApi, unauthorized } from "@/test/app";
@@ -145,7 +146,6 @@ describe("the sign-in page", () => {
     stubApi({ "GET /auth/me": unauthorized });
     await renderAt("/login?sso=unreachable", { me: null });
     await screen.findByRole("heading", { name: "Sign in" });
-    expect(document.querySelector("[data-login] svg[data-logo]")).toHaveAttribute("aria-hidden", "true");
     expect(await axeViolations()).toEqual([]);
   });
 });
@@ -156,5 +156,18 @@ describe("where sign-in returns to", () => {
     for (const bad of [undefined, "", "https://evil.test", "//evil.test", "/\\evil.test", "settings", "/login", "/login?next=/"]) {
       expect(safeNext(bad)).toBeUndefined();
     }
+  });
+});
+
+describe("the sign-in page's logo", () => {
+  it("is shown at its set size, as a picture the name beside it explains", async () => {
+    stubApi({ "GET /auth/me": unauthorized });
+    await renderAt("/login", { me: null });
+    await screen.findByRole("heading", { name: "Sign in" });
+    const logo = document.querySelector("[data-login] img[data-logo]");
+    expect(logo).not.toBeNull();
+    expect(logo).toHaveAttribute("width", String(LOGO_WIDTH_PX));
+    expect(logo).toHaveAttribute("alt", "");
+    expect(logo?.getAttribute("srcset")).toContain("/logo-512.webp 512w");
   });
 });
