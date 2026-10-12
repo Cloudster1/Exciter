@@ -56,7 +56,13 @@ holds even for a query that forgot it.
 
 ### Domains (M1 to M3)
 
-- **Projects** (#11): a key such as `CHK`, settings, templates (#24).
+- **Projects** (#11): a key such as `CHK`, settings, templates (#24). A key
+  a project leaves stays in `project_key_alias` and keeps resolving, and
+  triggers keep a key, current or former, to one project under a lock on it.
+  `perm_project_holds(project, actor, permission)` is what every project
+  policy asks; until #12 it reads the organization role alone. An archived
+  project is read only, and only an archived one can be deleted, which the
+  database holds too.
 - **Requirements** (#13): key `CHK-R42`, a rich-text statement, rationale,
   type and attributes (#14), a place in the tree (#15), a status from the
   project's workflow (#17).

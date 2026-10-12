@@ -93,3 +93,14 @@ func sentence(s string) string {
 	}
 	return string(r)
 }
+
+// queryBool reads a true or false query parameter, false when absent.
+func queryBool(r *http.Request, name string) (bool, error) {
+	switch r.URL.Query().Get(name) {
+	case "", "false":
+		return false, nil
+	case "true":
+		return true, nil
+	}
+	return false, ErrValidation(map[string]string{name: "Say true or false, or leave it out."})
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -50,7 +51,9 @@ type Server struct {
 	AuditRetention time.Duration
 	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
 	Themes *theme.Service
-	Log    *slog.Logger
+	// Projects keeps the projects requirements live in; nil answers their routes that they are not set up.
+	Projects *project.Service
+	Log      *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -157,6 +160,20 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 				r.Get("/themes/{themeID}/assets/{assetID}", s.handleThemeAsset)
 				r.Delete("/themes/{themeID}/assets/{assetID}", s.handleDeleteThemeAsset)
 			})
+		})
+
+		// Projects: every member reads those they may view; the organization's administrators make them.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.projectsOn)
+			r.Get("/projects", s.handleListProjects)
+			r.With(requireAdmin).Post("/projects", s.handleCreateProject)
+			r.Get("/projects/key-check", s.handleCheckProjectKey)
+			r.Get("/projects/{projectKey}", s.handleGetProject)
+			r.Patch("/projects/{projectKey}", s.handleUpdateProject)
+			r.Delete("/projects/{projectKey}", s.handleDeleteProject)
+			r.Put("/projects/{projectKey}/key", s.handleChangeProjectKey)
+			r.Put("/projects/{projectKey}/archive", s.handleArchiveProject)
+			r.Delete("/projects/{projectKey}/archive", s.handleUnarchiveProject)
 		})
 
 		if s.TestOrgs != nil {

@@ -1,15 +1,45 @@
-import { useMe } from "@/api/auth";
-import { EmptyState, PageHeader } from "@/components/ui";
+import { useNavigate } from "@tanstack/react-router";
+import { administers, useMe } from "@/api/auth";
+import { useProjects } from "@/api/projects";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { NEW_PROJECT_PATH } from "@/config";
+import { ProjectTable } from "@/features/projects/ProjectTable";
 import { t } from "@/i18n";
 
-/** Where the reader lands: what Exciter is for, until there are projects to show. */
+/** Where the reader lands: their projects, or what Exciter is for and the way to the first project. */
 export function HomeScreen() {
   const { data: me } = useMe();
+  const { data: projects, isLoading, error, refetch } = useProjects();
+  const navigate = useNavigate();
+  const mayCreate = administers(me?.organization?.role);
   return (
     <div className="mx-auto max-w-3xl" data-home>
       <PageHeader title={t.home.title} meta={me?.organization?.name} />
-      <EmptyState icon={<Icon.Home />} title={t.home.emptyTitle} description={t.home.emptyBody} />
+      {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
+      {isLoading && <Skeleton />}
+      {projects && projects.length === 0 && (
+        <EmptyState
+          icon={<Icon.Home />}
+          title={t.home.emptyTitle}
+          description={mayCreate ? t.home.emptyBody : t.home.emptyBodyMember}
+          action={
+            mayCreate && (
+              <Button icon={<Icon.Plus />} onClick={() => navigate({ to: NEW_PROJECT_PATH })} data-action="first-project">
+                {t.projects.create}
+              </Button>
+            )
+          }
+        />
+      )}
+      {projects && projects.length > 0 && (
+        <section aria-labelledby="home-projects">
+          <h2 id="home-projects" className="mb-2 text-base font-semibold text-ink">
+            {t.home.yourProjects}
+          </h2>
+          <ProjectTable projects={projects} label={t.home.yourProjects} />
+        </section>
+      )}
     </div>
   );
 }

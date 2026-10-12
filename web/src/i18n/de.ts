@@ -1,4 +1,5 @@
 import type { Messages } from "./en";
+import { projectsDe } from "./projects.de";
 import { themesDe } from "./themes.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
@@ -15,6 +16,7 @@ export const de: Messages = {
     unexpected: (status: number) => `Der Server hat mit Status ${status} und ohne Erklärung geantwortet. Versuchen Sie es gleich noch einmal.`,
   },
   nav: {
+    projects: "Projekte",
     everywhere: "Überall",
     whereYouAre: "Hier",
     home: "Start",
@@ -136,7 +138,10 @@ export const de: Messages = {
     title: "Start",
     emptyTitle: "Noch keine Projekte",
     emptyBody:
-      "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Projekte, die sie aufnehmen, folgen bald.",
+      "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Legen Sie ein Projekt an, das sie aufnimmt.",
+    emptyBodyMember:
+      "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Die Projekte dafür legen Inhaber und Administratoren Ihrer Organisation an.",
+    yourProjects: "Ihre Projekte",
   },
   members: {
     title: "Mitglieder",
@@ -227,6 +232,11 @@ export const de: Messages = {
       "sso.group_role_set": "Gruppe einer Rolle zugeordnet",
       "sso.group_role_removed": "Gruppenzuordnung aufgehoben",
       "theme.default_set": "Design der Organisation festgelegt",
+      "project.created": "Projekt angelegt",
+      "project.key_changed": "Projektschlüssel geändert",
+      "project.archived": "Projekt archiviert",
+      "project.unarchived": "Projekt aus dem Archiv geholt",
+      "project.deleted": "Projekt gelöscht",
     },
     targetTypes: {
       user: "Person",
@@ -235,8 +245,10 @@ export const de: Messages = {
       oidc_provider: "Identitätsanbieter",
       group_role: "Gruppenrolle",
       theme: "Design",
+      project: "Projekt",
     },
   },
+  projects: projectsDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

@@ -116,3 +116,12 @@ export const CONSTELLATION_LINK_PX = 150;
 export const CONSTELLATION_SPEED_PX_PER_S = 14;
 /** The grey a point or a line is drawn in when the theme's colour cannot be read. */
 export const CONSTELLATION_FALLBACK_COLOUR = "#808080";
+
+/** Where the projects live, and the limits their forms share with the server's project package. */
+export const PROJECTS_PATH = "/projects";
+export const NEW_PROJECT_PATH = "/projects/new";
+export const PROJECT_KEY_MAX_LENGTH = 10;
+export const PROJECT_NAME_MAX_LENGTH = 100;
+export const PROJECT_DESCRIPTION_MAX_LENGTH = 1000;
+/** How long typing a project's name rests before the server is asked for a free key. */
+export const KEY_SUGGEST_DEBOUNCE_MS = 300;

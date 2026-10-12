@@ -168,6 +168,9 @@ New audit actions: `project.created`, `project.key_changed`,
   named (#24), or blank: one type `Requirement` that is the default type, the
   default statuses and workflow (#17), every organization link type enabled,
   and no sections. The creator is granted `admin` and everyone `editor` (#12).
+  Each of #12, #14, #17, #18 and #24 adds its part to create as it lands: until
+  then a blank project is the row alone, a `template` is 422, and so is a
+  `settings.defaultTypeId`, since no project has types yet.
 - **A new key** (`PUT .../key`) keeps the old one as an alias: `CHK-R5`
   becomes `SYS-R5`, and both `CHK` and `CHK-R5` keep resolving. Taking back a
   key the project had before removes it from the aliases. The same key is no
@@ -243,8 +246,8 @@ New audit actions: `project.created`, `project.key_changed`,
   the five rights, with `allowed` and `steps`. A step is one of `orgAdmin`,
   `guest` (passed when the person is not a guest; failed explains why
   everyone's grants do not reach them), `grant` (with the project's `grants`
-  that reach the person and give the right) and `archived` (failed for every
-  right but view). The first step not passed is the reason for a no. Every
+  that reach the person and give the right) and `archived` (failed for
+  comment, edit and approve). The first step not passed is the reason for a no. Every
   verdict is what `perm_project_holds` answers for that person, so the
   explanation is what the database enforces.
 - **In the database.** `perm_project_holds(project uuid, actor uuid,
@@ -258,9 +261,15 @@ New audit actions: `project.created`, `project.key_changed`,
   condition every query that lists requirements narrows itself with, so
   search, the grid, the tree and labels count only what the caller sees.
 - **`project.can`** is `view`, `comment`, `edit`, `approve`, `administer` and
-  `purge` (the same as administer); `requirement.can` is `edit`, `transition`
-  (edit or approve), `delete`, `link` and `comment`. In an archived project
-  only `view` is true. The web client offers only what `can` allows.
+  `purge` (administer, while the project is not archived); `requirement.can`
+  is `edit`, `transition` (edit or approve), `delete`, `link` and `comment`.
+  An archived project keeps `view` and `administer`, which is what unarchives
+  and deletes it; every other change to it is 409 `project_archived`. The web
+  client offers only what `can` allows.
+- **Until #12 is built**, `perm_project_holds` (migration 00100) gives every
+  member view, comment and edit in every project, owners and administrators
+  every right, and guests none; #12 replaces its body, and every policy that
+  calls it follows.
 
 ## #13 Requirements
 
