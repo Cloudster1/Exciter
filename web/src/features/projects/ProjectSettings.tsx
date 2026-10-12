@@ -6,15 +6,22 @@ import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject
 import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
 import { AttributeList } from "@/features/types/AttributeList";
 import { TypeList } from "@/features/types/TypeList";
+import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-type SettingsTab = "details" | "types" | "attributes";
+const SETTINGS_TABS = ["details", "types", "attributes", "workflow"] as const;
+export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
-/** A project's details, its key, its types and attributes, archiving and deleting it; changing anything is its administrators'. */
-export function ProjectSettings({ project }: { project: Project }) {
+export function isSettingsTab(value: unknown): value is SettingsTab {
+  return typeof value === "string" && (SETTINGS_TABS as readonly string[]).includes(value);
+}
+
+/** A project's details, its key, its types, attributes and workflows, archiving and deleting it; changing
+ * anything is its administrators'. */
+export function ProjectSettings({ project, tab: opened }: { project: Project; tab?: SettingsTab }) {
   const readOnly = !project.can.administer;
-  const [tab, setTab] = useState<SettingsTab>("details");
+  const [tab, setTab] = useState<SettingsTab>(opened ?? "details");
   return (
     <div className="mx-auto max-w-3xl space-y-6" data-project-settings={project.key}>
       <PageHeader
@@ -30,6 +37,7 @@ export function ProjectSettings({ project }: { project: Project }) {
               { value: "details", label: t.projects.detailsTitle, attrs: { "data-tab": "details" } },
               { value: "types", label: t.types.tab, attrs: { "data-tab": "types" } },
               { value: "attributes", label: t.attributes.tab, attrs: { "data-tab": "attributes" } },
+              { value: "workflow", label: t.workflows.tab, attrs: { "data-tab": "workflow" } },
             ]}
           />
         }
@@ -51,6 +59,7 @@ export function ProjectSettings({ project }: { project: Project }) {
         )}
         {tab === "types" && <TypeList project={project} />}
         {tab === "attributes" && <AttributeList project={project} />}
+        {tab === "workflow" && <WorkflowSettings project={project} />}
       </TabPanel>
     </div>
   );

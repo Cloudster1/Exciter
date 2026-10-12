@@ -47,6 +47,9 @@ const (
 	// ActionRequirementPurged and ActionTrashEmptied keep which keys went for good, since their history goes too.
 	ActionRequirementPurged = "requirement.purged"
 	ActionTrashEmptied      = "trash.emptied"
+	// ActionWorkflowSaved and ActionWorkflowAssigned keep a workflow's shape and who follows it.
+	ActionWorkflowSaved    = "workflow.saved"
+	ActionWorkflowAssigned = "workflow.assigned"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -56,6 +59,7 @@ var Actions = []string{
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
+	ActionWorkflowSaved, ActionWorkflowAssigned,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

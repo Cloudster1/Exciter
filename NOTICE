@@ -153,6 +153,21 @@ Adapted from Stator at cf0f6f7, for the tree (#15):
 - web/src/features/tree RequirementTree and PlaceDialog: features/pages
   PageTree and PlaceDialog, with the whole tree read at once and numbered
 
+Adapted from Armature at 73d72dd, for statuses and workflow (#17):
+- backend/internal/workflow engine.go, graph.go, rules.go, store.go,
+  statuses.go and service.go with engine_test.go: the engine, ValidateGraph,
+  the rule registry, the store and the admin service, without schemes, with
+  statuses and workflows of a project, rules made for requirements and a
+  revision step added
+- backend/migrations/00170_workflow.sql: the statuses, workflows, steps,
+  transitions and rules, with the status changed only by database functions
+- web/src/lib/graph.ts and features/workflows: designer graph.ts, flow.ts,
+  WorkflowCanvas, Inspector, RuleEditor, NewStatusForm and WorkflowDesigner
+  with their tests, and WorkflowGraph: over a project's statuses and their
+  five categories, with the revision step in the inspector, the strings in
+  the catalogue and the React Flow stand-ins of web/src/test/setup.ts
+- e2e/tests/workflow.spec.ts: the connection drag of e2e/helpers.mjs
+
 Adapted from Armature at 73d72dd, for types and attributes (#14):
 - backend/internal/attribute/values.go: normalize and cleanOptions of
   internal/field/validate.go, with options kept by id, multi-select, rich

@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // readinessTimeout bounds the database round trip behind /readyz, so a probe
@@ -66,7 +67,9 @@ type Server struct {
 	Search       *search.Service
 	// Attributes keeps a project's requirement types and attributes; nil answers their routes that they are not set up.
 	Attributes *attribute.Service
-	Log        *slog.Logger
+	// Workflows keeps a project's statuses and workflows; nil answers their routes that they are not set up.
+	Workflows *workflow.Service
+	Log       *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -228,6 +231,24 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/projects/{projectKey}/attributes", s.handleCreateAttribute)
 			r.Patch("/projects/{projectKey}/attributes/{attributeID}", s.handleUpdateAttribute)
 			r.Delete("/projects/{projectKey}/attributes/{attributeID}", s.handleDeleteAttribute)
+		})
+
+		// Statuses and workflows: read by whoever views their project, shaped by its administrators, taken by its editors.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.workflowsOn)
+			r.Get("/workflow-rule-types", s.handleListRuleTypes)
+			r.Get("/projects/{projectKey}/statuses", s.handleListStatuses)
+			r.Post("/projects/{projectKey}/statuses", s.handleCreateStatus)
+			r.Patch("/projects/{projectKey}/statuses/{statusID}", s.handleUpdateStatus)
+			r.Delete("/projects/{projectKey}/statuses/{statusID}", s.handleDeleteStatus)
+			r.Get("/projects/{projectKey}/workflows", s.handleListWorkflows)
+			r.Post("/projects/{projectKey}/workflows", s.handleCreateWorkflow)
+			r.Put("/projects/{projectKey}/workflow", s.handleAssignWorkflow)
+			r.Get("/projects/{projectKey}/workflows/{workflowID}", s.handleGetWorkflow)
+			r.Put("/projects/{projectKey}/workflows/{workflowID}", s.handleSaveWorkflow)
+			r.Delete("/projects/{projectKey}/workflows/{workflowID}", s.handleDeleteWorkflow)
+			r.Get("/requirements/{reqKey}/transitions", s.handleListTransitions)
+			r.Post("/requirements/{reqKey}/transitions", s.handleTransitionRequirement)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

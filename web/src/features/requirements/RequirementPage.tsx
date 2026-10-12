@@ -22,6 +22,7 @@ import { SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
+import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { t } from "@/i18n";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
@@ -73,6 +74,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           )
         }
       />
+      {!section && <TransitionBar requirement={requirement} />}
       {requirement.trashedAt && (
         <p role="status" className="rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-trashed-notice>
           {t.requirements.trashed}

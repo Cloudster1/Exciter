@@ -18,6 +18,7 @@ import {
   projectsRoute,
   specRoute,
   trashRoute,
+  workflowDesignRoute,
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
 import { membersRoute, settingsRoute } from "./settings";
@@ -34,6 +35,7 @@ const routeTree = rootRoute.addChildren([
     newProjectRoute,
     projectRoute,
     projectSettingsRoute,
+    workflowDesignRoute,
     projectPermissionsRoute,
     newRequirementRoute,
     trashRoute,

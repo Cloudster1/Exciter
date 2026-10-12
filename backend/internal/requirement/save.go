@@ -257,6 +257,11 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 			if err := s.revise(ctx, tx, actor, cur, next, hash, in); err != nil {
 				return err
 			}
+			if typeChanged(cur, next.TypeID) {
+				if err := settleStatus(ctx, tx, actor, cur, next.TypeID, "Its new type follows another workflow."); err != nil {
+					return err
+				}
+			}
 		}
 		if err := s.changeOwner(ctx, tx, actor, cur, in.OwnerID); err != nil {
 			return err
@@ -304,7 +309,16 @@ func (s *Service) revise(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *
 		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor); err != nil {
 		return fmt.Errorf("write revision %d of %s: %w", number, cur.Key, err)
 	}
-	return events.Emit(ctx, tx, TopicRevised, map[string]any{"actorId": actor, "requirementId": cur.ID, "revision": number})
+	if err := events.Emit(ctx, tx, TopicRevised, map[string]any{"actorId": actor, "requirementId": cur.ID, "revision": number}); err != nil {
+		return err
+	}
+	return afterRevision(ctx, tx, actor, cur.ID, number)
+}
+
+// typeChanged says whether a save gives a requirement another type than the one it had.
+func typeChanged(cur *loaded, next *uuid.UUID) bool {
+	had := cur.typeID()
+	return (had == nil) != (next == nil) || (had != nil && *had != *next)
 }
 
 func (s *Service) changeOwner(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *loaded, raw json.RawMessage) error {

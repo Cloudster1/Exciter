@@ -3,6 +3,18 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-12: The database takes a transition whole (#17)
+
+A reviewer approves without holding edit, so the app role may neither write
+the requirement's change log nor its owner for them. Rather than loosen those
+policies for approvers, `requirement_transition` writes the status, the log
+entry and the owner its post-functions set, reading the post-functions from
+the transition's own rules. The service still runs the conditions and
+validators first, for the sentences a refusal needs, but what a transition
+does to the row is decided where nobody can ask for something else.
+**Reconsider if** a post-function needs more than the owner, such as a value
+an approver may not write.
+
 ## 2026-10-12: A project key can change, and the old one keeps resolving (#10)
 
 Neither Armature nor Stator lets a project or space key change. Exciter does,

@@ -53,3 +53,39 @@ if (typeof window !== "undefined") {
 if (typeof HTMLCanvasElement !== "undefined") {
   HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 }
+
+// React Flow measures its nodes before it draws anything, and jsdom measures nothing: these are the stand-ins its
+// testing guide asks for, as Armature's setup has them, each only where jsdom has left a gap.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  class StubResizeObserver implements ResizeObserver {
+    #callback: ResizeObserverCallback;
+    #stopped = false;
+    constructor(callback: ResizeObserverCallback) {
+      this.#callback = callback;
+    }
+    observe(target: Element): void {
+      queueMicrotask(() => {
+        if (this.#stopped) return;
+        this.#callback([{ target, contentRect: target.getBoundingClientRect() } as ResizeObserverEntry], this);
+      });
+    }
+    unobserve(): void {}
+    disconnect(): void {
+      this.#stopped = true;
+    }
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", { value: StubResizeObserver, writable: true });
+}
+if (typeof globalThis.DOMMatrixReadOnly === "undefined") {
+  class StubDOMMatrixReadOnly {
+    m22: number;
+    constructor(transform?: string) {
+      const scale = transform?.match(/scale\(([1-9.])\)/)?.[1];
+      this.m22 = scale !== undefined ? Number(scale) : 1;
+    }
+  }
+  Object.defineProperty(globalThis, "DOMMatrixReadOnly", { value: StubDOMMatrixReadOnly, writable: true });
+}
+if (typeof window !== "undefined" && !(window.SVGElement.prototype as { getBBox?: unknown }).getBBox) {
+  (window.SVGElement.prototype as unknown as { getBBox: () => DOMRect }).getBBox = () => new DOMRect();
+}

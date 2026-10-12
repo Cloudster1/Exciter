@@ -170,9 +170,11 @@ New audit actions: `project.created`, `project.key_changed`,
   named (#24), or blank: one type `Requirement` that is the default type, the
   default statuses and workflow (#17), every organization link type enabled,
   and no sections. The creator is granted `admin` and everyone `editor` (#12).
-  Each of #17, #18 and #24 adds its part to create as it lands: until then a
-  blank project is the row, its grants and its type `Requirement`, which a
-  trigger makes and names `settings.defaultTypeId`, and a `template` is 422.
+  Each of #18 and #24 adds its part to create as it lands: until then a
+  blank project is the row, its grants, its type `Requirement`, which a
+  trigger makes and names `settings.defaultTypeId`, and the default statuses
+  and workflow, which a trigger makes and names `settings.workflowId` (#17);
+  a `template` is 422.
 - **A new key** (`PUT .../key`) keeps the old one as an alias: `CHK-R5`
   becomes `SYS-R5`, and both `CHK` and `CHK-R5` keep resolving. Taking back a
   key the project had before removes it from the aliases. The same key is no
@@ -359,8 +361,9 @@ New audit actions: `project.created`, `project.key_changed`,
   the project's trash to change it."
 - **`requireRevisionComment`** asks for a comment on every revision after the
   first; revision 1 is the requirement's writing.
-- **Until the later issues land**, `labels` is 422 (#19) and `status` is
-  null (#17). A requirement written without a place goes last at the top. `GET
+- **Until the later issues land**, `labels` is 422 (#19). `status` is the
+  requirement's place in its workflow, which a trigger starts at the initial
+  status; a section has none (#17). A requirement written without a place goes last at the top. `GET
   /projects/{projectKey}/requirements` is built here, in key order and paged,
   narrowed by `kind`, `owner` and `priority`; its other parameters are 422
   until #20 builds them. Its tool is `list_requirements`.
@@ -503,8 +506,10 @@ New audit actions: `project.created`, `project.key_changed`,
 - **The trash** takes everything below a requirement as one item. A restore
   whose parent went to the trash on its own, or for good, puts the item at the
   top.
-- **Until the later issues land**, a move between projects refuses a
-  `statusMapping` (422 until #17), and `links` on a copy waits for #18. Links,
+- **Statuses on a move.** A `statusMapping` is only for a move to another
+  project; within one it is 422. Its keys are the statuses the moved
+  requirements are in, and a status the target has by name needs none (#17).
+- **Until the later issues land**, `links` on a copy waits for #18. Links,
   labels and files belong to the requirement's id, so a move takes them along
   as they arrive.
 - UI: `/p/$projectKey/spec` shows the tree beside the numbered document,
@@ -602,8 +607,9 @@ New audit actions: `project.created`, `project.key_changed`,
   (`onRevisionStatusId`).
 - **Back on a new revision.** A step may name where a requirement in it goes
   when a revision is saved. The save moves it there in the same transaction,
-  logged as a status change with the reason "Revision 4 changed an approved
-  requirement." This is how a new revision supersedes an approval.
+  logged as a status change with the reason "Revision 4 changed the
+  requirement while it was Approved." This is how a new revision supersedes
+  an approval.
 - **Rule types** (`GET /workflow-rule-types`), Armature's registry made for
   requirements:
 
@@ -622,14 +628,22 @@ New audit actions: `project.created`, `project.key_changed`,
   with its sentence on `comment`, `ownerId` or `attributes.<attributeId>`.
 - **Who may take a transition.** It needs `edit`, or `approve` when its
   conditions include `condition.project_role` naming `reviewer`, which is how
-  a reviewer approves without editing. Its conditions decide the rest.
+  a reviewer approves without editing. Its conditions decide the rest. Since
+  such an approver may not write the change log or the owner through the app
+  role, `requirement_transition` logs the status change and runs the owner
+  post-functions itself, from the transition's own rules.
 - **Status changes only by transition.** `exciter_app` has no `UPDATE` on
   `requirement.status_id`. The column changes only through `SECURITY DEFINER`
   functions: `requirement_transition`, which checks the transition leaves the
   current status (or is global), lands where it says and is the caller's to
-  take, and `requirement_remap_status`, used by moves and by assigning a
-  workflow, which takes only a status the new workflow lacks to one it has.
-  The integration suite proves the column refuses a plain `UPDATE`.
+  take, and `requirement_remap_status`, used by moves, a new type and
+  assigning a workflow, which takes only a status the new workflow lacks to
+  one it has. The integration suite proves the column refuses a plain
+  `UPDATE`. A type whose workflow lacks the requirement's status, after a
+  change of type, sends it to the initial status, logged with the reason "Its
+  new type follows another workflow." The keys from steps and requirements to
+  statuses are checked at commit, so deleting a project takes its statuses in
+  any order, while a status in use still cannot be deleted.
 - **Taking a transition** whose start is no longer the requirement's status
   is 409 `transition_unavailable`: "Somebody moved CHK-R42 to Approved
   meanwhile. Pick a transition from there." The change is logged, never a
@@ -651,9 +665,13 @@ New audit actions: `project.created`, `project.key_changed`,
 - **Statuses** are named uniquely in the project without regard to case. A
   status that a workflow or a requirement uses cannot be deleted (409
   `in_use`).
-- UI: the Workflow tab of the project settings, with the graph designer
-  ported from Armature's `features/workflows`, and the transition buttons on
-  a requirement.
+- UI: the Workflow tab of the project settings (`?tab=workflow`) draws the
+  workflow the project follows, lists its workflows and statuses, and assigns
+  them, asking where requirements go whose status the new workflow lacks. The
+  graph designer, ported from Armature's `features/workflows`, is the page
+  `/p/$projectKey/settings/workflows/$workflowId` (`new` for a new one). A
+  requirement shows its status and the transitions the reader may take, one
+  asking for a comment opening a dialog; the list shows each status.
 
 ## #18 Typed trace links
 

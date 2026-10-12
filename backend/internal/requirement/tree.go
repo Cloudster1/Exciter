@@ -50,18 +50,26 @@ func outline(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (string, 
 
 const selectNodes = walkTree + `
 SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
-       (SELECT count(*)::int FROM requirement c WHERE c.org_id = r.org_id AND c.parent_id = r.id AND c.trashed_at IS NULL)
-FROM walk w JOIN requirement r ON r.id = w.id
+       (SELECT count(*)::int FROM requirement c WHERE c.org_id = r.org_id AND c.parent_id = r.id AND c.trashed_at IS NULL),
+       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')
+FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id
 ORDER BY w.path`
 
 func scanNode(projectKey string) pgx.RowToFunc[TreeNode] {
 	return func(row pgx.CollectableRow) (TreeNode, error) {
 		var (
-			n      TreeNode
-			number int
-			path   []int32
+			n        TreeNode
+			number   int
+			path     []int32
+			statusID *uuid.UUID
+			status   StatusRef
 		)
-		err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children)
+		err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
+			&statusID, &status.Name, &status.Category)
+		if statusID != nil {
+			status.ID = *statusID
+			n.Status = &status
+		}
 		n.Key = Key(projectKey, number)
 		n.Outline = outlineOf(path)
 		return n, err

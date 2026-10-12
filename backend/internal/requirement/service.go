@@ -75,8 +75,7 @@ type loaded struct {
 	requireComment bool
 }
 
-// selectRequirement reads requirements with what $1 may do to each; the status, labels, place and copy come
-// with #17, #19 and #15.
+// selectRequirement reads requirements with what $1 may do to each; labels come with #19.
 const selectRequirement = `
 SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attributes, r.revision,
        r.owner_id, COALESCE(o.name, ''), r.priority, r.created_at, COALESCE(cu.name, ''), r.updated_at, COALESCE(uu.name, ''),
@@ -85,6 +84,7 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
        COALESCE((p.settings ->> 'requireRevisionComment')::boolean, false),
        perm_project_holds(r.project_id, $1, 'edit'), perm_project_holds(r.project_id, $1, 'approve'),
        perm_project_holds(r.project_id, $1, 'comment'),
+       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
        r.parent_id, r.rank, cf.id, COALESCE(cp.key, ''), COALESCE(cf.number, 0), COALESCE(cf.kind, ''), COALESCE(cf.title, ''),
        COALESCE(cf.revision, 0), cf.trashed_at IS NOT NULL,
        COALESCE((SELECT array_agg(k.key ORDER BY k.created_at DESC) FROM requirement_old_key k
@@ -97,6 +97,7 @@ LEFT JOIN app_user o ON o.id = r.owner_id
 LEFT JOIN app_user cu ON cu.id = r.created_by
 LEFT JOIN app_user uu ON uu.id = r.updated_by
 LEFT JOIN requirement_type t ON t.id = r.type_id
+LEFT JOIN req_status st ON st.id = r.status_id
 LEFT JOIN requirement cf ON cf.org_id = r.org_id AND cf.id = r.copied_from
 LEFT JOIN project cp ON cp.org_id = cf.org_id AND cp.id = cf.project_id`
 
@@ -121,6 +122,8 @@ func scan(row pgx.Row) (*loaded, error) {
 		typeID               *uuid.UUID
 		typ                  TypeRef
 		copiedID             *uuid.UUID
+		statusID             *uuid.UUID
+		status               StatusRef
 		copied               Ref
 		copiedNumber         int
 	)
@@ -128,7 +131,7 @@ func scan(row pgx.Row) (*loaded, error) {
 	err := row.Scan(&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
 		&ownerID, &ownerName, &priority, &r.CreatedAt, &r.CreatedByName, &r.UpdatedAt, &r.UpdatedByName,
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
-		&l.requireComment, &edit, &approve, &alter, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
+		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -149,6 +152,10 @@ func scan(row pgx.Row) (*loaded, error) {
 	if typeID != nil {
 		typ.ID = *typeID
 		r.Type = &typ
+	}
+	if statusID != nil {
+		status.ID = *statusID
+		r.Status = &status
 	}
 	// The original shows only to whoever may still read it; the join finds nothing for anybody else.
 	if copiedID != nil && copied.ProjectKey != "" {

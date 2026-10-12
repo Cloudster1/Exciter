@@ -35,6 +35,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/testorg"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // Server timeouts. The write timeout outlasts the request timeout, so a slow
@@ -137,6 +138,7 @@ func run() error {
 		Requirements:    requirement.NewService(cluster),
 		Search:          search.NewService(cluster),
 		Attributes:      attribute.NewService(cluster),
+		Workflows:       workflow.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

@@ -4,6 +4,7 @@ import { projectsDe } from "./projects.de";
 import { editorDe, requirementsDe } from "./requirements.de";
 import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
+import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
 
@@ -245,6 +246,8 @@ export const de: Messages = {
       "project.grants_changed": "Projektberechtigungen geändert",
       "requirement.purged": "Anforderung endgültig gelöscht",
       "trash.emptied": "Papierkorb geleert",
+      "workflow.saved": "Workflow gespeichert",
+      "workflow.assigned": "Workflow zugewiesen",
     },
     targetTypes: {
       user: "Person",
@@ -255,6 +258,7 @@ export const de: Messages = {
       theme: "Design",
       project: "Projekt",
       requirement: "Anforderung",
+      workflow: "Workflow",
     },
   },
   projects: projectsDe,
@@ -266,6 +270,7 @@ export const de: Messages = {
   attributes: attributesDe,
   tree: treeDe,
   history: historyDe,
+  workflows: workflowsDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",
