@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LOGO_WIDTH_PX, MEMBERS_PATH } from "@/config";
-import { LAST_ORG_KEY, MEMBERS_PATH } from "@/config";
+import { LAST_ORG_KEY, LOGO_WIDTH_PX, MEMBERS_PATH } from "@/config";
 import { safeNext } from "@/lib/session";
 import { renderAt, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
