@@ -34,6 +34,8 @@ const (
 	ActionSSOProviderSaved = "sso.provider_saved"
 	ActionGroupRoleSet     = "sso.group_role_set"
 	ActionGroupRoleRemoved = "sso.group_role_removed"
+	// ActionThemeDefaultSet is the theme the organization shows to whoever has not chosen one, named or cleared.
+	ActionThemeDefaultSet = "theme.default_set"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -41,6 +43,7 @@ const (
 var Actions = []string{
 	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
+	ActionThemeDefaultSet,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

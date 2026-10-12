@@ -31,6 +31,9 @@ VALKEY_PASSWORD    ?= exciter_valkey
 
 KEYCLOAK_REALM := suite-dev
 
+# The suite writes to a bucket of its own, so what it leaves behind never shows up among the running app's files.
+STACK_TEST_BUCKET := exciter-test
+
 export COMPOSE_FILE := $(ROOT)/deploy/docker-compose.yml
 export COMPOSE_PROJECT_NAME := $(STACK_PROJECT)
 export WEB_PORT API_PORT KEYCLOAK_PORT MAILPIT_PORT POSTGRES_PORT POSTGRES_REPLICA_PORT VALKEY_PORT S3_PORT ARMATURE_STUB_PORT STATOR_STUB_PORT
@@ -48,6 +51,10 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_TEST_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-primary)' \
 	-e EXCITER_TEST_REPLICA_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-replica)' \
 	-e EXCITER_TEST_KEYCLOAK_URL=http://keycloak:8080 \
+	-e EXCITER_S3_ENDPOINT=seaweedfs:8333 \
+	-e EXCITER_S3_BUCKET=$(STACK_TEST_BUCKET) \
+	-e EXCITER_S3_ACCESS_KEY='$(S3_ACCESS_KEY)' \
+	-e EXCITER_S3_SECRET_KEY='$(S3_SECRET_KEY)' \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.

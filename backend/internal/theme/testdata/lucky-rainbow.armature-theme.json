@@ -1,0 +1,398 @@
+{
+  "format": "armature-theme/1",
+  "name": "Lucky Rainbow",
+  "spec": {
+    "colors": {
+      "light": {
+        "canvas": "#fff0f6",
+        "surface": "#ffffff",
+        "surface-raised": "#fff8e1",
+        "surface-sunken": "#ffe4f1",
+        "surface-overlay": "#ffffff",
+        "surface-glass": "rgb(255 255 255 / 0.86)",
+        "backdrop-from": "#ff9ff3",
+        "backdrop-to": "#7afcff",
+        "border": "#ff4fa3",
+        "border-strong": "#d1007a",
+        "ink": "#3b0764",
+        "ink-muted": "#6b21a8",
+        "ink-subtle": "#a855f7",
+        "ink-disabled": "#d8b4fe",
+        "primary": "#ff2e88",
+        "primary-hover": "#ff0a77",
+        "on-primary": "#ffffff",
+        "accent": "#7c3aed",
+        "accent-hover": "#6d28d9",
+        "accent-subtle": "#ede9fe",
+        "on-accent": "#ffffff",
+        "focus": "#ffd600",
+        "selection": "#fff59d",
+        "danger": "#ff1744",
+        "danger-hover": "#d50000",
+        "danger-subtle": "#ffe0e6",
+        "success": "#00c853",
+        "success-subtle": "#ccffdd",
+        "warning": "#ffab00",
+        "warning-subtle": "#fff3c4",
+        "epic": "#d500f9",
+        "status-todo": "#ff6d00",
+        "status-progress": "#2979ff",
+        "status-done": "#00c853",
+        "status-todo-subtle": "#ffe0b2",
+        "status-progress-subtle": "#dbe7ff",
+        "status-done-subtle": "#ccffdd",
+        "chart-1": "#ff1744",
+        "chart-2": "#ffab00",
+        "chart-3": "#00c853",
+        "chart-4": "#2979ff",
+        "chart-5": "#d500f9",
+        "chart-6": "#00e5ff"
+      },
+      "dark": {
+        "canvas": "#1a0033",
+        "surface": "#2a0a4a",
+        "surface-raised": "#3b1466",
+        "surface-sunken": "#12001f",
+        "surface-overlay": "#2a0a4a",
+        "surface-glass": "rgb(42 10 74 / 0.9)",
+        "backdrop-from": "#ff2e88",
+        "backdrop-to": "#00e5ff",
+        "border": "#ff4fa3",
+        "border-strong": "#ffd600",
+        "ink": "#fff6fb",
+        "ink-muted": "#ffc2e2",
+        "ink-subtle": "#e0a3ff",
+        "ink-disabled": "#8a5aa8",
+        "primary": "#ff2e88",
+        "primary-hover": "#ff5ca3",
+        "on-primary": "#1a0033",
+        "accent": "#ffd600",
+        "accent-hover": "#ffe54a",
+        "accent-subtle": "#4a3a00",
+        "on-accent": "#1a0033",
+        "focus": "#00e5ff",
+        "selection": "#5a2d8a",
+        "danger": "#ff5252",
+        "danger-hover": "#ff8a80",
+        "danger-subtle": "#5a1a2a",
+        "success": "#69f0ae",
+        "success-subtle": "#0f4a2a",
+        "warning": "#ffd740",
+        "warning-subtle": "#4a3a00",
+        "epic": "#ea80fc",
+        "status-todo": "#ffab40",
+        "status-progress": "#40c4ff",
+        "status-done": "#69f0ae",
+        "status-todo-subtle": "#4a2a00",
+        "status-progress-subtle": "#0a2a4a",
+        "status-done-subtle": "#0f4a2a",
+        "chart-1": "#ff5252",
+        "chart-2": "#ffd740",
+        "chart-3": "#69f0ae",
+        "chart-4": "#40c4ff",
+        "chart-5": "#ea80fc",
+        "chart-6": "#18ffff"
+      }
+    },
+    "fonts": {},
+    "shape": {
+      "radiusControl": 20,
+      "radiusOverlay": 28
+    },
+    "shadows": {
+      "1": "0 0 0 2px #ffd600, 0 3px 0 #ff2e88",
+      "2": "0 0 0 2px #ffd600, 0 6px 0 #7c3aed, 0 8px 24px rgb(255 46 136 / 0.35)",
+      "3": "0 0 0 3px #ffd600, 0 10px 0 #7c3aed, 0 14px 40px rgb(124 58 237 / 0.45)"
+    },
+    "cursors": {
+      "default": {
+        "assetId": "0d6b8c2e-1f4a-4b7e-9c3d-5a6f7e8d9c01",
+        "hotspotX": 4,
+        "hotspotY": 28
+      },
+      "pointer": {
+        "assetId": "0d6b8c2e-1f4a-4b7e-9c3d-5a6f7e8d9c02",
+        "hotspotX": 16,
+        "hotspotY": 6
+      }
+    },
+    "icons": {
+      "home": {
+        "paths": [
+          "M2.5 8 8 3l5.5 5",
+          "M4 7v6h8V7",
+          "M8 12.5c-1.2-1-2-1.7-2-2.6a1 1 0 0 1 2-.4 1 1 0 0 1 2 .4c0 .9-.8 1.6-2 2.6z"
+        ]
+      },
+      "search": {
+        "paths": [
+          "M6.5 11a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z",
+          "M10 10l3.5 3.5",
+          "M13 1.5v3M11.5 3h3",
+          "M5 6.5c.5-1 2-1.2 2.8-.4"
+        ]
+      },
+      "bell": {
+        "paths": [
+          "M4.5 11V7a3.5 3.5 0 0 1 7 0v4l1 1.5h-9z",
+          "M6.5 13.5a1.5 1.5 0 0 0 3 0",
+          "M13 1.5v2M12 2.5h2",
+          "M2 3.5l1 1"
+        ]
+      },
+      "board": {
+        "paths": [
+          "M2 3h12v10H2z",
+          "M6 3v10M10 3v10",
+          "M4 6l.5 1 .5-1M12 6l-.5 1-.5-1",
+          "M7 9.5c.5.6 1.5.6 2 0"
+        ]
+      },
+      "issue": {
+        "paths": [
+          "M8 2l1.8 3.7 4.2.6-3 2.9.7 4.2L8 11.4l-3.7 1.9.7-4.2-3-2.9 4.2-.6z",
+          "M6.5 7.5h.01M9.5 7.5h.01"
+        ]
+      },
+      "sprint": {
+        "paths": [
+          "M3 8a5 5 0 0 1 8.5-3.6",
+          "M11.5 1.5v3h-3",
+          "M13 8a5 5 0 0 1-8.5 3.6",
+          "M4.5 14.5v-3h3",
+          "M8 6.5l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "plan": {
+        "paths": [
+          "M2 4h12M2 8h8M2 12h5",
+          "M12.5 9.5l.6 1.3 1.4.2-1 1 .2 1.4-1.2-.7-1.2.7.2-1.4-1-1 1.4-.2z"
+        ]
+      },
+      "milestone": {
+        "paths": [
+          "M4 14V2",
+          "M4 2.5h8l-2.5 3 2.5 3H4",
+          "M7.5 4.5c.4.6 1.2.6 1.6 0"
+        ]
+      },
+      "dashboard": {
+        "paths": [
+          "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z",
+          "M4.5 3.5l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z",
+          "M11 11.5l1 1 1.5-2"
+        ]
+      },
+      "hierarchy": {
+        "paths": [
+          "M8 2v3M4 8V6h8v2",
+          "M4 8v3M12 8v3",
+          "M6.5 2.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0z",
+          "M2.5 12.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0zM10.5 12.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0z"
+        ]
+      },
+      "queue": {
+        "paths": [
+          "M2 4h12M2 8h12M2 12h8",
+          "M12.5 10.5l.5 1.2 1.2.2-.9.8.2 1.3-1-.6-1 .6.2-1.3-.9-.8 1.2-.2z"
+        ]
+      },
+      "desk": {
+        "paths": [
+          "M2 6h12v7H2z",
+          "M5 6V4a3 3 0 0 1 6 0v2",
+          "M6 9.5h.01M10 9.5h.01",
+          "M6.5 11c.8.7 2.2.7 3 0"
+        ]
+      },
+      "team": {
+        "paths": [
+          "M5.5 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+          "M10.5 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+          "M1.5 14c.5-2.5 2-3.5 4-3.5s3.5 1 4 3.5",
+          "M9.5 11c2 0 3.5 1 4 3",
+          "M4.5 6.5c.5.5 1.5.5 2 0"
+        ]
+      },
+      "workflow": {
+        "paths": [
+          "M2 4h4v4H2zM10 8h4v4h-4z",
+          "M6 6h2a2 2 0 0 1 2 2v2",
+          "M11 2l.5 1.2 1.2.2-.9.8.2 1.3-1-.6-1 .6.2-1.3-.9-.8 1.2-.2z"
+        ]
+      },
+      "field": {
+        "paths": [
+          "M2 5h12v6H2z",
+          "M5 3v2M5 11v2",
+          "M9 8h3",
+          "M12.5 1.5l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "repository": {
+        "paths": [
+          "M3 2h10v12H3z",
+          "M6 2v5l1.5-1 1.5 1V2",
+          "M6 11h4",
+          "M11.5 8.5l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z"
+        ]
+      },
+      "settings": {
+        "paths": [
+          "M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
+          "M8 2v2M8 12v2M2 8h2M12 8h2M3.8 3.8l1.4 1.4M10.8 10.8l1.4 1.4M3.8 12.2l1.4-1.4M10.8 5.2l1.4-1.4"
+        ]
+      },
+      "key": {
+        "paths": [
+          "M10 9a3.5 3.5 0 1 0-3.4-2.5",
+          "M6.6 6.5 2 11v3h3v-2h2v-2h1.5",
+          "M9.5 5.5h.01",
+          "M13 1.5l.5 1.2 1.2.2-.9.8.2 1.3-1-.6-1 .6.2-1.3-.9-.8 1.2-.2z"
+        ]
+      },
+      "users": {
+        "paths": [
+          "M5.5 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+          "M10.5 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+          "M1.5 14c.5-2.5 2-3.5 4-3.5s3.5 1 4 3.5",
+          "M9.5 11c2 0 3.5 1 4 3",
+          "M4.5 6.5c.5.5 1.5.5 2 0",
+          "M9.8 8c.4.4 1 .4 1.4 0"
+        ]
+      },
+      "tag": {
+        "paths": [
+          "M2 2h6l6 6-6 6-6-6z",
+          "M5 5h.01",
+          "M9 8.5c-.8-.6-1.3-1-1.3-1.6a.7.7 0 0 1 1.3-.2.7.7 0 0 1 1.3.2c0 .6-.5 1-1.3 1.6z"
+        ]
+      },
+      "shield": {
+        "paths": [
+          "M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z",
+          "M8 10.5c-1-.8-1.7-1.3-1.7-2a.9.9 0 0 1 1.7-.3.9.9 0 0 1 1.7.3c0 .7-.7 1.2-1.7 2z"
+        ]
+      },
+      "bolt": {
+        "paths": [
+          "M9 2 3.5 9H8l-1 5 5.5-7H8z",
+          "M12.5 2l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "hook": {
+        "paths": [
+          "M8 2v6a3 3 0 0 0 6 0",
+          "M4 6a4 4 0 0 0 4 4",
+          "M6.5 3.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0z",
+          "M2.5 11.5l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "calendar": {
+        "paths": [
+          "M2 4h12v10H2z",
+          "M2 7h12",
+          "M5 2v3M11 2v3",
+          "M8 9c-.8-.6-1.3-1-1.3-1.6a.7.7 0 0 1 1.3-.2.7.7 0 0 1 1.3.2c0 .6-.5 1-1.3 1.6z",
+          "M5 11.5h.01M8 11.5h.01M11 11.5h.01"
+        ]
+      },
+      "ship": {
+        "paths": [
+          "M2 10h12l-1.5 3h-9z",
+          "M4 10V5h8v5",
+          "M6 5V3h4v2",
+          "M8 7l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z"
+        ]
+      },
+      "component": {
+        "paths": [
+          "M2 2h5v5H2zM9 9h5v5H9z",
+          "M9 2h5v5H9z",
+          "M2 9h5v5H2z",
+          "M11.5 4.5c-.6-.5-1-.8-1-1.2a.5.5 0 0 1 1-.2.5.5 0 0 1 1 .2c0 .4-.4.7-1 1.2z",
+          "M4.5 11.5l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z"
+        ]
+      },
+      "upload": {
+        "paths": [
+          "M8 11V3",
+          "M4.5 6.5 8 3l3.5 3.5",
+          "M2 13h12",
+          "M12.5 1.5l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "command": {
+        "paths": [
+          "M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2M11 3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2",
+          "M5 8h6",
+          "M8 5.5l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z"
+        ]
+      },
+      "sun": {
+        "paths": [
+          "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+          "M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4",
+          "M7 7.8c.5.5 1.5.5 2 0"
+        ]
+      },
+      "plus": {
+        "paths": [
+          "M8 2c.5 3.5 2.5 5.5 6 6-3.5.5-5.5 2.5-6 6-.5-3.5-2.5-5.5-6-6 3.5-.5 5.5-2.5 6-6z"
+        ]
+      },
+      "check": {
+        "paths": [
+          "M2.5 8.5l3.5 3.5L11 5.5",
+          "M13 2l.5 1.2 1.2.2-.9.8.2 1.3-1-.6-1 .6.2-1.3-.9-.8 1.2-.2z"
+        ]
+      },
+      "warning": {
+        "paths": [
+          "M8 2.5 14 13H2z",
+          "M8 6.5v3",
+          "M8 11.5h.01",
+          "M2 2l1 1M14 2l-1 1"
+        ]
+      },
+      "edit": {
+        "paths": [
+          "M11.5 2.5l2 2-8 8H3.5v-2z",
+          "M9.5 4.5l2 2",
+          "M2.5 1.5l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      },
+      "trash": {
+        "paths": [
+          "M3 4h10M6 4V2.5h4V4",
+          "M4 4l.8 9.5h6.4L12 4",
+          "M6.5 7v4M9.5 7v4",
+          "M13 12l.4.8.8.1-.6.6.1.8-.7-.4-.7.4.1-.8-.6-.6.8-.1z"
+        ]
+      },
+      "inbox": {
+        "paths": [
+          "M2 4h12v9H2z",
+          "M2 4l6 5 6-5",
+          "M12.5 1l.4.9.9.1-.7.6.2.9-.8-.5-.8.5.2-.9-.7-.6.9-.1z"
+        ]
+      }
+    },
+    "css": "/* Lucky Rainbow: a night market of a theme. Every colour at once, a\n   backdrop that never stops moving, and a lucky charm in front of anything\n   that will hold still for one. Drawn in gradients and emoji, so the theme\n   carries only its two cursors. Click anywhere: the shell's confetti\n   answers. */\n@keyframes lucky-drift { to { background-position: 400% 50%; } }\n@keyframes lucky-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }\n@keyframes lucky-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }\n.bg-backdrop {\n  background-image: linear-gradient(120deg, #ff9ff3, #ffd93d, #6bcb77, #4d96ff, #ff6b6b, #c77dff, #ff9ff3);\n  background-size: 400% 400%;\n  background-attachment: fixed;\n  animation: lucky-drift 14s linear infinite;\n}\n[data-rail], [data-sidebar] {\n  --color-surface: #ff2e88;\n  --color-surface-raised: #ff5ca3;\n  --color-border: #ffd600;\n  --color-border-strong: #fff176;\n  --color-ink: #ffffff;\n  --color-ink-muted: #ffe6f2;\n  --color-ink-subtle: #ffc2e2;\n  --color-accent: #ffd600;\n  --color-accent-subtle: #c2185b;\n  --color-selection: #c2185b;\n  background-image: linear-gradient(180deg, #ff2e88, #7c3aed 55%, #00b8d4);\n}\n[data-sidebar] a::before { content: \"🧧 \"; }\n[data-sidebar] a:hover::before { content: \"🎉 \"; }\n[data-sidebar] a[aria-current]::before, [data-sidebar] a[data-active]::before { content: \"🌟 \"; }\n[data-shell-header] {\n  background-image: repeating-linear-gradient(90deg, #ff6b6b 0 48px, #ffd93d 48px 96px, #6bcb77 96px 144px, #4d96ff 144px 192px, #c77dff 192px 240px);\n  border-bottom: 4px dotted #ffd600;\n}\nh1::after { content: \" 🌈✨\"; }\nh2::before { content: \"🎊 \"; }\nh3::before { content: \"🍀 \"; }\n[data-card]::before, [data-issue-row] td:first-child::before { content: \"🧨 \"; }\n[data-card]:hover::before { content: \"💥 \"; }\n[data-card] {\n  background-image: linear-gradient(135deg, #fff8e1, #ffe4f1 50%, #e0f7ff);\n  border: 2px solid #ff4fa3;\n}\nbutton, [role=\"button\"] {\n  border-radius: 999px;\n  box-shadow: 0 0 0 2px #ffd600, 0 5px 0 #7c3aed;\n  text-shadow: 0 1px 0 rgb(255 255 255 / 0.6);\n}\nbutton:hover, [role=\"button\"]:hover { animation: lucky-bob 0.6s ease-in-out infinite; }\nbutton:active, [role=\"button\"]:active { box-shadow: 0 0 0 2px #ffd600, 0 1px 0 #7c3aed; transform: translateY(4px); }\ninput, select, textarea {\n  border: 3px dashed #ff4fa3;\n  background-image: linear-gradient(#ffffff, #fff0f6);\n}\ninput:focus, select:focus, textarea:focus { border-style: solid; border-color: #ffd600; box-shadow: 0 0 0 4px rgb(255 214 0 / 0.5), 0 0 24px #ff2e88; }\nth { background-image: linear-gradient(90deg, #ffd93d, #ff9ff3, #7afcff); }\ntr:nth-child(odd) td { background-color: rgb(255 214 0 / 0.08); }\ntr:nth-child(even) td { background-color: rgb(0 229 255 / 0.08); }\na:hover { text-decoration: underline wavy #ff2e88; }\n[data-status] { animation: lucky-twinkle 2s ease-in-out infinite; }\n::selection { background: #ffd600; color: #3b0764; }\n[data-empty-state]::before { content: \"🥟🍡🧋 \"; font-size: 2rem; display: block; }\n",
+    "effect": "confetti"
+  },
+  "assets": [
+    {
+      "id": "0d6b8c2e-1f4a-4b7e-9c3d-5a6f7e8d9c01",
+      "name": "wand-cursor.svg",
+      "contentType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNNCAyOCAyMiAxMCIgc3Ryb2tlPSIjN2MzYWVkIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik00IDI4IDIyIDEwIiBzdHJva2U9IiNmZmQ2MDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMjQgMmwxLjYgNC40TDMwIDhsLTQuNCAxLjZMMjQgMTRsLTEuNi00LjRMMTggOGw0LjQtMS42eiIgZmlsbD0iI2ZmMmU4OCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjYiIHI9IjEuNiIgZmlsbD0iIzAwZTVmZiIvPjxjaXJjbGUgY3g9IjI4IiBjeT0iMTgiIHI9IjEuNCIgZmlsbD0iI2ZmZDYwMCIvPjxjaXJjbGUgY3g9IjYiIGN5PSIxNiIgcj0iMS4yIiBmaWxsPSIjZmYxNzQ0Ii8+PC9zdmc+"
+    },
+    {
+      "id": "0d6b8c2e-1f4a-4b7e-9c3d-5a6f7e8d9c02",
+      "name": "heart-pointer.svg",
+      "contentType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNMTYgMjggNSAxNy41QzEuNSAxNCAyIDguNSA2LjUgNi41YzMuMi0xLjQgNi43LS40IDkuNSAyLjggMi44LTMuMiA2LjMtNC4yIDkuNS0yLjggNC41IDIgNSA3LjUgMS41IDExeiIgZmlsbD0iI2ZmMmU4OCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTYgM3Y0TTEzLjUgNS41bDIuNSAyLjUgMi41LTIuNSIgc3Ryb2tlPSIjZmZkNjAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjExIiBjeT0iMTIiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9Ii44Ii8+PC9zdmc+"
+    }
+  ]
+}

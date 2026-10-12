@@ -9,6 +9,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Themes (#8), in Armature's `armature-theme/1` format, so a theme exported
+  from Armature or Stator imports unchanged and leaves the same way. The rail
+  switches between Auto, Light and Dark; under the account menu, Themes lists
+  a person's own themes and those shared with them, starts a new one blank or
+  from Deep-Tech or Constellation, and edits its colours (the Clay tokens of
+  Armature's `docs/design/01-tokens.md`), type, corners, shadows, cursors,
+  icons, backdrop, moving picture and extra CSS with a live preview. A theme's
+  pictures and fonts are kept in the object store, which the api now reaches
+  through `EXCITER_S3_ENDPOINT` and its keys, making its bucket when missing.
+  Administrators name the shared theme everybody sees until they choose under
+  Settings, Default theme, recorded in the audit log. The database keeps a
+  private theme its owner's, lets only the owner or, once shared, an
+  administrator change one, and keeps each choice to the person who made it.
 - Single sign-on through the organization's identity provider (#7). The
   sign-in page takes the organization's name and sends the reader to its
   provider (authorization code with PKCE); a person is matched by the

@@ -7,8 +7,10 @@ import (
 	"net/http"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/tenant"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
 // APIError is the single error shape every endpoint returns, so that clients
@@ -151,6 +153,35 @@ func toAPIError(err error) *APIError {
 	case errors.Is(err, oidc.ErrNotConfigured):
 		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
 			Message: "That organization does not sign in through an identity provider. Check its name, or sign in with a password."}
+	default:
+		return themeError(err)
+	}
+}
+
+// themeError maps the themes' refusals, and the file storage's they meet; anything else is ours.
+func themeError(err error) *APIError {
+	switch {
+	case errors.Is(err, objectstore.ErrUnavailable):
+		return &APIError{Status: http.StatusServiceUnavailable, Code: "storage_unavailable", cause: err,
+			Message: "Files cannot be stored on this server yet. Ask an administrator to set up file storage."}
+	case errors.Is(err, theme.ErrNotAThemeFile), errors.Is(err, theme.ErrDefaultNotShared):
+		return &APIError{Status: http.StatusUnprocessableEntity, Code: "validation_failed", Message: sentence(err.Error())}
+	case errors.Is(err, theme.ErrNotFound):
+		return ErrNotFound("That theme was not found. It may have been deleted or taken private; reload the list.")
+	case errors.Is(err, theme.ErrAssetNotFound):
+		return ErrNotFound("That file is not in the theme. Reload the theme to see the files it has.")
+	case errors.Is(err, theme.ErrNotYours):
+		return ErrForbidden("Only the owner of a theme, or an administrator once it is shared, can change it. Make a copy of your own instead.")
+	case errors.Is(err, theme.ErrNotAdmin):
+		return ErrForbidden("Only an owner or administrator of this organization names its default theme. Ask one of them.")
+	case errors.Is(err, theme.ErrDuplicateName):
+		return ErrConflict("You already have a theme with that name. Choose another name.")
+	case errors.Is(err, theme.ErrAssetInUse), errors.Is(err, theme.ErrTooManyAssets):
+		return ErrConflict(sentence(err.Error()))
+	case errors.Is(err, theme.ErrBadAssetType), errors.Is(err, theme.ErrUnsafeSVG):
+		return ErrBadRequest(sentence(err.Error()))
+	case errors.Is(err, theme.ErrAssetTooLarge):
+		return &APIError{Status: http.StatusRequestEntityTooLarge, Code: "too_large", Message: sentence(theme.ErrAssetTooLarge.Error())}
 	default:
 		return ErrInternal(err)
 	}

@@ -22,9 +22,11 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -98,6 +100,11 @@ func run() error {
 		defer valkey.Close()
 	}
 
+	store, err := fileStore(ctx, cfg, log)
+	if err != nil {
+		return err
+	}
+
 	accounts := auth.NewService(cluster, auth.DefaultPasswordParams(), cfg.Auth.SessionTTL)
 	var box *secret.Box
 	if cfg.SecretKey != nil {
@@ -117,6 +124,7 @@ func run() error {
 		TrustedProxies:  cfg.TrustedProxies,
 		Audit:           audit.NewService(cluster),
 		AuditRetention:  cfg.RetainAudit,
+		Themes:          theme.NewService(cluster, store),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),
@@ -209,6 +217,27 @@ func openValkey(ctx context.Context, cfg config.Config) (*redis.Client, error) {
 		return nil, fmt.Errorf("connect to Valkey: %w", err)
 	}
 	return client, nil
+}
+
+// fileStore connects to the configured bucket, making it on a fresh stack, or
+// returns the store that refuses uploads with the setting to fix.
+func fileStore(ctx context.Context, cfg config.Config, log *slog.Logger) (objectstore.Store, error) {
+	store, err := objectstore.Open(objectstore.Config{
+		Endpoint: cfg.S3.Endpoint, Bucket: cfg.S3.Bucket, AccessKey: cfg.S3.AccessKey,
+		SecretKey: cfg.S3.SecretKey, Region: cfg.S3.Region, UseSSL: cfg.S3.UseSSL,
+	})
+	if err != nil {
+		return nil, err
+	}
+	switch s := store.(type) {
+	case objectstore.Unavailable:
+		log.Warn("uploads are off: EXCITER_S3_ENDPOINT is not set")
+	case *objectstore.S3Store:
+		if err := s.EnsureBucket(ctx); err != nil {
+			return nil, fmt.Errorf("file bucket: %w", err)
+		}
+	}
+	return store, nil
 }
 
 // freshnessTracker keeps read-your-writes positions in Valkey, so they hold

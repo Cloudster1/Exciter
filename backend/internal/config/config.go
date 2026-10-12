@@ -49,6 +49,10 @@ const (
 	// OIDCCallbackPath is where an identity provider sends the browser back,
 	// under the web client's origin, which proxies the API.
 	OIDCCallbackPath = "/api/v1/auth/oidc/callback"
+	// DefaultS3Bucket and DefaultS3Region are where uploaded files go when
+	// only the endpoint and its keys are named.
+	DefaultS3Bucket = "exciter-files"
+	DefaultS3Region = "us-east-1"
 )
 
 // Config is the fully resolved configuration for every binary.
@@ -73,6 +77,7 @@ type Config struct {
 	Auth      Auth
 	Telemetry Telemetry
 	Bootstrap Bootstrap
+	S3        S3
 
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
@@ -143,6 +148,17 @@ type Bootstrap struct {
 type BootstrapMember struct {
 	Email string
 	Role  string
+}
+
+// S3 is the bucket uploaded files live in: theme assets now, attachments
+// later. A blank endpoint leaves uploads off, refused with the setting to fix.
+type S3 struct {
+	Endpoint  string
+	Bucket    string
+	AccessKey string
+	SecretKey string
+	Region    string
+	UseSSL    bool
 }
 
 // Valkey is the shared store behind read-your-writes. A blank URL keeps the
@@ -218,6 +234,14 @@ func Load() (Config, error) {
 			OIDCClientSecret: l.str("EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", ""),
 			Members:          l.members("EXCITER_BOOTSTRAP_MEMBERS"),
 		},
+		S3: S3{
+			Endpoint:  l.str("EXCITER_S3_ENDPOINT", ""),
+			Bucket:    l.str("EXCITER_S3_BUCKET", DefaultS3Bucket),
+			AccessKey: l.str("EXCITER_S3_ACCESS_KEY", ""),
+			SecretKey: l.str("EXCITER_S3_SECRET_KEY", ""),
+			Region:    l.str("EXCITER_S3_REGION", DefaultS3Region),
+			UseSSL:    l.boolean("EXCITER_S3_USE_SSL", false),
+		},
 		Telemetry: Telemetry{
 			MetricsAddr:  l.strOrBlank("EXCITER_METRICS_ADDR", DefaultMetricsAddr),
 			OTLPEndpoint: l.str("EXCITER_OTEL_ENDPOINT", ""),
@@ -282,6 +306,9 @@ func Load() (Config, error) {
 	c.checkBootstrapProvider(l)
 	if c.RetainAudit != 0 && c.RetainAudit < MinRetainAudit {
 		l.problem(fmt.Sprintf("EXCITER_RETAIN_AUDIT is %s, but the audit log keeps every entry for at least %.0fh; set it to that or longer, such as 8760h, or to 0 to keep the log forever.", c.RetainAudit, MinRetainAudit.Hours()))
+	}
+	if c.S3.Endpoint != "" && (c.S3.AccessKey == "" || c.S3.SecretKey == "") {
+		l.problem("EXCITER_S3_ENDPOINT is set, so set EXCITER_S3_ACCESS_KEY and EXCITER_S3_SECRET_KEY as well.")
 	}
 	if c.Telemetry.SampleRatio < 0 || c.Telemetry.SampleRatio > 1 {
 		l.problem("EXCITER_OTEL_SAMPLE_RATIO must be between 0 and 1.")

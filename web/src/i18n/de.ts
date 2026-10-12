@@ -1,4 +1,5 @@
 import type { Messages } from "./en";
+import { themesDe } from "./themes.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
 export const de: Messages = {
@@ -21,6 +22,8 @@ export const de: Messages = {
     members: "Mitglieder",
     sso: "Single Sign-on",
     audit: "Protokoll",
+    themes: "Designs",
+    defaultTheme: "Design der Organisation",
     groupRequirements: "Anforderungen",
     collapseSidebar: "Seitenleiste einklappen",
     expandSidebar: "Seitenleiste ausklappen",
@@ -30,6 +33,12 @@ export const de: Messages = {
   },
   shell: {
     skipToContent: "Zum Inhalt springen",
+  },
+  theme: {
+    system: "Automatisch",
+    light: "Hell",
+    dark: "Dunkel",
+    tooltip: (label: string) => `Darstellung: ${label}`,
   },
   switcher: {
     open: "Zu einer Seite oder Organisation wechseln",
@@ -50,6 +59,7 @@ export const de: Messages = {
     languages: { en: "English", de: "Deutsch" },
     switchOrg: "Ihre Organisationen",
     switchOrgFrom: (name: string) => `Organisation wechseln, jetzt ${name}`,
+    themes: "Designs",
     signOut: "Abmelden",
   },
   login: {
@@ -216,6 +226,7 @@ export const de: Messages = {
       "sso.provider_saved": "Identitätsanbieter gespeichert",
       "sso.group_role_set": "Gruppe einer Rolle zugeordnet",
       "sso.group_role_removed": "Gruppenzuordnung aufgehoben",
+      "theme.default_set": "Design der Organisation festgelegt",
     },
     targetTypes: {
       user: "Person",
@@ -223,8 +234,10 @@ export const de: Messages = {
       audit_log: "Protokoll",
       oidc_provider: "Identitätsanbieter",
       group_role: "Gruppenrolle",
+      theme: "Design",
     },
   },
+  themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",
     emptyTitle: "Unter dieser Adresse gibt es nichts",

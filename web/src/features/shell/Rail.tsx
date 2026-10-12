@@ -6,9 +6,10 @@ import { t } from "@/i18n";
 import { NavItem } from "./nav";
 import { SETTINGS_PATH } from "./places";
 import { SIDEBAR_ID } from "./state";
+import { ThemeButton } from "./ThemeButton";
 
-// The rail is what is always there: the places every page reaches from. When the sidebar is folded
-// away, it is the whole chrome. Projects, search, reviews and baselines join it as they are built.
+// The rail is what is always there: the places every page reaches from, and the theme at the bottom. When the
+// sidebar is folded away, it is the whole chrome. Projects, search, reviews and baselines join it as they come.
 export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const { data: me } = useMe();
   return (
@@ -34,6 +35,9 @@ export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }
           </NavItem>
         )}
       </nav>
+      <div className="flex flex-col items-center gap-1 border-t border-border py-2">
+        <ThemeButton />
+      </div>
     </aside>
   );
 }

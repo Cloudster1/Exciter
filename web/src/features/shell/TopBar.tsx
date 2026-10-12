@@ -3,8 +3,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useLogout, useMe, useSetLanguage, useSwitchOrg } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { THEMES_PATH } from "@/config";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
-import { crumbsFor } from "./places";
+import { crumbsFor, placeAbove } from "./places";
 import { DRAWER_ID } from "./state";
 
 // Ctrl or Cmd+K anywhere in the shell, fields included, as in Armature and
@@ -72,17 +73,21 @@ export function TopBar({
   );
 }
 
-/** Where the reader is: the organization, then the page's section and the page itself. */
+/** Where the reader is: the organization, then the page's section and the page itself, or the place it lies under. */
 function PlaceCrumbs() {
   const { data: me } = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const trail = crumbsFor(pathname);
+  const above = trail.length === 0 ? placeAbove(pathname) : undefined;
   const crumbs: Crumb[] = [
     { label: me?.organization?.name ?? "", render: (label) => <Link to="/">{label}</Link> },
     ...trail.map((label, index) => ({
       label,
       render: index === trail.length - 1 ? (shown: ReactNode) => <span aria-current="page">{shown}</span> : undefined,
     })),
+    ...(above
+      ? [...(above.section ? [{ label: above.section }] : []), { label: above.label, render: (shown: ReactNode) => <Link to={above.path}>{shown}</Link> }]
+      : []),
   ];
   if (!me?.organization) return null;
   return <Breadcrumbs crumbs={crumbs} className="hidden min-w-0 truncate sm:block [&_a]:hover:text-ink" />;
@@ -124,7 +129,7 @@ function OrgSwitcher() {
   );
 }
 
-/** Who is signed in, the language they read in, and the way out. */
+/** Who is signed in, their themes, the language they read in, and the way out. */
 function AccountMenu() {
   const navigate = useNavigate();
   const { data: me } = useMe();
@@ -140,6 +145,7 @@ function AccountMenu() {
     attrs: { "data-language": choice || "browser" },
   }));
   const items: MenuItem[] = [
+    { label: t.account.themes, icon: <Icon.Palette />, onSelect: () => navigate({ to: THEMES_PATH }), attrs: { "data-action": "themes" } },
     ...languages,
     {
       label: t.account.signOut,

@@ -8,6 +8,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -35,8 +36,9 @@ type operation struct {
 	summary string
 	tag     string
 	query   []param
-	// request is the JSON body type the handler decodes.
-	request any
+	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file.
+	request   any
+	multipart bool
 	// responses maps a status to its envelope or bare type; nil is no body.
 	responses map[int]any
 	// public routes need no session; binary ones answer with a file, and
@@ -131,6 +133,43 @@ var operations = []operation{
 	{method: "GET", path: "/audit/export", handler: "handleExportAudit", orgWide: true, tag: "audit",
 		summary: "The log as a CSV file, newest first, narrowed like the list; the export is itself recorded. Refused with export_too_large past " + strconv.Itoa(audit.MaxExport) + " entries. For administrators.",
 		binary:  true, query: auditQuery, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// Themes, as Armature and Stator serve them, so a theme file of either imports here.
+	{method: "GET", path: "/themes", handler: "handleListThemes", tag: "themes", summary: "Themes the caller may use: theirs, then the shared ones.",
+		responses: ok(env{"themes": []theme.Theme{}})},
+	{method: "POST", path: "/themes", handler: "handleCreateTheme", tag: "themes", summary: "Make a theme.",
+		request: theme.Input{}, responses: created(env{"theme": theme.Theme{}})},
+	{method: "GET", path: "/themes/examples", handler: "handleThemeExamples", tag: "themes", summary: "The themes shipped with the product, to start a theme from.",
+		responses: ok(env{"examples": []theme.Example{}})},
+	{method: "GET", path: "/themes/active", handler: "handleActiveTheme", tag: "themes",
+		summary:   "The theme the caller sees: chosen, the organization's default, or null for the built-in one; source says which.",
+		responses: ok(env{"theme": (*theme.Theme)(nil), "source": theme.Source("")})},
+	{method: "PUT", path: "/themes/active", handler: "handleChooseTheme", tag: "themes",
+		summary: "Use a theme; null returns to the organization's default, null with builtIn keeps the built-in one.",
+		request: chooseThemeRequest{}, responses: ok(env{"theme": (*theme.Theme)(nil)})},
+	{method: "GET", path: "/themes/default", handler: "handleDefaultTheme", tag: "themes",
+		summary:   "The organization's default theme, whatever the caller chose for themselves, or null for the built-in one.",
+		responses: ok(env{"theme": (*theme.Theme)(nil)})},
+	{method: "PUT", path: "/themes/default", handler: "handleSetDefaultTheme", orgWide: true, tag: "themes",
+		summary: "Name the shared theme everybody sees until they choose, or null for the built-in one. For administrators.",
+		request: defaultThemeRequest{}, responses: ok(env{"theme": (*theme.Theme)(nil)})},
+	{method: "POST", path: "/themes/import", handler: "handleImportTheme", tag: "themes",
+		summary:   "Make a theme of the caller's own from an exported theme file, sent as a multipart part named file.",
+		multipart: true, responses: created(env{"theme": theme.Theme{}})},
+	{method: "GET", path: "/themes/{themeID}/export", handler: "handleExportTheme", tag: "themes",
+		summary: "The theme as one file in the " + theme.PackageFormat + " format, its pictures and fonts inside, as a download.", binary: true, responses: ok(nil)},
+	{method: "GET", path: "/themes/{themeID}", handler: "handleGetTheme", tag: "themes", summary: "One theme.", responses: ok(env{"theme": theme.Theme{}})},
+	{method: "PATCH", path: "/themes/{themeID}", handler: "handleUpdateTheme", tag: "themes", summary: "Change a theme; the owner's to do, or an administrator's once shared.",
+		request: theme.Input{}, responses: ok(env{"theme": theme.Theme{}})},
+	{method: "DELETE", path: "/themes/{themeID}", handler: "handleDeleteTheme", tag: "themes", summary: "Delete a theme; everybody using it returns to the built-in one.",
+		responses: none()},
+	{method: "POST", path: "/themes/{themeID}/assets", handler: "handleUploadThemeAsset", tag: "themes",
+		summary:   "Put a picture or a font on a theme, as a multipart part named file.",
+		multipart: true, responses: created(env{"asset": theme.Asset{}})},
+	{method: "GET", path: "/themes/{themeID}/assets/{assetID}", handler: "handleThemeAsset", tag: "themes", summary: "The bytes of a theme's file, as a download.",
+		binary: true, responses: ok(nil)},
+	{method: "DELETE", path: "/themes/{themeID}/assets/{assetID}", handler: "handleDeleteThemeAsset", tag: "themes", summary: "Take a file off a theme it no longer uses.",
+		responses: none()},
 }
 
 var intParam = &openapi.Schema{Type: "integer"}

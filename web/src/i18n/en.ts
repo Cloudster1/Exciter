@@ -1,6 +1,7 @@
 import type { AuditAction } from "@/api/audit";
 import type { OrgRole } from "@/api/auth";
 import type { Language } from "./index";
+import { themesEn } from "./themes.en";
 
 /** The English strings, and the shape every other language has to fill. */
 export const en = {
@@ -23,6 +24,8 @@ export const en = {
     members: "Members",
     sso: "Single sign-on",
     audit: "Audit log",
+    themes: "Themes",
+    defaultTheme: "Default theme",
     groupRequirements: "Requirements",
     collapseSidebar: "Collapse the sidebar",
     expandSidebar: "Expand the sidebar",
@@ -32,6 +35,12 @@ export const en = {
   },
   shell: {
     skipToContent: "Skip to content",
+  },
+  theme: {
+    system: "Auto",
+    light: "Light",
+    dark: "Dark",
+    tooltip: (label: string) => `Theme: ${label}`,
   },
   switcher: {
     open: "Go to a page or an organization",
@@ -52,6 +61,7 @@ export const en = {
     languages: { en: "English", de: "Deutsch" } as Record<Language, string>,
     switchOrg: "Your organizations",
     switchOrgFrom: (name: string) => `Switch organization, now ${name}`,
+    themes: "Themes",
     signOut: "Sign out",
   },
   login: {
@@ -212,6 +222,7 @@ export const en = {
       "sso.provider_saved": "Identity provider saved",
       "sso.group_role_set": "Group mapped to a role",
       "sso.group_role_removed": "Group unmapped",
+      "theme.default_set": "Default theme named",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -219,8 +230,10 @@ export const en = {
       audit_log: "Audit log",
       oidc_provider: "Identity provider",
       group_role: "Group role",
+      theme: "Theme",
     } as Record<string, string | undefined>,
   },
+  themes: themesEn,
   notFound: {
     title: "Page not found",
     emptyTitle: "Nothing lives at this address",

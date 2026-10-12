@@ -11,6 +11,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -40,6 +41,7 @@ func specBuilder() *openapi.Builder {
 	b.FieldOverrides["SetGroupRoleRequest.role"] = granted
 	b.FieldOverrides["AdmitRequest.role"] = granted
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
+	b.Enums[reflect.TypeOf(theme.Source(""))] = enumStrings(theme.Sources)
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	return b
 }
@@ -108,7 +110,13 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 		}
 		o.Parameters = append(o.Parameters, openapi.Parameter{Name: q.name, In: "query", Description: q.description, Schema: schema})
 	}
-	if op.request != nil {
+	switch {
+	case op.multipart:
+		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
+			"multipart/form-data": {Schema: &openapi.Schema{Type: "object", Required: []string{"file"},
+				Properties: map[string]*openapi.Schema{"file": {Type: "string", Format: "binary"}}}},
+		}}
+	case op.request != nil:
 		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
 			"application/json": {Schema: b.SchemaOf(op.request)},
 		}}
@@ -191,8 +199,9 @@ func pathParamSchema(name string) *openapi.Schema {
 	return &openapi.Schema{Type: "string"}
 }
 
-func ok(body any) map[int]any { return map[int]any{http.StatusOK: body} }
-func none() map[int]any       { return map[int]any{http.StatusNoContent: nil} }
+func ok(body any) map[int]any      { return map[int]any{http.StatusOK: body} }
+func created(body any) map[int]any { return map[int]any{http.StatusCreated: body} }
+func none() map[int]any            { return map[int]any{http.StatusNoContent: nil} }
 
 // enumStrings spells a named string type's values for a schema.
 func enumStrings[T ~string](values []T) []string {
