@@ -1,0 +1,152 @@
+# The PR gate: every job runs ./run-tests.sh for some of its layers, so what gates a push locally gates it here.
+# tests/test-ci.sh fails when the jobs between them leave a layer or a browser shard out.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  # A run by hand can take the gate several times in a row, so a flaky test shows up as a failure.
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: How many times in a row each job runs its layers (at most 5)
+        type: number
+        default: 1
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.runs > 1 && 120 || 30 }}
+    strategy:
+      # Every job runs to its end, so a red run still reports every layer.
+      fail-fast: false
+      matrix:
+        include:
+          - name: shell and format
+            layers: shell check-format
+          - name: check-go
+            layers: check-go
+            go-cache: unit
+          - name: check-web
+            layers: check-web
+            npm-cache: web
+          - name: test-integration
+            layers: test-integration
+            go-cache: integration
+          # Each shard brings up a stack of its own; Playwright splits the tests between them.
+          - name: test-e2e 1/2
+            layers: test-e2e
+            shard: 1/2
+            npm-cache: e2e
+          - name: test-e2e 2/2
+            layers: test-e2e
+            shard: 2/2
+            npm-cache: e2e
+    steps:
+      # The release tests read tags, which a shallow checkout does not carry.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Restored on every run, saved only from main: a pull request reads main's caches.
+      - name: Restore the Go module and build cache
+        if: matrix.go-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/go
+          key: go-${{ matrix.go-cache }}-${{ hashFiles('backend/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-${{ matrix.go-cache }}-${{ hashFiles('backend/go.sum') }}-
+            go-${{ matrix.go-cache }}-
+
+      - name: Restore the npm cache
+        if: matrix.npm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/npm
+          key: npm-${{ matrix.npm-cache }}-${{ hashFiles(format('{0}/package-lock.json', matrix.npm-cache)) }}
+          restore-keys: npm-${{ matrix.npm-cache }}-
+
+      - name: Run ${{ matrix.layers }}
+        env:
+          RUNS: ${{ inputs.runs || 1 }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          for run in $(seq "$RUNS"); do
+            echo "::group::Run $run of $RUNS"
+            ./run-tests.sh ${{ matrix.layers }}
+            echo "::endgroup::"
+          done
+
+      # A cancelled run otherwise ends in the middle of a passing test, which reads like a failure of that test.
+      - name: Say why the gate stopped
+        if: cancelled()
+        run: echo "::error title=Gate stopped::The gate was cancelled before it finished, by the job's time limit or by a newer push to this branch. No test failed; if it reached the limit, raise timeout-minutes or make the suite faster."
+
+      - name: Save the Go module and build cache
+        if: matrix.go-cache && success() && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/go
+          key: go-${{ matrix.go-cache }}-${{ hashFiles('backend/go.sum') }}-${{ github.sha }}
+
+      # One job per key saves, so the browser jobs do not race to write theirs.
+      - name: Save the npm cache
+        if: (matrix.name == 'check-web' || matrix.shard == '1/2') && success() && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/npm
+          key: npm-${{ matrix.npm-cache }}-${{ hashFiles(format('{0}/package-lock.json', matrix.npm-cache)) }}
+
+      - name: Keep the layer's reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ strategy.job-index }}
+          path: reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  report:
+    needs: gate
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gather the jobs' reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reports-*
+          path: reports
+
+      # One HTML report for the whole browser suite, once the suite exists (#9).
+      - name: Merge the browser suite's reports
+        run: |
+          mkdir -p reports/e2e-blobs
+          find reports -path '*/e2e-blob/*.zip' -exec cp {} reports/e2e-blobs/ \;
+          if [ -n "$(ls reports/e2e-blobs)" ]; then make e2e-merge-reports; fi
+
+      - name: Write the summary
+        run: ./scripts/test-summary.sh reports | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the timings
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-timings
+          path: |
+            reports/**/*.json
+            reports/**/layers.tsv
+          if-no-files-found: ignore

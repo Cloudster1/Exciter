@@ -1,0 +1,33 @@
+name: Feature
+description: A new capability for Exciter
+labels: ["type/feature"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      placeholder: As a <role>, I want <capability> so that <benefit>.
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      value: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: Which layers prove it - Go unit, integration, vitest, Playwright.
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation
+      description: What to build or port, with paths in Armature or Stator where code is adapted.
+  - type: textarea
+    id: depends
+    attributes:
+      label: Depends on
+      placeholder: "- #12"

@@ -1,0 +1,21 @@
+Exciter
+Copyright (C) 2026 Tobias Kluge
+Licensed under the Apache License, Version 2.0, see LICENSE.
+
+This product contains code adapted from Armature
+(https://github.com/Cloudster1/Armature) and from Stator
+(https://github.com/praetorianer777/Stator, Copyright (C) 2026 praetorianer777),
+both licensed under the Apache License, Version 2.0, the license of Exciter
+itself. Files derived from them keep that notice. Each entry below names the
+commit the files were taken from.
+
+Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
+- .claude/hooks/branch-guard.sh, gate-layers.sh, issue-context.sh and
+  tests/branch-guard-test.sh, .claude/settings.json and .claude/skills/gh:
+  the same files, renamed to Exciter and with the backup layer removed
+- run-tests.sh, Makefile, release.sh, tests/test-release.sh, tests/test-ci.sh
+  and scripts/test-summary.sh: the same files, renamed to Exciter
+- .github/workflows/ci.yml and release.yml, .github/ISSUE_TEMPLATE and
+  .github/PULL_REQUEST_TEMPLATE.md: the same files, with two browser shards
+  and no container images yet
+- CLAUDE.md and the layout of docs/architecture.md and docs/decisions.md
