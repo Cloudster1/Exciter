@@ -17,7 +17,8 @@ import (
 
 // Topics are dotted names, what happened to what, such as requirement.revised;
 // each feature adds its own here as it lands, and Topics lists them all.
-var Topics = []string{"project.key_changed", "project.deleted"}
+var Topics = []string{"project.key_changed", "project.deleted", "requirement.created", "requirement.revised", "requirement.changed",
+	"requirement.trashed", "requirement.restored"}
 
 // Event is one committed domain event.
 type Event struct {

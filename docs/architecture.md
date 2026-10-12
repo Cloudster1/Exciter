@@ -72,7 +72,12 @@ holds even for a query that forgot it.
   the same function, so it says what the database enforces.
 - **Requirements** (#13): key `CHK-R42`, a rich-text statement, rationale,
   type and attributes (#14), a place in the tree (#15), a status from the
-  project's workflow (#17).
+  project's workflow (#17). A trigger hands out numbers from the project's
+  counter under its row lock, and `perm_requirement_viewable` and
+  `perm_requirement_editable` are the restrictive policies of every table
+  that belongs to a requirement. Statements and rationales are documents of
+  the shared editor, held to `internal/document`'s allowlist on the server
+  and to the same table, as `api/document-allowlist.json`, in the web client.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.

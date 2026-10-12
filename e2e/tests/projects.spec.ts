@@ -32,8 +32,10 @@ test.describe("projects", { tag: "@desktop" }, () => {
     await expect(page.getByLabel("Key", { exact: true })).toHaveValue("CS");
     await expectAccessible(page);
     await page.locator('[data-action="create-project"]').click();
+    await expect(page).toHaveURL("/p/CS");
+    await expect(page.getByText("No requirements yet")).toBeVisible();
+    await page.locator('[data-project-nav="CS"]').getByRole("link", { name: "Project settings" }).click();
     await expect(page).toHaveURL("/p/CS/settings");
-    await expect(page.locator('[data-project-nav="CS"]')).toBeVisible();
     await expectAccessible(page);
 
     await page.getByLabel("New key", { exact: true }).fill("chk");
@@ -83,6 +85,8 @@ test.describe("projects", { tag: "@desktop" }, () => {
     await expect(bob.locator('[data-action="new-project"]')).toHaveCount(0);
 
     await bob.locator('[data-project-row="SYS"]').getByRole("link", { name: "System" }).click();
+    await expect(bob).toHaveURL("/p/SYS");
+    await bob.locator('[data-project-nav="SYS"]').getByRole("link", { name: "Project settings" }).click();
     await expect(bob).toHaveURL("/p/SYS/settings");
     await expect(bob.getByText("Only the project's administrators change its settings.")).toBeVisible();
     await expect(bob.locator('[data-action="save-project"]')).toHaveCount(0);

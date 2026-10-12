@@ -54,6 +54,14 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
             </Button>
           )}
         />
+        <NavItem to={`/p/${project.key}`} icon="Folder" rail={false} onNavigate={onNavigate} exact>
+          {t.requirements.title}
+        </NavItem>
+        {project.can.edit && (
+          <NavItem to={`/p/${project.key}/trash`} icon="Trash" rail={false} onNavigate={onNavigate}>
+            {t.requirements.trashTitle}
+          </NavItem>
+        )}
         <NavItem to={`/p/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
           {t.projects.settings}
         </NavItem>

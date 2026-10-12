@@ -1,6 +1,7 @@
 import type { Messages } from "./en";
 import { accessDe, permissionsDe } from "./permissions.de";
 import { projectsDe } from "./projects.de";
+import { editorDe, requirementsDe } from "./requirements.de";
 import { themesDe } from "./themes.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
@@ -239,6 +240,8 @@ export const de: Messages = {
       "project.unarchived": "Projekt aus dem Archiv geholt",
       "project.deleted": "Projekt gelöscht",
       "project.grants_changed": "Projektberechtigungen geändert",
+      "requirement.purged": "Anforderung endgültig gelöscht",
+      "trash.emptied": "Papierkorb geleert",
     },
     targetTypes: {
       user: "Person",
@@ -248,11 +251,14 @@ export const de: Messages = {
       group_role: "Gruppenrolle",
       theme: "Design",
       project: "Projekt",
+      requirement: "Anforderung",
     },
   },
   projects: projectsDe,
   permissions: permissionsDe,
   access: accessDe,
+  requirements: requirementsDe,
+  editor: editorDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",
