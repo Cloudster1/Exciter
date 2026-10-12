@@ -20,10 +20,19 @@ Every toolchain runs in a container, driven by the `Makefile`; Docker and
 make are the only requirements. [`CLAUDE.md`](CLAUDE.md) holds the rules.
 
 ```sh
+make up                 # the stack: Postgres primary and replica, Valkey, SeaweedFS, Mailpit, Keycloak
+make ports              # this checkout's compose project and its twenty ports
+make down               # stop (make clean also drops the volumes)
 ./run-tests.sh          # the whole gate, as CI and the push hook run it
 ./run-tests.sh --list   # its layers
 make help               # every target
 ```
+
+Every port is bound to `127.0.0.1` and derived from the checkout's path, so
+worktrees, Armature and a Stator checkout run side by side; the ports are also
+written to `.cache/stack.env`. Keycloak's realm `suite-dev` (admin console
+`admin` / `admin`) holds alice, bob, carol and dave, each with the password
+`<name> password`, and a client for each of Exciter, Armature and Stator.
 
 ## Releasing
 
