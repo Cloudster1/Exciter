@@ -132,7 +132,7 @@ jobs:
           pattern: reports-*
           path: reports
 
-      # One HTML report for the whole browser suite, once the suite exists (#9).
+      # One HTML report and one reports/e2e.json for the whole browser suite, from the shards' blobs.
       - name: Merge the browser suite's reports
         run: |
           mkdir -p reports/e2e-blobs

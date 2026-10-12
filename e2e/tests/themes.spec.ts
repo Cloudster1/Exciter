@@ -1,0 +1,124 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Page } from "@playwright/test";
+import { expect } from "../fixtures/auth";
+import { orgTest as test } from "../fixtures/org";
+import { openShowing } from "../fixtures/replica";
+import { chooseTheme, createTheme, themeSpec, uniqueName } from "../fixtures/seed";
+import { openAccountMenu } from "../fixtures/shell";
+
+// Armature's own theme file, kept byte for byte beside the backend's theme tests.
+const MINECRAFT = resolve(dirname(fileURLToPath(import.meta.url)), "../../backend/internal/theme/testdata/minecraft.armature-theme.json");
+const MINECRAFT_NAME = JSON.parse(readFileSync(MINECRAFT, "utf8")).name as string;
+
+const THEMES_PATH = "/settings/themes";
+const DEFAULT_THEME_PATH = "/settings/default-theme";
+const customStyle = (page: Page) => page.locator("style#exciter-theme");
+const row = (page: Page, name: string) => page.locator(`[data-theme-row="${name}"]`);
+const notice = (page: Page) => page.locator("[data-themes-notice]");
+const rootVar = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
+
+async function rowAction(page: Page, name: string, action: string) {
+  await row(page, name).locator('[data-action="theme-menu"]').click();
+  await page.locator(`[role="menu"] [data-action="${action}"]`).click();
+}
+
+/** Presses the rail's theme button until it shows the choice, which is how a person picks Auto, Light or Dark. */
+async function pickScheme(page: Page, choice: "system" | "light" | "dark") {
+  const button = page.locator('[data-rail] [data-action="theme"]');
+  for (let i = 0; i < 3 && (await button.getAttribute("data-theme-choice")) !== choice; i++) await button.click();
+  await expect(button).toHaveAttribute("data-theme-choice", choice);
+}
+
+// The organization is this file's alone, so its default and who uses what are nobody else's; tests that share a
+// worker share it one after another, and each starts with nobody's choice and no default.
+test.describe("themes", { tag: "@desktop" }, () => {
+  test.afterEach(async ({ api, apiAs }) => {
+    for (const each of [api, await apiAs("bob")]) await chooseTheme(each, null).catch(() => {});
+    await api.PUT("/themes/default", { body: { themeId: null } });
+  });
+
+  test("light and dark from the rail each apply their palette, and the choice survives a reload", async ({ page }) => {
+    await page.goto("/");
+    await pickScheme(page, "light");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    const light = await rootVar(page, "--color-canvas");
+    await pickScheme(page, "dark");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    const dark = await rootVar(page, "--color-canvas");
+    expect(dark, "dark has a canvas of its own").not.toBe(light);
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await rootVar(page, "--color-canvas")).toBe(dark);
+
+    await pickScheme(page, "system");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
+    await page.emulateMedia({ colorScheme: "dark" });
+    expect(await rootVar(page, "--color-canvas")).toBe(dark);
+    await page.emulateMedia({ colorScheme: "light" });
+    expect(await rootVar(page, "--color-canvas")).toBe(light);
+  });
+
+  test("the chosen theme applies in the shell and survives a reload without a flash", async ({ page, api }, testInfo) => {
+    const name = uniqueName(testInfo, "canvas");
+    await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#123456" }, dark: { canvas: "#123456" } } }));
+    await page.goto(THEMES_PATH);
+    await rowAction(page, name, "use-theme");
+    await expect(notice(page)).toHaveText(`Now using ${name}.`);
+
+    await page.goto("/");
+    await expect(customStyle(page)).toBeAttached();
+    expect(await rootVar(page, "--color-canvas")).toBe("#123456");
+
+    // Recorded the moment the app first draws anything, before the server has answered.
+    await page.addInitScript(() => {
+      new MutationObserver((_, observer) => {
+        if (document.getElementById("root")?.firstChild) {
+          (window as unknown as { themeAtFirstDraw: boolean }).themeAtFirstDraw = Boolean(document.getElementById("exciter-theme"));
+          observer.disconnect();
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.reload();
+    await page.waitForFunction(() => "themeAtFirstDraw" in window);
+    expect(await page.evaluate(() => (window as unknown as { themeAtFirstDraw?: boolean }).themeAtFirstDraw)).toBe(true);
+    expect(await rootVar(page, "--color-canvas")).toBe("#123456");
+  });
+
+  test("Armature's Minecraft theme imports and gives square corners and hard shadows", async ({ page }) => {
+    await page.goto(THEMES_PATH);
+    await page.locator("[data-theme-file]").setInputFiles(MINECRAFT);
+    await expect(notice(page)).toContainText(`Imported ${MINECRAFT_NAME}`);
+    // An earlier run in this organization leaves a copy, which makes this one "Minecraft (2)".
+    const imported = (await notice(page).textContent())!.replace(/^Imported /, "").replace(/\.$/, "");
+    await rowAction(page, imported, "use-theme");
+    await expect(notice(page)).toHaveText(`Now using ${imported}.`);
+
+    await page.goto("/");
+    await expect(customStyle(page)).toBeAttached();
+    await expect(page.locator('[data-action="switcher"]')).toHaveCSS("border-radius", "0px");
+    await openAccountMenu(page);
+    const shadow = await page.getByRole("menu").evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(shadow).toMatch(/\b6px 6px 0px\b/);
+  });
+
+  test("the organization's default, named under Settings, reaches a member who has not chosen", async ({ page, api, pageAs }, testInfo) => {
+    const name = uniqueName(testInfo, "default");
+    await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
+
+    await openShowing(page, DEFAULT_THEME_PATH, page.locator(`[data-default-theme-choice="${name}"]`));
+    await page.locator(`[data-default-theme-choice="${name}"]`).click();
+    await expect(page.locator("[data-default-theme-notice]")).toHaveText(`${name} is what everybody sees until they choose.`);
+
+    const bob = await pageAs("bob");
+    await openShowing(bob, THEMES_PATH, bob.getByText(`You are using ${name}, the organization's default.`));
+    await expect(customStyle(bob)).toBeAttached();
+    expect(await rootVar(bob, "--color-canvas")).toBe("#0f0f0f");
+
+    await bob.locator('[data-action="built-in-theme"]').click();
+    await expect(bob.getByText(`You are using the built-in theme, over the organization's default ${name}.`)).toBeVisible();
+    await expect(customStyle(bob)).toHaveCount(0);
+  });
+});

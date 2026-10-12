@@ -149,7 +149,9 @@ type Authenticator interface {
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		secret := credentialFrom(r, s.CookieName)
-		if secret == "" || s.Auth == nil {
+		// The test endpoints answer to their own token alone, so a session
+		// riding along can neither open nor refuse them.
+		if secret == "" || s.Auth == nil || isTestPath(r) {
 			next.ServeHTTP(w, r)
 			return
 		}

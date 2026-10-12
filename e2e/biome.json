@@ -1,0 +1,14 @@
+{
+  "root": false,
+  "extends": "//",
+  "linter": {
+    "rules": {
+      "correctness": {
+        "noEmptyPattern": "off"
+      }
+    }
+  },
+  "files": {
+    "includes": ["**", "!node_modules", "!playwright-report", "!test-results", "!.auth"]
+  }
+}

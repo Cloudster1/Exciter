@@ -186,6 +186,27 @@ jobs cover them all.
 | test-integration | Go against the compose stack, every response validated against `api/openapi.json` | #3 |
 | test-e2e | Playwright against the compose stack, with axe | #9 |
 
+The browser suite (#9, `e2e/`, run by `mk/e2e.mk`) drives Chromium in
+Microsoft's Playwright image of the exact version `e2e/package.json` pins, on
+the host's network so it reaches the stack as a person at this machine does,
+at desktop size and at 360x740. It reads the ports from `.cache/stack.env`. A
+setup project signs alice and bob in to `demo` through Keycloak once and keeps
+their sessions in `e2e/.auth/`, and setup and teardown leave `demo` showing
+the built-in theme. A spec that changes what an organization shows uses
+`orgTest` from `e2e/fixtures/org.ts`: each spec file gets an organization of
+its own per worker, made through the api's test endpoints, `POST` and
+`DELETE /api/v1/test/orgs`, with the bootstrap administrator as its owner,
+alice and bob let in and the stack's Keycloak as its provider, and removed
+with all its rows and files when the worker stops. The endpoints are routed
+only when `EXCITER_TEST_ENDPOINTS` is on, which compose sets for the api and a
+deployment never does, ask for `EXCITER_TEST_ENDPOINTS_TOKEN` in
+`X-Exciter-Test-Token`, and are left out of `api/openapi.json`. What no
+endpoint makes, such as an organization whose provider is down or a page of
+audit entries, a spec arranges straight in the database through
+`e2e/fixtures/db.ts` and removes again. `make test-e2e ONLY=<grep>` runs some
+of it, `SHARD=1/2` a part as CI does, and `make e2e-report` serves the last
+report.
+
 ## Deployment
 
 Docker Compose for development (`deploy/docker-compose.yml`, run through

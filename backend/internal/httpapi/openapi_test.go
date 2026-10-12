@@ -20,7 +20,13 @@ import (
 // operation table uses.
 func routed(t *testing.T) map[string]bool {
 	t.Helper()
-	router, ok := (&Server{Log: slog.New(slog.DiscardHandler)}).Routes(nil).(chi.Routes)
+	return routedBy(t, &Server{Log: slog.New(slog.DiscardHandler)})
+}
+
+// routedBy is routed for a server set up as the caller needs.
+func routedBy(t *testing.T, s *Server) map[string]bool {
+	t.Helper()
+	router, ok := s.Routes(nil).(chi.Routes)
 	if !ok {
 		t.Fatal("the router is not walkable")
 	}

@@ -3,6 +3,34 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-12: Each browser spec file gets a throwaway organization (#9)
+
+As in Stator: specs that change what an organization shows, such as its
+default theme or somebody's role, cannot share `demo` with specs that judge
+the built-in look, and running them one after another only hides that. The
+api has two test endpoints, `POST /api/v1/test/orgs` and
+`DELETE /api/v1/test/orgs/{slug}`, and `e2e/fixtures/org.ts` makes one
+organization per spec file and worker through them, signs alice and bob in to
+it and deletes it when the worker stops.
+
+- **Made like `demo`.** The organization gets the seed's people and provider,
+  from the same `EXCITER_BOOTSTRAP_*` settings and `seed.Populate`, so it
+  signs in exactly as `demo` does. Exciter lets only an administrator
+  configure a provider, so the bootstrap administrator is made its owner
+  first and the provider is configured in their name, as the seed does.
+- **Compiled in, routed only when asked.** The image the suite runs is the
+  image that ships, so the endpoints are in it, but routed only when
+  `EXCITER_TEST_ENDPOINTS` is on; otherwise they answer 404. Every call
+  carries `EXCITER_TEST_ENDPOINTS_TOKEN` in `X-Exciter-Test-Token`, so an
+  endpoint switched on by accident is still closed, and the api refuses to
+  start with them on in production. Deleting refuses any organization the
+  endpoint did not make, which it marks in `org.settings`.
+- **Not in the document.** They are left out of `api/openapi.json`: the
+  document is what clients are generated from, and the web client would
+  otherwise carry types for calls it must never make. A table of their own in
+  `internal/httpapi/test_handlers.go` describes them, and a unit test holds
+  the router to both tables and the document to the public one alone.
+
 ## 2026-10-12: The logo is a resized picture and the icons are a crop of it (#56)
 
 Exciter's mark was a hand-drawn E on the accent. The picture now given is a

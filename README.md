@@ -26,6 +26,8 @@ make down               # stop (make clean also drops the volumes)
 make web-dev            # the web client with hot reload, against the running stack's api
 ./run-tests.sh          # the whole gate, as CI and the push hook run it
 ./run-tests.sh --list   # its layers
+make test-e2e ONLY=themes   # some of the browser suite against the running stack (make stack-up first)
+make e2e-report         # the last browser run's report, traces included
 make help               # every target
 ```
 
