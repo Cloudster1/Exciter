@@ -1,0 +1,321 @@
+@import "tailwindcss";
+
+/* Inter and JetBrains Mono, bundled from node_modules rather than fetched from a
+ * font service: the application has no third party at load time, and the
+ * weights it uses are the five it ships. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/* Design tokens: the Clay identity, as Armature's web/src/styles/index.css
+ * holds them. Armature's docs/design/01-tokens.md is the table they come from.
+ *
+ * Every colour is named for its role rather than its hue, so the dark theme
+ * below is a redefinition of the same names and not a parallel set of classes
+ * scattered through the components.
+ *
+ * Warm stone neutrals and one cobalt accent. Surfaces barely differ from the
+ * canvas and borders are hairlines, so structure comes from spacing and type
+ * rather than from boxes. Primary actions are ink, not the accent: the accent
+ * marks what is current, selected or a link, and blue is the one hue no
+ * status, level or type uses, so "current" never collides with "done". */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* The type scale. Seven sizes, each with its line height, so a tracker's
+   * density comes from one place and not from sizes typed by hand. */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+
+  --color-canvas: #f6f4f0;
+  --color-surface: #fdfcfa;
+  --color-surface-raised: #f1eee8;
+  --color-surface-sunken: #ece8e1;
+  --color-surface-overlay: #ffffff;
+  --color-border: #e4dfd6;
+  --color-border-strong: #c9c2b6;
+
+  --color-ink: #1f1b16;
+  --color-ink-muted: #625b51;
+  --color-ink-subtle: #6f685d;
+  --color-ink-disabled: #b5aea3;
+
+  /* The primary action colour: ink on light, paper on dark. */
+  --color-primary: #1f1b16;
+  --color-primary-hover: #37312a;
+  --color-on-primary: #fbfaf7;
+
+  /* The accent: links, the current item, selection. */
+  --color-accent: #2f5fd0;
+  --color-accent-hover: #264dad;
+  --color-accent-subtle: #e6ecfa;
+  --color-on-accent: #ffffff;
+  --color-focus: #2f5fd0;
+  --color-selection: #dce5f8;
+
+  --color-danger: #b93a2e;
+  --color-danger-hover: #9c2f25;
+  --color-danger-subtle: #f9e7e4;
+  /* The label on a danger fill. Dark danger is light enough to be error text,
+   * so white on it reaches only 3:1 and the dark theme writes on it in the dark. */
+  --color-on-danger: #ffffff;
+  --color-success: #277749;
+  --color-success-subtle: #e3f1e8;
+  --color-warning: #b7791f;
+  --color-warning-subtle: #fbf0da;
+  /* Reserved for the levels above the ordinary one, so an epic reads as a
+   * container rather than as another task. */
+  --color-epic: #7a4fb5;
+
+  /* Issue status categories, the one place where colour carries meaning that
+   * the user is expected to learn. Work in flight is warm; done is green. */
+  --color-status-todo: #8f877b;
+  --color-status-progress: #b7791f;
+  --color-status-done: #2e7d4f;
+  /* The tints the workflow's cards wear, one per category. */
+  --color-status-todo-subtle: #f0ede7;
+  --color-status-progress-subtle: #fbf0da;
+  --color-status-done-subtle: #e3f1e8;
+
+  /* Chart series, in the order a dashboard hands them out: blue, green, purple,
+     amber, teal, red, so no two neighbours fall together for colour-blind eyes. */
+  --color-chart-1: #2f5fd0;
+  --color-chart-2: #277749;
+  --color-chart-3: #7a4fb5;
+  --color-chart-4: #935d00;
+  --color-chart-5: #007575;
+  --color-chart-6: #b93a2e;
+
+  /* Elevation: raised things sit a hair above the surface, overlays float. */
+  --shadow-1: 0 1px 2px rgb(31 27 22 / 0.06);
+  --shadow-2: 0 8px 24px rgb(31 27 22 / 0.12);
+  /* The third shadow lifts a translucent card off the backdrop, with a hairline
+   * of light along its top edge. */
+  --shadow-3: 0 16px 40px rgb(31 27 22 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.6);
+
+  /* The glass surface is what floats over the backdrop: a card, the page's
+   * head. Always under a backdrop blur. The backdrop is the soft gradient
+   * behind the content. */
+  --color-surface-glass: rgb(253 252 250 / 0.72);
+  --color-backdrop-from: #faf8f4;
+  --color-backdrop-to: #ebe6de;
+
+  --radius-control: 6px;
+  --radius-overlay: 8px;
+
+  /* From here up the shell has its rail and sidebar; below it the sidebar is
+   * a drawer. SIDEBAR_DRAWER_BELOW_PX in config.ts is the same width. A rem in
+   * a media query is the browser's 16px, not the 14px the page is set in. */
+  --breakpoint-shell: 48rem;
+
+  --animate-drawer-in: drawer-in 160ms ease-out;
+  @keyframes drawer-in {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+}
+
+/* The dark theme redefines the same names. Two blocks say the same thing: the
+ * first follows the system when nothing was chosen, the second is the explicit
+ * choice, which overrides the system in both directions. */
+@layer theme {
+  :root[data-theme="dark"],
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --color-canvas: #14171c;
+      --color-surface: #1a1e24;
+      --color-surface-raised: #222731;
+      --color-surface-sunken: #0f1216;
+      --color-surface-overlay: #262c36;
+      --color-border: #2b313b;
+      --color-border-strong: #3f4652;
+      --color-surface-glass: rgb(26 30 36 / 0.6);
+      --color-backdrop-from: #1b1f26;
+      --color-backdrop-to: #0f1216;
+      --color-ink: #ede8e0;
+      --color-ink-muted: #aba396;
+      --color-ink-subtle: #999185;
+      --color-ink-disabled: #5a544b;
+      --color-primary: #ede8e0;
+      --color-primary-hover: #dbd5cb;
+      --color-on-primary: #171512;
+      --color-accent: #7fa3f2;
+      --color-accent-hover: #9bb7f5;
+      --color-accent-subtle: #22304f;
+      --color-on-accent: #0f1a33;
+      --color-focus: #9bb7f5;
+      --color-selection: #2a3a5e;
+      --color-danger: #e4756a;
+      --color-danger-hover: #ec8f86;
+      --color-danger-subtle: #3e2220;
+      --color-on-danger: #2f100d;
+      --color-success: #6cc08f;
+      --color-success-subtle: #1e3527;
+      --color-warning: #e0a94a;
+      --color-warning-subtle: #3d2f16;
+      --color-epic: #b392e6;
+      --color-status-todo: #7d7569;
+      --color-status-progress: #e0a94a;
+      --color-status-done: #6cc08f;
+      --color-status-todo-subtle: #2b2721;
+      --color-status-progress-subtle: #3d2f16;
+      --color-status-done-subtle: #1e3527;
+      --color-chart-1: #5b86e6;
+      --color-chart-2: #4aa66e;
+      --color-chart-3: #9a7ad6;
+      --color-chart-4: #b8862a;
+      --color-chart-5: #1fa3a3;
+      --color-chart-6: #d4574a;
+      --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+      --shadow-2: 0 12px 32px rgb(0 0 0 / 0.65);
+      --shadow-3: 0 16px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.05);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --color-canvas: #14171c;
+    --color-surface: #1a1e24;
+    --color-surface-raised: #222731;
+    --color-surface-sunken: #0f1216;
+    --color-surface-overlay: #262c36;
+    --color-border: #2b313b;
+    --color-border-strong: #3f4652;
+    --color-surface-glass: rgb(26 30 36 / 0.6);
+    --color-backdrop-from: #1b1f26;
+    --color-backdrop-to: #0f1216;
+    --color-ink: #ede8e0;
+    --color-ink-muted: #aba396;
+    --color-ink-subtle: #999185;
+    --color-ink-disabled: #5a544b;
+    --color-primary: #ede8e0;
+    --color-primary-hover: #dbd5cb;
+    --color-on-primary: #171512;
+    --color-accent: #7fa3f2;
+    --color-accent-hover: #9bb7f5;
+    --color-accent-subtle: #22304f;
+    --color-on-accent: #0f1a33;
+    --color-focus: #9bb7f5;
+    --color-selection: #2a3a5e;
+    --color-danger: #e4756a;
+    --color-danger-hover: #ec8f86;
+    --color-danger-subtle: #3e2220;
+    --color-on-danger: #2f100d;
+    --color-success: #6cc08f;
+    --color-success-subtle: #1e3527;
+    --color-warning: #e0a94a;
+    --color-warning-subtle: #3d2f16;
+    --color-epic: #b392e6;
+    --color-status-todo: #7d7569;
+    --color-status-progress: #e0a94a;
+    --color-status-done: #6cc08f;
+    --color-status-todo-subtle: #2b2721;
+    --color-status-progress-subtle: #3d2f16;
+    --color-status-done-subtle: #1e3527;
+    --color-chart-1: #5b86e6;
+    --color-chart-2: #4aa66e;
+    --color-chart-3: #9a7ad6;
+    --color-chart-4: #b8862a;
+    --color-chart-5: #1fa3a3;
+    --color-chart-6: #d4574a;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-2: 0 12px 32px rgb(0 0 0 / 0.65);
+    --shadow-3: 0 16px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+}
+
+@layer base {
+  html {
+    /* 14px is the working size of the interface, as in Armature; the scale above hangs off it. */
+    font-size: 14px;
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* Inter's contextual alternates and tabular figures: counts, dates and
+     * keys line up in a column without asking each cell to. */
+    font-feature-settings: "calt", "tnum", "cv11";
+  }
+
+  ::selection {
+    background-color: var(--color-selection);
+  }
+
+  /* A visible focus ring on keyboard navigation only, never on mouse clicks. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+
+  /* Native controls take the theme rather than the platform's own idea. */
+  select,
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  /* Overlays enter softly; people who asked for less motion get none. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility shadow-1 {
+  box-shadow: var(--shadow-1);
+}
+
+@utility shadow-2 {
+  box-shadow: var(--shadow-2);
+}
+
+@utility shadow-3 {
+  box-shadow: var(--shadow-3);
+}
+
+/* The soft light behind the content, brightest where the page starts. */
+@utility bg-backdrop {
+  background: radial-gradient(120% 80% at 20% 0%, var(--color-backdrop-from), var(--color-backdrop-to));
+}
+
+/* Print: the chrome goes and colours are kept, so a printed page looks like the one on screen. */
+@media print {
+  [data-print-hide] {
+    display: none !important;
+  }
+  html,
+  body {
+    background: white;
+  }
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  main {
+    overflow: visible !important;
+  }
+}
