@@ -42,6 +42,8 @@ const (
 	ActionProjectArchived   = "project.archived"
 	ActionProjectUnarchived = "project.unarchived"
 	ActionProjectDeleted    = "project.deleted"
+	// ActionProjectGrantsChanged keeps a project's grants before and after.
+	ActionProjectGrantsChanged = "project.grants_changed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -50,7 +52,7 @@ var Actions = []string{
 	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
-	ActionProjectDeleted,
+	ActionProjectDeleted, ActionProjectGrantsChanged,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

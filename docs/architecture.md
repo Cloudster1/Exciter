@@ -60,9 +60,16 @@ holds even for a query that forgot it.
   a project leaves stays in `project_key_alias` and keeps resolving, and
   triggers keep a key, current or former, to one project under a lock on it.
   `perm_project_holds(project, actor, permission)` is what every project
-  policy asks; until #12 it reads the organization role alone. An archived
-  project is read only, and only an archived one can be deleted, which the
-  database holds too.
+  policy asks. An archived project is read only, and only an archived one can
+  be deleted, which the database holds too.
+- **Permissions** (#12): `project_grant` gives a user, a group or everyone
+  the role viewer, reviewer, editor or admin in a project, and a person holds
+  the union of the rights of every grant that reaches them.
+  `perm_project_holds` reads the grants; owners and administrators of the
+  organization hold everything, everyone's grants leave guests out, and a
+  guest holds at most editor. A trigger gives a new project its maker as
+  admin and everyone as editor. The access inspector explains a verdict from
+  the same function, so it says what the database enforces.
 - **Requirements** (#13): key `CHK-R42`, a rich-text statement, rationale,
   type and attributes (#14), a place in the tree (#15), a status from the
   project's workflow (#17).

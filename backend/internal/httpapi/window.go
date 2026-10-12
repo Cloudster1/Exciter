@@ -10,19 +10,28 @@ import (
 
 // keysetWindow reads a list's window: how many, up to maxLimit, and the cursor where the window before ended.
 func keysetWindow(r *http.Request, defaultLimit, maxLimit int) (int, *keyset.Cursor, *APIError) {
-	limit := defaultLimit
-	if raw := r.URL.Query().Get("limit"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil || n < 1 || n > maxLimit {
-			return 0, nil, ErrValidation(map[string]string{"limit": "Ask for 1 to " + strconv.Itoa(maxLimit) + " at a time."})
-		}
-		limit = n
+	limit, apiErr := queryLimit(r, defaultLimit, maxLimit)
+	if apiErr != nil {
+		return 0, nil, apiErr
 	}
 	after, err := keyset.Decode(r.URL.Query().Get("cursor"))
 	if err != nil {
 		return 0, nil, ErrValidation(map[string]string{"cursor": "That cursor is not one this list gave out. Start again from the first window."})
 	}
 	return limit, after, nil
+}
+
+// queryLimit reads how many a list answers: defaultLimit when absent, and refused outside 1 to maxLimit.
+func queryLimit(r *http.Request, defaultLimit, maxLimit int) (int, *APIError) {
+	raw := r.URL.Query().Get("limit")
+	if raw == "" {
+		return defaultLimit, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 || n > maxLimit {
+		return 0, ErrValidation(map[string]string{"limit": "Ask for 1 to " + strconv.Itoa(maxLimit) + " at a time."})
+	}
+	return n, nil
 }
 
 // download says the answer is a file to save, never to run or show in place.

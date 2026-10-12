@@ -1,6 +1,7 @@
 import type { AuditAction } from "@/api/audit";
 import type { OrgRole } from "@/api/auth";
 import type { Language } from "./index";
+import { accessEn, permissionsEn } from "./permissions.en";
 import { projectsEn } from "./projects.en";
 import { themesEn } from "./themes.en";
 
@@ -233,6 +234,7 @@ export const en = {
       "project.archived": "Project archived",
       "project.unarchived": "Project unarchived",
       "project.deleted": "Project deleted",
+      "project.grants_changed": "Project permissions changed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -245,6 +247,8 @@ export const en = {
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
+  permissions: permissionsEn,
+  access: accessEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

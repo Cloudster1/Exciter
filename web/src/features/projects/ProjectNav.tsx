@@ -57,6 +57,11 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
           {t.projects.settings}
         </NavItem>
+        {project.can.administer && (
+          <NavItem to={`/p/${project.key}/permissions`} icon="Shield" rail={false} onNavigate={onNavigate}>
+            {t.permissions.navLabel}
+          </NavItem>
+        )}
       </div>
     </SidebarGroup>
   );

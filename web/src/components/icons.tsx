@@ -55,6 +55,11 @@ export const Icon = {
   X: makeIcon("x", ["m4 4 8 8", "m12 4-8 8"]),
   Plus: makeIcon("plus", ["M8 3v10", "M3 8h10"]),
   Users: makeIcon("users", ["M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M2.5 14a5.5 5.5 0 0 1 11 0"]),
+  Everyone: makeIcon("everyone", [
+    "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z",
+    "M2 8h12",
+    "M8 2c1.6 1.7 2.4 3.7 2.4 6S9.6 12.3 8 14c-1.6-1.7-2.4-3.7-2.4-6S6.4 3.7 8 2Z",
+  ]),
   Check: makeIcon("check", ["m3 8.5 3 3 7-7"]),
   Download: makeIcon("download", ["M8 3v7.5", "m4.5 7 3.5 3.5L11.5 7", "M2.5 13.5h11"]),
   Lock: makeIcon("lock", ["M3.5 7.5h9v6h-9z", "M5.5 7.5v-2a2.5 2.5 0 0 1 5 0v2"]),

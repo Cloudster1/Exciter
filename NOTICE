@@ -139,6 +139,16 @@ Adapted from Stator at cf0f6f7, for projects (#11):
   with the key asked of the server, key changes, and archiving in place of
   personal spaces, templates and guests
 
+Adapted from Stator at cf0f6f7, for permissions (#12):
+- backend/internal/perm/service.go and inspect.go: the subject columns,
+  subject resolution, pickers and the access inspector's layout of
+  internal/perm/service.go and inspect.go, with space permissions made
+  project roles that add up, and page restrictions left out
+- web/src/api/permissions.ts and features/permissions ProjectPermissions,
+  SubjectPicker and AccessDialog: api/permissions.ts and features/permissions
+  SpacePermissions, SubjectPicker and AccessDialog, with a role per row in
+  place of a grid of permissions
+
 Adapted from Armature at 73d72dd:
 - the API types of backend/internal/workflow (statuses, steps, transitions,
   rules and the rule registry, without schemes), attribute (custom field

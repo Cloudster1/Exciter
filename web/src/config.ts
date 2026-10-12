@@ -125,3 +125,7 @@ export const PROJECT_NAME_MAX_LENGTH = 100;
 export const PROJECT_DESCRIPTION_MAX_LENGTH = 1000;
 /** How long typing a project's name rests before the server is asked for a free key. */
 export const KEY_SUGGEST_DEBOUNCE_MS = 300;
+
+/** How many people or groups a picker offers at once, and how long typing rests before it asks; the server's perm.DefaultPickerLimit. */
+export const PICKER_LIMIT = 20;
+export const PICKER_DEBOUNCE_MS = 200;

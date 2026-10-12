@@ -1,4 +1,5 @@
 import type { Messages } from "./en";
+import { accessDe, permissionsDe } from "./permissions.de";
 import { projectsDe } from "./projects.de";
 import { themesDe } from "./themes.de";
 
@@ -237,6 +238,7 @@ export const de: Messages = {
       "project.archived": "Projekt archiviert",
       "project.unarchived": "Projekt aus dem Archiv geholt",
       "project.deleted": "Projekt gelöscht",
+      "project.grants_changed": "Projektberechtigungen geändert",
     },
     targetTypes: {
       user: "Person",
@@ -249,6 +251,8 @@ export const de: Messages = {
     },
   },
   projects: projectsDe,
+  permissions: permissionsDe,
+  access: accessDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

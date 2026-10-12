@@ -25,6 +25,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/seed"
@@ -129,6 +130,7 @@ func run() error {
 		AuditRetention:  cfg.RetainAudit,
 		Themes:          theme.NewService(cluster, store),
 		Projects:        project.NewService(cluster),
+		Perms:           perm.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),
