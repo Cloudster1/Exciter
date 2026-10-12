@@ -107,6 +107,40 @@ export interface paths {
         patch: operations["updateMe"];
         trace?: never;
     };
+    "/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the identity provider sends the browser back; sets the session cookie. */
+        get: operations["oIDCCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/{orgSlug}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Begin signing in through the organization's identity provider. */
+        get: operations["oIDCStart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/switch-org": {
         parameters: {
             query?: never;
@@ -158,6 +192,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/oidc-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The organization's identity provider, if one is configured, and the callback address to register with it. For administrators. */
+        get: operations["getOIDCProvider"];
+        /** Configure the organization's identity provider; a client secret left out keeps the stored one. For administrators. */
+        put: operations["saveOIDCProvider"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oidc-provider/group-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which provider groups grant which role. For administrators. */
+        get: operations["listGroupRoles"];
+        put?: never;
+        /** Map a provider group to a role, or change the role it maps to; members follow at their next sign-in. For administrators. */
+        post: operations["setGroupRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oidc-provider/group-roles/{groupRoleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unmap a provider group; the roles it granted go at each person's next sign-in. For administrators. */
+        delete: operations["removeGroupRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -199,11 +286,62 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's members, owners first. For administrators. */
+        /** The organization's members, owners first, with whether the identity provider's groups decide their roles. For administrators. */
         get: operations["listMembers"];
         put?: never;
         /** Add a person with a password, made for them when none is given and shown once in the answer. For administrators. */
         post: operations["createMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who signed in through the identity provider and is waiting to be let in. For administrators. */
+        get: operations["listJoinRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/requests/{userID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Turn a waiting person away; they may ask again. For administrators. */
+        delete: operations["declineJoinRequest"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/requests/{userID}/admit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let a waiting person in with the standing given. For administrators. */
+        post: operations["admitJoinRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -240,6 +378,10 @@ export interface components {
             message: string;
             requestId?: string;
         };
+        AdmitRequest: {
+            /** @enum {string} */
+            role: "member" | "admin";
+        };
         AuditActor: {
             /** Format: uuid */
             id: string;
@@ -247,7 +389,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -263,7 +405,7 @@ export interface components {
             targetType: string;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -324,10 +466,27 @@ export interface components {
         ErrorEnvelope: {
             error: components["schemas"]["APIError"];
         };
+        GroupRole: {
+            group: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            role: "member" | "admin";
+            /** Format: date-time */
+            updatedAt: string;
+        };
         Info: {
             description?: string;
             title: string;
             version: string;
+        };
+        JoinRequest: {
+            email: string;
+            name: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: uuid */
+            userId: string;
         };
         LoginRequest: {
             email: string;
@@ -348,6 +507,8 @@ export interface components {
             name: string;
             /** @enum {string} */
             role: "owner" | "admin" | "member" | "guest";
+            /** @enum {string} */
+            roleSource: "manual" | "oidc";
             /** Format: uuid */
             userId: string;
         };
@@ -384,6 +545,21 @@ export interface components {
             required?: boolean;
             schema: components["schemas"]["Schema"] | null;
         };
+        Provider: {
+            clientId: string;
+            createGroups: boolean;
+            enabled: boolean;
+            groupsClaim: string;
+            hasSecret: boolean;
+            issuer: string;
+            scopes: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProviderView: {
+            callbackUrl: string;
+            provider: components["schemas"]["Provider"] | null;
+        };
         ReadinessResponse: {
             routing: components["schemas"]["Stats"];
             status: string;
@@ -405,6 +581,15 @@ export interface components {
                 [key: string]: components["schemas"]["MediaType"];
             };
             description: string;
+        };
+        SaveOIDCProviderRequest: {
+            clientId: string;
+            clientSecret?: string;
+            createGroups: boolean;
+            enabled: boolean;
+            groupsClaim?: string;
+            issuer: string;
+            scopes?: string;
         };
         Schema: {
             $defs?: {
@@ -435,6 +620,11 @@ export interface components {
         Server: {
             description?: string;
             url: string;
+        };
+        SetGroupRoleRequest: {
+            group: string;
+            /** @enum {string} */
+            role: "member" | "admin";
         };
         SetRoleRequest: {
             /** @enum {string} */
@@ -484,7 +674,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -533,7 +723,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -733,6 +923,69 @@ export interface operations {
             };
         };
     };
+    oIDCCallback: {
+        parameters: {
+            query?: {
+                state?: string;
+                code?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Found: the browser is sent on. */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    oIDCStart: {
+        parameters: {
+            query?: {
+                /** @description A path of this application to land on afterwards. */
+                next?: string;
+            };
+            header?: never;
+            path: {
+                orgSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Found: the browser is sent on. */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     switchOrg: {
         parameters: {
             query?: never;
@@ -814,6 +1067,163 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MetaResponse"];
                 };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getOIDCProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveOIDCProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveOIDCProviderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listGroupRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groupRoles: components["schemas"]["GroupRole"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    setGroupRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetGroupRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groupRole: components["schemas"]["GroupRole"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    removeGroupRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupRoleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
@@ -945,6 +1355,103 @@ export interface operations {
                 content: {
                     "application/json": {
                         member: components["schemas"]["CreatedMember"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listJoinRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        requests: components["schemas"]["JoinRequest"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    declineJoinRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    admitJoinRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmitRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        membership: components["schemas"]["Membership"];
                     };
                 };
             };

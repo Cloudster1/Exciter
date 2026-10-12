@@ -14,6 +14,8 @@ export const APP_VERSION: string = __APP_VERSION__;
 export const API_BASE = "/api/v1";
 /** The status the API answers when nobody is signed in, which sends the reader to sign in. */
 export const HTTP_UNAUTHORIZED = 401;
+/** The status the API answers somebody who may not see a page, such as a member on an administrator's settings. */
+export const HTTP_FORBIDDEN = 403;
 
 /** The sidebar, open and as the icon rail it folds to. */
 export const SIDEBAR_WIDTH = 232;
@@ -52,6 +54,18 @@ export const LANGUAGE_STORAGE_KEY = "exciter.language";
 
 /** Where an administrator manages the organization's people. */
 export const MEMBERS_PATH = "/settings/members";
+
+/** Where an administrator sets up single sign-on, maps its groups to roles and lets waiting people in. */
+export const SSO_PATH = "/settings/sso";
+/** The groups claim and scopes an identity provider starts with, matching the API's defaults. */
+export const SSO_DEFAULT_GROUPS_CLAIM = "groups";
+export const SSO_DEFAULT_SCOPES = "openid profile email";
+/** The group a mapping's form shows as an example, the development realm's administrators. */
+export const SSO_GROUP_EXAMPLE = "exciter-administrators";
+/** What a sign-in through the provider came back with when the person is known there but not let in here. */
+export const SSO_WAITING = "not_a_member";
+/** Where this browser remembers the organization last typed on the sign-in page, so it is there next time. */
+export const LAST_ORG_KEY = "exciter.last-org";
 
 /** Where an administrator reads the organization's audit log. */
 export const AUDIT_PATH = "/settings/audit";

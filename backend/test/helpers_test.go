@@ -4,12 +4,14 @@ package test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // workerIdle is how long a worker the suite runs waits when nothing is due, short so a test does not wait it out.
@@ -68,4 +70,10 @@ func sameList(t *testing.T, what string, got []string, want ...string) {
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("%s: got %v, want %v", what, got, want)
 	}
+}
+
+// isCheckViolation recognises the error a check constraint or a trigger's check raises.
+func isCheckViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23514"
 }

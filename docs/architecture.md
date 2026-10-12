@@ -71,7 +71,7 @@ holds even for a query that forgot it.
   administrators, never updated or deleted, and pruned by `audit_log_prune`
   after `EXCITER_RETAIN_AUDIT`.
 
-### Identity (#5)
+### Identity (#5, #7)
 
 - People are global (`app_user`); `org_member` gives each a role per
   organization: owner, admin, member or guest. Through the app role only an
@@ -79,10 +79,29 @@ holds even for a query that forgot it.
   database keeps an organization's last owner.
 - A sign-in opens a `user_session` whose secret lives only in an http-only
   cookie; the row holds its SHA-256. A session acts in one organization at a
-  time and switches only where its proof reaches (`session_reaches`).
+  time and switches only where its proof reaches (`session_reaches`): a
+  password everywhere the person is a member, a provider's sign-in in the
+  organization it was made for, the ones whose enabled provider has the same
+  issuer, and the ones the person owns.
+- Each organization may have one OIDC provider (`oidc_provider`), its client
+  secret sealed with `EXCITER_SECRET_KEY`. `internal/oidc` runs the
+  authorization code flow with PKCE, a nonce and a single-use state
+  (`oidc_login`), verifies the id token against the issuer's keys, and
+  matches a person by issuer and subject (`user_identity`), or by a verified
+  address on their first sign-in. `EXCITER_OIDC_BACKCHANNEL` lets the api
+  reach a provider at another address than the browser does, as in compose.
+- Provider groups are synced into `groups` at every sign-in;
+  `oidc_group_role` maps a group to admin or member, and
+  `org_member.role_source` says whether a role follows the provider. A
+  mapping never moves an owner or a guest. Somebody the provider vouches for
+  who is not a member is refused and noted in `org_join_request`, where an
+  administrator lets them in or turns them away. Through the app role only
+  administrators read or change the provider, the mapping and the requests.
 - `authenticate` puts the principal, its organization and the person it acts
   for on every request, so row level security sees both; `requireAuth`,
-  `requireOrg` and `requireAdmin` guard the routes.
+  `requireOrg` and `requireAdmin` guard the routes. Behind a proxy in
+  `EXCITER_TRUSTED_PROXIES` the client's address is the one it names in
+  `X-Real-IP`.
 
 ## Frontend (`web/`, #6)
 

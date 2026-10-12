@@ -47,6 +47,7 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_VALKEY_URL='redis://:$(VALKEY_PASSWORD)@valkey:6379/0' \
 	-e EXCITER_TEST_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-primary)' \
 	-e EXCITER_TEST_REPLICA_SUPERUSER_URL='$(call STACK_PG_URL,exciter,$(POSTGRES_PASSWORD),postgres-replica)' \
+	-e EXCITER_TEST_KEYCLOAK_URL=http://keycloak:8080 \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.

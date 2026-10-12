@@ -5,6 +5,7 @@ import { t } from "@/i18n";
 import { useFocusWhenRendered } from "@/lib/focus";
 import { localDateFormat } from "@/lib/format";
 import { AddMember } from "./AddMember";
+import { JoinRequests } from "./JoinRequests";
 
 const joined = localDateFormat({ dateStyle: "medium" });
 
@@ -47,6 +48,7 @@ export function Members() {
     <div className="mx-auto max-w-4xl" data-members>
       <PageHeader title={t.members.title} meta={members.data ? t.members.count(list.length) : undefined} actions={<AddMember />} />
       <p className="mb-4 text-sm text-ink-muted">{t.members.intro}</p>
+      <JoinRequests />
       {members.error && <ErrorBanner onRetry={() => void members.refetch()}>{members.error.message}</ErrorBanner>}
       {setRole.error && <ErrorBanner>{setRole.error.message}</ErrorBanner>}
       {notice && (
@@ -84,6 +86,11 @@ export function Members() {
                       <div className="truncate text-xs text-ink-subtle">{member.email}</div>
                     </Td>
                     <Td>
+                      {member.roleSource === "oidc" && (
+                        <div className="mb-1 text-xs text-ink-subtle" data-role-source="oidc">
+                          {t.members.fromProvider}
+                        </div>
+                      )}
                       {fixed ? (
                         <span className="text-ink" data-member-role={member.role}>
                           {t.members.roleNames[member.role]}

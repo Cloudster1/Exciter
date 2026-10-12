@@ -27,13 +27,30 @@ var AssignableRoles = []OrgRole{RoleAdmin, RoleMember, RoleGuest}
 // CanAdminister reports whether the role may change organization settings.
 func (r OrgRole) CanAdminister() bool { return r == RoleOwner || r == RoleAdmin }
 
+// RoleSource says who decided a member's role.
+type RoleSource string
+
+const (
+	// RoleSourceManual is a role somebody here chose, which the identity
+	// provider leaves alone while none of the person's groups is mapped.
+	RoleSourceManual RoleSource = "manual"
+	// RoleSourceProvider is a role the provider's groups gave, which a later
+	// sign-in takes back when the group goes.
+	RoleSourceProvider RoleSource = "oidc"
+)
+
+// RoleSources lists every source, in the order the API documents them.
+var RoleSources = []RoleSource{RoleSourceManual, RoleSourceProvider}
+
 // Member is somebody in the organization, as its administrators see them.
 type Member struct {
-	UserID   uuid.UUID `json:"userId"`
-	Email    string    `json:"email"`
-	Name     string    `json:"name"`
-	Role     OrgRole   `json:"role"`
-	JoinedAt time.Time `json:"joinedAt"`
+	UserID uuid.UUID `json:"userId"`
+	Email  string    `json:"email"`
+	Name   string    `json:"name"`
+	Role   OrgRole   `json:"role"`
+	// RoleSource says whether the role follows the identity provider's groups.
+	RoleSource RoleSource `json:"roleSource"`
+	JoinedAt   time.Time  `json:"joinedAt"`
 }
 
 // Locale is a language the interface speaks.

@@ -16,6 +16,8 @@ x-app-db-env: &app-db-env
   EXCITER_DB_ADMIN_URL: postgres://exciter_admin:${ADMIN_DB_PASSWORD:-exciter_admin}@postgres-primary:5432/exciter?sslmode=disable
   # Read-your-writes positions, shared by every api process.
   EXCITER_VALKEY_URL: redis://:${VALKEY_PASSWORD:-exciter_valkey}@valkey:6379/0
+  # Seals an identity provider's client secret. For development only; a deployment brings its own.
+  EXCITER_SECRET_KEY: ${EXCITER_SECRET_KEY:-ZXhjaXRlci1kZXZlbG9wbWVudC1vbmx5LXNlY3JldC0=}
 
 # Every Go service runs the same image, which migrate alone builds: two builds racing to tag one name would fail
 # the stack's start.
@@ -188,6 +190,11 @@ services:
       # A way in before single sign-on: the demo organization's owner, for development only.
       EXCITER_BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@exciter.test}
       EXCITER_BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-exciter admin password}
+      # The demo organization signs in through the stack's Keycloak, under the issuer the browser sees.
+      EXCITER_BOOTSTRAP_OIDC_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/suite-dev
+      EXCITER_BOOTSTRAP_OIDC_CLIENT_ID: exciter
+      EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET: exciter-dev-secret
+      EXCITER_BOOTSTRAP_MEMBERS: alice@suite.test=admin,bob@suite.test=member
     restart: "no"
 
   api:
@@ -208,6 +215,10 @@ services:
       EXCITER_HTTP_ADDR: ":8080"
       EXCITER_LOG_LEVEL: debug
       EXCITER_APP_URL: http://localhost:${WEB_PORT:-8000}
+      # The browser reaches Keycloak on the published port, the api at keycloak:8080; the callback defaults to
+      # EXCITER_APP_URL, which nginx proxies. nginx names the client in X-Real-IP from inside the stack's network.
+      EXCITER_OIDC_BACKCHANNEL: http://localhost:${KEYCLOAK_PORT:-8180}=http://keycloak:8080
+      EXCITER_TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     healthcheck:

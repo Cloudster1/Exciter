@@ -122,7 +122,9 @@ func (c *contract) observe(t *testing.T, method, path string, status int, conten
 		return
 	}
 	if status/100 == 3 {
-		t.Errorf("contract: %s %s answered %d, but no operation redirects", method, path, status)
+		if !r.Redirect {
+			t.Errorf("contract: %s %s answered %d, but the document does not say it redirects", method, path, status)
+		}
 		return
 	}
 	if status == http.StatusNoContent {
@@ -171,6 +173,9 @@ func (c *contract) uncovered() (neverSucceeded, neverRefused []string) {
 		succeeded, refused := false, false
 		for status := range c.hits[r.key()] {
 			switch {
+			case status/100 == 3 && r.Redirect:
+				// A browser facing route refuses by sending the browser to the sign-in page with a reason.
+				succeeded, refused = true, true
 			case status/100 == 2:
 				succeeded = true
 			case status/100 == 4:

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -20,11 +21,11 @@ import (
 // adminPassword is the bootstrap administrator's in these tests; long enough for the rule.
 const adminPassword = "a long enough password"
 
-// bootstrapAdmin makes a local owner of the member's organization, as seed bootstrap does, and returns the address.
-func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, m member) string {
+// bootstrapAdmin makes a local owner of the organization, as seed bootstrap does, and returns the address.
+func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) string {
 	t.Helper()
 	email := "owner-" + h.suffix() + "@example.test"
-	if _, err := a.accounts.EnsureAdmin(context.Background(), h.slugOf(t, m.org), email, "", adminPassword); err != nil {
+	if _, err := a.accounts.EnsureAdmin(context.Background(), h.slugOf(t, org), email, "", adminPassword); err != nil {
 		t.Fatalf("make the bootstrap administrator: %v", err)
 	}
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })
@@ -39,7 +40,7 @@ func TestASessionOverTheAPI(t *testing.T) {
 	a := newAPIServer(t, h)
 	home := h.makeMember(t, "signin-home")
 	away := h.makeMember(t, "signin-away")
-	email := bootstrapAdmin(t, h, a, home)
+	email := bootstrapAdmin(t, h, a, home.org)
 	if _, err := h.super.Exec(context.Background(), `
 		INSERT INTO org_member (org_id, user_id, org_role) SELECT $1, id, 'member' FROM app_user WHERE email = $2`, away.org, email); err != nil {
 		t.Fatal(err)
