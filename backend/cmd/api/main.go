@@ -16,6 +16,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
@@ -135,6 +136,7 @@ func run() error {
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirement.NewService(cluster),
 		Search:          search.NewService(cluster),
+		Attributes:      attribute.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

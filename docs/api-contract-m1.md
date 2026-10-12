@@ -170,9 +170,9 @@ New audit actions: `project.created`, `project.key_changed`,
   named (#24), or blank: one type `Requirement` that is the default type, the
   default statuses and workflow (#17), every organization link type enabled,
   and no sections. The creator is granted `admin` and everyone `editor` (#12).
-  Each of #14, #17, #18 and #24 adds its part to create as it lands: until
-  then a blank project is the row and its grants alone, a `template` is 422,
-  and so is a `settings.defaultTypeId`, since no project has types yet.
+  Each of #17, #18 and #24 adds its part to create as it lands: until then a
+  blank project is the row, its grants and its type `Requirement`, which a
+  trigger makes and names `settings.defaultTypeId`, and a `template` is 422.
 - **A new key** (`PUT .../key`) keeps the old one as an alias: `CHK-R5`
   becomes `SYS-R5`, and both `CHK` and `CHK-R5` keep resolving. Taking back a
   key the project had before removes it from the aliases. The same key is no
@@ -359,8 +359,7 @@ New audit actions: `project.created`, `project.key_changed`,
   the project's trash to change it."
 - **`requireRevisionComment`** asks for a comment on every revision after the
   first; revision 1 is the requirement's writing.
-- **Until the later issues land**, `typeId` and `attributes` are 422 (#14),
-  `labels` is 422 (#19), `place` is 422 and a new requirement goes last at the
+- **Until the later issues land**, `labels` is 422 (#19), `place` is 422 and a new requirement goes last at the
   top (#15), and `status` is null (#17). `GET
   /projects/{projectKey}/requirements` is built here, in key order and paged,
   narrowed by `kind`, `owner` and `priority`; its other parameters are 422
@@ -398,7 +397,13 @@ New audit actions: `project.created`, `project.key_changed`,
   removes only what no requirement and no revision ever had, and is otherwise
   409 `in_use`: "This type is used by 12 requirements. Retire it instead, so
   their history keeps it." The project's default type cannot be retired (422
-  on `retired`).
+  on `retired`), and deleting it is 409 `default_type`: "This is the
+  project's default type. Make another type the default under the project's
+  settings first." Whether something was used counts every requirement,
+  trashed or not, and every revision, whoever asks.
+- **Projects made before types** got the type `Requirement` as their
+  default; their requirements keep no type, so what their revisions say stays
+  as it was.
 - **Attribute kinds**, and what a value is:
 
   | Kind | Value |
@@ -436,7 +441,9 @@ New audit actions: `project.created`, `project.key_changed`,
   without regard to case.
 - **The kind** is set when an attribute is made and never changes.
 - UI: the Types and Attributes tabs of the project settings, ported from
-  Armature's `features/fields`.
+  Armature's `features/fields`; the default type is chosen under Details. A
+  requirement's form offers its type and the attributes that show on it, and
+  its page shows the values given, options and people by name.
 
 ## #15 Hierarchy, sections and the specification view
 

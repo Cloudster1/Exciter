@@ -128,6 +128,8 @@ export const KEY_SUGGEST_DEBOUNCE_MS = 300;
 
 /** How many people or groups a picker offers at once, and how long typing rests before it asks; the server's perm.DefaultPickerLimit. */
 export const PICKER_LIMIT = 20;
+/** The most a picker gives at once, perm.MaxPickerLimit, which naming the people a value holds asks for. */
+export const MAX_PICKER_LIMIT = 50;
 export const PICKER_DEBOUNCE_MS = 200;
 
 /** The heading levels the editor offers; the server's document.MaxHeadingLevel is the deepest. */
@@ -142,3 +144,8 @@ export const REQUIREMENT_PAGE_SIZE = 50;
 /** The longest title and comment the server takes, its requirement.MaxTitleLength and MaxCommentLength. */
 export const REQUIREMENT_TITLE_MAX_LENGTH = 300;
 export const REVISION_COMMENT_MAX_LENGTH = 500;
+
+/** The icons a requirement type may take, by the name the server stores; TypeIcon draws each. */
+export const TYPE_ICONS = ["requirement", "interface", "constraint", "test", "need", "function", "risk", "data"] as const;
+/** The colours a type is offered in, which a theme's own palette does not change since they tell types apart. */
+export const TYPE_COLOURS = ["#4f6bed", "#0f9d8a", "#d97706", "#c2410c", "#7c3aed", "#db2777", "#2563eb", "#64748b"] as const;

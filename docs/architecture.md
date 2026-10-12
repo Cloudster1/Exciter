@@ -78,6 +78,12 @@ holds even for a query that forgot it.
   that belongs to a requirement. Statements and rationales are documents of
   the shared editor, held to `internal/document`'s allowlist on the server
   and to the same table, as `api/document-allowlist.json`, in the web client.
+- **Types and attributes** (#14): `requirement_type` and `attribute_def`
+  belong to a project; a value lives in `requirement.attributes` under its
+  attribute's id, GIN-indexed, and a trigger refuses a type or an attribute of
+  another project. Every revision copies the type and the values it had, so
+  what was ever used is retired rather than deleted; `type_usage` and
+  `attribute_usage` count every use, whoever asks.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.

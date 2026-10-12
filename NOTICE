@@ -139,6 +139,14 @@ Adapted from Stator at cf0f6f7, for projects (#11):
   with the key asked of the server, key changes, and archiving in place of
   personal spaces, templates and guests
 
+Adapted from Armature at 73d72dd, for types and attributes (#14):
+- backend/internal/attribute/values.go: normalize and cleanOptions of
+  internal/field/validate.go, with options kept by id, multi-select, rich
+  text, people and dates added
+- web/src/features/types TypeList, AttributeList and AttributeFields:
+  features/fields FieldList and IssueFields, made a project's types and
+  attributes and the values of a requirement's form
+
 Adapted from Stator at cf0f6f7, for requirements (#13):
 - backend/internal/document: validate.go, allowlist.go and text.go, cut to
   the nodes and marks a requirement says, and cmd/docallowlist
