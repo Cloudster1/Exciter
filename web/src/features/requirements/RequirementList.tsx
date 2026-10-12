@@ -8,6 +8,7 @@ import { REQUIREMENT_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { TypeIcon } from "@/features/types/TypeIcon";
+import { StatusBadge } from "@/features/workflows/StatusBadge";
 
 const changedAt = localDateFormat({ dateStyle: "medium" });
 
@@ -59,6 +60,7 @@ export function RequirementList({ project }: { project: Project }) {
               <tr>
                 <Th className="w-28">{t.requirements.columnKey}</Th>
                 <Th>{t.requirements.columnTitle}</Th>
+                <Th className="w-36">{t.workflows.columnStatus}</Th>
                 <Th className="w-40">{t.requirements.columnOwner}</Th>
                 <Th className="w-24">{t.requirements.columnPriority}</Th>
                 <Th className="w-32">{t.requirements.columnUpdated}</Th>
@@ -86,6 +88,7 @@ export function RequirementList({ project }: { project: Project }) {
                       </span>
                     )}
                   </Td>
+                  <Td>{row.status && <StatusBadge name={row.status.name} category={row.status.category} />}</Td>
                   <Td>
                     <span className="text-ink-muted">{row.owner?.name ?? ""}</span>
                   </Td>

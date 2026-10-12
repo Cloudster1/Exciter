@@ -2,15 +2,16 @@ import { useEffect, type ReactNode } from "react";
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useProject, type Project } from "@/api/projects";
 import { ErrorBanner, Skeleton } from "@/components/ui";
-import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/config";
+import { NEW_PROJECT_PATH, NEW_WORKFLOW, PROJECTS_PATH } from "@/config";
 import { NewProjectForm } from "@/features/projects/NewProjectForm";
 import { ProjectDirectory } from "@/features/projects/ProjectDirectory";
 import { ProjectPermissions } from "@/features/permissions/ProjectPermissions";
-import { ProjectSettings } from "@/features/projects/ProjectSettings";
+import { ProjectSettings, isSettingsTab, type SettingsTab } from "@/features/projects/ProjectSettings";
 import { NewRequirementForm } from "@/features/requirements/NewRequirementForm";
 import { RequirementList } from "@/features/requirements/RequirementList";
 import { TrashPage } from "@/features/requirements/TrashPage";
 import { SpecPage } from "@/features/tree/SpecPage";
+import { WorkflowDesignPage } from "@/features/workflows/WorkflowDesignPage";
 import { appRoute } from "./app";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
@@ -78,9 +79,33 @@ export const trashRoute = createRoute({
 export const projectSettingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/p/$projectKey/settings",
+  validateSearch: (search: Record<string, unknown>): { tab?: SettingsTab } => (isSettingsTab(search.tab) ? { tab: search.tab } : {}),
   component: function ProjectSettingsPage() {
     const { projectKey } = projectSettingsRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/settings" render={(project) => <ProjectSettings key={project.id} project={project} />} />;
+    const { tab } = projectSettingsRoute.useSearch();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/settings"
+        render={(project) => <ProjectSettings key={project.id} project={project} tab={tab} />}
+      />
+    );
+  },
+});
+
+/** The designer, wide, on one of a project's workflows or on a new one. */
+export const workflowDesignRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/settings/workflows/$workflowId",
+  component: function WorkflowDesignRoute() {
+    const { projectKey, workflowId } = workflowDesignRoute.useParams();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/settings"
+        render={(project) => <WorkflowDesignPage key={project.id} project={project} workflowId={workflowId === NEW_WORKFLOW ? undefined : workflowId} />}
+      />
+    );
   },
 });
 

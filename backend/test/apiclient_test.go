@@ -33,6 +33,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // apiServer is the real router over the real database and the real bucket, signing callers in with real sessions.
@@ -85,6 +86,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes, Projects: project.NewService(h.cluster), Perms: perm.NewService(h.cluster),
 		Requirements: requirement.NewService(h.cluster), Search: search.NewService(h.cluster),
 		Attributes: attribute.NewService(h.cluster),
+		Workflows:  workflow.NewService(h.cluster),
 		Fresh:      h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -14,18 +15,11 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // TopicMoved is a requirement moved to another project, with the key it had and the one it has now.
 const TopicMoved = "requirement.moved"
-
-// untilWorkflows refuses a status mapping, which waits for the statuses of #17.
-func untilWorkflows(mapping map[string]uuid.UUID) error {
-	if len(mapping) > 0 {
-		return &FieldError{"statusMapping", "Projects have no statuses to map yet. Leave the mapping out."}
-	}
-	return nil
-}
 
 // destination reads the project a move or a copy goes to, where the actor must edit.
 func destination(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectKey string, here *project.Project) (*project.Project, error) {
@@ -176,9 +170,6 @@ func (m *matcher) carry(l *loaded) (*uuid.UUID, map[string]json.RawMessage, erro
 // Move puts a requirement and everything below it elsewhere in its project, or in another, which gives each a
 // key from that project's counter and keeps the old one resolving.
 func (s *Service) Move(ctx context.Context, actor uuid.UUID, key string, in MoveInput) (*Requirement, db.LSN, error) {
-	if err := untilWorkflows(in.StatusMapping); err != nil {
-		return nil, 0, err
-	}
 	var out *Requirement
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		cur, err := changing(ctx, tx, actor, key)
@@ -196,10 +187,13 @@ func (s *Service) Move(ctx context.Context, actor uuid.UUID, key string, in Move
 		if err != nil {
 			return err
 		}
-		if to.ID == here.ID {
+		switch {
+		case to.ID == here.ID && len(in.StatusMapping) > 0:
+			return &FieldError{"statusMapping", "A status mapping is for a move to another project; leave it out within one."}
+		case to.ID == here.ID:
 			err = s.moveWithin(ctx, tx, actor, cur, in.Place)
-		} else {
-			err = s.moveAcross(ctx, tx, actor, cur, to, in.Place)
+		default:
+			err = s.moveAcross(ctx, tx, actor, cur, to, in.Place, in.StatusMapping)
 		}
 		if err != nil {
 			return err
@@ -231,7 +225,32 @@ func (s *Service) moveWithin(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 	return logChange(ctx, tx, actor, cur.ID, ChangePlace, cur.Outline, now)
 }
 
-func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *loaded, to *project.Project, place Place) error {
+// carried is one requirement of a move between projects, read before anything moves, with what it becomes there.
+type carried struct {
+	l      *loaded
+	typeID *uuid.UUID
+	values map[string]json.RawMessage
+	status *uuid.UUID
+}
+
+// statusThere finds the status a requirement takes in another project's workflow: the one of its name, else the
+// one the mapping gives for its status; empty when neither does.
+func statusThere(w *workflow.Workflow, l *loaded, mapping map[string]uuid.UUID) *uuid.UUID {
+	if l.Status == nil {
+		return nil
+	}
+	for _, st := range w.Steps {
+		if strings.EqualFold(st.Status.Name, l.Status.Name) {
+			return &st.Status.ID
+		}
+	}
+	if to, ok := mapping[l.Status.ID.String()]; ok && w.Has(to) {
+		return &to
+	}
+	return nil
+}
+
+func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *loaded, to *project.Project, place Place, mapping map[string]uuid.UUID) error {
 	at, err := rankAt(ctx, tx, to.ID, place, nil)
 	if err != nil {
 		return err
@@ -244,16 +263,40 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 	if err != nil {
 		return err
 	}
-	// In reading order, so each takes its number in the order a reader meets them and finds its parent moved.
+	// Everything is matched before anything moves, so a status left unmapped refuses the whole move.
+	plan := make([]carried, len(nodes))
+	unmapped := map[string]bool{}
 	for i, id := range nodes {
 		l, err := findByID(ctx, tx, actor, id)
 		if err != nil {
 			return err
 		}
-		typeID, values, err := match.carry(l)
-		if err != nil {
+		c := carried{l: l}
+		if c.typeID, c.values, err = match.carry(l); err != nil {
 			return err
 		}
+		if l.Kind == KindRequirement {
+			w, err := workflow.For(ctx, tx, to.ID, c.typeID)
+			if err != nil {
+				return err
+			}
+			if c.status = statusThere(w, l, mapping); c.status == nil && l.Status != nil {
+				unmapped[l.Status.Name] = true
+			}
+		}
+		plan[i] = c
+	}
+	if len(unmapped) > 0 {
+		names := make([]string, 0, len(unmapped))
+		for name := range unmapped {
+			names = append(names, name)
+		}
+		slices.Sort(names)
+		return &FieldError{"statusMapping", fmt.Sprintf("%s has no status called %s. Map each to one of its statuses.", to.Name, strings.Join(names, ", "))}
+	}
+	// In reading order, so each takes its number in the order a reader meets them and finds its parent moved.
+	for i, c := range plan {
+		l, id, typeID, values := c.l, c.l.ID, c.typeID, c.values
 		content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values}
 		hash := content.Hash()
 		attrs, err := json.Marshal(values)
@@ -271,6 +314,11 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 			return fmt.Errorf("move %s: %w", l.Key, treeRefusal(err))
 		}
 		moved := Key(to.Key, number)
+		if c.status != nil {
+			if _, err := tx.Exec(ctx, `SELECT requirement_remap_status($1, $2)`, id, *c.status); err != nil {
+				return fmt.Errorf("bring the status of %s along: %w", l.Key, err)
+			}
+		}
 		if hash != l.hash {
 			if err := revisionOf(ctx, tx, actor, id, l.Revision+1, content, hash, "Moved from "+l.Key, nil); err != nil {
 				return err

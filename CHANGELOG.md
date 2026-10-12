@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Statuses and workflow (#17). Every project starts with a lifecycle: Draft,
+  In review, Approved, Implemented and Verified, with Rejected and Obsolete
+  beside them. A requirement moves only by the transitions its workflow
+  offers the reader, and an approval cannot come from whoever wrote the
+  latest revision. A new revision of an approved requirement sends it back to
+  Draft, saying why. Project administrators define statuses, each counting as
+  draft, review, approved, done or closed, and draw workflows in a graph
+  designer, with conditions, validators and post-functions on each
+  transition; the project follows one and a type may follow another, and a
+  change of workflow asks where requirements go whose status it lacks.
 - History, compare and restore (#16). A requirement's history lists its
   revisions with who wrote each, when and why. Any two compare side by side:
   changed words are marked in the statement and the rationale, and attribute

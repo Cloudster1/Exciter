@@ -158,3 +158,40 @@ export const TREE_DROP_EDGE = 0.25;
 
 /** How many revisions, or entries of the activity, one window of a requirement's history shows. */
 export const HISTORY_PAGE_SIZE = 20;
+
+/** The size of a status on the workflow canvas, and the grid it snaps to when dropped, so rows line up. */
+export const WORKFLOW_NODE_WIDTH = 240;
+export const WORKFLOW_NODE_HEIGHT = 72;
+export const WORKFLOW_GRID = 8;
+/** Where the automatic layout puts the first column and row, and how far apart its columns (one per category) and rows go. */
+export const WORKFLOW_LAYOUT_ORIGIN_X = 32;
+export const WORKFLOW_LAYOUT_ORIGIN_Y = 40;
+export const WORKFLOW_COLUMN_GAP = 296;
+export const WORKFLOW_ROW_GAP = 104;
+/** Where the "any status" source of global transitions is drawn: below the first rows, so its arrows climb to their targets. */
+export const WORKFLOW_ANYWHERE_X = WORKFLOW_LAYOUT_ORIGIN_X;
+export const WORKFLOW_ANYWHERE_Y = WORKFLOW_LAYOUT_ORIGIN_Y + 3 * WORKFLOW_ROW_GAP;
+/** How far a transition's curve bows out, so two moves between the same pair stay apart. */
+export const WORKFLOW_EDGE_BEND = 64;
+/** How wide a band around a transition's curve takes a click. */
+export const WORKFLOW_EDGE_HIT_WIDTH = 14;
+/** The canvas is at least this big and grows with what is drawn, leaving the margin beyond the furthest status to drag to. */
+export const WORKFLOW_CANVAS_MIN_WIDTH = 900;
+export const WORKFLOW_CANVAS_MIN_HEIGHT = 520;
+export const WORKFLOW_CANVAS_MARGIN = 160;
+/** A pointer that travels less than this is a click; anything bigger takes that much off every drag. */
+export const WORKFLOW_DRAG_THRESHOLD_PX = 1;
+/** A transition dropped within this distance of a status's centre lands on it. */
+export const WORKFLOW_CONNECT_RADIUS = 96;
+/** The ring a transition is dragged out of, and the round badge that carries a status's category. */
+export const WORKFLOW_HANDLE_SIZE = 16;
+export const WORKFLOW_BADGE_SIZE = 36;
+/** Names longer than this are cut on a status card, so a card stays one size. */
+export const WORKFLOW_NAME_LENGTH = 26;
+/** The longest name and description of a status, the server's workflow.MaxNameLength and MaxDescriptionLength. */
+export const STATUS_NAME_MAX_LENGTH = 60;
+export const STATUS_DESCRIPTION_MAX_LENGTH = 500;
+/** The address segment that opens the designer on a workflow not made yet. */
+export const NEW_WORKFLOW = "new";
+/** How many lines the comment a transition asks for starts with. */
+export const TRANSITION_COMMENT_ROWS = 3;

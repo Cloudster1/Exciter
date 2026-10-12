@@ -90,6 +90,17 @@ holds even for a query that forgot it.
   loop or a parent of another project, and another renumbers a requirement
   moved to another project and keeps its old key, so a move holds whoever
   makes it.
+- **Workflow** (#17): `req_status`, `workflow`, its steps, transitions and
+  rules belong to a project, which follows one workflow while a type may
+  follow another. `internal/workflow` decides what a reader is offered and
+  what a transition asks, Armature's engine without schemes; the database
+  moves the status. `exciter_app` holds no `UPDATE` on `requirement.status_id`,
+  so it changes only through `requirement_transition`, which checks the
+  transition leaves the current status and is the caller's to take, logs it
+  and runs the owner post-functions, and `requirement_remap_status`, which
+  only takes a status the workflow lacks to one it has. A step may send a
+  requirement elsewhere on a new revision, which is how an edit supersedes an
+  approval. The designer is Armature's, drawn with React Flow.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.

@@ -6,6 +6,7 @@ import { projectsEn } from "./projects.en";
 import { editorEn, requirementsEn } from "./requirements.en";
 import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
+import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
 
@@ -241,6 +242,8 @@ export const en = {
       "project.grants_changed": "Project permissions changed",
       "requirement.purged": "Requirement deleted for good",
       "trash.emptied": "Trash emptied",
+      "workflow.saved": "Workflow saved",
+      "workflow.assigned": "Workflow assigned",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -251,6 +254,7 @@ export const en = {
       theme: "Theme",
       project: "Project",
       requirement: "Requirement",
+      workflow: "Workflow",
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
@@ -262,6 +266,7 @@ export const en = {
   attributes: attributesEn,
   tree: treeEn,
   history: historyEn,
+  workflows: workflowsEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

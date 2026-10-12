@@ -68,7 +68,7 @@ func TestTheTreeOverTheAPI(t *testing.T) {
 		}
 		refuse(t, "a move under itself", editor.post(t, "/api/v1/requirements/TR-R1/move", map[string]any{"place": place(payID, nil)}),
 			http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "a status mapping before statuses", editor.post(t, "/api/v1/requirements/TR-R4/move", map[string]any{
+		refuse(t, "a status mapping within the project", editor.post(t, "/api/v1/requirements/TR-R4/move", map[string]any{
 			"place": place(nil, nil), "statusMapping": map[string]any{"x": scopeID}}), http.StatusUnprocessableEntity, "validation_failed")
 		refuse(t, "a guest moves", f.guest.post(t, "/api/v1/requirements/TR-R4/move", map[string]any{"place": place(nil, nil)}), http.StatusNotFound, "not_found")
 		if n := f.h.countRows(t, `SELECT count(*) FROM requirement_change WHERE requirement_id = $1 AND field = 'place'`, lastID); n != 1 {
