@@ -84,6 +84,12 @@ holds even for a query that forgot it.
   another project. Every revision copies the type and the values it had, so
   what was ever used is retired rather than deleted; `type_usage` and
   `attribute_usage` count every use, whoever asks.
+- **The tree** (#15): `requirement.parent_id` and `rank`, Stator's
+  lexicographic positions in byte order; outline numbers are computed on read
+  by one recursive query. A trigger under the project's tree lock refuses a
+  loop or a parent of another project, and another renumbers a requirement
+  moved to another project and keeps its old key, so a move holds whoever
+  makes it.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.

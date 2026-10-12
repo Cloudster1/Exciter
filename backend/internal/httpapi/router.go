@@ -205,6 +205,10 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/projects/{projectKey}/trash", s.handleEmptyRequirementTrash)
 			r.Post("/projects/{projectKey}/trash/{requirementID}/restore", s.handleRestoreRequirement)
 			r.Delete("/projects/{projectKey}/trash/{requirementID}", s.handlePurgeRequirement)
+			r.Get("/projects/{projectKey}/tree", s.handleGetTree)
+			r.Get("/projects/{projectKey}/spec", s.handleGetSpecification)
+			r.Post("/requirements/{reqKey}/move", s.handleMoveRequirement)
+			r.Post("/requirements/{reqKey}/copy", s.handleCopyRequirement)
 		})
 
 		// Types and attributes: read by whoever views their project, changed by its administrators.

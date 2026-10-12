@@ -43,7 +43,7 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			return nil, 0, err
 		}
 	}
-	if err := untilLater(in.Labels, in.Place); err != nil {
+	if err := untilLater(in.Labels); err != nil {
 		return nil, 0, err
 	}
 	if kind == KindSection && (in.TypeID != nil || len(in.Attributes) > 0) {
@@ -102,12 +102,26 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		if err != nil {
 			return err
 		}
+		var (
+			parent *uuid.UUID
+			at     string
+		)
+		if in.Place != nil {
+			parent = in.Place.ParentID
+			at, err = rankAt(ctx, tx, p.ID, *in.Place, nil)
+		} else {
+			at, err = lastAtTop(ctx, tx, p.ID)
+		}
+		if err != nil {
+			return err
+		}
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO requirement (org_id, project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority, created_by, updated_by)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11) RETURNING id`,
-			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, actor).Scan(&id); err != nil {
-			return fmt.Errorf("write the requirement: %w", err)
+			INSERT INTO requirement (org_id, project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
+			                         parent_id, rank, created_by, updated_by)
+			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13) RETURNING id`,
+			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, parent, at, actor).Scan(&id); err != nil {
+			return fmt.Errorf("write the requirement: %w", treeRefusal(err))
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)

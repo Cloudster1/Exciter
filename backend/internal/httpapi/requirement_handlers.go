@@ -211,3 +211,56 @@ func requirementError(err error) *APIError {
 	}
 	return nil
 }
+
+func (s *Server) handleGetTree(w http.ResponseWriter, r *http.Request) {
+	nodes, err := s.Requirements.Tree(r.Context(), userFrom(r), projectKeyParam(r))
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"nodes": nodes})
+}
+
+func (s *Server) handleGetSpecification(w http.ResponseWriter, r *http.Request) {
+	limit, offset, apiErr := offsetWindow(r, requirement.DefaultLimit, requirement.MaxSpecLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	entries, total, err := s.Requirements.Spec(r.Context(), userFrom(r), projectKeyParam(r), limit, offset)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset})
+}
+
+func (s *Server) handleMoveRequirement(w http.ResponseWriter, r *http.Request) {
+	var req requirement.MoveInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	got, lsn, err := s.Requirements.Move(r.Context(), userFrom(r), reqKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
+}
+
+func (s *Server) handleCopyRequirement(w http.ResponseWriter, r *http.Request) {
+	var req requirement.CopyInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	made, copied, lsn, err := s.Requirements.Copy(r.Context(), userFrom(r), reqKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusCreated, map[string]any{"requirement": made, "copied": copied})
+}

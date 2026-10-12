@@ -57,6 +57,9 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}`} icon="Folder" rail={false} onNavigate={onNavigate} exact>
           {t.requirements.title}
         </NavItem>
+        <NavItem to={`/p/${project.key}/spec`} icon="Table" rail={false} onNavigate={onNavigate}>
+          {t.tree.specTitle}
+        </NavItem>
         {project.can.edit && (
           <NavItem to={`/p/${project.key}/trash`} icon="Trash" rail={false} onNavigate={onNavigate}>
             {t.requirements.trashTitle}

@@ -139,6 +139,13 @@ Adapted from Stator at cf0f6f7, for projects (#11):
   with the key asked of the server, key changes, and archiving in place of
   personal spaces, templates and guests
 
+Adapted from Stator at cf0f6f7, for the tree (#15):
+- backend/internal/rank: internal/rank, which Stator has from Armature
+- backend/migrations/00150_tree.sql: the tree guard of 00021_page_tree.sql,
+  on requirements and with the project's tree lock
+- web/src/features/tree RequirementTree and PlaceDialog: features/pages
+  PageTree and PlaceDialog, with the whole tree read at once and numbered
+
 Adapted from Armature at 73d72dd, for types and attributes (#14):
 - backend/internal/attribute/values.go: normalize and cleanOptions of
   internal/field/validate.go, with options kept by id, multi-select, rich

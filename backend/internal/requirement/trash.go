@@ -2,6 +2,7 @@ package requirement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -28,8 +29,13 @@ func (s *Service) Trash(ctx context.Context, actor uuid.UUID, key string) (db.LS
 		if err != nil || cur.TrashedAt != nil {
 			return err
 		}
+		// Everything below it goes along as one item, keeping its parent and rank for the restore.
+		below, err := subtree(ctx, tx, cur.projectID, cur.ID)
+		if err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `
-			UPDATE requirement SET trashed_at = now(), trashed_by = $2, trash_id = id, updated_by = $2 WHERE id = $1`, cur.ID, actor); err != nil {
+			UPDATE requirement SET trashed_at = now(), trashed_by = $2, trash_id = $3, updated_by = $2 WHERE id = ANY ($1)`, below, actor, cur.ID); err != nil {
 			return fmt.Errorf("trash %s: %w", cur.Key, err)
 		}
 		if err := logChange(ctx, tx, actor, cur.ID, ChangeTrash, "", trashedNote); err != nil {
@@ -65,6 +71,7 @@ func (s *Service) TrashItems(ctx context.Context, actor uuid.UUID, projectKey st
 		}
 		rows, err := tx.Query(ctx, `
 			SELECT r.id, r.number, r.kind, r.title, r.trashed_at, COALESCE(u.name, ''),
+			       r.parent_id IS NULL OR EXISTS (SELECT 1 FROM requirement x WHERE x.id = r.parent_id AND x.trashed_at IS NULL),
 			       (SELECT count(*)::int FROM requirement x WHERE x.org_id = r.org_id AND x.trash_id = r.id)
 			FROM requirement r LEFT JOIN app_user u ON u.id = r.trashed_by
 			WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trash_id = r.id
@@ -77,10 +84,8 @@ func (s *Service) TrashItems(ctx context.Context, actor uuid.UUID, projectKey st
 				item   TrashItem
 				number int
 			)
-			err := row.Scan(&item.ID, &number, &item.Kind, &item.Title, &item.TrashedAt, &item.TrashedByName, &item.Requirements)
+			err := row.Scan(&item.ID, &number, &item.Kind, &item.Title, &item.TrashedAt, &item.TrashedByName, &item.ParentInTree, &item.Requirements)
 			item.Key = Key(p.Key, number)
-			// Without a tree (#15) every requirement goes back to the top, where it was.
-			item.ParentInTree = true
 			return item, err
 		})
 		if items != nil {
@@ -98,6 +103,25 @@ func (s *Service) Restore(ctx context.Context, actor uuid.UUID, projectKey strin
 		p, err := trashOf(ctx, tx, actor, projectKey, false)
 		if err != nil {
 			return err
+		}
+		// Back under its parent, or at the top when the parent went to the trash on its own or for good.
+		var parentGone bool
+		if err := tx.QueryRow(ctx, `
+			SELECT r.parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM requirement x WHERE x.id = r.parent_id AND x.trashed_at IS NULL)
+			FROM requirement r WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.id = $2 AND r.trash_id = r.id`, p.ID, id).Scan(&parentGone); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if parentGone {
+			at, err := lastAtTop(ctx, tx, p.ID)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE requirement SET parent_id = NULL, rank = $2 WHERE id = $1`, id, at); err != nil {
+				return err
+			}
 		}
 		rows, err := tx.Query(ctx, `
 			UPDATE requirement SET trashed_at = NULL, trashed_by = NULL, trash_id = NULL, updated_by = $3

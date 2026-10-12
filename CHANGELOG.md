@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The tree and the specification (#15). Requirements and sections sit below
+  one another, numbered as they read (2.3.1), and `/p/<key>/spec` reads a
+  project as one numbered document beside its tree, each entry edited in
+  place. Dragging in the tree moves a requirement and everything below it;
+  the Move and Copy dialogs do it from the keyboard, also to another project,
+  which gives new keys and keeps the old ones working. Types and values
+  travel by name. The trash takes what is below a requirement along with it.
 - Requirement types and attributes (#14). A project's administrators define
   its types, each with an icon and a colour, and the attributes it records:
   text, rich text, number, select, multi-select, date, person, yes or no and

@@ -9,7 +9,16 @@ import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { loginRoute } from "./login";
-import { newProjectRoute, newRequirementRoute, projectPermissionsRoute, projectRoute, projectSettingsRoute, projectsRoute, trashRoute } from "./projects";
+import {
+  newProjectRoute,
+  newRequirementRoute,
+  projectPermissionsRoute,
+  projectRoute,
+  projectSettingsRoute,
+  projectsRoute,
+  specRoute,
+  trashRoute,
+} from "./projects";
 import { permalinkRoute, requirementRoute } from "./requirements";
 import { membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
@@ -28,6 +37,7 @@ const routeTree = rootRoute.addChildren([
     projectPermissionsRoute,
     newRequirementRoute,
     trashRoute,
+    specRoute,
     requirementRoute,
     permalinkRoute,
     settingsRoute,

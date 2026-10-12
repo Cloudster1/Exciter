@@ -359,8 +359,8 @@ New audit actions: `project.created`, `project.key_changed`,
   the project's trash to change it."
 - **`requireRevisionComment`** asks for a comment on every revision after the
   first; revision 1 is the requirement's writing.
-- **Until the later issues land**, `labels` is 422 (#19), `place` is 422 and a new requirement goes last at the
-  top (#15), and `status` is null (#17). `GET
+- **Until the later issues land**, `labels` is 422 (#19) and `status` is
+  null (#17). A requirement written without a place goes last at the top. `GET
   /projects/{projectKey}/requirements` is built here, in key order and paged,
   narrowed by `kind`, `owner` and `priority`; its other parameters are 422
   until #20 builds them. Its tool is `list_requirements`.
@@ -494,10 +494,24 @@ New audit actions: `project.created`, `project.key_changed`,
   files are copied. Statuses start at the initial one. Into another project,
   types and attributes match as for a move. At most `requirement.MaxCopy`
   (1000) requirements are copied, else 422. `copied` counts them.
+- **In the database.** A trigger refuses a parent of another project or below
+  the node itself, under the project's tree lock (both projects' for a move
+  between two, in one order), so even moves made straight through SQL cannot
+  close a loop. A requirement changes project only by a move: a trigger gives
+  it the next number there and writes its old key, whoever moves it. `rank`
+  compares in byte order (`COLLATE "C"`), whatever the database's collation.
+- **The trash** takes everything below a requirement as one item. A restore
+  whose parent went to the trash on its own, or for good, puts the item at the
+  top.
+- **Until the later issues land**, a move between projects refuses a
+  `statusMapping` (422 until #17), and `links` on a copy waits for #18. Links,
+  labels and files belong to the requirement's id, so a move takes them along
+  as they arrive.
 - UI: `/p/$projectKey/spec` shows the tree beside the numbered document,
   edited in place. Dragging in the tree moves, and the place dialog moves or
   copies to another project, ported from Stator's `PageTree` and
-  `PlaceDialog`.
+  `PlaceDialog`; the dialog places last below the parent chosen. A
+  requirement's page offers Move and Copy, and shows where a copy came from.
 
 ## #16 History, compare and restore
 
