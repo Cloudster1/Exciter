@@ -18,7 +18,7 @@ func clean(t *testing.T) {
 		"EXCITER_DB_MIN_CONNS", "EXCITER_DB_CONN_MAX_LIFETIME", "EXCITER_DB_HEALTH_INTERVAL",
 		"EXCITER_DB_MAX_REPLICA_LAG", "EXCITER_DB_REPLICA_LAG_SAMPLES", "EXCITER_READ_YOUR_WRITES_TTL",
 		"EXCITER_VALKEY_URL", "EXCITER_METRICS_ADDR", "EXCITER_OTEL_ENDPOINT", "EXCITER_OTEL_SAMPLE_RATIO",
-		"EXCITER_SECRET_KEY",
+		"EXCITER_SECRET_KEY", "EXCITER_RETAIN_AUDIT",
 	} {
 		t.Setenv(key, "")
 	}
@@ -175,5 +175,28 @@ func TestTheSecretKeyIsThirtyTwoBytesAndRequiredOutsideDevelopment(t *testing.T)
 	t.Setenv("EXCITER_ENV", EnvProduction)
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_SECRET_KEY") {
 		t.Fatalf("production without a key should be refused: %v", err)
+	}
+}
+
+func TestTheAuditLogIsKeptAYearAndNeverLessThanADay(t *testing.T) {
+	clean(t)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.RetainAudit != DefaultRetainAudit {
+		t.Errorf("the audit log is kept %s by default, want %s", cfg.RetainAudit, DefaultRetainAudit)
+	}
+	for value, want := range map[string]time.Duration{"0": 0, "24h": 24 * time.Hour, "2160h": 2160 * time.Hour} {
+		t.Setenv("EXCITER_RETAIN_AUDIT", value)
+		if cfg, err := Load(); err != nil || cfg.RetainAudit != want {
+			t.Errorf("EXCITER_RETAIN_AUDIT=%s reads as %s, %v", value, cfg.RetainAudit, err)
+		}
+	}
+	for _, value := range []string{"23h", "-1h", "a while"} {
+		t.Setenv("EXCITER_RETAIN_AUDIT", value)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_RETAIN_AUDIT") {
+			t.Errorf("EXCITER_RETAIN_AUDIT=%s is let through: %v", value, err)
+		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -27,6 +28,8 @@ func isErrorEnvelope(body any) bool {
 func specBuilder() *openapi.Builder {
 	b := openapi.NewBuilder()
 	b.Names[reflect.TypeOf(version.Info{})] = "BuildInfo"
+	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
+	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	return b
 }
 
@@ -98,6 +101,8 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 		switch {
 		case isErrorEnvelope(body):
 			r.Content = map[string]openapi.MediaType{"application/json": {Schema: errorSchema}}
+		case op.binary && status == http.StatusOK:
+			r.Content = map[string]openapi.MediaType{"*/*": {Schema: &openapi.Schema{Type: "string", Format: "binary"}}}
 		case body != nil:
 			r.Content = map[string]openapi.MediaType{"application/json": {Schema: envelopeSchema(b, body)}}
 		}
@@ -172,7 +177,7 @@ func ok(body any) map[int]any { return map[int]any{http.StatusOK: body} }
 // answers, and whether it is built yet.
 type Route struct {
 	Method, Path, ID string
-	Public           bool
+	Public, Binary   bool
 	// Pending operations answer 501 until they are built.
 	Pending bool
 	// OrgWide operations are refused a token limited to projects.
@@ -183,7 +188,7 @@ type Route struct {
 func Catalog() []Route {
 	out := make([]Route, 0, len(operations))
 	for _, op := range operations {
-		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Pending: op.pending, OrgWide: op.orgWide})
+		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Binary: op.binary, Pending: op.pending, OrgWide: op.orgWide})
 	}
 	return out
 }

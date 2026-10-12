@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The outbox, the worker and the audit log (#4). A change and the event it
+  causes commit together or not at all; the worker drains the outbox, any
+  number of copies at once, retries a failing event a little later each time
+  and after ten attempts sets it aside with an entry in the organization's
+  audit log. The log is only ever added to, read only by owners and
+  administrators, and pruned after `EXCITER_RETAIN_AUDIT` (a year by default,
+  never less than a day). Its endpoints are agreed and served with #5.
 - The backend skeleton (#3). The api serves `/healthz`, `/readyz`,
   `/api/v1/openapi.json` and `/api/v1/meta` from one route table that also
   writes `api/openapi.json`; reads go to the replica unless it has not
