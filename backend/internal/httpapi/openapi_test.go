@@ -11,6 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // routed lists every method and path the router serves, in the form the
@@ -150,10 +153,19 @@ func TestAPendingOperationAnswersNotImplemented(t *testing.T) {
 		tag: "projects", summary: "A promise.", pending: true, responses: ok(statusResponse{}),
 	})
 
+	s := newServer(t)
+	s.Auth = fakeAuth{"member": {UserID: uuid.New(), Org: &tenant.Org{ID: uuid.New(), Slug: "acme"}, Role: auth.RoleMember}}
 	path := APIPrefix + pathParamPattern.ReplaceAllString("/projects/{projectKey}/promises/{promiseID}", uuid.NewString())
-	resp, body := serve(t, newServer(t).Routes(nil), httptestRequest(http.MethodPost, path, `{}`))
+	signedIn := httptestRequest(http.MethodPost, path, `{}`)
+	signedIn.Header.Set("Authorization", "Bearer member")
+	resp, body := serve(t, s.Routes(nil), signedIn)
 	if resp.StatusCode != http.StatusNotImplemented || errorOf(t, body)["code"] != "not_implemented" {
 		t.Fatalf("a pending route = %d %v, want 501 not_implemented", resp.StatusCode, body)
+	}
+	// Somebody who has not signed in learns nothing about it that a built route would not tell them either.
+	resp, body = serve(t, s.Routes(nil), httptestRequest(http.MethodPost, path, `{}`))
+	if resp.StatusCode != http.StatusUnauthorized || errorOf(t, body)["code"] != "unauthorized" {
+		t.Fatalf("a pending route answered %d to nobody, want 401", resp.StatusCode)
 	}
 	op := Spec().Paths["/projects/{projectKey}/promises/{promiseID}"]["post"]
 	if op == nil || op.Responses["501"] == nil {

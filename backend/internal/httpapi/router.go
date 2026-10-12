@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
@@ -30,15 +32,23 @@ type Database interface {
 
 // Server holds everything the handlers need.
 type Server struct {
-	DB  Database
-	Log *slog.Logger
+	DB   Database
+	Auth Authenticator
+	// Accounts signs people in and out and keeps the organization's members;
+	// nil answers every sign-in route that it is not set up.
+	Accounts *auth.Service
+	// Audit reads the record for administrators and keeps exports; nil refuses
+	// both. AuditRetention is how long the worker keeps an entry, zero forever.
+	Audit          *audit.Service
+	AuditRetention time.Duration
+	Log            *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
 	// reads unpinned, which is only right without replicas.
 	Fresh Freshness
 
-	// CookieName is the session cookie the same-site check guards, from #5 on.
+	// CookieName is the session cookie a sign-in sets and the same-site check guards.
 	CookieName string
 	Secure     bool
 	// AppBaseURL is the web client's origin, which the same-site check trusts.
@@ -69,6 +79,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	r.Use(cors(allowedOrigins))
 	r.Use(s.sameSite(allowedOrigins))
 	r.Use(middleware.Timeout(timeout))
+	r.Use(s.authenticate)
 	r.Use(s.readYourWrites)
 
 	// Liveness and readiness are deliberately outside the API and authentication.
@@ -78,8 +89,32 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	r.Route(APIPrefix, func(r chi.Router) {
 		r.Get("/openapi.json", s.handleOpenAPI)
 		r.Get("/meta", s.handleMeta)
+		r.Post("/auth/login", s.handleLogin)
 		mountPending(r, true)
-		mountPending(r, false)
+
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth)
+			r.Post("/auth/logout", s.handleLogout)
+			r.Get("/auth/me", s.handleMe)
+			r.Patch("/auth/me", s.handleUpdateMe)
+			r.Post("/auth/switch-org", s.handleSwitchOrg)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(requireAdmin)
+			r.Get("/users", s.handleListMembers)
+			r.Post("/users", s.handleCreateMember)
+			r.Patch("/users/{userID}", s.handleSetMemberRole)
+			r.Delete("/users/{userID}", s.handleRemoveMember)
+			r.Get("/audit", s.handleListAudit)
+			r.Get("/audit/facets", s.handleAuditFacets)
+			r.Get("/audit/export", s.handleExportAudit)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg)
+			mountPending(r, false)
+		})
 	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +131,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 }
 
 // mountPending routes each pending operation to a 501 so clients can be written
-// against it; from #5 on the ones that are not public sit behind the sign-in.
+// against it; the ones that are not public sit behind the sign-in.
 func mountPending(r chi.Router, public bool) {
 	for _, op := range operations {
 		if op.pending && op.public == public {

@@ -18,7 +18,8 @@ func clean(t *testing.T) {
 		"EXCITER_DB_MIN_CONNS", "EXCITER_DB_CONN_MAX_LIFETIME", "EXCITER_DB_HEALTH_INTERVAL",
 		"EXCITER_DB_MAX_REPLICA_LAG", "EXCITER_DB_REPLICA_LAG_SAMPLES", "EXCITER_READ_YOUR_WRITES_TTL",
 		"EXCITER_VALKEY_URL", "EXCITER_METRICS_ADDR", "EXCITER_OTEL_ENDPOINT", "EXCITER_OTEL_SAMPLE_RATIO",
-		"EXCITER_SECRET_KEY", "EXCITER_RETAIN_AUDIT",
+		"EXCITER_SECRET_KEY", "EXCITER_RETAIN_AUDIT", "EXCITER_SESSION_COOKIE", "EXCITER_SECURE_COOKIES", "EXCITER_SESSION_TTL",
+		"EXCITER_BOOTSTRAP_ORG_SLUG", "EXCITER_BOOTSTRAP_ORG_NAME", "EXCITER_BOOTSTRAP_ADMIN_EMAIL", "EXCITER_BOOTSTRAP_ADMIN_PASSWORD",
 	} {
 		t.Setenv(key, "")
 	}
@@ -198,5 +199,83 @@ func TestTheAuditLogIsKeptAYearAndNeverLessThanADay(t *testing.T) {
 		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_RETAIN_AUDIT") {
 			t.Errorf("EXCITER_RETAIN_AUDIT=%s is let through: %v", value, err)
 		}
+	}
+}
+
+func TestSecureCookiesOutsideDevelopment(t *testing.T) {
+	for _, env := range []string{EnvStaging, EnvProduction} {
+		t.Run(env, func(t *testing.T) {
+			clean(t)
+			t.Setenv("EXCITER_ENV", env)
+			t.Setenv("EXCITER_SECRET_KEY", testKey)
+			if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_SECURE_COOKIES") {
+				t.Fatalf("insecure cookies in %s should be refused: %v", env, err)
+			}
+			t.Setenv("EXCITER_SECURE_COOKIES", "true")
+			c, err := Load()
+			if err != nil {
+				t.Fatalf("with secure cookies %s should load: %v", env, err)
+			}
+			if c.IsProduction() != (env == EnvProduction) {
+				t.Errorf("IsProduction = %v in %s", c.IsProduction(), env)
+			}
+		})
+	}
+}
+
+func TestTheBootstrapAdminNeedsBothHalves(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_EMAIL", "admin@example.test")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_BOOTSTRAP_ADMIN_PASSWORD") {
+		t.Fatalf("an email without a password should be refused: %v", err)
+	}
+	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_PASSWORD", " a password with spaces ")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Bootstrap.AdminPassword != " a password with spaces " {
+		t.Errorf("the password was altered: %q", c.Bootstrap.AdminPassword)
+	}
+}
+
+func TestTheBootstrapOrganizationIsNamedOrDefaultsToTheDemo(t *testing.T) {
+	clean(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Bootstrap.OrgSlug != "demo" || c.Bootstrap.OrgName != "Demo" {
+		t.Errorf("default organization = %q %q", c.Bootstrap.OrgSlug, c.Bootstrap.OrgName)
+	}
+	t.Setenv("EXCITER_BOOTSTRAP_ORG_SLUG", "acme")
+	t.Setenv("EXCITER_BOOTSTRAP_ORG_NAME", "Acme Corp")
+	if c, err = Load(); err != nil || c.Bootstrap.OrgSlug != "acme" || c.Bootstrap.OrgName != "Acme Corp" {
+		t.Fatalf("named organization = %+v, %v", c.Bootstrap, err)
+	}
+}
+
+func TestABootstrapSlugTheDatabaseWouldRefuseIsRefusedAtOnce(t *testing.T) {
+	for _, slug := range []string{"A", "ab", "-acme", "acme-", "Acme", "acme corp", "a_b_c"} {
+		clean(t)
+		t.Setenv("EXCITER_BOOTSTRAP_ORG_SLUG", slug)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_BOOTSTRAP_ORG_SLUG") {
+			t.Errorf("slug %q should be refused by name: %v", slug, err)
+		}
+	}
+}
+
+func TestSignInDefaults(t *testing.T) {
+	clean(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Auth.SessionTTL != DefaultSessionTTL || c.Auth.SessionCookie != DefaultSessionCookie || c.Auth.SecureCookies {
+		t.Errorf("sign-in defaults = %+v", c.Auth)
+	}
+	t.Setenv("EXCITER_SESSION_TTL", "0s")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_SESSION_TTL") {
+		t.Errorf("a session that ends at once should be refused: %v", err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -65,15 +66,38 @@ var operations = []operation{
 		tool: "server_info", toolHelp: "Which product and build of Exciter the assistant is talking to.",
 		responses: ok(metaResponse{})},
 
-	// The audit log, as Armature's and Stator's administrators read theirs. Agreed here; served with #5.
-	{method: "GET", path: "/audit", handler: "handleListAudit", orgWide: true, pending: true, tag: "audit",
+	// Signing in with a password, and the session's own settings.
+	{method: "POST", path: "/auth/login", handler: "handleLogin", tag: "auth", summary: "Sign in a local account with email and password, and set the session cookie.", public: true,
+		request: loginRequest{}, responses: ok(meResponse{})},
+	{method: "POST", path: "/auth/logout", handler: "handleLogout", tag: "auth", summary: "End the session.", responses: none()},
+	{method: "GET", path: "/auth/me", handler: "handleMe", tag: "auth", summary: "Who is signed in, and the organizations they may act in.",
+		tool: "whoami", toolHelp: "Who the caller is and which organization they act in.", responses: ok(meResponse{})},
+	{method: "PATCH", path: "/auth/me", handler: "handleUpdateMe", tag: "auth", summary: "Change the caller's own settings, such as the interface language.",
+		request: updateMeRequest{}, responses: ok(meResponse{})},
+	{method: "POST", path: "/auth/switch-org", handler: "handleSwitchOrg", tag: "auth", summary: "Act in another of the caller's organizations from now on.",
+		request: switchOrgRequest{}, responses: ok(env{"organization": auth.CurrentOrg{}})},
+
+	// The organization's people, for its administrators.
+	{method: "GET", path: "/users", handler: "handleListMembers", orgWide: true, tag: "members", summary: "The organization's members, owners first. For administrators.",
+		responses: ok(env{"members": []auth.Member{}})},
+	{method: "POST", path: "/users", handler: "handleCreateMember", orgWide: true, tag: "members",
+		summary: "Add a person with a password, made for them when none is given and shown once in the answer. For administrators.",
+		request: createMemberRequest{}, responses: map[int]any{http.StatusCreated: env{"member": auth.CreatedMember{}}}},
+	{method: "PATCH", path: "/users/{userID}", handler: "handleSetMemberRole", orgWide: true, tag: "members",
+		summary: "Give a member another role; the owner's and the caller's own stay. For administrators.",
+		request: setRoleRequest{}, responses: ok(env{"member": auth.Member{}})},
+	{method: "DELETE", path: "/users/{userID}", handler: "handleRemoveMember", orgWide: true, tag: "members",
+		summary: "Take a member out of the organization; their sessions stop reaching it at once. For administrators.", responses: none()},
+
+	// The audit log, as Armature's and Stator's administrators read theirs.
+	{method: "GET", path: "/audit", handler: "handleListAudit", orgWide: true, tag: "audit",
 		tool: "list_audit_log", toolHelp: "Who did what in the organization, newest first. For administrators.",
 		summary: "Who did what to the organization, newest first; next is the cursor for the window after, null at the end. For administrators.",
 		query:   append(auditQuery, keysetQuery(audit.DefaultLimit, audit.MaxLimit)...), responses: ok(env{"entries": []audit.AuditEntry{}, "next": (*string)(nil)})},
-	{method: "GET", path: "/audit/facets", handler: "handleAuditFacets", orgWide: true, pending: true, tag: "audit",
+	{method: "GET", path: "/audit/facets", handler: "handleAuditFacets", orgWide: true, tag: "audit",
 		summary:   "The actions, people and kinds of target the log holds, to narrow it by, and how many days an entry is kept, 0 for ever. For administrators.",
 		responses: ok(env{"facets": audit.AuditFacets{}})},
-	{method: "GET", path: "/audit/export", handler: "handleExportAudit", orgWide: true, pending: true, tag: "audit",
+	{method: "GET", path: "/audit/export", handler: "handleExportAudit", orgWide: true, tag: "audit",
 		summary: "The log as a CSV file, newest first, narrowed like the list; the export is itself recorded. Refused with export_too_large past " + strconv.Itoa(audit.MaxExport) + " entries. For administrators.",
 		binary:  true, query: auditQuery, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
 }

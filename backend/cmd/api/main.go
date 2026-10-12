@@ -16,6 +16,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
@@ -94,11 +96,18 @@ func run() error {
 		defer valkey.Close()
 	}
 
+	accounts := auth.NewService(cluster, auth.DefaultPasswordParams(), cfg.Auth.SessionTTL)
 	server := &httpapi.Server{
 		DB:             cluster,
+		Auth:           accounts,
+		Accounts:       accounts,
+		Audit:          audit.NewService(cluster),
+		AuditRetention: cfg.RetainAudit,
 		Log:            log,
 		Telemetry:      tel,
 		Fresh:          freshnessTracker(cfg, valkey, log),
+		CookieName:     cfg.Auth.SessionCookie,
+		Secure:         cfg.Auth.SecureCookies,
 		AppBaseURL:     cfg.AppBaseURL,
 		CheckOrigin:    cfg.IsProduction(),
 		RequestTimeout: cfg.RequestTimeout,
