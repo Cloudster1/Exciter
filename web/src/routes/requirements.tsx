@@ -3,6 +3,7 @@ import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useProject } from "@/api/projects";
 import { useRequirement, useRequirementById } from "@/api/requirements";
 import { ErrorBanner, Skeleton } from "@/components/ui";
+import { RequirementHistory, type HistorySearch } from "@/features/history/RequirementHistory";
 import { RequirementPage } from "@/features/requirements/RequirementPage";
 import { appRoute } from "./app";
 
@@ -42,5 +43,54 @@ export const permalinkRoute = createRoute({
     }, [requirement, navigate]);
     if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
     return <Skeleton />;
+  },
+});
+
+/** A count from the address, or nothing when it is no whole number of at least min. */
+function count(value: unknown, min: number): number | undefined {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min ? n : undefined;
+}
+
+/** A requirement's history, where the search says which revision, comparison or window is open. */
+export const historyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/r/$reqKey/history",
+  validateSearch: (search: Record<string, unknown>): HistorySearch => ({
+    revision: count(search.revision, 1),
+    from: count(search.from, 0),
+    to: count(search.to, 0),
+    offset: count(search.offset, 0),
+    tab: search.tab === "activity" ? "activity" : undefined,
+  }),
+  component: function HistoryPage() {
+    const { reqKey } = historyRoute.useParams();
+    const search = historyRoute.useSearch();
+    const navigate = useNavigate();
+    const { data: requirement, error, refetch } = useRequirement(reqKey);
+    const { data: project, error: projectError } = useProject(requirement?.projectKey ?? "");
+    useEffect(() => {
+      if (requirement && requirement.key !== reqKey) {
+        void navigate({
+          to: "/p/$projectKey/r/$reqKey/history",
+          params: { projectKey: requirement.projectKey, reqKey: requirement.key },
+          search,
+          replace: true,
+        });
+      }
+    }, [requirement, reqKey, navigate, search]);
+    if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
+    if (projectError) return <ErrorBanner>{projectError.message}</ErrorBanner>;
+    if (!requirement || !project) return <Skeleton />;
+    return (
+      <RequirementHistory
+        project={project}
+        requirement={requirement}
+        search={search}
+        onSearch={(next) =>
+          void navigate({ to: "/p/$projectKey/r/$reqKey/history", params: { projectKey: project.key, reqKey: requirement.key }, search: next })
+        }
+      />
+    );
   },
 });

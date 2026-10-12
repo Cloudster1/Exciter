@@ -2,6 +2,7 @@ import type { Messages } from "./en";
 import { accessDe, permissionsDe } from "./permissions.de";
 import { projectsDe } from "./projects.de";
 import { editorDe, requirementsDe } from "./requirements.de";
+import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -264,6 +265,7 @@ export const de: Messages = {
   types: typesDe,
   attributes: attributesDe,
   tree: treeDe,
+  history: historyDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

@@ -398,6 +398,46 @@
   .doc-content .ProseMirror-selectednode {
     outline: 2px solid var(--color-focus);
   }
+  /* A comparison says what changed with a line under or through the words and a label on each block, so
+   * colour is never the only sign; as Stator draws it. */
+  .doc-content ins[data-diff] {
+    color: inherit;
+    background: var(--color-success-subtle);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+  }
+  .doc-content del[data-diff] {
+    color: inherit;
+    background: var(--color-danger-subtle);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+  .doc-content .doc-diff-block:not([data-diff-block="equal"]) {
+    border-left: 3px solid var(--diff-edge);
+    padding-left: 0.75rem;
+  }
+  .doc-content .doc-diff-block[data-diff-block="inserted"] {
+    --diff-edge: var(--color-success);
+  }
+  .doc-content .doc-diff-block[data-diff-block="deleted"] {
+    --diff-edge: var(--color-danger);
+  }
+  .doc-content .doc-diff-block[data-diff-block="deleted"] > :not(.doc-diff-label) {
+    text-decoration: line-through;
+  }
+  .doc-content .doc-diff-block[data-diff-block="modified"] {
+    --diff-edge: var(--color-border-strong);
+  }
+  .doc-content .doc-diff-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
   /* The editing surface: a field's frame around the document, tall enough to write in. */
   .doc-editor {
     min-height: 6rem;

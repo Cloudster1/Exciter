@@ -93,6 +93,11 @@ holds even for a query that forgot it.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.
+- **History** (#16): the revisions of a requirement compare block by block
+  with Stator's document diff, which marks changed words with `diffInsert`
+  and `diffDelete`, marks only a comparison carries; values compare as a
+  reader sees them. A restore writes the old content as the next revision,
+  and the activity merges revisions with the changes that wrote none.
 - **Trace links** (#18): typed and directed links between requirements; a
   link turns suspect when its upstream end has a newer revision (#36).
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).

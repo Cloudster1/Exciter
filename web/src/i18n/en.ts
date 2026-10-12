@@ -4,6 +4,7 @@ import type { Language } from "./index";
 import { accessEn, permissionsEn } from "./permissions.en";
 import { projectsEn } from "./projects.en";
 import { editorEn, requirementsEn } from "./requirements.en";
+import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -260,6 +261,7 @@ export const en = {
   types: typesEn,
   attributes: attributesEn,
   tree: treeEn,
+  history: historyEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",
