@@ -103,6 +103,11 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   from Stator's, which are Armature's, without following the Armature
   theme; api/themes.ts; and the glyphs the theme screens draw
 
+Adapted from Stator at 2ab5252:
+- mk/branding.mk, scripts/branding.sh, web/src/branding.test.ts and
+  web/src/components/Logo.tsx: the same files, with the face cut from
+  Exciter's picture
+
 Adapted from Armature at 7380763:
 - web/src/styles/index.css: the Clay tokens, base layer and utilities, with
   the shell breakpoint and the drawer's animation of Stator's added and the
@@ -112,3 +117,11 @@ Adapted from Armature at 7380763:
   controls drawn by hand before it listed with their reasons
 - backend/internal/theme/testdata/minecraft.armature-theme.json and
   lucky-rainbow.armature-theme.json: docs/design/themes, unchanged
+
+The logo and the icons (assets/branding and web/public) show the Go gopher,
+whose design is by Renee French (https://reneefrench.blogspot.com/) and is
+licensed under the Creative Commons Attribution 4.0 International license
+(https://creativecommons.org/licenses/by/4.0/; see https://go.dev/doc/gopher/README).
+The pictures here are changed from the original design: the gopher is drawn
+anew in a scene with tools and books, and cropped and resized for the icons.
+These pictures are under that license, not under the license of the code.
