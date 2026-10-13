@@ -28,6 +28,9 @@ ADMIN_DB_PASSWORD  ?= exciter_admin
 S3_ACCESS_KEY      ?= exciter
 S3_SECRET_KEY      ?= exciter-dev-secret
 VALKEY_PASSWORD    ?= exciter_valkey
+# Seals stored secrets, as the compose file's default does. The integration suite seals the Armature tokens it stores
+# with it too, so the stack's worker can open them.
+EXCITER_SECRET_KEY ?= ZXhjaXRlci1kZXZlbG9wbWVudC1vbmx5LXNlY3JldC0=
 # The secret the api's test endpoints ask for, which the browser suite reads from the stack's env file.
 EXCITER_TEST_ENDPOINTS_TOKEN ?= exciter-dev-test-endpoints-token
 
@@ -40,6 +43,7 @@ export COMPOSE_FILE := $(ROOT)/deploy/docker-compose.yml
 export COMPOSE_PROJECT_NAME := $(STACK_PROJECT)
 export WEB_PORT API_PORT KEYCLOAK_PORT MAILPIT_PORT POSTGRES_PORT POSTGRES_REPLICA_PORT VALKEY_PORT S3_PORT ARMATURE_STUB_PORT STATOR_STUB_PORT
 export POSTGRES_PASSWORD APP_DB_PASSWORD ADMIN_DB_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY VALKEY_PASSWORD EXCITER_TEST_ENDPOINTS_TOKEN
+export EXCITER_SECRET_KEY
 
 STACK_PG_URL = postgres://$(1):$(2)@$(3):5432/exciter?sslmode=disable
 
@@ -57,6 +61,9 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_S3_BUCKET=$(STACK_TEST_BUCKET) \
 	-e EXCITER_S3_ACCESS_KEY='$(S3_ACCESS_KEY)' \
 	-e EXCITER_S3_SECRET_KEY='$(S3_SECRET_KEY)' \
+	-e EXCITER_TEST_ARMATURE_URL=http://localhost:$(ARMATURE_STUB_PORT) \
+	-e EXCITER_TEST_ARMATURE_STUB_URL=http://armature-stub:8080 \
+	-e EXCITER_TEST_SECRET_KEY='$(EXCITER_SECRET_KEY)' \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.
@@ -82,6 +89,7 @@ stack-env:
 		'EXCITER_KEYCLOAK_URL=http://localhost:$(KEYCLOAK_PORT)' \
 		'EXCITER_OIDC_ISSUER=http://localhost:$(KEYCLOAK_PORT)/realms/$(KEYCLOAK_REALM)' \
 		'EXCITER_MAILPIT_URL=http://localhost:$(MAILPIT_PORT)' \
+		'EXCITER_ARMATURE_URL=http://localhost:$(ARMATURE_STUB_PORT)' \
 		'EXCITER_TEST_ENDPOINTS_TOKEN=$(EXCITER_TEST_ENDPOINTS_TOKEN)' \
 		'EXCITER_TEST_SUPERUSER_URL=postgres://exciter:$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/exciter?sslmode=disable' \
 		> $(STACK_ENV_FILE)
@@ -96,6 +104,7 @@ up: stack-env ## Build and start the whole stack in the background, and say wher
 	@echo "Postgres   127.0.0.1:$(POSTGRES_PORT) (replica $(POSTGRES_REPLICA_PORT))"
 	@echo "Valkey     127.0.0.1:$(VALKEY_PORT)"
 	@echo "S3         http://localhost:$(S3_PORT)"
+	@echo "Armature   http://localhost:$(ARMATURE_STUB_PORT) (the stub; tokens are armature_pat_<org slug>_<person>)"
 	@echo "Ports and project name are in $(STACK_ENV_FILE)."
 
 .PHONY: down

@@ -86,6 +86,12 @@ type Config struct {
 	// UploadLimit is the largest file a requirement takes, in bytes.
 	UploadLimit int64
 
+	// OutboundAllow names the hosts and ranges inside the network that outbound calls may reach, such as an
+	// Armature on the same network; empty reaches the internet alone.
+	OutboundAllow string
+	// ArmatureBackchannel maps Armature's public origin to the one this process reaches it at.
+	ArmatureBackchannel map[string]string
+
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
 	RetainAudit time.Duration
@@ -273,6 +279,8 @@ func Load() (Config, error) {
 	}
 	c.RetainAudit = l.duration("EXCITER_RETAIN_AUDIT", DefaultRetainAudit)
 	c.UploadLimit = l.size("EXCITER_UPLOAD_LIMIT", DefaultUploadLimit)
+	c.OutboundAllow = l.str("EXCITER_OUTBOUND_ALLOW", "")
+	c.ArmatureBackchannel = l.rewrites("EXCITER_ARMATURE_BACKCHANNEL")
 	c.SecretKey = l.secretKey("EXCITER_SECRET_KEY", c.Env)
 	c.Auth.OIDCRedirectURL = l.str("EXCITER_OIDC_REDIRECT_URL", c.AppBaseURL+OIDCCallbackPath)
 	c.Auth.OIDCBackchannel = l.rewrites("EXCITER_OIDC_BACKCHANNEL")

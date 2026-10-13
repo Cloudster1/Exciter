@@ -5,6 +5,7 @@ import { meQueryKey } from "@/api/auth";
 import { Skeleton } from "@/components/ui";
 import { LOGIN_PATH } from "@/config";
 import { appRoute } from "./app";
+import { armatureAccountRoute, armatureSettingsRoute } from "./armature";
 import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
@@ -59,6 +60,8 @@ const routeTree = rootRoute.addChildren([
     themesRoute,
     tokensRoute,
     orgTokensRoute,
+    armatureSettingsRoute,
+    armatureAccountRoute,
     themeNewRoute,
     themeEditRoute,
   ]),

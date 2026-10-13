@@ -7,6 +7,7 @@ import { treeDe } from "./tree.de";
 import { labelsDe } from "./labels.de";
 import { attachmentsDe } from "./attachments.de";
 import { tokensDe } from "./tokens.de";
+import { armatureDe } from "./armature.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -41,6 +42,7 @@ export const de: Messages = {
     defaultTheme: "Design der Organisation",
     linkTypes: "Verknüpfungsarten",
     orgTokens: "Zugriffstoken",
+    armature: "Armature",
     groupRequirements: "Anforderungen",
     collapseSidebar: "Seitenleiste einklappen",
     expandSidebar: "Seitenleiste ausklappen",
@@ -78,6 +80,7 @@ export const de: Messages = {
     switchOrgFrom: (name: string) => `Organisation wechseln, jetzt ${name}`,
     themes: "Designs",
     tokens: "Zugriffstoken",
+    armature: "Armature-Konto",
     signOut: "Abmelden",
   },
   login: {
@@ -263,6 +266,8 @@ export const de: Messages = {
       "link_type.deleted": "Verknüpfungsart gelöscht",
       "token.created": "Token erstellt",
       "token.revoked": "Token widerrufen",
+      "armature.connected": "Armature verbunden",
+      "armature.disconnected": "Armature getrennt",
     },
     targetTypes: {
       user: "Person",
@@ -275,6 +280,7 @@ export const de: Messages = {
       requirement: "Anforderung",
       workflow: "Workflow",
       api_token: "Zugriffstoken",
+      armature_connection: "Armature-Verbindung",
     },
   },
   projects: projectsDe,
@@ -292,6 +298,7 @@ export const de: Messages = {
   linkTypes: linkTypesDe,
   attachments: attachmentsDe,
   tokens: tokensDe,
+  armature: armatureDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

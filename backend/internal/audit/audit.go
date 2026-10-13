@@ -53,6 +53,9 @@ const (
 	// ActionTokenCreated and ActionTokenRevoked keep who could act through a personal access token, and when.
 	ActionTokenCreated = "token.created"
 	ActionTokenRevoked = "token.revoked"
+	// ActionArmatureConnected and ActionArmatureDisconnected keep where the members' Armature tokens went.
+	ActionArmatureConnected    = "armature.connected"
+	ActionArmatureDisconnected = "armature.disconnected"
 	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the organization's and the
 	// projects' link types, and how a project uses one.
 	ActionLinkTypeCreated = "link_type.created"
@@ -68,7 +71,7 @@ var Actions = []string{
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
-	ActionLinkTypeDeleted,
+	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

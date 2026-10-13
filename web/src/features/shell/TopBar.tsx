@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useLogout, useMe, useSetLanguage, useSwitchOrg } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { THEMES_PATH, TOKENS_PATH } from "@/config";
+import { ARMATURE_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH } from "@/config";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
 import { crumbsFor, placeAbove } from "./places";
 import { DRAWER_ID } from "./state";
@@ -147,6 +147,12 @@ function AccountMenu() {
   const items: MenuItem[] = [
     { label: t.account.themes, icon: <Icon.Palette />, onSelect: () => navigate({ to: THEMES_PATH }), attrs: { "data-action": "themes" } },
     { label: t.account.tokens, icon: <Icon.Key />, onSelect: () => navigate({ to: TOKENS_PATH }), attrs: { "data-action": "tokens" } },
+    {
+      label: t.account.armature,
+      icon: <Icon.Link />,
+      onSelect: () => navigate({ to: ARMATURE_ACCOUNT_PATH }),
+      attrs: { "data-action": "armature-account" },
+    },
     ...languages,
     {
       label: t.account.signOut,

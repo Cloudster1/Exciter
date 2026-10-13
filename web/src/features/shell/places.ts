@@ -1,6 +1,8 @@
 import { administers, type Me } from "@/api/auth";
 import type { IconName } from "@/components/icons";
 import {
+  ARMATURE_ACCOUNT_PATH,
+  ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
   DEFAULT_THEME_PATH,
   LINK_TYPES_PATH,
@@ -41,9 +43,11 @@ function allPlaces(): Place[] {
     { path: DEFAULT_THEME_PATH, icon: "Palette", label: t.nav.defaultTheme, section: t.nav.settings, adminOnly: true },
     { path: LINK_TYPES_PATH, icon: "Link", label: t.nav.linkTypes, section: t.nav.settings, adminOnly: true },
     { path: ORG_TOKENS_PATH, icon: "Key", label: t.nav.orgTokens, section: t.nav.settings, adminOnly: true },
+    { path: ARMATURE_SETTINGS_PATH, icon: "Link", label: t.nav.armature, section: t.nav.settings, adminOnly: true },
     { path: AUDIT_PATH, icon: "Shield", label: t.nav.audit, section: t.nav.settings, adminOnly: true },
     { path: THEMES_PATH, icon: "Palette", label: t.nav.themes, section: t.account.menu, personal: true },
     { path: TOKENS_PATH, icon: "Key", label: t.account.tokens, section: t.account.menu, personal: true },
+    { path: ARMATURE_ACCOUNT_PATH, icon: "Link", label: t.account.armature, section: t.account.menu, personal: true },
   ];
 }
 

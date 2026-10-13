@@ -16,6 +16,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
@@ -26,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/label"
+	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
@@ -127,6 +129,15 @@ func run() error {
 		log.Warn("EXCITER_SECRET_KEY is not set, so an identity provider's client secret cannot be stored")
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
+	var cache *armature.Cache
+	if valkey != nil {
+		cache = armature.NewCache(valkey, log)
+	} else {
+		log.Warn("EXCITER_VALKEY_URL is not set, so every view asks Armature afresh")
+	}
+	allow := netguard.ParseAllow(cfg.OutboundAllow)
+	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), cache,
+		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
 	requirements := requirement.NewService(cluster)
 	links := trace.NewService(cluster)
 	finder := search.NewService(cluster)
@@ -150,6 +161,7 @@ func run() error {
 		Trace:           links,
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
+		Armature:        armatures,
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

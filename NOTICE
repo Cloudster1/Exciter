@@ -178,6 +178,26 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for connecting Armature (#26):
+- backend/internal/netguard: internal/netguard with its tests, which Stator
+  has from Armature's, with EXCITER_ settings
+- backend/internal/armature client.go, cache.go, service.go and account.go
+  with client_test.go: internal/armature's client, cache and service, cut to
+  the connection and the person's token, with the token's read scope read
+  from /auth/me and the account split out of the service
+- backend/migrations/00300_armature_connection.sql: 00160 to 00162, with
+  the token's read scope stored
+- backend/internal/httpapi/armature_handlers.go: the connection and account
+  handlers and the mapping of Armature's answers
+- backend/cmd/armature-stub: main.go, world.go, server.go and
+  contract_test.go, cut to the routes #26 calls, with the token's scopes on
+  /auth/me
+- backend/test/armature_test.go and armature_rls_test.go: the integration
+  and database tests of the same, on Exciter's harness
+- web/src/api/armature.ts, features/armature ConnectionSettings,
+  AccountSection and Armature.test.tsx, and e2e/tests/armature.spec.ts: the
+  connection page and the account section, the account on a page of its own
+
 Adapted from Stator at cf0f6f7, for the Armature contract (#25):
 - mk/armature.mk: the armature-openapi target, vendoring Armature's API
   document with the commit it came from

@@ -37,6 +37,11 @@ export function mailpitURL(): string {
   return setting("EXCITER_MAILPIT_URL");
 }
 
+/** The armature-stub as a browser opens it, which is the address an administrator connects; read when first needed. */
+export function armatureURL(): string {
+  return setting("EXCITER_ARMATURE_URL");
+}
+
 /** The secret the api's test endpoints ask for; read when first needed, so a stack without them still runs the rest. */
 export function testEndpointsToken(): string {
   return setting("EXCITER_TEST_ENDPOINTS_TOKEN");

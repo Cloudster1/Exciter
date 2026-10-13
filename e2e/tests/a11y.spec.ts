@@ -17,6 +17,8 @@ const PATHS = [
   "/settings/themes",
   "/settings/themes/new",
   "/settings/tokens",
+  "/settings/armature",
+  "/settings/armature-account",
   "/no-such-page",
 ];
 const SCHEMES: ColourScheme[] = ["light", "dark"];

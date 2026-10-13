@@ -148,8 +148,8 @@ sees whether the work is done. It is written:
 - **`armatureOrgId`** is learned from the first token that checks out and kept
   until the address or organization changes. `connected` counts the members
   with a stored token.
-- **A token** is made by the person in Armature and pasted under Profile,
-  Armature. Storing it asks `GET /auth/me` with it: a 401, a token of another
+- **A token** is made by the person in Armature and pasted under Your
+  account, Armature account. Storing it asks `GET /auth/me` with it: a 401, a token of another
   Armature organization, or one that does not start with `armature_pat_` is
   422 on `token` with a sentence saying how to make one. Armature's `/auth/me`
   answers the token's `scopes`: a token of the `read` scope is stored, and
@@ -170,7 +170,20 @@ sees whether the work is done. It is written:
   marks the token `rejected`.
 - **UI:** Settings, Armature for administrators (address, organization, the
   webhook's address, topics and secret, with the steps in Armature), and
-  Profile, Armature for everybody.
+  Your account, Armature account for everybody.
+- **As built** (#26):
+  - The account is a page of its own at `/settings/armature-account`, reached
+    from the account menu beside the access tokens, since Exciter has no
+    profile page; the connection is at `/settings/armature`, among the
+    settings. Both are Stator's components otherwise.
+  - A read-only token stays offered for replacement: the page warns that it
+    cannot create issues or links and keeps the token field open.
+  - Armature knows one scope, `read`; a token without it may do whatever its
+    owner may, so the stub answers `scopes: []` for everybody but `reader`.
+  - The stack and the integration suite share `EXCITER_SECRET_KEY` through
+    `mk/stack.mk`, so the stack's worker can open the tokens the suite stores
+    once #27 syncs links. The stub's address as a browser opens it is
+    `EXCITER_ARMATURE_URL` in `.cache/stack.env`.
 
 ## #27 Trace requirements to Armature issues
 
@@ -326,7 +339,9 @@ issue is labelled `blocked` until it ships.
 Playwright, as `docs/decisions.md` says, ported from Stator's. It is a small Go
 server in the backend image, a compose service `armature-stub` with its port
 published as `ARMATURE_STUB_PORT`, the ninth of the checkout's block. #26
-builds it, and each issue after adds what it calls.
+builds it, and each issue after adds what it calls: as #26 left it, it serves
+`GET /openapi.json` and `GET /auth/me`, and under `/_stub/` a health check and
+forgetting a tenant.
 
 - **What it serves**, under `/api/v1`, answering exactly Armature's shapes:
   `GET /openapi.json` (the vendored document), `GET /auth/me` (with `token`),
@@ -355,8 +370,8 @@ builds it, and each issue after adds what it calls.
 
 ## What Exciter would like from Armature
 
-None of these blocks M2; each is to be filed in Cloudster1/Armature once
-agreed, and Exciter works without it.
+None of these blocks M2, and Exciter works without each. Both are filed in
+Cloudster1/Armature.
 
 1. **Say what kind of thing a remote link is.** Armature's Pages panel lists
    every remote link of an issue as one list, so the requirements that an
@@ -365,10 +380,12 @@ agreed, and Exciter works without it.
    `RemoteLink` and the remote link events, such as `page` or `requirement`,
    with `page` for links that send none, and the panel grouping by it under a
    heading each; or, smaller, the panel grouping by `source`. Exciter would
-   then send `requirement` (#27).
+   then send `requirement` (#27). Filed as
+   [Armature #223](https://github.com/Cloudster1/Armature/issues/223).
 2. **Name the status category in transition payloads.** `issue.transitioned`
    names the statuses it moved between but not their categories, so a receiver
    that keeps the category has to ask for the issue again, as a person, which a
    webhook has none of. Wanted: `fromStatusCategory` and `toStatusCategory`
    beside `fromStatus` and `toStatus`. Exciter then stores it at once instead
-   of marking it stale (#29).
+   of marking it stale (#29). Filed as
+   [Armature #224](https://github.com/Cloudster1/Armature/issues/224).
