@@ -169,6 +169,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := workflowError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := labelError(err); apiErr != nil {
+			return apiErr
+		}
 		return themeError(err)
 	}
 }

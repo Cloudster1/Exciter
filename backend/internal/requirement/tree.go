@@ -113,7 +113,8 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 		rows, err := tx.Query(ctx, walkTree+`
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.org_id = r.org_id AND c.parent_id = r.id AND c.trashed_at IS NULL),
-			       r.statement, r.rationale, r.attributes
+			       r.statement, r.rationale, r.attributes,
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)
 			FROM walk w JOIN requirement r ON r.id = w.id
 			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
 		if err != nil {
@@ -128,7 +129,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			)
 			n := &e.Node
 			err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
-				&e.Statement, &e.Rationale, &attrs)
+				&e.Statement, &e.Rationale, &attrs, &e.Labels)
 			if err != nil {
 				return e, err
 			}
@@ -137,7 +138,9 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			if len(e.Rationale) == 0 || string(e.Rationale) == "null" {
 				e.Rationale = nil
 			}
-			e.Labels = []string{}
+			if e.Labels == nil {
+				e.Labels = []string{}
+			}
 			open := p.ArchivedAt == nil
 			e.Can = Can{Edit: p.Can.Edit && open, Transition: (p.Can.Edit || p.Can.Approve) && open, Delete: p.Can.Edit && open,
 				Link: p.Can.Edit && open, Comment: p.Can.Comment && open}

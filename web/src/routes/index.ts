@@ -8,6 +8,7 @@ import { appRoute } from "./app";
 import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
+import { labelRoute } from "./labels";
 import { loginRoute } from "./login";
 import {
   newProjectRoute,
@@ -43,6 +44,7 @@ const routeTree = rootRoute.addChildren([
     requirementRoute,
     permalinkRoute,
     historyRoute,
+    labelRoute,
     settingsRoute,
     membersRoute,
     ssoRoute,

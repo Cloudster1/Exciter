@@ -31,11 +31,16 @@ function trashKey(projectKey: string) {
   return [...requirementsKey, "trash", projectKey.toUpperCase()] as const;
 }
 
-/** A window of a project's requirements, in key order. */
-export function useRequirements(projectKey: string, window: { limit: number; offset: number }) {
+/** A window of a project's requirements, in key order, narrowed to those with a label when one is named. */
+export function useRequirements(projectKey: string, window: { limit: number; offset: number; label?: string }) {
   return useQuery({
     queryKey: [...listKey(projectKey), window],
-    queryFn: async () => (await api.GET("/projects/{projectKey}/requirements", { params: { path: { projectKey }, query: window } })).data!,
+    queryFn: async () =>
+      (
+        await api.GET("/projects/{projectKey}/requirements", {
+          params: { path: { projectKey }, query: { limit: window.limit, offset: window.offset, label: window.label ? [window.label] : undefined } },
+        })
+      ).data!,
     placeholderData: keepPreviousData,
   });
 }

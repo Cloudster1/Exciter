@@ -106,6 +106,7 @@ export const Icon = {
   Upload: makeIcon("upload", ["M8 10.5V3", "m4.5 6.5 3.5-3.5 3.5 3.5", "M2.5 13.5h11"]),
   Folder: makeIcon("folder", ["M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.5 1.5h4.9A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"]),
   Archive: makeIcon("archive", ["M2 3.5h12v3H2z", "M3 6.5V13h10V6.5", "M6.5 9h3"]),
+  Label: makeIcon("label", ["M2.5 2.5h5.3l5.7 5.7-5.3 5.3-5.7-5.7z", "M5.5 5.5h.01"]),
   Share: makeIcon("share", ["M8 9.5V2.5", "m5 5.5 3-3 3 3", "M3.5 8v5h9V8"]),
 } as const;
 

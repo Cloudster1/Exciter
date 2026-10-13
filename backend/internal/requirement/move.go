@@ -464,5 +464,8 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 	if err := revisionOf(ctx, tx, actor, id, 1, content, hash, "Copied from "+l.Key, nil); err != nil {
 		return uuid.Nil, err
 	}
+	if err := copyLabels(ctx, tx, actor, l, id); err != nil {
+		return uuid.Nil, err
+	}
 	return id, events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": to.ID, "requirementId": id, "revision": 1})
 }

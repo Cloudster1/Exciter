@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Labels (#19). Any requirement or section carries the organization's
+  labels, coined by typing one that nobody uses yet; the label box offers
+  the labels already in use, the most used first, counting only what the
+  reader may see. Adding or removing one is logged in the activity and never
+  writes a revision. A label leads to the project's requirements with it,
+  and on to those of every project. Copies take their original's labels, and
+  the trash keeps them.
 - Statuses and workflow (#17). Every project starts with a lifecycle: Draft,
   In review, Approved, Implemented and Verified, with Rejected and Obsolete
   beside them. A requirement moves only by the transitions its workflow

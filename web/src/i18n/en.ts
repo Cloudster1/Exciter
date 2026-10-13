@@ -6,6 +6,7 @@ import { projectsEn } from "./projects.en";
 import { editorEn, requirementsEn } from "./requirements.en";
 import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
+import { labelsEn } from "./labels.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -267,6 +268,7 @@ export const en = {
   tree: treeEn,
   history: historyEn,
   workflows: workflowsEn,
+  labels: labelsEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",
