@@ -218,6 +218,8 @@ type Viewer struct {
 	UserID  uuid.UUID
 	TokenID uuid.UUID
 	Caller  *Caller
+	// ReadOnly is a token of Armature's read scope, which Armature refuses every write.
+	ReadOnly bool
 }
 
 // Viewer returns the person ctx acts for, ready to call Armature, or the
@@ -256,7 +258,7 @@ func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
 	if err != nil {
 		return nil, StatusRejected, nil
 	}
-	return &Viewer{OrgID: org.ID, UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token)}, StatusOK, nil
+	return &Viewer{OrgID: org.ID, UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token), ReadOnly: row.ReadOnly}, StatusOK, nil
 }
 
 // NoteRejected marks the viewer's token rejected after Armature answered it

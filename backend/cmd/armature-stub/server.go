@@ -18,9 +18,6 @@ const (
 	scopeRead = "read"
 )
 
-// tokenCreated is when every stub token was made, so answers are the same on every run.
-var tokenCreated = time.Date(2026, 9, 1, 9, 0, 0, 0, time.UTC)
-
 // route is one operation the stub serves. Path is Armature's, relative to
 // /api/v1, which the contract test finds in Armature's document.
 type route struct {
@@ -35,6 +32,11 @@ type route struct {
 var routes = []route{
 	{Method: "GET", Path: "/openapi.json", Public: true, handler: (*stub).openAPI},
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
+	{Method: "GET", Path: "/issues", handler: (*stub).search},
+	{Method: "GET", Path: "/issues/{issueKey}", handler: (*stub).getIssue},
+	{Method: "GET", Path: "/issues/{issueKey}/remote-links", handler: (*stub).listLinks},
+	{Method: "POST", Path: "/issues/{issueKey}/remote-links", handler: (*stub).putLink},
+	{Method: "DELETE", Path: "/issues/{issueKey}/remote-links/{remoteLinkID}", handler: (*stub).deleteLink},
 }
 
 type stub struct {
@@ -61,6 +63,9 @@ func (s *stub) handler() http.Handler {
 		mux.HandleFunc(rt.Method+" "+apiPrefix+rt.Path, s.serve(rt))
 	}
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}", func(w http.ResponseWriter, r *http.Request) {
 		s.world.mu.Lock()
 		delete(s.world.tenants, r.PathValue("tenant"))
@@ -88,6 +93,14 @@ func (s *stub) serve(rt route) http.HandlerFunc {
 			c.tenant, c.person = t, p
 		}
 		rt.handler(s, c)
+	}
+}
+
+func (s *stub) control(fn func(*stub, *call)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.world.mu.Lock()
+		defer s.world.mu.Unlock()
+		fn(s, &call{w: w, r: r, tenant: s.world.tenant(r.PathValue("tenant"))})
 	}
 }
 
@@ -156,6 +169,6 @@ func (s *stub) me(c *call) {
 			"role": roleOf(p),
 		},
 		"limits": map[string]any{"uploadBytes": uploadBytes},
-		"token":  tokenView{ID: idOf(t.Slug, "token", p.Name), Name: "Exciter", Scopes: scopes, CreatedAt: tokenCreated, Projects: []string{}},
+		"token":  tokenView{ID: idOf(t.Slug, "token", p.Name), Name: "Exciter", Scopes: scopes, CreatedAt: seeded, Projects: []string{}},
 	})
 }

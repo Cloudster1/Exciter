@@ -10,16 +10,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -69,9 +72,14 @@ func run() error {
 		return err
 	}
 
+	armatures, err := armatureService(cfg, cluster, log)
+	if err != nil {
+		return err
+	}
 	// A topic without a handler is marked done as it arrives; each feature routes its own here.
 	imports := csvio.NewService(cluster, requirement.NewService(cluster), trace.NewService(cluster), search.NewService(cluster))
-	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports))
+	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports)).
+		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log))
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
 	store, err := objectstore.Open(objectstore.Config{
@@ -97,4 +105,19 @@ func run() error {
 	<-ctx.Done()
 	log.Info("worker stopped cleanly")
 	return nil
+}
+
+// armatureService calls Armature as the person an event names, through the guard as the api does; without
+// EXCITER_SECRET_KEY no stored token opens, and every link waits for one.
+func armatureService(cfg config.Config, cluster *db.Cluster, log *slog.Logger) (*armature.Service, error) {
+	var box *secret.Box
+	if cfg.SecretKey != nil {
+		var err error
+		if box, err = secret.New(cfg.SecretKey); err != nil {
+			return nil, err
+		}
+	}
+	allow := netguard.ParseAllow(cfg.OutboundAllow)
+	return armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
+		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}), nil
 }

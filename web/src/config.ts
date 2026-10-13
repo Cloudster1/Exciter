@@ -261,6 +261,15 @@ export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
 /** How an Armature personal access token and a webhook secret begin, the API's armature.TokenPrefix and WebhookSecretPrefix. */
 export const ARMATURE_TOKEN_PREFIX = "armature_pat_";
 export const ARMATURE_WEBHOOK_SECRET_PREFIX = "armature_whs_";
+/** The most keys one lookup asks for, the API's armature.MaxLookupKeys, and how many issues the picker offers. */
+export const ARMATURE_LOOKUP_MAX_KEYS = 50;
+export const ARMATURE_SEARCH_LIMIT = 10;
+/** How long the picker waits after the last key press before asking Armature (#27). */
+export const ARMATURE_SEARCH_DEBOUNCE_MS = 250;
+/** How often a requirement's links are read again while one still waits for the worker. */
+export const ARMATURE_LINKS_POLL_MS = 2000;
+/** The relations a requirement takes to an issue, in the order the picker offers them, the API's armature.Relations. */
+export const ARMATURE_RELATIONS = ["implements", "verifies", "relates"] as const;
 /** How long "Copied" stays after a secret is copied. */
 export const COPY_FEEDBACK_MS = 2000;
 

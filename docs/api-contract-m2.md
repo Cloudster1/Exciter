@@ -46,8 +46,7 @@ New settings, in compose:
 
 | Topic | When | Payload |
 |---|---|---|
-| `armature.links` | a link made or removed, a new revision, a move or rekey, trash, restore and purge of a requirement with links | `requirementId`, `actorId`, and nothing else |
-| `requirement.purged` | a requirement deleted for good, which #27 needs to take its links off the issues | `requirementId`, `projectId`, `key` |
+| `armature.links` | a link made or removed, a new revision, a move or rekey, trash, restore and purge of a requirement with links, written by the database (#27) | `requirementId`, `actorId`, and nothing else |
 
 New audit actions: `armature.connected`, `armature.disconnected` (the
 organization's connection saved or removed, with the base URL and slug, never
@@ -242,6 +241,26 @@ sees whether the work is done. It is written:
   the create operation once they are built.
 - **UI:** an "Armature issues" panel on the requirement page, beside the trace
   links, with the picker, the relation and each link's chip and sync state.
+- **As built** (#27):
+  - The database writes `armature.links`, not each change's Go code: triggers
+    on the links, on a requirement's revision, title, number, project and
+    trash, on its deletion, and on a project's key call
+    `armature_links_emit`, which writes one event per requirement and
+    transaction, only for a requirement with links or sync records, only
+    with a connection, and in the transaction's actor's name. A purge is the
+    deletion trigger, so no `requirement.purged` topic was needed.
+  - A lookup asks Armature for each key alone (`GET /issues/{KEY}`, eight at
+    once) rather than one NQL search; the picker sends `text=` and `limit`.
+    The stub serves `text` and `project` and refuses NQL.
+  - The stored status category is written by the service as the admin role
+    after any live read that answered the issue, so no reader can set it;
+    `exciter_app` inserts a link without one.
+  - Sync records live in `armature_remote_link`, one per requirement and
+    issue, without a foreign key to the requirement so a purge still finds
+    what to take off; a new or removed connection drops them.
+  - A title too long for Armature keeps its key and relation and cuts the
+    requirement's title, ending in three dots.
+  - The worker needs `EXCITER_APP_URL`, which the links lead to.
 
 ## #28 Create Armature issues from requirements
 

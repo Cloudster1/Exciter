@@ -281,6 +281,13 @@ German.
   verifies or relates. The worker puts a remote link with source `Exciter`
   on each issue; Armature's webhooks keep the stored status category current
   (#29).
+- **Link sync** (#27): database triggers write `armature.links` for a
+  requirement whose links, revision, title, key, project or trash changed,
+  in the changer's name; the worker's `armature.LinkSync` plans the remote
+  links one requirement should have against `armature_remote_link` and puts
+  or takes off the difference as that person, so Armature names them as the
+  link's creator. Chips read issues live with the viewer's token, and every
+  such read stores the status category for everyone.
 - **Trace to pages** (#41, #42): the same, against Stator pages.
 - **Armature's API** is vendored at `api/armature/openapi.json`, its commit in
   `api/armature/SOURCE`, refreshed with `make armature-openapi REF=`. The

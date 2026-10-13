@@ -27,6 +27,12 @@ const (
 	// MaxLookupKeys bounds one batch of keys to look up; MaxCreateItems one batch of issues to make.
 	MaxLookupKeys  = 50
 	MaxCreateItems = 50
+	// LookupParallel bounds the fetches one lookup makes at once.
+	LookupParallel = 8
+	// SearchDefaultLimit and SearchMaxLimit bound the picker's answer; MaxSearchLength what it sends Armature.
+	SearchDefaultLimit = 10
+	SearchMaxLimit     = 20
+	MaxSearchLength    = 200
 	// MaxSummaryLength and MaxLinkTitleLength are Armature's limits on an issue's summary and a link's title.
 	MaxSummaryLength   = 255
 	MaxLinkTitleLength = 255

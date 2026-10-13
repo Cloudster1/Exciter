@@ -178,6 +178,23 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for tracing requirements to Armature issues (#27):
+- backend/internal/armature issues.go, links.go and sync.go with
+  sync_test.go: the lookup, the link sync, PlanLinks and the refusals'
+  sentences of internal/armature issues.go and links.go, over a
+  requirement's links with relations rather than the keys a page names,
+  each key fetched alone
+- backend/migrations/00310_armature_issue_links.sql: 00167 to 00169, the
+  sync records, the event's shape and the emitting function, called from
+  triggers rather than the services
+- backend/cmd/armature-stub issues.go and world.go: the issues, the remote
+  links and their controls of server.go and world.go, searching by text
+- backend/test/armature_links_test.go: the link sync's integration test
+- web/src/features/armature IssueChip.tsx and ArmatureLinks.tsx: the chip's
+  states and status lozenge, and the links panel, by relation with a
+  picker, which is web/src/features/links/RequirementPicker.tsx over
+  Armature
+
 Adapted from Stator at cf0f6f7, for connecting Armature (#26):
 - backend/internal/netguard: internal/netguard with its tests, which Stator
   has from Armature's, with EXCITER_ settings

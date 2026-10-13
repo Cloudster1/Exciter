@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements traced to Armature issues (#27). A requirement's editors trace
+  it to the issues that implement, verify or relate to it, found by key or
+  summary as they may see them in Armature; the requirement page shows each
+  issue's summary, status and assignee live, and the status everyone may
+  know without a token. The worker puts the requirement on each issue in
+  Armature as the person who changed it, keeps it current through new
+  revisions, keys, trash and purge, and says why when Armature refused it.
 - Connecting Armature (#26). An administrator connects the organization's
   Armature under Settings, Armature, with the webhook's address, topics and
   secret; each person pastes their own Armature token under Your account,
