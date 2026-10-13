@@ -24,6 +24,24 @@ export const projectsDe: typeof projectsEn = {
   descriptionHint: "Optional: was das Projekt umfasst.",
   submit: "Projekt anlegen",
   cancel: "Abbrechen",
+  startFrom: "Beginnen mit",
+  blank: "Leeres Projekt",
+  blankDescription: "Ein Anforderungstyp, der Standard-Workflow und jede Verknüpfungsart. Den Rest gestalten Sie in den Einstellungen.",
+  templateMakes: (types: string, sections: string) => `Typen: ${types}. Abschnitte: ${sections}.`,
+  templates: {
+    system: {
+      name: "Systemspezifikation",
+      description: "Bedürfnisse der Beteiligten, verfeinert zu Systemanforderungen, Schnittstellen und Randbedingungen, jede mit einer Nachweismethode.",
+    },
+    software: {
+      name: "Softwarespezifikation",
+      description: "Funktionale und nichtfunktionale Anforderungen, Schnittstellen und Anwendungsfälle einer Software, nach Komponente und Release.",
+    },
+    test: {
+      name: "Testspezifikation",
+      description: "Testfälle und Testabläufe, die die Anforderungen anderer Projekte nachweisen, mit ihrem erwarteten Ergebnis.",
+    },
+  },
   notAdmin: "Projekte legen nur Inhaber und Administratoren der Organisation an. Fragen Sie eine dieser Personen.",
   switcher: "Projekt wechseln",
   chooseProject: "Projekt wählen",

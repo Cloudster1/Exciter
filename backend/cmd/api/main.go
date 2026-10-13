@@ -140,7 +140,7 @@ func run() error {
 		Audit:           audit.NewService(cluster),
 		AuditRetention:  cfg.RetainAudit,
 		Themes:          theme.NewService(cluster, store),
-		Projects:        project.NewService(cluster),
+		Projects:        project.NewService(cluster).WithSeeder(requirement.Seed),
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirements,
 		Search:          finder,

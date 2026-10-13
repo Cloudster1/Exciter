@@ -160,6 +160,11 @@ holds even for a query that forgot it.
   one that was shown. After `import.requested` the worker runs it as the
   person who started it, each row in its own transaction, then the tree and
   the links. Export is the grid's query written as CSV.
+- **Project templates** (#24): three built-in structures in code, shaped
+  after Stator's space templates. Choosing one is part of making a project:
+  in the same transaction it sets the types, attributes, link types and
+  starter sections, copied once, so a later change to a template leaves the
+  projects made from it alone.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
 ### Themes (#8)

@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Project templates (#24). A new project starts blank or from a System,
+  Software or Test specification, which brings its requirement types, its
+  attributes, the link types it uses and its starter sections; every
+  template uses the default workflow.
 - CSV import and export (#23). A project's administrators upload a CSV file
   under the project settings, see how each column will be read, and say
   what the words and people the project does not know mean before anything

@@ -1158,3 +1158,18 @@ New audit actions: `project.created`, `project.key_changed`,
 - The integration suite makes a project from each built-in and checks that it
   is valid: every type has a workflow, every attribute's types exist, and
   every section is in the tree.
+- **As built** (#24):
+  - **In the transaction that makes the project.** The type every project
+    starts with becomes the template's first, so it stays the default; the
+    other types, the attributes (shown on every type), the organization's
+    link types the template leaves off (`link_type_project` disabled) and
+    the sections, each an empty section at revision 1 commented "From the
+    template <name>", are made before the project is answered. The
+    requirement package makes them through a seeder the project service is
+    given, which keeps the two packages apart.
+  - **No migration.** The templates live in code and `project.template`
+    records the key, as the contract's range table says, though the issue
+    named a `project_template` table.
+  - **The chooser** names the built-ins in the reader's language from the
+    client's catalogue, by key, and a template the client does not know as
+    the server names it. `statuses` lists the default workflow's.

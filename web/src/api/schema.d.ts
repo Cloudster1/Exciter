@@ -4290,15 +4290,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {

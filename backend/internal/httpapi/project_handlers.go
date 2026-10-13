@@ -153,3 +153,7 @@ func projectError(err error) *APIError {
 	}
 	return nil
 }
+
+func (s *Server) handleListProjectTemplates(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, r, http.StatusOK, map[string]any{"templates": project.Templates()})
+}

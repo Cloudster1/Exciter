@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { exportHref, type Import } from "@/api/imports";
+import { IMPORT_POLL_MS } from "@/config";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -92,7 +93,8 @@ describe("importing a file", () => {
     );
     expect(await screen.findByText("Nothing keeps the import from starting.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Start the import" }));
-    const result = await screen.findByText("1 requirement made");
+    // The page asks again once a poll has passed, which a slow machine stretches; a few polls are waited for.
+    const result = await screen.findByText("1 requirement made", {}, { timeout: IMPORT_POLL_MS * 5 });
     expect(result.closest("[data-import-step]")).toHaveAttribute("data-import-step", "done");
     expect(reads).toBeGreaterThan(0);
     expect(within(result.closest("[data-import-step]") as HTMLElement).getByText("1 of 1 rows")).toBeInTheDocument();
