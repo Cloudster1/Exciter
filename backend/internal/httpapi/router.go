@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
@@ -77,6 +78,9 @@ type Server struct {
 	Labels *label.Service
 	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
 	Trace *trace.Service
+	// Armature connects the organization to Armature and holds each member's token; nil answers its routes that
+	// it is not set up.
+	Armature *armature.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -320,6 +324,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireAdmin).Delete("/org/tokens/{tokenID}", s.handleRevokeOrgAPIToken)
 		})
 		r.With(requireOrg).Post("/mcp", s.handleMCP)
+
+		// Armature: the organization's connection for its administrators, each member's own token for them.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.armatureOn)
+			r.With(requireAdmin).Get("/armature/connection", s.handleGetArmatureConnection)
+			r.With(requireAdmin).Put("/armature/connection", s.handleSaveArmatureConnection)
+			r.With(requireAdmin).Delete("/armature/connection", s.handleRemoveArmatureConnection)
+			r.Get("/armature/account", s.handleGetArmatureAccount)
+			r.With(requireSession).Put("/armature/account/token", s.handleStoreArmatureToken)
+			r.Post("/armature/account/check", s.handleCheckArmatureAccount)
+			r.With(requireSession).Delete("/armature/account/token", s.handleRemoveArmatureToken)
+		})
 
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,
 		// and a project's grid out as a file for whoever views it.

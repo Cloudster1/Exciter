@@ -255,6 +255,12 @@ export const TOKEN_MAX_PROJECTS = 50;
 export const MCP_PATH = `${API_BASE}/mcp`;
 export const MCP_SERVER_NAME = "exciter";
 export const DAY_MS = 24 * 60 * 60 * 1000;
+/** Where an administrator connects Armature, and where a person connects their own Armature account (#26). */
+export const ARMATURE_SETTINGS_PATH = "/settings/armature";
+export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
+/** How an Armature personal access token and a webhook secret begin, the API's armature.TokenPrefix and WebhookSecretPrefix. */
+export const ARMATURE_TOKEN_PREFIX = "armature_pat_";
+export const ARMATURE_WEBHOOK_SECRET_PREFIX = "armature_whs_";
 /** How long "Copied" stays after a secret is copied. */
 export const COPY_FEEDBACK_MS = 2000;
 

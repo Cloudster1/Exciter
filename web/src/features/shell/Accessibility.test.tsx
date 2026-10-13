@@ -3,7 +3,18 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, NEW_PROJECT_PATH, PROJECTS_PATH, SIDEBAR_DRAWER_BELOW_PX, SSO_PATH, THEMES_PATH } from "@/config";
+import {
+  ARMATURE_ACCOUNT_PATH,
+  ARMATURE_SETTINGS_PATH,
+  AUDIT_PATH,
+  DEFAULT_THEME_PATH,
+  MEMBERS_PATH,
+  NEW_PROJECT_PATH,
+  PROJECTS_PATH,
+  SIDEBAR_DRAWER_BELOW_PX,
+  SSO_PATH,
+  THEMES_PATH,
+} from "@/config";
 import { emptySpec } from "@/lib/theme-css";
 import { renderAt, setViewportWidth, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
@@ -78,6 +89,21 @@ const settingsApi = () =>
     "GET /themes/examples": { status: 200, body: { examples: [] } },
     "GET /users": { status: 200, body: { members: [member] } },
     "GET /audit": { status: 200, body: { entries: [], next: null } },
+    "GET /armature/connection": { status: 200, body: { connection: null } },
+    "GET /armature/account": {
+      status: 200,
+      body: {
+        account: {
+          configured: true,
+          baseUrl: "https://armature.example.com",
+          connected: false,
+          status: "not_connected",
+          user: null,
+          readOnly: false,
+          checkedAt: null,
+        },
+      },
+    },
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
     "GET /users/requests": { status: 200, body: { requests: [waiting] } },
     "GET /oidc-provider": { status: 200, body: { provider, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" } },
@@ -156,12 +182,13 @@ describe("the account menu", () => {
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
     const themes = within(menu).getByRole("menuitem", { name: "Themes" });
     const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
+    const armature = within(menu).getByRole("menuitem", { name: "Armature account" });
     const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
     const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
     expect(themes).toHaveFocus();
-    for (const next of [tokens, browser, english, german, signOut, themes]) {
+    for (const next of [tokens, armature, browser, english, german, signOut, themes]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }
@@ -311,6 +338,8 @@ describe("axe", () => {
     `${THEMES_PATH}/new`,
     PROJECTS_PATH,
     NEW_PROJECT_PATH,
+    ARMATURE_SETTINGS_PATH,
+    ARMATURE_ACCOUNT_PATH,
     "/p/CHK/settings",
     "/p/OLD/settings",
   ])("finds nothing on %s", async (path) => {

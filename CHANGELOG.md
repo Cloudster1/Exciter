@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Connecting Armature (#26). An administrator connects the organization's
+  Armature under Settings, Armature, with the webhook's address, topics and
+  secret; each person pastes their own Armature token under Your account,
+  Armature account, sees whom it acts as, checks it and disconnects it, and
+  is warned when it may only read. Tokens and the secret are sealed at rest,
+  every call goes through a guard against reaching the server's own network,
+  and a new address forgets every stored token. The stack runs an
+  `armature-stub`, held to Armature's own document by a contract test.
 - The API of the Armature integration, agreed before it is built (#25). The
   connection and each person's token, requirements traced to Armature issues,
   issues made from requirements, Armature's webhooks and the followed theme

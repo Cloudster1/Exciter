@@ -24,7 +24,7 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL", "EXCITER_TEST_ENDPOINTS", "EXCITER_TEST_ENDPOINTS_TOKEN",
-		"EXCITER_UPLOAD_LIMIT",
+		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -333,6 +333,10 @@ func TestBackchannelRewritesAreParsed(t *testing.T) {
 	}
 	if c.Auth.OIDCBackchannel["http://localhost:8180"] != "http://keycloak:8080" || c.Auth.OIDCBackchannel["https://a.test"] != "https://b.test" || len(c.Auth.OIDCBackchannel) != 2 {
 		t.Fatalf("rewrites = %v", c.Auth.OIDCBackchannel)
+	}
+	t.Setenv("EXCITER_ARMATURE_BACKCHANNEL", "http://localhost:8190=http://armature-stub:8080")
+	if c, err := Load(); err != nil || c.ArmatureBackchannel["http://localhost:8190"] != "http://armature-stub:8080" {
+		t.Fatalf("the Armature backchannel = %v, %v", c.ArmatureBackchannel, err)
 	}
 	t.Setenv("EXCITER_OIDC_BACKCHANNEL", "keycloak")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_OIDC_BACKCHANNEL") {

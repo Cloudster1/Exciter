@@ -99,7 +99,8 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
-		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+		Armature: h.armature(t),
+		Fresh:    h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {
 		configure(a, server)

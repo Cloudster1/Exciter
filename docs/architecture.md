@@ -267,6 +267,16 @@ German.
 - **Connection**: an org admin sets the Armature or Stator address; each
   person stores their own token, sealed at rest. Every call is made as the
   viewing person through the SSRF guard (#26, #40).
+- **Connecting Armature** (#26): `internal/armature` holds the client, the
+  per-token cache in Valkey and the service, Stator's. Saving the address
+  asks Armature for its API document through `internal/netguard`, which
+  refuses any host inside the network that `EXCITER_OUTBOUND_ALLOW` does not
+  name; `EXCITER_ARMATURE_BACKCHANNEL` reaches a public address at another
+  inside the stack. A token is sealed with `EXCITER_SECRET_KEY` bound to the
+  organization and the person, and the database lets `exciter_app` read only
+  the actor's own token row and administrators alone the connection; moving
+  the connection forgets every token in a trigger. `Service.Viewer` is what
+  #27 to #30 call Armature through.
 - **Trace to issues** (#27): a requirement links to issues as implements,
   verifies or relates. The worker puts a remote link with source `Exciter`
   on each issue; Armature's webhooks keep the stored status category current
