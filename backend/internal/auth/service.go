@@ -83,7 +83,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		return nil, ErrInvalidCredentials
 	}
 	if !active {
-		return nil, ErrUserInactive
+		return nil, ErrSwitchedOff
 	}
 	if needsRehash {
 		if upgraded, err := HashPassword(password, s.params); err == nil {
@@ -170,7 +170,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		return nil, err
 	}
 	if !active {
-		return nil, ErrUserInactive
+		return nil, ErrSwitchedOff
 	}
 	p.SessionID = &sessionID
 	// A membership row is required, not merely an org row: letting somebody go ends their open session at once,

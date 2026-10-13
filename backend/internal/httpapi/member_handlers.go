@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
-// The organization's people, for its administrators.
+// The installation's people, for its administrators.
 
 func (s *Server) handleListMembers(w http.ResponseWriter, r *http.Request) {
 	if s.Accounts == nil {
@@ -51,12 +52,14 @@ func (s *Server) handleCreateMember(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, r, http.StatusCreated, map[string]any{"member": member})
 }
 
-type setRoleRequest struct {
-	// Role is the member's new standing: admin, member or guest.
-	Role auth.OrgRole `json:"role"`
+type updateMemberRequest struct {
+	// Role is the member's new standing: admin, member or guest. Absent leaves it.
+	Role *auth.OrgRole `json:"role,omitempty"`
+	// Active switches the member's account on or off. Absent leaves it.
+	Active *bool `json:"active,omitempty"`
 }
 
-func (s *Server) handleSetMemberRole(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleUpdateMember(w http.ResponseWriter, r *http.Request) {
 	if s.Accounts == nil {
 		respondError(w, r, errSignInOff)
 		return
@@ -66,21 +69,40 @@ func (s *Server) handleSetMemberRole(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, apiErr)
 		return
 	}
-	var req setRoleRequest
+	var req updateMemberRequest
 	if err := decodeJSON(w, r, &req); err != nil {
 		respondError(w, r, err)
 		return
 	}
-	member, lsn, err := s.Accounts.SetRole(r.Context(), userID, req.Role, userFrom(r), s.clientIP(r))
-	noteWrite(r.Context(), lsn)
-	if err != nil {
-		respondError(w, r, err)
+	if req.Role == nil && req.Active == nil {
+		respondError(w, r, ErrValidation(map[string]string{"role": "Give the member a role, or switch their account off or on."}))
 		return
+	}
+	var member *auth.Member
+	if req.Role != nil {
+		var lsn db.LSN
+		var err error
+		member, lsn, err = s.Accounts.SetRole(r.Context(), userID, *req.Role, userFrom(r), s.clientIP(r))
+		noteWrite(r.Context(), lsn)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+	}
+	if req.Active != nil {
+		var lsn db.LSN
+		var err error
+		member, lsn, err = s.Accounts.SetActive(r.Context(), userID, *req.Active, userFrom(r), s.clientIP(r))
+		noteWrite(r.Context(), lsn)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"member": member})
 }
 
-func (s *Server) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleSwitchOffMember(w http.ResponseWriter, r *http.Request) {
 	if s.Accounts == nil {
 		respondError(w, r, errSignInOff)
 		return
@@ -90,7 +112,7 @@ func (s *Server) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, apiErr)
 		return
 	}
-	lsn, err := s.Accounts.RemoveMember(r.Context(), userID, userFrom(r), s.clientIP(r))
+	_, lsn, err := s.Accounts.SetActive(r.Context(), userID, false, userFrom(r), s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)

@@ -3,6 +3,35 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: Letting somebody go switches them off, and an active administrator stays (#86)
+
+People belong to the installation, so there is no membership to take away
+that leaves an account standing elsewhere. `DELETE /users/{userID}` keeps its
+address and switches the account off, as Armature's #211 does: sessions end
+and tokens are deleted at once, the account, its role, its groups and its work
+stay, and `PATCH /users/{userID}` with `active: true` brings the person back.
+A switched-off sign-in hears "Your account has been switched off. Ask an
+administrator.", the same as somebody with no membership; the separate
+`account_inactive` answer went.
+
+- **The last owner rule became the last active administrator rule.** An
+  installation is entered again through any administrator, owner or admin,
+  so that is what the database keeps, on a role change, a membership going
+  and an account switched off. The check takes an advisory lock, so two
+  administrators switching each other off at once take turns and the second
+  is refused. The service refuses the same first, with `last_administrator`.
+- **Owners stay owners.** The bootstrap makes them through the admin role,
+  and the app role neither makes nor unmakes one (a trigger, since a policy
+  that hid owner rows would also hide them from `SELECT ... FOR UPDATE`).
+  Only an owner switches another owner off, a rule of the service, as in
+  Armature.
+- **Nobody leaves through the app role.** It may no longer delete a
+  membership; only the admin role, for tidying up, does.
+- **Tokens are the person's.** Administrators see and revoke everybody's at
+  `/tokens/everyone`, on the page `/settings/all-tokens`, which replace
+  `/org/tokens` and `/settings/organization-tokens` without a redirect, as
+  nothing shipped with them.
+
 ## 2026-10-13: A sign-in lands in the installation, and keeps where it opened (#85)
 
 Nothing switches a session any more: the sign-in page asks for no

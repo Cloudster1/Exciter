@@ -94,7 +94,7 @@ export function useLogout() {
   });
 }
 
-/** The organization's members and their roles; asked only of administrators. */
+/** The installation's people and their roles; asked only of administrators. */
 export function useMembers() {
   return useQuery({
     queryKey: membersQueryKey,
@@ -121,12 +121,12 @@ export function useSetMemberRole() {
   });
 }
 
-export function useRemoveMember() {
+/** Switches a member's account off or on; off signs them out everywhere and ends their tokens. */
+export function useSetMemberActive() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId }: { userId: string }) => {
-      await api.DELETE("/users/{userID}", { params: { path: { userID: userId } } });
-    },
+    mutationFn: async ({ userId, active }: { userId: string; active: boolean }): Promise<Member> =>
+      (await api.PATCH("/users/{userID}", { params: { path: { userID: userId } }, body: { active } })).data!.member,
     onSettled: () => queryClient.invalidateQueries({ queryKey: membersQueryKey }),
   });
 }

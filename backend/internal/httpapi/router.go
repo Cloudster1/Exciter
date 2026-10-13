@@ -166,8 +166,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Use(requireAdmin)
 			r.Get("/users", s.handleListMembers)
 			r.Post("/users", s.handleCreateMember)
-			r.Patch("/users/{userID}", s.handleSetMemberRole)
-			r.Delete("/users/{userID}", s.handleRemoveMember)
+			r.Patch("/users/{userID}", s.handleUpdateMember)
+			r.Delete("/users/{userID}", s.handleSwitchOffMember)
 			r.Get("/users/requests", s.handleListJoinRequests)
 			r.Post("/users/requests/{userID}/admit", s.handleAdmitJoinRequest)
 			r.Delete("/users/requests/{userID}", s.handleDeclineJoinRequest)
@@ -325,15 +325,15 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/attachments/{attachmentID}", s.handleDeleteAttachment)
 		})
 
-		// Personal access tokens: a person's own, made only from a session, and the organization's for its
+		// Personal access tokens: a person's own, made only from a session, and everybody's for the
 		// administrators. The assistants' endpoint runs each tool as the HTTP call it stands for.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.accountsOn)
 			r.Get("/tokens", s.handleListAPITokens)
 			r.With(requireSession).Post("/tokens", s.handleCreateAPIToken)
 			r.Delete("/tokens/{tokenID}", s.handleRevokeAPIToken)
-			r.With(requireAdmin).Get("/org/tokens", s.handleListOrgAPITokens)
-			r.With(requireAdmin).Delete("/org/tokens/{tokenID}", s.handleRevokeOrgAPIToken)
+			r.With(requireAdmin).Get("/tokens/everyone", s.handleListEveryonesAPITokens)
+			r.With(requireAdmin).Delete("/tokens/everyone/{tokenID}", s.handleRevokeAnybodysAPIToken)
 		})
 		r.With(requireAuth).Post("/mcp", s.handleMCP)
 

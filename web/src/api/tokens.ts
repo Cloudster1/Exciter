@@ -6,12 +6,12 @@ type Wire = components["schemas"];
 
 /** A personal access token; its secret is there only in the answer that made it. */
 export type ApiToken = Wire["APIToken"];
-/** A token in the organization's list, with whose it is. */
+/** A token in everybody's list, with whose it is. */
 export type OrgApiToken = Wire["OrgAPIToken"];
 export type NewApiToken = Wire["NewAPIToken"];
 
 export const tokensQueryKey = ["tokens"] as const;
-const orgTokensKey = [...tokensQueryKey, "organization"] as const;
+const everyonesTokensKey = [...tokensQueryKey, "everyone"] as const;
 
 /** The caller's own tokens, newest first. */
 export function useTokens() {
@@ -21,11 +21,11 @@ export function useTokens() {
   });
 }
 
-/** Every token of the organization, for its administrators. */
-export function useOrgTokens() {
+/** Everybody's tokens, for the administrators. */
+export function useEveryonesTokens() {
   return useQuery({
-    queryKey: orgTokensKey,
-    queryFn: async (): Promise<OrgApiToken[]> => (await api.GET("/org/tokens")).data!.tokens,
+    queryKey: everyonesTokensKey,
+    queryFn: async (): Promise<OrgApiToken[]> => (await api.GET("/tokens/everyone")).data!.tokens,
   });
 }
 
@@ -37,12 +37,12 @@ export function useCreateToken() {
   });
 }
 
-/** Revokes one of the caller's tokens, or with organization set anybody's, as an administrator. */
-export function useRevokeToken(organization = false) {
+/** Revokes one of the caller's tokens, or with anybodys set anybody's, as an administrator. */
+export function useRevokeToken(anybodys = false) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      if (organization) await api.DELETE("/org/tokens/{tokenID}", { params: { path: { tokenID: id } } });
+      if (anybodys) await api.DELETE("/tokens/everyone/{tokenID}", { params: { path: { tokenID: id } } });
       else await api.DELETE("/tokens/{tokenID}", { params: { path: { tokenID: id } } });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: tokensQueryKey }),

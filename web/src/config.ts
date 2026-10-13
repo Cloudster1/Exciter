@@ -241,9 +241,9 @@ export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", 
 /** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */
 export const FILE_SIZE_DECIMALS_BELOW = 10;
 
-/** Where a person keeps their personal access tokens, and where administrators see the organization's (#22). */
+/** Where a person keeps their personal access tokens, and where administrators see everybody's (#22, #86). */
 export const TOKENS_PATH = "/settings/tokens";
-export const ORG_TOKENS_PATH = "/settings/organization-tokens";
+export const ALL_TOKENS_PATH = "/settings/all-tokens";
 /** The one scope a token may carry, and the longest name it takes, the API's auth.ScopeRead and MaxTokenNameLength. */
 export const TOKEN_READ_SCOPE = "read";
 export const TOKEN_NAME_MAX_LENGTH = 100;

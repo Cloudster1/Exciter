@@ -196,8 +196,8 @@ func (s *Service) ListAPITokens(ctx context.Context, userID uuid.UUID) ([]APITok
 	return out, err
 }
 
-// ListOrgAPITokens answers every token in the organization, for an administrator.
-func (s *Service) ListOrgAPITokens(ctx context.Context) ([]OrgAPIToken, error) {
+// ListEveryonesAPITokens answers everybody's tokens, for an administrator.
+func (s *Service) ListEveryonesAPITokens(ctx context.Context) ([]OrgAPIToken, error) {
 	out := []OrgAPIToken{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
@@ -290,7 +290,7 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 		return nil, err
 	}
 	if !active {
-		return nil, ErrUserInactive
+		return nil, ErrSwitchedOff
 	}
 	tok.AllProjects = !only
 	p.Token = &tok

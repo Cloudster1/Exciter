@@ -697,40 +697,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/org/tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Every personal access token in the organization, with whose it is. For administrators. */
-        get: operations["listOrgAPITokens"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/org/tokens/{tokenID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Revoke anybody's token in the organization. For administrators. */
-        delete: operations["revokeOrgAPIToken"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/people": {
         parameters: {
             query?: never;
@@ -1738,12 +1704,46 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's personal access tokens in this organization, without their secrets. */
+        /** The caller's personal access tokens, without their secrets. */
         get: operations["listAPITokens"];
         put?: never;
         /** Make a personal access token; the secret is in this answer and never again. Needs a session. */
         post: operations["createAPIToken"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tokens/everyone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everybody's personal access tokens, with whose each is. For administrators. */
+        get: operations["listEveryonesAPITokens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tokens/everyone/{tokenID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke anybody's token. For administrators. */
+        delete: operations["revokeAnybodysAPIToken"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1773,7 +1773,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's members, owners first, with whether the identity provider's groups decide their roles. For administrators. */
+        /** The installation's people, those switched on first, then owners first, with whether the identity provider's groups decide their roles. For administrators. */
         get: operations["listMembers"];
         put?: never;
         /** Add a person with a password, made for them when none is given and shown once in the answer. For administrators. */
@@ -1845,12 +1845,12 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Take a member out of the organization; their sessions stop reaching it at once. For administrators. */
-        delete: operations["removeMember"];
+        /** Switch a member's account off: their sessions and tokens end at once, their account and work stay. For administrators. */
+        delete: operations["switchOffMember"];
         options?: never;
         head?: never;
-        /** Give a member another role; the owner's and the caller's own stay. For administrators. */
-        patch: operations["setMemberRole"];
+        /** Give a member another role, or switch their account off or on; an owner's role and the caller's own stay. For administrators. */
+        patch: operations["updateMember"];
         trace?: never;
     };
     "/views/{viewID}": {
@@ -2162,7 +2162,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -2178,7 +2178,7 @@ export interface components {
             targetType: string;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -2525,6 +2525,7 @@ export interface components {
             schema?: components["schemas"]["Schema"];
         };
         Member: {
+            active: boolean;
             email: string;
             /** Format: date-time */
             joinedAt: string;
@@ -3002,10 +3003,6 @@ export interface components {
             /** @enum {string} */
             role: "member" | "admin";
         };
-        SetRoleRequest: {
-            /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
-        };
         Shape: {
             radiusControl?: number;
             radiusOverlay?: number;
@@ -3209,6 +3206,11 @@ export interface components {
         UpdateMeRequest: {
             /** @enum {string} */
             locale?: "" | "en" | "de";
+        };
+        UpdateMemberRequest: {
+            active?: boolean;
+            /** @enum {string} */
+            role?: "owner" | "admin" | "member" | "guest";
         };
         User: {
             avatarUrl?: string;
@@ -4130,7 +4132,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -4179,7 +4181,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -5233,66 +5235,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Document"];
                 };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    listOrgAPITokens: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        tokens: components["schemas"]["OrgAPIToken"][];
-                    };
-                };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    revokeOrgAPIToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tokenID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
@@ -8893,6 +8835,66 @@ export interface operations {
             };
         };
     };
+    listEveryonesAPITokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tokens: components["schemas"]["OrgAPIToken"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revokeAnybodysAPIToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tokenID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     revokeAPIToken: {
         parameters: {
             query?: never;
@@ -9085,7 +9087,7 @@ export interface operations {
             };
         };
     };
-    removeMember: {
+    switchOffMember: {
         parameters: {
             query?: never;
             header?: never;
@@ -9114,7 +9116,7 @@ export interface operations {
             };
         };
     };
-    setMemberRole: {
+    updateMember: {
         parameters: {
             query?: never;
             header?: never;
@@ -9125,7 +9127,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SetRoleRequest"];
+                "application/json": components["schemas"]["UpdateMemberRequest"];
             };
         };
         responses: {

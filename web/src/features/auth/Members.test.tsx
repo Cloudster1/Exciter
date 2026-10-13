@@ -12,14 +12,16 @@ const owner = {
   name: "Olive Owner",
   role: "owner",
   joinedAt: "2026-09-01T08:00:00Z",
+  active: true,
 };
-const self = { userId: signedIn.user.id, email: signedIn.user.email, name: signedIn.user.name, role: "admin", joinedAt: "2026-09-02T08:00:00Z" };
+const self = { userId: signedIn.user.id, email: signedIn.user.email, name: signedIn.user.name, role: "admin", joinedAt: "2026-09-02T08:00:00Z", active: true };
 const bob = {
   userId: "0195f000-0000-7000-8000-000000000002",
   email: "bob@exciter.test",
   name: "Bob Builder",
   role: "member",
   joinedAt: "2026-09-03T08:00:00Z",
+  active: true,
 };
 
 /** The members list as the API keeps it, changed by what the screen sends. */
@@ -28,13 +30,9 @@ function api(extra: Record<string, Answer | ((request: Request) => Answer | Prom
   const sent = stubApi({
     "GET /users": () => ({ status: 200, body: { members } }),
     [`PATCH /users/${bob.userId}`]: async (request) => {
-      const { role } = (await request.json()) as { role: string };
-      members = members.map((m) => (m.userId === bob.userId ? { ...m, role } : m));
-      return { status: 200, body: { member: { ...bob, role } } };
-    },
-    [`DELETE /users/${bob.userId}`]: () => {
-      members = members.filter((m) => m.userId !== bob.userId);
-      return { status: 204 };
+      const change = (await request.json()) as { role?: string; active?: boolean };
+      members = members.map((m) => (m.userId === bob.userId ? { ...m, ...change } : m));
+      return { status: 200, body: { member: members.find((m) => m.userId === bob.userId) } };
     },
     ...extra,
   });
@@ -44,7 +42,7 @@ function api(extra: Record<string, Answer | ((request: Request) => Answer | Prom
 const row = (email: string) => document.querySelector<HTMLElement>(`[data-member="${email}"]`);
 
 describe("the members screen", () => {
-  it("lists everybody with their role, and lets no one change an owner or themselves", async () => {
+  it("lists everybody with their role, and lets no administrator change an owner or themselves", async () => {
     api();
     await renderAt(MEMBERS_PATH);
     await screen.findByText("Bob Builder");
@@ -70,42 +68,71 @@ describe("the members screen", () => {
     api({
       [`PATCH /users/${bob.userId}`]: {
         status: 409,
-        body: { error: { code: "conflict", message: "An owner keeps their role. Make somebody else the owner first." } },
+        body: { error: { code: "conflict", message: "An owner's role does not change. Change somebody else's instead." } },
       },
     });
     await renderAt(MEMBERS_PATH);
     await userEvent.selectOptions(await screen.findByRole("combobox", { name: "Role of Bob Builder" }), "guest");
-    expect(await screen.findByRole("alert")).toHaveTextContent("An owner keeps their role.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("An owner's role does not change.");
   });
 
-  it("asks before removing somebody, and does nothing when the answer is no", async () => {
+  it("lets an owner switch another owner off", async () => {
+    api();
+    await renderAt(MEMBERS_PATH, { me: { ...signedIn, role: "owner" } });
+    expect(await screen.findByRole("button", { name: "Switch Olive Owner off" })).toBeInTheDocument();
+    expect(within(row(owner.email)!).queryByRole("combobox")).toBeNull();
+  });
+
+  it("asks before switching somebody off, and does nothing when the answer is no", async () => {
     const sent = api();
     await renderAt(MEMBERS_PATH);
-    await userEvent.click(await screen.findByRole("button", { name: "Remove Bob Builder" }));
-    const dialog = screen.getByRole("dialog", { name: "Remove Bob Builder?" });
-    expect(dialog).toHaveTextContent("They lose access to this organization at once");
+    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
+    const dialog = screen.getByRole("dialog", { name: "Switch Bob Builder off?" });
+    expect(dialog).toHaveTextContent("They are signed out at once, on every device");
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(sent.some((r) => r.method === "DELETE")).toBe(false);
-    expect(screen.getByRole("button", { name: "Remove Bob Builder" })).toHaveFocus();
+    expect(sent.some((r) => r.method === "PATCH")).toBe(false);
+    expect(screen.getByRole("button", { name: "Switch Bob Builder off" })).toHaveFocus();
   });
 
-  it("removes somebody once confirmed, and keeps the focus on the page", async () => {
+  it("switches somebody off once confirmed and keeps them listed, then on again", async () => {
     const sent = api();
     await renderAt(MEMBERS_PATH);
-    await userEvent.click(await screen.findByRole("button", { name: "Remove Bob Builder" }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" }));
-    await waitFor(() => expect(sent.some((r) => r.method === "DELETE" && r.path === `/users/${bob.userId}`)).toBe(true));
-    await waitFor(() => expect(row(bob.email)).toBeNull());
+    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Switch off" }));
+    await waitFor(() => expect(sent.find((r) => r.method === "PATCH")).toEqual({ method: "PATCH", path: `/users/${bob.userId}`, body: { active: false } }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("Bob Builder was removed from the organization.");
+    expect(screen.getByRole("status")).toHaveTextContent("Bob Builder was switched off.");
+    await waitFor(() => expect(within(row(bob.email)!).getByText("Switched off")).toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole("button", { name: "Add person" })).toHaveFocus());
+
+    await userEvent.click(screen.getByRole("button", { name: "Switch Bob Builder on" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Bob Builder was switched on and can sign in again.");
+    await waitFor(() => expect(row(bob.email)).toHaveAttribute("data-member-active", "true"));
+  });
+
+  it("shows why switching off was refused inside the question", async () => {
+    api({
+      [`PATCH /users/${bob.userId}`]: {
+        status: 409,
+        body: {
+          error: {
+            code: "last_administrator",
+            message: "The last active administrator cannot be switched off. Make somebody else an administrator first.",
+          },
+        },
+      },
+    });
+    await renderAt(MEMBERS_PATH);
+    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Switch off" }));
+    expect(await within(screen.getByRole("dialog")).findByRole("alert")).toHaveTextContent("Make somebody else an administrator first.");
   });
 
   it("tells a member the screen is the administrators'", async () => {
     const sent = api();
     await renderAt(MEMBERS_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only an owner or administrator of this organization manages its members/)).toBeInTheDocument();
+    expect(await screen.findByText(/Only an administrator manages the members/)).toBeInTheDocument();
     expect(sent.filter((request) => request.path.startsWith("/users"))).toHaveLength(0);
   });
 });

@@ -153,8 +153,8 @@ func TestTokensOverTheAPI(t *testing.T) {
 		refuse(t, "a revoked token", script.get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "unauthorized")
 
 		otherID, otherSecret := makeToken(t, person, map[string]any{"name": "admin takes"})
-		refuse(t, "a member lists the organization's", person.get(t, "/api/v1/org/tokens"), http.StatusForbidden, "forbidden")
-		all := list(t, want(t, f.owner.get(t, "/api/v1/org/tokens"), http.StatusOK, "the organization's"), "tokens")
+		refuse(t, "a member lists the organization's", person.get(t, "/api/v1/tokens/everyone"), http.StatusForbidden, "forbidden")
+		all := list(t, want(t, f.owner.get(t, "/api/v1/tokens/everyone"), http.StatusOK, "the organization's"), "tokens")
 		found := false
 		for _, each := range all {
 			tok := each.(map[string]any)
@@ -165,8 +165,8 @@ func TestTokensOverTheAPI(t *testing.T) {
 		if !found {
 			t.Errorf("the organization's list lacks the member's token: %v", all)
 		}
-		refuse(t, "a member revokes through the organization's list", person.delete(t, "/api/v1/org/tokens/"+otherID), http.StatusForbidden, "forbidden")
-		want(t, f.owner.delete(t, "/api/v1/org/tokens/"+otherID), http.StatusNoContent, "an administrator revokes it")
+		refuse(t, "a member revokes through the organization's list", person.delete(t, "/api/v1/tokens/everyone/"+otherID), http.StatusForbidden, "forbidden")
+		want(t, f.owner.delete(t, "/api/v1/tokens/everyone/"+otherID), http.StatusNoContent, "an administrator revokes it")
 		refuse(t, "revoked by an administrator", f.api.withToken(person.user, otherSecret).get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "unauthorized")
 		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action IN ('token.created', 'token.revoked')`, f.home.org); n < 2 {
 			t.Errorf("the audit log holds %d token entries", n)

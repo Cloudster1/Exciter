@@ -146,8 +146,8 @@ func (s *Server) handleRevokeAPIToken(w http.ResponseWriter, r *http.Request) {
 	respondNoContent(w)
 }
 
-func (s *Server) handleListOrgAPITokens(w http.ResponseWriter, r *http.Request) {
-	tokens, err := s.Accounts.ListOrgAPITokens(r.Context())
+func (s *Server) handleListEveryonesAPITokens(w http.ResponseWriter, r *http.Request) {
+	tokens, err := s.Accounts.ListEveryonesAPITokens(r.Context())
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -155,7 +155,7 @@ func (s *Server) handleListOrgAPITokens(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, r, http.StatusOK, map[string]any{"tokens": tokens})
 }
 
-func (s *Server) handleRevokeOrgAPIToken(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleRevokeAnybodysAPIToken(w http.ResponseWriter, r *http.Request) {
 	id, apiErr := pathUUID(r, "tokenID", "token")
 	if apiErr != nil {
 		respondError(w, r, apiErr)

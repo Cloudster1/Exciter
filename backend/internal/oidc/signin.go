@@ -77,7 +77,7 @@ func (s *Service) signIn(ctx context.Context, orgID uuid.UUID, identity *Identit
 			return err
 		}
 		if !active {
-			return auth.ErrUserInactive
+			return auth.ErrSwitchedOff
 		}
 
 		var create bool

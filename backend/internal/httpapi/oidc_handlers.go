@@ -95,7 +95,7 @@ func signInFailure(err error) string {
 		return "not_configured"
 	case errors.Is(err, oidc.ErrUnreachable):
 		return "unreachable"
-	case errors.Is(err, auth.ErrUserInactive):
+	case errors.Is(err, auth.ErrSwitchedOff):
 		return "inactive"
 	default:
 		return "failed"

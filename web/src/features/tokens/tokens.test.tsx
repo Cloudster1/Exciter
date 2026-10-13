@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApiToken } from "@/api/tokens";
-import { DAY_MS, ORG_TOKENS_PATH, TOKENS_PATH } from "@/config";
+import { DAY_MS, ALL_TOKENS_PATH, TOKENS_PATH } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -88,25 +88,25 @@ describe("personal access tokens", () => {
   });
 });
 
-describe("the organization's tokens", () => {
+describe("everybody's tokens", () => {
   it("lists everybody's with whose it is, and revokes one", async () => {
     const theirs = { ...aToken(), owner };
     const sent = stubApi({
-      "GET /org/tokens": { status: 200, body: { tokens: [theirs] } },
-      [`DELETE /org/tokens/${theirs.id}`]: { status: 204 },
+      "GET /tokens/everyone": { status: 200, body: { tokens: [theirs] } },
+      [`DELETE /tokens/everyone/${theirs.id}`]: { status: 204 },
     });
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    await renderAt(ORG_TOKENS_PATH);
-    const table = await screen.findByRole("table", { name: "Access tokens" });
+    await renderAt(ALL_TOKENS_PATH);
+    const table = await screen.findByRole("table", { name: "All tokens" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Revoke Nightly export of Bob" }));
-    await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/org/tokens/${theirs.id}`)).toBe(true));
+    await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/tokens/everyone/${theirs.id}`)).toBe(true));
   });
 
   it("tells a member whose page it is", async () => {
     stubApi({});
-    await renderAt(ORG_TOKENS_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only the organization's owners and administrators see everybody's tokens/)).toBeInTheDocument();
+    await renderAt(ALL_TOKENS_PATH, { me: { ...signedIn, role: "member" } });
+    expect(await screen.findByText(/Only an administrator sees everybody.s tokens/)).toBeInTheDocument();
   });
 });

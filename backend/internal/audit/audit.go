@@ -25,7 +25,11 @@ const (
 	ActionMemberCreated = "member.created"
 	// ActionMemberRoleChanged is a member's standing an administrator, or the identity provider's groups, changed.
 	ActionMemberRoleChanged = "member.role_changed"
-	ActionMemberRemoved     = "member.removed"
+	// ActionMemberRemoved is somebody taken out before letting go meant switching off (#86); older entries keep it.
+	ActionMemberRemoved = "member.removed"
+	// ActionMemberSwitchedOff and ActionMemberSwitchedOn are an administrator letting somebody go and back.
+	ActionMemberSwitchedOff = "member.switched_off"
+	ActionMemberSwitchedOn  = "member.switched_on"
 	// ActionMemberJoined is somebody let in by a mapped group on their first sign-in, with nobody as its actor.
 	ActionMemberJoined = "member.joined"
 	// ActionMemberAdmitted and ActionMemberDeclined answer somebody waiting to be let in.
@@ -69,7 +73,7 @@ const (
 // client to name.
 var Actions = []string{
 	ActionEventDeadLettered, ActionAuditExported, ActionMemberCreated, ActionMemberRoleChanged, ActionMemberRemoved,
-	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
+	ActionMemberSwitchedOff, ActionMemberSwitchedOn, ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
