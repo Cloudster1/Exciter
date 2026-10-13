@@ -50,6 +50,11 @@ const (
 	// ActionWorkflowSaved and ActionWorkflowAssigned keep a workflow's shape and who follows it.
 	ActionWorkflowSaved    = "workflow.saved"
 	ActionWorkflowAssigned = "workflow.assigned"
+	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the organization's and the
+	// projects' link types, and how a project uses one.
+	ActionLinkTypeCreated = "link_type.created"
+	ActionLinkTypeChanged = "link_type.changed"
+	ActionLinkTypeDeleted = "link_type.deleted"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -59,7 +64,7 @@ var Actions = []string{
 	ActionMemberJoined, ActionMemberAdmitted, ActionMemberDeclined, ActionSSOProviderSaved, ActionGroupRoleSet, ActionGroupRoleRemoved,
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
-	ActionWorkflowSaved, ActionWorkflowAssigned,
+	ActionWorkflowSaved, ActionWorkflowAssigned, ActionLinkTypeCreated, ActionLinkTypeChanged, ActionLinkTypeDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

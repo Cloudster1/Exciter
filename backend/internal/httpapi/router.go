@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
@@ -72,7 +73,9 @@ type Server struct {
 	Workflows *workflow.Service
 	// Labels finds labels and what carries them; nil answers the label routes that they are not set up.
 	Labels *label.Service
-	Log    *slog.Logger
+	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
+	Trace *trace.Service
+	Log   *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -268,6 +271,22 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/requirements/{reqKey}/labels/{labelName}", s.handleRemoveRequirementLabel)
 			r.Get("/labels", s.handleListLabels)
 			r.Get("/labels/{labelName}/requirements", s.handleListLabelledRequirements)
+		})
+
+		// Trace links: read by whoever views both ends, made by whoever edits one; link types shaped by the
+		// organization's administrators, or a project's for its own.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.traceOn)
+			r.Get("/link-types", s.handleListOrgLinkTypes)
+			r.With(requireAdmin).Post("/link-types", s.handleCreateOrgLinkType)
+			r.Patch("/link-types/{linkTypeID}", s.handleUpdateLinkType)
+			r.Delete("/link-types/{linkTypeID}", s.handleDeleteLinkType)
+			r.Get("/projects/{projectKey}/link-types", s.handleListProjectLinkTypes)
+			r.Post("/projects/{projectKey}/link-types", s.handleCreateProjectLinkType)
+			r.Put("/projects/{projectKey}/link-types/{linkTypeID}", s.handleSetProjectLinkType)
+			r.Get("/requirements/{reqKey}/links", s.handleListLinks)
+			r.Post("/requirements/{reqKey}/links", s.handleCreateLink)
+			r.Delete("/links/{linkID}", s.handleDeleteLink)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

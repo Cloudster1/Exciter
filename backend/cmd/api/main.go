@@ -35,6 +35,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/seed"
 	"github.com/cloudster1/exciter/backend/internal/testorg"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
@@ -141,6 +142,7 @@ func run() error {
 		Attributes:      attribute.NewService(cluster),
 		Workflows:       workflow.NewService(cluster),
 		Labels:          label.NewService(cluster),
+		Trace:           trace.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

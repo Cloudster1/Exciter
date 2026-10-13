@@ -7,6 +7,7 @@ import { editorEn, requirementsEn } from "./requirements.en";
 import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
 import { labelsEn } from "./labels.en";
+import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
@@ -37,6 +38,7 @@ export const en = {
     audit: "Audit log",
     themes: "Themes",
     defaultTheme: "Default theme",
+    linkTypes: "Link types",
     groupRequirements: "Requirements",
     collapseSidebar: "Collapse the sidebar",
     expandSidebar: "Expand the sidebar",
@@ -247,6 +249,9 @@ export const en = {
       "trash.emptied": "Trash emptied",
       "workflow.saved": "Workflow saved",
       "workflow.assigned": "Workflow assigned",
+      "link_type.created": "Link type created",
+      "link_type.changed": "Link type changed",
+      "link_type.deleted": "Link type deleted",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -271,6 +276,8 @@ export const en = {
   history: historyEn,
   workflows: workflowsEn,
   labels: labelsEn,
+  links: linksEn,
+  linkTypes: linkTypesEn,
   search: searchEn,
   grid: gridEn,
   themes: themesEn,

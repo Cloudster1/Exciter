@@ -13,7 +13,7 @@ import (
 )
 
 func TestEveryActionIsNamedOnceAsDomainDotVerb(t *testing.T) {
-	shape := regexp.MustCompile(`^[a-z]+\.[a-z_]+$`)
+	shape := regexp.MustCompile(`^[a-z][a-z_]*\.[a-z_]+$`)
 	seen := map[string]bool{}
 	for _, a := range Actions {
 		if !shape.MatchString(a) {

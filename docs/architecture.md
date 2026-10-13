@@ -125,8 +125,17 @@ holds even for a query that forgot it.
   and `diffDelete`, marks only a comparison carries; values compare as a
   reader sees them. A restore writes the old content as the next revision,
   and the activity merges revisions with the changes that wrote none.
-- **Trace links** (#18): typed and directed links between requirements; a
-  link turns suspect when its upstream end has a newer revision (#36).
+- **Trace links** (#18): typed and directed links between requirements,
+  read from the source. `link_type` holds the organization's types, seeded
+  for every organization, and the projects' own; `link_type_project` turns
+  one off in a project and `link_type_rule` limits it to pairs of
+  requirement types. `trace_link` records the revision of each end and is
+  tombstoned, never deleted, through the app role. A trigger refuses a link
+  between anything but two requirements out of the trash, a type the
+  source's project may not use, a repeat, an end's 501st link and, for an
+  acyclic type, a circle, walking every link whoever writes; another logs
+  the link on both ends. A link shows to whoever views both ends. It turns
+  suspect when the end its type names has a newer revision (#36).
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
 ### Themes (#8)

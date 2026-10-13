@@ -3,6 +3,20 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: The database walks every link for a circle (#18)
+
+A link shows only to whoever views both its ends, so a circle can run through
+a requirement the writer cannot see. A check that walks only what the writer
+sees would let two people, each blind to the other's project, close a circle
+of a type that allows none. The trigger on `trace_link` therefore runs as the
+owner and walks every live link of the type, under a lock per organization so
+two links cannot close one circle together. The service walks first over what
+the caller sees, to name the way round; when only the trigger finds the
+circle, the refusal names no requirement on it. Whether a project uses a type
+and which pairs it allows stay in the service: they are a project's
+preference, not something history or coverage relies on.
+**Reconsider if** link writes queue behind the organization's lock.
+
 ## 2026-10-13: Search judges rights a project at a time (#20)
 
 Row level security runs a restrictive policy on every row a query reads before

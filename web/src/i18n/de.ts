@@ -5,6 +5,7 @@ import { editorDe, requirementsDe } from "./requirements.de";
 import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
 import { labelsDe } from "./labels.de";
+import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
@@ -35,6 +36,7 @@ export const de: Messages = {
     audit: "Protokoll",
     themes: "Designs",
     defaultTheme: "Design der Organisation",
+    linkTypes: "Verknüpfungsarten",
     groupRequirements: "Anforderungen",
     collapseSidebar: "Seitenleiste einklappen",
     expandSidebar: "Seitenleiste ausklappen",
@@ -251,6 +253,9 @@ export const de: Messages = {
       "trash.emptied": "Papierkorb geleert",
       "workflow.saved": "Workflow gespeichert",
       "workflow.assigned": "Workflow zugewiesen",
+      "link_type.created": "Verknüpfungsart angelegt",
+      "link_type.changed": "Verknüpfungsart geändert",
+      "link_type.deleted": "Verknüpfungsart gelöscht",
     },
     targetTypes: {
       user: "Person",
@@ -275,6 +280,8 @@ export const de: Messages = {
   history: historyDe,
   workflows: workflowsDe,
   labels: labelsDe,
+  links: linksDe,
+  linkTypes: linkTypesDe,
   search: searchDe,
   grid: gridDe,
   themes: themesDe,

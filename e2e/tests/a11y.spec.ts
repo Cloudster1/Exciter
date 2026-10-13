@@ -11,6 +11,7 @@ const PATHS = [
   "/settings/members",
   "/settings/sso",
   "/settings/default-theme",
+  "/settings/link-types",
   "/settings/audit",
   "/settings/themes",
   "/settings/themes/new",

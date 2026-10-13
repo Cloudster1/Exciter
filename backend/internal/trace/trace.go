@@ -12,9 +12,13 @@ import (
 
 // Limits on link types, matching the web client's.
 const (
+	MaxKeyLength    = 40
 	MaxNameLength   = 40
 	MaxPhraseLength = 60
-	MaxLinkTypes    = 50
+	// MaxLinkTypes bounds the organization's types, and each project's own.
+	MaxLinkTypes = 50
+	// MaxRules bounds the pairs of requirement types one link type joins in a project.
+	MaxRules = 50
 	// MaxLinksPerRequirement bounds the links one requirement holds in either direction.
 	MaxLinksPerRequirement = 500
 	// MaxCycleDepth bounds how far the cycle guard walks an acyclic type.

@@ -22,6 +22,7 @@ import { SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { RequirementLabels } from "@/features/labels/RequirementLabels";
+import { LinksPanel } from "@/features/links/LinksPanel";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { t } from "@/i18n";
@@ -117,6 +118,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       )}
       {!section && <Facts requirement={requirement} />}
       <RequirementLabels requirement={requirement} />
+      <LinksPanel requirement={requirement} />
       {mayEdit && <TrashSection project={project} requirement={requirement} />}
     </div>
   );

@@ -170,11 +170,11 @@ New audit actions: `project.created`, `project.key_changed`,
   named (#24), or blank: one type `Requirement` that is the default type, the
   default statuses and workflow (#17), every organization link type enabled,
   and no sections. The creator is granted `admin` and everyone `editor` (#12).
-  Each of #18 and #24 adds its part to create as it lands: until then a
-  blank project is the row, its grants, its type `Requirement`, which a
-  trigger makes and names `settings.defaultTypeId`, and the default statuses
-  and workflow, which a trigger makes and names `settings.workflowId` (#17);
-  a `template` is 422.
+  #24 adds its part to create as it lands: until then a blank project is the
+  row, its grants, its type `Requirement`, which a trigger makes and names
+  `settings.defaultTypeId`, and the default statuses and workflow, which a
+  trigger makes and names `settings.workflowId` (#17); a `template` is 422.
+  The organization's link types need no row to be enabled (#18).
 - **A new key** (`PUT .../key`) keeps the old one as an alias: `CHK-R5`
   becomes `SYS-R5`, and both `CHK` and `CHK-R5` keep resolving. Taking back a
   key the project had before removes it from the aliases. The same key is no
@@ -511,9 +511,8 @@ New audit actions: `project.created`, `project.key_changed`,
 - **Statuses on a move.** A `statusMapping` is only for a move to another
   project; within one it is 422. Its keys are the statuses the moved
   requirements are in, and a status the target has by name needs none (#17).
-- **Until the later issues land**, `links` on a copy waits for #18. Links,
-  labels and files belong to the requirement's id, so a move takes them along
-  as they arrive.
+- **Links, labels and files** belong to the requirement's id, so a move takes
+  them along. `links` on a copy is built with #18.
 - UI: `/p/$projectKey/spec` shows the tree beside the numbered document,
   edited in place. Dragging in the tree moves, and the place dialog moves or
   copies to another project, ported from Stator's `PageTree` and
@@ -745,6 +744,41 @@ New audit actions: `project.created`, `project.key_changed`,
 - UI: the links panel of a requirement, grouped by type and direction, with
   a requirement picker drawn from quick search (#20); the Link types tab of
   the project settings, and the organization's under Organization.
+- **As built** (#18):
+  - **What the database holds.** The trigger on `trace_link` refuses a
+    self-link (`trace_link_not_self`), a section or a trashed end
+    (`trace_link_ends`), a retired type or one of another project
+    (`trace_link_type`), a repeat (`trace_link_repeat`, a symmetric type
+    both ways round), an end's link past the 500th (`trace_link_limit`) and
+    a circle (`trace_link_cycle`), and writes the ends' revisions whatever
+    the insert says. Whether a project uses a type and its pairs are the
+    service's to check. A key is taken across the organization's types and
+    each project's (`link_type_key_taken`) and never changes.
+  - **Naming the circle.** The service walks the links the caller sees and
+    names the way round. A circle through a requirement the caller cannot
+    see is still refused, by the trigger, with a sentence that names no
+    requirement on it.
+  - **Logged by the database.** A trigger writes the `link` change on both
+    ends, so the far end's history has it even when the caller only views
+    that end.
+  - **Rights.** A link shows only to whoever views both ends, so removing a
+    link one cannot see is 404. Removing is for who edits either end, and an
+    archived project's requirement may still be linked to from an open one.
+    The app role may only set `deleted_at` and `deleted_by`; deleting a
+    type with links, live or removed, deletes nothing.
+  - **Copies** take the live links of the originals the caller sees, between
+    the copies where both ends were copied. A link whose type the copy's
+    project may not use stays behind; whether the project uses a type and
+    its pairs are not asked again.
+  - **The type select** on a requirement offers the types of its own
+    project, both ways round; a link made from its target is checked against
+    the source's project.
+  - **`links`** on a type counts its live links in every project, which
+    decides whether the list offers Delete.
+  - **Audit** names `link_type.changed` for a project turning a type off or
+    changing its pairs too, with the project in its data.
+  - **Tools.** `list_links` and `link_requirements` are `GET` and
+    `POST /requirements/{reqKey}/links`.
 
 ## #19 Labels
 
