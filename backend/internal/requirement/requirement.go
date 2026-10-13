@@ -156,6 +156,8 @@ type CreateInput struct {
 	Place *Place `json:"place,omitempty"`
 	// Comment goes with revision 1.
 	Comment string `json:"comment,omitempty"`
+	// ImportedStatus is the status an import (#23) sets on what it makes; the API never takes one.
+	ImportedStatus *uuid.UUID `json:"-"`
 }
 
 // UpdateInput changes a requirement; nil leaves a field alone. A change to

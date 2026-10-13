@@ -3,10 +3,12 @@ package requirement
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
@@ -131,6 +133,11 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		}
 		if err := putLabels(ctx, tx, actor, id, labels); err != nil {
 			return err
+		}
+		if in.ImportedStatus != nil && kind == KindRequirement {
+			if _, err := tx.Exec(ctx, `SELECT requirement_import_status($1, $2)`, id, *in.ImportedStatus); err != nil {
+				return importedStatusRefusal(err)
+			}
 		}
 		if err := events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": p.ID, "requirementId": id, "revision": 1}); err != nil {
 			return err
@@ -387,4 +394,16 @@ func (s *Service) changePriority(ctx context.Context, tx db.DBTX, actor uuid.UUI
 		return fmt.Errorf("change the priority of %s: %w", cur.Key, err)
 	}
 	return logChange(ctx, tx, actor, cur.ID, ChangePriority, priorityText(cur.Priority), priorityText(priority))
+}
+
+// importedStatusRefusal says why the database would not give a requirement an import made the status asked for.
+func importedStatusRefusal(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Message == "requirement_import_status_unknown" {
+		return &FieldError{"status", "That status is not one of the workflow of the requirement's type. Map the status to one it has."}
+	}
+	if errors.As(err, &pgErr) && pgErr.Message == "requirement_import_status" {
+		return ErrForbidden
+	}
+	return fmt.Errorf("set the imported status: %w", err)
 }

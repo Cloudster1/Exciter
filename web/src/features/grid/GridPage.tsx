@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAttributes, useTypes } from "@/api/attributes";
+import { exportHref } from "@/api/imports";
 import type { Project } from "@/api/projects";
 import { useGrid } from "@/api/search";
 import { useStatuses } from "@/api/workflows";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GRID_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -63,7 +64,20 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
         <p className="text-sm text-ink-subtle tabular-nums" role="status" data-grid-count>
           {data ? t.grid.count(data.total, data.offset + 1, data.offset + rows.length) : ""}
         </p>
-        <ColumnChooser columns={columns} attributes={attributes} onChange={(next) => onAddress({ ...toAddress(filter, sort, keep), columns: next })} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink
+            href={exportHref(project.key, params, columns)}
+            download
+            variant="secondary"
+            size="sm"
+            icon={<Icon.Download />}
+            title={t.imports.exportHint}
+            data-action="export-csv"
+          >
+            {t.imports.exportCsv}
+          </ButtonLink>
+          <ColumnChooser columns={columns} attributes={attributes} onChange={(next) => onAddress({ ...toAddress(filter, sort, keep), columns: next })} />
+        </div>
       </div>
       <p role="status" className="mb-2 text-sm text-ink-muted empty:hidden" data-grid-notice>
         {notice}

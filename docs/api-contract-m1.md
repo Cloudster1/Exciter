@@ -1100,6 +1100,39 @@ New audit actions: `project.created`, `project.key_changed`,
   `X-Export-Truncated: true`.
 - UI: Import under the project settings, with Armature's `MappingCard` and
   `PeopleCard`, and Export in the grid's menu.
+- **As built** (#23):
+  - **Keys.** A key of this project out of the trash changes that
+    requirement, and one of this project that is not there is a problem. A
+    key of another project names its row within the file, for parents and
+    links, and the row makes a new requirement: that is how one project's
+    export imports into another. A row without a key is new.
+  - **A requirement that exists** keeps its status: a different one in the
+    file is a problem, since a status moves by transitions. Its labels are
+    added to, never taken away, a blank title keeps the one it has, and an
+    owner column sets the owner or clears it.
+  - **The status of what an import makes** is set by
+    `requirement_import_status`, which the database allows only in the
+    transaction that made the requirement, to somebody who administers its
+    project, and only to a status of its workflow.
+  - **Statement and rationale** are plain text both ways: paragraphs between
+    blank lines and line breaks inside them. Formatting, lists and tables
+    come out as their words.
+  - **The mapping** takes the parent or the outline, not both; a file with
+    both columns is guessed to the parent. Every answer is sent at once, so
+    the problems shown are the file's now; `start` reads the project again.
+  - **What the database holds.** An import is made by who administers its
+    project, in their own name, and seen and stopped by them and its maker.
+    Its file never changes, its mapping only until it is queued, and it
+    moves only forward (`import_job_guard`). The worker runs it as its
+    maker, so every row is held to that person's rights.
+  - **The run.** A row whose problem appeared after the start is refused
+    with it. A worker that stops halfway leaves the import `running`; it is
+    not picked up again.
+  - **Export** writes every column and every attribute when none are asked
+    for, attributes headed `attr:<name>` so the file maps itself back, with
+    a byte order mark for spreadsheets. A cell that starts with `=`, `+`,
+    `-` or `@` is written with an apostrophe in front, which an import takes
+    off. The grid's Export button sends the grid's own columns.
 
 ## #24 Project templates
 

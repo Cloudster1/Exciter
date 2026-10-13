@@ -13,10 +13,14 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/config"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -65,8 +69,9 @@ func run() error {
 		return err
 	}
 
-	// No topic has a handler yet, so an event is marked done as it arrives; each feature routes its own here.
-	handlers := events.NewMux(nil)
+	// A topic without a handler is marked done as it arrives; each feature routes its own here.
+	imports := csvio.NewService(cluster, requirement.NewService(cluster), trace.NewService(cluster), search.NewService(cluster))
+	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports))
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
 	store, err := objectstore.Open(objectstore.Config{

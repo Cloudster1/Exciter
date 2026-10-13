@@ -3,6 +3,21 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: A key of another project names a row of the file (#23)
+
+The contract said an import refuses a key of another project. But a
+project's export carries its own keys, and importing it into an empty
+project, which the integration suite proves, needs those keys to say which
+row is a parent of which and where each link goes. So a key of another
+project names its row within the file and the row makes a new requirement,
+while a key of the project itself still changes that requirement, and one of
+the project that is not there is still refused. The status of a new
+requirement is the one other thing an import may set that no save does; a
+database function allows it only for a requirement made in the same
+transaction, by somebody who administers its project.
+**Reconsider if** people mean to update another project's requirements by
+importing into this one.
+
 ## 2026-10-13: The database holds a token to its projects (#22)
 
 A token limited to projects could be held there by the service alone, as
