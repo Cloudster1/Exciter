@@ -1,13 +1,14 @@
+import { uniqueKey } from "../fixtures/seed";
 import { request } from "@playwright/test";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
-const KEY = "TOKS";
+const KEY = uniqueKey("TOKS");
 
-// The organization is this file's alone, so its tokens and projects meet no other spec's.
+// The tokens are this spec's own alice's, and the project's key this worker's, so they meet no other spec's.
 test.describe("personal access tokens", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => {
     const path = { params: { path: { projectKey: KEY } } };

@@ -374,7 +374,8 @@ forgetting a tenant.
   stub's organization `tenant`, made on first use with fixed projects, types
   and issues; `reader` holds a token of the `read` scope, and
   `armature_pat_revoked` is always 401. Each Playwright spec uses a tenant
-  named after its throwaway organization.
+  of its own; since #83 they run one at a time, as the connection is the
+  installation's.
 - **Steering it** under `/_stub/`, left out of the contract test: change, move
   and delete an issue, set a person's theme, read the remote links it holds,
   make remote link calls fail for a while, and send a signed webhook to a

@@ -3,6 +3,33 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: Browser specs keep to people and keys of their own (#83)
+
+An installation serves one team (#82), so the browser suite stops making an
+organization per spec file, as Armature's did (Cloudster1/Armature#209).
+Supersedes "Each browser spec file gets a throwaway organization (#9)".
+
+- **People of their own.** Each spec file gets, per worker, an alice who
+  administers and a bob who is a member, made in `demo` by the bootstrap owner
+  through `POST /users`, signed in with their password and let go when the
+  worker stops (`e2e/fixtures/people.ts`). What they choose, the tokens they
+  make and what they are granted is nobody else's.
+- **Keys and words of their own.** A spec's projects carry keys no other worker
+  or run draws (`uniqueKey`), and what every project shares, a label or a link
+  type, gets a word of the worker's own. Search is narrowed to the spec's
+  project, and the audit log to the target the spec planted.
+- **The built-in look, chosen.** The default theme is everybody's. Each spec's
+  people choose the built-in theme when they are made, so a default the
+  themes spec sets meanwhile never reaches another spec's contrast check.
+- **A lane of one worker for what there is one of.** The provider, the default
+  theme and the Armature connection are the installation's, so the sso,
+  themes, armature and armature-links specs run in a Playwright project of one
+  worker, beside the rest rather than after them: Playwright runs the
+  projects another depends on whole in every shard, which would have run the
+  whole suite twice in CI. Demo's own alice is only the sso spec's now, which
+  changes her role and points demo's provider at a dead issuer, and restores
+  both.
+
 ## 2026-10-13: One remote link per requirement and issue, at its permalink (#25)
 
 Stator puts one remote link per page and issue at the page's address. A
@@ -164,6 +191,9 @@ problem the file has is reported before anything is written, so a started
 import refuses rows only when the project changed meanwhile.
 
 ## 2026-10-12: Each browser spec file gets a throwaway organization (#9)
+
+Superseded by "Browser specs keep to people and keys of their own (#83)"; the
+test endpoints stay for the integration suite until #90.
 
 As in Stator: specs that change what an organization shows, such as its
 default theme or somebody's role, cannot share `demo` with specs that judge

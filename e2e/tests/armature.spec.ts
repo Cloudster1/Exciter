@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
-import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { expect, ORG_SLUG } from "../fixtures/auth";
+import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
 import { expectAccessible, menuItem, openAccountMenu, startInScheme, type ColourScheme } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
@@ -9,8 +9,9 @@ import { armatureURL } from "../fixtures/stack";
 
 const SETTINGS_PATH = "/settings/armature";
 const ACCOUNT_PATH = "/settings/armature-account";
-// The stub makes a person of any name on first use, in the Armature organization its token names; each spec's
-// organization is its own tenant.
+// The stub makes a person of any name on first use, in the Armature organization its token names; this spec's is a
+// tenant of its own, and the connection is the installation's, so the spec runs alone.
+const TENANT = "e2e-armature";
 const patFor = (tenant: string, person: string) => `armature_pat_${tenant}_${person}`;
 const REVOKED = "armature_pat_revoked";
 const WEBHOOK_SECRET = "armature_whs_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
@@ -24,7 +25,7 @@ async function paste(page: Page, token: string): Promise<void> {
 }
 
 test.describe("connecting Armature", { tag: "@desktop" }, () => {
-  // A test that stopped half way leaves its connection to the next one in this worker's organization.
+  // A test that stopped half way leaves its connection to the next one.
   test.beforeEach(async ({ api }) => {
     await api.DELETE("/armature/connection");
   });
@@ -33,9 +34,9 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
   });
 
   for (const scheme of SCHEMES) {
-    test(`an administrator connects, alice connects her account and disconnects, in ${scheme}`, async ({ page, freshOrg }) => {
+    test(`an administrator connects, alice connects her account and disconnects, in ${scheme}`, async ({ page }) => {
       await startInScheme(page, scheme);
-      const tenant = freshOrg.slug;
+      const tenant = TENANT;
 
       await page.goto(SETTINGS_PATH);
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Armature" })).toBeVisible();
@@ -44,7 +45,7 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await page.getByLabel("Webhook secret", { exact: true }).fill(WEBHOOK_SECRET);
       await page.locator('[data-action="save-armature"]').click();
       await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
-      await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(new RegExp(`/api/v1/armature/webhook/${tenant}$`));
+      await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(new RegExp(`/api/v1/armature/webhook/${ORG_SLUG}$`));
       await expect(page.getByLabel("Webhook secret", { exact: true })).toHaveValue("");
       await expect(page.locator("body")).not.toContainText(WEBHOOK_SECRET);
       // The disconnect button is the danger variant, so axe judges its colours too.
@@ -85,12 +86,12 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
     });
   }
 
-  test("a member is told to ask an administrator until Armature is connected", async ({ pageAs, freshOrg, api }) => {
+  test("a member is told to ask an administrator until Armature is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");
     await openShowing(bob, ACCOUNT_PATH, bob.locator('[data-armature-status="not_configured"]'));
     await expect(bob.locator('[data-armature-status="not_configured"]')).toContainText("Ask an administrator to connect it under Settings, Armature.");
 
-    expect((await api.PUT("/armature/connection", { body: { baseUrl: armatureURL(), orgSlug: freshOrg.slug } })).response.status).toBe(200);
+    expect((await api.PUT("/armature/connection", { body: { baseUrl: armatureURL(), orgSlug: TENANT } })).response.status).toBe(200);
     await openShowing(bob, ACCOUNT_PATH, bob.getByLabel("Armature token", { exact: true }));
     await bob.goto(SETTINGS_PATH);
     await expect(bob.getByText("Only an administrator of this organization can connect Armature.")).toBeVisible();

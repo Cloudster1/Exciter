@@ -5,6 +5,10 @@ import { WEB_URL } from "./fixtures/stack";
 // and runs in that project alone; everything else runs in both.
 const MOBILE_VIEWPORT = { width: 360, height: 740 };
 
+// The specs that change what the whole installation shares, its provider, default theme or Armature
+// connection, run one at a time beside the rest, which keep to their own people and projects.
+const SERIAL = /\/(sso|themes|armature|armature-links)\.spec\.ts$/;
+
 // CI's browser jobs each leave a blob that its report job merges (merge.config.ts); anywhere
 // else the suite writes the HTML report and the JSON the gate's summary reads itself.
 const REPORTS_DIR = "../reports";
@@ -42,14 +46,24 @@ export default defineConfig({
     {
       name: "chromium",
       dependencies: ["setup"],
+      testIgnore: SERIAL,
       grepInvert: /@mobile/,
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "mobile",
       dependencies: ["setup"],
+      testIgnore: SERIAL,
       grepInvert: /@desktop/,
       use: { ...devices["Desktop Chrome"], viewport: MOBILE_VIEWPORT, isMobile: true, hasTouch: true },
+    },
+    {
+      name: "serial",
+      dependencies: ["setup"],
+      testMatch: SERIAL,
+      workers: 1,
+      grepInvert: /@mobile/,
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 });

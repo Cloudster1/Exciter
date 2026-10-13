@@ -1,12 +1,13 @@
+import { uniqueKey } from "../fixtures/seed";
 import type { Locator, Page } from "@playwright/test";
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
-import { expect, USERS } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { expect, type User } from "../fixtures/auth";
+import { peopleTest as test, type Person } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "FLOW";
+const KEY = uniqueKey("FLOW");
 const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
 /** How many moves each leg of a drag is made of. */
 const DRAG_STEPS = 4;
@@ -21,19 +22,17 @@ async function removeProject(api: ExciterApi) {
 }
 
 /** A project with one requirement in Draft, alice its administrator and author, and bob a reviewer too. */
-async function makeProject(api: ExciterApi) {
+async function makeProject(api: ExciterApi, people: Record<User, Person>) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Flowing" } }));
   must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Pay the basket" } }));
-  const members = must(await api.GET("/users")).members;
-  const id = (email: string) => members.find((each) => each.email === email)!.userId;
   must(
     await api.PUT("/projects/{projectKey}/grants", {
       params: { path: { projectKey: KEY } },
       body: {
         grants: [
-          { subject: { type: "user", id: id(USERS.alice.email) }, role: "admin" },
+          { subject: { type: "user", id: people.alice.id }, role: "admin" },
           { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: id(USERS.bob.email) }, role: "reviewer" },
+          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
         ],
       },
     }),
@@ -59,12 +58,12 @@ async function centreOf(locator: Locator) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-// The organization is this file's alone, so its project meets no other spec.
+// The project's key is this worker's own, so it meets no other spec.
 test.describe("workflow", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
-  test("alice submits a requirement, bob approves it, and a new revision sends it back to Draft", async ({ page, api, pageAs }) => {
-    await makeProject(api);
+  test("alice submits a requirement, bob approves it, and a new revision sends it back to Draft", async ({ page, api, pageAs, people }) => {
+    await makeProject(api, people);
     await page.goto(REQUIREMENT);
     const bar = page.locator("[data-transition-bar]");
     await expect(bar.locator('[data-status="Draft"]')).toBeVisible();
@@ -97,8 +96,8 @@ test.describe("workflow", { tag: "@desktop" }, () => {
     await expect(bar.locator('[data-status="Rejected"]')).toBeVisible();
   });
 
-  test("an administrator draws a workflow and a type follows it", async ({ page, api }) => {
-    await makeProject(api);
+  test("an administrator draws a workflow and a type follows it", async ({ page, api, people }) => {
+    await makeProject(api, people);
     await page.goto(`/p/${KEY}/settings?tab=workflow`);
     await expect(page.getByRole("figure", { name: "Workflow Default" })).toBeVisible();
     await expect(page.locator('[data-status-row="Obsolete"]')).toBeVisible();

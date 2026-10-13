@@ -1,10 +1,11 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "HIS";
+const KEY = uniqueKey("HIS");
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -17,7 +18,7 @@ async function removeProject(api: ExciterApi) {
 
 const paragraph = (text: string) => ({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
 
-// The organization is this file's alone, so its project meets no other spec.
+// The project's key is this worker's own, so it meets no other spec.
 test.describe("history", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 

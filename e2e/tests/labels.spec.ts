@@ -1,10 +1,17 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "TAGS";
+const KEY = uniqueKey("TAGS");
+// Labels are the installation's, so this one carries a word no other worker or run has.
+const WORD = uniqueKey("W").toLowerCase();
+const TYPED = `Safety ${WORD}`;
+const LABEL = `safety-${WORD}`;
+// Enough of the label typed to suggest it among any others that begin alike.
+const SUGGEST_FROM = LABEL.length - 2;
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -15,7 +22,7 @@ async function removeProject(api: ExciterApi) {
   await api.DELETE("/projects/{projectKey}", path);
 }
 
-// The organization is this file's alone, so its labels meet no other spec's.
+// The project's key and the label's word are this worker's own, so they meet no other spec's.
 test.describe("labels", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
@@ -29,36 +36,36 @@ test.describe("labels", { tag: "@desktop" }, () => {
     const labels = page.locator("[data-requirement-labels]");
     await expect(labels).toContainText("No labels yet.");
     const box = labels.getByRole("combobox", { name: "Add a label" });
-    await box.fill("Safety Critical");
+    await box.fill(TYPED);
     await box.press("Enter");
-    await expect(labels.locator('[data-label="safety-critical"]')).toBeVisible();
-    await expect(page.getByText("Added the label safety-critical.")).toBeAttached();
+    await expect(labels.locator(`[data-label="${LABEL}"]`)).toBeVisible();
+    await expect(page.getByText(`Added the label ${LABEL}.`)).toBeAttached();
     await expect(page.locator("[data-revision]")).toHaveAttribute("data-revision", "1");
     await expectAccessible(page);
 
     await page.goto(`/p/${KEY}/r/${KEY}-R2`);
     const second = page.locator("[data-requirement-labels]").getByRole("combobox", { name: "Add a label" });
-    await second.fill("saf");
-    await page.locator('[data-label-option="safety-critical"]').click();
-    await expect(page.locator('[data-requirement-labels] [data-label="safety-critical"]')).toBeVisible();
+    await second.fill(LABEL.slice(0, SUGGEST_FROM));
+    await page.locator(`[data-label-option="${LABEL}"]`).click();
+    await expect(page.locator(`[data-requirement-labels] [data-label="${LABEL}"]`)).toBeVisible();
 
-    await page.locator('[data-requirement-labels] [data-label="safety-critical"]').getByRole("link").click();
-    await expect(page).toHaveURL(`/p/${KEY}?label=safety-critical`);
-    await expect(page.locator("[data-label-filter]")).toContainText("Showing requirements labelled safety-critical");
+    await page.locator(`[data-requirement-labels] [data-label="${LABEL}"]`).getByRole("link").click();
+    await expect(page).toHaveURL(`/p/${KEY}?label=${LABEL}`);
+    await expect(page.locator("[data-label-filter]")).toContainText(`Showing requirements labelled ${LABEL}`);
     await expect(page.locator("[data-requirement-row]")).toHaveCount(2);
     await expect(page.locator(`[data-requirement-row="${KEY}-R3"]`)).toHaveCount(0);
     await expectAccessible(page);
 
     await page.locator('[data-label-filter] [data-action="label-everywhere"]').click();
-    await expect(page).toHaveURL("/labels/safety-critical");
+    await expect(page).toHaveURL(`/labels/${LABEL}`);
     await expect(page.locator("[data-label-count]")).toHaveText("2 requirements");
     await expect(page.locator(`[data-labelled-requirement="${KEY}-R1"]`)).toContainText("Pay the basket");
     await expectAccessible(page);
 
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
-    await page.getByRole("button", { name: "Remove label safety-critical" }).click();
+    await page.getByRole("button", { name: `Remove label ${LABEL}` }).click();
     await expect(page.locator("[data-requirement-labels]")).toContainText("No labels yet.");
     await page.goto(`/p/${KEY}/r/${KEY}-R1/history?tab=activity`);
-    await expect(page.locator('[data-activity-entry="change"]').first()).toContainText("changed the labels from safety-critical to nothing");
+    await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`changed the labels from ${LABEL} to nothing`);
   });
 });

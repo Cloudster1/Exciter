@@ -6,9 +6,21 @@ import { stateFile } from "./auth";
 export type Theme = components["schemas"]["Theme"];
 export type ThemeSpec = components["schemas"]["Spec"];
 
-/** A name no other test, worker or earlier run has used, so tests can share an organization. */
+/** A name no other test, worker or earlier run has used, so tests can share the installation. */
 export function uniqueName(testInfo: TestInfo, label: string): string {
   return `e2e ${testInfo.workerIndex}-${Date.now().toString(36)} ${label}`;
+}
+
+// project.MaxKeyLength: a key is a capital and at most nine capitals or digits.
+const MAX_KEY_LENGTH = 10;
+const KEY_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+/** A project key beginning with the prefix that no other worker or run holds; each worker loading a spec draws its
+ *  own, so tests of one file in one worker reuse it one after another, as they deleted the project before. */
+export function uniqueKey(prefix: string): string {
+  let key = prefix;
+  while (key.length < MAX_KEY_LENGTH) key += KEY_ALPHABET[Math.floor(Math.random() * KEY_ALPHABET.length)];
+  return key;
 }
 
 /** A theme that overrides nothing; pass what the test needs on top. */
@@ -24,7 +36,7 @@ export async function listThemes(api: ExciterApi): Promise<Theme[]> {
   return must(await api.GET("/themes")).themes;
 }
 
-/** Uses a theme, or with null goes back to whatever the organization shows. */
+/** Uses a theme, or with null goes back to whatever default everybody is shown. */
 export async function chooseTheme(api: ExciterApi, themeId: string | null): Promise<void> {
   must(await api.PUT("/themes/active", { body: { themeId } }));
 }

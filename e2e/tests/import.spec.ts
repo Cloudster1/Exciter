@@ -1,12 +1,13 @@
+import { uniqueKey } from "../fixtures/seed";
 import { readFileSync } from "node:fs";
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
 
-const SOURCE = "EXPO";
-const TARGET = "IMPO";
+const SOURCE = uniqueKey("EXP");
+const TARGET = uniqueKey("IMP");
 
 async function cleanUp(api: ExciterApi) {
   for (const key of [SOURCE, TARGET]) {
@@ -19,7 +20,7 @@ async function cleanUp(api: ExciterApi) {
   }
 }
 
-// The organization is this file's alone, so its projects meet no other spec's.
+// The projects' keys are this worker's own, so they meet no other spec's.
 test.describe("CSV import and export", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => cleanUp(api));
 

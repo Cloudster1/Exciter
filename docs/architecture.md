@@ -315,18 +315,16 @@ the host's network so it reaches the stack as a person at this machine does,
 at desktop size and at 360x740. It reads the ports from `.cache/stack.env`. A
 setup project signs alice and bob in to `demo` through Keycloak once and keeps
 their sessions in `e2e/.auth/`, and setup and teardown leave `demo` showing
-the built-in theme. A spec that changes what an organization shows uses
-`orgTest` from `e2e/fixtures/org.ts`: each spec file gets an organization of
-its own per worker, made through the api's test endpoints, `POST` and
-`DELETE /api/v1/test/orgs`, with the bootstrap administrator as its owner,
-alice and bob let in and the stack's Keycloak as its provider, and removed
-with all its rows and files when the worker stops. The endpoints are routed
-only when `EXCITER_TEST_ENDPOINTS` is on, which compose sets for the api and a
-deployment never does, ask for `EXCITER_TEST_ENDPOINTS_TOKEN` in
-`X-Exciter-Test-Token`, and are left out of `api/openapi.json`. What no
-endpoint makes, such as an organization whose provider is down or a page of
-audit entries, a spec arranges straight in the database through
-`e2e/fixtures/db.ts` and removes again. `make test-e2e ONLY=<grep>` runs some
+the built-in theme. Every spec shares `demo` and keeps to its own: with
+`peopleTest` from `e2e/fixtures/people.ts`, each spec file gets per worker an
+alice who administers and a bob who is a member, made by the bootstrap owner
+and signed in with a password, on the built-in theme, and let go when the
+worker stops; its projects carry keys from `uniqueKey`, which no other worker
+or run draws. The specs that change what there is one of, the provider, the
+default theme and the Armature connection, run in the `serial` project of one
+worker beside the rest. What no endpoint makes, such as an unreachable
+provider or a page of audit entries, a spec arranges straight in the database
+through `e2e/fixtures/db.ts` and puts back again. `make test-e2e ONLY=<grep>` runs some
 of it, `SHARD=1/2` a part as CI does, and `make e2e-report` serves the last
 report.
 

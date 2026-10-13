@@ -1,10 +1,11 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "SRCH";
+const KEY = uniqueKey("SRCH");
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -27,13 +28,13 @@ async function makeProject(api: ExciterApi) {
   await write({ title: "Print the receipt", statement: paragraph("The till prints a receipt for every basket."), labels: ["paper"] });
 }
 
-// The organization is this file's alone, so its project meets no other spec.
+// The project's key is this worker's own, so it meets no other spec.
 test.describe("search", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
   test("alice finds requirements by their words, and goes to one by its key from the palette", async ({ page, api }) => {
     await makeProject(api);
-    await page.goto("/search?q=basket");
+    await page.goto(`/search?q=basket&project=${KEY}`);
     await expect(page.locator("[data-search-count]")).toHaveText("2 results");
     const pay = page.locator(`[data-search-hit="${KEY}-R1"]`);
     await expect(pay.locator("mark").first()).toHaveText("basket");

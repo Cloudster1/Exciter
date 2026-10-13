@@ -1,10 +1,11 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "SYSSPEC";
+const KEY = uniqueKey("SYS");
 
 async function cleanUp(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };
@@ -15,7 +16,7 @@ async function cleanUp(api: ExciterApi) {
   }
 }
 
-// The organization is this file's alone, so its projects meet no other spec's.
+// The projects' keys are this worker's own, so they meet no other spec's.
 test.describe("project templates", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => cleanUp(api));
 
