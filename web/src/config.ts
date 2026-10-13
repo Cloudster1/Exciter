@@ -257,3 +257,8 @@ export const MCP_SERVER_NAME = "exciter";
 export const DAY_MS = 24 * 60 * 60 * 1000;
 /** How long "Copied" stays after a secret is copied. */
 export const COPY_FEEDBACK_MS = 2000;
+
+/** How often an import the worker has is read again while a person watches it. */
+export const IMPORT_POLL_MS = 1000;
+/** The largest file an import takes, the API's csvio.MaxImportBytes. */
+export const IMPORT_MAX_BYTES = 8 * 1024 * 1024;

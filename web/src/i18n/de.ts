@@ -7,6 +7,7 @@ import { treeDe } from "./tree.de";
 import { labelsDe } from "./labels.de";
 import { attachmentsDe } from "./attachments.de";
 import { tokensDe } from "./tokens.de";
+import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
@@ -291,6 +292,7 @@ export const de: Messages = {
   linkTypes: linkTypesDe,
   attachments: attachmentsDe,
   tokens: tokensDe,
+  imports: importsDe,
   search: searchDe,
   grid: gridDe,
   themes: themesDe,

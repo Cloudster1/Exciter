@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- CSV import and export (#23). A project's administrators upload a CSV file
+  under the project settings, see how each column will be read, and say
+  what the words and people the project does not know mean before anything
+  is written; the import then runs in the background with its progress
+  shown, and refuses each row it cannot write with the line and why. A
+  parent or outline column builds the tree and a links column holds
+  `type:KEY`. The grid exports what it shows as CSV, and a project's export
+  imports into an empty project as the same tree, content and links.
 - Personal access tokens and MCP (#22). A person makes tokens under their
   account, read-only or not, limited to some projects or not, with an
   expiry, and sees each secret once; administrators see and revoke

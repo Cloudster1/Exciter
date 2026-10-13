@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/observability"
@@ -76,6 +77,8 @@ type Server struct {
 	Labels *label.Service
 	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
 	Trace *trace.Service
+	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
+	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
 	handler http.Handler
 	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
@@ -316,6 +319,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireAdmin).Delete("/org/tokens/{tokenID}", s.handleRevokeOrgAPIToken)
 		})
 		r.With(requireOrg).Post("/mcp", s.handleMCP)
+
+		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,
+		// and a project's grid out as a file for whoever views it.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.importsOn)
+			r.Post("/projects/{projectKey}/import", s.handleUploadImport)
+			r.Get("/imports/{importID}", s.handleGetImport)
+			r.Put("/imports/{importID}/mapping", s.handleMapImport)
+			r.Post("/imports/{importID}/start", s.handleStartImport)
+			r.Delete("/imports/{importID}", s.handleCancelImport)
+			r.Get("/projects/{projectKey}/export.csv", s.handleExportCSV)
+		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.
 		r.Group(func(r chi.Router) {

@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
@@ -127,6 +128,8 @@ func run() error {
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
 	requirements := requirement.NewService(cluster)
+	links := trace.NewService(cluster)
+	finder := search.NewService(cluster)
 	server := &httpapi.Server{
 		DB:              cluster,
 		Auth:            accounts,
@@ -140,11 +143,12 @@ func run() error {
 		Projects:        project.NewService(cluster),
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirements,
-		Search:          search.NewService(cluster),
+		Search:          finder,
 		Attributes:      attribute.NewService(cluster),
 		Workflows:       workflow.NewService(cluster),
 		Labels:          label.NewService(cluster),
-		Trace:           trace.NewService(cluster),
+		Trace:           links,
+		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
 		Log:             log,
 		Telemetry:       tel,

@@ -4,6 +4,7 @@ import { ApiError } from "@/api/client";
 import { useTypes } from "@/api/attributes";
 import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
 import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
+import { ImportPanel } from "@/features/import/ImportPanel";
 import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
 import { AttributeList } from "@/features/types/AttributeList";
 import { TypeList } from "@/features/types/TypeList";
@@ -11,7 +12,7 @@ import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "links"] as const;
+const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "links", "import"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -40,6 +41,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "attributes", label: t.attributes.tab, attrs: { "data-tab": "attributes" } },
               { value: "workflow", label: t.workflows.tab, attrs: { "data-tab": "workflow" } },
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
+              { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
             ]}
           />
         }
@@ -63,6 +65,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "attributes" && <AttributeList project={project} />}
         {tab === "workflow" && <WorkflowSettings project={project} />}
         {tab === "links" && <ProjectLinkTypes project={project} />}
+        {tab === "import" && <ImportPanel project={project} />}
       </TabPanel>
     </div>
   );

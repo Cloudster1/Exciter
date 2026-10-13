@@ -24,6 +24,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/label"
@@ -88,15 +89,16 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
 	store := h.bucket(t)
 	requirements := requirement.NewService(h.cluster)
+	links, finder := trace.NewService(h.cluster), search.NewService(h.cluster)
 	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), store: store,
 		themes: theme.NewService(h.cluster, store), files: attachment.NewService(h.cluster, store, requirements).WithMaxSize(testUploadLimit), h: h}
 	server := &httpapi.Server{
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
 		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes, Projects: project.NewService(h.cluster), Perms: perm.NewService(h.cluster),
-		Requirements: requirements, Search: search.NewService(h.cluster),
+		Requirements: requirements, Search: finder,
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
-		Trace: trace.NewService(h.cluster), Attachments: a.files,
+		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

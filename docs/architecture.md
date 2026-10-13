@@ -153,6 +153,13 @@ holds even for a query that forgot it.
   every transaction (`app.token_projects`), where the permission functions
   read them. `POST /mcp` serves the table's tool-marked rows to assistants,
   each call run through the whole router as the caller.
+- **CSV import and export** (#23): Armature's import, reshaped for
+  requirements. An upload is kept whole in `import_job` with a mapping
+  guessed from its headers; the same analysis reads it against the project
+  for the mapping step and for the worker, so the import that runs is the
+  one that was shown. After `import.requested` the worker runs it as the
+  person who started it, each row in its own transaction, then the tree and
+  the links. Export is the grid's query written as CSV.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
 ### Themes (#8)

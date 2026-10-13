@@ -9,6 +9,7 @@ import { treeEn } from "./tree.en";
 import { labelsEn } from "./labels.en";
 import { attachmentsEn } from "./attachments.en";
 import { tokensEn } from "./tokens.en";
+import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
@@ -287,6 +288,7 @@ export const en = {
   linkTypes: linkTypesEn,
   attachments: attachmentsEn,
   tokens: tokensEn,
+  imports: importsEn,
   search: searchEn,
   grid: gridEn,
   themes: themesEn,

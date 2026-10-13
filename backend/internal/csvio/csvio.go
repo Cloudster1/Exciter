@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	MaxImportRows  = 5000
-	MaxImportBytes = 8 << 20
+	MaxImportRows = 5000
+	// MaxImportMB bounds a file, read whole before its rows are counted.
+	MaxImportMB    = 8
+	MaxImportBytes = MaxImportMB << 20
 	PreviewRows    = 5
 	// MaxExportRows bounds one export; past it the file ends with a note row.
 	MaxExportRows = 20000
