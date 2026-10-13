@@ -2,10 +2,13 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { useMe, useSwitchOrg } from "@/api/auth";
+import { useQuickSearch } from "@/api/search";
 import { cx } from "@/components/ui";
 import { useEscape, useFocusReturn } from "@/components/ui/overlay";
 import { Icon, type IconName } from "@/components/icons";
+import { QUICK_SEARCH_DEBOUNCE_MS, SEARCH_PATH } from "@/config";
 import { t } from "@/i18n";
+import { useDebounced } from "@/lib/debounce";
 import { placesFor } from "./places";
 
 interface Option {
@@ -28,7 +31,8 @@ function matches(label: string, typed: string): boolean {
     .every((part) => words.some((word) => word.startsWith(part)));
 }
 
-/** The Ctrl K palette: the places this build has and the person's organizations, filtered as they type. */
+/** The Ctrl K palette: requirements by key or title as the person types, the places this build has and their
+ * organizations, and a way on to the full search. */
 export function QuickSwitcher({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const { data: me } = useMe();
@@ -57,7 +61,31 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
     pick: () => org.orgSlug !== me?.organization?.slug && switchOrg.mutate(org.orgSlug),
   }));
   const typed = text.trim();
-  const options = [...places, ...organizations].filter((option) => matches(`${option.hint} ${option.label}`, typed));
+  const words = useDebounced(typed, QUICK_SEARCH_DEBOUNCE_MS);
+  const quick = useQuickSearch(typed ? words : "");
+  // The server matched these already; an answer to an earlier word is not offered for a newer one.
+  const requirements: Option[] =
+    typed && words === typed
+      ? (quick.data ?? []).map((hit) => ({
+          key: `requirement:${hit.requirement.id}`,
+          label: `${hit.requirement.key} ${hit.requirement.title}`,
+          hint: [hit.projectName, hit.outline].filter(Boolean).join(" "),
+          icon: "ListBullet",
+          pick: () => void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: hit.requirement.projectKey, reqKey: hit.requirement.key } }),
+        }))
+      : [];
+  const searchEverything: Option[] = typed
+    ? [
+        {
+          key: "search",
+          label: t.search.searchFor(typed),
+          hint: t.nav.search,
+          icon: "Search",
+          pick: () => void navigate({ to: SEARCH_PATH, search: { q: typed } }),
+        },
+      ]
+    : [];
+  const options = [...requirements, ...[...places, ...organizations].filter((option) => matches(`${option.hint} ${option.label}`, typed)), ...searchEverything];
   const current = Math.min(active, options.length - 1);
   const optionId = (index: number) => `${listId}-${index}`;
 
@@ -150,6 +178,11 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
           ) : (
             <p className="px-3 py-6 text-center text-sm text-ink-subtle" data-quick-switcher-empty>
               {t.switcher.noMatch}
+            </p>
+          )}
+          {quick.isError && typed && (
+            <p className="px-3 py-2 text-sm text-danger" data-quick-switcher-error>
+              {t.search.quickFailed}
             </p>
           )}
         </div>

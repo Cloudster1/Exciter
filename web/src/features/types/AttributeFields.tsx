@@ -29,7 +29,7 @@ export function valuesFor(attributes: Attribute[], typeId: string | null | undef
 }
 
 /** The names of the organization's members by id, for showing a person a value names. */
-function usePeopleNames() {
+export function usePeopleNames() {
   return useQuery({
     queryKey: ["people", "names"],
     queryFn: async () => {

@@ -7,6 +7,7 @@ import { editorEn, requirementsEn } from "./requirements.en";
 import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
 import { labelsEn } from "./labels.en";
+import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -25,6 +26,7 @@ export const en = {
     unexpected: (status: number) => `The server answered with status ${status} and no explanation. Try again in a moment.`,
   },
   nav: {
+    search: "Search",
     projects: "Projects",
     everywhere: "Everywhere",
     whereYouAre: "Where you are",
@@ -52,16 +54,16 @@ export const en = {
     tooltip: (label: string) => `Theme: ${label}`,
   },
   switcher: {
-    open: "Go to a page or an organization",
+    open: "Go to a requirement, a page or an organization",
     title: "Go to",
-    label: "Find a page or an organization by its name",
+    label: "Find a requirement by its key or title, or a page or an organization by its name",
     placeholder: "Go to...",
     shortcut: "Ctrl K",
     escape: "Esc",
     options: "Places",
     organization: "Organization",
     currentOrg: "Current",
-    noMatch: "Nothing here starts with that. Try the start of a page's or an organization's name.",
+    noMatch: "Nothing here starts with that. Try the start of a key, a title, or a page's or an organization's name.",
     optionsCount: (count: number) => (count === 1 ? "1 place" : `${count} places`),
   },
   account: {
@@ -269,6 +271,8 @@ export const en = {
   history: historyEn,
   workflows: workflowsEn,
   labels: labelsEn,
+  search: searchEn,
+  grid: gridEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

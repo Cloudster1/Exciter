@@ -3,6 +3,19 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: Search judges rights a project at a time (#20)
+
+Row level security runs a restrictive policy on every row a query reads before
+a non-leakproof operator such as `@@` may filter, so a search through the
+policies alone would check the reader's rights on every requirement of the
+organization, however few matched. Stator met the same cost and answered it
+with `page_search_rows`; Exciter does the same with `requirement_search_rows`,
+a `SECURITY DEFINER` function that finds the words through the index and then
+asks `perm_project_holds` once per project the hits lie in. It applies what
+the tenant and viewer policies apply, out of the trash, and the integration
+suite proves through raw SQL that it returns nothing more.
+**Reconsider if** a requirement gains rights of its own beyond its project's.
+
 ## 2026-10-12: The database takes a transition whole (#17)
 
 A reviewer approves without holding edit, so the app role may neither write

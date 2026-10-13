@@ -135,10 +135,10 @@ func TestRequirementsOverTheAPI(t *testing.T) {
 		}
 	})
 
-	t.Run("the list holds a project's requirements by key, narrowed by kind", func(t *testing.T) {
+	t.Run("the list holds a project's requirements in outline order, narrowed by kind", func(t *testing.T) {
 		sameList(t, "every requirement", rowKeys(t, want(t, viewer.get(t, "/api/v1/projects/RQX/requirements"), http.StatusOK, "list")), "RQX-R1", "RQX-R2")
 		sameList(t, "sections", rowKeys(t, want(t, viewer.get(t, "/api/v1/projects/RQX/requirements?kind=section"), http.StatusOK, "list sections")), "RQX-R2")
-		refuse(t, "words before search", viewer.get(t, "/api/v1/projects/RQX/requirements?q=pay"), http.StatusUnprocessableEntity, "validation_failed")
+		refuse(t, "a kind that is none", viewer.get(t, "/api/v1/projects/RQX/requirements?kind=chapter"), http.StatusUnprocessableEntity, "validation_failed")
 		refuse(t, "no rows at all", viewer.get(t, "/api/v1/projects/RQX/requirements?limit=0"), http.StatusUnprocessableEntity, "validation_failed")
 	})
 

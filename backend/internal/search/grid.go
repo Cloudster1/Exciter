@@ -3,70 +3,77 @@ package search
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
-// FieldError is a query refused on one parameter, with the sentence to show beside it.
-type FieldError struct {
-	Field, Message string
-}
-
-func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
-
-// Service finds requirements; until #20 it lists one project's requirements by kind, owner, priority and label.
+// Service finds requirements by their words and their fields, and keeps the views people save of a grid.
 type Service struct {
 	db *db.Cluster
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
 
-// unlisted refuses the grid's narrowing that #20 brings, by the parameter that asked for it.
-func unlisted(f Filter) error {
-	for field, asked := range map[string]bool{
-		"q": f.Q != "", "type": len(f.Types) > 0, "status": len(f.Statuses) > 0, "category": len(f.Categories) > 0,
-		"attr": len(f.Attributes) > 0,
-	} {
-		if asked {
-			return &FieldError{field, "The list does not narrow by this yet. Leave it out, and narrow by kind, owner, priority or label."}
+// config is the text search configuration of migration 00200.
+const config = `'exciter_search'::regconfig`
+
+// gridConditions are the SQL conditions of f over requirement r with status st in project p, binding through bind;
+// f is checked already.
+func gridConditions(f Filter, p *project.Project, defs []attribute.Def, bind func(any) string) []string {
+	var where []string
+	if f.Q != "" {
+		words := `r.search_vector @@ websearch_to_tsquery(` + config + `, ` + bind(f.Q) + `)`
+		if key, number, ok := requirement.ParseKey(f.Q); ok && key == p.Key {
+			words = `(` + words + ` OR r.number = ` + bind(number) + `)`
 		}
+		where = append(where, words)
 	}
-	return nil
+	if len(f.Kinds) > 0 {
+		kinds := make([]string, len(f.Kinds))
+		for i, k := range f.Kinds {
+			kinds[i] = string(k)
+		}
+		where = append(where, `r.kind = ANY (`+bind(kinds)+`::text[])`)
+	}
+	if len(f.Types) > 0 {
+		where = append(where, `r.type_id = ANY (`+bind(f.Types)+`::uuid[])`)
+	}
+	if len(f.Statuses) > 0 {
+		where = append(where, `r.status_id = ANY (`+bind(f.Statuses)+`::uuid[])`)
+	}
+	if len(f.Categories) > 0 {
+		where = append(where, `st.category = ANY (`+bind(f.Categories)+`::text[])`)
+	}
+	if len(f.Labels) > 0 {
+		where = append(where, `EXISTS (SELECT 1 FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id AND l.name = ANY (`+
+			bind(f.Labels)+`::text[]))`)
+	}
+	if len(f.Owners) > 0 {
+		where = append(where, `r.owner_id = ANY (`+bind(f.Owners)+`::uuid[])`)
+	}
+	if len(f.Priorities) > 0 {
+		where = append(where, `r.priority = ANY (`+bind(f.Priorities)+`::text[])`)
+	}
+	for _, c := range f.Attributes {
+		sql, _ := condition(c, defs, bind)
+		where = append(where, sql)
+	}
+	return where
 }
 
-// Grid answers a window of one project's requirements out of the trash, in key order, narrowed by f, and how
-// many there are in all.
-func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string, f Filter, limit, offset int) ([]Row, int, error) {
-	if err := unlisted(f); err != nil {
-		return nil, 0, err
-	}
-	for _, p := range f.Priorities {
-		if !isPriority(p) {
-			return nil, 0, &FieldError{"priority", "Narrow by must, should, could or wont."}
-		}
-	}
-	for _, k := range f.Kinds {
-		if k != requirement.KindRequirement && k != requirement.KindSection {
-			return nil, 0, &FieldError{"kind", "Narrow by requirement or section."}
-		}
-	}
-	labels := []string{}
-	for _, raw := range f.Labels {
-		name, err := label.Normalize(raw)
-		if err != nil {
-			return nil, 0, &FieldError{"label", "Narrow by labels as they are written, such as safety-critical."}
-		}
-		labels = append(labels, name)
-	}
+// Grid answers a window of one project's requirements out of the trash, narrowed by f and in the order sort
+// asks, outline order otherwise, and how many there are in all.
+func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string, f Filter, sort Sort, limit, offset int) ([]Row, int, error) {
 	out := []Row{}
 	total := 0
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -74,90 +81,50 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		if err != nil {
 			return err
 		}
-		where := `
-			FROM requirement r LEFT JOIN app_user o ON o.id = r.owner_id LEFT JOIN requirement_type t ON t.id = r.type_id
+		defs, err := attribute.Defs(ctx, tx, p.ID)
+		if err != nil {
+			return err
+		}
+		if f, err = check(f, sort, defs); err != nil {
+			return err
+		}
+		args := []any{p.ID, reader}
+		bind := func(v any) string {
+			args = append(args, v)
+			return "$" + strconv.Itoa(len(args))
+		}
+		where := append([]string{perm.ViewableRequirement("r", 2)}, gridConditions(f, p, defs, bind)...)
+		from := `
+			FROM walk w JOIN requirement r ON r.id = w.id
+			LEFT JOIN app_user o ON o.id = r.owner_id
+			LEFT JOIN requirement_type t ON t.id = r.type_id
 			LEFT JOIN req_status st ON st.id = r.status_id
-			WHERE r.org_id = current_org_id() AND r.project_id = $2 AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + `
-			  AND (cardinality($3::text[]) = 0 OR r.kind = ANY ($3))
-			  AND (cardinality($4::uuid[]) = 0 OR r.owner_id = ANY ($4))
-			  AND (cardinality($5::text[]) = 0 OR r.priority = ANY ($5))
-			  AND (cardinality($6::text[]) = 0 OR EXISTS (SELECT 1 FROM requirement_label l
-			       WHERE l.org_id = r.org_id AND l.requirement_id = r.id AND l.name = ANY ($6)))`
-		kinds := make([]string, len(f.Kinds))
-		for i, k := range f.Kinds {
-			kinds[i] = string(k)
-		}
-		owners := f.Owners
-		if owners == nil {
-			owners = []uuid.UUID{}
-		}
-		priorities := f.Priorities
-		if priorities == nil {
-			priorities = []string{}
-		}
-		args := []any{reader, p.ID, kinds, owners, priorities, labels}
-		if err := tx.QueryRow(ctx, `SELECT count(*)::int`+where, args...).Scan(&total); err != nil {
+			WHERE ` + strings.Join(where, ` AND `)
+		if err := tx.QueryRow(ctx, requirement.WalkTree+` SELECT count(*)::int`+from, args...).Scan(&total); err != nil {
 			return fmt.Errorf("count the requirements: %w", err)
 		}
-		rows, err := tx.Query(ctx, `
-			SELECT r.id, r.number, r.kind, r.title, r.revision, r.owner_id, COALESCE(o.name, ''), r.priority, r.updated_at,
+		// The order binds after the count, which has no use for what it binds.
+		order := `w.path`
+		if key := sortKey(sort.Column, defs, bind); key != "" {
+			direction := ` ASC`
+			if sort.Desc {
+				direction = ` DESC`
+			}
+			order = key + direction + ` NULLS LAST, ` + order
+		}
+		limitAt, offsetAt := bind(limit), bind(offset)
+		rows, err := tx.Query(ctx, requirement.WalkTree+`
+			SELECT r.id, r.number, r.kind, r.title, r.revision, w.path, r.owner_id, COALESCE(o.name, ''), r.priority, r.updated_at,
 			       r.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.attributes,
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
-			       perm_project_holds(r.project_id, $1, 'edit'), perm_project_holds(r.project_id, $1, 'approve'),
-			       perm_project_holds(r.project_id, $1, 'comment'),
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)`+where+`
-			ORDER BY r.number LIMIT $7 OFFSET $8`, append(args, limit, offset)...)
+			       perm_project_holds(r.project_id, $2, 'edit'), perm_project_holds(r.project_id, $2, 'approve'),
+			       perm_project_holds(r.project_id, $2, 'comment'),
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)`+from+`
+			ORDER BY `+order+` LIMIT `+limitAt+` OFFSET `+offsetAt, args...)
 		if err != nil {
 			return fmt.Errorf("list the requirements: %w", err)
 		}
-		found, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Row, error) {
-			var (
-				r                     Row
-				number                int
-				ownerID               *uuid.UUID
-				ownerName             string
-				priority              *string
-				edit, approve, remark bool
-				typeID                *uuid.UUID
-				typ                   requirement.TypeRef
-				attrs                 []byte
-				statusID              *uuid.UUID
-				status                requirement.StatusRef
-			)
-			err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &ownerID, &ownerName, &priority, &r.UpdatedAt,
-				&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels)
-			if err != nil {
-				return r, err
-			}
-			r.ProjectKey = p.Key
-			r.Key = requirement.Key(p.Key, number)
-			if ownerID != nil {
-				r.Owner = &requirement.PersonRef{ID: *ownerID, Name: ownerName}
-			}
-			if priority != nil {
-				pr := requirement.Priority(*priority)
-				r.Priority = &pr
-			}
-			if r.Labels == nil {
-				r.Labels = []string{}
-			}
-			if typeID != nil {
-				typ.ID = *typeID
-				r.Type = &typ
-			}
-			if statusID != nil {
-				status.ID = *statusID
-				r.Status = &status
-			}
-			if err := json.Unmarshal(attrs, &r.Attributes); err != nil {
-				return r, fmt.Errorf("read the attributes of %s: %w", r.Key, err)
-			}
-			r.Can = requirement.Can{Edit: edit, Transition: edit || approve, Delete: edit, Link: edit, Comment: remark}
-			return r, nil
-		})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
-		}
+		found, err := pgx.CollectRows(rows, scanRow(p.Key))
 		if found != nil {
 			out = found
 		}
@@ -166,11 +133,52 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 	return out, total, err
 }
 
-func isPriority(p string) bool {
-	for _, each := range requirement.Priorities {
-		if string(each) == p {
-			return true
+func scanRow(projectKey string) pgx.RowToFunc[Row] {
+	return func(row pgx.CollectableRow) (Row, error) {
+		var (
+			r                     Row
+			number                int
+			path                  []int32
+			ownerID               *uuid.UUID
+			ownerName             string
+			priority              *string
+			edit, approve, remark bool
+			typeID                *uuid.UUID
+			typ                   requirement.TypeRef
+			attrs                 []byte
+			statusID              *uuid.UUID
+			status                requirement.StatusRef
+		)
+		err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &path, &ownerID, &ownerName, &priority, &r.UpdatedAt,
+			&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels)
+		if err != nil {
+			return r, err
 		}
+		r.ProjectKey = projectKey
+		r.Key = requirement.Key(projectKey, number)
+		r.Outline = requirement.OutlineOf(path)
+		if ownerID != nil {
+			r.Owner = &requirement.PersonRef{ID: *ownerID, Name: ownerName}
+		}
+		if priority != nil {
+			pr := requirement.Priority(*priority)
+			r.Priority = &pr
+		}
+		if r.Labels == nil {
+			r.Labels = []string{}
+		}
+		if typeID != nil {
+			typ.ID = *typeID
+			r.Type = &typ
+		}
+		if statusID != nil {
+			status.ID = *statusID
+			r.Status = &status
+		}
+		if err := json.Unmarshal(attrs, &r.Attributes); err != nil {
+			return r, fmt.Errorf("read the attributes of %s: %w", r.Key, err)
+		}
+		r.Can = requirement.Can{Edit: edit, Transition: edit || approve, Delete: edit, Link: edit, Comment: remark}
+		return r, nil
 	}
-	return false
 }

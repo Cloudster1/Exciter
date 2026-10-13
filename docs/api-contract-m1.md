@@ -365,9 +365,9 @@ New audit actions: `project.created`, `project.key_changed`,
   takes its original's. `status` is the
   requirement's place in its workflow, which a trigger starts at the initial
   status; a section has none (#17). A requirement written without a place goes last at the top. `GET
-  /projects/{projectKey}/requirements` is built here, in key order and paged,
-  narrowed by `kind`, `owner`, `priority` and, from #19, `label`; its other
-  parameters are 422 until #20 builds them. Its tool is
+  /projects/{projectKey}/requirements` was built here, paged and narrowed by
+  `kind`, `owner`, `priority` and, from #19, `label`; #20 gave it the rest of
+  the grid's parameters and its outline order. Its tool is
   `list_requirements`.
 - UI: `/p/$projectKey` lists the requirements and is where a new project
   opens, `/p/$projectKey/new` writes one, and `/p/$projectKey/trash` holds the
@@ -847,8 +847,38 @@ New audit actions: `project.created`, `project.key_changed`,
   needs edit. A shared view is changed or deleted by its owner or a project
   administrator. Names are unique per owner and project without regard to
   case, at most 100 characters.
-- UI: `/search`, the Ctrl K switcher, and `/p/$projectKey/grid` with a column
-  chooser, inline edit and the views menu.
+- **As built** (#20):
+  - **Rights per project.** `requirement_search_rows` finds the words
+    through the index first and then asks `perm_project_holds` once per
+    project the hits lie in, as Stator's `page_search_rows` does per space,
+    so a search never runs a permission check per requirement of the
+    organization. Raw SQL as `exciter_app` shows it returns nothing the
+    caller may not view.
+  - **Values in the index.** A generated column cannot ask an attribute its
+    kind, so `requirement_attribute_text` reads a value by its shape: a
+    document is rich text, and a string is text unless it is an id or a day.
+    Web addresses are therefore found by their words too.
+  - **Archived projects** are searched like any other project the reader may
+    view.
+  - **`not`** takes in requirements without a value, so `not` and `is`
+    together cover the grid.
+  - **Quick search by key** starts at the project key and a hyphen: `CHK-`,
+    `CHK-R` and `CHK-R4` all list CHK's requirements whose number starts so,
+    the shortest numbers first.
+  - **Taking a view back.** A project administrator renames, refilters or
+    deletes a shared view, but only its owner stops sharing it: unshared, it
+    would be nobody's to see but the owner's, and the policy that lets a
+    person read a view holds the changed row too. That is 403.
+  - **Tools.** `search_requirements` is `GET /search`.
+- UI:
+  - `/search`, with the project, status category, labels, owner (anyone or
+    you), the days and the order beside the words.
+  - The Ctrl K switcher offers requirements by key or title words first, then
+    the places, then the full search for what was typed.
+  - `/p/$projectKey/grid` keeps its filters, order, columns and open view in
+    the address. It has a column chooser, inline edit of the title, the
+    priority and select, yes or no, text, number and date values, and the
+    views menu.
 
 ## #21 Attachments
 
