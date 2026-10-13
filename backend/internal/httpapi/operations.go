@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"net/http"
 	"strconv"
 	"strings"
@@ -523,6 +524,81 @@ var operations = []operation{
 		summary: "A project's requirements as a CSV file, narrowed like the grid, keys kept, with the columns asked for.",
 		query:   append(gridQuery, param{name: "column", repeated: true, description: "Columns in order, as the grid names them; the grid's default when absent."}),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// The Armature integration (M2, docs/api-contract-m2.md): the connection and each person's token (#26).
+	{method: "GET", path: "/armature/connection", handler: "handleGetArmatureConnection", orgWide: true, tag: "armature", pending: true,
+		summary:   "The organization's Armature: where people open it, which organization, and where its webhooks go; null when none. For administrators.",
+		responses: ok(env{"connection": (*armature.Connection)(nil)})},
+	{method: "PUT", path: "/armature/connection", handler: "handleSaveArmatureConnection", orgWide: true, tag: "armature", pending: true,
+		summary: "Connect the organization to an Armature, checked to answer as one; a new address or organization forgets every stored token. For administrators.",
+		request: armature.ConnectionInput{}, responses: map[int]any{http.StatusOK: env{"connection": armature.Connection{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/armature/connection", handler: "handleRemoveArmatureConnection", orgWide: true, tag: "armature", pending: true,
+		summary:   "Disconnect the organization from Armature, forgetting every stored token and link record. For administrators.",
+		responses: none()},
+	{method: "GET", path: "/armature/account", handler: "handleGetArmatureAccount", tag: "armature", pending: true,
+		summary:   "The caller's own standing with Armature: whether the organization is connected, and whom their token acts as.",
+		responses: ok(env{"account": armature.Account{}})},
+	{method: "PUT", path: "/armature/account/token", handler: "handleStoreArmatureToken", tag: "armature", pending: true,
+		summary: "Store the caller's Armature personal access token, checked with Armature first and never answered again. Needs a session.",
+		request: armature.TokenInput{}, responses: map[int]any{http.StatusOK: env{"account": armature.Account{}}, http.StatusUnprocessableEntity: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+	{method: "POST", path: "/armature/account/check", handler: "handleCheckArmatureAccount", tag: "armature", pending: true,
+		summary:   "Ask Armature now whether the caller's token still works.",
+		responses: ok(env{"account": armature.Account{}})},
+	{method: "DELETE", path: "/armature/account/token", handler: "handleRemoveArmatureToken", tag: "armature", pending: true,
+		summary:   "Forget the caller's Armature token; done also when there was none.",
+		responses: none()},
+
+	// Requirements traced to Armature issues (#27), read as the viewer.
+	{method: "GET", path: "/armature/issues", handler: "handleLookupArmatureIssues", tag: "armature", pending: true,
+		summary:   "Issues by their keys, as the caller may see them in Armature; status says why when Armature could not be asked.",
+		query:     []param{{name: "key", repeated: true, description: "Issue keys, at most 50."}},
+		responses: map[int]any{http.StatusOK: env{"status": armature.StatusOK, "issues": []armature.LookupResult{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/armature/issues/{issueKey}", handler: "handleGetArmatureIssue", tag: "armature", pending: true,
+		summary:   "One issue as the caller may see it in Armature, null when they may not.",
+		responses: ok(env{"status": armature.StatusOK, "issue": (*armature.Issue)(nil)})},
+	{method: "GET", path: "/armature/search", handler: "handleSearchArmatureIssues", tag: "armature", pending: true,
+		summary:   "Issues whose key or summary matches, as the caller may see them, for the picker.",
+		query:     []param{{name: "q", description: "A key, or words of the summary."}, {name: "limit", schema: intParam, description: "1 to 20; 10 when absent."}},
+		responses: map[int]any{http.StatusOK: env{"status": armature.StatusOK, "issues": []armature.Issue{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/requirements/{reqKey}/armature-links", handler: "handleListArmatureLinks", tag: "armature", pending: true,
+		summary:   "The Armature issues a requirement is traced to, with the status category stored for everyone and how far each link's sync has come.",
+		responses: ok(env{"links": []armature.Link{}})},
+	{method: "POST", path: "/requirements/{reqKey}/armature-links", handler: "handleCreateArmatureLink", tag: "armature", pending: true,
+		summary: "Trace a requirement to an Armature issue the caller may see; the worker puts a link to the requirement on the issue.",
+		request: armature.LinkInput{}, responses: map[int]any{http.StatusCreated: env{"link": armature.Link{}}, http.StatusConflict: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+	{method: "DELETE", path: "/armature-links/{linkID}", handler: "handleDeleteArmatureLink", tag: "armature", pending: true,
+		summary:   "Remove a trace to an issue; the worker takes the link off the issue.",
+		responses: none()},
+
+	// Issues made from requirements (#28).
+	{method: "GET", path: "/armature/projects", handler: "handleListArmatureProjects", tag: "armature", pending: true,
+		summary:   "The Armature projects the caller may see, and whether they may file issues in each.",
+		responses: ok(env{"status": armature.StatusOK, "projects": []armature.Project{}})},
+	{method: "GET", path: "/armature/issue-types", handler: "handleListArmatureIssueTypes", tag: "armature", pending: true,
+		summary:   "The kinds of issue Armature files, subtasks left out.",
+		responses: ok(env{"status": armature.StatusOK, "issueTypes": []armature.IssueType{}})},
+	{method: "POST", path: "/projects/{projectKey}/armature-issues", handler: "handleCreateArmatureIssues", tag: "armature", pending: true,
+		summary: "Make one Armature issue per requirement, each traced to its requirement; stops at the first Armature refuses.",
+		request: armature.CreateInput{}, responses: map[int]any{http.StatusCreated: env{"created": []armature.Created{}, "failed": (*armature.CreateFailure)(nil)},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+
+	// Armature's webhooks (#29): vouched for by their signature alone.
+	{method: "POST", path: "/armature/webhook/{orgSlug}", handler: "handleArmatureWebhook", tag: "armature", public: true, pending: true,
+		summary: "Where Armature sends the organization's webhooks; the body is Armature's signed envelope.",
+		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{}, http.StatusRequestEntityTooLarge: errorEnvelope{}}},
+
+	// The followed Armature theme (#30).
+	{method: "GET", path: "/armature/theme", handler: "handleGetArmatureTheme", tag: "armature", pending: true,
+		summary:   "Whether the caller follows their Armature theme, and why it is not shown when it is not.",
+		responses: ok(env{"follow": armature.Follow{}})},
+	{method: "PUT", path: "/armature/theme", handler: "handleFollowArmatureTheme", tag: "armature", pending: true,
+		summary:   "Follow the caller's active Armature theme, mirrored here and refreshed when it changes.",
+		responses: map[int]any{http.StatusOK: env{"follow": armature.Follow{}}, http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/armature/theme", handler: "handleUnfollowArmatureTheme", tag: "armature", pending: true,
+		summary:   "Stop following the Armature theme and return to the organization's default.",
+		responses: none()},
 }
 
 var intParam = &openapi.Schema{Type: "integer"}
