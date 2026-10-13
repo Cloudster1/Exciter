@@ -128,6 +128,8 @@ type client struct {
 	api  *apiServer
 	user uuid.UUID
 	http *http.Client
+	// bearer is the personal access token a script sends instead of a cookie; empty for a browser.
+	bearer string
 }
 
 func cookieJarClient() *http.Client {
@@ -156,6 +158,11 @@ func (a *apiServer) as(t *testing.T, user, org uuid.UUID) *client {
 
 func (a *apiServer) anonymous() *client { return &client{api: a, http: cookieJarClient()} }
 
+// withToken is a script calling the API as user with a personal access token, without any cookie.
+func (a *apiServer) withToken(user uuid.UUID, secret string) *client {
+	return &client{api: a, user: user, http: &http.Client{}, bearer: secret}
+}
+
 type response struct {
 	Status int
 	Header http.Header
@@ -179,6 +186,9 @@ func (c *client) call(t *testing.T, method, path string, body any) response {
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+c.bearer)
 	}
 	c.api.handOver(t, c, method)
 	resp, err := c.http.Do(req)

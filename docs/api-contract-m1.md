@@ -1024,6 +1024,30 @@ New audit actions: `project.created`, `project.key_changed`,
 
 - UI: `/tokens` under the account menu, and the organization's tokens for
   administrators.
+- **As built** (#22):
+  - **Pages.** A person's tokens are at `/settings/tokens`, beside their
+    themes under the account menu, and the organization's at
+    `/settings/organization-tokens` for its administrators.
+  - **What the database holds.** `perm_project_holds` and
+    `current_actor_administers` read the token's projects from
+    `app.token_projects`, so a limited token reaches its projects alone
+    whatever query runs, and administers nothing of the organization. A
+    token's projects are named only in the transaction that makes it, by
+    its owner, among the projects they may view, and a token never changes
+    (`api_token_fixed`); `last_used_at` moves through the admin role. A
+    token is its owner's to see and revoke, and the organization's
+    administrators'.
+  - **`orgWide`** is enforced by matching the request against the API's own
+    router, so a route added later is held to its row. The token routes are
+    `orgWide` too: a limited token neither lists nor revokes tokens.
+  - **A token is in one organization.** `GET /auth/me` lists only that one
+    among `organizations`, and switching organizations stays a session's
+    (400, as before).
+  - **MCP** hides `list_audit_log` from a limited token and refuses it as
+    `projects_token` would. `server_info` is a tool though `GET /meta` is
+    public. Writes through a token are remembered for read-your-writes under
+    the token, since a script sends no cookie.
+  - **Audit** names `token.created` and `token.revoked`.
 
 ## #23 CSV import and export
 

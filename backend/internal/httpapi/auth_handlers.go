@@ -58,6 +58,8 @@ type meResponse struct {
 	// Organization is where the session acts now; null before one is chosen.
 	Organization  *auth.CurrentOrg  `json:"organization"`
 	Organizations []auth.Membership `json:"organizations"`
+	// Token is the personal access token the request rides on; null for a session.
+	Token *auth.CallingToken `json:"token"`
 }
 
 func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
@@ -68,6 +70,7 @@ func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
 	out := &meResponse{
 		User:          auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
 		Organizations: organizations,
+		Token:         p.Token,
 	}
 	if p.InOrg() {
 		out.Organization = &auth.CurrentOrg{ID: p.Org.ID, Slug: p.Org.Slug, Name: p.OrgName, Role: p.Role}

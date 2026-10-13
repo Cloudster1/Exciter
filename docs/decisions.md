@@ -3,6 +3,19 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: The database holds a token to its projects (#22)
+
+A token limited to projects could be held there by the service alone, as
+Armature does, but every query that forgot to ask would then reach further.
+As Stator does for spaces, the transaction carries the token's projects in
+`app.token_projects`, and `perm_project_holds`, which every project policy
+calls, refuses any other project; `current_actor_administers` refuses the
+organization as a whole. The limit is the caller's alone, so a rule asked
+about somebody else still answers for them. The API refuses the operations
+marked `orgWide` first, with a sentence that says why, by matching the
+request against its own router rather than listing paths twice.
+**Reconsider if** a project policy stops going through `perm_project_holds`.
+
 ## 2026-10-13: A file is kept by its own requirement's revisions (#21)
 
 A revision is never changed, so a file it shows has to stay for as long as the

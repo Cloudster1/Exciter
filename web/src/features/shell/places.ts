@@ -1,6 +1,17 @@
 import { administers, type Me } from "@/api/auth";
 import type { IconName } from "@/components/icons";
-import { AUDIT_PATH, DEFAULT_THEME_PATH, LINK_TYPES_PATH, MEMBERS_PATH, PROJECTS_PATH, SEARCH_PATH, SSO_PATH, THEMES_PATH } from "@/config";
+import {
+  AUDIT_PATH,
+  DEFAULT_THEME_PATH,
+  LINK_TYPES_PATH,
+  MEMBERS_PATH,
+  ORG_TOKENS_PATH,
+  PROJECTS_PATH,
+  SEARCH_PATH,
+  SSO_PATH,
+  THEMES_PATH,
+  TOKENS_PATH,
+} from "@/config";
 import { t } from "@/i18n";
 
 /** A page of this build the reader can go to: the sidebar lists it, the quick switcher finds it, the breadcrumbs name it. */
@@ -29,8 +40,10 @@ function allPlaces(): Place[] {
     { path: SSO_PATH, icon: "Lock", label: t.nav.sso, section: t.nav.settings, adminOnly: true },
     { path: DEFAULT_THEME_PATH, icon: "Palette", label: t.nav.defaultTheme, section: t.nav.settings, adminOnly: true },
     { path: LINK_TYPES_PATH, icon: "Link", label: t.nav.linkTypes, section: t.nav.settings, adminOnly: true },
+    { path: ORG_TOKENS_PATH, icon: "Key", label: t.nav.orgTokens, section: t.nav.settings, adminOnly: true },
     { path: AUDIT_PATH, icon: "Shield", label: t.nav.audit, section: t.nav.settings, adminOnly: true },
     { path: THEMES_PATH, icon: "Palette", label: t.nav.themes, section: t.account.menu, personal: true },
+    { path: TOKENS_PATH, icon: "Key", label: t.account.tokens, section: t.account.menu, personal: true },
   ];
 }
 

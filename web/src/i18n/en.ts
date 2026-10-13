@@ -8,6 +8,7 @@ import { historyEn } from "./history.en";
 import { treeEn } from "./tree.en";
 import { labelsEn } from "./labels.en";
 import { attachmentsEn } from "./attachments.en";
+import { tokensEn } from "./tokens.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
@@ -40,6 +41,7 @@ export const en = {
     themes: "Themes",
     defaultTheme: "Default theme",
     linkTypes: "Link types",
+    orgTokens: "Access tokens",
     groupRequirements: "Requirements",
     collapseSidebar: "Collapse the sidebar",
     expandSidebar: "Expand the sidebar",
@@ -76,6 +78,7 @@ export const en = {
     switchOrg: "Your organizations",
     switchOrgFrom: (name: string) => `Switch organization, now ${name}`,
     themes: "Themes",
+    tokens: "Access tokens",
     signOut: "Sign out",
   },
   login: {
@@ -253,6 +256,8 @@ export const en = {
       "link_type.created": "Link type created",
       "link_type.changed": "Link type changed",
       "link_type.deleted": "Link type deleted",
+      "token.created": "Token created",
+      "token.revoked": "Token revoked",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -264,6 +269,7 @@ export const en = {
       project: "Project",
       requirement: "Requirement",
       workflow: "Workflow",
+      api_token: "Access token",
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
@@ -280,6 +286,7 @@ export const en = {
   links: linksEn,
   linkTypes: linkTypesEn,
   attachments: attachmentsEn,
+  tokens: tokensEn,
   search: searchEn,
   grid: gridEn,
   themes: themesEn,

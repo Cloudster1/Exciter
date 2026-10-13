@@ -138,7 +138,7 @@ func recovery(next http.Handler) http.Handler {
 	})
 }
 
-// Authenticator resolves a session cookie to its principal. It returns
+// Authenticator resolves a session cookie or a bearer token to its principal. It returns
 // auth.ErrInvalidToken for a credential that names nobody.
 type Authenticator interface {
 	Authenticate(ctx context.Context, credential string) (*auth.Principal, error)
@@ -159,7 +159,10 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		switch {
 		case err == nil:
 			ctx := context.WithValue(r.Context(), ctxPrincipal, principal)
-			if principal.InOrg() {
+			switch {
+			case principal.InProjectsOnly():
+				ctx = db.WithUserInProjects(tenant.WithOrg(ctx, *principal.Org), principal.UserID, principal.TokenProjects)
+			case principal.InOrg():
 				ctx = db.WithUser(tenant.WithOrg(ctx, *principal.Org), principal.UserID)
 			}
 			r = r.WithContext(ctx)

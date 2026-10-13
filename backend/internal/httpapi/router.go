@@ -76,6 +76,8 @@ type Server struct {
 	Labels *label.Service
 	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
 	Trace *trace.Service
+	// handler is the router Routes built, which MCP sends each tool call through.
+	handler http.Handler
 	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
 	Attachments *attachment.Service
 	Log         *slog.Logger
@@ -123,6 +125,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	r.Use(s.sameSite(allowedOrigins))
 	r.Use(middleware.Timeout(timeout))
 	r.Use(s.authenticate)
+	r.Use(readOnlyToken)
 	r.Use(s.readYourWrites)
 
 	// Liveness and readiness are deliberately outside the API and authentication.
@@ -130,6 +133,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	r.Get("/readyz", s.handleReadiness)
 
 	r.Route(APIPrefix, func(r chi.Router) {
+		r.Use(wholeOrg(r))
 		r.Get("/openapi.json", s.handleOpenAPI)
 		r.Get("/meta", s.handleMeta)
 		r.Post("/auth/login", s.handleLogin)
@@ -301,6 +305,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/attachments/{attachmentID}", s.handleDeleteAttachment)
 		})
 
+		// Personal access tokens: a person's own, made only from a session, and the organization's for its
+		// administrators. The assistants' endpoint runs each tool as the HTTP call it stands for.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.accountsOn)
+			r.Get("/tokens", s.handleListAPITokens)
+			r.With(requireSession).Post("/tokens", s.handleCreateAPIToken)
+			r.Delete("/tokens/{tokenID}", s.handleRevokeAPIToken)
+			r.With(requireAdmin).Get("/org/tokens", s.handleListOrgAPITokens)
+			r.With(requireAdmin).Delete("/org/tokens/{tokenID}", s.handleRevokeOrgAPIToken)
+		})
+		r.With(requireOrg).Post("/mcp", s.handleMCP)
+
 		// What the caller may do across the organization, and the people and groups a grant names.
 		r.Group(func(r chi.Router) {
 			r.Use(requireOrg)
@@ -333,6 +349,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			Message: "That method is not allowed here.",
 		})
 	})
+	// MCP runs each tool call through this router, as the caller.
+	s.handler = r
 	return r
 }
 

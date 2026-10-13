@@ -155,12 +155,13 @@ describe("the account menu", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
     const themes = within(menu).getByRole("menuitem", { name: "Themes" });
+    const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
     const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
     const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
     expect(themes).toHaveFocus();
-    for (const next of [browser, english, german, signOut, themes]) {
+    for (const next of [tokens, browser, english, german, signOut, themes]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }

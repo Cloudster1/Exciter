@@ -276,6 +276,8 @@
                 "trash.emptied",
                 "workflow.saved",
                 "workflow.assigned",
+                "token.created",
+                "token.revoked",
                 "link_type.created",
                 "link_type.changed",
                 "link_type.deleted"
@@ -420,6 +422,8 @@
                 "trash.emptied",
                 "workflow.saved",
                 "workflow.assigned",
+                "token.created",
+                "token.revoked",
                 "link_type.created",
                 "link_type.changed",
                 "link_type.deleted"
@@ -1594,16 +1598,6 @@
           "202": {
             "description": "Accepted"
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -1902,16 +1896,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -1946,16 +1930,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -7386,16 +7360,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -7453,16 +7417,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -7497,16 +7451,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -8613,6 +8557,8 @@
               "trash.emptied",
               "workflow.saved",
               "workflow.assigned",
+              "token.created",
+              "token.revoked",
               "link_type.created",
               "link_type.changed",
               "link_type.deleted"
@@ -8695,6 +8641,8 @@
                 "trash.emptied",
                 "workflow.saved",
                 "workflow.assigned",
+                "token.created",
+                "token.revoked",
                 "link_type.created",
                 "link_type.changed",
                 "link_type.deleted"
@@ -8779,6 +8727,48 @@
         },
         "required": [
           "version"
+        ]
+      },
+      "CallingToken": {
+        "type": "object",
+        "properties": {
+          "allProjects": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scopes",
+          "projects",
+          "allProjects",
+          "expiresAt"
         ]
       },
       "ChooseThemeRequest": {
@@ -9980,6 +9970,16 @@
               "$ref": "#/components/schemas/Membership"
             }
           },
+          "token": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CallingToken"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "user": {
             "$ref": "#/components/schemas/User"
           }
@@ -9987,7 +9987,8 @@
         "required": [
           "user",
           "organization",
-          "organizations"
+          "organizations",
+          "token"
         ]
       },
       "MediaType": {

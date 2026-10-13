@@ -239,3 +239,21 @@ export const IMAGE_MAX_WIDTH_PX = 4000;
 export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf", "text/plain"];
 /** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */
 export const FILE_SIZE_DECIMALS_BELOW = 10;
+
+/** Where a person keeps their personal access tokens, and where administrators see the organization's (#22). */
+export const TOKENS_PATH = "/settings/tokens";
+export const ORG_TOKENS_PATH = "/settings/organization-tokens";
+/** The one scope a token may carry, and the longest name it takes, the API's auth.ScopeRead and MaxTokenNameLength. */
+export const TOKEN_READ_SCOPE = "read";
+export const TOKEN_NAME_MAX_LENGTH = 100;
+/** The lifetimes offered for a new token, in days, and the one picked unless a person changes it. */
+export const TOKEN_EXPIRY_DAYS = [7, 30, 90, 365] as const;
+export const TOKEN_DEFAULT_EXPIRY_DAYS = 30;
+/** The most projects one token names, the API's auth.MaxTokenProjects. */
+export const TOKEN_MAX_PROJECTS = 50;
+/** Where an assistant reaches the API, and the name its client settings give the server. */
+export const MCP_PATH = `${API_BASE}/mcp`;
+export const MCP_SERVER_NAME = "exciter";
+export const DAY_MS = 24 * 60 * 60 * 1000;
+/** How long "Copied" stays after a secret is copied. */
+export const COPY_FEEDBACK_MS = 2000;

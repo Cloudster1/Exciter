@@ -28,6 +28,7 @@ import { linkTypesRoute, membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
+import { orgTokensRoute, tokensRoute } from "./tokens";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
@@ -56,6 +57,8 @@ const routeTree = rootRoute.addChildren([
     auditRoute,
     defaultThemeRoute,
     themesRoute,
+    tokensRoute,
+    orgTokensRoute,
     themeNewRoute,
     themeEditRoute,
   ]),

@@ -12,9 +12,11 @@ const PATHS = [
   "/settings/sso",
   "/settings/default-theme",
   "/settings/link-types",
+  "/settings/organization-tokens",
   "/settings/audit",
   "/settings/themes",
   "/settings/themes/new",
+  "/settings/tokens",
   "/no-such-page",
 ];
 const SCHEMES: ColourScheme[] = ["light", "dark"];
