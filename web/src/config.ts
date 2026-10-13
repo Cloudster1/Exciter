@@ -67,8 +67,6 @@ export const SSO_DEFAULT_SCOPES = "openid profile email";
 export const SSO_GROUP_EXAMPLE = "exciter-administrators";
 /** What a sign-in through the provider came back with when the person is known there but not let in here. */
 export const SSO_WAITING = "not_a_member";
-/** Where this browser remembers the organization last typed on the sign-in page, so it is there next time. */
-export const LAST_ORG_KEY = "exciter.last-org";
 
 /** Where an administrator reads the organization's audit log. */
 export const AUDIT_PATH = "/settings/audit";

@@ -214,12 +214,12 @@ holds even for a query that forgot it.
   owner or admin changes memberships, nobody becomes an owner, and the
   database keeps an organization's last owner.
 - A sign-in opens a `user_session` whose secret lives only in an http-only
-  cookie; the row holds its SHA-256. A session acts in one organization at a
-  time and switches only where its proof reaches (`session_reaches`): a
-  password everywhere the person is a member, a provider's sign-in in the
-  organization it was made for, the ones whose enabled provider has the same
-  issuer, and the ones the person owns.
-- Each organization may have one OIDC provider (`oidc_provider`), its client
+  cookie; the row holds its SHA-256. It lands in the installation (#85): the
+  session keeps how it was proven and the organization it opened in, both
+  written once (`session_keeps_its_opening`), and nothing switches it. Single
+  sign-on starts at `/auth/oidc/start` with the installation's provider, and
+  `/auth/me` answers the installation's name and the caller's role.
+- The installation has one OIDC provider (`oidc_provider`), its client
   secret sealed with `EXCITER_SECRET_KEY`. `internal/oidc` runs the
   authorization code flow with PKCE, a nonce and a single-use state
   (`oidc_login`), verifies the id token against the issuer's keys, and
@@ -257,7 +257,7 @@ German.
 - Routes are defined in code (`routes/index.ts`); everything but `/login`
   sits in the shell (`features/shell`): a rail, a sidebar that becomes a
   drawer below the `shell` breakpoint, a top bar with breadcrumbs, the
-  account and organization menus, and the Ctrl K quick switcher. The places
+  account menu, and the Ctrl K quick switcher. The places
   of a build are listed once, in `features/shell/places.ts`.
 - Theming (#8): `styles/index.css` holds the tokens, light and dark, which
   follow `prefers-color-scheme` unless the rail's theme button stamps

@@ -54,7 +54,7 @@ describe("the organization's default theme", () => {
 
   it("tells a member the choice is the administrators'", async () => {
     const sent = stubApi({});
-    await renderAt(DEFAULT_THEME_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(DEFAULT_THEME_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText(/Only an owner or administrator of this organization names its default theme/)).toBeInTheDocument();
     expect(sent.filter((r) => r.path === "/themes")).toHaveLength(0);
   });

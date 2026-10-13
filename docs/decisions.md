@@ -3,6 +3,28 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: A sign-in lands in the installation, and keeps where it opened (#85)
+
+Nothing switches a session any more: the sign-in page asks for no
+organization, single sign-on starts at `/auth/oidc/start` with the
+installation's provider, and `POST /auth/switch-org`, the switchers and the
+organizations on `/auth/me` went. With them went what decided where a session
+might go: `session_reaches`, its widening to providers of the same issuer and
+to organizations the person owns, `session_stays_home` and the organization a
+proof was made for.
+
+- **The session keeps the organization it opened in.** Armature resolves a
+  session to the person's first membership. Exciter's integration suite lets
+  the same Keycloak people into organizations of its own beside the seeded
+  installation, so the oldest membership would land a test's sign-in in the
+  wrong place. `current_org_id` is written once when the session opens and a
+  trigger, `session_keeps_its_opening`, refuses moving it; #91 drops it.
+- **A seam for the suite, until #90.** `Server.SignInOrg` names whose provider
+  single sign-on starts with; nil, as everywhere but the integration suite,
+  is the installation's, the oldest organization, as the seed finds it.
+- **No redirect.** Armature redirects its old address for a release; no
+  release of Exciter shipped with one, so it is simply gone.
+
 ## 2026-10-13: One installation holds one organization, and a database with several stops (#84)
 
 Exciter is self-hosted, and an installation serves one team, as Armature and

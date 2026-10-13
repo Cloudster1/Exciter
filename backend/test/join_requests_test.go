@@ -42,7 +42,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 
 	t.Run("a first sign-in is refused and noted", func(t *testing.T) {
 		b := newBrowser(t, a)
-		if landing := b.signIn(t, org.Slug, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/login?sso=not_a_member" {
+		if landing := b.signIn(t, org, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("landed on %q, want the sign-in page saying the request waits", landing)
 		}
 		if b.sessionCookie(t) != "" {
@@ -73,7 +73,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		}
 	})
 
-	newBrowser(t, a).signIn(t, org.Slug, "dave-"+suffix, password, "")
+	newBrowser(t, a).signIn(t, org, "dave-"+suffix, password, "")
 	admin, adminID := adminOf(t, h, a, org)
 	carolID, daveID := h.userID(t, carol), h.userID(t, dave)
 
@@ -98,7 +98,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		}
 		// A browser of her own: the first one still holds Keycloak's session, which would skip the login form.
 		carolIn = newBrowser(t, a)
-		if landing := carolIn.signIn(t, org.Slug, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/settings" {
+		if landing := carolIn.signIn(t, org, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/settings" {
 			t.Fatalf("carol landed on %q after being let in", landing)
 		}
 		if role := carolIn.roleIn(t); role != "member" {

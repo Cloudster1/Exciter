@@ -106,7 +106,7 @@ describe("the organization's tokens", () => {
 
   it("tells a member whose page it is", async () => {
     stubApi({});
-    await renderAt(ORG_TOKENS_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(ORG_TOKENS_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText(/Only the organization's owners and administrators see everybody's tokens/)).toBeInTheDocument();
   });
 });

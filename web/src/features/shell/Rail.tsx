@@ -29,7 +29,7 @@ export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }
         <NavItem to="/" exact icon="Home" rail>
           {t.nav.home}
         </NavItem>
-        {administers(me?.organization?.role) && (
+        {administers(me?.role) && (
           <NavItem to={SETTINGS_PATH} icon="Settings" rail>
             {t.nav.settings}
           </NavItem>

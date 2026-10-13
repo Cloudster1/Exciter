@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 )
 
 // setSessionCookie writes the cookie out of scripts' reach, Lax so a provider's
@@ -51,29 +52,24 @@ func (s *Server) noteSession(ctx context.Context, sessionID uuid.UUID, lsn db.LS
 var errSignInOff = &APIError{Status: http.StatusServiceUnavailable, Code: "sign_in_unavailable",
 	Message: "Signing in is not set up on this server. Ask its operator to configure it."}
 
-// meResponse is who is signed in and where they may act, which is everything
-// the account menu needs in one request.
+// meResponse is who is signed in and how they stand in the installation, which
+// is everything the shell needs in one request.
 type meResponse struct {
-	User auth.User `json:"user"`
-	// Organization is the installation's, which everybody signed in belongs to; #85 renames it.
-	Organization  *auth.CurrentOrg  `json:"organization"`
-	Organizations []auth.Membership `json:"organizations"`
+	User         auth.User                 `json:"user"`
+	Installation installation.Installation `json:"installation"`
+	// Role is the caller's standing in the installation.
+	Role auth.OrgRole `json:"role"`
 	// Token is the personal access token the request rides on; null for a session.
 	Token *auth.CallingToken `json:"token"`
 }
 
-func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
-	organizations, err := s.Accounts.Organizations(r.Context(), p)
-	if err != nil {
-		return nil, err
-	}
-	out := &meResponse{
-		User:          auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
-		Organizations: organizations,
-		Token:         p.Token,
-		Organization:  &auth.CurrentOrg{ID: p.Org.ID, Slug: p.Org.Slug, Name: p.OrgName, Role: p.Role},
-	}
-	return out, nil
+func (s *Server) me(_ *http.Request, p *auth.Principal) (*meResponse, error) {
+	return &meResponse{
+		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
+		Installation: installation.Installation{Name: p.OrgName},
+		Role:         p.Role,
+		Token:        p.Token,
+	}, nil
 }
 
 type loginRequest struct {
@@ -166,32 +162,4 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		p.Locale = *req.Locale
 	}
 	s.handleMeAs(w, r, &p)
-}
-
-type switchOrgRequest struct {
-	Slug string `json:"slug"`
-}
-
-func (s *Server) handleSwitchOrg(w http.ResponseWriter, r *http.Request) {
-	p := PrincipalFrom(r.Context())
-	if p.SessionID == nil {
-		respondError(w, r, ErrBadRequest("Only a browser session can switch organizations."))
-		return
-	}
-	var req switchOrgRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		respondError(w, r, err)
-		return
-	}
-	if strings.TrimSpace(req.Slug) == "" {
-		respondError(w, r, ErrValidation(map[string]string{"slug": "Name the organization to switch to."}))
-		return
-	}
-	org, lsn, err := s.Accounts.SwitchOrg(r.Context(), *p.SessionID, p.UserID, req.Slug)
-	noteWrite(r.Context(), lsn)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"organization": org})
 }

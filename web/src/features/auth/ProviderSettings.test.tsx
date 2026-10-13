@@ -46,7 +46,7 @@ describe("the single sign-on settings", () => {
       createGroups: true,
       enabled: true,
     });
-    expect(await screen.findByText("/api/v1/auth/oidc/demo/start")).toBeInTheDocument();
+    expect(await screen.findByText("/api/v1/auth/oidc/start")).toBeInTheDocument();
     // The saved row comes back newer, which starts the form afresh; the word stays.
     expect(await screen.findByRole("status")).toHaveTextContent("Saved.");
   });
@@ -100,7 +100,7 @@ describe("the single sign-on settings", () => {
 
   it("is not even asked for on behalf of a member", async () => {
     const sent = stubApi({});
-    await renderAt(SSO_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(SSO_PATH, { me: { ...signedIn, role: "member" } });
     expect(
       await screen.findByText("Only an owner or administrator of this organization changes how its members sign in. Ask one of them."),
     ).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
-import { ssoStartURL, useMe, useProvider, useSaveProvider, type Provider } from "@/api/auth";
+import { ssoStartURL, useProvider, useSaveProvider, type Provider } from "@/api/auth";
 import { Button, Card, Checkbox, ErrorBanner, Field, Skeleton } from "@/components/ui";
 import { HTTP_FORBIDDEN, SSO_DEFAULT_GROUPS_CLAIM, SSO_DEFAULT_SCOPES } from "@/config";
 import { t } from "@/i18n";
@@ -63,11 +63,9 @@ function ProviderForm({
   saved: boolean;
   onSaved: (saved: boolean) => void;
 }) {
-  const { data: me } = useMe();
   const [draft, setDraft] = useState(() => draftOf(provider));
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const formError = save.error && Object.keys(fields).length === 0 ? save.error.message : null;
-  const slug = me?.organization?.slug ?? "";
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -121,9 +119,9 @@ function ProviderForm({
             {t.sso.callback} <code className="rounded bg-surface-raised px-1 font-mono text-xs text-ink">{callbackUrl}</code>
           </p>
         )}
-        {provider?.enabled && slug && (
+        {provider?.enabled && (
           <p className="text-sm text-ink-muted">
-            {t.sso.signInAt} <code className="rounded bg-surface-raised px-1 font-mono text-xs text-ink">{ssoStartURL(slug)}</code>
+            {t.sso.signInAt} <code className="rounded bg-surface-raised px-1 font-mono text-xs text-ink">{ssoStartURL()}</code>
           </p>
         )}
         {formError && <ErrorBanner>{formError}</ErrorBanner>}

@@ -109,12 +109,8 @@ var (
 	ErrUserInactive = errors.New("account is deactivated")
 	// ErrSwitchedOff is returned when somebody who no longer belongs to the installation signs in.
 	ErrSwitchedOff = errors.New("account switched off")
-	// ErrNotAMember is returned when somebody tries to act in an organization
-	// they do not belong to, or names one that does not exist.
-	ErrNotAMember = errors.New("not a member of that organization")
-	// ErrSessionStaysHome is returned when a session proven for one
-	// organization tries to act where that proof does not vouch for it.
-	ErrSessionStaysHome = errors.New("this sign-in does not reach that organization")
+	// ErrNoInstallation is returned when nothing has made the installation's organization yet.
+	ErrNoInstallation = errors.New("the installation has not been set up")
 	// ErrBadLocale is returned for a language the interface does not speak.
 	ErrBadLocale = errors.New("choose a language from the list")
 	// ErrNoSuchMember is returned when the person named is not a member here.

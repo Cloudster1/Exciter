@@ -117,12 +117,6 @@ func toAPIError(err error) *APIError {
 	case errors.Is(err, auth.ErrUserInactive):
 		return &APIError{Status: http.StatusForbidden, Code: "account_inactive",
 			Message: "This account has been deactivated. Ask an administrator of your organization to turn it back on."}
-	case errors.Is(err, auth.ErrNotAMember):
-		return &APIError{Status: http.StatusForbidden, Code: "not_a_member",
-			Message: "You are not a member of that organization. Check its name, or ask one of its administrators to let you in."}
-	case errors.Is(err, auth.ErrSessionStaysHome):
-		return &APIError{Status: http.StatusForbidden, Code: "session_stays_home",
-			Message: "Your sign-in does not reach that organization. Sign in there through its own sign-in page."}
 	case errors.Is(err, auth.ErrBadLocale):
 		return ErrValidation(map[string]string{"locale": "Choose English, German, or the language of your browser."})
 	case errors.Is(err, auth.ErrNoSuchMember):
@@ -151,7 +145,7 @@ func toAPIError(err error) *APIError {
 		return ErrNotFound("That group is not mapped to a role. Reload the list; somebody may have removed it already.")
 	case errors.Is(err, oidc.ErrNotConfigured):
 		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
-			Message: "That organization does not sign in through an identity provider. Check its name, or sign in with a password."}
+			Message: "Exciter does not sign in through an identity provider yet. Sign in with a password, or ask an administrator to set one up."}
 	default:
 		if apiErr := projectError(err); apiErr != nil {
 			return apiErr

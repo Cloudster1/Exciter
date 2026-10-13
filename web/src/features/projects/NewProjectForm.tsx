@@ -12,7 +12,7 @@ import { useDebounced } from "@/lib/debounce";
 export function NewProjectForm() {
   const navigate = useNavigate();
   const { data: me } = useMe();
-  const mayCreate = administers(me?.organization?.role);
+  const mayCreate = administers(me?.role);
   const create = useCreateProject();
   const [name, setName] = useState("");
   const [key, setKey] = useState("");

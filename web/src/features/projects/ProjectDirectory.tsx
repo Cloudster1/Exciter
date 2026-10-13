@@ -13,7 +13,7 @@ export function ProjectDirectory() {
   const [showArchived, setShowArchived] = useState(false);
   const { data: projects, isLoading, error, refetch } = useProjects(showArchived);
   const { data: me } = useMe();
-  const mayCreate = administers(me?.organization?.role);
+  const mayCreate = administers(me?.role);
   const navigate = useNavigate();
   const create = (action: string) =>
     mayCreate ? (

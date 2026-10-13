@@ -357,7 +357,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Who is signed in, and the organizations they may act in. */
+        /** Who is signed in, and how they stand in the installation. */
         get: operations["me"];
         put?: never;
         post?: never;
@@ -385,34 +385,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/oidc/{orgSlug}/start": {
+    "/auth/oidc/start": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Begin signing in through the organization's identity provider. */
+        /** Begin signing in through the installation's identity provider. */
         get: operations["oIDCStart"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/switch-org": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Act in another of the caller's organizations from now on. */
-        post: operations["switchOrg"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2278,14 +2261,6 @@ export interface components {
             /** Format: uuid */
             userId: string;
         };
-        CurrentOrg: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
-            slug: string;
-        };
         Cursor: {
             /** Format: uuid */
             assetId: string;
@@ -2540,8 +2515,9 @@ export interface components {
             password: string;
         };
         MeResponse: {
-            organization: components["schemas"]["CurrentOrg"] | null;
-            organizations: components["schemas"]["Membership"][];
+            installation: components["schemas"]["Installation"];
+            /** @enum {string} */
+            role: "owner" | "admin" | "member" | "guest";
             token: components["schemas"]["CallingToken"] | null;
             user: components["schemas"]["User"];
         };
@@ -3110,9 +3086,6 @@ export interface components {
             id?: string;
             /** @enum {string} */
             type: "user" | "group" | "everyone";
-        };
-        SwitchOrgRequest: {
-            slug: string;
         };
         Tag: {
             description?: string;
@@ -4444,9 +4417,7 @@ export interface operations {
                 next?: string;
             };
             header?: never;
-            path: {
-                orgSlug: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -4457,41 +4428,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    switchOrg: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SwitchOrgRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        organization: components["schemas"]["CurrentOrg"];
-                    };
-                };
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {

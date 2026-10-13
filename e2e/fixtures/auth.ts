@@ -16,7 +16,7 @@ export const USERS: Record<User, { username: string; password: string; email: st
   bob: { username: "bob", password: "bob password", email: "bob@suite.test", name: "Bob Builder" },
 };
 
-/** The address of the organization a first start makes, installation.Slug; sign-in asks for it until #85. */
+/** The address of the organization a first start makes, installation.Slug, which the Armature webhook names until #87. */
 export const ORG_SLUG = "exciter";
 
 /** The owner the seed bootstraps, who signs in with a password and makes each spec's people. */
@@ -25,7 +25,6 @@ export const BOOTSTRAP_OWNER = { email: "admin@exciter.test", password: "exciter
 /** What the login page offers, and what answers once someone is signed in. */
 export const LOGIN_PATH = "/login";
 export const ME_PATH = "/api/v1/auth/me";
-const ORG_FIELD = "Organization";
 const SSO_START = '[data-action="sso"]';
 const PASSWORD_SUBMIT = '[data-action="password-sign-in"]';
 
@@ -45,9 +44,8 @@ export function stateFile(user: User): string {
 
 /** Starts SSO from the login page, staying on it when a redirect brought the browser there so its `next` is
  *  kept; the caller waits for the page the provider leads to. */
-export async function startSSO(page: Page, org: string = ORG_SLUG): Promise<void> {
+export async function startSSO(page: Page): Promise<void> {
   if (!page.url().startsWith(`${WEB_URL}${LOGIN_PATH}`)) await page.goto(LOGIN_PATH);
-  await page.getByLabel(ORG_FIELD, { exact: true }).fill(org);
   await page.locator(SSO_START).click(LEAVES_THE_PAGE);
 }
 
@@ -61,8 +59,8 @@ export async function submitKeycloak(page: Page, username: string, password: str
 }
 
 /** Signs in through the login page and Keycloak's form, and waits for the session. */
-export async function signIn(page: Page, user: User, org: string = ORG_SLUG): Promise<void> {
-  await startSSO(page, org);
+export async function signIn(page: Page, user: User): Promise<void> {
+  await startSSO(page);
   await submitKeycloak(page, USERS[user].username, USERS[user].password);
   await expect.poll(async () => (await page.request.get(ME_PATH)).status()).toBe(200);
 }
@@ -101,11 +99,10 @@ export async function ownerApi(): Promise<ExciterApi> {
 }
 
 /** Where the page's session acts now, and with which role. */
-export async function standing(page: Page): Promise<{ slug?: string; role?: string }> {
+export async function standing(page: Page): Promise<{ role?: string }> {
   const me = await page.request.get(ME_PATH);
   if (!me.ok()) return {};
-  const organization = ((await me.json()) as { organization?: { slug?: string; role?: string } }).organization;
-  return { slug: organization?.slug, role: organization?.role };
+  return { role: ((await me.json()) as { role?: string }).role };
 }
 
 interface SessionFixtures {

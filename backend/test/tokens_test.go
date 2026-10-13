@@ -91,7 +91,7 @@ func TestTokensOverTheAPI(t *testing.T) {
 		script := f.api.withToken(person.user, secret)
 		me := want(t, script.get(t, "/api/v1/auth/me"), http.StatusOK, "who am I")
 		token := obj(t, me, "token")
-		if token["name"] != "full" || token["allProjects"] != true || len(list(t, me, "organizations")) != 1 {
+		if token["name"] != "full" || token["allProjects"] != true || me.Body["role"] == nil {
 			t.Errorf("/auth/me with a token: %s", me.Raw)
 		}
 		if want(t, person.get(t, "/api/v1/auth/me"), http.StatusOK, "a session").Body["token"] != nil {

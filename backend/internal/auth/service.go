@@ -94,7 +94,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		}
 	}
 
-	memberships, err := s.memberships(ctx, p.UserID, nil)
+	memberships, err := s.memberships(ctx, p.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,28 +202,17 @@ func (s *Service) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	return err
 }
 
-// Organizations lists where the caller may act: their memberships, narrowed to
-// the ones their session reaches, oldest first so the first is a stable default.
-func (s *Service) Organizations(ctx context.Context, p *Principal) ([]Membership, error) {
-	all, err := s.memberships(ctx, p.UserID, p.SessionID)
-	if err != nil || p.Token == nil || p.Org == nil {
-		return all, err
-	}
-	// A token acts in the one organization it was made in, so it is shown that one alone.
-	return slices.DeleteFunc(all, func(m Membership) bool { return m.OrgID != p.Org.ID }), nil
-}
-
-func (s *Service) memberships(ctx context.Context, userID uuid.UUID, sessionID *uuid.UUID) ([]Membership, error) {
+// memberships are the person's, oldest first, so the first is a stable default while the integration suite still
+// lets the same people in to organizations of its own (#90).
+func (s *Service) memberships(ctx context.Context, userID uuid.UUID) ([]Membership, error) {
 	out := []Membership{}
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
 			SELECT o.id, o.slug, o.name, m.org_role
 			FROM org_member m
 			JOIN org o ON o.id = m.org_id
-			LEFT JOIN user_session s ON s.id = $2
 			WHERE m.user_id = $1 AND o.archived_at IS NULL
-			  AND ($2::uuid IS NULL OR session_reaches(s.proof, s.proof_org_id, s.user_id, o.id))
-			ORDER BY m.created_at, o.slug`, userID, sessionID)
+			ORDER BY m.created_at, o.slug`, userID)
 		if err != nil {
 			return err
 		}
@@ -240,42 +229,6 @@ func (s *Service) memberships(ctx context.Context, userID uuid.UUID, sessionID *
 	return out, err
 }
 
-// SwitchOrg points a session at another of the person's organizations, when its
-// proof reaches there by the same function the database's trigger applies.
-func (s *Service) SwitchOrg(ctx context.Context, sessionID, userID uuid.UUID, slug string) (*CurrentOrg, db.LSN, error) {
-	var org CurrentOrg
-	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		err := tx.QueryRow(ctx, `
-			SELECT o.id, o.slug, o.name, m.org_role
-			FROM org o
-			JOIN org_member m ON m.org_id = o.id AND m.user_id = $2
-			WHERE o.slug = $1 AND o.archived_at IS NULL`,
-			strings.ToLower(strings.TrimSpace(slug)), userID,
-		).Scan(&org.ID, &org.Slug, &org.Name, &org.Role)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrNotAMember
-		}
-		if err != nil {
-			return err
-		}
-		var reaches bool
-		if err := tx.QueryRow(ctx, `
-			SELECT session_reaches(proof, proof_org_id, user_id, $2) FROM user_session WHERE id = $1`,
-			sessionID, org.ID).Scan(&reaches); err != nil {
-			return err
-		}
-		if !reaches {
-			return ErrSessionStaysHome
-		}
-		_, err = tx.Exec(ctx, `UPDATE user_session SET current_org_id = $2 WHERE id = $1`, sessionID, org.ID)
-		return err
-	})
-	if err != nil {
-		return nil, 0, err
-	}
-	return &org, lsn, nil
-}
-
 // SetLocale records the language a person reads the interface in;
 // LocaleBrowser hands the choice back to their browser.
 func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale) (db.LSN, error) {
@@ -288,20 +241,18 @@ func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale
 	})
 }
 
-// OrgBySlug finds an organization by the slug in a URL. It runs on the admin
-// path because a sign-in has to know its tenant before anybody is signed in.
-func (s *Service) OrgBySlug(ctx context.Context, slug string) (*tenant.Org, error) {
+// InstallationOrg is the organization a sign-in that names none is for, such as single sign-on's: the oldest,
+// as the seed finds it. Through the admin path, since nobody is signed in yet.
+func (s *Service) InstallationOrg(ctx context.Context) (*tenant.Org, error) {
 	var org tenant.Org
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		return tx.QueryRow(ctx, `SELECT id, slug FROM org WHERE slug = $1 AND archived_at IS NULL`,
-			strings.ToLower(strings.TrimSpace(slug)),
-		).Scan(&org.ID, &org.Slug)
+		return tx.QueryRow(ctx, `SELECT id, slug FROM org WHERE archived_at IS NULL ORDER BY created_at, slug LIMIT 1`).Scan(&org.ID, &org.Slug)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNotAMember
+		return nil, ErrNoInstallation
 	}
 	if err != nil {
-		return nil, fmt.Errorf("find organization: %w", err)
+		return nil, fmt.Errorf("find the installation: %w", err)
 	}
 	return &org, nil
 }
@@ -389,8 +340,8 @@ func OpenSession(ctx context.Context, tx db.DBTX, userID uuid.UUID, orgID *uuid.
 	}
 	var id uuid.UUID
 	err = tx.QueryRow(ctx, `
-		INSERT INTO user_session (user_id, token_hash, current_org_id, proof_org_id, proof, user_agent, ip, expires_at)
-		VALUES ($1, $2, $3, $3, $4, NULLIF($5, ''), NULLIF($6, '')::inet, $7)
+		INSERT INTO user_session (user_id, token_hash, current_org_id, proof, user_agent, ip, expires_at)
+		VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, '')::inet, $7)
 		RETURNING id`,
 		userID, digest, orgID, string(proof), userAgent, ip, expiresAt,
 	).Scan(&id)

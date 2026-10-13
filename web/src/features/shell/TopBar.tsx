@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useLogout, useMe, useSetLanguage, useSwitchOrg } from "@/api/auth";
+import { useLogout, useMe, useSetLanguage } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ARMATURE_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH } from "@/config";
@@ -66,21 +66,20 @@ export function TopBar({
           <span className="hidden min-w-0 flex-1 truncate text-left shell:inline">{t.switcher.placeholder}</span>
           <kbd className="hidden font-mono text-2xs shell:inline">{t.switcher.shortcut}</kbd>
         </button>
-        <OrgSwitcher />
         <AccountMenu />
       </div>
     </header>
   );
 }
 
-/** Where the reader is: the organization, then the page's section and the page itself, or the place it lies under. */
+/** Where the reader is: the installation, then the page's section and the page itself, or the place it lies under. */
 function PlaceCrumbs() {
   const { data: me } = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const trail = crumbsFor(pathname);
   const above = trail.length === 0 ? placeAbove(pathname) : undefined;
   const crumbs: Crumb[] = [
-    { label: me?.organization?.name ?? "", render: (label) => <Link to="/">{label}</Link> },
+    { label: me?.installation.name ?? "", render: (label) => <Link to="/">{label}</Link> },
     ...trail.map((label, index) => ({
       label,
       render: index === trail.length - 1 ? (shown: ReactNode) => <span aria-current="page">{shown}</span> : undefined,
@@ -89,44 +88,8 @@ function PlaceCrumbs() {
       ? [...(above.section ? [{ label: above.section }] : []), { label: above.label, render: (shown: ReactNode) => <Link to={above.path}>{shown}</Link> }]
       : []),
   ];
-  if (!me?.organization) return null;
+  if (!me) return null;
   return <Breadcrumbs crumbs={crumbs} className="hidden min-w-0 truncate sm:block [&_a]:hover:text-ink" />;
-}
-
-/** The person's other organizations, for one who belongs to more than one. */
-function OrgSwitcher() {
-  const { data: me } = useMe();
-  const switchOrg = useSwitchOrg();
-  const organizations = me?.organizations ?? [];
-  if (organizations.length < 2) return null;
-  const current = me?.organization?.slug;
-  return (
-    <Menu
-      label={t.account.switchOrg}
-      align="end"
-      trigger={(props) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={props.toggle}
-          aria-haspopup={props["aria-haspopup"]}
-          aria-expanded={props["aria-expanded"]}
-          aria-controls={props["aria-controls"]}
-          aria-label={t.account.switchOrgFrom(me?.organization?.name ?? "")}
-          iconRight={<Icon.ChevronDown className="shrink-0 text-ink-subtle" />}
-          data-action="switch-org"
-        >
-          <span className="hidden max-w-40 truncate shell:inline">{me?.organization?.name}</span>
-        </Button>
-      )}
-      items={organizations.map((org) => ({
-        label: org.orgName,
-        checked: org.orgSlug === current,
-        onSelect: () => org.orgSlug !== current && switchOrg.mutate(org.orgSlug),
-        attrs: { "data-org": org.orgSlug },
-      }))}
-    />
-  );
 }
 
 /** Who is signed in, their themes, the language they read in, and the way out. */

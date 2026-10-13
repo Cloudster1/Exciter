@@ -64,7 +64,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 	})
 
 	b := newBrowser(t, a)
-	landing := b.signIn(t, org.Slug, "alice", alicePassword, "/settings/members")
+	landing := b.signIn(t, org, "alice", alicePassword, "/settings/members")
 	if landing != "http://"+appHost+"/settings/members" {
 		t.Fatalf("landed on %q, want the page asked for", landing)
 	}
@@ -75,12 +75,11 @@ func TestSignInThroughKeycloak(t *testing.T) {
 			t.Fatalf("/auth/me = %d %v", status, me)
 		}
 		user, _ := me["user"].(map[string]any)
-		current, _ := me["organization"].(map[string]any)
 		if user["email"] != aliceEmail || user["name"] != "Alice Admin" {
 			t.Errorf("user = %v", user)
 		}
-		if current["slug"] != org.Slug || current["role"] != string(auth.RoleMember) {
-			t.Errorf("organization = %v, want %s as a member", current, org.Slug)
+		if me["role"] != string(auth.RoleMember) {
+			t.Errorf("role = %v, want a member", me["role"])
 		}
 		var subject string
 		userID, _ := user["id"].(string)
@@ -101,7 +100,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 			t.Fatal("the browser holds no session cookie")
 		}
 		var n int
-		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE token_hash = $1 AND proof = 'oidc' AND proof_org_id = $2`, auth.HashToken(secret), org.ID).Scan(&n); err != nil || n != 1 {
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE token_hash = $1 AND proof = 'oidc' AND current_org_id = $2`, auth.HashToken(secret), org.ID).Scan(&n); err != nil || n != 1 {
 			t.Fatalf("provider sessions under the digest = %d (%v)", n, err)
 		}
 		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE position(convert_to($1, 'UTF8') in token_hash) > 0`, secret).Scan(&n); err != nil || n != 0 {
@@ -127,7 +126,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 		kc.setMembership(t, "alice", "engineering", false)
 		t.Cleanup(func() { kc.setMembership(t, "alice", "engineering", true) })
 
-		newBrowser(t, a).signIn(t, org.Slug, "alice", alicePassword, "")
+		newBrowser(t, a).signIn(t, org, "alice", alicePassword, "")
 		if got := h.providerGroups(t, org, aliceEmail); !slices.Equal(got, []string{"exciter-administrators"}) {
 			t.Fatalf("groups after leaving engineering = %q", got)
 		}
@@ -136,7 +135,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 		}
 
 		kc.setMembership(t, "alice", "engineering", true)
-		newBrowser(t, a).signIn(t, org.Slug, "alice", alicePassword, "")
+		newBrowser(t, a).signIn(t, org, "alice", alicePassword, "")
 		if got := h.providerGroups(t, org, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
 			t.Fatalf("groups after rejoining engineering = %q", got)
 		}
@@ -167,7 +166,7 @@ func TestOnlyExistingGroupsAreJoinedWhenCreationIsOff(t *testing.T) {
 	configureProvider(t, a, org, kc.issuer(), false)
 	h.letIn(t, org, bobEmail, "member")
 
-	newBrowser(t, a).signIn(t, org.Slug, "bob", bobPassword, "")
+	newBrowser(t, a).signIn(t, org, "bob", bobPassword, "")
 	if got := h.providerGroups(t, org, bobEmail); len(got) != 0 {
 		t.Fatalf("groups = %q, want none while no group is made", got)
 	}
@@ -176,7 +175,7 @@ func TestOnlyExistingGroupsAreJoinedWhenCreationIsOff(t *testing.T) {
 		INSERT INTO groups (org_id, name, source, external_ref) VALUES ($1, 'Engineering team', 'oidc', 'engineering')`, org.ID); err != nil {
 		t.Fatal(err)
 	}
-	newBrowser(t, a).signIn(t, org.Slug, "bob", bobPassword, "")
+	newBrowser(t, a).signIn(t, org, "bob", bobPassword, "")
 	if got := h.providerGroups(t, org, bobEmail); !slices.Equal(got, []string{"engineering"}) {
 		t.Fatalf("groups = %q, want the one made", got)
 	}
@@ -186,20 +185,18 @@ func TestSignInRefusals(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	start := func(slug string) *http.Response {
+	start := func(org tenant.Org) *http.Response {
+		a.signInOrg = &org
 		b := newBrowser(t, a)
 		b.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-		resp, _ := b.get(t, a.URL+httpapi.APIPrefix+"/auth/oidc/"+slug+"/start")
+		resp, _ := b.get(t, a.URL+httpapi.APIPrefix+"/auth/oidc/start")
 		return resp
 	}
 
 	notConfigured := "http://" + appHost + "/login?sso=not_configured"
-	t.Run("an unknown organization and one without a provider answer alike", func(t *testing.T) {
-		bare := h.makeOrg(t, "bare")
-		for _, slug := range []string{"no-such-org", bare.Slug} {
-			if resp := start(slug); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != notConfigured {
-				t.Errorf("start for %s = %s to %q, want the sign-in page saying so", slug, resp.Status, resp.Header.Get("Location"))
-			}
+	t.Run("an installation without a provider sends the browser back saying so", func(t *testing.T) {
+		if resp := start(h.makeOrg(t, "bare")); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != notConfigured {
+			t.Errorf("start without a provider = %s to %q, want the sign-in page saying so", resp.Status, resp.Header.Get("Location"))
 		}
 	})
 
@@ -210,7 +207,7 @@ func TestSignInRefusals(t *testing.T) {
 		if _, _, err := a.sso.Save(withActor(org, admin), oidc.Provider{Issuer: kc.issuer(), ClientID: exciterClient, Enabled: false}); err != nil {
 			t.Fatal(err)
 		}
-		if resp := start(org.Slug); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != notConfigured {
+		if resp := start(org); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != notConfigured {
 			t.Errorf("start with the provider off = %s to %q", resp.Status, resp.Header.Get("Location"))
 		}
 	})
@@ -218,7 +215,7 @@ func TestSignInRefusals(t *testing.T) {
 	t.Run("a provider that cannot be reached is named as the reason", func(t *testing.T) {
 		org := h.makeOrg(t, "offline")
 		configureProvider(t, a, org, "http://nowhere.invalid/realms/none", false)
-		if resp := start(org.Slug); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "http://"+appHost+"/login?sso=unreachable" {
+		if resp := start(org); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "http://"+appHost+"/login?sso=unreachable" {
 			t.Errorf("start with an unreachable provider = %s to %q", resp.Status, resp.Header.Get("Location"))
 		}
 	})
@@ -226,7 +223,7 @@ func TestSignInRefusals(t *testing.T) {
 	t.Run("an expired sign-in is refused at the callback", func(t *testing.T) {
 		org := h.makeOrg(t, "slow")
 		configureProvider(t, a, org, kc.issuer(), false)
-		if resp := start(org.Slug); resp.StatusCode != http.StatusFound || !strings.HasPrefix(resp.Header.Get("Location"), kc.issuer()) {
+		if resp := start(org); resp.StatusCode != http.StatusFound || !strings.HasPrefix(resp.Header.Get("Location"), kc.issuer()) {
 			t.Fatalf("start = %s to %q", resp.Status, resp.Header.Get("Location"))
 		}
 		var state string
@@ -252,7 +249,7 @@ func TestSignInRefusals(t *testing.T) {
 		org := h.makeOrg(t, "phish")
 		configureProvider(t, a, org, kc.issuer(), false)
 		h.letIn(t, org, aliceEmail, "member")
-		if landing := newBrowser(t, a).signIn(t, org.Slug, "alice", alicePassword, "//evil.test/login"); landing != "http://"+appHost+"/" {
+		if landing := newBrowser(t, a).signIn(t, org, "alice", alicePassword, "//evil.test/login"); landing != "http://"+appHost+"/" {
 			t.Fatalf("landed on %q, want the application's own start", landing)
 		}
 	})

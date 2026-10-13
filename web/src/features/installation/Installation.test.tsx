@@ -19,7 +19,7 @@ describe("the installation page", () => {
         name = ((await request.json()) as { name: string }).name;
         return { status: 200, body: { installation: { name } } };
       },
-      "GET /auth/me": () => ({ status: 200, body: { ...signedIn, organization: { ...signedIn.organization!, name } } }),
+      "GET /auth/me": () => ({ status: 200, body: { ...signedIn, installation: { name } } }),
     });
     const user = userEvent.setup();
     await renderAt(INSTALLATION_PATH);
@@ -54,7 +54,7 @@ describe("the installation page", () => {
 
   it("tells a member to ask an administrator", async () => {
     stubApi({});
-    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText("Only an administrator can rename the installation. Ask one of them.")).toBeInTheDocument();
   });
 });

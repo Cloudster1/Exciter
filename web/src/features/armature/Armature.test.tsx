@@ -121,7 +121,7 @@ describe("connecting Armature as an administrator", () => {
 
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
-    await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText("Only an administrator of this organization can connect Armature.")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/armature/connection")).toBe(false);
   });
