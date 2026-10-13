@@ -222,3 +222,12 @@ export const GRID_MAX_CONDITIONS = 10;
 export const GRID_MAX_COLUMNS = 30;
 /** The longest view name the server takes, its search.MaxViewNameLength. */
 export const VIEW_NAME_MAX_LENGTH = 100;
+
+/** The longest link type key, name and phrase, the server's trace.MaxKeyLength, MaxNameLength and MaxPhraseLength. */
+export const LINK_TYPE_KEY_MAX_LENGTH = 40;
+export const LINK_TYPE_NAME_MAX_LENGTH = 40;
+export const LINK_TYPE_PHRASE_MAX_LENGTH = 60;
+/** The most rules a link type takes in a project, the server's trace.MaxRules. */
+export const LINK_TYPE_MAX_RULES = 50;
+/** Where the organization's link types are kept. */
+export const LINK_TYPES_PATH = "/settings/link-types";

@@ -24,7 +24,7 @@ import {
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
 import { searchRoute } from "./search";
-import { membersRoute, settingsRoute } from "./settings";
+import { linkTypesRoute, membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
@@ -51,6 +51,7 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     settingsRoute,
     membersRoute,
+    linkTypesRoute,
     ssoRoute,
     auditRoute,
     defaultThemeRoute,

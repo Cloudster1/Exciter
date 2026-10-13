@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Trace links (#18). A requirement links to another, in this project or any
+  other the person may view, by the organization's link types (derives,
+  refines, satisfies, verifies, conflicts, relates) or a project's own. The
+  links panel groups them by type and direction, finds the other end by key
+  or title, and refuses a link to the requirement itself, a repeat, and a
+  circle of a type that allows none, naming the requirements on the way
+  round. A link records the revision of each end, is logged on both, and
+  stays as a tombstone once removed. Administrators make and retire link
+  types under Settings; a project turns one off or limits it to pairs of
+  requirement types in its settings. A copy takes its links when asked.
 - Search, the grid and saved views (#20). `/search` finds requirements across
   the projects a person may view by key, title, statement, rationale and
   text values, ignoring case and accents, with the matches marked in the

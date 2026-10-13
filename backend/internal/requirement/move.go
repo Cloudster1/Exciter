@@ -407,6 +407,11 @@ func (s *Service) Copy(ctx context.Context, actor uuid.UUID, key string, in Copy
 			copies[id] = made
 		}
 		copied = len(nodes)
+		if in.Links {
+			if err := copyLinks(ctx, tx, actor, to.ID, copies); err != nil {
+				return err
+			}
+		}
 		l, err := findByID(ctx, tx, actor, copies[src.ID])
 		if err == nil {
 			out = &l.Requirement

@@ -170,6 +170,14 @@ Adapted from Armature at 73d72dd, for saved views (#20):
   shape of internal/filter's saved filters (owner, name, shared, columns),
   per project and over the grid's filter rather than a query
 
+Adapted from Armature at 73d72dd, for trace links (#18):
+- backend/migrations/00180_trace_links.sql: the cycle trigger of
+  00024_link_cycles.sql, walked for every acyclic type rather than blocks
+  alone, over live links and under the organization's link lock
+- backend/internal/trace/links.go: refuseBlockCycle, keysByID and the
+  links read from either end of internal/issue/links.go, over requirements,
+  with the type's phrase read from the end asked about
+
 Adapted from Stator at cf0f6f7, for labels (#19):
 - backend/internal/label: Normalize, Suggest and the labelled list of
   internal/label with label_test.go, over requirements and projects, the

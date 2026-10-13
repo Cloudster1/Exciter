@@ -34,6 +34,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -88,6 +89,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Requirements: requirement.NewService(h.cluster), Search: search.NewService(h.cluster),
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
+		Trace: trace.NewService(h.cluster),
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {
