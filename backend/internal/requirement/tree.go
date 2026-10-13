@@ -245,3 +245,14 @@ func subtree(ctx context.Context, tx db.DBTX, projectID, root uuid.UUID) ([]uuid
 	}
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
+
+// WalkTree is walkTree for the grid, which orders and numbers a project's requirements by it; $1 is the project.
+const WalkTree = walkTree
+
+// OutlineOf writes a path of WalkTree as the reader numbers it.
+func OutlineOf(path []int32) string { return outlineOf(path) }
+
+// Outline answers one requirement's outline number in its project, empty when it is in the trash.
+func Outline(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (string, error) {
+	return outline(ctx, tx, projectID, id)
+}

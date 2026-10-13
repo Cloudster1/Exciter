@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Search, the grid and saved views (#20). `/search` finds requirements across
+  the projects a person may view by key, title, statement, rationale and
+  text values, ignoring case and accents, with the matches marked in the
+  title and a snippet, and narrows by project, status, label, owner and the
+  day of the latest change. Ctrl K finds a requirement by the start of its
+  key or title words. A project's grid narrows by words, kind, type, status,
+  label, owner, priority and attribute conditions, orders by any column,
+  shows the columns chosen and changes titles, priorities and values in
+  place. A grid saves as a view, kept to its owner or shared with the
+  project.
 - Labels (#19). Any requirement or section carries the organization's
   labels, coined by typing one that nobody uses yet; the label box offers
   the labels already in use, the most used first, counting only what the

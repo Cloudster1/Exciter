@@ -12,6 +12,7 @@ import { labelRoute } from "./labels";
 import { loginRoute } from "./login";
 import {
   newProjectRoute,
+  gridRoute,
   newRequirementRoute,
   projectPermissionsRoute,
   projectRoute,
@@ -22,6 +23,7 @@ import {
   workflowDesignRoute,
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
+import { searchRoute } from "./search";
 import { membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
@@ -41,10 +43,12 @@ const routeTree = rootRoute.addChildren([
     newRequirementRoute,
     trashRoute,
     specRoute,
+    gridRoute,
     requirementRoute,
     permalinkRoute,
     historyRoute,
     labelRoute,
+    searchRoute,
     settingsRoute,
     membersRoute,
     ssoRoute,

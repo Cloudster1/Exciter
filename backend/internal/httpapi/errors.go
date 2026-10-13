@@ -172,6 +172,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := labelError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := searchError(err); apiErr != nil {
+			return apiErr
+		}
 		return themeError(err)
 	}
 }

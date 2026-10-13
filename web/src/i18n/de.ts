@@ -5,6 +5,7 @@ import { editorDe, requirementsDe } from "./requirements.de";
 import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
 import { labelsDe } from "./labels.de";
+import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -23,6 +24,7 @@ export const de: Messages = {
     unexpected: (status: number) => `Der Server hat mit Status ${status} und ohne Erklärung geantwortet. Versuchen Sie es gleich noch einmal.`,
   },
   nav: {
+    search: "Suche",
     projects: "Projekte",
     everywhere: "Überall",
     whereYouAre: "Hier",
@@ -50,16 +52,16 @@ export const de: Messages = {
     tooltip: (label: string) => `Darstellung: ${label}`,
   },
   switcher: {
-    open: "Zu einer Seite oder Organisation wechseln",
+    open: "Zu einer Anforderung, Seite oder Organisation wechseln",
     title: "Wechseln zu",
-    label: "Eine Seite oder Organisation über ihren Namen finden",
+    label: "Eine Anforderung über Schlüssel oder Titel, eine Seite oder Organisation über ihren Namen finden",
     placeholder: "Wechseln zu...",
     shortcut: "Strg K",
     escape: "Esc",
     options: "Ziele",
     organization: "Organisation",
     currentOrg: "Aktuell",
-    noMatch: "Hier beginnt nichts damit. Versuchen Sie den Anfang des Namens einer Seite oder Organisation.",
+    noMatch: "Hier beginnt nichts damit. Versuchen Sie den Anfang eines Schlüssels, eines Titels oder des Namens einer Seite oder Organisation.",
     optionsCount: (count: number) => (count === 1 ? "1 Ziel" : `${count} Ziele`),
   },
   account: {
@@ -273,6 +275,8 @@ export const de: Messages = {
   history: historyDe,
   workflows: workflowsDe,
   labels: labelsDe,
+  search: searchDe,
+  grid: gridDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

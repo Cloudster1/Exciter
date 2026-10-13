@@ -10,6 +10,8 @@ import { ProjectSettings, isSettingsTab, type SettingsTab } from "@/features/pro
 import { NewRequirementForm } from "@/features/requirements/NewRequirementForm";
 import { RequirementList } from "@/features/requirements/RequirementList";
 import { TrashPage } from "@/features/requirements/TrashPage";
+import { readAddress } from "@/features/grid/filter";
+import { GridPage } from "@/features/grid/GridPage";
 import { SpecPage } from "@/features/tree/SpecPage";
 import { WorkflowDesignPage } from "@/features/workflows/WorkflowDesignPage";
 import { appRoute } from "./app";
@@ -23,7 +25,8 @@ type ProjectPath =
   | "/p/$projectKey/permissions"
   | "/p/$projectKey/new"
   | "/p/$projectKey/trash"
-  | "/p/$projectKey/spec";
+  | "/p/$projectKey/spec"
+  | "/p/$projectKey/grid";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -72,6 +75,32 @@ export const specRoute = createRoute({
   component: function ProjectSpecPage() {
     const { projectKey } = specRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/spec" render={(project) => <SpecPage key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's grid, whose narrowing, order, columns and open view the address holds. */
+export const gridRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/grid",
+  validateSearch: readAddress,
+  component: function ProjectGridPage() {
+    const { projectKey } = gridRoute.useParams();
+    const address = gridRoute.useSearch();
+    const navigate = useNavigate();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/grid"
+        render={(project) => (
+          <GridPage
+            key={project.id}
+            project={project}
+            address={address}
+            onAddress={(next) => void navigate({ to: "/p/$projectKey/grid", params: { projectKey: project.key }, search: next, replace: true })}
+          />
+        )}
+      />
+    );
   },
 });
 

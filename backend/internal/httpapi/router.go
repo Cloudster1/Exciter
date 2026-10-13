@@ -220,6 +220,12 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/requirements/{reqKey}/revisions/{revisionNumber}/restore", s.handleRestoreRevision)
 			r.Get("/requirements/{reqKey}/diff", s.handleDiffRevisions)
 			r.Get("/requirements/{reqKey}/activity", s.handleListActivity)
+			r.Get("/search", s.handleSearch)
+			r.Get("/search/quick", s.handleQuickSearch)
+			r.Get("/projects/{projectKey}/views", s.handleListViews)
+			r.Post("/projects/{projectKey}/views", s.handleCreateView)
+			r.Patch("/views/{viewID}", s.handleUpdateView)
+			r.Delete("/views/{viewID}", s.handleDeleteView)
 		})
 
 		// Types and attributes: read by whoever views their project, changed by its administrators.

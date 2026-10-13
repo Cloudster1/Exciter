@@ -23,6 +23,8 @@ const (
 	MaxAttributeFilters = 10
 	MaxViewNameLength   = 100
 	MaxColumns          = 30
+	// maxQuickWords bounds the words of a quick search, which only ever types a title's first few.
+	maxQuickWords = 16
 )
 
 // Segment is a run of text, matched or not; the client marks matched runs.
@@ -89,6 +91,27 @@ type Filter struct {
 	Owners     []uuid.UUID          `json:"owners"`
 	Priorities []string             `json:"priorities"`
 	Attributes []AttributeCondition `json:"attributes"`
+}
+
+// filled answers f with every list present, empty where it names nothing, as the API document says.
+func (f Filter) filled() Filter {
+	for _, list := range []*[]string{&f.Categories, &f.Labels, &f.Priorities} {
+		if *list == nil {
+			*list = []string{}
+		}
+	}
+	for _, list := range []*[]uuid.UUID{&f.Types, &f.Statuses, &f.Owners} {
+		if *list == nil {
+			*list = []uuid.UUID{}
+		}
+	}
+	if f.Kinds == nil {
+		f.Kinds = []requirement.Kind{}
+	}
+	if f.Attributes == nil {
+		f.Attributes = []AttributeCondition{}
+	}
+	return f
 }
 
 // Sort orders the grid by a column, outline order when the column is empty.

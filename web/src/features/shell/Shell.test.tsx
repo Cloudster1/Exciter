@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
-import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, PROJECTS_PATH, SSO_PATH, THEMES_PATH } from "@/config";
+import { AUDIT_PATH, DEFAULT_THEME_PATH, MEMBERS_PATH, PROJECTS_PATH, SEARCH_PATH, SSO_PATH, THEMES_PATH } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 
@@ -137,6 +137,7 @@ describe("the quick switcher", () => {
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
       `place:${PROJECTS_PATH}`,
+      `place:${SEARCH_PATH}`,
       `place:${MEMBERS_PATH}`,
       `place:${SSO_PATH}`,
       `place:${DEFAULT_THEME_PATH}`,
@@ -152,14 +153,15 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[8]).toHaveAttribute("aria-selected", "true");
+    expect(options()[9]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[8]).toHaveAttribute("aria-selected", "true");
+    expect(options()[9]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
     await userEvent.type(input, "aud");
-    expect(options()).toHaveLength(1);
+    // The audit log, and the full search for what was typed.
+    expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([`place:${AUDIT_PATH}`, "search"]);
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(router.state.location.pathname).toBe(AUDIT_PATH));
     expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
@@ -168,12 +170,12 @@ describe("the quick switcher", () => {
   it("offers only the places a member may go, and says when nothing matches", async () => {
     await renderAt("/", { me: member });
     await userEvent.keyboard("{Control>}k{/Control}");
-    // Home, the projects, their own themes and their organization.
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(4);
+    // Home, the projects, the search, their own themes and their organization.
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(5);
     await userEvent.type(screen.getByRole("combobox"), "zzz");
-    expect(screen.queryByRole("listbox")).toBeNull();
-    expect(document.querySelector("[data-quick-switcher-empty]")).not.toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("0 places");
+    // Only the full search is left to offer.
+    expect(within(screen.getByRole("listbox")).getByRole("option")).toHaveTextContent("Search everything for zzz");
+    expect(screen.getByRole("status")).toHaveTextContent("1 place");
   });
 });
 

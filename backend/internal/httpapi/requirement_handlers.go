@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -140,49 +139,6 @@ func (s *Server) handleEmptyRequirementTrash(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	respondNoContent(w)
-}
-
-// gridFilter reads the grid's narrowing from the query; an id that is none is refused on its parameter.
-func gridFilter(r *http.Request) (search.Filter, *APIError) {
-	q := r.URL.Query()
-	f := search.Filter{Q: q.Get("q"), Categories: q["category"], Labels: q["label"], Priorities: q["priority"]}
-	for _, k := range q["kind"] {
-		f.Kinds = append(f.Kinds, requirement.Kind(k))
-	}
-	ids := map[string]*[]uuid.UUID{"owner": &f.Owners, "type": &f.Types, "status": &f.Statuses}
-	for name, into := range ids {
-		for _, raw := range q[name] {
-			id, err := uuid.Parse(raw)
-			if err != nil {
-				return f, ErrValidation(map[string]string{name: "That is not an id. Pick it from the list."})
-			}
-			*into = append(*into, id)
-		}
-	}
-	// The grid reads attr's conditions from #20 on; until then that one was asked for is enough to refuse it.
-	if len(q["attr"]) > 0 {
-		f.Attributes = []search.AttributeCondition{{}}
-	}
-	return f, nil
-}
-
-func (s *Server) handleListGrid(w http.ResponseWriter, r *http.Request) {
-	limit, offset, apiErr := offsetWindow(r, search.DefaultLimit, search.MaxGridLimit)
-	if apiErr != nil {
-		respondError(w, r, apiErr)
-		return
-	}
-	filter, apiErr := gridFilter(r)
-	if apiErr != nil {
-		respondError(w, r, apiErr)
-		return
-	}
-	rows, total, err := s.Search.Grid(r.Context(), userFrom(r), projectKeyParam(r), filter, limit, offset)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"rows": rows, "total": total, "limit": limit, "offset": offset})
 }
 
 // requirementError maps the requirements' refusals; nil when err is none of theirs.

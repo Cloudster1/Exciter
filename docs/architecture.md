@@ -101,6 +101,16 @@ holds even for a query that forgot it.
   only takes a status the workflow lacks to one it has. A step may send a
   requirement elsewhere on a new revision, which is how an edit supersedes an
   approval. The designer is Armature's, drawn with React Flow.
+- **Search** (#20): Stator's full-text search on requirements. The
+  configuration `exciter_search` ignores case and accents and does not stem;
+  a generated `requirement.search_vector` weighs the title A, the plain text
+  of statement and rationale B and text values C, the plain text coming from
+  `requirement_plain_text`, the SQL twin of `document.PlainText`.
+  `requirement_search_rows` matches through the index and checks rights once
+  per project. The grid is one project's requirements in outline order,
+  narrowed and ordered in SQL built from checked parts, never from text a
+  person wrote. Saved views keep a grid's filter, columns and order, their
+  owner's and shared by editors, under `saved_view`'s own policies.
 - **Labels** (#19): Stator's labels on requirements. `requirement_label` holds
   a name per requirement and nothing else, so a label exists while something
   carries it and is the organization's, not a project's. Its rows follow the

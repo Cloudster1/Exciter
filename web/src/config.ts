@@ -204,3 +204,21 @@ export const LABEL_SUGGESTION_LIMIT = 10;
 export const LABEL_SUGGEST_DEBOUNCE_MS = 200;
 /** How many requirements one page of a label's list shows, within the API's label.MaxLimit of 100. */
 export const LABEL_PAGE_SIZE = 20;
+
+/** The longest search the server takes, its search.MaxQueryLength. */
+export const SEARCH_QUERY_MAX_LENGTH = 200;
+/** How many hits a page of the full search shows, within the server's search.MaxLimit of 100. */
+export const SEARCH_PAGE_SIZE = 20;
+/** How many requirements the Ctrl K palette offers, within the server's search.MaxQuickLimit of 20. */
+export const QUICK_SEARCH_LIMIT = 8;
+/** How long the palette waits after the last key before it asks the server. */
+export const QUICK_SEARCH_DEBOUNCE_MS = 150;
+/** Where the full search lives. */
+export const SEARCH_PATH = "/search";
+/** How many rows a page of the grid shows, within the server's search.MaxGridLimit of 500. */
+export const GRID_PAGE_SIZE = 100;
+/** The most attribute conditions and columns a grid takes, the server's search.MaxAttributeFilters and MaxColumns. */
+export const GRID_MAX_CONDITIONS = 10;
+export const GRID_MAX_COLUMNS = 30;
+/** The longest view name the server takes, its search.MaxViewNameLength. */
+export const VIEW_NAME_MAX_LENGTH = 100;

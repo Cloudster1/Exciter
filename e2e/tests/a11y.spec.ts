@@ -7,6 +7,7 @@ const PATHS = [
   "/",
   "/projects",
   "/projects/new",
+  "/search",
   "/settings/members",
   "/settings/sso",
   "/settings/default-theme",
