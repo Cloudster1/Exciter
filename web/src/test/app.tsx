@@ -63,6 +63,15 @@ const freshOrganization: Record<string, Answer> = {
 
 let apiStubbed = false;
 
+// A file goes up as form data, which is no JSON; a test reads it as the text it is.
+function parsed(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 /** Stands in for the API by "METHOD /path", anything else a 404 in its envelope,
  * and returns the requests made so a test can say what was sent. */
 export function stubApi(answers: Record<string, Answer | ((request: Request) => Answer | Promise<Answer>)>) {
@@ -75,7 +84,7 @@ export function stubApi(answers: Record<string, Answer | ((request: Request) => 
     const url = new URL(input.url, "http://app.test");
     const path = url.pathname.replace(/^\/api\/v1/, "");
     const text = await input.clone().text();
-    sent.push({ method: input.method, path, body: text ? JSON.parse(text) : undefined });
+    sent.push({ method: input.method, path, body: text ? parsed(text) : undefined });
     const found = answers[`${input.method} ${path}`] ?? freshOrganization[`${input.method} ${path}`];
     const answer =
       typeof found === "function" ? await found(input) : (found ?? { status: 404, body: { error: { code: "not_found", message: "Not stubbed." } } });

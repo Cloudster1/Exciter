@@ -43,7 +43,8 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   without an endpoint an upload is refused with the setting to fix. Every
   object of an organization lives under `org/<org>/`, and a row in the
   database says the object exists, so a removed row leaves at worst an
-  unreachable object, never a broken link.
+  unreachable object, never a broken link. `EXCITER_UPLOAD_LIMIT` caps an
+  attachment (#21), 50 MB by default.
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### Multi-tenancy
@@ -136,6 +137,15 @@ holds even for a query that forgot it.
   acyclic type, a circle, walking every link whoever writes; another logs
   the link on both ends. A link shows to whoever views both ends. It turns
   suspect when the end its type names has a newer revision (#36).
+- **Attachments** (#21): Stator's files, on requirements. The bytes live in
+  the bucket under `org/<org>/requirement/<requirement>/<id>`, a key derived
+  from the row, and are served only through the API; the `attachment` row is
+  what row level security guards, seen with the requirement and written by
+  who edits it. A statement shows a file by an `image` or `attachment` node.
+  A file some revision of its requirement shows is only taken off the list,
+  and a trigger refuses deleting it while the requirement exists. Deleting a
+  row leaves a tombstone, whichever path deletes it, and the worker's reaper
+  removes the bytes behind each.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
 ### Themes (#8)

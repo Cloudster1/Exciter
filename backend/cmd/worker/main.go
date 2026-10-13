@@ -1,5 +1,5 @@
 // Command worker runs everything that happens outside a request: the outbox, whose topics each feature routes
-// to its handler as it lands, and the audit log's retention.
+// to its handler as it lands, the audit log's retention, and the removal of files whose rows are gone.
 package main
 
 import (
@@ -10,10 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
@@ -67,6 +69,19 @@ func run() error {
 	handlers := events.NewMux(nil)
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
+	store, err := objectstore.Open(objectstore.Config{
+		Endpoint: cfg.S3.Endpoint, Bucket: cfg.S3.Bucket, AccessKey: cfg.S3.AccessKey,
+		SecretKey: cfg.S3.SecretKey, Region: cfg.S3.Region, UseSSL: cfg.S3.UseSSL,
+	})
+	if err != nil {
+		return err
+	}
+	if objectstore.IsUnavailable(store) {
+		log.Warn("files are not removed: EXCITER_S3_ENDPOINT is not set")
+	} else {
+		files := attachment.NewService(cluster, store, nil).WithLogger(log)
+		go attachment.NewReaper(files, log, attachment.DefaultReapInterval).Run(ctx)
+	}
 
 	build := version.Current()
 	log.Info("worker started", "env", cfg.Env, "version", build.Version, "commit", build.Commit)

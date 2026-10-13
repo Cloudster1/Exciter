@@ -395,6 +395,23 @@
     padding: 0 0.2rem;
     color: var(--color-accent);
   }
+  .doc-content figure[data-image] img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-control);
+  }
+  .doc-content [data-image-missing] {
+    padding: 0.75rem;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-control);
+    color: var(--color-ink-muted);
+    font-size: 0.875rem;
+  }
+  .doc-content :is(a[data-attachment-id], [data-upload-placeholder]) {
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
+    background: var(--color-surface-raised);
+  }
   .doc-content .ProseMirror-selectednode {
     outline: 2px solid var(--color-focus);
   }

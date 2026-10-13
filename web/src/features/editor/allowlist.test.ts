@@ -54,8 +54,14 @@ describe("the web editor against the server's allowlist", () => {
     e.chain().focus("end").setCodeBlock({ language: "go" }).insertContent("x := 1").run();
     e.chain().focus("end").setHeading({ level: 3 }).insertContent("Scope").run();
     e.chain().focus("end").toggleBlockquote().setHorizontalRule().run();
+    e.commands.insertContentAt(e.state.doc.content.size, [
+      { type: "image", attrs: { attachmentId: "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a02", alt: "The basket", width: 320 } },
+      { type: "paragraph", content: [{ type: "attachment", attrs: { attachmentId: "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a03", fileName: "spec.pdf" } }] },
+    ]);
     const doc = e.getJSON() as DocNode;
     expect(problems(doc)).toEqual([]);
+    expect(JSON.stringify(doc)).toContain('"type":"image"');
+    expect(JSON.stringify(doc)).toContain('"type":"attachment"');
   });
 
   it("refuses a link a browser would run", () => {

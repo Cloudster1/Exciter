@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"net/netip"
 	"net/url"
 	"os"
@@ -88,6 +89,49 @@ func (l *loader) duration(key string, def time.Duration) time.Duration {
 		return def
 	}
 	return d
+}
+
+func (l *loader) size(key string, def int64) int64 {
+	v := l.str(key, "")
+	if v == "" {
+		return def
+	}
+	n, err := ParseSize(v)
+	if err != nil {
+		l.problem(fmt.Sprintf("%s is %q; set it to a size such as 50MB.", key, v))
+		return def
+	}
+	return n
+}
+
+// The units a size may be written in.
+const (
+	kib = 1 << 10
+	mib = 1 << 20
+	gib = 1 << 30
+)
+
+// ParseSize reads a byte count with an optional unit, as Stator does: B, K, KB, M, MB, G or GB, in either case,
+// with or without a space.
+func ParseSize(text string) (int64, error) {
+	text = strings.ToUpper(strings.TrimSpace(text))
+	units := []struct {
+		suffix string
+		scale  int64
+	}{{"GB", gib}, {"G", gib}, {"MB", mib}, {"M", mib}, {"KB", kib}, {"K", kib}, {"B", 1}}
+	scale := int64(1)
+	for _, u := range units {
+		if strings.HasSuffix(text, u.suffix) {
+			text = strings.TrimSpace(strings.TrimSuffix(text, u.suffix))
+			scale = u.scale
+			break
+		}
+	}
+	n, err := strconv.ParseInt(text, 10, 64)
+	if err != nil || n <= 0 || n > math.MaxInt64/scale {
+		return 0, fmt.Errorf("%q is not a size such as 50MB", text)
+	}
+	return n * scale, nil
 }
 
 // secretKey reads the encryption key. Development may run without one, and then

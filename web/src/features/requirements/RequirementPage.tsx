@@ -11,6 +11,7 @@ import {
   type Requirement,
   type RequirementChanges,
 } from "@/api/requirements";
+import { useUploadAttachments } from "@/api/attachments";
 import { useAttributes, useTypes } from "@/api/attributes";
 import { Button, Card, ErrorBanner, Field, IconButton, Labelled, PageHeader, SectionTitle, Select, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -22,6 +23,7 @@ import { SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { RequirementLabels } from "@/features/labels/RequirementLabels";
+import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
@@ -119,6 +121,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       {!section && <Facts requirement={requirement} />}
       <RequirementLabels requirement={requirement} />
       <LinksPanel requirement={requirement} />
+      <AttachmentPanel requirement={requirement} />
       {mayEdit && <TrashSection project={project} requirement={requirement} />}
     </div>
   );
@@ -160,6 +163,7 @@ export function RequirementEdit({
   onCancel: () => void;
 }) {
   const update = useUpdateRequirement(requirement.key);
+  const files = useUploadAttachments(requirement.key);
   const { data: types } = useTypes(project.key);
   const { data: attributes } = useAttributes(project.key);
   const [typeId, setTypeId] = useState<string | null>(requirement.type?.id ?? null);
@@ -200,6 +204,9 @@ export function RequirementEdit({
     <Card className="p-4">
       <form onSubmit={save} className="space-y-4" noValidate data-requirement-edit>
         {general && <ErrorBanner>{update.error.message}</ErrorBanner>}
+        {files.errors.map((message) => (
+          <ErrorBanner key={message}>{message}</ErrorBanner>
+        ))}
         {conflict && (
           <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted" data-conflict>
             <span>{t.requirements.conflictReloaded}</span>
@@ -217,7 +224,14 @@ export function RequirementEdit({
           required
         />
         <Labelled id="edit-statement" label={t.requirements.statement} error={fields.statement}>
-          <Editor id="edit-statement" value={statement} onChange={setStatement} mentions={findPeople} aria-label={t.requirements.statement} />
+          <Editor
+            id="edit-statement"
+            value={statement}
+            onChange={setStatement}
+            mentions={findPeople}
+            upload={files.upload}
+            aria-label={t.requirements.statement}
+          />
         </Labelled>
         {requirement.kind === "requirement" && (
           <Select
@@ -242,7 +256,14 @@ export function RequirementEdit({
         )}
         {requirement.kind === "requirement" && (
           <Labelled id="edit-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
-            <Editor id="edit-rationale" value={rationale} onChange={setRationale} mentions={findPeople} aria-label={t.requirements.rationale} />
+            <Editor
+              id="edit-rationale"
+              value={rationale}
+              onChange={setRationale}
+              mentions={findPeople}
+              upload={files.upload}
+              aria-label={t.requirements.rationale}
+            />
           </Labelled>
         )}
         {requirement.kind === "requirement" && attributes && (

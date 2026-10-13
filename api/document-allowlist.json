@@ -1,5 +1,19 @@
 {
   "nodes": {
+    "attachment": {
+      "attrs": {
+        "attachmentId": {
+          "kind": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "fileName": {
+          "kind": "string",
+          "maxLength": 200,
+          "pattern": "\\S"
+        }
+      },
+      "inline": true
+    },
     "blockquote": {
       "content": [
         "paragraph",
@@ -9,7 +23,8 @@
         "blockquote",
         "codeBlock",
         "horizontalRule",
-        "table"
+        "table",
+        "image"
       ]
     },
     "bulletList": {
@@ -39,7 +54,8 @@
         "blockquote",
         "codeBlock",
         "horizontalRule",
-        "table"
+        "table",
+        "image"
       ]
     },
     "hardBreak": {
@@ -56,11 +72,31 @@
       "content": [
         "text",
         "hardBreak",
-        "mention"
+        "mention",
+        "attachment"
       ],
       "allowsMarks": true
     },
     "horizontalRule": {},
+    "image": {
+      "attrs": {
+        "alt": {
+          "kind": "string",
+          "nullable": true,
+          "maxLength": 500
+        },
+        "attachmentId": {
+          "kind": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "width": {
+          "kind": "integer",
+          "nullable": true,
+          "min": 1,
+          "max": 4000
+        }
+      }
+    },
     "listItem": {
       "content": [
         "paragraph",
@@ -70,7 +106,8 @@
         "blockquote",
         "codeBlock",
         "horizontalRule",
-        "table"
+        "table",
+        "image"
       ]
     },
     "mention": {
@@ -120,7 +157,8 @@
       "content": [
         "text",
         "hardBreak",
-        "mention"
+        "mention",
+        "attachment"
       ],
       "allowsMarks": true
     },
@@ -165,7 +203,8 @@
         "blockquote",
         "codeBlock",
         "horizontalRule",
-        "table"
+        "table",
+        "image"
       ]
     },
     "tableHeader": {
@@ -204,7 +243,8 @@
         "blockquote",
         "codeBlock",
         "horizontalRule",
-        "table"
+        "table",
+        "image"
       ]
     },
     "tableRow": {

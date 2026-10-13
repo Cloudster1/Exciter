@@ -24,10 +24,35 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL", "EXCITER_TEST_ENDPOINTS", "EXCITER_TEST_ENDPOINTS_TOKEN",
+		"EXCITER_UPLOAD_LIMIT",
 	} {
 		t.Setenv(key, "")
 	}
 	t.Setenv("EXCITER_DB_PRIMARY_URL", "postgres://app@db/exciter")
+}
+
+func TestTheUploadLimitReadsSizes(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want int64
+	}{{"50MB", 50 * mib}, {"2g", 2 * gib}, {"512 kb", 512 * kib}, {"1048576", mib}, {"", DefaultUploadLimit}} {
+		clean(t)
+		t.Setenv("EXCITER_UPLOAD_LIMIT", tc.text)
+		c, err := Load()
+		if err != nil {
+			t.Fatalf("%q: %v", tc.text, err)
+		}
+		if c.UploadLimit != tc.want {
+			t.Errorf("%q read as %d, want %d", tc.text, c.UploadLimit, tc.want)
+		}
+	}
+	for _, bad := range []string{"lots", "-5MB", "0", "99999999999GB"} {
+		clean(t)
+		t.Setenv("EXCITER_UPLOAD_LIMIT", bad)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_UPLOAD_LIMIT") {
+			t.Errorf("%q should be refused by name, got %v", bad, err)
+		}
+	}
 }
 
 func TestDefaults(t *testing.T) {

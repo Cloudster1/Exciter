@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor as TiptapEditor } from "@tiptap/react";
+import type { UploadFile } from "@/api/attachments";
 import { Button, Dialog, Field, IconButton, cx } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 import { EDITOR_HEADING_LEVELS, NEW_TABLE_COLUMNS, NEW_TABLE_ROWS } from "@/config";
@@ -15,17 +16,19 @@ export interface EditorProps {
   onChange: (doc: Doc) => void;
   /** Who an at sign names; without it the at sign is a plain character. */
   mentions?: MentionSource;
+  /** Where a pasted, dropped or picked file goes; without it the editor takes no files. */
+  upload?: UploadFile;
   "aria-label": string;
 }
 
 /** The shared editor of statements, rationales and rich text values: Stator's, cut to what a requirement says. */
-export function Editor({ id, value, onChange, mentions, "aria-label": label }: EditorProps) {
+export function Editor({ id, value, onChange, mentions, upload, "aria-label": label }: EditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const mentionsRef = useRef(mentions);
   mentionsRef.current = mentions;
   const editor = useEditor({
-    extensions: editorExtensions(mentions ? mentionSuggestion((q) => mentionsRef.current?.(q) ?? Promise.resolve([])) : undefined),
+    extensions: editorExtensions(mentions ? mentionSuggestion((q) => mentionsRef.current?.(q) ?? Promise.resolve([])) : undefined, upload),
     content: value ?? emptyDoc,
     editorProps: {
       attributes: { id, "aria-label": label, "aria-multiline": "true", role: "textbox", class: "doc-content doc-editor px-3 py-2" },
@@ -34,7 +37,7 @@ export function Editor({ id, value, onChange, mentions, "aria-label": label }: E
   });
   return (
     <div className="rounded-control border border-border-strong bg-surface focus-within:border-focus" data-editor-frame>
-      {editor && <Toolbar editor={editor} />}
+      {editor && <Toolbar editor={editor} files={Boolean(upload)} />}
       <EditorContent editor={editor} />
     </div>
   );
@@ -97,8 +100,9 @@ const TOOLS: Tool[] = [
   },
 ];
 
-function Toolbar({ editor }: { editor: TiptapEditor }) {
+function Toolbar({ editor, files }: { editor: TiptapEditor; files: boolean }) {
   const [linking, setLinking] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
   // The toolbar redraws as the selection moves, so a pressed button says what the caret is in.
   const active = useEditorState({ editor, selector: ({ editor: e }) => TOOLS.map((tool) => tool.active(e)).concat(e.isActive("link")) });
   return (
@@ -127,6 +131,25 @@ function Toolbar({ editor }: { editor: TiptapEditor }) {
         onClick={() => setLinking(true)}
         data-action="format-link"
       />
+      {files && (
+        <>
+          <input
+            ref={picker}
+            type="file"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(event) => {
+              const chosen = [...(event.target.files ?? [])];
+              event.target.value = "";
+              editor.chain().focus().uploadFiles(chosen).run();
+            }}
+            data-editor-file-input
+          />
+          <IconButton icon={<Icon.Paperclip />} label={t.attachments.insert} size="sm" onClick={() => picker.current?.click()} data-action="format-attach" />
+        </>
+      )}
       {linking && <LinkDialog editor={editor} onClose={() => setLinking(false)} />}
     </div>
   );

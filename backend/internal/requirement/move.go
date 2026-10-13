@@ -400,9 +400,20 @@ func (s *Service) Copy(ctx context.Context, actor uuid.UUID, key string, in Copy
 			if err != nil {
 				return err
 			}
-			made, err := copyOne(ctx, tx, actor, l, to, match, i == 0, in.Place.ParentID, at, copies)
+			var files map[uuid.UUID]uuid.UUID
+			if s.files != nil {
+				if files, err = s.files.PlanCopy(ctx, tx, id); err != nil {
+					return err
+				}
+			}
+			made, err := copyOne(ctx, tx, actor, l, to, match, i == 0, in.Place.ParentID, at, copies, files)
 			if err != nil {
 				return err
+			}
+			if len(files) > 0 {
+				if err := s.files.CopyFiles(ctx, tx, actor, made, files); err != nil {
+					return err
+				}
 			}
 			copies[id] = made
 		}
@@ -422,8 +433,9 @@ func (s *Service) Copy(ctx context.Context, actor uuid.UUID, key string, in Copy
 }
 
 // copyOne writes one copy: the root of a copy at the place asked for, the rest below the copies of their parents.
+// Its content shows the files named in files by their copies' ids.
 func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *project.Project, match *matcher, root bool, place *uuid.UUID, at string,
-	copies map[uuid.UUID]uuid.UUID) (uuid.UUID, error) {
+	copies, files map[uuid.UUID]uuid.UUID) (uuid.UUID, error) {
 	typeID, values, owner := l.typeID(), l.Attributes, (*uuid.UUID)(nil)
 	if l.Owner != nil {
 		owner = &l.Owner.ID
@@ -449,8 +461,11 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 		parent, rank = &mapped, l.rank
 	}
 	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values}
+	if err := pointAtFiles(&content, files); err != nil {
+		return uuid.Nil, err
+	}
 	hash := content.Hash()
-	attrs, err := json.Marshal(values)
+	attrs, err := json.Marshal(content.Attributes)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -459,7 +474,7 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 		INSERT INTO requirement (org_id, project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
 		                         parent_id, rank, copied_from, created_by, updated_by)
 		VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14) RETURNING id`,
-		to.ID, l.Kind, l.Title, l.Statement, l.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor).Scan(&id)
+		to.ID, l.Kind, l.Title, content.Statement, content.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound
 	}

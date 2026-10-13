@@ -469,17 +469,17 @@ var operations = []operation{
 		responses: none()},
 
 	// Attachments (#21).
-	{method: "GET", path: "/requirements/{reqKey}/attachments", handler: "handleListAttachments", tag: "attachments", pending: true,
+	{method: "GET", path: "/requirements/{reqKey}/attachments", handler: "handleListAttachments", tag: "attachments",
 		summary:   "The files attached to a requirement, the latest first.",
 		responses: ok(env{"attachments": []attachment.Attachment{}})},
-	{method: "POST", path: "/requirements/{reqKey}/attachments", handler: "handleUploadAttachment", tag: "attachments", pending: true,
+	{method: "POST", path: "/requirements/{reqKey}/attachments", handler: "handleUploadAttachment", tag: "attachments",
 		summary:   "Attach a file, sent as a multipart part named file; logged, never a revision.",
 		multipart: true, responses: map[int]any{http.StatusCreated: env{"attachment": attachment.Attachment{}}, http.StatusRequestEntityTooLarge: errorEnvelope{}}},
-	{method: "GET", path: "/attachments/{attachmentID}", handler: "handleDownloadAttachment", tag: "attachments", pending: true,
+	{method: "GET", path: "/attachments/{attachmentID}", handler: "handleDownloadAttachment", tag: "attachments",
 		summary: "The bytes of an attached file, as a download, or in place with inline for the types a browser shows safely.",
 		query:   []param{{name: "inline", schema: &openapi.Schema{Type: "boolean"}, description: "true to show PNG, JPEG, GIF, WebP, PDF and plain text in place."}},
 		binary:  true, responses: ok(nil)},
-	{method: "DELETE", path: "/attachments/{attachmentID}", handler: "handleDeleteAttachment", tag: "attachments", pending: true,
+	{method: "DELETE", path: "/attachments/{attachmentID}", handler: "handleDeleteAttachment", tag: "attachments",
 		summary:   "Take a file off a requirement; its bytes stay while a revision shows it.",
 		responses: none()},
 

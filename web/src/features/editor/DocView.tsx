@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { cx } from "@/components/ui";
+import { attachmentUrl } from "@/api/attachments";
 import { t } from "@/i18n";
+import { imageAlt, imageWidth } from "./files";
 import { safeHref, type DocMark, type DocNode } from "./schema";
 
 /** A document read without its editor, as Stator's DocView draws a page; what the allowlist does not name is left out. */
@@ -67,6 +69,15 @@ function block(node: DocNode, key: number): ReactNode {
       );
     case "horizontalRule":
       return <hr key={key} />;
+    case "image": {
+      const id = String(node.attrs?.attachmentId ?? "");
+      const width = imageWidth(node.attrs?.width);
+      return (
+        <figure key={key} data-image="" data-attachment-id={id}>
+          <img src={attachmentUrl(id, true)} alt={imageAlt(node.attrs?.alt) ?? ""} style={width ? { width: `${width}px` } : undefined} />
+        </figure>
+      );
+    }
     case "table":
       return (
         <div key={key} className="doc-table-wrap">
@@ -100,6 +111,15 @@ function inline(node: DocNode): ReactNode[] {
         <span key={i} className="mention" data-mention={String(child.attrs?.id ?? "")}>
           @{String(child.attrs?.label ?? "")}
         </span>
+      );
+    }
+    if (child.type === "attachment") {
+      const id = String(child.attrs?.attachmentId ?? "");
+      const name = String(child.attrs?.fileName ?? "");
+      return (
+        <a key={i} href={attachmentUrl(id)} download={name} data-attachment-id={id} aria-label={t.attachments.download(name)}>
+          {name}
+        </a>
       );
     }
     if (child.type !== "text") return null;

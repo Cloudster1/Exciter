@@ -53,6 +53,8 @@ const (
 	// only the endpoint and its keys are named.
 	DefaultS3Bucket = "exciter-files"
 	DefaultS3Region = "us-east-1"
+	// DefaultUploadLimit is attachment.DefaultMaxSize, which a test holds the two to.
+	DefaultUploadLimit int64 = 50 << 20
 )
 
 // Config is the fully resolved configuration for every binary.
@@ -80,6 +82,9 @@ type Config struct {
 	S3        S3
 	// TestEndpoints serves the throwaway organizations of the browser suite.
 	TestEndpoints TestEndpoints
+
+	// UploadLimit is the largest file a requirement takes, in bytes.
+	UploadLimit int64
 
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
@@ -164,8 +169,8 @@ type TestEndpoints struct {
 // MinTestTokenLength keeps the test endpoints' token from being guessable.
 const MinTestTokenLength = 16
 
-// S3 is the bucket uploaded files live in: theme assets now, attachments
-// later. A blank endpoint leaves uploads off, refused with the setting to fix.
+// S3 is the bucket uploaded files live in: theme assets and attachments. A blank endpoint leaves uploads off,
+// refused with the setting to fix.
 type S3 struct {
 	Endpoint  string
 	Bucket    string
@@ -267,6 +272,7 @@ func Load() (Config, error) {
 		},
 	}
 	c.RetainAudit = l.duration("EXCITER_RETAIN_AUDIT", DefaultRetainAudit)
+	c.UploadLimit = l.size("EXCITER_UPLOAD_LIMIT", DefaultUploadLimit)
 	c.SecretKey = l.secretKey("EXCITER_SECRET_KEY", c.Env)
 	c.Auth.OIDCRedirectURL = l.str("EXCITER_OIDC_REDIRECT_URL", c.AppBaseURL+OIDCCallbackPath)
 	c.Auth.OIDCBackchannel = l.rewrites("EXCITER_OIDC_BACKCHANNEL")

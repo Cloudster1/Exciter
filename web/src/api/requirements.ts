@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MENTION_LIMIT } from "@/config";
 import type { Mentionable } from "@/features/editor/extensions";
+import { attachmentsQueryKey } from "./attachments";
 import { api } from "./client";
 import type { components } from "./schema";
 
@@ -93,7 +94,11 @@ export function useUpdateRequirement(key: string) {
   return useMutation({
     mutationFn: async (body: RequirementChanges): Promise<Requirement> =>
       (await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey: key } }, body })).data!.requirement,
-    onSuccess: store,
+    onSuccess: (saved) => {
+      // A revision that shows a file keeps it, which the files list says.
+      void queryClient.invalidateQueries({ queryKey: attachmentsQueryKey });
+      return store(saved);
+    },
     // A refusal over a newer revision reads the requirement again, so the next save is made over that one.
     onError: () => queryClient.invalidateQueries({ queryKey: requirementQueryKey(key) }),
   });

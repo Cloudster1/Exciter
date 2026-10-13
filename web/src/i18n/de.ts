@@ -5,6 +5,7 @@ import { editorDe, requirementsDe } from "./requirements.de";
 import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
 import { labelsDe } from "./labels.de";
+import { attachmentsDe } from "./attachments.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
@@ -282,6 +283,7 @@ export const de: Messages = {
   labels: labelsDe,
   links: linksDe,
   linkTypes: linkTypesDe,
+  attachments: attachmentsDe,
   search: searchDe,
   grid: gridDe,
   themes: themesDe,

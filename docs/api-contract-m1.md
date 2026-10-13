@@ -949,6 +949,32 @@ New audit actions: `project.created`, `project.key_changed`,
   its revisions.
 - **Not normative.** Uploads and deletions are logged as `attachment`
   changes. A copy copies the files and rewrites the copy's references.
+- **As built** (#21):
+  - **What shows a file.** `referenced` and the delete trigger
+    (`attachment_referenced`) read the revisions of the file's own
+    requirement only: its statement, rationale and rich text values. A save
+    does not check that a picture is the requirement's own, as Stator's does
+    not, so one pasted from another requirement shows while that file lasts
+    and keeps nothing.
+  - **What the database holds.** A file is attached by who edits its
+    requirement, in their own name, and read with it. The app role may only
+    set `deleted_at` and `deleted_by`, once (`attachment_fixed`). A trashed
+    requirement or an archived project takes no files, which the service
+    refuses as it refuses any change to them.
+  - **Deleting.** The delete holds the requirement row, under which every
+    revision is written, so whether a revision shows the file holds until
+    the commit. A file taken off the list keeps answering its download,
+    since history still shows it; deleting it again is 404.
+  - **The bytes** of a deleted file go right after the commit, and the
+    worker's reaper (`attachment.Reaper`, every minute) removes what that
+    missed and the files of purged requirements and deleted projects and
+    organizations, through the tombstones the delete trigger writes.
+  - **Copies** take the files on the original's list and those its current
+    content shows though taken off the list, as uploaded by whoever copied
+    them, and the copy's revision 1 shows its own.
+  - **Sections** take files too: their statement may show a picture.
+  - **Downloads** answer the whole file; there are no ranges. Bytes missing
+    from storage are 410 `file_missing`.
 
 ## #22 Personal access tokens and MCP
 
