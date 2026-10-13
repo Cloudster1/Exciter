@@ -114,17 +114,19 @@ func toAPIError(err error) *APIError {
 			Message: "That email and password do not match an account. Check both and try again, or sign in through your organization's provider."}
 	case errors.Is(err, auth.ErrSwitchedOff):
 		return &APIError{Status: http.StatusForbidden, Code: "account_switched_off", Message: "Your account has been switched off. Ask an administrator."}
-	case errors.Is(err, auth.ErrUserInactive):
-		return &APIError{Status: http.StatusForbidden, Code: "account_inactive",
-			Message: "This account has been deactivated. Ask an administrator of your organization to turn it back on."}
 	case errors.Is(err, auth.ErrBadLocale):
 		return ErrValidation(map[string]string{"locale": "Choose English, German, or the language of your browser."})
 	case errors.Is(err, auth.ErrNoSuchMember):
-		return ErrNotFound("That person is not a member here. Reload the list; somebody may have removed them already.")
-	case errors.Is(err, auth.ErrOwnerStays):
-		return ErrConflict("The owner of an organization stays its owner. Change somebody else, or ask the owner.")
-	case errors.Is(err, auth.ErrRemoveSelf):
-		return ErrConflict("You cannot remove yourself. Ask another administrator to do it.")
+		return ErrNotFound("That person is not a member here. Reload the list to see who is.")
+	case errors.Is(err, auth.ErrOwnerStanding):
+		return ErrConflict("An owner's role does not change. Change somebody else's instead.")
+	case errors.Is(err, auth.ErrOwnerOnly):
+		return ErrForbidden("Only an owner can switch another owner off. Ask an owner to do it.")
+	case errors.Is(err, auth.ErrLastAdministrator):
+		return &APIError{Status: http.StatusConflict, Code: "last_administrator",
+			Message: "The last active administrator cannot be switched off. Make somebody else an administrator first."}
+	case errors.Is(err, auth.ErrSwitchSelfOff):
+		return ErrConflict("You cannot switch yourself off. Ask another administrator to do it.")
 	case errors.Is(err, auth.ErrChangeOwnRole):
 		return ErrConflict("You cannot change your own role. Ask another administrator to do it.")
 	case errors.Is(err, auth.ErrBadRole):

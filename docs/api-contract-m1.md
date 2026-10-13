@@ -983,7 +983,7 @@ New audit actions: `project.created`, `project.key_changed`,
 | `GET /tokens` | member | `{tokens}`, the caller's, without secrets |
 | `POST /tokens` | member, signed in with a session | 201 `{token}` with `secret`, once; 403 `session_only`; 422 |
 | `DELETE /tokens/{tokenID}` | the owner | 204 |
-| `GET /org/tokens`, `DELETE /org/tokens/{tokenID}` | admin | `{tokens}` with owners, 204 |
+| `GET /tokens/everyone`, `DELETE /tokens/everyone/{tokenID}` | admin | `{tokens}` with owners, 204 (moved from `/org/tokens` in #86) |
 | `POST /mcp` | member | JSON-RPC 2.0 |
 
 - **Stator's tokens**: the secret is `exciter_pat_` and 43 characters of
@@ -1026,8 +1026,8 @@ New audit actions: `project.created`, `project.key_changed`,
   administrators.
 - **As built** (#22):
   - **Pages.** A person's tokens are at `/settings/tokens`, beside their
-    themes under the account menu, and the organization's at
-    `/settings/organization-tokens` for its administrators.
+    themes under the account menu, and everybody's at
+    `/settings/all-tokens` for the administrators (#86).
   - **What the database holds.** `perm_project_holds` and
     `current_actor_administers` read the token's projects from
     `app.token_projects`, so a limited token reaches its projects alone

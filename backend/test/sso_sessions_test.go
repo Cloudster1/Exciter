@@ -99,8 +99,8 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 		if _, err := h.super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, first.UserID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", ""); !errors.Is(err, auth.ErrUserInactive) {
-			t.Fatalf("a deactivated sign-in = %v, want auth.ErrUserInactive", err)
+		if _, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", ""); !errors.Is(err, auth.ErrSwitchedOff) {
+			t.Fatalf("a deactivated sign-in = %v, want auth.ErrSwitchedOff", err)
 		}
 	})
 }

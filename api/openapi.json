@@ -1176,6 +1176,8 @@
                 "member.created",
                 "member.role_changed",
                 "member.removed",
+                "member.switched_off",
+                "member.switched_on",
                 "member.joined",
                 "member.admitted",
                 "member.declined",
@@ -1325,6 +1327,8 @@
                 "member.created",
                 "member.role_changed",
                 "member.removed",
+                "member.switched_off",
+                "member.switched_on",
                 "member.joined",
                 "member.admitted",
                 "member.declined",
@@ -2765,83 +2769,6 @@
                 }
               }
             }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/org/tokens": {
-      "get": {
-        "operationId": "listOrgAPITokens",
-        "summary": "Every personal access token in the organization, with whose it is. For administrators.",
-        "tags": [
-          "tokens"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "tokens": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/OrgAPIToken"
-                      }
-                    }
-                  },
-                  "required": [
-                    "tokens"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/org/tokens/{tokenID}": {
-      "delete": {
-        "operationId": "revokeOrgAPIToken",
-        "summary": "Revoke anybody's token in the organization. For administrators.",
-        "tags": [
-          "tokens"
-        ],
-        "parameters": [
-          {
-            "name": "tokenID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -8468,7 +8395,7 @@
     "/tokens": {
       "get": {
         "operationId": "listAPITokens",
-        "summary": "The caller's personal access tokens in this organization, without their secrets.",
+        "summary": "The caller's personal access tokens, without their secrets.",
         "tags": [
           "tokens"
         ],
@@ -8564,6 +8491,83 @@
         }
       }
     },
+    "/tokens/everyone": {
+      "get": {
+        "operationId": "listEveryonesAPITokens",
+        "summary": "Everybody's personal access tokens, with whose each is. For administrators.",
+        "tags": [
+          "tokens"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokens": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrgAPIToken"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tokens/everyone/{tokenID}": {
+      "delete": {
+        "operationId": "revokeAnybodysAPIToken",
+        "summary": "Revoke anybody's token. For administrators.",
+        "tags": [
+          "tokens"
+        ],
+        "parameters": [
+          {
+            "name": "tokenID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/tokens/{tokenID}": {
       "delete": {
         "operationId": "revokeAPIToken",
@@ -8602,7 +8606,7 @@
     "/users": {
       "get": {
         "operationId": "listMembers",
-        "summary": "The organization's members, owners first, with whether the identity provider's groups decide their roles. For administrators.",
+        "summary": "The installation's people, those switched on first, then owners first, with whether the identity provider's groups decide their roles. For administrators.",
         "tags": [
           "members"
         ],
@@ -8827,8 +8831,8 @@
     },
     "/users/{userID}": {
       "delete": {
-        "operationId": "removeMember",
-        "summary": "Take a member out of the organization; their sessions stop reaching it at once. For administrators.",
+        "operationId": "switchOffMember",
+        "summary": "Switch a member's account off: their sessions and tokens end at once, their account and work stay. For administrators.",
         "tags": [
           "members"
         ],
@@ -8860,8 +8864,8 @@
         }
       },
       "patch": {
-        "operationId": "setMemberRole",
-        "summary": "Give a member another role; the owner's and the caller's own stay. For administrators.",
+        "operationId": "updateMember",
+        "summary": "Give a member another role, or switch their account off or on; an owner's role and the caller's own stay. For administrators.",
         "tags": [
           "members"
         ],
@@ -8881,7 +8885,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetRoleRequest"
+                "$ref": "#/components/schemas/UpdateMemberRequest"
               }
             }
           }
@@ -10121,6 +10125,8 @@
               "member.created",
               "member.role_changed",
               "member.removed",
+              "member.switched_off",
+              "member.switched_on",
               "member.joined",
               "member.admitted",
               "member.declined",
@@ -10208,6 +10214,8 @@
                 "member.created",
                 "member.role_changed",
                 "member.removed",
+                "member.switched_off",
+                "member.switched_on",
                 "member.joined",
                 "member.admitted",
                 "member.declined",
@@ -11566,6 +11574,9 @@
       "Member": {
         "type": "object",
         "properties": {
+          "active": {
+            "type": "boolean"
+          },
           "email": {
             "type": "string"
           },
@@ -11603,7 +11614,8 @@
           "name",
           "role",
           "roleSource",
-          "joinedAt"
+          "joinedAt",
+          "active"
         ]
       },
       "Membership": {
@@ -13376,23 +13388,6 @@
           "role"
         ]
       },
-      "SetRoleRequest": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "owner",
-              "admin",
-              "member",
-              "guest"
-            ]
-          }
-        },
-        "required": [
-          "role"
-        ]
-      },
       "Shape": {
         "type": "object",
         "properties": {
@@ -14098,6 +14093,23 @@
               "",
               "en",
               "de"
+            ]
+          }
+        }
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
             ]
           }
         }

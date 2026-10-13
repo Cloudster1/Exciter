@@ -52,8 +52,8 @@ export const tokensDe: typeof tokensEn = {
   mcpReadOnly: "Mit einem Token nur zum Lesen bekommt der Assistent nur die Werkzeuge, die lesen, und ändert nie eine Anforderung.",
   mcpProjects: "Mit einem auf Projekte beschränkten Token sieht der Assistent nur diese Projekte und bekommt die Werkzeuge für die ganze Organisation nicht.",
   mcpTokenPlaceholder: "<Ihr Token>",
-  orgTitle: "Zugriffstoken",
-  orgIntro: "Jedes persönliche Zugriffstoken dieser Organisation, mit seinem Inhaber. Widerrufen Sie eines, das nicht mehr gelten soll.",
-  orgEmpty: "Noch niemand hat ein Token erstellt.",
-  notAdmin: "Nur Inhaber und Administratoren der Organisation sehen die Token aller. Ihre eigenen finden Sie unter Ihrem Konto.",
+  allTitle: "Alle Zugriffstoken",
+  allIntro: "Die persönlichen Zugriffstoken aller, jeweils mit Inhaber. Widerrufen Sie eines, das nicht mehr gelten soll.",
+  allEmpty: "Noch niemand hat ein Token erstellt.",
+  notAdmin: "Nur ein Administrator sieht die Token aller. Ihre eigenen finden Sie unter Ihrem Konto.",
 };

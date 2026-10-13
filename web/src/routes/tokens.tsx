@@ -1,7 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
-import { ORG_TOKENS_PATH, TOKENS_PATH } from "@/config";
+import { ALL_TOKENS_PATH, TOKENS_PATH } from "@/config";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
-import { OrgTokens } from "@/features/tokens/OrgTokens";
+import { AllTokens } from "@/features/tokens/AllTokens";
 import { TokensPage } from "@/features/tokens/TokensPage";
 import { t } from "@/i18n";
 import { appRoute } from "./app";
@@ -10,12 +10,12 @@ import { appRoute } from "./app";
 export const tokensRoute = createRoute({ getParentRoute: () => appRoute, path: TOKENS_PATH, component: TokensPage });
 
 /** Every token of the organization, for its administrators. */
-export const orgTokensRoute = createRoute({
+export const allTokensRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: ORG_TOKENS_PATH,
+  path: ALL_TOKENS_PATH,
   component: () => (
-    <AdminsOnly title={t.tokens.orgTitle} refusal={t.tokens.notAdmin}>
-      <OrgTokens />
+    <AdminsOnly title={t.tokens.allTitle} refusal={t.tokens.notAdmin}>
+      <AllTokens />
     </AdminsOnly>
   ),
 });

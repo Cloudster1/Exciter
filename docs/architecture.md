@@ -209,10 +209,15 @@ holds even for a query that forgot it.
 
 ### Identity (#5, #7)
 
-- People are global (`app_user`); `org_member` gives each a role per
-  organization: owner, admin, member or guest. Through the app role only an
-  owner or admin changes memberships, nobody becomes an owner, and the
-  database keeps an organization's last owner.
+- People belong to the installation (`app_user`, with a role in
+  `org_member`): owner, admin, member or guest. Letting somebody go switches
+  the account off (`is_active`), which ends their sessions and tokens and
+  keeps their account and work for switching them on (#86). Through the app
+  role only an administrator changes a role or switches somebody off, nobody
+  becomes or stops being an owner, and nobody leaves; the database keeps an
+  active administrator (`org_member_keeps_an_administrator`,
+  `app_user_keeps_an_administrator`), taking turns on an advisory lock so two
+  administrators cannot switch each other off at once.
 - A sign-in opens a `user_session` whose secret lives only in an http-only
   cookie; the row holds its SHA-256. It lands in the installation (#85): the
   session keeps how it was proven and the organization it opened in, both

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ASSIGNABLE_ROLES, useMe, useMembers, useRemoveMember, useSetMemberRole, type AssignableRole, type Member } from "@/api/auth";
-import { Button, Dialog, ErrorBanner, PageHeader, SelectInput, Skeleton, Table, Td, Th } from "@/components/ui";
+import { ASSIGNABLE_ROLES, useMe, useMembers, useSetMemberActive, useSetMemberRole, type AssignableRole, type Member } from "@/api/auth";
+import { Button, Dialog, ErrorBanner, PageHeader, SelectInput, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { t } from "@/i18n";
 import { useFocusWhenRendered } from "@/lib/focus";
 import { localDateFormat } from "@/lib/format";
@@ -11,15 +11,19 @@ const joined = localDateFormat({ dateStyle: "medium" });
 
 const nameOf = (member: Member) => member.name || member.email;
 
-/** The organization's people and their roles: an administrator adds, re-roles and removes them here. */
+/** The installation's people and their roles: an administrator adds, re-roles and switches them off and on here. */
 export function Members() {
   const { data: me } = useMe();
   const members = useMembers();
   const setRole = useSetMemberRole();
-  const remove = useRemoveMember();
+  const setActive = useSetMemberActive();
   const [confirming, setConfirming] = useState<Member | null>(null);
   const [notice, setNotice] = useState("");
   const focusLater = useFocusWhenRendered();
+  const closeConfirm = () => {
+    setActive.reset();
+    setConfirming(null);
+  };
   const list = members.data ?? [];
 
   function changeRole(member: Member, role: AssignableRole) {
@@ -30,18 +34,23 @@ export function Members() {
     );
   }
 
-  function removeConfirmed(member: Member) {
-    remove.mutate(
-      { userId: member.userId },
+  function switchOffConfirmed(member: Member) {
+    setActive.mutate(
+      { userId: member.userId, active: false },
       {
         onSuccess: () => {
           setConfirming(null);
-          setNotice(t.members.removed(nameOf(member)));
-          // The row and its button are gone, so focus goes somewhere that stays rather than to the page's end.
+          setNotice(t.members.switchedOff(nameOf(member)));
+          // The row moves to the end of the list with another button, so focus goes somewhere that stays put.
           focusLater(() => document.querySelector<HTMLElement>('[data-action="add-member"]'));
         },
       },
     );
+  }
+
+  function switchOn(member: Member) {
+    setNotice("");
+    setActive.mutate({ userId: member.userId, active: true }, { onSuccess: () => setNotice(t.members.switchedOn(nameOf(member))) });
   }
 
   return (
@@ -51,6 +60,7 @@ export function Members() {
       <JoinRequests />
       {members.error && <ErrorBanner onRetry={() => void members.refetch()}>{members.error.message}</ErrorBanner>}
       {setRole.error && <ErrorBanner>{setRole.error.message}</ErrorBanner>}
+      {!confirming && setActive.error && <ErrorBanner>{setActive.error.message}</ErrorBanner>}
       {notice && (
         <p role="status" className="mb-3 text-sm text-ink-muted" data-members-notice>
           {notice}
@@ -67,7 +77,7 @@ export function Members() {
                 <Th className="w-44">{t.members.columnRole}</Th>
                 <Th className="w-32">{t.members.columnJoined}</Th>
                 <Th className="w-28">
-                  <span className="sr-only">{t.members.remove}</span>
+                  <span className="sr-only">{t.members.switchOff}</span>
                 </Th>
               </tr>
             </thead>
@@ -76,12 +86,19 @@ export function Members() {
                 const self = member.userId === me?.user.id;
                 const name = nameOf(member);
                 const fixed = member.role === "owner" || self;
+                // Only an owner lets another owner go, and nobody themselves.
+                const mayGo = !self && (member.role !== "owner" || me?.role === "owner");
                 return (
-                  <tr key={member.userId} data-member={member.email}>
+                  <tr key={member.userId} data-member={member.email} data-member-active={member.active}>
                     <Td className="min-w-0">
                       <div className="truncate text-ink">
                         {name}
                         {self && <span className="text-ink-subtle"> ({t.members.you})</span>}
+                        {!member.active && (
+                          <Tag className="ml-2" data-switched-off="">
+                            {t.members.switchedOffTag}
+                          </Tag>
+                        )}
                       </div>
                       <div className="truncate text-xs text-ink-subtle">{member.email}</div>
                     </Td>
@@ -116,18 +133,31 @@ export function Members() {
                       <time dateTime={member.joinedAt}>{joined.format(new Date(member.joinedAt))}</time>
                     </Td>
                     <Td className="text-right">
-                      {!fixed && (
+                      {member.active ? (
+                        mayGo && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setActive.reset();
+                              setConfirming(member);
+                            }}
+                            aria-label={t.members.switchOffWho(name)}
+                            data-action="switch-off-member"
+                          >
+                            {t.members.switchOff}
+                          </Button>
+                        )
+                      ) : (
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => {
-                            remove.reset();
-                            setConfirming(member);
-                          }}
-                          aria-label={t.members.removeWho(name)}
-                          data-action="remove-member"
+                          onClick={() => switchOn(member)}
+                          disabled={setActive.isPending}
+                          aria-label={t.members.switchOnWho(name)}
+                          data-action="switch-on-member"
                         >
-                          {t.members.remove}
+                          {t.members.switchOn}
                         </Button>
                       )}
                     </Td>
@@ -139,18 +169,18 @@ export function Members() {
         )
       )}
       {confirming && (
-        <Dialog title={t.members.confirmTitle(nameOf(confirming))} onClose={() => setConfirming(null)} data-confirm-remove="">
+        <Dialog title={t.members.confirmTitle(nameOf(confirming))} onClose={closeConfirm} data-confirm-switch-off="">
           <p className="text-sm text-ink">{t.members.confirmBody}</p>
-          {remove.error && (
+          {setActive.error && (
             <div className="mt-3">
-              <ErrorBanner>{remove.error.message}</ErrorBanner>
+              <ErrorBanner>{setActive.error.message}</ErrorBanner>
             </div>
           )}
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setConfirming(null)}>
+            <Button variant="secondary" onClick={closeConfirm}>
               {t.common.cancel}
             </Button>
-            <Button variant="danger" onClick={() => removeConfirmed(confirming)} loading={remove.isPending} data-action="confirm-remove-member">
+            <Button variant="danger" onClick={() => switchOffConfirmed(confirming)} loading={setActive.isPending} data-action="confirm-switch-off-member">
               {t.members.confirm}
             </Button>
           </div>

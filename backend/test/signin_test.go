@@ -102,8 +102,8 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 		h.settle(t)
 	}
 	setActive(false)
-	if code := errorCode(t, want(t, c.get(t, "/api/v1/auth/me"), http.StatusForbidden, "a deactivated account")); code != "account_inactive" {
-		t.Errorf("a deactivated account answers %s", code)
+	if code := errorCode(t, want(t, c.get(t, "/api/v1/auth/me"), http.StatusForbidden, "a switched-off account")); code != "account_switched_off" {
+		t.Errorf("a switched-off account answers %s", code)
 	}
 	setActive(true)
 

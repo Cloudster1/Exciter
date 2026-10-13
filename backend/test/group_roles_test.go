@@ -393,8 +393,9 @@ func TestRawSQLCannotReachAnotherTenantsGroupRoles(t *testing.T) {
 	}
 }
 
-// Taking somebody out ends their reach and their provider groups at once; the owner and the caller stay.
-func TestAnAdministratorRemovesASignedInMember(t *testing.T) {
+// Switching somebody off ends their session at once and keeps their standing and provider groups for switching
+// them on; an owner is switched off by an owner alone.
+func TestAnAdministratorSwitchesOffASignedInMember(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
@@ -404,30 +405,34 @@ func TestAnAdministratorRemovesASignedInMember(t *testing.T) {
 	h.letIn(t, org, bobEmail, "member")
 	admin, adminID := adminOf(t, h, a, org)
 	aliceID, bobID := h.userID(t, aliceEmail), h.userID(t, bobEmail)
+	t.Cleanup(func() {
+		h.cleanupExec(t, h.super, `UPDATE app_user SET is_active = true WHERE id = ANY($1)`, []uuid.UUID{aliceID, bobID})
+	})
 	bob := signedIn(t, a, org, "bob", bobPassword)
 	alice := signedIn(t, a, org, "alice", alicePassword)
-	remove := func(b *browser, id uuid.UUID) int {
+	switchOff := func(b *browser, id uuid.UUID) int {
 		resp, _ := b.send(t, http.MethodDelete, a.URL+httpapi.APIPrefix+"/users/"+id.String())
 		return resp.StatusCode
 	}
 
-	if status := remove(bob, aliceID); status != http.StatusForbidden {
-		t.Fatalf("bob removing alice = %d", status)
+	if status := switchOff(bob, aliceID); status != http.StatusForbidden {
+		t.Fatalf("bob switching alice off = %d", status)
 	}
-	if status := remove(alice, adminID); status != http.StatusConflict {
-		t.Fatalf("alice removing the owner = %d, want 409", status)
+	if status := switchOff(alice, adminID); status != http.StatusForbidden {
+		t.Fatalf("alice switching the owner off = %d, want 403", status)
 	}
-	if len(h.providerGroups(t, org, bobEmail)) == 0 {
-		t.Fatal("bob has no groups to lose; the test proves nothing")
+	groups := h.providerGroups(t, org, bobEmail)
+	if len(groups) == 0 {
+		t.Fatal("bob has no groups to keep; the test proves nothing")
 	}
-	want(t, admin.delete(t, "/api/v1/users/"+bobID.String()), http.StatusNoContent, "remove bob")
-	if role, _ := h.standing(t, org, bobEmail); role != "" {
-		t.Fatalf("bob is still %s", role)
+	want(t, admin.delete(t, "/api/v1/users/"+bobID.String()), http.StatusNoContent, "switch bob off")
+	if role, _ := h.standing(t, org, bobEmail); role != "member" {
+		t.Fatalf("bob is %q once switched off, want still a member", role)
 	}
-	if got := h.providerGroups(t, org, bobEmail); len(got) != 0 {
-		t.Fatalf("bob kept the groups %q", got)
+	if got := h.providerGroups(t, org, bobEmail); len(got) != len(groups) {
+		t.Fatalf("bob has the groups %q once switched off, want %q", got, groups)
 	}
 	if status, me := bob.me(t); status != http.StatusUnauthorized {
-		t.Fatalf("bob's open session goes on after he was let go: %d %v", status, me)
+		t.Fatalf("bob's open session goes on after he was switched off: %d %v", status, me)
 	}
 }

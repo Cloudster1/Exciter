@@ -13,6 +13,7 @@ const owner = {
   name: "Olive Owner",
   role: "owner",
   joinedAt: "2026-09-01T08:00:00Z",
+  active: true,
 };
 
 const settings = (extra: Parameters<typeof stubApi>[0] = {}) => stubApi({ "GET /users": { status: 200, body: { members: [owner] } }, ...extra });

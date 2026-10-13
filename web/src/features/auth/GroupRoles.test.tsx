@@ -30,6 +30,7 @@ const owner = {
   role: "owner",
   roleSource: "manual",
   joinedAt: "2026-09-01T08:00:00Z",
+  active: true,
 };
 const ada = {
   userId: signedIn.user.id,
@@ -38,6 +39,7 @@ const ada = {
   role: "admin",
   roleSource: "manual",
   joinedAt: "2026-09-02T08:00:00Z",
+  active: true,
 };
 const alice = {
   userId: "0195f000-0000-7000-8000-0000000a11ce",
@@ -46,6 +48,7 @@ const alice = {
   role: "admin",
   roleSource: "oidc",
   joinedAt: "2026-09-03T08:00:00Z",
+  active: true,
 };
 const bob = {
   userId: "0195f000-0000-7000-8000-000000000b0b",
@@ -54,6 +57,7 @@ const bob = {
   role: "member",
   roleSource: "manual",
   joinedAt: "2026-09-04T08:00:00Z",
+  active: true,
 };
 
 const settings = (extra: Parameters<typeof stubApi>[0] = {}) =>

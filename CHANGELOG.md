@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Letting somebody go switches their account off (#86). Members has Switch
+  off and Switch on instead of Remove: switching off signs the person out
+  everywhere and ends their tokens, and keeps their account, role and work.
+  The installation always keeps an active administrator, owner or admin,
+  rather than an owner. Everybody's tokens moved from `/api/v1/org/tokens` to
+  `/api/v1/tokens/everyone`, and their page to `/settings/all-tokens`.
 - Signing in lands in the installation (#85). The sign-in page asks for no
   organization, single sign-on starts at `/api/v1/auth/oidc/start` with the
   installation's provider, and there is nothing to switch between:

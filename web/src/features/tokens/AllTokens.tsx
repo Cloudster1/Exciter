@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useOrgTokens, useRevokeToken, type OrgApiToken } from "@/api/tokens";
+import { useEveryonesTokens, useRevokeToken, type OrgApiToken } from "@/api/tokens";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TOKEN_READ_SCOPE } from "@/config";
 import { t } from "@/i18n";
 import { expired, reachOf, when } from "./TokensPage";
 
-/** Every token of the organization with whose it is, for its administrators to revoke any that should stop. */
-export function OrgTokens() {
-  const { data: tokens, error } = useOrgTokens();
+/** Everybody's tokens with whose each is, for the administrators to revoke any that should stop. */
+export function AllTokens() {
+  const { data: tokens, error } = useEveryonesTokens();
   const revoke = useRevokeToken(true);
   const [notice, setNotice] = useState("");
   const now = new Date();
@@ -20,15 +20,15 @@ export function OrgTokens() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <PageHeader title={t.tokens.orgTitle} meta={t.tokens.orgIntro} />
+      <PageHeader title={t.tokens.allTitle} meta={t.tokens.allIntro} />
       {(error ?? revoke.error) && <ErrorBanner>{(error ?? revoke.error)?.message}</ErrorBanner>}
       <p role="status" className="text-sm text-ink-muted empty:hidden" data-tokens-notice>
         {notice}
       </p>
       {!tokens && !error && <Skeleton />}
-      {tokens && tokens.length === 0 && <EmptyState icon={<Icon.Key />} title={t.tokens.orgEmpty} />}
+      {tokens && tokens.length === 0 && <EmptyState icon={<Icon.Key />} title={t.tokens.allEmpty} />}
       {tokens && tokens.length > 0 && (
-        <Table aria-label={t.tokens.orgTitle}>
+        <Table aria-label={t.tokens.allTitle}>
           <thead>
             <tr>
               <Th>{t.tokens.columnName}</Th>

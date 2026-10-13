@@ -71,7 +71,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     expect(must(await api.GET("/users")).members.some((each) => each.email === email)).toBe(false);
   });
 
-  test("an administrator changes somebody's role, and removes them after saying so", async ({ page, api }, testInfo) => {
+  test("an administrator changes somebody's role, switches them off after saying so, and on again", async ({ page, api }, testInfo) => {
     const email = freshEmail(testInfo, "roles");
     added.push(email);
     must(await api.POST("/users", { body: { email, name: "Rolf Roles", role: "member", password: "" } }));
@@ -81,9 +81,14 @@ test.describe("members", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles is now Administrator.");
     await expect(member(page, email).locator("[data-member-role]")).toHaveAttribute("data-member-role", "admin");
 
-    await member(page, email).locator('[data-action="remove-member"]').click();
-    await page.locator('[data-action="confirm-remove-member"]').click();
-    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was removed from the organization.");
-    await expect(member(page, email)).toHaveCount(0);
+    await member(page, email).locator('[data-action="switch-off-member"]').click();
+    await page.locator('[data-action="confirm-switch-off-member"]').click();
+    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was switched off.");
+    await expect(member(page, email)).toHaveAttribute("data-member-active", "false");
+    await expect(member(page, email).locator("[data-switched-off]")).toHaveText("Switched off");
+
+    await member(page, email).locator('[data-action="switch-on-member"]').click();
+    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was switched on and can sign in again.");
+    await expect(member(page, email)).toHaveAttribute("data-member-active", "true");
   });
 });

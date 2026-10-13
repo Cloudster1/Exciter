@@ -51,6 +51,8 @@ type Member struct {
 	// RoleSource says whether the role follows the identity provider's groups.
 	RoleSource RoleSource `json:"roleSource"`
 	JoinedAt   time.Time  `json:"joinedAt"`
+	// Active is false for somebody switched off: they sign in to nothing until an administrator switches them on.
+	Active bool `json:"active"`
 }
 
 // Locale is a language the interface speaks.
@@ -105,21 +107,23 @@ var (
 	// ErrInvalidCredentials is returned for an unknown email and a wrong
 	// password alike, so the login form cannot enumerate accounts.
 	ErrInvalidCredentials = errors.New("invalid email or password")
-	// ErrUserInactive is returned when a deactivated account signs in.
-	ErrUserInactive = errors.New("account is deactivated")
-	// ErrSwitchedOff is returned when somebody who no longer belongs to the installation signs in.
+	// ErrSwitchedOff is returned when somebody whose account is switched off, or who belongs to no installation,
+	// signs in.
 	ErrSwitchedOff = errors.New("account switched off")
 	// ErrNoInstallation is returned when nothing has made the installation's organization yet.
 	ErrNoInstallation = errors.New("the installation has not been set up")
 	// ErrBadLocale is returned for a language the interface does not speak.
 	ErrBadLocale = errors.New("choose a language from the list")
 	// ErrNoSuchMember is returned when the person named is not a member here.
-	ErrNoSuchMember = errors.New("that person is not a member of this organization")
-	// ErrOwnerStays is returned when somebody tries to remove the owner or
-	// change their role: the owner is how the organization is always entered again.
-	ErrOwnerStays = errors.New("the owner of an organization stays its owner")
-	// ErrRemoveSelf is returned when an administrator tries to remove themselves.
-	ErrRemoveSelf = errors.New("you cannot remove yourself from the organization")
+	ErrNoSuchMember = errors.New("that person is not a member here")
+	// ErrOwnerStanding is returned when an owner's role is changed: owners are made by the bootstrap alone.
+	ErrOwnerStanding = errors.New("an owner's role is not changed here")
+	// ErrOwnerOnly is returned when somebody who is not an owner switches an owner off.
+	ErrOwnerOnly = errors.New("only an owner can switch another owner off")
+	// ErrLastAdministrator is returned when switching somebody off would leave nobody to administer the installation.
+	ErrLastAdministrator = errors.New("the last active administrator cannot be switched off")
+	// ErrSwitchSelfOff is returned when an administrator tries to switch their own account off.
+	ErrSwitchSelfOff = errors.New("you cannot switch yourself off")
 	// ErrChangeOwnRole is returned when an administrator tries to change their own role.
 	ErrChangeOwnRole = errors.New("you cannot change your own role")
 	// ErrBadRole is returned for a standing an administrator cannot give.

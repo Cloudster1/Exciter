@@ -50,8 +50,8 @@ export const tokensEn = {
   mcpReadOnly: "With a read-only token the assistant is offered only the tools that read, and never changes a requirement.",
   mcpProjects: "With a token limited to projects the assistant sees those projects alone, and is not offered the tools for the whole organization.",
   mcpTokenPlaceholder: "<your token>",
-  orgTitle: "Access tokens",
-  orgIntro: "Every personal access token in this organization, with whose it is. Revoke one that should no longer work.",
-  orgEmpty: "Nobody has made a token yet.",
-  notAdmin: "Only the organization's owners and administrators see everybody's tokens. Your own are under your account.",
+  allTitle: "All tokens",
+  allIntro: "Everybody's personal access tokens, with whose each is. Revoke one that should no longer work.",
+  allEmpty: "Nobody has made a token yet.",
+  notAdmin: "Only an administrator sees everybody's tokens. Your own are under your account.",
 };
