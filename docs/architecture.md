@@ -101,6 +101,12 @@ holds even for a query that forgot it.
   only takes a status the workflow lacks to one it has. A step may send a
   requirement elsewhere on a new revision, which is how an edit supersedes an
   approval. The designer is Armature's, drawn with React Flow.
+- **Labels** (#19): Stator's labels on requirements. `requirement_label` holds
+  a name per requirement and nothing else, so a label exists while something
+  carries it and is the organization's, not a project's. Its rows follow the
+  requirement's policies: seen by who may view it, put on and taken off by who
+  edits it, never updated in place. Suggestions and a label's list count only
+  requirements the reader may view, out of the trash.
 - **Revisions** (#13, #16): a save that changes the normative content writes
   an immutable revision; status, owner, labels and position are logged but
   never revisioned. Reviews, baselines and links point at revision numbers.

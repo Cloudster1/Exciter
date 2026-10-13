@@ -43,7 +43,8 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			return nil, 0, err
 		}
 	}
-	if err := untilLater(in.Labels); err != nil {
+	labels, err := checkLabels(in.Labels)
+	if err != nil {
 		return nil, 0, err
 	}
 	if kind == KindSection && (in.TypeID != nil || len(in.Attributes) > 0) {
@@ -127,6 +128,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
 			VALUES (current_org_id(), $1, 1, $2, $3, $4, $5, $6, $7, $8, $9)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor); err != nil {
 			return fmt.Errorf("write revision 1: %w", err)
+		}
+		if err := putLabels(ctx, tx, actor, id, labels); err != nil {
+			return err
 		}
 		if err := events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": p.ID, "requirementId": id, "revision": 1}); err != nil {
 			return err

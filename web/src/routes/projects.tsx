@@ -43,9 +43,17 @@ export function ProjectPage({ projectKey, to, render }: { projectKey: string; to
 export const projectRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/p/$projectKey",
+  validateSearch: (search: Record<string, unknown>): { label?: string } => (typeof search.label === "string" && search.label ? { label: search.label } : {}),
   component: function ProjectHomePage() {
     const { projectKey } = projectRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey" render={(project) => <RequirementList key={project.id} project={project} />} />;
+    const { label } = projectRoute.useSearch();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey"
+        render={(project) => <RequirementList key={`${project.id}:${label ?? ""}`} project={project} label={label} />}
+      />
+    );
   },
 });
 

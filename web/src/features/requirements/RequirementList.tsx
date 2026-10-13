@@ -7,16 +7,17 @@ import { Icon } from "@/components/icons";
 import { REQUIREMENT_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { LabelLink } from "@/features/labels/RequirementLabels";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
 
 const changedAt = localDateFormat({ dateStyle: "medium" });
 
-/** A project's requirements by key, a page at a time; the tree (#15) and the grid (#20) come later. */
-export function RequirementList({ project }: { project: Project }) {
+/** A project's requirements by key, a page at a time, or those with one label; the grid (#20) comes later. */
+export function RequirementList({ project, label }: { project: Project; label?: string }) {
   const navigate = useNavigate();
   const [offset, setOffset] = useState(0);
-  const { data, error, isLoading, refetch } = useRequirements(project.key, { limit: REQUIREMENT_PAGE_SIZE, offset });
+  const { data, error, isLoading, refetch } = useRequirements(project.key, { limit: REQUIREMENT_PAGE_SIZE, offset, label });
   const mayWrite = project.can.edit;
   const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
   return (
@@ -37,9 +38,28 @@ export function RequirementList({ project }: { project: Project }) {
           {t.projects.archivedNotice}
         </p>
       )}
+      {label && (
+        <p
+          role="status"
+          className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink"
+          data-label-filter={label}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Icon.Label />
+            {t.labels.filtered(label)}
+          </span>
+          <Link to="/p/$projectKey" params={{ projectKey: project.key }} search={{}} className="text-accent hover:underline" data-action="clear-label">
+            {t.labels.clearFilter}
+          </Link>
+          <Link to="/labels/$name" params={{ name: label }} search={{}} className="text-accent hover:underline" data-action="label-everywhere">
+            {t.labels.showEverywhere}
+          </Link>
+        </p>
+      )}
       {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
       {isLoading && <Skeleton />}
-      {data && data.total === 0 && (
+      {data && data.total === 0 && label && <EmptyState icon={<Icon.Label />} title={t.labels.emptyTitle} description={t.labels.emptyBody} />}
+      {data && data.total === 0 && !label && (
         <EmptyState
           icon={<Icon.Folder />}
           title={t.requirements.emptyTitle}
@@ -86,6 +106,15 @@ export function RequirementList({ project }: { project: Project }) {
                         <TypeIcon icon={row.type.icon} colour={row.type.colour} />
                         {row.type.name}
                       </span>
+                    )}
+                    {row.labels.length > 0 && (
+                      <ul className="mt-1 flex flex-wrap gap-1" aria-label={t.labels.title} data-row-labels>
+                        {row.labels.map((name) => (
+                          <li key={name}>
+                            <LabelLink name={name} projectKey={project.key} />
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </Td>
                   <Td>{row.status && <StatusBadge name={row.status.name} category={row.status.category} />}</Td>

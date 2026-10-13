@@ -75,7 +75,7 @@ type loaded struct {
 	requireComment bool
 }
 
-// selectRequirement reads requirements with what $1 may do to each; labels come with #19.
+// selectRequirement reads requirements with what $1 may do to each.
 const selectRequirement = `
 SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attributes, r.revision,
        r.owner_id, COALESCE(o.name, ''), r.priority, r.created_at, COALESCE(cu.name, ''), r.updated_at, COALESCE(uu.name, ''),
@@ -90,7 +90,8 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
        COALESCE((SELECT array_agg(k.key ORDER BY k.created_at DESC) FROM requirement_old_key k
                  WHERE k.org_id = r.org_id AND k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
-                 WHERE a.org_id = r.org_id AND a.project_id = r.project_id), '{}')
+                 WHERE a.org_id = r.org_id AND a.project_id = r.project_id), '{}'),
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.org_id = r.org_id AND lb.requirement_id = r.id ORDER BY lb.name)
 FROM requirement r
 JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -132,7 +133,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		&ownerID, &ownerName, &priority, &r.CreatedAt, &r.CreatedByName, &r.UpdatedAt, &r.UpdatedByName,
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
-		&copied.Revision, &copied.Trashed, &r.FormerKeys)
+		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -167,7 +168,9 @@ func scan(row pgx.Row) (*loaded, error) {
 		p := Priority(*priority)
 		r.Priority = &p
 	}
-	r.Labels = []string{}
+	if r.Labels == nil {
+		r.Labels = []string{}
+	}
 	open := r.TrashedAt == nil
 	l.editor = edit
 	r.Can = Can{Edit: edit && open, Transition: (edit || approve) && open, Delete: edit && open, Link: edit && open, Comment: alter && open}
@@ -269,14 +272,6 @@ func checkDocument(field string, raw json.RawMessage) (json.RawMessage, error) {
 		return nil, err
 	}
 	return raw, nil
-}
-
-// untilLater refuses what the requirements core does not have yet: labels (#19).
-func untilLater(labels []string) error {
-	if len(labels) > 0 {
-		return &FieldError{"labels", "Requirements take no labels yet. Leave them out."}
-	}
-	return nil
 }
 
 // checkType holds a requirement's type to one of its project's that new requirements may take; the type it

@@ -195,3 +195,12 @@ export const STATUS_DESCRIPTION_MAX_LENGTH = 500;
 export const NEW_WORKFLOW = "new";
 /** How many lines the comment a transition asks for starts with. */
 export const TRANSITION_COMMENT_ROWS = 3;
+
+/** The longest label, matching the API's label.MaxNameLength. */
+export const LABEL_NAME_MAX_LENGTH = 40;
+/** How many labels the label box offers at once, within the API's label.MaxSuggestions of 50. */
+export const LABEL_SUGGESTION_LIMIT = 10;
+/** How long the label box waits after the last key before it asks the server. */
+export const LABEL_SUGGEST_DEBOUNCE_MS = 200;
+/** How many requirements one page of a label's list shows, within the API's label.MaxLimit of 100. */
+export const LABEL_PAGE_SIZE = 20;

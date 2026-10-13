@@ -361,12 +361,14 @@ New audit actions: `project.created`, `project.key_changed`,
   the project's trash to change it."
 - **`requireRevisionComment`** asks for a comment on every revision after the
   first; revision 1 is the requirement's writing.
-- **Until the later issues land**, `labels` is 422 (#19). `status` is the
+- **Labels** (#19) are taken on create, normalized and each once; a copy
+  takes its original's. `status` is the
   requirement's place in its workflow, which a trigger starts at the initial
   status; a section has none (#17). A requirement written without a place goes last at the top. `GET
   /projects/{projectKey}/requirements` is built here, in key order and paged,
-  narrowed by `kind`, `owner` and `priority`; its other parameters are 422
-  until #20 builds them. Its tool is `list_requirements`.
+  narrowed by `kind`, `owner`, `priority` and, from #19, `label`; its other
+  parameters are 422 until #20 builds them. Its tool is
+  `list_requirements`.
 - UI: `/p/$projectKey` lists the requirements and is where a new project
   opens, `/p/$projectKey/new` writes one, and `/p/$projectKey/trash` holds the
   trash. `/p/$projectKey/r/$reqKey` shows the statement, rationale, attributes,
@@ -766,7 +768,21 @@ New audit actions: `project.created`, `project.key_changed`,
 - **Not normative.** Adding and removing are logged as `labels` changes and
   never write a revision. A copy takes its original's labels. A trashed
   requirement keeps its labels, and they come back with it.
-- **Filtering** by label is part of search and the grid (#20).
+- **Filtering** by label is part of search and the grid (#20). The list of
+  `GET /projects/{projectKey}/requirements` takes `label` from #19 on, each
+  matching any of the labels named, so a label leads to its requirements
+  before the grid is built.
+- **Who changed it last**: adding or removing a label sets the requirement's
+  `updatedBy`, as an owner or priority change does, and logs the labels before
+  and after, joined by commas. A trashed requirement keeps its labels but
+  takes no change to them (409 `requirement_trashed`).
+- **A label's list** gives each requirement's project key and name, kind and
+  all of its labels.
+- UI: the Labels card of a requirement's page, with Stator's label box
+  offering the reader's labels as they type; the labels on each row of the
+  list, each leading to the project's requirements with it
+  (`/p/$projectKey?label=`); and `/labels/$name`, the requirements with a
+  label in every project the reader may view, or in one (`?project=`).
 
 ## #20 Search, filters, grid and saved views
 

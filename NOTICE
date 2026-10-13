@@ -153,6 +153,18 @@ Adapted from Stator at cf0f6f7, for the tree (#15):
 - web/src/features/tree RequirementTree and PlaceDialog: features/pages
   PageTree and PlaceDialog, with the whole tree read at once and numbered
 
+Adapted from Stator at cf0f6f7, for labels (#19):
+- backend/internal/label: Normalize, Suggest and the labelled list of
+  internal/label with label_test.go, over requirements and projects, the
+  adding and removing moved to internal/requirement/labels.go and logged
+- backend/migrations/00190_labels.sql: 00110_labels.sql, on requirements
+- backend/internal/httpapi/label_handlers.go: the label handlers, without
+  the page lists and reports
+- web/src/api/labels.ts and features/labels LabelCombobox,
+  RequirementLabels, LabelScreen and labels.test.tsx: api/labels.ts and
+  features/labels LabelCombobox, PageLabels and LabelScreen with their
+  tests, over requirements and projects, and the label icon
+
 Adapted from Armature at 73d72dd, for statuses and workflow (#17):
 - backend/internal/workflow engine.go, graph.go, rules.go, store.go,
   statuses.go and service.go with engine_test.go: the engine, ValidateGraph,

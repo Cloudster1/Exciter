@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -22,7 +23,7 @@ type FieldError struct {
 
 func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
-// Service finds requirements; until #20 it lists one project's requirements by kind, owner and priority.
+// Service finds requirements; until #20 it lists one project's requirements by kind, owner, priority and label.
 type Service struct {
 	db *db.Cluster
 }
@@ -33,10 +34,10 @@ func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
 func unlisted(f Filter) error {
 	for field, asked := range map[string]bool{
 		"q": f.Q != "", "type": len(f.Types) > 0, "status": len(f.Statuses) > 0, "category": len(f.Categories) > 0,
-		"label": len(f.Labels) > 0, "attr": len(f.Attributes) > 0,
+		"attr": len(f.Attributes) > 0,
 	} {
 		if asked {
-			return &FieldError{field, "The list does not narrow by this yet. Leave it out, and narrow by kind, owner or priority."}
+			return &FieldError{field, "The list does not narrow by this yet. Leave it out, and narrow by kind, owner, priority or label."}
 		}
 	}
 	return nil
@@ -58,6 +59,14 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			return nil, 0, &FieldError{"kind", "Narrow by requirement or section."}
 		}
 	}
+	labels := []string{}
+	for _, raw := range f.Labels {
+		name, err := label.Normalize(raw)
+		if err != nil {
+			return nil, 0, &FieldError{"label", "Narrow by labels as they are written, such as safety-critical."}
+		}
+		labels = append(labels, name)
+	}
 	out := []Row{}
 	total := 0
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -71,7 +80,9 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			WHERE r.org_id = current_org_id() AND r.project_id = $2 AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + `
 			  AND (cardinality($3::text[]) = 0 OR r.kind = ANY ($3))
 			  AND (cardinality($4::uuid[]) = 0 OR r.owner_id = ANY ($4))
-			  AND (cardinality($5::text[]) = 0 OR r.priority = ANY ($5))`
+			  AND (cardinality($5::text[]) = 0 OR r.priority = ANY ($5))
+			  AND (cardinality($6::text[]) = 0 OR EXISTS (SELECT 1 FROM requirement_label l
+			       WHERE l.org_id = r.org_id AND l.requirement_id = r.id AND l.name = ANY ($6)))`
 		kinds := make([]string, len(f.Kinds))
 		for i, k := range f.Kinds {
 			kinds[i] = string(k)
@@ -84,7 +95,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		if priorities == nil {
 			priorities = []string{}
 		}
-		args := []any{reader, p.ID, kinds, owners, priorities}
+		args := []any{reader, p.ID, kinds, owners, priorities, labels}
 		if err := tx.QueryRow(ctx, `SELECT count(*)::int`+where, args...).Scan(&total); err != nil {
 			return fmt.Errorf("count the requirements: %w", err)
 		}
@@ -93,8 +104,9 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			       r.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.attributes,
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
 			       perm_project_holds(r.project_id, $1, 'edit'), perm_project_holds(r.project_id, $1, 'approve'),
-			       perm_project_holds(r.project_id, $1, 'comment')`+where+`
-			ORDER BY r.number LIMIT $6 OFFSET $7`, append(args, limit, offset)...)
+			       perm_project_holds(r.project_id, $1, 'comment'),
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)`+where+`
+			ORDER BY r.number LIMIT $7 OFFSET $8`, append(args, limit, offset)...)
 		if err != nil {
 			return fmt.Errorf("list the requirements: %w", err)
 		}
@@ -113,7 +125,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 				status                requirement.StatusRef
 			)
 			err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &ownerID, &ownerName, &priority, &r.UpdatedAt,
-				&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark)
+				&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels)
 			if err != nil {
 				return r, err
 			}
@@ -126,7 +138,9 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 				pr := requirement.Priority(*priority)
 				r.Priority = &pr
 			}
-			r.Labels = []string{}
+			if r.Labels == nil {
+				r.Labels = []string{}
+			}
 			if typeID != nil {
 				typ.ID = *typeID
 				r.Type = &typ

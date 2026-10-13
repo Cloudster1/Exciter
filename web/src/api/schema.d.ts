@@ -2097,8 +2097,10 @@ export interface components {
             /** Format: uuid */
             id: string;
             key: string;
+            kind: string;
             labels: string[];
             projectKey: string;
+            projectName: string;
             title: string;
             /** Format: date-time */
             updatedAt: string;
@@ -3718,15 +3720,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -3768,15 +3761,6 @@ export interface operations {
                         requirements: components["schemas"]["LabelledRequirement"][];
                         total: number;
                     };
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -6771,15 +6755,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -6826,15 +6801,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -6864,15 +6830,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {

@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
@@ -69,7 +70,9 @@ type Server struct {
 	Attributes *attribute.Service
 	// Workflows keeps a project's statuses and workflows; nil answers their routes that they are not set up.
 	Workflows *workflow.Service
-	Log       *slog.Logger
+	// Labels finds labels and what carries them; nil answers the label routes that they are not set up.
+	Labels *label.Service
+	Log    *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -249,6 +252,16 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/projects/{projectKey}/workflows/{workflowID}", s.handleDeleteWorkflow)
 			r.Get("/requirements/{reqKey}/transitions", s.handleListTransitions)
 			r.Post("/requirements/{reqKey}/transitions", s.handleTransitionRequirement)
+		})
+
+		// Labels: seen with their requirements, put on and taken off by who edits them.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.labelsOn)
+			r.Get("/requirements/{reqKey}/labels", s.handleListRequirementLabels)
+			r.Post("/requirements/{reqKey}/labels", s.handleAddRequirementLabel)
+			r.Delete("/requirements/{reqKey}/labels/{labelName}", s.handleRemoveRequirementLabel)
+			r.Get("/labels", s.handleListLabels)
+			r.Get("/labels/{labelName}/requirements", s.handleListLabelledRequirements)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

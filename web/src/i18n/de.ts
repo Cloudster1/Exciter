@@ -4,6 +4,7 @@ import { projectsDe } from "./projects.de";
 import { editorDe, requirementsDe } from "./requirements.de";
 import { historyDe } from "./history.de";
 import { treeDe } from "./tree.de";
+import { labelsDe } from "./labels.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -271,6 +272,7 @@ export const de: Messages = {
   tree: treeDe,
   history: historyDe,
   workflows: workflowsDe,
+  labels: labelsDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

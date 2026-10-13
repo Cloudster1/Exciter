@@ -1229,16 +1229,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -1323,16 +1313,6 @@
                     "requirements",
                     "total"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -5866,16 +5846,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -5946,16 +5916,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -5997,16 +5957,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -9996,6 +9946,9 @@
           "key": {
             "type": "string"
           },
+          "kind": {
+            "type": "string"
+          },
           "labels": {
             "type": "array",
             "items": {
@@ -10003,6 +9956,9 @@
             }
           },
           "projectKey": {
+            "type": "string"
+          },
+          "projectName": {
             "type": "string"
           },
           "title": {
@@ -10020,6 +9976,8 @@
           "id",
           "key",
           "projectKey",
+          "projectName",
+          "kind",
           "title",
           "labels",
           "updatedByName",
