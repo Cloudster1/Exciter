@@ -325,7 +325,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		})
 		r.With(requireOrg).Post("/mcp", s.handleMCP)
 
-		// Armature: the organization's connection for its administrators, each member's own token for them.
+		// Armature: the organization's connection for its administrators, each member's own token for them, and the
+		// issues requirements are traced to, read as the caller.
 		r.Group(func(r chi.Router) {
 			r.Use(requireOrg, s.armatureOn)
 			r.With(requireAdmin).Get("/armature/connection", s.handleGetArmatureConnection)
@@ -335,6 +336,12 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireSession).Put("/armature/account/token", s.handleStoreArmatureToken)
 			r.Post("/armature/account/check", s.handleCheckArmatureAccount)
 			r.With(requireSession).Delete("/armature/account/token", s.handleRemoveArmatureToken)
+			r.Get("/armature/issues", s.handleLookupArmatureIssues)
+			r.Get("/armature/issues/{issueKey}", s.handleGetArmatureIssue)
+			r.Get("/armature/search", s.handleSearchArmatureIssues)
+			r.Get("/requirements/{reqKey}/armature-links", s.handleListArmatureLinks)
+			r.Post("/requirements/{reqKey}/armature-links", s.handleCreateArmatureLink)
+			r.Delete("/armature-links/{linkID}", s.handleDeleteArmatureLink)
 		})
 
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,

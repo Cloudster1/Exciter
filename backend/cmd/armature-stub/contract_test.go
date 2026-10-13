@@ -12,6 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 )
 
@@ -151,6 +154,15 @@ func (c *contract) expect(method, path, token string, body any, want int) map[st
 
 func patFor(tenant, person string) string { return tokenPrefix + tenant + "_" + person }
 
+func keysOf(t *testing.T, answer map[string]any) []string {
+	t.Helper()
+	out := []string{}
+	for _, is := range answer["issues"].([]any) {
+		out = append(out, is.(map[string]any)["key"].(string))
+	}
+	return out
+}
+
 func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	doc, raw := loadArmature(t)
 	server := httptest.NewServer(newStub(raw).handler())
@@ -183,6 +195,59 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	c.expect("GET", "/auth/me", revokedToken, nil, 401)
 	c.expect("GET", "/auth/me", "", nil, 401)
 	c.expect("GET", "/auth/me", "exciter_pat_nothing", nil, 401)
+
+	for _, tc := range []struct{ query, as, want string }{
+		{"text=sign-in", alice, "[CP-2]"},
+		{"text=PATCH", admin, "[SEC-1]"},
+		{"text=patch", alice, "[]"},
+		{"project=cp&limit=100", alice, "[CP-1 CP-2 CP-3 CP-4 CP-5]"},
+		{"project=CP&limit=2&offset=1", alice, "[CP-2 CP-3]"},
+	} {
+		if keys := fmt.Sprint(keysOf(t, c.expect("GET", "/issues?"+tc.query, tc.as, nil, 200))); keys != tc.want {
+			t.Errorf("%s found %s, want %s", tc.query, keys, tc.want)
+		}
+	}
+	c.expect("GET", "/issues?q=key%20%3D%20CP-1", alice, nil, 400)
+	c.expect("GET", "/issues?limit=0", alice, nil, 422)
+
+	c.expect("GET", "/issues/cp-1", alice, nil, 200)
+	c.expect("GET", "/issues/SEC-1", alice, nil, 404)
+	c.expect("GET", "/issues/SEC-1", admin, nil, 200)
+	if moved := c.expect("GET", "/issues/SEC-2", alice, nil, 200)["issue"].(map[string]any); moved["key"] != "CP-5" {
+		t.Errorf("an old key finds %v, want CP-5", moved["key"])
+	}
+
+	// A link as link sync sends it (#27), sent again harmlessly, refused where the person may only read, and an
+	// Armature that does not answer for a while.
+	sent := armature.RemoteLinkRequest{URL: "https://exciter.example" + armature.RequirementPath + uuid.NewString(),
+		Title: armature.LinkTitle("CHK-R1", "Brakes engage within 100 ms", armature.Implements), Source: armature.LinkSource,
+		IconURL: "https://exciter.example" + armature.IconPath}
+	put := c.expect("POST", "/issues/CP-1/remote-links", alice, sent, 201)["remoteLink"].(map[string]any)
+	sent.Title = armature.LinkTitle("CHK-R1", "Brakes engage within 80 ms", armature.Implements)
+	if again := c.expect("POST", "/issues/CP-1/remote-links", alice, sent, 200)["remoteLink"].(map[string]any); again["id"] != put["id"] {
+		t.Error("the same url made a second link")
+	}
+	c.expect("POST", "/issues/CP-1/remote-links", reader, sent, 403)
+	c.expect("POST", "/issues/SEC-1/remote-links", alice, sent, 404)
+	if n := len(c.expect("GET", "/issues/CP-1/remote-links", alice, nil, 200)["remoteLinks"].([]any)); n != 1 {
+		t.Errorf("CP-1 has %d links, want 1", n)
+	}
+	held := c.expect("GET", stubPrefix+"/acme/remote-links", "", nil, 200)["remoteLinks"].([]any)
+	if len(held) != 1 || held[0].(map[string]any)["issueKey"] != "CP-1" || held[0].(map[string]any)["source"] != armature.LinkSource {
+		t.Errorf("the stub holds %v", held)
+	}
+	c.expect("PUT", stubPrefix+"/acme/people/alice/read-only-projects", "", map[string]any{"projects": []string{"CP"}}, 204)
+	c.expect("POST", "/issues/CP-2/remote-links", alice, sent, 403)
+	c.expect("DELETE", "/issues/CP-1/remote-links/"+put["id"].(string), alice, nil, 403)
+	c.expect("PUT", stubPrefix+"/acme/people/alice/read-only-projects", "", map[string]any{"projects": []string{}}, 204)
+	c.expect("PUT", stubPrefix+"/acme/remote-links/outage", "", map[string]any{"status": 503, "count": 1}, 204)
+	c.expect("DELETE", "/issues/CP-1/remote-links/"+put["id"].(string), alice, nil, 503)
+	c.expect("DELETE", "/issues/CP-1/remote-links/"+put["id"].(string), alice, nil, 204)
+	c.expect("DELETE", "/issues/CP-1/remote-links/"+put["id"].(string), alice, nil, 404)
+	c.expect("PUT", stubPrefix+"/acme/remote-links/outage", "", map[string]any{"status": 404, "count": 1}, 422)
+	if other := c.expect("GET", "/issues/CP-1", patFor("globex", "alice"), nil, 200)["issue"].(map[string]any); other["id"] == put["id"] {
+		t.Error("tenants share ids")
+	}
 
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
