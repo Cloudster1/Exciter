@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { administers, useMe } from "@/api/auth";
 import { ApiError } from "@/api/client";
-import { suggestKey, useCreateProject, useKeyCheck } from "@/api/projects";
-import { Button, ErrorBanner, Field, PageHeader } from "@/components/ui";
+import { suggestKey, useCreateProject, useKeyCheck, useProjectTemplates } from "@/api/projects";
+import { Button, ErrorBanner, Field, OptionCard, PageHeader } from "@/components/ui";
 import { KEY_SUGGEST_DEBOUNCE_MS, PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
@@ -18,6 +18,8 @@ export function NewProjectForm() {
   const [key, setKey] = useState("");
   const [keyTouched, setKeyTouched] = useState(false);
   const [description, setDescription] = useState("");
+  const [template, setTemplate] = useState("");
+  const { data: templates = [] } = useProjectTemplates();
   const settledName = useDebounced(name, KEY_SUGGEST_DEBOUNCE_MS);
   const settledKey = useDebounced(key, KEY_SUGGEST_DEBOUNCE_MS);
   const check = useKeyCheck(keyTouched ? { key: settledKey } : { name: settledName });
@@ -29,7 +31,10 @@ export function NewProjectForm() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    create.mutate({ name, key: shownKey, description }, { onSuccess: (made) => void navigate({ to: "/p/$projectKey", params: { projectKey: made.key } }) });
+    create.mutate(
+      { name, key: shownKey, description, ...(template ? { template } : {}) },
+      { onSuccess: (made) => void navigate({ to: "/p/$projectKey", params: { projectKey: made.key } }) },
+    );
   }
 
   return (
@@ -72,6 +77,33 @@ export function NewProjectForm() {
             onChange={(event) => setDescription(event.target.value)}
             error={fields.description}
           />
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-ink">{t.projects.startFrom}</legend>
+            <div role="radiogroup" aria-label={t.projects.startFrom} className="grid gap-3 sm:grid-cols-2" data-template-chooser>
+              <OptionCard
+                title={t.projects.blank}
+                description={t.projects.blankDescription}
+                checked={template === ""}
+                onSelect={() => setTemplate("")}
+                data-template=""
+              />
+              {templates.map((each) => {
+                const named = t.projects.templates[each.key];
+                return (
+                  <OptionCard
+                    key={each.key}
+                    title={named?.name ?? each.name}
+                    description={named?.description ?? each.description}
+                    extra={<span className="text-xs text-ink-muted">{t.projects.templateMakes(each.types.join(", "), each.sections.join(", "))}</span>}
+                    checked={template === each.key}
+                    onSelect={() => setTemplate(each.key)}
+                    data-template={each.key}
+                  />
+                );
+              })}
+            </div>
+            {fields.template && <ErrorBanner>{fields.template}</ErrorBanner>}
+          </fieldset>
           <div className="flex gap-2">
             <Button type="submit" loading={create.isPending} data-action="create-project">
               {t.projects.submit}

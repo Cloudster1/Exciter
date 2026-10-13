@@ -48,6 +48,8 @@ func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 // Service keeps projects and the keys they had.
 type Service struct {
 	db *db.Cluster
+	// seed makes what a template holds; nil makes blank projects alone.
+	seed Seeder
 }
 
 func NewService(cluster *db.Cluster) *Service {
@@ -233,7 +235,8 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 	if err != nil {
 		return nil, 0, err
 	}
-	if in.Template != "" {
+	blueprint, ok := BlueprintOf(in.Template)
+	if in.Template != "" && (!ok || s.seed == nil) {
 		return nil, 0, &FieldError{"template", fmt.Sprintf(
 			"There is no project template called %s. Pick one from the list, or leave it out for a blank project.", in.Template)}
 	}
@@ -252,8 +255,8 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 		}
 		// Without RETURNING: the policy that would let it be read back cannot see the row its own statement adds.
 		_, err := tx.Exec(ctx, `
-			INSERT INTO project (org_id, key, name, description, settings, created_by)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5)`, key, name, description, settings, reader)
+			INSERT INTO project (org_id, key, name, description, settings, template, created_by)
+			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6)`, key, name, description, settings, in.Template, reader)
 		if isKeyTaken(err) {
 			return keyTakenError(key)
 		}
@@ -263,7 +266,15 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 		if out, err = Find(ctx, tx, reader, key); err != nil {
 			return err
 		}
-		return s.note(ctx, tx, reader, audit.ActionProjectCreated, out, map[string]any{"key": key, "name": name})
+		if in.Template != "" {
+			if err := s.seed(ctx, tx, reader, out.ID, blueprint); err != nil {
+				return fmt.Errorf("start the project from %s: %w", in.Template, err)
+			}
+			if out, err = Find(ctx, tx, reader, key); err != nil {
+				return err
+			}
+		}
+		return s.note(ctx, tx, reader, audit.ActionProjectCreated, out, map[string]any{"key": key, "name": name, "template": in.Template})
 	})
 	return out, lsn, err
 }

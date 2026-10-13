@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
 import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/config";
 import { arrival, renderAt, signedIn, stubApi } from "@/test/app";
+import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -56,6 +57,41 @@ describe("a new project", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/p/CS2"));
     await arrival(router, "/p/CS2");
     expect(sent.find((r) => r.method === "POST")?.body).toEqual({ name: "Checkout service", key: "CS2", description: "" });
+  });
+
+  it("starts a project from a template the server offers, named in the reader's language", async () => {
+    const sent = stubApi({
+      "GET /projects/key-check": { status: 200, body: { check: { key: "", valid: false, available: false, suggestion: "TST" } } },
+      "GET /project-templates": {
+        status: 200,
+        body: {
+          templates: [
+            {
+              key: "test",
+              name: "Test specification",
+              description: "From the server.",
+              types: ["Test case", "Test procedure"],
+              attributes: ["Automated"],
+              statuses: ["Draft"],
+              linkTypes: ["verifies", "relates"],
+              sections: ["Test strategy", "Test cases"],
+            },
+          ],
+        },
+      },
+      "POST /projects": { status: 422, body: { error: { code: "validation_failed", message: "Check the fields.", fields: { name: "Name it." } } } },
+    });
+    await renderAt(NEW_PROJECT_PATH);
+    await userEvent.type(await screen.findByLabelText("Name"), "Tests");
+    const chooser = screen.getByRole("radiogroup", { name: "Start from" });
+    expect(within(chooser).getByRole("radio", { name: /Blank project/ })).toHaveAttribute("aria-checked", "true");
+    const test = await within(chooser).findByRole("radio", { name: /Test specification/ });
+    expect(test).toHaveTextContent("Types: Test case, Test procedure. Sections: Test strategy, Test cases.");
+    await userEvent.click(test);
+    expect(test).toHaveAttribute("aria-checked", "true");
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.click(screen.getByRole("button", { name: "Create project" }));
+    await waitFor(() => expect(sent.find((r) => r.method === "POST")?.body).toMatchObject({ name: "Tests", template: "test" }));
   });
 
   it("says whether a key typed is free, and shows the field the server refused", async () => {

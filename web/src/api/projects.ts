@@ -9,6 +9,8 @@ export type Project = Wire["Project"];
 export type NewProject = Wire["NewProject"];
 export type ProjectChanges = Wire["ProjectUpdate"];
 export type KeyCheck = Wire["ProjectKeyCheck"];
+/** A structure a new project can start from, naming what it makes. */
+export type ProjectTemplate = Wire["ProjectTemplate"];
 
 export const projectsQueryKey = ["projects"] as const;
 
@@ -58,6 +60,15 @@ function useStore() {
     if (oldKey && oldKey.toUpperCase() !== project.key) queryClient.setQueryData(projectQueryKey(oldKey), project);
     return queryClient.invalidateQueries({ queryKey: [...projectsQueryKey, "list"] });
   };
+}
+
+/** The templates a new project can start from, in the order offered. */
+export function useProjectTemplates() {
+  return useQuery({
+    queryKey: [...projectsQueryKey, "templates"],
+    queryFn: async (): Promise<ProjectTemplate[]> => (await api.GET("/project-templates")).data!.templates,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
 }
 
 export function useCreateProject() {

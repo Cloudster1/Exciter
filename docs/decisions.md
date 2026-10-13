@@ -3,6 +3,18 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: Project templates live in code (#24)
+
+The issue named a `project_template` table, but the three templates are part
+of the product, not of an organization, and a table would only hold a copy of
+the code that writes them. They are in `internal/project/templates.go`, and a
+project keeps only the key it began from. A template is applied once, in the
+transaction that makes the project, so changing one never changes a project
+made earlier. The requirement package makes the sections through a seeder the
+project service is given, since project cannot import it.
+**Reconsider if** organizations want templates of their own, which would
+belong in a table.
+
 ## 2026-10-13: A key of another project names a row of the file (#23)
 
 The contract said an import refuses a key of another project. But a

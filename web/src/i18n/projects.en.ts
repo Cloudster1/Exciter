@@ -22,6 +22,22 @@ export const projectsEn = {
   descriptionHint: "Optional: what the project covers.",
   submit: "Create project",
   cancel: "Cancel",
+  startFrom: "Start from",
+  blank: "Blank project",
+  blankDescription: "One requirement type, the default workflow and every link type. Shape the rest in the settings.",
+  templateMakes: (types: string, sections: string) => `Types: ${types}. Sections: ${sections}.`,
+  /** The built-in templates by their key; one the client does not know shows as the server names it. */
+  templates: {
+    system: {
+      name: "System specification",
+      description: "Stakeholder needs refined into system requirements, interfaces and constraints, each verified by a method.",
+    },
+    software: {
+      name: "Software specification",
+      description: "Functional and non-functional requirements, interfaces and use cases of a piece of software, by component and release.",
+    },
+    test: { name: "Test specification", description: "Test cases and procedures that verify the requirements of other projects, with what each expects." },
+  } as Record<string, { name: string; description: string } | undefined>,
   notAdmin: "Only an owner or an administrator of the organization makes projects. Ask one of them.",
   switcher: "Switch project",
   chooseProject: "Choose a project",

@@ -198,7 +198,7 @@ var operations = []operation{
 		summary:   "Whether a key is free, or a free key suggested for a name.",
 		query:     []param{{name: "key", description: "A key to check."}, {name: "name", description: "A project name to suggest a key for."}},
 		responses: ok(env{"check": project.KeyCheck{}})},
-	{method: "GET", path: "/project-templates", handler: "handleListProjectTemplates", tag: "projects", pending: true,
+	{method: "GET", path: "/project-templates", handler: "handleListProjectTemplates", tag: "projects",
 		summary:   "The structures a new project can start from. Send one's key as template with POST /projects.",
 		responses: ok(env{"templates": []project.Template{}})},
 	{method: "GET", path: "/projects/{projectKey}", handler: "handleGetProject", tag: "projects",

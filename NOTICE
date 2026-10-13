@@ -178,6 +178,11 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for project templates (#24):
+- backend/internal/project/templates.go: the shape of the built-in templates
+  of internal/space/templates.go, a key, a name, a description and what each
+  makes, with requirement types, attributes and link types for pages
+
 Adapted from Armature at 73d72dd, for CSV import and export (#23):
 - backend/internal/csvio read.go, words.go, plan.go and export.go: Read,
   Guess and its aliases, the words and people found in a file, the checked

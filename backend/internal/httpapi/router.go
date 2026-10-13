@@ -198,6 +198,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(requireOrg, s.projectsOn)
 			r.Get("/projects", s.handleListProjects)
+			r.Get("/project-templates", s.handleListProjectTemplates)
 			r.With(requireAdmin).Post("/projects", s.handleCreateProject)
 			r.Get("/projects/key-check", s.handleCheckProjectKey)
 			r.Get("/projects/{projectKey}", s.handleGetProject)
