@@ -34,7 +34,8 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   carries `pending: true` and answers 501 `not_implemented`.
 - Migrations: goose, embedded in the binary, applied by `cmd/migrate`. Each
   milestone's contract divides a range of migration numbers among its issues:
-  `docs/api-contract-m1.md` for the requirements core (#10).
+  `docs/api-contract-m1.md` for the requirements core (#10), and
+  `docs/api-contract-m2.md` for the Armature integration (#25).
 - Configuration: environment variables only, prefix `EXCITER_`.
 - Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
   speaks S3, signing its few calls itself with the standard library rather
@@ -271,6 +272,10 @@ German.
   on each issue; Armature's webhooks keep the stored status category current
   (#29).
 - **Trace to pages** (#41, #42): the same, against Stator pages.
+- **Armature's API** is vendored at `api/armature/openapi.json`, its commit in
+  `api/armature/SOURCE`, refreshed with `make armature-openapi REF=`. The
+  `armature-stub` answers in its shapes, and a contract test holds it to them
+  (#25, #26).
 
 ## Testing
 

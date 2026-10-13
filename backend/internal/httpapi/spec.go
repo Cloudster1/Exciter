@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -114,6 +115,22 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[csvio.Refusal]():            "ImportRefusal",
 		reflect.TypeFor[csvio.PersonChoice]():       "ImportPersonChoice",
 		reflect.TypeFor[csvio.MappingInput]():       "ImportMapping",
+		reflect.TypeFor[armature.Connection]():      "ArmatureConnection",
+		reflect.TypeFor[armature.ConnectionInput](): "ArmatureConnectionInput",
+		reflect.TypeFor[armature.Account]():         "ArmatureAccount",
+		reflect.TypeFor[armature.AccountUser]():     "ArmatureUser",
+		reflect.TypeFor[armature.TokenInput]():      "ArmatureTokenInput",
+		reflect.TypeFor[armature.Issue]():           "ArmatureIssue",
+		reflect.TypeFor[armature.IssueStatus]():     "ArmatureIssueStatus",
+		reflect.TypeFor[armature.LookupResult]():    "ArmatureLookup",
+		reflect.TypeFor[armature.Link]():            "ArmatureLink",
+		reflect.TypeFor[armature.LinkInput]():       "ArmatureLinkInput",
+		reflect.TypeFor[armature.Project]():         "ArmatureProject",
+		reflect.TypeFor[armature.IssueType]():       "ArmatureIssueType",
+		reflect.TypeFor[armature.CreateInput]():     "ArmatureCreateInput",
+		reflect.TypeFor[armature.Created]():         "ArmatureCreated",
+		reflect.TypeFor[armature.CreateFailure]():   "ArmatureCreateFailure",
+		reflect.TypeFor[armature.Follow]():          "ArmatureFollow",
 	}
 	for t, name := range names {
 		b.Names[t] = name
@@ -137,6 +154,9 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(trace.Direction(""))] = enumStrings(trace.Directions)
 	b.Enums[reflect.TypeOf(search.Op(""))] = enumStrings(search.Ops)
 	b.Enums[reflect.TypeOf(csvio.State(""))] = enumStrings(csvio.States)
+	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
+	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
+	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)
 
 	category := &openapi.Schema{Type: "string", Enum: enumStrings(workflow.Categories)}
 	b.FieldOverrides["StatusRef.category"] = category

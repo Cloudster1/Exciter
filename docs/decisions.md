@@ -3,6 +3,19 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: One remote link per requirement and issue, at its permalink (#25)
+
+Stator puts one remote link per page and issue at the page's address. A
+requirement may be linked to the same issue with two relations, say implements
+and verifies, and Armature keys remote links by url, so a second link at the
+same url would retitle the first. One remote link stands for the pair, titled
+with the first relation, and its url is the requirement's permalink
+`/r/{id}`, which survives a move to another project and a new project key
+where `/p/{key}/r/{key}` would not. Until Armature names a remote link's kind,
+requirements appear in its Pages panel told apart by their source alone; the
+contract lists that as something Exciter would like, not something it needs.
+**Reconsider if** Armature gives remote links a relation of their own.
+
 ## 2026-10-13: Project templates live in code (#24)
 
 The issue named a `project_template` table, but the three templates are part

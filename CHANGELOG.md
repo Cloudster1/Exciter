@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API of the Armature integration, agreed before it is built (#25). The
+  connection and each person's token, requirements traced to Armature issues,
+  issues made from requirements, Armature's webhooks and the followed theme
+  are in `api/openapi.json` and answer 501 until each is built.
+  `docs/api-contract-m2.md` says what each operation means, how Exciter calls
+  Armature as the viewer, and divides the migration numbers among the issues.
+  Armature's own API is vendored under `api/armature/` with
+  `make armature-openapi REF=`.
 - Project templates (#24). A new project starts blank or from a System,
   Software or Test specification, which brings its requirement types, its
   attributes, the link types it uses and its starter sections; every
