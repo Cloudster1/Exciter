@@ -12,6 +12,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
@@ -83,6 +84,13 @@ var operations = []operation{
 	{method: "GET", path: "/meta", handler: "handleMeta", tag: "health", summary: "Which product and build answers here.", public: true,
 		tool: "server_info", toolHelp: "Which product and build of Exciter the assistant is talking to.",
 		responses: ok(metaResponse{})},
+
+	// The installation itself: what everybody signed in may read about it, and its name.
+	{method: "GET", path: "/installation", handler: "handleGetInstallation", tag: "installation", summary: "The installation's name, as everybody signed in sees it.",
+		responses: ok(env{"installation": installation.Installation{}})},
+	{method: "PUT", path: "/installation", handler: "handleRenameInstallation", orgWide: true, tag: "installation",
+		summary: "Rename the installation; written to the audit log. For administrators.",
+		request: renameInstallationRequest{}, responses: ok(env{"installation": installation.Installation{}})},
 
 	// Signing in with a password or through the organization's identity provider, and the session's own settings.
 	{method: "POST", path: "/auth/login", handler: "handleLogin", tag: "auth", summary: "Sign in a local account with email and password, and set the session cookie.", public: true,

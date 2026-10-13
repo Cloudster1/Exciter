@@ -18,7 +18,7 @@ var ErrInvalidToken = errors.New("invalid or expired credential")
 // Principal is the caller a credential resolved to.
 type Principal struct {
 	UserID uuid.UUID
-	// Org is the organization the caller is acting in; nil until one is chosen.
+	// Org is the installation's organization, which every caller the service resolves belongs to.
 	Org *tenant.Org
 
 	Email     string
@@ -26,9 +26,9 @@ type Principal struct {
 	AvatarURL string
 	// Locale is the language the person chose for the interface; empty means the browser's.
 	Locale Locale
-	// OrgName is Org's display name, empty when Org is nil.
+	// OrgName is Org's display name, the installation's.
 	OrgName string
-	// Role is the caller's standing in Org, empty when Org is nil.
+	// Role is the caller's standing in the installation.
 	Role OrgRole
 	// SessionID names the sign-in this request rides on, and keys its
 	// read-your-writes position; nil for a caller without a session.
@@ -52,9 +52,5 @@ func (p *Principal) InProjectsOnly() bool { return p != nil && p.Token != nil &&
 // Guest reports whether the caller is a guest in their organization.
 func (p *Principal) Guest() bool { return p != nil && p.Role == RoleGuest }
 
-// InOrg reports whether the caller has chosen an organization to act in.
-func (p *Principal) InOrg() bool { return p != nil && p.Org != nil && p.Org.ID != uuid.Nil }
-
-// CanAdminister reports whether the caller may change the settings of the
-// organization they are acting in.
-func (p *Principal) CanAdminister() bool { return p.InOrg() && p.Role.CanAdminister() }
+// CanAdminister reports whether the caller may change the installation's settings.
+func (p *Principal) CanAdminister() bool { return p != nil && p.Role.CanAdminister() }

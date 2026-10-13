@@ -41,11 +41,11 @@ export const DEAD_ISSUER = "http://127.0.0.1:9/realms/nowhere";
 const PROVIDER_ISSUER = "SELECT p.issuer FROM oidc_provider p JOIN org o ON o.id = p.org_id WHERE o.slug = $1";
 const SET_ISSUER = "UPDATE oidc_provider SET issuer = $1 WHERE org_id = (SELECT id FROM org WHERE slug = $2)";
 
-/** Points demo's provider at an issuer nobody answers for, until restore puts the one it had back. */
+/** Points the installation's provider at an issuer nobody answers for, until restore puts the one it had back. */
 export async function deadProvider(): Promise<{ restore: () => Promise<void> }> {
   const issuer = await withDatabase(async (db) => {
     const { rows } = await db.query<{ issuer: string }>(PROVIDER_ISSUER, [ORG_SLUG]);
-    if (!rows[0]) throw new Error(`${ORG_SLUG} has no identity provider to make unreachable. Did the seed configure one?`);
+    if (!rows[0]) throw new Error("The installation has no identity provider to make unreachable. Did the seed configure one?");
     await db.query(SET_ISSUER, [DEAD_ISSUER, ORG_SLUG]);
     return rows[0].issuer;
   });

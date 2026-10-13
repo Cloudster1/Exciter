@@ -13,6 +13,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
@@ -227,8 +228,8 @@ func (s *Service) Active(ctx context.Context, reader uuid.UUID) (*Theme, Source,
 		err := tx.QueryRow(ctx, `SELECT theme_id FROM user_theme WHERE user_id = $1`, reader).Scan(&chosen)
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
-			var fallback *uuid.UUID
-			if err := tx.QueryRow(ctx, `SELECT default_theme_id FROM org WHERE id = current_org_id()`).Scan(&fallback); err != nil {
+			fallback, err := installation.DefaultTheme(ctx, tx)
+			if err != nil {
 				return err
 			}
 			if fallback == nil {
@@ -258,11 +259,10 @@ func (s *Service) Active(ctx context.Context, reader uuid.UUID) (*Theme, Source,
 func (s *Service) Default(ctx context.Context, reader uuid.UUID) (*Theme, error) {
 	var out *Theme
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		var id *uuid.UUID
-		if err := tx.QueryRow(ctx, `SELECT default_theme_id FROM org WHERE id = current_org_id()`).Scan(&id); err != nil || id == nil {
+		id, err := installation.DefaultTheme(ctx, tx)
+		if err != nil || id == nil {
 			return err
 		}
-		var err error
 		out, err = readOne(ctx, tx, reader, *id, ` WHERE t.id = $2 AND`+visible)
 		if errors.Is(err, ErrNotFound) {
 			out = nil
@@ -303,15 +303,13 @@ func (s *Service) Choose(ctx context.Context, reader uuid.UUID, id *uuid.UUID, b
 func (s *Service) SetDefault(ctx context.Context, reader uuid.UUID, id *uuid.UUID) (*Theme, db.LSN, error) {
 	var out *Theme
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		done, err := tx.Exec(ctx, `UPDATE org SET default_theme_id = $1 WHERE id = current_org_id()`, id)
-		if err != nil {
-			if isCheck(err) {
-				return ErrDefaultNotShared
-			}
-			return fmt.Errorf("set the default theme: %w", err)
-		}
-		if done.RowsAffected() == 0 {
+		switch err := installation.SetDefaultTheme(ctx, tx, id); {
+		case errors.Is(err, installation.ErrNotFound):
 			return ErrNotAdmin
+		case isCheck(err):
+			return ErrDefaultNotShared
+		case err != nil:
+			return err
 		}
 		org, err := tenant.MustFromContext(ctx)
 		if err != nil {

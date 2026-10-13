@@ -26,6 +26,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
@@ -150,6 +151,7 @@ func run() error {
 		TrustedProxies:  cfg.TrustedProxies,
 		Audit:           audit.NewService(cluster),
 		AuditRetention:  cfg.RetainAudit,
+		Installation:    installation.NewService(cluster),
 		Themes:          theme.NewService(cluster, store),
 		Projects:        project.NewService(cluster).WithSeeder(requirement.Seed),
 		Perms:           perm.NewService(cluster),

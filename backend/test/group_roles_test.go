@@ -427,7 +427,7 @@ func TestAnAdministratorRemovesASignedInMember(t *testing.T) {
 	if got := h.providerGroups(t, org, bobEmail); len(got) != 0 {
 		t.Fatalf("bob kept the groups %q", got)
 	}
-	if status, me := bob.me(t); status != http.StatusOK || me["organization"] != nil {
-		t.Fatalf("bob's open session still reaches the organization: %d %v", status, me)
+	if status, me := bob.me(t); status != http.StatusUnauthorized {
+		t.Fatalf("bob's open session goes on after he was let go: %d %v", status, me)
 	}
 }

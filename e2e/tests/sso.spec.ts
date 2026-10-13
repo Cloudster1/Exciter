@@ -10,12 +10,12 @@ const MEMBERS_PATH = "/settings/members";
 const NOT_CONFIGURED = "That organization does not sign in through a provider. Check its name, or ask one of its administrators.";
 const UNREACHABLE = "Exciter could not reach your organization's identity provider. Try again in a moment, and tell an administrator if it keeps failing.";
 
-// The sign-in a browser alone can walk: the login page, Keycloak's own form, and back. It changes demo's provider and
+// The sign-in a browser alone can walk: the login page, Keycloak's own form, and back. It changes the installation's provider and
 // alice's role there, which nobody else's spec signs in through, and runs alone.
 test.describe("single sign-on", () => {
   test.use({ storageState: ANONYMOUS });
 
-  test("alice signs in through Keycloak and lands in demo as the administrator she is", async ({ page }) => {
+  test("alice signs in through Keycloak and lands in the installation as the administrator she is", async ({ page }) => {
     expect((await page.request.get(ME_PATH)).status()).toBe(401);
     await signIn(page, "alice");
     await expect.poll(() => standing(page)).toEqual({ slug: ORG_SLUG, role: "admin" });

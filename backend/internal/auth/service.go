@@ -98,14 +98,15 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 	if err != nil {
 		return nil, err
 	}
-	var orgID *uuid.UUID
-	if len(memberships) > 0 {
-		m := memberships[0]
-		orgID = &m.OrgID
-		p.Org = &tenant.Org{ID: m.OrgID, Slug: m.OrgSlug}
-		p.OrgName = m.OrgName
-		p.Role = m.Role
+	// Everybody signed in belongs to the installation: somebody let go hears so rather than seeing an empty shell.
+	if len(memberships) == 0 {
+		return nil, ErrSwitchedOff
 	}
+	m := memberships[0]
+	orgID := &m.OrgID
+	p.Org = &tenant.Org{ID: m.OrgID, Slug: m.OrgSlug}
+	p.OrgName = m.OrgName
+	p.Role = m.Role
 
 	expiresAt := s.now().Add(s.sessionTTL)
 	var secret string
@@ -126,7 +127,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 }
 
 // sessionPrincipalSQL resolves a session to its caller and standing in one
-// round trip; outer joins, since a person may have no organization yet.
+// round trip; outer joins, so a session whose membership went is told apart from none.
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
        u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
@@ -172,13 +173,17 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		return nil, ErrUserInactive
 	}
 	p.SessionID = &sessionID
-	// A membership row is required, not merely an org row: revoking somebody's
-	// membership locks them out of an open session at once.
-	if orgID != nil && memberRole != nil {
-		p.Org = &tenant.Org{ID: *orgID, Slug: *orgSlug}
-		p.OrgName = *orgName
-		p.Role = OrgRole(*memberRole)
+	// A membership row is required, not merely an org row: letting somebody go ends their open session at once,
+	// so the browser goes back to sign in and hears why there.
+	if orgID == nil || memberRole == nil {
+		if err := s.Logout(ctx, sessionID); err != nil {
+			return nil, err
+		}
+		return nil, ErrInvalidToken
 	}
+	p.Org = &tenant.Org{ID: *orgID, Slug: *orgSlug}
+	p.OrgName = *orgName
+	p.Role = OrgRole(*memberRole)
 	if s.now().Sub(lastSeen) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, `UPDATE user_session SET last_seen_at = now() WHERE id = $1`, sessionID)
@@ -314,9 +319,13 @@ func (s *Service) AccountID(ctx context.Context, email string) (uuid.UUID, error
 	return id, err
 }
 
-// EnsureAdmin makes email a local owner of the organization, reporting whether
+// EnsureAdmin makes email a local owner of ctx's organization, reporting whether
 // the account is new. Run again it changes nothing, or resets a changed password.
-func (s *Service) EnsureAdmin(ctx context.Context, orgSlug, email, name, password string) (bool, error) {
+func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string) (bool, error) {
+	org, err := tenant.MustFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
 	email = NormalizeEmail(email)
 	if !strings.Contains(email, "@") {
 		return false, fmt.Errorf("%q is not an email address", email)
@@ -329,7 +338,7 @@ func (s *Service) EnsureAdmin(ctx context.Context, orgSlug, email, name, passwor
 	}
 
 	var stored *string
-	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err = s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `SELECT password_hash FROM app_user WHERE email = $1`, email).Scan(&stored)
 	})
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -352,17 +361,10 @@ func (s *Service) EnsureAdmin(ctx context.Context, orgSlug, email, name, passwor
 
 	var created bool
 	_, err = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		var orgID uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id FROM org WHERE slug = $1`, orgSlug).Scan(&orgID)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("there is no organization %q to make %s an administrator of", orgSlug, email)
-		}
-		if err != nil {
-			return err
-		}
+		orgID := org.ID
 		var userID uuid.UUID
 		// xmax is zero on a row this statement inserted rather than updated.
-		err = tx.QueryRow(ctx, `
+		err := tx.QueryRow(ctx, `
 			INSERT INTO app_user (email, name, password_hash) VALUES ($1, $2, $3)
 			ON CONFLICT (email) DO UPDATE SET password_hash = COALESCE($3, app_user.password_hash)
 			RETURNING id, xmax = 0`, email, name, hash).Scan(&userID, &created)

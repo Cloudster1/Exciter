@@ -16,8 +16,8 @@ export const USERS: Record<User, { username: string; password: string; email: st
   bob: { username: "bob", password: "bob password", email: "bob@suite.test", name: "Bob Builder" },
 };
 
-/** The organization the seed makes. */
-export const ORG_SLUG = "demo";
+/** The address of the organization a first start makes, installation.Slug; sign-in asks for it until #85. */
+export const ORG_SLUG = "exciter";
 
 /** The owner the seed bootstraps, who signs in with a password and makes each spec's people. */
 export const BOOTSTRAP_OWNER = { email: "admin@exciter.test", password: "exciter admin password" };
@@ -76,7 +76,7 @@ export async function signInWithPassword(page: Page, email = BOOTSTRAP_OWNER.ema
   await expect.poll(async () => (await page.request.get(ME_PATH)).status()).toBe(200);
 }
 
-/** Signs the user in to demo and stores the session for the specs. */
+/** Signs the user in to the installation and stores the session for the specs. */
 export async function saveSession(browser: Browser, user: User): Promise<void> {
   mkdirSync(AUTH_DIR, { recursive: true });
   const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
@@ -119,7 +119,7 @@ interface SessionFixtures {
   apiAs: (user: User) => Promise<ExciterApi>;
 }
 
-/** The test for the shell: alice's page in demo, with bob's and the API beside it. */
+/** The test for the shell: alice's page in the installation, with bob's and the API beside it. */
 export const test = base.extend<SessionFixtures>({
   sessionOf: async ({}, use) => {
     await use(stateFile);

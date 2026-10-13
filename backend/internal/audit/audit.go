@@ -61,6 +61,8 @@ const (
 	ActionLinkTypeCreated = "link_type.created"
 	ActionLinkTypeChanged = "link_type.changed"
 	ActionLinkTypeDeleted = "link_type.deleted"
+	// ActionInstallationRenamed keeps what the installation was called before.
+	ActionInstallationRenamed = "installation.renamed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -71,7 +73,7 @@ var Actions = []string{
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
-	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected,
+	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

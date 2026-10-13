@@ -19,7 +19,7 @@ func clean(t *testing.T) {
 		"EXCITER_DB_MAX_REPLICA_LAG", "EXCITER_DB_REPLICA_LAG_SAMPLES", "EXCITER_READ_YOUR_WRITES_TTL",
 		"EXCITER_VALKEY_URL", "EXCITER_METRICS_ADDR", "EXCITER_OTEL_ENDPOINT", "EXCITER_OTEL_SAMPLE_RATIO",
 		"EXCITER_SECRET_KEY", "EXCITER_RETAIN_AUDIT", "EXCITER_SESSION_COOKIE", "EXCITER_SECURE_COOKIES", "EXCITER_SESSION_TTL",
-		"EXCITER_BOOTSTRAP_ORG_SLUG", "EXCITER_BOOTSTRAP_ORG_NAME", "EXCITER_BOOTSTRAP_ADMIN_EMAIL", "EXCITER_BOOTSTRAP_ADMIN_PASSWORD",
+		"EXCITER_NAME", "EXCITER_BOOTSTRAP_ADMIN_EMAIL", "EXCITER_BOOTSTRAP_ADMIN_PASSWORD",
 		"EXCITER_OIDC_REDIRECT_URL", "EXCITER_OIDC_BACKCHANNEL", "EXCITER_TRUSTED_PROXIES",
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
@@ -268,29 +268,18 @@ func TestTheBootstrapAdminNeedsBothHalves(t *testing.T) {
 	}
 }
 
-func TestTheBootstrapOrganizationIsNamedOrDefaultsToTheDemo(t *testing.T) {
+func TestTheInstallationIsNamedOrDefaultsToExciter(t *testing.T) {
 	clean(t)
 	c, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Bootstrap.OrgSlug != "demo" || c.Bootstrap.OrgName != "Demo" {
-		t.Errorf("default organization = %q %q", c.Bootstrap.OrgSlug, c.Bootstrap.OrgName)
+	if c.Name != DefaultName {
+		t.Errorf("default name = %q, want %q", c.Name, DefaultName)
 	}
-	t.Setenv("EXCITER_BOOTSTRAP_ORG_SLUG", "acme")
-	t.Setenv("EXCITER_BOOTSTRAP_ORG_NAME", "Acme Corp")
-	if c, err = Load(); err != nil || c.Bootstrap.OrgSlug != "acme" || c.Bootstrap.OrgName != "Acme Corp" {
-		t.Fatalf("named organization = %+v, %v", c.Bootstrap, err)
-	}
-}
-
-func TestABootstrapSlugTheDatabaseWouldRefuseIsRefusedAtOnce(t *testing.T) {
-	for _, slug := range []string{"A", "ab", "-acme", "acme-", "Acme", "acme corp", "a_b_c"} {
-		clean(t)
-		t.Setenv("EXCITER_BOOTSTRAP_ORG_SLUG", slug)
-		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_BOOTSTRAP_ORG_SLUG") {
-			t.Errorf("slug %q should be refused by name: %v", slug, err)
-		}
+	t.Setenv("EXCITER_NAME", "Acme requirements")
+	if c, err = Load(); err != nil || c.Name != "Acme requirements" {
+		t.Fatalf("named installation = %q, %v", c.Name, err)
 	}
 }
 

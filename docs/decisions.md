@@ -3,6 +3,36 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: One installation holds one organization, and a database with several stops (#84)
+
+Exciter is self-hosted, and an installation serves one team, as Armature and
+Stator have decided (#82); more than one team takes more than one
+installation. The organization row stays inside for now, so `org_id` and row
+security keep working, and `internal/installation` is the one way to its name
+and default theme; moving them off `org` changes that package and nothing
+that calls it. The seed makes the one organization on a first start, called
+`EXCITER_NAME`, under the fixed address `installation.Slug`, and finds it on
+every later start whatever it was renamed to.
+
+- **Several are refused, not merged.** Their project keys, statuses,
+  workflows and people would collide, and no rule for which one wins would be
+  right for everybody. Migration `00400` counts the organizations and, with
+  more than one, stops, naming the first ten. No release of Exciter could
+  delete an organization, so the refusal names the statement that does. It
+  lifts forced row security on `org` to count, so an owner that is not a
+  superuser sees the rows too.
+- **Everybody signed in belongs.** Somebody signed in without an
+  organization saw an empty shell, and every route had to ask whether there
+  was a tenant at all. A password sign-in of somebody with no membership is
+  refused with "Your account has been switched off. Ask an administrator.",
+  and an open session whose membership went ends rather than being refused,
+  so the browser goes back to sign in and hears it there. `requireOrg` and
+  the `no_organization` error went with the case they covered.
+
+**Reconsider if** somebody with several organizations asks for a way across
+better than deleting: an export of one organization's projects into another
+installation is the shape that would take.
+
 ## 2026-10-13: Browser specs keep to people and keys of their own (#83)
 
 An installation serves one team (#82), so the browser suite stops making an

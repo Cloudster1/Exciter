@@ -41,9 +41,9 @@ export async function chooseTheme(api: ExciterApi, themeId: string | null): Prom
   must(await api.PUT("/themes/active", { body: { themeId } }));
 }
 
-/** Leaves demo with no default theme and nothing chosen by alice or bob, and checks it: specs there judge the
+/** Leaves the installation with no default theme and nothing chosen by alice or bob, and checks it: specs there judge the
  *  built-in look, contrast included, so a theme any run left behind must never reach them. */
-export async function clearDemoThemes(): Promise<void> {
+export async function clearInstallationThemes(): Promise<void> {
   const alice = await createExciterApi(stateFile("alice"));
   const bob = await createExciterApi(stateFile("bob"));
   try {
@@ -51,7 +51,7 @@ export async function clearDemoThemes(): Promise<void> {
     for (const api of [alice, bob]) {
       await chooseTheme(api, null);
       const active = must(await api.GET("/themes/active"));
-      if (active.theme !== null) throw new Error(`demo still shows the theme ${active.theme.name} after clearing it.`);
+      if (active.theme !== null) throw new Error(`The installation still shows the theme ${active.theme.name} after clearing it.`);
     }
   } finally {
     await alice.dispose();

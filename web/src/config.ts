@@ -52,6 +52,9 @@ export const ME_STALE_MS = 60_000;
 /** Where this browser remembers the interface language the person chose, so a reload starts in it. */
 export const LANGUAGE_STORAGE_KEY = "exciter.language";
 
+/** Where an administrator renames the installation. */
+export const INSTALLATION_PATH = "/settings/installation";
+
 /** Where an administrator manages the organization's people. */
 export const MEMBERS_PATH = "/settings/members";
 

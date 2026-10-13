@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
@@ -59,6 +60,8 @@ type Server struct {
 	// both. AuditRetention is how long the worker keeps an entry, zero forever.
 	Audit          *audit.Service
 	AuditRetention time.Duration
+	// Installation keeps the installation's name; nil answers its routes that it is not set up.
+	Installation *installation.Service
 	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
 	Themes *theme.Service
 	// Projects keeps the projects requirements live in; nil answers their routes that they are not set up.
@@ -175,10 +178,16 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/audit/export", s.handleExportAudit)
 		})
 
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.installationOn)
+			r.Get("/installation", s.handleGetInstallation)
+			r.With(requireAdmin).Put("/installation", s.handleRenameInstallation)
+		})
+
 		// Themes are a person's in an organization; the examples are anybody's who is signed in.
 		r.With(requireAuth).Get("/themes/examples", s.handleThemeExamples)
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg)
+			r.Use(requireAuth)
 			r.With(requireAdmin, s.themesOn).Put("/themes/default", s.handleSetDefaultTheme)
 			r.Group(func(r chi.Router) {
 				r.Use(s.themesOn)
@@ -200,7 +209,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Projects: every member reads those they may view; the organization's administrators make them.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.projectsOn)
+			r.Use(requireAuth, s.projectsOn)
 			r.Get("/projects", s.handleListProjects)
 			r.Get("/project-templates", s.handleListProjectTemplates)
 			r.With(requireAdmin).Post("/projects", s.handleCreateProject)
@@ -218,7 +227,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Requirements: read by whoever views their project, written by its editors, purged by its administrators.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.requirementsOn)
+			r.Use(requireAuth, s.requirementsOn)
 			r.Post("/projects/{projectKey}/requirements", s.handleCreateRequirement)
 			r.Get("/projects/{projectKey}/requirements", s.handleListGrid)
 			r.Get("/requirements/by-id/{requirementID}", s.handleGetRequirementByID)
@@ -248,7 +257,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Types and attributes: read by whoever views their project, changed by its administrators.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.attributesOn)
+			r.Use(requireAuth, s.attributesOn)
 			r.Get("/attribute-kinds", s.handleListAttributeKinds)
 			r.Get("/projects/{projectKey}/types", s.handleListRequirementTypes)
 			r.Post("/projects/{projectKey}/types", s.handleCreateRequirementType)
@@ -262,7 +271,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Statuses and workflows: read by whoever views their project, shaped by its administrators, taken by its editors.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.workflowsOn)
+			r.Use(requireAuth, s.workflowsOn)
 			r.Get("/workflow-rule-types", s.handleListRuleTypes)
 			r.Get("/projects/{projectKey}/statuses", s.handleListStatuses)
 			r.Post("/projects/{projectKey}/statuses", s.handleCreateStatus)
@@ -280,7 +289,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Labels: seen with their requirements, put on and taken off by who edits them.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.labelsOn)
+			r.Use(requireAuth, s.labelsOn)
 			r.Get("/requirements/{reqKey}/labels", s.handleListRequirementLabels)
 			r.Post("/requirements/{reqKey}/labels", s.handleAddRequirementLabel)
 			r.Delete("/requirements/{reqKey}/labels/{labelName}", s.handleRemoveRequirementLabel)
@@ -291,7 +300,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		// Trace links: read by whoever views both ends, made by whoever edits one; link types shaped by the
 		// organization's administrators, or a project's for its own.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.traceOn)
+			r.Use(requireAuth, s.traceOn)
 			r.Get("/link-types", s.handleListOrgLinkTypes)
 			r.With(requireAdmin).Post("/link-types", s.handleCreateOrgLinkType)
 			r.Patch("/link-types/{linkTypeID}", s.handleUpdateLinkType)
@@ -306,7 +315,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.attachmentsOn)
+			r.Use(requireAuth, s.attachmentsOn)
 			r.Get("/requirements/{reqKey}/attachments", s.handleListAttachments)
 			r.Post("/requirements/{reqKey}/attachments", s.handleUploadAttachment)
 			r.Get("/attachments/{attachmentID}", s.handleDownloadAttachment)
@@ -316,19 +325,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		// Personal access tokens: a person's own, made only from a session, and the organization's for its
 		// administrators. The assistants' endpoint runs each tool as the HTTP call it stands for.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.accountsOn)
+			r.Use(requireAuth, s.accountsOn)
 			r.Get("/tokens", s.handleListAPITokens)
 			r.With(requireSession).Post("/tokens", s.handleCreateAPIToken)
 			r.Delete("/tokens/{tokenID}", s.handleRevokeAPIToken)
 			r.With(requireAdmin).Get("/org/tokens", s.handleListOrgAPITokens)
 			r.With(requireAdmin).Delete("/org/tokens/{tokenID}", s.handleRevokeOrgAPIToken)
 		})
-		r.With(requireOrg).Post("/mcp", s.handleMCP)
+		r.With(requireAuth).Post("/mcp", s.handleMCP)
 
 		// Armature: the organization's connection for its administrators, each member's own token for them, and the
 		// issues requirements are traced to, read as the caller.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.armatureOn)
+			r.Use(requireAuth, s.armatureOn)
 			r.With(requireAdmin).Get("/armature/connection", s.handleGetArmatureConnection)
 			r.With(requireAdmin).Put("/armature/connection", s.handleSaveArmatureConnection)
 			r.With(requireAdmin).Delete("/armature/connection", s.handleRemoveArmatureConnection)
@@ -347,7 +356,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,
 		// and a project's grid out as a file for whoever views it.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg, s.importsOn)
+			r.Use(requireAuth, s.importsOn)
 			r.Post("/projects/{projectKey}/import", s.handleUploadImport)
 			r.Get("/imports/{importID}", s.handleGetImport)
 			r.Put("/imports/{importID}/mapping", s.handleMapImport)
@@ -358,7 +367,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// What the caller may do across the organization, and the people and groups a grant names.
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg)
+			r.Use(requireAuth)
 			r.Get("/access/me", s.handleMyAccess)
 			r.With(s.permsOn).Get("/people", s.handleListPeople)
 			r.With(s.permsOn).Get("/groups", s.handleListGroups)
@@ -373,7 +382,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		}
 
 		r.Group(func(r chi.Router) {
-			r.Use(requireOrg)
+			r.Use(requireAuth)
 			mountPending(r, false)
 		})
 	})

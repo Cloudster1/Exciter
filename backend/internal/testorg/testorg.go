@@ -83,7 +83,7 @@ func (s *Service) Create(ctx context.Context, label string) (*Org, error) {
 }
 
 func (s *Service) populate(ctx context.Context, org Org) error {
-	if _, err := s.accounts.EnsureMember(ctx, org.Slug, s.owner, auth.RoleOwner); err != nil {
+	if _, err := s.accounts.EnsureMember(tenant.WithOrg(ctx, tenant.Org{ID: org.ID, Slug: org.Slug}), s.owner, auth.RoleOwner); err != nil {
 		return err
 	}
 	owner, err := s.accounts.AccountID(ctx, s.owner)

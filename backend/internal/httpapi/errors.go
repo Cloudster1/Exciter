@@ -9,7 +9,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
@@ -108,13 +107,13 @@ func toAPIError(err error) *APIError {
 		return apiErr
 	case errors.As(err, &invalid):
 		return ErrValidation(map[string]string{invalid.Field: invalid.Message})
-	case errors.Is(err, tenant.ErrNoTenant):
-		return &APIError{Status: http.StatusBadRequest, Code: "no_organization", Message: "Select an organization first."}
 	case errors.Is(err, auth.ErrInvalidToken):
 		return ErrUnauthorized("Your session has expired. Sign in again.")
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		return &APIError{Status: http.StatusUnauthorized, Code: "invalid_credentials",
 			Message: "That email and password do not match an account. Check both and try again, or sign in through your organization's provider."}
+	case errors.Is(err, auth.ErrSwitchedOff):
+		return &APIError{Status: http.StatusForbidden, Code: "account_switched_off", Message: "Your account has been switched off. Ask an administrator."}
 	case errors.Is(err, auth.ErrUserInactive):
 		return &APIError{Status: http.StatusForbidden, Code: "account_inactive",
 			Message: "This account has been deactivated. Ask an administrator of your organization to turn it back on."}

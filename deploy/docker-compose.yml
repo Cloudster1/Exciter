@@ -27,8 +27,9 @@ x-s3-env: &s3-env
   EXCITER_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-exciter}
   EXCITER_S3_SECRET_KEY: ${S3_SECRET_KEY:-exciter-dev-secret}
 
-# The demo organization's people: its owner, a way in before single sign-on, and the stack's Keycloak, under the
-# issuer the browser sees. The seed makes demo with them, and the api's test endpoints each throwaway organization.
+# The installation's first people: its owner, a way in before single sign-on, and the stack's Keycloak, under the
+# issuer the browser sees. The seed makes the installation with them, and the api's test endpoints each throwaway
+# organization.
 # For development only.
 x-bootstrap-env: &bootstrap-env
   EXCITER_BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@exciter.test}
@@ -213,6 +214,8 @@ services:
         condition: service_completed_successfully
     environment:
       <<: [*app-db-env, *bootstrap-env]
+      # What the first start calls the installation; an administrator renames it under Settings, Installation.
+      EXCITER_NAME: ${EXCITER_NAME:-Exciter}
     restart: "no"
 
   api:

@@ -84,9 +84,9 @@ func TestAuthenticationScopesTheTenantAndThePerson(t *testing.T) {
 		t.Errorf("anonymous past requireAuth = %d %v", resp.StatusCode, body)
 	}
 
-	resp, body = serve(t, authenticated(s, requireOrg), bearer("no-org"))
-	if resp.StatusCode != http.StatusBadRequest || errorOf(t, body)["code"] != "no_organization" {
-		t.Errorf("no organization past requireOrg = %d %v", resp.StatusCode, body)
+	resp, body = serve(t, authenticated(s), bearer("no-org"))
+	if resp.StatusCode != http.StatusForbidden || errorOf(t, body)["code"] != "account_switched_off" {
+		t.Errorf("somebody outside the installation = %d %v", resp.StatusCode, body)
 	}
 
 	resp, body = serve(t, authenticated(s, requireAdmin), bearer("in-org"))

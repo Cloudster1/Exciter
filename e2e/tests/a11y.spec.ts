@@ -16,6 +16,7 @@ const PATHS = [
   "/settings/link-types",
   "/settings/organization-tokens",
   "/settings/audit",
+  "/settings/installation",
   "/settings/themes",
   "/settings/themes/new",
   "/settings/tokens",

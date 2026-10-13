@@ -37,6 +37,7 @@ export const en = {
     whereYouAre: "Where you are",
     home: "Home",
     settings: "Settings",
+    installation: "Installation",
     members: "Members",
     sso: "Single sign-on",
     audit: "Audit log",
@@ -111,6 +112,14 @@ export const en = {
       unreachable: "Exciter could not reach your organization's identity provider. Try again in a moment, and tell an administrator if it keeps failing.",
       failed: "Signing in through your identity provider did not work. Try again, and tell an administrator if it keeps failing.",
     },
+  },
+  installation: {
+    title: "Installation",
+    intro: "What this installation of Exciter is called, at the top of everybody's sidebar.",
+    name: "Name",
+    save: "Save the name",
+    saved: "Saved.",
+    notAdmin: "Only an administrator can rename the installation. Ask one of them.",
   },
   sso: {
     title: "Single sign-on",
@@ -264,6 +273,7 @@ export const en = {
       "token.revoked": "Token revoked",
       "armature.connected": "Armature connected",
       "armature.disconnected": "Armature disconnected",
+      "installation.renamed": "Installation renamed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -277,6 +287,7 @@ export const en = {
       workflow: "Workflow",
       api_token: "Access token",
       armature_connection: "Armature connection",
+      installation: "Installation",
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
