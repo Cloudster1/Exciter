@@ -36,6 +36,8 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await statement.click();
     await page.keyboard.type("The shopper pays for ");
     await page.locator('[data-action="format-bold"]').first().click();
+    // The toolbar hands focus back to the statement a moment after the click; a key before that is lost.
+    await expect(statement).toBeFocused();
     await page.keyboard.type("everything");
     await expectAccessible(page);
     await page.locator('[data-action="create-requirement"]').click();
