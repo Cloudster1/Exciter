@@ -13,7 +13,7 @@ export interface Person {
   session: Exclude<Session, string>;
 }
 
-/** Each spec's people stand where alice and bob stand in demo. */
+/** Each spec's people stand where the seed's alice and bob stand. */
 const ROLES: Record<User, "admin" | "member"> = { alice: "admin", bob: "member" };
 const FIRST_NAMES: Record<User, string> = { alice: "Alice", bob: "Bob" };
 const PASSWORD_BYTES = 18;

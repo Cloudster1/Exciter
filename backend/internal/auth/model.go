@@ -107,6 +107,8 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	// ErrUserInactive is returned when a deactivated account signs in.
 	ErrUserInactive = errors.New("account is deactivated")
+	// ErrSwitchedOff is returned when somebody who no longer belongs to the installation signs in.
+	ErrSwitchedOff = errors.New("account switched off")
 	// ErrNotAMember is returned when somebody tries to act in an organization
 	// they do not belong to, or names one that does not exist.
 	ErrNotAMember = errors.New("not a member of that organization")

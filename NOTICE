@@ -343,6 +343,14 @@ Adapted from Armature at 7380763:
 - backend/internal/theme/testdata/minecraft.armature-theme.json and
   lucky-rainbow.armature-theme.json: docs/design/themes, unchanged
 
+Adapted from Armature at 12ba67c:
+- backend/internal/installation/installation.go: the same package, with the
+  name, a length limit and the default theme, and without the second-factor
+  rule and the automation account Exciter does not have
+- backend/migrations/00400_one_installation.sql: migration 00929, with a
+  refusal that names the statement to run, since no release of Exciter could
+  delete an organization
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

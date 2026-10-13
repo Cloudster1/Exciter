@@ -156,13 +156,16 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		principal, err := s.Auth.Authenticate(r.Context(), secret)
+		if err == nil && principal.Org == nil {
+			// Everybody signed in belongs to the installation; somebody who no longer does is not let past here.
+			err = auth.ErrSwitchedOff
+		}
 		switch {
 		case err == nil:
 			ctx := context.WithValue(r.Context(), ctxPrincipal, principal)
-			switch {
-			case principal.InProjectsOnly():
+			if principal.InProjectsOnly() {
 				ctx = db.WithUserInProjects(tenant.WithOrg(ctx, *principal.Org), principal.UserID, principal.TokenProjects)
-			case principal.InOrg():
+			} else {
 				ctx = db.WithUser(tenant.WithOrg(ctx, *principal.Org), principal.UserID)
 			}
 			r = r.WithContext(ctx)
@@ -193,27 +196,9 @@ func requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// requireOrg rejects a caller who has not chosen an organization, whose queries
-// would otherwise reach the database with no tenant scope.
-func requireOrg(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := PrincipalFrom(r.Context())
-		if p == nil {
-			respondError(w, r, ErrUnauthorized(""))
-			return
-		}
-		if !p.InOrg() {
-			respondError(w, r, tenant.ErrNoTenant)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-// requireAdmin lets through only an owner or administrator of the organization
-// the caller is acting in.
+// requireAdmin lets through only an owner or administrator of the installation.
 func requireAdmin(next http.Handler) http.Handler {
-	return requireOrg(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !PrincipalFrom(r.Context()).CanAdminister() {
 			respondError(w, r, ErrForbidden("Only an administrator of this organization can do that. Ask one of them."))
 			return

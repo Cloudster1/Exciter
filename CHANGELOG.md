@@ -7,6 +7,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- One installation is one team's requirements (#84). The first start makes
+  the installation's one organization, called `EXCITER_NAME` (`Exciter` by
+  default), which replaces `EXCITER_BOOTSTRAP_ORG_SLUG` and
+  `EXCITER_BOOTSTRAP_ORG_NAME`; an administrator renames it under Settings,
+  Installation. Somebody let go is told their account has been switched off,
+  and their open session ends.
+- Upgrading: a database holding several organizations is refused, naming
+  them; keep the one to go on with, delete the others with
+  `DELETE FROM org WHERE slug = ...`, and migrate again.
+
 ### Added
 
 - Requirements traced to Armature issues (#27). A requirement's editors trace

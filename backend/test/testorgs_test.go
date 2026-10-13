@@ -14,6 +14,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/seed"
@@ -161,7 +162,7 @@ func TestThrowawayOrganizations(t *testing.T) {
 			if status, body := testCall(t, a, http.MethodPost, "/test/orgs", token, `{}`); status != http.StatusUnauthorized {
 				t.Errorf("create with token %q = %d %v, want 401", token, status, body)
 			}
-			if status, _ := testCall(t, a, http.MethodDelete, "/test/orgs/"+seed.DemoOrgSlug, token, ""); status != http.StatusUnauthorized {
+			if status, _ := testCall(t, a, http.MethodDelete, "/test/orgs/"+installation.Slug, token, ""); status != http.StatusUnauthorized {
 				t.Errorf("delete with token %q = %d, want 401", token, status)
 			}
 		}
@@ -212,10 +213,10 @@ func TestThrowawayOrganizations(t *testing.T) {
 	})
 
 	t.Run("only a throwaway organization can be deleted", func(t *testing.T) {
-		if status, body := testCall(t, a, http.MethodDelete, "/test/orgs/"+seed.DemoOrgSlug, suiteTestToken, ""); status != http.StatusNotFound {
+		if status, body := testCall(t, a, http.MethodDelete, "/test/orgs/"+installation.Slug, suiteTestToken, ""); status != http.StatusNotFound {
 			t.Fatalf("delete demo = %d %v, want 404", status, body)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM org WHERE slug = $1`, seed.DemoOrgSlug); n != 1 {
+		if n := h.countRows(t, `SELECT count(*) FROM org WHERE slug = $1`, installation.Slug); n != 1 {
 			t.Fatalf("demo is gone: %d", n)
 		}
 	})
@@ -260,7 +261,7 @@ func TestTheTestEndpointsAreNotFoundWhenOff(t *testing.T) {
 		if status, body := testCall(t, a, http.MethodPost, "/test/orgs", token, `{}`); status != http.StatusNotFound {
 			t.Errorf("create with the endpoints off = %d %v, want 404", status, body)
 		}
-		if status, _ := testCall(t, a, http.MethodDelete, "/test/orgs/"+seed.DemoOrgSlug, token, ""); status != http.StatusNotFound {
+		if status, _ := testCall(t, a, http.MethodDelete, "/test/orgs/"+installation.Slug, token, ""); status != http.StatusNotFound {
 			t.Errorf("delete with the endpoints off = %d, want 404", status)
 		}
 	}

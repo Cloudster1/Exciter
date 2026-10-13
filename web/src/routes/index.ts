@@ -9,6 +9,7 @@ import { armatureAccountRoute, armatureSettingsRoute } from "./armature";
 import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
+import { installationRoute } from "./installation";
 import { labelRoute } from "./labels";
 import { loginRoute } from "./login";
 import {
@@ -52,6 +53,7 @@ const routeTree = rootRoute.addChildren([
     labelRoute,
     searchRoute,
     settingsRoute,
+    installationRoute,
     membersRoute,
     linkTypesRoute,
     ssoRoute,

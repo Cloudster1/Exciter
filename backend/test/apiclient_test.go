@@ -27,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
@@ -94,7 +95,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		themes: theme.NewService(h.cluster, store), files: attachment.NewService(h.cluster, store, requirements).WithMaxSize(testUploadLimit), h: h}
 	server := &httpapi.Server{
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
-		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes, Projects: project.NewService(h.cluster).WithSeeder(requirement.Seed), Perms: perm.NewService(h.cluster),
+		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Installation: installation.NewService(h.cluster), Themes: a.themes, Projects: project.NewService(h.cluster).WithSeeder(requirement.Seed), Perms: perm.NewService(h.cluster),
 		Requirements: requirements, Search: finder,
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),

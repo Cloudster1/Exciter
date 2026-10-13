@@ -1,4 +1,4 @@
-// Package seed makes the development database worth opening. Every step finds
+// Package seed makes the installation on its first start. Every step finds
 // what an earlier run made, so running it again changes nothing.
 package seed
 
@@ -6,49 +6,51 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// Seeded names, fixed so a second run finds what the first made.
-const (
-	DemoOrgSlug = "demo"
-	DemoOrgName = "Demo"
-)
-
 // Result says what a run made, as opposed to what it found already there.
 type Result struct {
+	// Org is the installation's organization, made or found.
+	Org        tenant.Org
 	OrgCreated bool
 }
 
-// Run seeds the cluster through the admin role, since making an organization
-// precedes any tenant.
-func Run(ctx context.Context, cluster *db.Cluster) (Result, error) {
-	return Ensure(ctx, cluster, DemoOrgSlug, DemoOrgName)
-}
-
-// Ensure makes the organization of that slug when there is none, and leaves an
-// existing one, whatever it is now called, as it is.
-func Ensure(ctx context.Context, cluster *db.Cluster, slug, name string) (Result, error) {
+// Ensure makes the installation's organization on a first start, called name, and finds the one there on every
+// later start, whatever an administrator renamed it to. Through the admin role, since it precedes any tenant.
+func Ensure(ctx context.Context, cluster *db.Cluster, name string) (Result, error) {
 	var res Result
 	_, err := cluster.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		tag, err := tx.Exec(ctx, `INSERT INTO org (slug, name) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING`, slug, name)
-		res.OrgCreated = tag.RowsAffected() == 1
-		return err
+		err := tx.QueryRow(ctx, `
+			INSERT INTO org (slug, name) SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM org)
+			RETURNING id, slug`, installation.Slug, name).Scan(&res.Org.ID, &res.Org.Slug)
+		if err == nil {
+			res.OrgCreated = true
+			return nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		// The oldest, while the integration suite still makes organizations of its own beside it (#90).
+		return tx.QueryRow(ctx, `SELECT id, slug FROM org ORDER BY created_at, slug LIMIT 1`).Scan(&res.Org.ID, &res.Org.Slug)
 	})
 	return res, err
 }
 
-// Member is one address let into an organization ahead of its first sign-in.
+// Member is one address let into the installation ahead of its first sign-in.
 type Member struct {
 	Email string
 	Role  auth.OrgRole
 }
 
-// People is who an organization is seeded with: members named ahead of time,
+// People is who the installation is seeded with: members named ahead of time,
 // and the identity provider they sign in through, when there is one.
 type People struct {
 	Members  []Member
@@ -56,7 +58,7 @@ type People struct {
 }
 
 // Bootstrapped is who EXCITER_BOOTSTRAP_MEMBERS and EXCITER_BOOTSTRAP_OIDC_*
-// name: the bootstrap organization's people.
+// name: the installation's first people.
 func Bootstrapped(cfg config.Bootstrap) People {
 	var people People
 	for _, m := range cfg.Members {
@@ -85,8 +87,9 @@ type Populated struct {
 // is an administrator's to change. ctx acts for the administrator the provider is configured in the name of.
 func Populate(ctx context.Context, accounts *auth.Service, sso *oidc.Service, org tenant.Org, people People) (Populated, error) {
 	var out Populated
+	ctx = tenant.WithOrg(ctx, org)
 	for _, m := range people.Members {
-		added, err := accounts.EnsureMember(ctx, org.Slug, m.Email, m.Role)
+		added, err := accounts.EnsureMember(ctx, m.Email, m.Role)
 		if err != nil {
 			return out, err
 		}
@@ -97,7 +100,6 @@ func Populate(ctx context.Context, accounts *auth.Service, sso *oidc.Service, or
 	if people.Provider == nil {
 		return out, nil
 	}
-	ctx = tenant.WithOrg(ctx, org)
 	switch _, err := sso.Provider(ctx); {
 	case err == nil:
 		out.ProviderExisting = true

@@ -35,6 +35,7 @@ export const de: Messages = {
     whereYouAre: "Hier",
     home: "Start",
     settings: "Einstellungen",
+    installation: "Installation",
     members: "Mitglieder",
     sso: "Single Sign-on",
     audit: "Protokoll",
@@ -111,6 +112,14 @@ export const de: Messages = {
       failed:
         "Die Anmeldung über Ihren Identitätsanbieter hat nicht funktioniert. Versuchen Sie es erneut, und sagen Sie einem Administrator Bescheid, wenn es weiter fehlschlägt.",
     },
+  },
+  installation: {
+    title: "Installation",
+    intro: "Wie diese Installation von Exciter heißt, oben in der Seitenleiste aller.",
+    name: "Name",
+    save: "Namen speichern",
+    saved: "Gespeichert.",
+    notAdmin: "Nur Administratoren benennen die Installation um. Fragen Sie eine dieser Personen.",
   },
   sso: {
     title: "Single Sign-on",
@@ -268,6 +277,7 @@ export const de: Messages = {
       "token.revoked": "Token widerrufen",
       "armature.connected": "Armature verbunden",
       "armature.disconnected": "Armature getrennt",
+      "installation.renamed": "Installation umbenannt",
     },
     targetTypes: {
       user: "Person",
@@ -281,6 +291,7 @@ export const de: Messages = {
       workflow: "Workflow",
       api_token: "Zugriffstoken",
       armature_connection: "Armature-Verbindung",
+      installation: "Installation",
     },
   },
   projects: projectsDe,

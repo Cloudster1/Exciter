@@ -34,6 +34,9 @@
       "name": "import"
     },
     {
+      "name": "installation"
+    },
+    {
       "name": "labels"
     },
     {
@@ -1196,7 +1199,8 @@
                 "link_type.changed",
                 "link_type.deleted",
                 "armature.connected",
-                "armature.disconnected"
+                "armature.disconnected",
+                "installation.renamed"
               ]
             }
           },
@@ -1344,7 +1348,8 @@
                 "link_type.changed",
                 "link_type.deleted",
                 "armature.connected",
-                "armature.disconnected"
+                "armature.disconnected",
+                "installation.renamed"
               ]
             }
           },
@@ -2025,6 +2030,92 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/installation": {
+      "get": {
+        "operationId": "getInstallation",
+        "summary": "The installation's name, as everybody signed in sees it.",
+        "tags": [
+          "installation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "installation": {
+                      "$ref": "#/components/schemas/Installation"
+                    }
+                  },
+                  "required": [
+                    "installation"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "renameInstallation",
+        "summary": "Rename the installation; written to the audit log. For administrators.",
+        "tags": [
+          "installation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameInstallationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "installation": {
+                      "$ref": "#/components/schemas/Installation"
+                    }
+                  },
+                  "required": [
+                    "installation"
+                  ]
                 }
               }
             }
@@ -10110,7 +10201,8 @@
               "link_type.changed",
               "link_type.deleted",
               "armature.connected",
-              "armature.disconnected"
+              "armature.disconnected",
+              "installation.renamed"
             ]
           },
           "actorId": {
@@ -10196,7 +10288,8 @@
                 "link_type.changed",
                 "link_type.deleted",
                 "armature.connected",
-                "armature.disconnected"
+                "armature.disconnected",
+                "installation.renamed"
               ]
             }
           },
@@ -11237,6 +11330,17 @@
             "$ref": "#/components/schemas/Spec"
           }
         }
+      },
+      "Installation": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "JoinRequest": {
         "type": "object",
@@ -12425,6 +12529,17 @@
         "required": [
           "status",
           "routing"
+        ]
+      },
+      "RenameInstallationRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "ReplicaStatus": {

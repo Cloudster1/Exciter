@@ -11,6 +11,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // JoinRequest is somebody the identity provider vouched for who is waiting
@@ -103,9 +104,13 @@ func (s *Service) DeclineJoinRequest(ctx context.Context, orgID, userID, actor u
 	})
 }
 
-// EnsureMember lets an address in ahead of its first sign-in, making the account
-// if need be; a membership already there is left alone.
-func (s *Service) EnsureMember(ctx context.Context, orgSlug, email string, role OrgRole) (bool, error) {
+// EnsureMember lets an address into ctx's organization ahead of its first sign-in,
+// making the account if need be; a membership already there is left alone.
+func (s *Service) EnsureMember(ctx context.Context, email string, role OrgRole) (bool, error) {
+	org, err := tenant.MustFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
 	email = NormalizeEmail(email)
 	if !strings.Contains(email, "@") {
 		return false, fmt.Errorf("%q is not an email address", email)
@@ -115,7 +120,7 @@ func (s *Service) EnsureMember(ctx context.Context, orgSlug, email string, role 
 	}
 	name, _, _ := strings.Cut(email, "@")
 	var added bool
-	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+	_, err = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var userID uuid.UUID
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO app_user (email, name) VALUES ($1, $2)
@@ -124,9 +129,8 @@ func (s *Service) EnsureMember(ctx context.Context, orgSlug, email string, role 
 			return fmt.Errorf("find or create %s: %w", email, err)
 		}
 		tag, err := tx.Exec(ctx, `
-			INSERT INTO org_member (org_id, user_id, org_role)
-			SELECT id, $2, $3 FROM org WHERE slug = $1
-			ON CONFLICT (org_id, user_id) DO NOTHING`, orgSlug, userID, string(role))
+			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
+			ON CONFLICT (org_id, user_id) DO NOTHING`, org.ID, userID, string(role))
 		added = tag.RowsAffected() == 1
 		return err
 	})

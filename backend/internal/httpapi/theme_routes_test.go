@@ -12,11 +12,11 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// Every theme route needs somebody signed in, and all but the examples an
-// organization too; an anonymous caller is told so in the envelope.
+// Every theme route needs somebody signed in, and somebody outside the installation is not; either is told so
+// in the envelope.
 func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 	s := newServer(t)
-	s.Auth = fakeAuth{"no-org": {UserID: uuid.New()}}
+	s.Auth = fakeAuth{"no-org": {UserID: uuid.New()}, "in-org": {UserID: uuid.New(), Org: &tenant.Org{ID: uuid.New(), Slug: "acme"}}}
 	h := s.Routes(nil)
 	someID := uuid.NewString()
 	for _, op := range operations {
@@ -28,19 +28,16 @@ func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 		if resp.StatusCode != http.StatusUnauthorized || errorOf(t, body)["code"] != "unauthorized" {
 			t.Errorf("anonymous %s %s = %d %v, want 401", op.method, op.path, resp.StatusCode, body)
 		}
-		if op.path == "/themes/examples" {
-			continue
-		}
 		req := httptest.NewRequest(op.method, APIPrefix+path, nil)
 		req.Header.Set("Authorization", "Bearer no-org")
 		resp, body = serve(t, h, req)
-		if resp.StatusCode != http.StatusBadRequest || errorOf(t, body)["code"] != "no_organization" {
-			t.Errorf("%s %s with no organization = %d %v, want 400", op.method, op.path, resp.StatusCode, body)
+		if resp.StatusCode != http.StatusForbidden || errorOf(t, body)["code"] != "account_switched_off" {
+			t.Errorf("%s %s outside the installation = %d %v, want 403", op.method, op.path, resp.StatusCode, body)
 		}
 	}
 
 	req := httptest.NewRequest(http.MethodGet, APIPrefix+"/themes/examples", nil)
-	req.Header.Set("Authorization", "Bearer no-org")
+	req.Header.Set("Authorization", "Bearer in-org")
 	resp, body := serve(t, h, req)
 	examples, _ := body["examples"].([]any)
 	if resp.StatusCode != http.StatusOK || len(examples) != 2 {

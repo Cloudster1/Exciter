@@ -31,11 +31,13 @@ make e2e-report         # the last browser run's report, traces included
 make help               # every target
 ```
 
-The demo organization signs in through the stack's Keycloak: at the web
-address `make up` prints, enter the organization `demo`, choose "Sign in with
-your organization's provider" and sign in as `alice` (alice@suite.test, an
-administrator) with the password `alice password`, or as `bob`, a member. Its
-owner `admin@exciter.test` signs in with the password `exciter admin password`.
+The stack's installation signs in through its Keycloak: at the web address
+`make up` prints, enter the organization `exciter` (until #85 drops the
+field), choose "Sign in with your organization's provider" and sign in as
+`alice` (alice@suite.test, an administrator) with the password
+`alice password`, or as `bob`, a member. Its owner `admin@exciter.test` signs
+in with the password `exciter admin password`. `EXCITER_NAME` sets what a
+first start calls the installation.
 
 Every port is bound to `127.0.0.1` and derived from the checkout's path, so
 worktrees, Armature and a Stator checkout run side by side; the ports are also

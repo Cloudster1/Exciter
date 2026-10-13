@@ -15,7 +15,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/seed"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // adminPassword is the bootstrap administrator's in these tests; long enough for the rule.
@@ -25,7 +25,8 @@ const adminPassword = "a long enough password"
 func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) string {
 	t.Helper()
 	email := "owner-" + h.suffix() + "@example.test"
-	if _, err := a.accounts.EnsureAdmin(context.Background(), h.slugOf(t, org), email, "", adminPassword); err != nil {
+	ctx := tenant.WithOrg(context.Background(), tenant.Org{ID: org, Slug: h.slugOf(t, org)})
+	if _, err := a.accounts.EnsureAdmin(ctx, email, "", adminPassword); err != nil {
 		t.Fatalf("make the bootstrap administrator: %v", err)
 	}
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })
@@ -97,8 +98,8 @@ func TestASessionOverTheAPI(t *testing.T) {
 	want(t, a.anonymous().post(t, "/api/v1/auth/logout", nil), http.StatusUnauthorized, "sign out without a session")
 }
 
-// Taking somebody out of an organization, or turning their account off, ends
-// what their open session reaches at once.
+// Turning somebody's account off refuses their open session; letting them go ends it, so the browser goes back
+// to sign in, where a password is refused with what to do.
 func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
@@ -109,20 +110,39 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 		t.Fatalf("the member acts in no organization: %s", me.Raw)
 	}
 
+	setActive := func(active bool) {
+		t.Helper()
+		if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET is_active = $2 WHERE id = $1`, memberID, active); err != nil {
+			t.Fatal(err)
+		}
+		h.settle(t)
+	}
+	setActive(false)
+	if code := errorCode(t, want(t, c.get(t, "/api/v1/auth/me"), http.StatusForbidden, "a deactivated account")); code != "account_inactive" {
+		t.Errorf("a deactivated account answers %s", code)
+	}
+	setActive(true)
+
 	if _, err := h.super.Exec(context.Background(), `DELETE FROM org_member WHERE user_id = $1`, memberID); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
-	if me := want(t, c.get(t, "/api/v1/auth/me"), http.StatusOK, "read who I am once removed"); me.Body["organization"] != nil {
-		t.Errorf("a removed member still acts in the organization: %s", me.Raw)
+	want(t, c.get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "read who I am once let go")
+	if n := h.countRows(t, `SELECT count(*) FROM user_session WHERE user_id = $1`, memberID); n != 0 {
+		t.Errorf("letting the member go left %d sessions, want them ended", n)
 	}
 
-	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET is_active = false WHERE id = $1`, memberID); err != nil {
+	email := bootstrapAdmin(t, h, a, home.org)
+	if _, err := h.super.Exec(context.Background(), `DELETE FROM org_member WHERE user_id = (SELECT id FROM app_user WHERE email = $1)`, email); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
-	if code := errorCode(t, want(t, c.get(t, "/api/v1/auth/me"), http.StatusForbidden, "a deactivated account")); code != "account_inactive" {
-		t.Errorf("a deactivated account answers %s", code)
+	refused := want(t, a.anonymous().post(t, "/api/v1/auth/login", map[string]any{"email": email, "password": adminPassword}), http.StatusForbidden, "sign in once let go")
+	if code := errorCode(t, refused); code != "account_switched_off" {
+		t.Errorf("somebody let go signing in answers %s", code)
+	}
+	if msg := refused.Body["error"].(map[string]any)["message"]; msg != "Your account has been switched off. Ask an administrator." {
+		t.Errorf("somebody let go is told %q", msg)
 	}
 }
 
@@ -164,22 +184,18 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 	}
 }
 
-// The bootstrap makes its organization and owner once; run again it changes
-// nothing but a password that was changed in the configuration.
+// The bootstrap makes its owner once; run again it changes nothing but a password
+// that was changed in the configuration.
 func TestTheBootstrapIsIdempotent(t *testing.T) {
 	h := newHarness(t)
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
-	slug := "boot-" + h.suffix()
+	org := h.makeOrg(t, "boot")
+	slug := org.Slug
 	email := "boot-" + h.suffix() + "@example.test"
-	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `DELETE FROM org WHERE slug = $1`, slug)
-		h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email)
-	})
-	if _, err := seed.Ensure(context.Background(), h.cluster, slug, "Boot"); err != nil {
-		t.Fatal(err)
-	}
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })
+	ctx := tenant.WithOrg(context.Background(), org)
 	for i, pw := range []string{adminPassword, adminPassword, "another long password"} {
-		made, err := accounts.EnsureAdmin(context.Background(), slug, email, "", pw)
+		made, err := accounts.EnsureAdmin(ctx, email, "", pw)
 		if err != nil || made != (i == 0) {
 			t.Fatalf("run %d = made %v, %v", i, made, err)
 		}
@@ -196,7 +212,7 @@ func TestTheBootstrapIsIdempotent(t *testing.T) {
 		WHERE o.slug = $1 AND u.email = $2`, slug, email).Scan(&role); errors.Is(err, pgx.ErrNoRows) || role != "owner" {
 		t.Errorf("the administrator is %q (%v), want the owner", role, err)
 	}
-	if _, err := accounts.EnsureAdmin(context.Background(), slug, email, "", "short"); !errors.Is(err, auth.ErrPasswordTooShort) {
+	if _, err := accounts.EnsureAdmin(ctx, email, "", "short"); !errors.Is(err, auth.ErrPasswordTooShort) {
 		t.Errorf("a short password was accepted: %v", err)
 	}
 }

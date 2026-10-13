@@ -55,7 +55,7 @@ var errSignInOff = &APIError{Status: http.StatusServiceUnavailable, Code: "sign_
 // the account menu needs in one request.
 type meResponse struct {
 	User auth.User `json:"user"`
-	// Organization is where the session acts now; null before one is chosen.
+	// Organization is the installation's, which everybody signed in belongs to; #85 renames it.
 	Organization  *auth.CurrentOrg  `json:"organization"`
 	Organizations []auth.Membership `json:"organizations"`
 	// Token is the personal access token the request rides on; null for a session.
@@ -71,9 +71,7 @@ func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
 		User:          auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
 		Organizations: organizations,
 		Token:         p.Token,
-	}
-	if p.InOrg() {
-		out.Organization = &auth.CurrentOrg{ID: p.Org.ID, Slug: p.Org.Slug, Name: p.OrgName, Role: p.Role}
+		Organization:  &auth.CurrentOrg{ID: p.Org.ID, Slug: p.Org.Slug, Name: p.OrgName, Role: p.Role},
 	}
 	return out, nil
 }

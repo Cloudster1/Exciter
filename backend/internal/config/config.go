@@ -6,13 +6,9 @@ import (
 	"fmt"
 	"net/netip"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 )
-
-// bootstrapSlug is the shape the org table's org_slug_shape check accepts.
-var bootstrapSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$`)
 
 // Environments a deployment may declare itself as.
 const (
@@ -36,10 +32,8 @@ const (
 	DefaultReadYourWrites  = 30 * time.Second
 	DefaultSessionCookie   = "exciter_session"
 	DefaultSessionTTL      = 720 * time.Hour
-	// DefaultBootstrapOrgSlug and DefaultBootstrapOrgName are seed.DemoOrgSlug
-	// and seed.DemoOrgName, which a test holds the two to.
-	DefaultBootstrapOrgSlug = "demo"
-	DefaultBootstrapOrgName = "Demo"
+	// DefaultName is what a first start calls the installation.
+	DefaultName = "Exciter"
 	// DefaultRetainAudit and MinRetainAudit are audit.DefaultRetention and
 	// audit.MinRetention, which a test holds the two to.
 	DefaultRetainAudit = 365 * 24 * time.Hour
@@ -62,6 +56,8 @@ type Config struct {
 	Env      string
 	HTTPAddr string
 	LogLevel string
+	// Name is what a first start calls the installation; an administrator renames it after.
+	Name string
 	// AppBaseURL is where the web client is served; the same-site check
 	// accepts writes from it.
 	AppBaseURL string
@@ -140,11 +136,9 @@ type Auth struct {
 	OIDCBackchannel map[string]string
 }
 
-// Bootstrap is what cmd/seed sets up: the organization, its first local
+// Bootstrap is what cmd/seed sets up in the installation: its first local
 // administrator, and an identity provider with its first members when named.
 type Bootstrap struct {
-	OrgSlug       string
-	OrgName       string
 	AdminEmail    string
 	AdminPassword string
 
@@ -152,7 +146,7 @@ type Bootstrap struct {
 	OIDCClientID     string
 	OIDCClientSecret string
 
-	// Members are let into the organization ahead of their first sign-in,
+	// Members are let into the installation ahead of their first sign-in,
 	// so a development stack needs nobody to approve them.
 	Members []BootstrapMember
 }
@@ -222,6 +216,7 @@ func Load() (Config, error) {
 		Env:            l.str("EXCITER_ENV", EnvDevelopment),
 		HTTPAddr:       l.str("EXCITER_HTTP_ADDR", DefaultHTTPAddr),
 		LogLevel:       l.str("EXCITER_LOG_LEVEL", "info"),
+		Name:           l.str("EXCITER_NAME", DefaultName),
 		AppBaseURL:     strings.TrimSuffix(l.str("EXCITER_APP_URL", DefaultAppBaseURL), "/"),
 		CORSOrigins:    splitList(l.str("EXCITER_CORS_ORIGINS", "")),
 		RequestTimeout: l.duration("EXCITER_REQUEST_TIMEOUT", DefaultRequestTimeout),
@@ -248,8 +243,6 @@ func Load() (Config, error) {
 			SessionTTL:    l.duration("EXCITER_SESSION_TTL", DefaultSessionTTL),
 		},
 		Bootstrap: Bootstrap{
-			OrgSlug:    l.str("EXCITER_BOOTSTRAP_ORG_SLUG", DefaultBootstrapOrgSlug),
-			OrgName:    l.str("EXCITER_BOOTSTRAP_ORG_NAME", DefaultBootstrapOrgName),
 			AdminEmail: l.str("EXCITER_BOOTSTRAP_ADMIN_EMAIL", ""),
 			// Not trimmed: a password is exactly what was typed.
 			AdminPassword: l.raw("EXCITER_BOOTSTRAP_ADMIN_PASSWORD"),
@@ -319,12 +312,6 @@ func Load() (Config, error) {
 	}
 	if c.Auth.SessionTTL <= 0 {
 		l.problem("EXCITER_SESSION_TTL must be longer than zero, such as 720h.")
-	}
-	if !bootstrapSlug.MatchString(c.Bootstrap.OrgSlug) {
-		l.problem(fmt.Sprintf("EXCITER_BOOTSTRAP_ORG_SLUG is %q; use 3 to 40 lowercase letters, digits and hyphens, not starting or ending with a hyphen.", c.Bootstrap.OrgSlug))
-	}
-	if c.Bootstrap.OrgName == "" {
-		l.problem("EXCITER_BOOTSTRAP_ORG_NAME is empty; give the organization a name.")
 	}
 	if (c.Bootstrap.AdminEmail == "") != (c.Bootstrap.AdminPassword == "") {
 		l.problem("Set both EXCITER_BOOTSTRAP_ADMIN_EMAIL and EXCITER_BOOTSTRAP_ADMIN_PASSWORD, or neither.")

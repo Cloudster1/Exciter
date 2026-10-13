@@ -37,6 +37,8 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m1.md` for the requirements core (#10), and
   `docs/api-contract-m2.md` for the Armature integration (#25).
 - Configuration: environment variables only, prefix `EXCITER_`.
+  `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
+  default; an administrator renames it under Settings, Installation.
 - Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
   speaks S3, signing its few calls itself with the standard library rather
   than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,
@@ -49,6 +51,11 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### Multi-tenancy
+
+An installation serves one team and holds one organization (#84): the seed
+makes it on the first start under `EXCITER_NAME`, migration `00400` refuses a
+database holding several, and `internal/installation` is the one way to its
+name and default theme. The tenant layer below stays until #91 drops it.
 
 Every table has `org_id` and a primary key `(org_id, id)` with composite
 foreign keys, and FORCE ROW LEVEL SECURITY on `current_org_id()`. The
@@ -227,8 +234,12 @@ holds even for a query that forgot it.
   administrator lets them in or turns them away. Through the app role only
   administrators read or change the provider, the mapping and the requests.
 - `authenticate` puts the principal, its organization and the person it acts
-  for on every request, so row level security sees both; `requireAuth`,
-  `requireOrg` and `requireAdmin` guard the routes. Behind a proxy in
+  for on every request, so row level security sees both; `requireAuth` and
+  `requireAdmin` guard the routes. Everybody signed in belongs to the
+  installation (#84): a password sign-in of somebody without a membership is
+  refused with "Your account has been switched off. Ask an administrator.",
+  and a session whose membership went ends, so the browser goes back to sign
+  in and hears it there. Behind a proxy in
   `EXCITER_TRUSTED_PROXIES` the client's address is the one it names in
   `X-Real-IP`.
 
