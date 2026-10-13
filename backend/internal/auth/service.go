@@ -142,6 +142,9 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 	if secret == "" {
 		return nil, ErrInvalidToken
 	}
+	if IsAPIToken(secret) {
+		return s.authenticateAPIToken(ctx, secret)
+	}
 	var (
 		p          Principal
 		sessionID  uuid.UUID
@@ -197,7 +200,12 @@ func (s *Service) Logout(ctx context.Context, sessionID uuid.UUID) error {
 // Organizations lists where the caller may act: their memberships, narrowed to
 // the ones their session reaches, oldest first so the first is a stable default.
 func (s *Service) Organizations(ctx context.Context, p *Principal) ([]Membership, error) {
-	return s.memberships(ctx, p.UserID, p.SessionID)
+	all, err := s.memberships(ctx, p.UserID, p.SessionID)
+	if err != nil || p.Token == nil || p.Org == nil {
+		return all, err
+	}
+	// A token acts in the one organization it was made in, so it is shown that one alone.
+	return slices.DeleteFunc(all, func(m Membership) bool { return m.OrgID != p.Org.ID }), nil
 }
 
 func (s *Service) memberships(ctx context.Context, userID uuid.UUID, sessionID *uuid.UUID) ([]Membership, error) {

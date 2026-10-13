@@ -178,6 +178,20 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for tokens and MCP (#22):
+- backend/migrations/00230_api_tokens.sql: 00040_api_tokens.sql and
+  00310_token_spaces.sql, with projects for spaces, the owner's and the
+  administrators' policies, and the token fixed once made
+- backend/internal/auth/tokens.go, token.go and token_test.go: the tokens
+  of internal/auth, limited to projects, with the calling token reported
+- backend/internal/httpapi/token_handlers.go, mcp.go, mcp_tools.go and
+  mcp_test.go: the token handlers, readOnlyToken and requireSession, and
+  the MCP endpoint and its catalogue, without multipart tools, with the
+  organization-wide refusal matched against the router
+- web/src/api/tokens.ts and features/tokens/TokensPage.tsx: api/tokens.ts
+  and routes/tokens.tsx, with projects for spaces, and the key and copy
+  icons
+
 Adapted from Stator at cf0f6f7, for attachments (#21):
 - backend/migrations/00220_attachments.sql: 00080_attachments.sql, on
   requirements, with the trigger that keeps a file a revision shows and the

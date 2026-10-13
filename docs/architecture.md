@@ -146,6 +146,13 @@ holds even for a query that forgot it.
   and a trigger refuses deleting it while the requirement exists. Deleting a
   row leaves a tombstone, whichever path deletes it, and the worker's reaper
   removes the bytes behind each.
+- **Tokens and MCP** (#22): Stator's personal access tokens, `exciter_pat_`
+  and 43 characters, stored as their SHA-256 and sent as a bearer. A token
+  acts as its owner in one organization; a read-only one is refused every
+  write before any handler, and one limited to projects carries them into
+  every transaction (`app.token_projects`), where the permission functions
+  read them. `POST /mcp` serves the table's tool-marked rows to assistants,
+  each call run through the whole router as the caller.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
 
 ### Themes (#8)

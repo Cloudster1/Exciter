@@ -70,6 +70,10 @@ func (s *Server) freshnessKey(w http.ResponseWriter, r *http.Request) string {
 	if p := PrincipalFrom(r.Context()); p != nil && p.SessionID != nil {
 		return sessionFreshnessKey(*p.SessionID)
 	}
+	// A script with a token sends no cookie, so its writes are remembered under the token.
+	if p := PrincipalFrom(r.Context()); p != nil && p.Token != nil {
+		return "t:" + p.Token.ID.String()
+	}
 	if c, err := r.Cookie(ClientCookie); err == nil && validClientID(c.Value) {
 		return "c:" + c.Value
 	}

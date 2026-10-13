@@ -181,6 +181,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := attachmentError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := tokenError(err); apiErr != nil {
+			return apiErr
+		}
 		return themeError(err)
 	}
 }

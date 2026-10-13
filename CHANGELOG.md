@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Personal access tokens and MCP (#22). A person makes tokens under their
+  account, read-only or not, limited to some projects or not, with an
+  expiry, and sees each secret once; administrators see and revoke
+  everybody's. A script sends one as a bearer and acts as its owner in one
+  organization: a read-only token is refused every write, and a limited one
+  reaches its projects alone, which the database holds too. `POST /mcp`
+  serves assistants the tools to list projects, read, search, write, link
+  and transition requirements and read their history, offering a token only
+  what it may call. `GET /auth/me` names the calling token.
 - Attachments (#21). A requirement takes files, picked or dropped on its
   panel, and its statement and rationale show pictures and files pasted,
   dropped or picked in the editor. Files go through the API alone, which

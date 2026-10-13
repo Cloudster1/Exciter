@@ -4,6 +4,7 @@ package auth
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/google/uuid"
 
@@ -34,7 +35,19 @@ type Principal struct {
 	SessionID *uuid.UUID
 	// Proof is how that session was opened.
 	Proof Proof
+	// Token is the personal access token this request rides on; nil for a session.
+	Token *CallingToken
+	// TokenProjects are the ids of the projects Token is limited to, when it is.
+	TokenProjects []uuid.UUID
 }
+
+// ReadOnly reports whether the caller came with a token made to read.
+func (p *Principal) ReadOnly() bool {
+	return p != nil && p.Token != nil && slices.Contains(p.Token.Scopes, ScopeRead)
+}
+
+// InProjectsOnly reports whether the caller came with a token limited to some projects.
+func (p *Principal) InProjectsOnly() bool { return p != nil && p.Token != nil && !p.Token.AllProjects }
 
 // Guest reports whether the caller is a guest in their organization.
 func (p *Principal) Guest() bool { return p != nil && p.Role == RoleGuest }
