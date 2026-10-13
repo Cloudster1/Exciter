@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
 import { chooseTheme, createTheme, themeSpec, uniqueName } from "../fixtures/seed";
 import { openAccountMenu } from "../fixtures/shell";
@@ -31,8 +31,8 @@ async function pickScheme(page: Page, choice: "system" | "light" | "dark") {
   await expect(button).toHaveAttribute("data-theme-choice", choice);
 }
 
-// The organization is this file's alone, so its default and who uses what are nobody else's; tests that share a
-// worker share it one after another, and each starts with nobody's choice and no default.
+// Alice and bob are this spec's own, so what they use is nobody else's; the default is everybody's, which is why
+// the spec runs alone. Each test starts with nobody's choice and no default.
 test.describe("themes", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api, apiAs }) => {
     for (const each of [api, await apiAs("bob")]) await chooseTheme(each, null).catch(() => {});
@@ -91,7 +91,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await page.goto(THEMES_PATH);
     await page.locator("[data-theme-file]").setInputFiles(MINECRAFT);
     await expect(notice(page)).toContainText(`Imported ${MINECRAFT_NAME}`);
-    // An earlier run in this organization leaves a copy, which makes this one "Minecraft (2)".
+    // A copy an earlier test left this alice makes this one "Minecraft (2)".
     const imported = (await notice(page).textContent())!.replace(/^Imported /, "").replace(/\.$/, "");
     await rowAction(page, imported, "use-theme");
     await expect(notice(page)).toHaveText(`Now using ${imported}.`);
@@ -104,7 +104,9 @@ test.describe("themes", { tag: "@desktop" }, () => {
     expect(shadow).toMatch(/\b6px 6px 0px\b/);
   });
 
-  test("the organization's default, named under Settings, reaches a member who has not chosen", async ({ page, api, pageAs }, testInfo) => {
+  test("the default, named under Settings, reaches a member who has not chosen", async ({ page, api, apiAs, pageAs }, testInfo) => {
+    // Each spec's people start on the built-in theme, so bob is made to have chosen nothing.
+    await chooseTheme(await apiAs("bob"), null);
     const name = uniqueName(testInfo, "default");
     await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
 

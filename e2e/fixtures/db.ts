@@ -1,5 +1,5 @@
-import type { TestInfo } from "@playwright/test";
 import pg from "pg";
+import { ORG_SLUG } from "./auth";
 import { superuserURL } from "./stack";
 
 // Straight into the stack's database, for what no endpoint makes yet. Keep it
@@ -38,15 +38,16 @@ async function settle(client: pg.Client): Promise<void> {
 /** Nothing listens on port 9 of the api's own container, so asking this issuer who it is fails at once. */
 export const DEAD_ISSUER = "http://127.0.0.1:9/realms/nowhere";
 
-/** An organization of its own whose provider cannot be reached; call remove when done. */
-export async function orgWithDeadProvider(testInfo: TestInfo): Promise<{ slug: string; remove: () => Promise<void> }> {
-  const slug = `e2e-dead-${testInfo.workerIndex}-${Date.now().toString(36)}`;
-  await withDatabase(async (db) => {
-    const { rows } = await db.query<{ id: string }>("INSERT INTO org (slug, name) VALUES ($1, $2) RETURNING id", [slug, "Dead provider"]);
-    await db.query("INSERT INTO oidc_provider (org_id, issuer, client_id) VALUES ($1, $2, 'exciter')", [rows[0]!.id, DEAD_ISSUER]);
+const PROVIDER_ISSUER = "SELECT p.issuer FROM oidc_provider p JOIN org o ON o.id = p.org_id WHERE o.slug = $1";
+const SET_ISSUER = "UPDATE oidc_provider SET issuer = $1 WHERE org_id = (SELECT id FROM org WHERE slug = $2)";
+
+/** Points demo's provider at an issuer nobody answers for, until restore puts the one it had back. */
+export async function deadProvider(): Promise<{ restore: () => Promise<void> }> {
+  const issuer = await withDatabase(async (db) => {
+    const { rows } = await db.query<{ issuer: string }>(PROVIDER_ISSUER, [ORG_SLUG]);
+    if (!rows[0]) throw new Error(`${ORG_SLUG} has no identity provider to make unreachable. Did the seed configure one?`);
+    await db.query(SET_ISSUER, [DEAD_ISSUER, ORG_SLUG]);
+    return rows[0].issuer;
   });
-  return {
-    slug,
-    remove: () => withDatabase(async (db) => void (await db.query("DELETE FROM org WHERE slug = $1", [slug]))),
-  };
+  return { restore: () => withDatabase(async (db) => void (await db.query(SET_ISSUER, [issuer, ORG_SLUG]))) };
 }

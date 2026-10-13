@@ -1,11 +1,12 @@
+import { uniqueKey } from "../fixtures/seed";
 import type { Page } from "@playwright/test";
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "FILES";
+const KEY = uniqueKey("FIL");
 // The smallest PNG there is, one pixel, so a picture is a real one the browser draws.
 const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
 
@@ -24,7 +25,7 @@ async function drawn(page: Page, selector: string) {
   return page.locator(selector).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
 }
 
-// The organization is this file's alone, so its projects meet no other spec's.
+// The projects' keys are this worker's own, so they meet no other spec's.
 test.describe("attachments", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => cleanUp(api));
 

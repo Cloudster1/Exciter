@@ -1,11 +1,16 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "TRACE";
-const MADE = "mitigates";
+const KEY = uniqueKey("TRC");
+// Link types for all projects are the installation's, so this one is named with a word of this worker's own.
+const WORD = uniqueKey("W").toLowerCase();
+const NAME = `Mitigates ${WORD}`;
+const MADE = `mitigates_${WORD}`;
+const READS = `mitigates ${WORD}`;
 
 /** Removes the project and the link type the test made, so each test starts without them. */
 async function cleanUp(api: ExciterApi) {
@@ -36,7 +41,7 @@ async function link(page: import("@playwright/test").Page, way: string, other: s
   await form.getByRole("button", { name: "Link" }).click();
 }
 
-// The organization is this file's alone, so its link types meet no other spec's.
+// The project's key and the link type's name are this worker's own, so they meet no other spec's.
 test.describe("trace links", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => cleanUp(api));
 
@@ -66,30 +71,30 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`${KEY}-R1`);
   });
 
-  test("alice makes a link type for the organization, and a project turns it off", async ({ page, api }) => {
+  test("alice makes a link type for all projects, and a project turns it off", async ({ page, api }) => {
     await makeProject(api);
     await page.goto("/settings/link-types");
     await expect(page.locator('[data-link-type="derives"]')).toBeVisible();
     await page.locator('[data-action="new-link-type"]').click();
-    await page.getByRole("textbox", { name: "Name" }).fill("Mitigates");
-    await page.getByRole("textbox", { name: "Reads from the source" }).fill("mitigates");
+    await page.getByRole("textbox", { name: "Name" }).fill(NAME);
+    await page.getByRole("textbox", { name: "Reads from the source" }).fill(READS);
     await page.getByRole("textbox", { name: "Reads from the target" }).fill("is mitigated by");
     await expectAccessible(page);
     await page.locator('[data-action="save-link-type"]').click();
-    await expect(page.locator(`[data-link-type="${MADE}"]`)).toContainText("mitigates / is mitigated by");
+    await expect(page.locator(`[data-link-type="${MADE}"]`)).toContainText(`${READS} / is mitigated by`);
 
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
     const types = page.getByRole("form", { name: "Add a link" }).getByRole("combobox", { name: "Link type" });
-    await expect(types.locator("option", { hasText: "This requirement mitigates" })).toHaveCount(1);
+    await expect(types.locator("option", { hasText: `This requirement ${READS}` })).toHaveCount(1);
 
     await page.goto(`/p/${KEY}/settings?tab=links`);
     // The box shows what the server holds, so it clears once the list is read again.
-    await page.getByRole("checkbox", { name: "Use Mitigates in this project" }).click();
-    await expect(page.getByRole("checkbox", { name: "Use Mitigates in this project" })).not.toBeChecked();
+    await page.getByRole("checkbox", { name: `Use ${NAME} in this project` }).click();
+    await expect(page.getByRole("checkbox", { name: `Use ${NAME} in this project` })).not.toBeChecked();
     await expectAccessible(page);
 
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
     await expect(types.locator("option", { hasText: "This requirement derives from" })).toHaveCount(1);
-    await expect(types.locator("option", { hasText: "This requirement mitigates" })).toHaveCount(0);
+    await expect(types.locator("option", { hasText: `This requirement ${READS}` })).toHaveCount(0);
   });
 });

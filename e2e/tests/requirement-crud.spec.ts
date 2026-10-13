@@ -1,11 +1,12 @@
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
-import { expect, USERS } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { expect } from "../fixtures/auth";
+import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
+import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const KEY = "REQ";
+const KEY = uniqueKey("REQ");
 const LIST_PATH = `/p/${KEY}`;
 
 /** Archives and deletes the project the test made, so each test starts without it. */
@@ -19,11 +20,11 @@ async function removeProject(api: ExciterApi) {
 
 const paragraph = (text: string) => ({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
 
-// The organization is this file's alone, so its project meets no other spec.
+// The project's key is this worker's own, so it meets no other spec.
 test.describe("requirements", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
-  test("an editor writes a requirement, revises it, owns and ranks it, and trashes, restores and deletes it", async ({ page, api }) => {
+  test("an editor writes a requirement, revises it, owns and ranks it, and trashes, restores and deletes it", async ({ page, api, people }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Requirements" } }));
     await page.goto(LIST_PATH);
     await expect(page.getByText("No requirements yet")).toBeVisible();
@@ -51,9 +52,9 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pay the whole basket");
 
     await page.getByRole("combobox", { name: "Priority" }).selectOption("must");
-    await page.getByRole("combobox", { name: "Change the owner" }).fill("bob");
-    await page.getByRole("option", { name: new RegExp(USERS.bob.name) }).click();
-    await expect(page.locator("[data-owner]")).toContainText(USERS.bob.name);
+    await page.getByRole("combobox", { name: "Change the owner" }).fill(people.bob.name);
+    await page.getByRole("option", { name: new RegExp(people.bob.name) }).click();
+    await expect(page.locator("[data-owner]")).toContainText(people.bob.name);
     await expect(page.locator("[data-revision]")).toHaveText("Revision 2");
 
     await page.locator('[data-action="trash-requirement"]').click();
@@ -92,7 +93,7 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mine");
   });
 
-  test("a viewer reads a requirement by its permalink and changes nothing", async ({ api, pageAs }) => {
+  test("a viewer reads a requirement by its permalink and changes nothing", async ({ api, pageAs, people }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Requirements" } }));
     const made = must(
       await api.POST("/projects/{projectKey}/requirements", {
@@ -101,7 +102,7 @@ test.describe("requirements", { tag: "@desktop" }, () => {
       }),
     ).requirement;
     const me = must(await api.GET("/auth/me")).user;
-    const bobId = must(await api.GET("/people", { params: { query: { q: "bob" } } })).people[0]!.id;
+    const bobId = people.bob.id;
     must(
       await api.PUT("/projects/{projectKey}/grants", {
         params: { path: { projectKey: KEY } },

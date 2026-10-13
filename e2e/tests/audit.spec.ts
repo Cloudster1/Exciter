@@ -3,7 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import type { ExciterApi } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueName } from "../fixtures/seed";
 import { expectAccessible, scrollsSideways, startInScheme, type ColourScheme } from "../fixtures/shell";
@@ -22,15 +22,15 @@ const NOT_ADMIN = "Only an owner or administrator of this organization reads its
 
 // Written straight into the record, a second apart: making sixty through the API would only be slower at it.
 /** A theme the log names, and changes to it beyond one page of the log, all by alice. */
-async function busyTarget(api: ExciterApi, orgId: string, name: string): Promise<{ id: string; name: string }> {
+async function busyTarget(api: ExciterApi, name: string): Promise<{ id: string; name: string }> {
   const id = randomUUID();
-  const me = (await api.GET("/auth/me")).data!.user;
+  const me = (await api.GET("/auth/me")).data!;
   await withDatabase(async (db) => {
     await db.query(
       `INSERT INTO audit_log (org_id, actor_user_id, action, target_type, target_id, data, created_at)
        SELECT $1, $2, $3, 'theme', $4, jsonb_build_object('name', $5::text), now() - make_interval(secs => n)
        FROM generate_series(1, $6::int) AS n`,
-      [orgId, me.id, PLANTED_ACTION, id, name, PAGE_SIZE + SPILL],
+      [me.organization!.id, me.user.id, PLANTED_ACTION, id, name, PAGE_SIZE + SPILL],
     );
   });
   return { id, name };
@@ -54,7 +54,7 @@ async function tabTo(page: Page, control: Locator): Promise<void> {
   await expect(control).toBeFocused();
 }
 
-// Earlier tests of the file planted the same action in the same organization, so only a row naming this target
+// Other tests and specs planted the same action in the installation, so only a row naming this target
 // shows that its changes have arrived.
 const plantedRow = (page: Page, name: string) => page.locator(`[data-audit-row="${PLANTED_ACTION}"]`).filter({ hasText: name }).first();
 
@@ -67,8 +67,8 @@ async function openLog(page: Page, name: string): Promise<void> {
 }
 
 test.describe("the audit log", () => {
-  test("an administrator narrows it to one theme's changes and pages through them", { tag: "@desktop" }, async ({ page, api, freshOrg }, testInfo) => {
-    const target = await busyTarget(api, freshOrg.id, uniqueName(testInfo, "Busy"));
+  test("an administrator narrows it to one theme's changes and pages through them", { tag: "@desktop" }, async ({ page, api }, testInfo) => {
+    const target = await busyTarget(api, uniqueName(testInfo, "Busy"));
     await openLog(page, target.name);
     await expect(page.locator("main").getByRole("heading", { level: 1 })).toHaveText("Audit log");
 
@@ -120,8 +120,8 @@ test.describe("the audit log", () => {
     await expect(bob.locator("[data-audit-row]")).toHaveCount(0);
   });
 
-  test("it is narrowed and paged from the keyboard", { tag: "@desktop" }, async ({ page, api, freshOrg }, testInfo) => {
-    const target = await busyTarget(api, freshOrg.id, uniqueName(testInfo, "Keys"));
+  test("it is narrowed and paged from the keyboard", { tag: "@desktop" }, async ({ page, api }, testInfo) => {
+    const target = await busyTarget(api, uniqueName(testInfo, "Keys"));
     await openLog(page, target.name);
 
     await page.getByLabel("Action").focus();
@@ -136,16 +136,16 @@ test.describe("the audit log", () => {
   });
 
   for (const scheme of ["light", "dark"] as ColourScheme[]) {
-    test(`it passes axe in ${scheme}`, async ({ page, api, freshOrg }, testInfo) => {
-      const target = await busyTarget(api, freshOrg.id, uniqueName(testInfo, `Axe ${scheme}`));
+    test(`it passes axe in ${scheme}`, async ({ page, api }, testInfo) => {
+      const target = await busyTarget(api, uniqueName(testInfo, `Axe ${scheme}`));
       await startInScheme(page, scheme);
       await openLog(page, target.name);
       await expectAccessible(page);
     });
   }
 
-  test("on a phone the filters stack and the page never scrolls sideways", { tag: "@mobile" }, async ({ page, api, freshOrg }, testInfo) => {
-    const target = await busyTarget(api, freshOrg.id, uniqueName(testInfo, "Phone"));
+  test("on a phone the filters stack and the page never scrolls sideways", { tag: "@mobile" }, async ({ page, api }, testInfo) => {
+    const target = await busyTarget(api, uniqueName(testInfo, "Phone"));
     await openLog(page, target.name);
     await expect(page.getByLabel("Action")).toBeVisible();
     await expect(page.getByLabel("From")).toBeVisible();

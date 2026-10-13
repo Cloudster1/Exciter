@@ -42,11 +42,6 @@ export function armatureURL(): string {
   return setting("EXCITER_ARMATURE_URL");
 }
 
-/** The secret the api's test endpoints ask for; read when first needed, so a stack without them still runs the rest. */
-export function testEndpointsToken(): string {
-  return setting("EXCITER_TEST_ENDPOINTS_TOKEN");
-}
-
 /** The stack's database as its superuser, for arranging what no endpoint makes; read when first needed. */
 export function superuserURL(): string {
   return setting("EXCITER_TEST_SUPERUSER_URL");

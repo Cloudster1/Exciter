@@ -19,7 +19,7 @@ export const USERS: Record<User, { username: string; password: string; email: st
 /** The organization the seed makes. */
 export const ORG_SLUG = "demo";
 
-/** The owner the seed bootstraps, the one account that signs in with a password; it owns every throwaway organization too. */
+/** The owner the seed bootstraps, who signs in with a password and makes each spec's people. */
 export const BOOTSTRAP_OWNER = { email: "admin@exciter.test", password: "exciter admin password" };
 
 /** What the login page offers, and what answers once someone is signed in. */
@@ -88,34 +88,12 @@ export async function saveSession(browser: Browser, user: User): Promise<void> {
   }
 }
 
-/** Signs the user in to another organization through its provider and returns the session, in memory. Keycloak
- *  knows them from the setup's sign-in and usually sends the browser straight back; its form is filled when asked. */
-export async function signInToOrg(browser: Browser, user: User, org: string): Promise<Exclude<Session, string>> {
-  const context = await browser.newContext({ baseURL: WEB_URL, storageState: stateFile(user) });
-  try {
-    const page = await context.newPage();
-    await page.goto(`/api/v1/auth/oidc/${encodeURIComponent(org)}/start`);
-    if (page.url().startsWith(KEYCLOAK_URL)) await submitKeycloak(page, USERS[user].username, USERS[user].password);
-    await expect
-      .poll(async () => {
-        const me = await page.request.get(ME_PATH);
-        return me.ok() ? ((await me.json()) as { organization?: { slug?: string } }).organization?.slug : me.status();
-      })
-      .toBe(org);
-    return await context.storageState();
-  } finally {
-    await context.close();
-  }
-}
-
-/** The API as the bootstrap owner, signed in with the password and switched to the organization named. */
-export async function ownerApi(org: string): Promise<ExciterApi> {
+/** The API as the bootstrap owner, signed in with the password. */
+export async function ownerApi(): Promise<ExciterApi> {
   const context = await request.newContext({ baseURL: WEB_URL, extraHTTPHeaders: { Origin: WEB_URL } });
   try {
     const login = await context.post("/api/v1/auth/login", { data: BOOTSTRAP_OWNER });
     if (!login.ok()) throw new Error(`The bootstrap owner could not sign in: ${login.status()} ${await login.text()}`);
-    const switched = await context.post("/api/v1/auth/switch-org", { data: { slug: org } });
-    if (!switched.ok()) throw new Error(`The bootstrap owner could not switch to ${org}: ${switched.status()} ${await switched.text()}`);
     return await createExciterApi(await context.storageState());
   } finally {
     await context.dispose();
@@ -131,7 +109,7 @@ export async function standing(page: Page): Promise<{ slug?: string; role?: stri
 }
 
 interface SessionFixtures {
-  /** Where each user's session comes from: the setup's, or a fresh organization's. */
+  /** Where each user's session comes from: the setup's, or the people a spec made for itself. */
   sessionOf: (user: User) => Session;
   /** A page of its own, signed in as the user, beside the default page as alice. */
   pageAs: (user: User) => Promise<Page>;

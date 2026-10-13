@@ -1,8 +1,10 @@
-import { ANONYMOUS, expect, LOGIN_PATH, test } from "../fixtures/auth";
+import { ANONYMOUS, expect, LOGIN_PATH } from "../fixtures/auth";
+import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible, openShell, startInScheme, type ColourScheme } from "../fixtures/shell";
 
 // Contrast needs real layout and real colours, which is why these run here and not in the jsdom suite. Every
-// place of web/src/features/shell/places.ts, a new theme's editor and a path that leads nowhere, as alice, an admin.
+// place of web/src/features/shell/places.ts, a new theme's editor and a path that leads nowhere, as the spec's own
+// alice, an admin on the built-in theme whatever default another spec sets.
 const PATHS = [
   "/",
   "/projects",

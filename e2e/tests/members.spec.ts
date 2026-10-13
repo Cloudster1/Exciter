@@ -1,7 +1,7 @@
 import type { Page, TestInfo } from "@playwright/test";
 import { must } from "../fixtures/api";
 import { ANONYMOUS, expect, ME_PATH, signInWithPassword } from "../fixtures/auth";
-import { orgTest as test } from "../fixtures/org";
+import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
@@ -16,7 +16,7 @@ function freshEmail(testInfo: TestInfo, label: string): string {
   return `${label}-${testInfo.workerIndex}-${Date.now().toString(36)}@exciter.test`;
 }
 
-// The organization is this file's alone, so the people added here meet no other spec.
+// The people added here have addresses of their own, so they meet no other spec.
 test.describe("members", { tag: "@desktop" }, () => {
   const added: string[] = [];
 
