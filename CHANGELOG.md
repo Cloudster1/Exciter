@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Attachments (#21). A requirement takes files, picked or dropped on its
+  panel, and its statement and rationale show pictures and files pasted,
+  dropped or picked in the editor. Files go through the API alone, which
+  shows pictures, PDFs and plain text in place and downloads the rest, and
+  refuses one over `EXCITER_UPLOAD_LIMIT` (50 MB by default) with the limit.
+  A file a revision shows is only taken off the list when deleted, so
+  history still shows it; any other goes with its bytes, which the worker
+  removes for purged requirements and deleted projects too. A copy takes
+  the files and shows its own.
 - Trace links (#18). A requirement links to another, in this project or any
   other the person may view, by the organization's link types (derives,
   refines, satisfies, verifies, conflicts, relates) or a project's own. The

@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -75,7 +76,9 @@ type Server struct {
 	Labels *label.Service
 	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
 	Trace *trace.Service
-	Log   *slog.Logger
+	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
+	Attachments *attachment.Service
+	Log         *slog.Logger
 	// Telemetry counts and traces requests; nil serves without either.
 	Telemetry *observability.Telemetry
 	// Fresh remembers each caller's last write between requests; nil leaves
@@ -287,6 +290,15 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/requirements/{reqKey}/links", s.handleListLinks)
 			r.Post("/requirements/{reqKey}/links", s.handleCreateLink)
 			r.Delete("/links/{linkID}", s.handleDeleteLink)
+		})
+
+		// Attachments: seen with their requirements, uploaded and deleted by who edits them.
+		r.Group(func(r chi.Router) {
+			r.Use(requireOrg, s.attachmentsOn)
+			r.Get("/requirements/{reqKey}/attachments", s.handleListAttachments)
+			r.Post("/requirements/{reqKey}/attachments", s.handleUploadAttachment)
+			r.Get("/attachments/{attachmentID}", s.handleDownloadAttachment)
+			r.Delete("/attachments/{attachmentID}", s.handleDeleteAttachment)
 		})
 
 		// What the caller may do across the organization, and the people and groups a grant names.

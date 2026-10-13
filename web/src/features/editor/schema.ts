@@ -55,5 +55,6 @@ export function textOf(node: DocNode): string {
   if (node.type === "text") return node.text ?? "";
   if (node.type === "mention") return `@${String(node.attrs?.label ?? "")}`;
   if (node.type === "hardBreak") return "\n";
+  if (node.type === "attachment") return String(node.attrs?.fileName ?? "");
   return (node.content ?? []).map(textOf).join(node.type === "doc" ? "\n" : "");
 }

@@ -231,3 +231,11 @@ export const LINK_TYPE_PHRASE_MAX_LENGTH = 60;
 export const LINK_TYPE_MAX_RULES = 50;
 /** Where the organization's link types are kept. */
 export const LINK_TYPES_PATH = "/settings/link-types";
+
+/** The longest description and widest picture a statement keeps, the server's document.MaxAltLength and MaxImageWidth. */
+export const IMAGE_ALT_MAX_LENGTH = 500;
+export const IMAGE_MAX_WIDTH_PX = 4000;
+/** The types the server shows in place when asked, attachment.ShowsInPlace; everything else downloads. */
+export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf", "text/plain"];
+/** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */
+export const FILE_SIZE_DECIMALS_BELOW = 10;

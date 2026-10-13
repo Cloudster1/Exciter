@@ -27,6 +27,8 @@ type Endpoint struct {
 	TypeName string
 	// Linkable is the reader editing it while it is out of the trash and its project open.
 	Linkable bool
+	// Archived says its project is archived, which leaves it as it is.
+	Archived bool
 }
 
 // FindEndpoint reads the requirement a key, or a key it had, names as the reader sees it.
@@ -41,6 +43,7 @@ func FindEndpoint(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string)
 		ProjectID: l.projectID,
 		TypeID:    l.typeID(),
 		Linkable:  l.Can.Link && !l.archived,
+		Archived:  l.archived,
 	}
 	if l.Type != nil {
 		e.TypeName = l.Type.Name

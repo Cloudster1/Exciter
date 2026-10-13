@@ -57,6 +57,8 @@ func (e *ConflictError) Error() string {
 // Service keeps requirements, their revisions and their trash.
 type Service struct {
 	db *db.Cluster
+	// files brings a copy's files along; nil copies none.
+	files FileCopier
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }

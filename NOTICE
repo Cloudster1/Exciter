@@ -178,6 +178,24 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for attachments (#21):
+- backend/migrations/00220_attachments.sql: 00080_attachments.sql, on
+  requirements, with the trigger that keeps a file a revision shows and the
+  column a file is taken off the list by
+- backend/internal/attachment: attachment.go, image.go, service.go, copy.go,
+  reaper.go and attachment_test.go of internal/attachment, without versions,
+  previews, edits and public links, and the copy planned before the copy's
+  content is written
+- backend/internal/document/refs.go: RewriteReferences of
+  internal/attachment/copy.go, over rich text values too
+- backend/internal/httpapi/attachment_handlers.go: the upload, download and
+  delete handlers, with the download whole rather than by ranges
+- backend/internal/config: ParseSize and the upload limit
+- web/src/api/attachments.ts, features/attachments/AttachmentPanel.tsx and
+  features/editor/files.ts: api/attachments.ts, AttachmentPanel and
+  features/editor/attachments.ts, without versions, previews and progress,
+  and the paperclip and file icons
+
 Adapted from Stator at cf0f6f7, for labels (#19):
 - backend/internal/label: Normalize, Suggest and the labelled list of
   internal/label with label_test.go, over requirements and projects, the

@@ -19,7 +19,8 @@ x-app-db-env: &app-db-env
   # Seals an identity provider's client secret. For development only; a deployment brings its own.
   EXCITER_SECRET_KEY: ${EXCITER_SECRET_KEY:-ZXhjaXRlci1kZXZlbG9wbWVudC1vbmx5LXNlY3JldC0=}
 
-# Where uploaded files go: theme assets now, attachments later. The api makes the bucket when it is missing.
+# Where uploaded files go: theme assets and attachments. The api makes the bucket when it is missing, and the
+# worker removes the files whose rows are gone.
 x-s3-env: &s3-env
   EXCITER_S3_ENDPOINT: seaweedfs:8333
   EXCITER_S3_BUCKET: exciter-files
@@ -226,6 +227,8 @@ services:
       <<: [*app-db-env, *s3-env, *bootstrap-env]
       EXCITER_HTTP_ADDR: ":8080"
       EXCITER_LOG_LEVEL: debug
+      # The largest attachment; nginx passes any body on, so this is the one limit.
+      EXCITER_UPLOAD_LIMIT: ${UPLOAD_LIMIT:-50MB}
       EXCITER_APP_URL: http://localhost:${WEB_PORT:-8000}
       # The browser reaches Keycloak on the published port, the api at keycloak:8080; the callback defaults to
       # EXCITER_APP_URL, which nginx proxies. nginx names the client in X-Real-IP from inside the stack's network.
@@ -253,8 +256,10 @@ services:
         condition: service_completed_successfully
       valkey:
         condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
     environment:
-      <<: *app-db-env
+      <<: [*app-db-env, *s3-env]
       EXCITER_LOG_LEVEL: debug
     healthcheck:
       # The worker's metrics are its sign of life.

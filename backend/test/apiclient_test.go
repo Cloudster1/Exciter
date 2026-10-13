@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -47,11 +48,16 @@ type apiServer struct {
 	sso      *oidc.Service
 	store    objectstore.Store
 	themes   *theme.Service
-	h        *harness
+	// files is the server's attachment service, whose reaper a test runs.
+	files *attachment.Service
+	h     *harness
 
 	mu         sync.Mutex
 	lastWriter *client
 }
+
+// testUploadLimit keeps the file that is too large small enough to send quickly.
+const testUploadLimit = 64 << 10
 
 // cheapPasswords keep the suite fast; the costs themselves are the unit tests' business.
 func cheapPasswords() auth.PasswordParams {
@@ -81,15 +87,16 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 	callback := base + httpapi.APIPrefix + "/auth/oidc/callback"
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
 	store := h.bucket(t)
+	requirements := requirement.NewService(h.cluster)
 	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), store: store,
-		themes: theme.NewService(h.cluster, store), h: h}
+		themes: theme.NewService(h.cluster, store), files: attachment.NewService(h.cluster, store, requirements).WithMaxSize(testUploadLimit), h: h}
 	server := &httpapi.Server{
 		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
 		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Themes: a.themes, Projects: project.NewService(h.cluster), Perms: perm.NewService(h.cluster),
-		Requirements: requirement.NewService(h.cluster), Search: search.NewService(h.cluster),
+		Requirements: requirements, Search: search.NewService(h.cluster),
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
-		Trace: trace.NewService(h.cluster),
+		Trace: trace.NewService(h.cluster), Attachments: a.files,
 		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

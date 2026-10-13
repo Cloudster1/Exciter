@@ -3,6 +3,20 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-13: A file is kept by its own requirement's revisions (#21)
+
+A revision is never changed, so a file it shows has to stay for as long as the
+revision can be read, which is as long as its requirement exists. Deleting
+such a file takes it off the list and keeps the row and the bytes; a trigger
+refuses deleting the row while a revision of the requirement names it, and a
+purge takes the requirement, its revisions and its files together. Only the
+file's own requirement's revisions count: a copy points its revision 1 at
+files of its own, and a move keeps the requirement and with it the object
+key. A save does not check that a picture belongs to the requirement, as
+Stator's does not, so a picture pasted from another requirement shows while
+that file lasts but keeps nothing.
+**Reconsider if** people paste pictures between requirements and lose them.
+
 ## 2026-10-13: The database walks every link for a circle (#18)
 
 A link shows only to whoever views both its ends, so a circle can run through

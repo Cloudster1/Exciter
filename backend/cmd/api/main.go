@@ -16,6 +16,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -125,6 +126,7 @@ func run() error {
 		log.Warn("EXCITER_SECRET_KEY is not set, so an identity provider's client secret cannot be stored")
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
+	requirements := requirement.NewService(cluster)
 	server := &httpapi.Server{
 		DB:              cluster,
 		Auth:            accounts,
@@ -137,12 +139,13 @@ func run() error {
 		Themes:          theme.NewService(cluster, store),
 		Projects:        project.NewService(cluster),
 		Perms:           perm.NewService(cluster),
-		Requirements:    requirement.NewService(cluster),
+		Requirements:    requirements,
 		Search:          search.NewService(cluster),
 		Attributes:      attribute.NewService(cluster),
 		Workflows:       workflow.NewService(cluster),
 		Labels:          label.NewService(cluster),
 		Trace:           trace.NewService(cluster),
+		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

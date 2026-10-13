@@ -77,6 +77,8 @@ export const Icon = {
     "M8 2c1.6 1.7 2.4 3.7 2.4 6S9.6 12.3 8 14c-1.6-1.7-2.4-3.7-2.4-6S6.4 3.7 8 2Z",
   ]),
   Check: makeIcon("check", ["m3 8.5 3 3 7-7"]),
+  Paperclip: makeIcon("paperclip", ["M13 7.5 8.2 12.3a3 3 0 0 1-4.3-4.2l5.4-5.4a2 2 0 0 1 2.8 2.8L6.7 10.9a1 1 0 0 1-1.4-1.4L10 4.8"]),
+  File: makeIcon("file", ["M9 1.5H4.5a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5z", "M9 1.5V5h3.5"]),
   Download: makeIcon("download", ["M8 3v7.5", "m4.5 7 3.5 3.5L11.5 7", "M2.5 13.5h11"]),
   Lock: makeIcon("lock", ["M3.5 7.5h9v6h-9z", "M5.5 7.5v-2a2.5 2.5 0 0 1 5 0v2"]),
   Shield: makeIcon("shield", ["M8 2 3 4v4c0 3 2.2 5 5 6 2.8-1 5-3 5-6V4z", "m6 8 1.5 1.5L10.5 6"]),
