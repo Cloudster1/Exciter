@@ -382,7 +382,7 @@ describe("axe", () => {
   });
 
   it("finds nothing on a settings page somebody may not read", async () => {
-    await renderAt(AUDIT_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(AUDIT_PATH, { me: { ...signedIn, role: "member" } });
     await screen.findByRole("heading", { level: 1, name: "Audit log" });
     expect(await axeViolations()).toEqual([]);
   });

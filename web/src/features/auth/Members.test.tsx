@@ -104,7 +104,7 @@ describe("the members screen", () => {
 
   it("tells a member the screen is the administrators'", async () => {
     const sent = api();
-    await renderAt(MEMBERS_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(MEMBERS_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText(/Only an owner or administrator of this organization manages its members/)).toBeInTheDocument();
     expect(sent.filter((request) => request.path.startsWith("/users"))).toHaveLength(0);
   });

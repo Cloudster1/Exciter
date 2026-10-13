@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Signing in lands in the installation (#85). The sign-in page asks for no
+  organization, single sign-on starts at `/api/v1/auth/oidc/start` with the
+  installation's provider, and there is nothing to switch between:
+  `POST /auth/switch-org`, the organization switchers and the organizations
+  on `/auth/me` are gone. `/auth/me` answers `installation` and `role`. The
+  slugged `/auth/oidc/{orgSlug}/start` is removed rather than redirected, as
+  no release has shipped with it.
 - One installation is one team's requirements (#84). The first start makes
   the installation's one organization, called `EXCITER_NAME` (`Exciter` by
   default), which replaces `EXCITER_BOOTSTRAP_ORG_SLUG` and

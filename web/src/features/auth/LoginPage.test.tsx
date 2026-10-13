@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LAST_ORG_KEY, LOGO_WIDTH_PX, MEMBERS_PATH } from "@/config";
+import { LOGO_WIDTH_PX, MEMBERS_PATH } from "@/config";
 import { safeNext } from "@/lib/session";
 import { renderAt, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
@@ -10,7 +10,6 @@ beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
 const membersList = { "GET /users": { status: 200, body: { members: [] } }, "GET /users/requests": { status: 200, body: { requests: [] } } };
-const ssoLink = () => screen.getByRole("link", { name: "Sign in with your organization's provider" });
 
 describe("the sign-in page", () => {
   it("is where a visitor without a session lands, remembering where they were going", async () => {
@@ -22,41 +21,14 @@ describe("the sign-in page", () => {
     expect(document.querySelector("[data-top-bar]")).toBeNull();
   });
 
-  it("sends the browser to the organization's provider, and back to where it was going", async () => {
+  it("sends the browser to the installation's provider, and back to where it was going, without asking for an organization", async () => {
     stubApi({ "GET /auth/me": unauthorized });
     await renderAt(`/login?next=${encodeURIComponent(MEMBERS_PATH)}`, { me: null });
-    await userEvent.type(await screen.findByLabelText("Organization"), " Acme ");
-    expect(ssoLink()).toHaveAttribute("href", `/api/v1/auth/oidc/acme/start?next=${encodeURIComponent(MEMBERS_PATH)}`);
-  });
-
-  it("asks for the organization before starting, and remembers it once given", async () => {
-    stubApi({ "GET /auth/me": unauthorized });
-    const router = await renderAt("/login", { me: null });
-    await userEvent.click(await screen.findByRole("link", { name: "Sign in with your organization's provider" }));
-    expect(await screen.findByText("Enter your organization's short name first.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Organization")).toHaveAttribute("aria-invalid", "true");
-    expect(router.state.location.pathname).toBe("/login");
-
-    // The page is left for the provider on a real click; here the address is enough.
-    const link = ssoLink();
-    link.addEventListener("click", (event) => event.preventDefault());
-    await userEvent.type(screen.getByLabelText("Organization"), "acme");
-    await userEvent.click(link);
-    expect(localStorage.getItem(LAST_ORG_KEY)).toBe("acme");
-  });
-
-  it("starts with the organization typed last time", async () => {
-    localStorage.setItem(LAST_ORG_KEY, "acme");
-    stubApi({ "GET /auth/me": unauthorized });
-    await renderAt("/login", { me: null });
-    expect(await screen.findByLabelText("Organization")).toHaveValue("acme");
-  });
-
-  it("starts with the organization the address names over the one typed last time", async () => {
-    localStorage.setItem(LAST_ORG_KEY, "acme");
-    stubApi({ "GET /auth/me": unauthorized });
-    await renderAt("/login?org=beta", { me: null });
-    expect(await screen.findByLabelText("Organization")).toHaveValue("beta");
+    expect(await screen.findByRole("link", { name: "Continue with single sign-on" })).toHaveAttribute(
+      "href",
+      `/api/v1/auth/oidc/start?next=${encodeURIComponent(MEMBERS_PATH)}`,
+    );
+    expect(screen.queryByLabelText("Organization")).toBeNull();
   });
 
   it("explains why a sign-in through the provider came back refused", async () => {

@@ -8,9 +8,9 @@ import type { components } from "./schema";
 
 type Wire = components["schemas"];
 
-/** Who is signed in, where they act now, and where else they may. */
+/** Who is signed in, the installation and their role in it. */
 export type Me = Wire["MeResponse"];
-export type OrgRole = Wire["CurrentOrg"]["role"];
+export type OrgRole = Me["role"];
 export type Membership = Wire["Membership"];
 export type Member = Wire["Member"];
 export type CreatedMember = Wire["CreatedMember"];
@@ -62,14 +62,14 @@ export function useSetLanguage() {
   });
 }
 
-/** Whether a role may change the organization's settings. */
+/** Whether a role may change the installation's settings. */
 export function administers(role: OrgRole | undefined): boolean {
   return role === "owner" || role === "admin";
 }
 
-/** Where the browser goes to sign in through an organization's provider; a navigation, since it follows redirects. */
-export function ssoStartURL(orgSlug: string, next?: string): string {
-  const start = `${API_BASE}/auth/oidc/${encodeURIComponent(orgSlug.trim().toLowerCase())}/start`;
+/** Where the browser goes to sign in through the installation's provider; a navigation, since it follows redirects. */
+export function ssoStartURL(next?: string): string {
+  const start = `${API_BASE}/auth/oidc/start`;
   return next ? `${start}?next=${encodeURIComponent(next)}` : start;
 }
 
@@ -91,15 +91,6 @@ export function useLogout() {
     },
     // Whatever was cached belonged to the person leaving.
     onSettled: () => queryClient.clear(),
-  });
-}
-
-/** Moves the session to another of the person's organizations; everything cached was the last one's. */
-export function useSwitchOrg() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (slug: string) => (await api.POST("/auth/switch-org", { body: { slug } })).data!.organization,
-    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 

@@ -107,7 +107,7 @@ func (s *Service) Delete(ctx context.Context, slug string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM user_session WHERE proof_org_id = $1`, id); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM user_session WHERE current_org_id = $1`, id); err != nil {
 			return err
 		}
 		// Cleared first: the cascade to theme would otherwise set it null on

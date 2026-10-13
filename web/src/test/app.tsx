@@ -7,11 +7,11 @@ import { LocalizedRouter } from "@/features/shell/LocalizedRouter";
 import { createQueryClient } from "@/lib/session";
 import { buildRouter, sendToLogin } from "@/routes";
 
-/** The person every shell test is signed in as unless it says otherwise: an administrator of one organization. */
+/** The person every shell test is signed in as unless it says otherwise: an administrator of the installation. */
 export const signedIn: Me = {
   user: { id: "0195f000-0000-7000-8000-00000000000a", email: "ada@exciter.test", name: "Ada Lovelace", locale: "" },
-  organization: { id: "0195f000-0000-7000-8000-0000000000d0", slug: "demo", name: "Demo", role: "admin" },
-  organizations: [{ orgId: "0195f000-0000-7000-8000-0000000000d0", orgSlug: "demo", orgName: "Demo", role: "admin" }],
+  installation: { name: "Demo" },
+  role: "admin",
   token: null,
 };
 

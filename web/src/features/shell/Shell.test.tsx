@@ -23,11 +23,7 @@ import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
-const member: Me = { ...signedIn, organization: { ...signedIn.organization!, role: "member" } };
-const twoOrgs: Me = {
-  ...signedIn,
-  organizations: [...signedIn.organizations, { orgId: "0195f000-0000-7000-8000-0000000000d1", orgSlug: "acme", orgName: "Acme Rockets", role: "member" }],
-};
+const member: Me = { ...signedIn, role: "member" };
 const membersList = { "GET /users": { status: 200, body: { members: [] } } };
 
 describe("the shell", () => {
@@ -49,7 +45,7 @@ describe("the shell", () => {
     expect(await screen.findByText("No projects yet")).toBeInTheDocument();
   });
 
-  it("keeps the settings from somebody who does not administer the organization", async () => {
+  it("keeps the settings from somebody who does not administer the installation", async () => {
     await renderAt("/", { me: member });
     expect(document.querySelector("[data-rail]")?.querySelectorAll("a")).toHaveLength(1);
     expect(document.querySelector('[data-sidebar-group="settings"]')).toBeNull();
@@ -100,30 +96,12 @@ describe("the shell", () => {
   });
 });
 
-describe("the organization switcher", () => {
-  it("is not there for somebody in one organization", async () => {
-    await renderAt("/");
+describe("the installation in the shell", () => {
+  it("names the installation at the head of the sidebar and the start of the trail, with no switcher", async () => {
+    await renderAt("/settings/members", { me: { ...signedIn, installation: { name: "Acme Rockets" } } });
+    expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme Rockets");
+    expect(screen.getByRole("link", { name: "Acme Rockets" })).toHaveAttribute("href", "/");
     expect(document.querySelector('[data-action="switch-org"]')).toBeNull();
-  });
-
-  it("moves the session to another organization", async () => {
-    const sent = stubApi({
-      "POST /auth/switch-org": {
-        status: 200,
-        body: { organization: { id: "0195f000-0000-7000-8000-0000000000d1", slug: "acme", name: "Acme Rockets", role: "member" } },
-      },
-      "GET /auth/me": {
-        status: 200,
-        body: { ...twoOrgs, organization: { id: "0195f000-0000-7000-8000-0000000000d1", slug: "acme", name: "Acme Rockets", role: "member" } },
-      },
-    });
-    await renderAt("/", { me: twoOrgs });
-    await userEvent.click(screen.getByRole("button", { name: "Switch organization, now Demo" }));
-    const menu = screen.getByRole("menu", { name: "Your organizations" });
-    expect(within(menu).getByRole("menuitemradio", { name: "Demo" })).toHaveAttribute("aria-checked", "true");
-    await userEvent.click(within(menu).getByRole("menuitemradio", { name: "Acme Rockets" }));
-    await waitFor(() => expect(sent.find((r) => r.path === "/auth/switch-org")?.body).toEqual({ slug: "acme" }));
-    await waitFor(() => expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme Rockets"));
   });
 });
 
@@ -142,9 +120,9 @@ describe("the quick switcher", () => {
     expect(screen.getByRole("combobox")).toHaveFocus();
   });
 
-  it("lists the places and the organizations, and moves through them from the keyboard", async () => {
+  it("lists the places, and moves through them from the keyboard", async () => {
     stubApi({ "GET /audit": { status: 200, body: { entries: [], next: null } }, "GET /audit/facets": { status: 404 } });
-    const router = await renderAt("/", { me: twoOrgs });
+    const router = await renderAt("/");
     await userEvent.keyboard("{Control>}k{/Control}");
     const input = screen.getByRole("combobox");
     const options = () => within(screen.getByRole("listbox")).getAllByRole("option");
@@ -163,8 +141,6 @@ describe("the quick switcher", () => {
       `place:${THEMES_PATH}`,
       `place:${TOKENS_PATH}`,
       `place:${ARMATURE_ACCOUNT_PATH}`,
-      "org:demo",
-      "org:acme",
     ]);
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[0]!.id);
@@ -173,9 +149,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[15]).toHaveAttribute("aria-selected", "true");
+    expect(options()[13]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[15]).toHaveAttribute("aria-selected", "true");
+    expect(options()[13]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
@@ -190,8 +166,8 @@ describe("the quick switcher", () => {
   it("offers only the places a member may go, and says when nothing matches", async () => {
     await renderAt("/", { me: member });
     await userEvent.keyboard("{Control>}k{/Control}");
-    // Home, the projects, the search, their own themes, tokens and Armature account, and their organization.
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(7);
+    // Home, the projects, the search, and their own themes, tokens and Armature account.
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(6);
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     // Only the full search is left to offer.
     expect(within(screen.getByRole("listbox")).getByRole("option")).toHaveTextContent("Search everything for zzz");

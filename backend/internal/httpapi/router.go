@@ -26,6 +26,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -60,6 +61,9 @@ type Server struct {
 	// both. AuditRetention is how long the worker keeps an entry, zero forever.
 	Audit          *audit.Service
 	AuditRetention time.Duration
+	// SignInOrg is whose provider single sign-on starts with, the installation's when nil; the integration suite
+	// points it at a test's own organization until #90 gives each test its people instead.
+	SignInOrg func(context.Context) (*tenant.Org, error)
 	// Installation keeps the installation's name; nil answers its routes that it is not set up.
 	Installation *installation.Service
 	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
@@ -147,7 +151,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Get("/openapi.json", s.handleOpenAPI)
 		r.Get("/meta", s.handleMeta)
 		r.Post("/auth/login", s.handleLogin)
-		r.Get("/auth/oidc/{orgSlug}/start", s.handleOIDCStart)
+		r.Get("/auth/oidc/start", s.handleOIDCStart)
 		r.Get("/auth/oidc/callback", s.handleOIDCCallback)
 		mountPending(r, true)
 
@@ -156,7 +160,6 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/auth/logout", s.handleLogout)
 			r.Get("/auth/me", s.handleMe)
 			r.Patch("/auth/me", s.handleUpdateMe)
-			r.Post("/auth/switch-org", s.handleSwitchOrg)
 		})
 
 		r.Group(func(r chi.Router) {

@@ -12,10 +12,10 @@ export function HomeScreen() {
   const { data: me } = useMe();
   const { data: projects, isLoading, error, refetch } = useProjects();
   const navigate = useNavigate();
-  const mayCreate = administers(me?.organization?.role);
+  const mayCreate = administers(me?.role);
   return (
     <div className="mx-auto max-w-3xl" data-home>
-      <PageHeader title={t.home.title} meta={me?.organization?.name} />
+      <PageHeader title={t.home.title} meta={me?.installation.name} />
       {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
       {isLoading && <Skeleton />}
       {projects && projects.length === 0 && (

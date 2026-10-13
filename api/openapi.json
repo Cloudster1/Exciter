@@ -1538,7 +1538,7 @@
     "/auth/me": {
       "get": {
         "operationId": "me",
-        "summary": "Who is signed in, and the organizations they may act in.",
+        "summary": "Who is signed in, and how they stand in the installation.",
         "tags": [
           "auth"
         ],
@@ -1652,22 +1652,14 @@
         }
       }
     },
-    "/auth/oidc/{orgSlug}/start": {
+    "/auth/oidc/start": {
       "get": {
         "operationId": "oIDCStart",
-        "summary": "Begin signing in through the organization's identity provider.",
+        "summary": "Begin signing in through the installation's identity provider.",
         "tags": [
           "auth"
         ],
         "parameters": [
-          {
-            "name": "orgSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "next",
             "in": "query",
@@ -1680,55 +1672,6 @@
         "responses": {
           "302": {
             "description": "Found: the browser is sent on."
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/switch-org": {
-      "post": {
-        "operationId": "switchOrg",
-        "summary": "Act in another of the caller's organizations from now on.",
-        "tags": [
-          "auth"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SwitchOrgRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "organization": {
-                      "$ref": "#/components/schemas/CurrentOrg"
-                    }
-                  },
-                  "required": [
-                    "organization"
-                  ]
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -10619,36 +10562,6 @@
           "newAccount"
         ]
       },
-      "CurrentOrg": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "owner",
-              "admin",
-              "member",
-              "guest"
-            ]
-          },
-          "slug": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "slug",
-          "name",
-          "role"
-        ]
-      },
       "Cursor": {
         "type": "object",
         "properties": {
@@ -11609,21 +11522,17 @@
       "MeResponse": {
         "type": "object",
         "properties": {
-          "organization": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/CurrentOrg"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "installation": {
+            "$ref": "#/components/schemas/Installation"
           },
-          "organizations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Membership"
-            }
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member",
+              "guest"
+            ]
           },
           "token": {
             "oneOf": [
@@ -11641,8 +11550,8 @@
         },
         "required": [
           "user",
-          "organization",
-          "organizations",
+          "installation",
+          "role",
           "token"
         ]
       },
@@ -13763,17 +13672,6 @@
         },
         "required": [
           "type"
-        ]
-      },
-      "SwitchOrgRequest": {
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "slug"
         ]
       },
       "Tag": {

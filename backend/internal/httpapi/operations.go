@@ -95,17 +95,15 @@ var operations = []operation{
 	// Signing in with a password or through the organization's identity provider, and the session's own settings.
 	{method: "POST", path: "/auth/login", handler: "handleLogin", tag: "auth", summary: "Sign in a local account with email and password, and set the session cookie.", public: true,
 		request: loginRequest{}, responses: ok(meResponse{})},
-	{method: "GET", path: "/auth/oidc/{orgSlug}/start", handler: "handleOIDCStart", tag: "auth", summary: "Begin signing in through the organization's identity provider.", public: true, redirect: true,
+	{method: "GET", path: "/auth/oidc/start", handler: "handleOIDCStart", tag: "auth", summary: "Begin signing in through the installation's identity provider.", public: true, redirect: true,
 		query: []param{{name: "next", description: "A path of this application to land on afterwards."}}, responses: map[int]any{}},
 	{method: "GET", path: "/auth/oidc/callback", handler: "handleOIDCCallback", tag: "auth", summary: "Where the identity provider sends the browser back; sets the session cookie.", public: true, redirect: true,
 		query: []param{{name: "state"}, {name: "code"}, {name: "error"}}, responses: map[int]any{}},
 	{method: "POST", path: "/auth/logout", handler: "handleLogout", tag: "auth", summary: "End the session.", responses: none()},
-	{method: "GET", path: "/auth/me", handler: "handleMe", tag: "auth", summary: "Who is signed in, and the organizations they may act in.",
-		tool: "whoami", toolHelp: "Who the caller is and which organization they act in.", responses: ok(meResponse{})},
+	{method: "GET", path: "/auth/me", handler: "handleMe", tag: "auth", summary: "Who is signed in, and how they stand in the installation.",
+		tool: "whoami", toolHelp: "Who the caller is and the role they have.", responses: ok(meResponse{})},
 	{method: "PATCH", path: "/auth/me", handler: "handleUpdateMe", tag: "auth", summary: "Change the caller's own settings, such as the interface language.",
 		request: updateMeRequest{}, responses: ok(meResponse{})},
-	{method: "POST", path: "/auth/switch-org", handler: "handleSwitchOrg", tag: "auth", summary: "Act in another of the caller's organizations from now on.",
-		request: switchOrgRequest{}, responses: ok(env{"organization": auth.CurrentOrg{}})},
 
 	// The organization's people, for its administrators.
 	{method: "GET", path: "/users", handler: "handleListMembers", orgWide: true, tag: "members",

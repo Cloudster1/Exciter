@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { useMe, useSwitchOrg } from "@/api/auth";
+import { useMe } from "@/api/auth";
 import { useQuickSearch } from "@/api/search";
 import { cx } from "@/components/ui";
 import { useEscape, useFocusReturn } from "@/components/ui/overlay";
@@ -16,8 +16,6 @@ interface Option {
   label: string;
   hint: string;
   icon: IconName;
-  /** True for the organization the reader is in now, which picking leaves as it is. */
-  current?: boolean;
   pick: () => void;
 }
 
@@ -31,12 +29,11 @@ function matches(label: string, typed: string): boolean {
     .every((part) => words.some((word) => word.startsWith(part)));
 }
 
-/** The Ctrl K palette: requirements by key or title as the person types, the places this build has and their
- * organizations, and a way on to the full search. */
+/** The Ctrl K palette: requirements by key or title as the person types, the places this build has, and a way on
+ * to the full search. */
 export function QuickSwitcher({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const { data: me } = useMe();
-  const switchOrg = useSwitchOrg();
   const ref = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
@@ -51,14 +48,6 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
     hint: place.section ?? "",
     icon: place.icon,
     pick: () => void navigate({ to: place.path }),
-  }));
-  const organizations: Option[] = (me?.organizations ?? []).map((org) => ({
-    key: `org:${org.orgSlug}`,
-    label: org.orgName,
-    hint: t.switcher.organization,
-    icon: "Users",
-    current: org.orgSlug === me?.organization?.slug,
-    pick: () => org.orgSlug !== me?.organization?.slug && switchOrg.mutate(org.orgSlug),
   }));
   const typed = text.trim();
   const words = useDebounced(typed, QUICK_SEARCH_DEBOUNCE_MS);
@@ -85,7 +74,7 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
         },
       ]
     : [];
-  const options = [...requirements, ...[...places, ...organizations].filter((option) => matches(`${option.hint} ${option.label}`, typed)), ...searchEverything];
+  const options = [...requirements, ...places.filter((option) => matches(`${option.hint} ${option.label}`, typed)), ...searchEverything];
   const current = Math.min(active, options.length - 1);
   const optionId = (index: number) => `${listId}-${index}`;
 
@@ -169,7 +158,6 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
                   >
                     <Glyph className="shrink-0 text-ink-muted" />
                     <span className="min-w-0 flex-1 truncate text-ink">{option.label}</span>
-                    {option.current && <span className="shrink-0 text-2xs text-ink-muted">{t.switcher.currentOrg}</span>}
                     <span className="max-w-[45%] shrink-0 truncate text-2xs text-ink-muted">{option.hint}</span>
                   </div>
                 );

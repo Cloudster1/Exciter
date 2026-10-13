@@ -1,28 +1,12 @@
-import { useState, type FormEvent, type MouseEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import { ssoStartURL, useLogin } from "@/api/auth";
 import { Button, ButtonLink, Card, ErrorBanner, Field } from "@/components/ui";
 import { Logo } from "@/components/Logo";
-import { APP_NAME, LAST_ORG_KEY, SSO_WAITING } from "@/config";
+import { APP_NAME, SSO_WAITING } from "@/config";
 import { t } from "@/i18n";
 import { safeNext } from "@/lib/session";
-
-function readLastOrg(): string {
-  try {
-    return window.localStorage.getItem(LAST_ORG_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function rememberOrg(slug: string) {
-  try {
-    window.localStorage.setItem(LAST_ORG_KEY, slug);
-  } catch {
-    // A browser that refuses storage asks for the organization every time.
-  }
-}
 
 /** The reason the API put on the address after a failed sign-in, as a sentence. */
 export function ssoFailure(reason: string | undefined): string | null {
@@ -31,13 +15,11 @@ export function ssoFailure(reason: string | undefined): string | null {
   return known[reason] ?? t.login.failures.failed;
 }
 
-/** The way in: the organization's identity provider, or a password for somebody given one here. */
-export function LoginPage({ next, sso, org: named }: { next?: string; sso?: string; org?: string }) {
+/** The way in: the installation's identity provider, or a password for somebody given one here. */
+export function LoginPage({ next, sso }: { next?: string; sso?: string }) {
   const navigate = useNavigate();
   const router = useRouter();
   const login = useLogin();
-  const [org, setOrg] = useState(() => named ?? readLastOrg());
-  const [orgError, setOrgError] = useState<string>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const target = safeNext(next);
@@ -46,16 +28,6 @@ export function LoginPage({ next, sso, org: named }: { next?: string; sso?: stri
   const failure = waiting ? null : ssoFailure(sso);
   const fields = login.error instanceof ApiError ? login.error.fields : {};
   const formError = login.error && Object.keys(fields).length === 0 ? login.error.message : null;
-
-  // A navigation, not a fetch: the browser has to follow the provider's redirects.
-  function startSSO(event: MouseEvent<HTMLAnchorElement>) {
-    if (!org.trim()) {
-      event.preventDefault();
-      setOrgError(t.login.organizationMissing);
-      return;
-    }
-    rememberOrg(org.trim());
-  }
 
   function signIn(event: FormEvent) {
     event.preventDefault();
@@ -80,21 +52,8 @@ export function LoginPage({ next, sso, org: named }: { next?: string; sso?: stri
             </div>
           )}
           {failure && <ErrorBanner>{failure}</ErrorBanner>}
-          <Field
-            label={t.login.organization}
-            placeholder={t.login.organizationPlaceholder}
-            autoComplete="organization"
-            autoCapitalize="none"
-            spellCheck={false}
-            value={org}
-            onChange={(event) => {
-              setOrg(event.target.value);
-              setOrgError(undefined);
-            }}
-            hint={t.login.organizationHint}
-            error={orgError}
-          />
-          <ButtonLink variant="primary" className="w-full" href={ssoStartURL(org, target)} onClick={startSSO} data-action="sso">
+          {/* A navigation, not a fetch: the browser has to follow the provider's redirects. */}
+          <ButtonLink variant="primary" className="w-full" href={ssoStartURL(target)} data-action="sso">
             {t.login.sso}
           </ButtonLink>
         </Card>

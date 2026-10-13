@@ -34,7 +34,7 @@ func (h *harness) signInRows(t *testing.T, m member) {
 		{`INSERT INTO oidc_login (state, org_id, nonce, code_verifier, expires_at) VALUES (gen_random_uuid()::text, $1, 'n', 'v', now() + interval '1 hour')`, []any{m.org}},
 		{`INSERT INTO org_join_request (org_id, user_id) VALUES ($1, $2)`, []any{m.org, m.user}},
 		{`INSERT INTO user_identity (issuer, subject, user_id) VALUES ('https://id.test', gen_random_uuid()::text, $1)`, []any{m.user}},
-		{`INSERT INTO user_session (user_id, token_hash, current_org_id, proof_org_id, proof, expires_at) VALUES ($1, $2, $3, $3, 'oidc', $4)`, []any{m.user, digest, m.org, time.Now().Add(time.Hour)}},
+		{`INSERT INTO user_session (user_id, token_hash, current_org_id, proof, expires_at) VALUES ($1, $2, $3, 'oidc', $4)`, []any{m.user, digest, m.org, time.Now().Add(time.Hour)}},
 	} {
 		if _, err := h.super.Exec(ctx, sql.query, sql.args...); err != nil {
 			t.Fatalf("%s: %v", sql.query, err)

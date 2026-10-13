@@ -34,19 +34,13 @@ func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) strin
 	return email
 }
 
-// A person signs in with a password, reads who they are, moves to another of
-// their organizations, and signs out, the way the web client does.
+// A person signs in with a password, reads who they are and where, and signs out,
+// the way the web client does.
 func TestASessionOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
 	home := h.makeMember(t, "signin-home")
-	away := h.makeMember(t, "signin-away")
 	email := bootstrapAdmin(t, h, a, home.org)
-	if _, err := h.super.Exec(context.Background(), `
-		INSERT INTO org_member (org_id, user_id, org_role) SELECT $1, id, 'member' FROM app_user WHERE email = $2`, away.org, email); err != nil {
-		t.Fatal(err)
-	}
-	h.settle(t)
 
 	b := a.anonymous()
 	for _, wrong := range []map[string]any{
@@ -62,11 +56,11 @@ func TestASessionOverTheAPI(t *testing.T) {
 	}
 
 	signedIn := want(t, b.post(t, "/api/v1/auth/login", map[string]any{"email": email, "password": adminPassword}), http.StatusOK, "sign in")
-	if org := obj(t, signedIn, "organization"); org["slug"] != h.slugOf(t, home.org) || org["role"] != "owner" {
-		t.Errorf("the session acts in %v, want the first organization as its owner", org)
+	if signedIn.Body["role"] != "owner" || obj(t, signedIn, "installation")["name"] == "" {
+		t.Errorf("the session lands as %s, want the installation's owner", signedIn.Raw)
 	}
-	if n := len(list(t, signedIn, "organizations")); n != 2 {
-		t.Errorf("the person may act in %d organizations, want 2", n)
+	if _, listed := signedIn.Body["organizations"]; listed {
+		t.Errorf("the sign-in still lists organizations: %s", signedIn.Raw)
 	}
 	cookie := signedIn.Header.Get("Set-Cookie")
 	for _, attr := range []string{"HttpOnly", "SameSite=Lax", "Path=/"} {
@@ -83,16 +77,6 @@ func TestASessionOverTheAPI(t *testing.T) {
 		t.Errorf("an unknown language answers %s", code)
 	}
 
-	switched := want(t, b.post(t, "/api/v1/auth/switch-org", map[string]any{"slug": h.slugOf(t, away.org)}), http.StatusOK, "switch")
-	if obj(t, switched, "organization")["role"] != "member" {
-		t.Errorf("after switching the person is %s", switched.Raw)
-	}
-	if code := errorCode(t, want(t, b.post(t, "/api/v1/auth/switch-org", map[string]any{"slug": "no-such-org"}), http.StatusForbidden, "switch nowhere")); code != "not_a_member" {
-		t.Errorf("switching to no organization answers %s", code)
-	}
-	// A member of away, the organization's people are no longer theirs to read.
-	want(t, b.get(t, "/api/v1/users"), http.StatusForbidden, "a member reads the people")
-
 	want(t, b.post(t, "/api/v1/auth/logout", nil), http.StatusNoContent, "sign out")
 	want(t, b.get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "read who I am after signing out")
 	want(t, a.anonymous().post(t, "/api/v1/auth/logout", nil), http.StatusUnauthorized, "sign out without a session")
@@ -106,8 +90,8 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	home := h.makeMember(t, "signin-revoked")
 	memberID := h.addPerson(t, home.org, "member")
 	c := a.as(t, memberID, home.org)
-	if me := want(t, c.get(t, "/api/v1/auth/me"), http.StatusOK, "read who I am"); me.Body["organization"] == nil {
-		t.Fatalf("the member acts in no organization: %s", me.Raw)
+	if me := want(t, c.get(t, "/api/v1/auth/me"), http.StatusOK, "read who I am"); me.Body["role"] != "member" {
+		t.Fatalf("the member does not stand as a member: %s", me.Raw)
 	}
 
 	setActive := func(active bool) {

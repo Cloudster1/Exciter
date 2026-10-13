@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/seed"
+	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/testorg"
 )
 
@@ -192,12 +193,11 @@ func TestThrowawayOrganizations(t *testing.T) {
 
 	alice, bob := newBrowser(t, a), newBrowser(t, a)
 	t.Run("alice and bob sign in and alice leaves a shared default theme with a file", func(t *testing.T) {
-		alice.signIn(t, slug, "alice", alicePassword, "")
-		bob.signIn(t, slug, "bob", bobPassword, "")
+		made := tenant.Org{ID: orgID, Slug: slug}
+		alice.signIn(t, made, "alice", alicePassword, "")
+		bob.signIn(t, made, "bob", bobPassword, "")
 		for who, b := range map[string]*browser{"admin": alice, "member": bob} {
-			status, me := b.me(t)
-			current, _ := me["organization"].(map[string]any)
-			if status != http.StatusOK || current["slug"] != slug || current["role"] != who {
+			if status, me := b.me(t); status != http.StatusOK || me["role"] != who {
 				t.Fatalf("/auth/me = %d %v, want %s as %s", status, me, slug, who)
 			}
 		}
@@ -223,7 +223,7 @@ func TestThrowawayOrganizations(t *testing.T) {
 
 	before := h.rowsNaming(t, orgID)
 	for _, table := range []string{"org.id", "org_member.org_id", "oidc_provider.org_id", "groups.org_id", "theme.org_id", "theme_asset.org_id",
-		"user_theme.org_id", "audit_log.org_id", "user_session.proof_org_id"} {
+		"user_theme.org_id", "audit_log.org_id", "user_session.current_org_id"} {
 		if before[table] == 0 {
 			t.Errorf("before deleting, %s names the organization in no row, so the check after proves nothing there", table)
 		}

@@ -41,7 +41,7 @@ function ThemesPage() {
   const { data, isLoading, error } = useThemes();
   const { data: viewer } = useMe();
   const me = viewer?.user.id;
-  const administers = canAdminister(viewer?.organization?.role);
+  const administers = canAdminister(viewer?.role);
   const { data: activeData } = useActiveTheme();
   const choose = useChooseTheme();
   const setDefault = useSetDefaultTheme();

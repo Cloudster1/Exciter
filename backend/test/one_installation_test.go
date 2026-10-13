@@ -201,8 +201,8 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	if got := obj(t, want(t, member.get(t, "/api/v1/installation"), http.StatusOK, "a member reads it"), "installation"); got["name"] != "Acme requirements" {
 		t.Errorf("a member reads %v", got)
 	}
-	if org := obj(t, want(t, member.get(t, "/api/v1/auth/me"), http.StatusOK, "who I am"), "organization"); org["name"] != "Acme requirements" {
-		t.Errorf("the shell reads the installation as %v", org)
+	if inst := obj(t, want(t, member.get(t, "/api/v1/auth/me"), http.StatusOK, "who I am"), "installation"); inst["name"] != "Acme requirements" {
+		t.Errorf("the shell reads the installation as %v", inst)
 	}
 	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = 'installation.renamed' AND actor_user_id = $2
 		AND data ->> 'to' = 'Acme requirements'`, home.org, home.user); n != 1 {
@@ -223,5 +223,16 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	touchesNothing(t, h.appConn(t, home.org, memberID), "a member renaming through SQL", `UPDATE org SET name = 'Mine' WHERE id = $1`, home.org)
 	if n := h.countRows(t, `SELECT count(*) FROM org WHERE id = $1 AND name = 'Acme requirements'`, home.org); n != 1 {
 		t.Error("a member's statement changed the name")
+	}
+}
+
+// Single sign-on names no organization: it starts with the installation's, the oldest, which the seed made.
+func TestSingleSignOnIsTheInstallations(t *testing.T) {
+	h := newHarness(t)
+	a := newAPIServer(t, h)
+	h.makeOrg(t, "younger")
+	org, err := a.accounts.InstallationOrg(context.Background())
+	if err != nil || org.Slug != installation.Slug {
+		t.Fatalf("single sign-on starts with %+v (%v), want the installation's organization %s", org, err, installation.Slug)
 	}
 }

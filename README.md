@@ -32,8 +32,7 @@ make help               # every target
 ```
 
 The stack's installation signs in through its Keycloak: at the web address
-`make up` prints, enter the organization `exciter` (until #85 drops the
-field), choose "Sign in with your organization's provider" and sign in as
+`make up` prints, choose "Continue with single sign-on" and sign in as
 `alice` (alice@suite.test, an administrator) with the password
 `alice password`, or as `bob`, a member. Its owner `admin@exciter.test` signs
 in with the password `exciter admin password`. `EXCITER_NAME` sets what a

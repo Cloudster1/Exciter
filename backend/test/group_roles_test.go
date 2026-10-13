@@ -200,7 +200,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 	admin, _ := adminOf(t, h, a, org)
 
 	t.Run("before the mapping carol waits like anybody", func(t *testing.T) {
-		if landing := newBrowser(t, a).signIn(t, org.Slug, "carol", carolPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
+		if landing := newBrowser(t, a).signIn(t, org, "carol", carolPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("carol landed on %q", landing)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM org_join_request r JOIN app_user u ON u.id = r.user_id WHERE r.org_id = $1 AND u.email = $2`, org.ID, carolEmail); n != 1 {
@@ -213,7 +213,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 
 	t.Run("once quality is mapped carol joins directly", func(t *testing.T) {
 		b := newBrowser(t, a)
-		if landing := b.signIn(t, org.Slug, "carol", carolPassword, "/settings"); landing != "http://"+appHost+"/settings" {
+		if landing := b.signIn(t, org, "carol", carolPassword, "/settings"); landing != "http://"+appHost+"/settings" {
 			t.Fatalf("carol landed on %q, want where she was going", landing)
 		}
 		if role := b.roleIn(t); role != "member" {
@@ -241,7 +241,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 	})
 
 	t.Run("bob, in no mapped group, still waits", func(t *testing.T) {
-		if landing := newBrowser(t, a).signIn(t, org.Slug, "bob", bobPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
+		if landing := newBrowser(t, a).signIn(t, org, "bob", bobPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("bob landed on %q", landing)
 		}
 		if role, _ := h.standing(t, org, bobEmail); role != "" {

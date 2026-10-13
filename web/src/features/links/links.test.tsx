@@ -227,7 +227,7 @@ describe("link types", () => {
 
   it("refuses the organization's page to a member", async () => {
     stubApi({ "GET /link-types": { status: 200, body: { linkTypes: [derives] } } });
-    await renderAt(LINK_TYPES_PATH, { me: { ...signedIn, organization: { ...signedIn.organization!, role: "member" } } });
+    await renderAt(LINK_TYPES_PATH, { me: { ...signedIn, role: "member" } });
     expect(await screen.findByText(/Only the organization's owners and administrators change its link types/)).toBeInTheDocument();
   });
 });

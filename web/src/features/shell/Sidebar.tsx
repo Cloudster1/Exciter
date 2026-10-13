@@ -61,7 +61,7 @@ function OrgHead({ children }: { children?: ReactNode }) {
     <div className="flex h-12 items-center gap-2 border-b border-border px-3">
       <LogoMark className="shrink-0 rounded-control" />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink" data-sidebar-org>
-        {me?.organization?.name ?? APP_NAME}
+        {me?.installation.name ?? APP_NAME}
       </span>
       {children}
     </div>

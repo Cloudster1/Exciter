@@ -55,7 +55,7 @@ function allPlaces(): Place[] {
 
 /** Every place the signed-in person may go, in the order the sidebar lists them. */
 export function placesFor(me: Me | undefined): Place[] {
-  const admin = administers(me?.organization?.role);
+  const admin = administers(me?.role);
   return allPlaces().filter((place) => admin || !place.adminOnly);
 }
 

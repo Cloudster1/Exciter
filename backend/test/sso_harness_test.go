@@ -201,9 +201,10 @@ var loginFormAction = regexp.MustCompile(`id="kc-form-login"[^>]*action="([^"]+)
 
 // signIn goes the whole way a person does, authorization code with PKCE through Keycloak's own login form, and
 // returns where the app was told to land; the replica then holds what the sign-in wrote.
-func (b *browser) signIn(t *testing.T, orgSlug, username, password, next string) string {
+func (b *browser) signIn(t *testing.T, org tenant.Org, username, password, next string) string {
 	t.Helper()
-	start := b.api.URL + httpapi.APIPrefix + "/auth/oidc/" + orgSlug + "/start"
+	b.api.signInOrg = &org
+	start := b.api.URL + httpapi.APIPrefix + "/auth/oidc/start"
 	if next != "" {
 		start += "?next=" + url.QueryEscape(next)
 	}
@@ -253,15 +254,14 @@ func (b *browser) sessionCookie(t *testing.T) string {
 	return ""
 }
 
-// roleIn is the role the browser's session acts with in its organization.
+// roleIn is the role the browser's session acts with.
 func (b *browser) roleIn(t *testing.T) string {
 	t.Helper()
 	status, me := b.me(t)
 	if status != http.StatusOK {
 		t.Fatalf("/auth/me = %d %v", status, me)
 	}
-	current, _ := me["organization"].(map[string]any)
-	role, _ := current["role"].(string)
+	role, _ := me["role"].(string)
 	return role
 }
 
@@ -270,7 +270,7 @@ func (b *browser) roleIn(t *testing.T) string {
 func signedIn(t *testing.T, a *apiServer, org tenant.Org, username, password string) *browser {
 	t.Helper()
 	b := newBrowser(t, a)
-	if landing := b.signIn(t, org.Slug, username, password, "/"); landing != "http://"+appHost+"/" {
+	if landing := b.signIn(t, org, username, password, "/"); landing != "http://"+appHost+"/" {
 		t.Fatalf("%s landed on %q", username, landing)
 	}
 	return b
