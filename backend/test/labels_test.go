@@ -28,9 +28,9 @@ func TestLabelsOverTheAPI(t *testing.T) {
 	f := newProjectFixture(t)
 	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": lblKey, "name": "Labelled"}), http.StatusCreated, "make a project"), "project")
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": shutKey, "name": "Shut"}), http.StatusCreated, "make a second project")
-	guestViewerID := f.h.addPerson(t, f.home.org, "guest")
-	f.h.grantAs(t, f.home.org, uuid.MustParse(project["id"].(string)), guestViewerID, "viewer")
-	viewer := f.api.as(t, guestViewerID, f.home.org)
+	guestViewerID := f.h.addPerson(t, "guest")
+	f.h.grantAs(t, uuid.MustParse(project["id"].(string)), guestViewerID, "viewer")
+	viewer := f.api.as(t, guestViewerID)
 	editor := f.plain
 
 	made := obj(t, want(t, editor.post(t, "/api/v1/projects/"+lblKey+"/requirements", map[string]any{

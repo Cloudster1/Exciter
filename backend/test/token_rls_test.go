@@ -13,7 +13,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
-const insertToken = `INSERT INTO api_token (org_id, user_id, name, token_hash, projects_only) VALUES ($1, $2, 'script', $3, $4) RETURNING id`
+const insertToken = `INSERT INTO api_token (user_id, name, token_hash, projects_only) VALUES ($1, 'script', $2, $3) RETURNING id`
 
 func aDigest(t *testing.T) []byte {
 	t.Helper()
@@ -57,13 +57,13 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 	ctx := context.Background()
 	admin := w.h.appConn(t, w.a.user)
 	var mine uuid.UUID
-	if err := w.editor.QueryRow(ctx, insertToken, w.a.org, w.editorID, aDigest(t), false).Scan(&mine); err != nil {
+	if err := w.editor.QueryRow(ctx, insertToken, w.editorID, aDigest(t), false).Scan(&mine); err != nil {
 		t.Fatalf("a member makes a token of their own: %v", err)
 	}
 
 	t.Run("made, seen and revoked by its owner, and seen and revoked by an administrator", func(t *testing.T) {
 		var id uuid.UUID
-		if err := w.editor.QueryRow(ctx, insertToken, w.a.org, w.viewerID, aDigest(t), false).Scan(&id); err == nil {
+		if err := w.editor.QueryRow(ctx, insertToken, w.viewerID, aDigest(t), false).Scan(&id); err == nil {
 			t.Error("a member made a token in somebody else's name")
 		}
 		if seesRows(t, w.viewer, `SELECT count(*) FROM api_token WHERE id = $1`, mine) != 0 {
@@ -82,7 +82,7 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 			t.Errorf("a token's reach was changed after it was made: %v", err)
 		}
 		var spare uuid.UUID
-		if err := w.editor.QueryRow(ctx, insertToken, w.a.org, w.editorID, aDigest(t), false).Scan(&spare); err != nil {
+		if err := w.editor.QueryRow(ctx, insertToken, w.editorID, aDigest(t), false).Scan(&spare); err != nil {
 			t.Fatal(err)
 		}
 		if tag, err := admin.Exec(ctx, `DELETE FROM api_token WHERE id = $1`, spare); err != nil || tag.RowsAffected() != 1 {
@@ -96,16 +96,16 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 			t.Fatal(err)
 		}
 		var limited uuid.UUID
-		if err := tx.QueryRow(ctx, insertToken, w.a.org, w.viewerID, aDigest(t), true).Scan(&limited); err != nil {
+		if err := tx.QueryRow(ctx, insertToken, w.viewerID, aDigest(t), true).Scan(&limited); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO api_token_project (org_id, token_id, project_id) VALUES ($1, $2, $3)`, w.a.org, limited, w.here); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO api_token_project (token_id, project_id) VALUES ($1, $2)`, limited, w.here); err != nil {
 			t.Fatalf("a viewer names the project they view: %v", err)
 		}
 		if _, err := tx.Exec(ctx, `SAVEPOINT p`); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO api_token_project (org_id, token_id, project_id) VALUES ($1, $2, $3)`, w.a.org, limited, w.other); err == nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO api_token_project (token_id, project_id) VALUES ($1, $2)`, limited, w.other); err == nil {
 			t.Error("a token named a project its owner may not view")
 		}
 		if _, err := tx.Exec(ctx, `ROLLBACK TO SAVEPOINT p`); err != nil {
@@ -114,10 +114,10 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 		if err := tx.Commit(ctx); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := w.viewer.Exec(ctx, `INSERT INTO api_token_project (org_id, token_id, project_id) VALUES ($1, $2, $3)`, w.a.org, limited, w.here); err == nil {
+		if _, err := w.viewer.Exec(ctx, `INSERT INTO api_token_project (token_id, project_id) VALUES ($1, $2)`, limited, w.here); err == nil {
 			t.Error("a project was added to a token made earlier")
 		}
-		if _, err := w.editor.Exec(ctx, `INSERT INTO api_token_project (org_id, token_id, project_id) VALUES ($1, $2, $3)`, w.a.org, mine, w.here); err == nil {
+		if _, err := w.editor.Exec(ctx, `INSERT INTO api_token_project (token_id, project_id) VALUES ($1, $2)`, mine, w.here); err == nil {
 			t.Error("a full token was narrowed afterwards")
 		}
 	})
@@ -143,8 +143,7 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 			t.Error("a limited token reads the organization's tokens")
 		}
 		var id uuid.UUID
-		if err := limited.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+limKey+`', 'Limited', current_actor_id()) RETURNING id`,
-			w.a.org).Scan(&id); err == nil {
+		if err := limited.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+limKey+`', 'Limited', current_actor_id()) RETURNING id`).Scan(&id); err == nil {
 			t.Error("a limited token made a project")
 		}
 		// The limit is the caller's alone: asked about somebody else, the rules answer for that person.

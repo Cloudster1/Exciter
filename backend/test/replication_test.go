@@ -51,7 +51,7 @@ func (h *harness) openCluster(t *testing.T, maxLag, health time.Duration) *db.Cl
 func rename(t *testing.T, c *db.Cluster, m member, name string) db.LSN {
 	t.Helper()
 	lsn, err := c.Write(m.ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `UPDATE org SET name = $1`, name)
+		_, err := tx.Exec(ctx, `UPDATE installation SET name = $1`, name)
 		return err
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func named(t *testing.T, c *db.Cluster, ctx context.Context, name string) int {
 	t.Helper()
 	var n int
 	if err := c.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		return tx.QueryRow(ctx, `SELECT count(*) FROM org WHERE name = $1`, name).Scan(&n)
+		return tx.QueryRow(ctx, `SELECT count(*) FROM installation WHERE name = $1`, name).Scan(&n)
 	}); err != nil {
 		t.Fatalf("read: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestWriteReportsThePositionPastItsCommit(t *testing.T) {
 
 	var inside db.LSN
 	after, err := h.cluster.Write(m.ctx, func(ctx context.Context, tx db.DBTX) error {
-		if _, err := tx.Exec(ctx, `UPDATE org SET name = 'commit'`); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE installation SET name = 'commit'`); err != nil {
 			return err
 		}
 		var text string
@@ -261,7 +261,7 @@ func TestAReadSeesOneMomentThroughout(t *testing.T) {
 	err := c.Read(m.ctx, func(ctx context.Context, tx db.DBTX) error {
 		count := func() int {
 			var n int
-			if err := tx.QueryRow(ctx, `SELECT count(*) FROM org WHERE name = 'mid-read'`).Scan(&n); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT count(*) FROM installation WHERE name = 'mid-read'`).Scan(&n); err != nil {
 				t.Fatalf("count: %v", err)
 			}
 			return n

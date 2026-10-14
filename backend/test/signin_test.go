@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -20,8 +19,8 @@ import (
 // adminPassword is the bootstrap administrator's in these tests; long enough for the rule.
 const adminPassword = "a long enough password"
 
-// bootstrapAdmin makes a local owner of the organization, as seed bootstrap does, and returns the address.
-func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) string {
+// bootstrapAdmin makes a local owner of the installation, as seed bootstrap does, and returns the address.
+func bootstrapAdmin(t *testing.T, h *harness, a *apiServer) string {
 	t.Helper()
 	email := "owner-" + h.suffix() + "@example.test"
 	ctx := context.Background()
@@ -38,8 +37,7 @@ func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) strin
 func TestASessionOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.owner(t, "signin-home")
-	email := bootstrapAdmin(t, h, a, home.org)
+	email := bootstrapAdmin(t, h, a)
 
 	b := a.anonymous()
 	for _, wrong := range []map[string]any{
@@ -86,9 +84,8 @@ func TestASessionOverTheAPI(t *testing.T) {
 func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.owner(t, "signin-revoked")
-	memberID := h.addPerson(t, home.org, "member")
-	c := a.as(t, memberID, home.org)
+	memberID := h.addPerson(t, "member")
+	c := a.as(t, memberID)
 	if me := want(t, c.get(t, "/api/v1/auth/me"), http.StatusOK, "read who I am"); me.Body["role"] != "member" {
 		t.Fatalf("the member does not stand as a member: %s", me.Raw)
 	}
@@ -106,7 +103,7 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	}
 	setActive(true)
 
-	if _, err := h.super.Exec(context.Background(), `DELETE FROM org_member WHERE user_id = $1`, memberID); err != nil {
+	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET role = NULL WHERE id = $1`, memberID); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
@@ -115,8 +112,8 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 		t.Errorf("letting the member go left %d sessions, want them ended", n)
 	}
 
-	email := bootstrapAdmin(t, h, a, home.org)
-	if _, err := h.super.Exec(context.Background(), `DELETE FROM org_member WHERE user_id = (SELECT id FROM app_user WHERE email = $1)`, email); err != nil {
+	email := bootstrapAdmin(t, h, a)
+	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET role = NULL WHERE email = $1`, email); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
@@ -149,7 +146,6 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 		t.Errorf("the app role reads %d sessions", n)
 	}
 	for what, sql := range map[string]string{
-		"moving a sign-in somewhere else":   `UPDATE user_session SET current_org_id = '` + uuid.NewString() + `' WHERE id = '` + sessionID + `'`,
 		"changing how a session was proven": `UPDATE user_session SET proof = 'password' WHERE id = '` + sessionID + `'`,
 	} {
 		_, err := h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
@@ -168,8 +164,7 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 func TestTheBootstrapIsIdempotent(t *testing.T) {
 	h := newHarness(t)
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
-	org := h.singleSignOn(t)
-	slug := org.Slug
+	h.singleSignOn(t)
 	email := "boot-" + h.suffix() + "@example.test"
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })
 	ctx := context.Background()
@@ -187,8 +182,7 @@ func TestTheBootstrapIsIdempotent(t *testing.T) {
 	}
 	var role string
 	if err := h.super.QueryRow(context.Background(), `
-		SELECT m.org_role FROM org_member m JOIN org o ON o.id = m.org_id JOIN app_user u ON u.id = m.user_id
-		WHERE o.slug = $1 AND u.email = $2`, slug, email).Scan(&role); errors.Is(err, pgx.ErrNoRows) || role != "owner" {
+		SELECT role FROM app_user WHERE email = $1 AND role IS NOT NULL`, email).Scan(&role); errors.Is(err, pgx.ErrNoRows) || role != "owner" {
 		t.Errorf("the administrator is %q (%v), want the owner", role, err)
 	}
 	if _, err := accounts.EnsureAdmin(ctx, email, "", "short"); !errors.Is(err, auth.ErrPasswordTooShort) {

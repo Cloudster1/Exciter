@@ -173,7 +173,7 @@ func TestAFirstStartMakesTheOneOrganization(t *testing.T) {
 	if err != nil || !first.Created || first.ID == uuid.Nil {
 		t.Fatalf("the first start = %+v, %v; want the installation made", first, err)
 	}
-	if _, err := super.Exec(ctx, `UPDATE org SET name = 'Renamed'`); err != nil {
+	if _, err := super.Exec(ctx, `UPDATE installation SET name = 'Renamed'`); err != nil {
 		t.Fatal(err)
 	}
 	again, err := seed.Ensure(ctx, cluster, "Something else")
@@ -182,7 +182,7 @@ func TestAFirstStartMakesTheOneOrganization(t *testing.T) {
 	}
 	var count int
 	var name string
-	if err := super.QueryRow(ctx, `SELECT count(*), min(name) FROM org`).Scan(&count, &name); err != nil || count != 1 || name != "Renamed" {
+	if err := super.QueryRow(ctx, `SELECT count(*), min(name) FROM installation`).Scan(&count, &name); err != nil || count != 1 || name != "Renamed" {
 		t.Errorf("after two starts there are %d organizations called %q (%v), want the one renamed", count, name, err)
 	}
 }
@@ -194,8 +194,8 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	h.keepInstallationName(t)
 	a := newAPIServer(t, h)
 	home := h.owner(t, "installation")
-	memberID := h.addPerson(t, home.org, "member")
-	owner, member := a.as(t, home.user, home.org), a.as(t, memberID, home.org)
+	memberID := h.addPerson(t, "member")
+	owner, member := a.as(t, home.user), a.as(t, memberID)
 
 	renamed := want(t, owner.put(t, "/api/v1/installation", map[string]any{"name": "  Acme requirements "}), http.StatusOK, "rename")
 	if obj(t, renamed, "installation")["name"] != "Acme requirements" {
@@ -207,8 +207,8 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	if inst := obj(t, want(t, member.get(t, "/api/v1/auth/me"), http.StatusOK, "who I am"), "installation"); inst["name"] != "Acme requirements" {
 		t.Errorf("the shell reads the installation as %v", inst)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = 'installation.renamed' AND actor_user_id = $2
-		AND data ->> 'to' = 'Acme requirements'`, home.org, home.user); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE action = 'installation.renamed' AND actor_user_id = $1
+		AND data ->> 'to' = 'Acme requirements'`, home.user); n != 1 {
 		t.Errorf("the rename is recorded %d times, want once", n)
 	}
 
@@ -223,8 +223,8 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 		t.Errorf("a member renaming answers %s", code)
 	}
 
-	touchesNothing(t, h.appConn(t, memberID), "a member renaming through SQL", `UPDATE org SET name = 'Mine' WHERE id = $1`, home.org)
-	if n := h.countRows(t, `SELECT count(*) FROM org WHERE id = $1 AND name = 'Acme requirements'`, home.org); n != 1 {
+	touchesNothing(t, h.appConn(t, memberID), "a member renaming through SQL", `UPDATE installation SET name = 'Mine'`)
+	if n := h.countRows(t, `SELECT count(*) FROM installation WHERE name = 'Acme requirements'`); n != 1 {
 		t.Error("a member's statement changed the name")
 	}
 }

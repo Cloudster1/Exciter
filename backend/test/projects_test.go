@@ -22,11 +22,11 @@ func newProjectFixture(t *testing.T) *projectFixture {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
 	f := &projectFixture{h: h, api: api, home: h.owner(t, "projects")}
-	f.away = member{org: f.home.org, user: h.addPerson(t, f.home.org, "guest")}
-	f.owner = api.as(t, f.home.user, f.home.org)
-	f.plain = api.as(t, h.addPerson(t, f.home.org, "member"), f.home.org)
-	f.guest = api.as(t, h.addPerson(t, f.home.org, "guest"), f.home.org)
-	f.outside = api.as(t, f.away.user, f.away.org)
+	f.away = member{user: h.addPerson(t, "guest")}
+	f.owner = api.as(t, f.home.user)
+	f.plain = api.as(t, h.addPerson(t, "member"))
+	f.guest = api.as(t, h.addPerson(t, "guest"))
+	f.outside = api.as(t, f.away.user)
 	return f
 }
 

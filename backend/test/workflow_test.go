@@ -40,11 +40,11 @@ func TestWorkflowsOverTheAPI(t *testing.T) {
 	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": wfKey, "name": "Flow"}), http.StatusCreated, "make a project"), "project")
 	projectID := project["id"].(string)
 	editor := f.plain
-	reviewerID := f.h.addPerson(t, f.home.org, "guest")
-	f.h.grantAs(t, f.home.org, uuid.MustParse(projectID), reviewerID, "reviewer")
+	reviewerID := f.h.addPerson(t, "guest")
+	f.h.grantAs(t, uuid.MustParse(projectID), reviewerID, "reviewer")
 	// The editor reviews too, so only not_author keeps them from approving what they wrote.
-	f.h.grantAs(t, f.home.org, uuid.MustParse(projectID), plainID(t, f), "reviewer")
-	reviewer := f.api.as(t, reviewerID, f.home.org)
+	f.h.grantAs(t, uuid.MustParse(projectID), plainID(t, f), "reviewer")
+	reviewer := f.api.as(t, reviewerID)
 	want(t, editor.post(t, "/api/v1/projects/"+wfKey+"/requirements", map[string]any{"title": "Pay"}), http.StatusCreated, "write "+wfKey+"-R1")
 	want(t, editor.post(t, "/api/v1/projects/"+wfKey+"/requirements", map[string]any{"kind": "section", "title": "Scope"}), http.StatusCreated, "write a section")
 

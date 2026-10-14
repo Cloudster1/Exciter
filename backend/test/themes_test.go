@@ -36,9 +36,9 @@ func newThemeFixture(t *testing.T) *themeFixture {
 	h := newHarness(t)
 	f := &themeFixture{h: h, api: newAPIServer(t, h), home: h.owner(t, "themes")}
 	h.keepDefaultTheme(t)
-	f.owner = f.api.as(t, f.home.user, f.home.org)
-	f.other = f.api.as(t, h.addPerson(t, f.home.org, "member"), f.home.org)
-	f.admin = f.api.as(t, h.addPerson(t, f.home.org, "admin"), f.home.org)
+	f.owner = f.api.as(t, f.home.user)
+	f.other = f.api.as(t, h.addPerson(t, "member"))
+	f.admin = f.api.as(t, h.addPerson(t, "admin"))
 	made := want(t, f.owner.post(t, "/api/v1/themes", map[string]any{"name": "Magenta", "spec": magentaSpec}), http.StatusCreated, "make a theme")
 	theme := obj(t, made, "theme")
 	f.themeID = theme["id"].(string)
@@ -159,7 +159,7 @@ func TestThemesOverTheAPI(t *testing.T) {
 			t.Errorf("a deleted theme is still somebody's: %s", got.Raw)
 		}
 		refuse(t, "a deleted theme", owner.get(t, "/api/v1/themes/"+themeID), http.StatusNotFound, "not_found")
-		if _, err := f.api.store.Get(context.Background(), themeObject(f.home.org, themeID, assetID)); !errors.Is(err, objectstore.ErrNoObject) {
+		if _, err := f.api.store.Get(context.Background(), themeObject(f.h.installation(t).ID, themeID, assetID)); !errors.Is(err, objectstore.ErrNoObject) {
 			t.Errorf("a deleted theme's file is still in the bucket: %v", err)
 		}
 	})
@@ -178,7 +178,7 @@ func themeFiles(t *testing.T, f *themeFixture) string {
 			t.Fatalf("asset = %v", asset)
 		}
 		assetID = asset["id"].(string)
-		stored, err := f.api.store.Get(context.Background(), themeObject(f.home.org, f.themeID, assetID))
+		stored, err := f.api.store.Get(context.Background(), themeObject(f.h.installation(t).ID, f.themeID, assetID))
 		if err != nil {
 			t.Fatalf("the bytes are not in the bucket: %v", err)
 		}
@@ -209,7 +209,7 @@ func themeFiles(t *testing.T, f *themeFixture) string {
 		if got, _ := owner.download(t, base+"/"+assetID); got.StatusCode != http.StatusNotFound {
 			t.Errorf("a removed file still serves: %d", got.StatusCode)
 		}
-		if _, err := f.api.store.Get(context.Background(), themeObject(f.home.org, f.themeID, assetID)); !errors.Is(err, objectstore.ErrNoObject) {
+		if _, err := f.api.store.Get(context.Background(), themeObject(f.h.installation(t).ID, f.themeID, assetID)); !errors.Is(err, objectstore.ErrNoObject) {
 			t.Errorf("a removed file is still in the bucket: %v", err)
 		}
 		// One more, left on the theme, so deleting the theme has something to take.
@@ -259,7 +259,7 @@ func themeDefault(t *testing.T, f *themeFixture) {
 		if gone := want(t, other.get(t, "/api/v1/themes/active"), http.StatusOK, "after unsharing"); gone.Body["theme"] != nil {
 			t.Fatalf("an unshared theme is still shown as the default: %s", gone.Raw)
 		}
-		if n := f.h.countRows(t, `SELECT count(*) FROM org WHERE id = $1 AND default_theme_id IS NOT NULL`, f.home.org); n != 0 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM installation WHERE default_theme_id IS NOT NULL`); n != 0 {
 			t.Fatal("default_theme_id survived the theme being taken private")
 		}
 		want(t, owner.patch(t, "/api/v1/themes/"+themeID, map[string]any{"shared": true}), http.StatusOK, "share again")

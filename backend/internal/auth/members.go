@@ -12,10 +12,10 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
-// memberSQL reads a member as Member holds one, in memberFields' order.
+// memberSQL reads the members as Member holds one, in memberFields' order; a caller narrows it with AND.
 const memberSQL = `
-	SELECT u.id, u.email::text, u.name, m.org_role, m.role_source, m.created_at, u.is_active
-	FROM org_member m JOIN app_user u ON u.id = m.user_id`
+	SELECT u.id, u.email::text, u.name, u.role, u.role_source, u.joined_at, u.is_active
+	FROM app_user u WHERE u.role IS NOT NULL`
 
 func memberFields(m *Member) []any {
 	return []any{&m.UserID, &m.Email, &m.Name, &m.Role, &m.RoleSource, &m.JoinedAt, &m.Active}
@@ -27,7 +27,7 @@ func (s *Service) Members(ctx context.Context) ([]Member, error) {
 	out := []Member{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, memberSQL+`
-			ORDER BY NOT u.is_active, CASE m.org_role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END,
+			ORDER BY NOT u.is_active, CASE u.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END,
 				lower(u.name), u.email`)
 		if err != nil {
 			return err
@@ -48,7 +48,7 @@ func (s *Service) Members(ctx context.Context) ([]Member, error) {
 // memberRole locks a membership for the change about to be made and says its role.
 func memberRole(ctx context.Context, tx db.DBTX, userID uuid.UUID) (OrgRole, error) {
 	var role OrgRole
-	err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE user_id = $1 FOR UPDATE`, userID).Scan(&role)
+	err := tx.QueryRow(ctx, `SELECT role FROM app_user WHERE id = $1 AND role IS NOT NULL FOR UPDATE`, userID).Scan(&role)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoSuchMember
 	}
@@ -74,11 +74,10 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, a
 			return ErrOwnerStanding
 		}
 		if _, err := tx.Exec(ctx, `
-			UPDATE org_member SET org_role = $2, role_source = 'manual', updated_at = now()
-			WHERE user_id = $1`, userID, string(role)); err != nil {
+			UPDATE app_user SET role = $2, role_source = 'manual' WHERE id = $1`, userID, string(role)); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.user_id = $1`, userID).Scan(memberFields(&out)...); err != nil {
+		if err := tx.QueryRow(ctx, memberSQL+` AND u.id = $1`, userID).Scan(memberFields(&out)...); err != nil {
 			return err
 		}
 		if was == role {
@@ -114,7 +113,7 @@ func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, 
 		if err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.user_id = $1`, userID).Scan(memberFields(&out)...); err != nil {
+		if err := tx.QueryRow(ctx, memberSQL+` AND u.id = $1`, userID).Scan(memberFields(&out)...); err != nil {
 			return err
 		}
 		if tag.RowsAffected() == 0 {
@@ -150,7 +149,7 @@ func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, 
 func mayBeSwitchedOff(ctx context.Context, tx db.DBTX, userID uuid.UUID, role OrgRole, actor uuid.UUID) error {
 	if role == RoleOwner {
 		var actorRole OrgRole
-		if err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE user_id = $1`, actor).Scan(&actorRole); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(role, '') FROM app_user WHERE id = $1`, actor).Scan(&actorRole); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 		if actorRole != RoleOwner {

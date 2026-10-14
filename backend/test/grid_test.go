@@ -68,10 +68,10 @@ func TestGridAndViewsOverTheAPI(t *testing.T) {
 		refuse(t, "backwards misspelled", f.plain.get(t, "/api/v1/projects/"+grdKey+"/requirements?desc=yes"), http.StatusUnprocessableEntity, "validation_failed")
 	})
 
-	guestViewerID := f.h.addPerson(t, f.home.org, "guest")
+	guestViewerID := f.h.addPerson(t, "guest")
 	project := obj(t, want(t, f.owner.get(t, "/api/v1/projects/"+grdKey), http.StatusOK, "read the project"), "project")
-	f.h.grantAs(t, f.home.org, uuid.MustParse(project["id"].(string)), guestViewerID, "viewer")
-	viewer := f.api.as(t, guestViewerID, f.home.org)
+	f.h.grantAs(t, uuid.MustParse(project["id"].(string)), guestViewerID, "viewer")
+	viewer := f.api.as(t, guestViewerID)
 	views := func(c *client) []string {
 		t.Helper()
 		var names []string

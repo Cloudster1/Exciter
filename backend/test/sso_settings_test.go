@@ -22,9 +22,9 @@ const (
 func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	admin, adminID := adminOf(t, h, a, org)
-	member := a.as(t, h.addPerson(t, org.ID, "member"), org.ID)
+	h.singleSignOn(t)
+	admin, adminID := adminOf(t, h, a)
+	member := a.as(t, h.addPerson(t, "member"))
 	callback := a.URL + httpapi.APIPrefix + "/auth/oidc/callback"
 
 	t.Run("before it is set up there is none, and the callback to register", func(t *testing.T) {
@@ -62,8 +62,8 @@ func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 
 	t.Run("each save is recorded with its address and without the secret", func(t *testing.T) {
 		rows, err := h.super.Query(context.Background(), `
-			SELECT data, host(ip) FROM audit_log WHERE org_id = $1 AND action = 'sso.provider_saved' AND actor_user_id = $2
-			ORDER BY created_at, id`, org.ID, adminID)
+			SELECT data, host(ip) FROM audit_log WHERE action = 'sso.provider_saved' AND actor_user_id = $1
+			ORDER BY created_at, id`, adminID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -97,9 +97,9 @@ func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 func TestGroupRolesAreRefusedWhatCannotWork(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	admin, _ := adminOf(t, h, a, org)
-	member := a.as(t, h.addPerson(t, org.ID, "member"), org.ID)
+	h.singleSignOn(t)
+	admin, _ := adminOf(t, h, a)
+	member := a.as(t, h.addPerson(t, "member"))
 
 	got := want(t, admin.post(t, groupRolesPath, map[string]any{"group": "engineering", "role": "member"}), http.StatusUnprocessableEntity, "map before a provider")
 	if msg, _ := obj(t, got, "error", "fields")["group"].(string); !strings.Contains(msg, "single sign-on first") {

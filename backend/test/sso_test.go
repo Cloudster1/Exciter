@@ -18,14 +18,14 @@ import (
 )
 
 // providerGroups lists the provider groups a person is in within one organization.
-func (h *harness) providerGroups(t *testing.T, org installationRow, email string) []string {
+func (h *harness) providerGroups(t *testing.T, email string) []string {
 	t.Helper()
 	rows, err := h.super.Query(context.Background(), `
 		SELECT g.external_ref FROM group_member m
 		JOIN groups g ON g.id = m.group_id
 		JOIN app_user u ON u.id = m.user_id
-		WHERE m.org_id = $1 AND u.email = $2 AND g.source = 'oidc'
-		ORDER BY 1`, org.ID, email)
+		WHERE u.email = $1 AND g.source = 'oidc'
+		ORDER BY 1`, email)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,14 +47,14 @@ func TestSignInThroughKeycloak(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), true)
-	h.letIn(t, org, aliceEmail, "member")
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), true)
+	h.letIn(t, aliceEmail, "member")
 	ctx := context.Background()
 
 	t.Run("the client secret is sealed at rest", func(t *testing.T) {
 		var stored []byte
-		if err := h.super.QueryRow(ctx, `SELECT client_secret FROM oidc_provider WHERE org_id = $1`, org.ID).Scan(&stored); err != nil {
+		if err := h.super.QueryRow(ctx, `SELECT client_secret FROM oidc_provider`).Scan(&stored); err != nil {
 			t.Fatal(err)
 		}
 		if len(stored) == 0 || bytes.Contains(stored, []byte(exciterSecret)) {
@@ -88,7 +88,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 	})
 
 	t.Run("her groups are created and joined", func(t *testing.T) {
-		if got := h.providerGroups(t, org, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
 			t.Fatalf("groups = %q", got)
 		}
 	})
@@ -126,7 +126,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 		t.Cleanup(func() { kc.setMembership(t, "alice", "engineering", true) })
 
 		newBrowser(t, a).signIn(t, "alice", alicePassword, "")
-		if got := h.providerGroups(t, org, aliceEmail); !slices.Equal(got, []string{"exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"exciter-administrators"}) {
 			t.Fatalf("groups after leaving engineering = %q", got)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM app_user WHERE email = $1`, aliceEmail); n != 1 {
@@ -135,7 +135,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 
 		kc.setMembership(t, "alice", "engineering", true)
 		newBrowser(t, a).signIn(t, "alice", alicePassword, "")
-		if got := h.providerGroups(t, org, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
 			t.Fatalf("groups after rejoining engineering = %q", got)
 		}
 	})
@@ -162,24 +162,24 @@ func TestOnlyExistingGroupsAreJoinedWhenCreationIsOff(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), false)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), false)
 	group, username := "crew-"+h.suffix(), "crew-member-"+h.suffix()
 	kc.newGroup(t, group)
 	email := kc.newPerson(t, h, username, bobPassword, "/"+group)
-	h.letIn(t, org, email, "member")
+	h.letIn(t, email, "member")
 
 	newBrowser(t, a).signIn(t, username, bobPassword, "")
-	if got := h.providerGroups(t, org, email); len(got) != 0 {
+	if got := h.providerGroups(t, email); len(got) != 0 {
 		t.Fatalf("groups = %q, want none while no group is made", got)
 	}
 
 	if _, err := h.super.Exec(context.Background(), `
-		INSERT INTO groups (org_id, name, source, external_ref) VALUES ($1, $2, 'oidc', $3)`, org.ID, "Crew "+group, group); err != nil {
+		INSERT INTO groups (name, source, external_ref) VALUES ($1, 'oidc', $2)`, "Crew "+group, group); err != nil {
 		t.Fatal(err)
 	}
 	newBrowser(t, a).signIn(t, username, bobPassword, "")
-	if got := h.providerGroups(t, org, email); !slices.Equal(got, []string{group}) {
+	if got := h.providerGroups(t, email); !slices.Equal(got, []string{group}) {
 		t.Fatalf("groups = %q, want the one made", got)
 	}
 }
@@ -204,9 +204,9 @@ func TestSignInRefusals(t *testing.T) {
 	})
 
 	t.Run("a provider that is turned off is not used", func(t *testing.T) {
-		org := h.singleSignOn(t)
-		configureProvider(t, a, org, kc.issuer(), false)
-		admin := h.addPerson(t, org.ID, "admin")
+		h.singleSignOn(t)
+		configureProvider(t, a, kc.issuer(), false)
+		admin := h.addPerson(t, "admin")
 		if _, _, err := a.sso.Save(withActor(admin), oidc.Provider{Issuer: kc.issuer(), ClientID: exciterClient, Enabled: false}); err != nil {
 			t.Fatal(err)
 		}
@@ -216,23 +216,22 @@ func TestSignInRefusals(t *testing.T) {
 	})
 
 	t.Run("a provider that cannot be reached is named as the reason", func(t *testing.T) {
-		org := h.singleSignOn(t)
-		configureProvider(t, a, org, "http://nowhere.invalid/realms/none", false)
+		h.singleSignOn(t)
+		configureProvider(t, a, "http://nowhere.invalid/realms/none", false)
 		if resp := start(); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "http://"+appHost+"/login?sso=unreachable" {
 			t.Errorf("start with an unreachable provider = %s to %q", resp.Status, resp.Header.Get("Location"))
 		}
 	})
 
 	t.Run("an expired sign-in is refused at the callback", func(t *testing.T) {
-		org := h.singleSignOn(t)
-		configureProvider(t, a, org, kc.issuer(), false)
+		h.singleSignOn(t)
+		configureProvider(t, a, kc.issuer(), false)
 		if resp := start(); resp.StatusCode != http.StatusFound || !strings.HasPrefix(resp.Header.Get("Location"), kc.issuer()) {
 			t.Fatalf("start = %s to %q", resp.Status, resp.Header.Get("Location"))
 		}
 		var state string
 		if err := h.super.QueryRow(context.Background(), `
-			UPDATE oidc_login SET expires_at = now() - interval '1 second'
-			WHERE org_id = $1 RETURNING state`, org.ID).Scan(&state); err != nil {
+			UPDATE oidc_login SET expires_at = now() - interval '1 second' RETURNING state`).Scan(&state); err != nil {
 			t.Fatal(err)
 		}
 		resp, _ := newBrowser(t, a).get(t, a.URL+httpapi.APIPrefix+"/auth/oidc/callback?state="+state+"&code=whatever")
@@ -249,9 +248,9 @@ func TestSignInRefusals(t *testing.T) {
 	})
 
 	t.Run("a redirect out of the application is dropped", func(t *testing.T) {
-		org := h.singleSignOn(t)
-		configureProvider(t, a, org, kc.issuer(), false)
-		h.letIn(t, org, aliceEmail, "member")
+		h.singleSignOn(t)
+		configureProvider(t, a, kc.issuer(), false)
+		h.letIn(t, aliceEmail, "member")
 		if landing := newBrowser(t, a).signIn(t, "alice", alicePassword, "//evil.test/login"); landing != "http://"+appHost+"/" {
 			t.Fatalf("landed on %q, want the application's own start", landing)
 		}

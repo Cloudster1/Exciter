@@ -18,35 +18,35 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 	a := h.owner(t, "view-wall-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+viwKey+`', 'Viewed', $2) RETURNING id`,
-		a.org, a.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+viwKey+`', 'Viewed', $1) RETURNING id`,
+		a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
-	editorID, viewerID, outsiderID := h.addPerson(t, a.org, "member"), h.addPerson(t, a.org, "guest"), h.addPerson(t, a.org, "guest")
-	h.grantAs(t, a.org, project, editorID, "editor")
-	h.grantAs(t, a.org, project, viewerID, "viewer")
+	editorID, viewerID, outsiderID := h.addPerson(t, "member"), h.addPerson(t, "guest"), h.addPerson(t, "guest")
+	h.grantAs(t, project, editorID, "editor")
+	h.grantAs(t, project, viewerID, "viewer")
 	editor, viewer, outsider, owner := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, outsiderID), h.appConn(t, a.user)
-	save := `INSERT INTO saved_view (org_id, project_id, owner_id, name, shared) VALUES ($1, $2, current_actor_id(), $3, $4) RETURNING id`
+	save := `INSERT INTO saved_view (project_id, owner_id, name, shared) VALUES ($1, current_actor_id(), $2, $3) RETURNING id`
 
 	var private, shared uuid.UUID
 	t.Run("views are saved in one's own name, and shared by editors", func(t *testing.T) {
-		if err := editor.QueryRow(ctx, save, a.org, project, "Mine", false).Scan(&private); err != nil {
+		if err := editor.QueryRow(ctx, save, project, "Mine", false).Scan(&private); err != nil {
 			t.Fatalf("an editor could not save a view: %v", err)
 		}
-		if err := editor.QueryRow(ctx, save, a.org, project, "Ours", true).Scan(&shared); err != nil {
+		if err := editor.QueryRow(ctx, save, project, "Ours", true).Scan(&shared); err != nil {
 			t.Fatalf("an editor could not share a view: %v", err)
 		}
-		if _, err := viewer.Exec(ctx, save, a.org, project, "Shout", true); !isPolicyViolation(err) {
+		if _, err := viewer.Exec(ctx, save, project, "Shout", true); !isPolicyViolation(err) {
 			t.Errorf("a viewer shared a view: %v", err)
 		}
-		if _, err := outsider.Exec(ctx, save, a.org, project, "Peek", false); !isPolicyViolation(err) {
+		if _, err := outsider.Exec(ctx, save, project, "Peek", false); !isPolicyViolation(err) {
 			t.Errorf("somebody who may not view the project saved a view of it: %v", err)
 		}
-		if _, err := viewer.Exec(ctx, `INSERT INTO saved_view (org_id, project_id, owner_id, name) VALUES ($1, $2, $3, 'Forged')`,
-			a.org, project, editorID); !isPolicyViolation(err) {
+		if _, err := viewer.Exec(ctx, `INSERT INTO saved_view (project_id, owner_id, name) VALUES ($1, $2, 'Forged')`,
+			project, editorID); !isPolicyViolation(err) {
 			t.Errorf("a view was saved in somebody else's name: %v", err)
 		}
-		if _, err := editor.Exec(ctx, save, a.org, project, "mine", false); !refusedBy(err, "saved_view_name_key") {
+		if _, err := editor.Exec(ctx, save, project, "mine", false); !refusedBy(err, "saved_view_name_key") {
 			t.Errorf("a second view took a name without regard to case: %v", err)
 		}
 	})
@@ -90,8 +90,8 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 	})
 
 	t.Run("the search function returns only what the caller may view", func(t *testing.T) {
-		if _, err := h.super.Exec(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, created_by)
-			VALUES ($1, $2, 'Walled basket', '{"type":"doc"}', 'h', $3)`, a.org, project, a.user); err != nil {
+		if _, err := h.super.Exec(ctx, `INSERT INTO requirement (project_id, title, statement, normative_hash, created_by)
+			VALUES ($1, 'Walled basket', '{"type":"doc"}', 'h', $2)`, project, a.user); err != nil {
 			t.Fatal(err)
 		}
 		query := `SELECT count(*) FROM requirement_search_rows(websearch_to_tsquery('exciter_search', 'basket'), '', 0)`

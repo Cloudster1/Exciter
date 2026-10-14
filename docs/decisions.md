@@ -3,6 +3,38 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: The tables are the installation's (#108)
+
+The last of #91's three steps, as Armature's #218 took it: what was left of
+the organization was names. `org` is `installation`, with the name and the
+default theme and its id kept; `org_join_request` is `join_request`; a
+membership is a role on the account; the identity provider and the Armature
+connection are one row each; no table carries `org_id`, and
+`current_org_id()` and `installation_org_id()` are gone.
+
+- **A role on `app_user`, not a table.** `role`, `role_source` and
+  `joined_at`, NULL for somebody who asked to join. Every rule of
+  `org_member` holds on the columns: only an administrator gives or changes
+  a role, never an owner, through the app role; the provider moves no
+  owner; the last active administrator stays. What the keys to the
+  membership did is a trigger now: a token, a grant or a requirement's owner
+  names a member (`held_by_a_member`), and taking a role away, which only
+  the admin role may, takes those along (`app_user_left`).
+- **Deleting an account is no longer the app role's.** Any member could
+  delete anybody's account straight through SQL, membership and all; the
+  app role lost DELETE on `app_user`, which no code used.
+- **One row is a unique index on `(true)`**, as Armature holds its
+  installation: an upsert names it with `ON CONFLICT ((true))`. A group role
+  needs the provider and an Armature token the connection, and removing
+  either takes them, by trigger, as their keys did.
+- **Files keep `org/<installation id>/`.** An attachment's key was a column
+  generated from `org_id`; a trigger gives it the same key now, so every
+  stored file still resolves, and a tombstone may name only the
+  installation's files.
+- **The way back loses little.** Down gives every role its membership row,
+  dated when the role was given, the installation its slug `exciter`, and
+  every table its `org_id`; when a membership last changed was not kept.
+
 ## 2026-10-14: The code stops carrying the organization (#107)
 
 With the schema no longer asking (#106), the organization in the code was

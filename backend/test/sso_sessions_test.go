@@ -20,10 +20,10 @@ import (
 func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
+	h.singleSignOn(t)
 	ctx := context.Background()
 	const issuer = "https://id.upsert.test"
-	if _, _, err := a.sso.Save(withActor(h.addPerson(t, org.ID, "admin")), oidc.Provider{Issuer: issuer, ClientID: exciterClient, CreateGroups: true, Enabled: true}); err != nil {
+	if _, _, err := a.sso.Save(withActor(h.addPerson(t, "admin")), oidc.Provider{Issuer: issuer, ClientID: exciterClient, CreateGroups: true, Enabled: true}); err != nil {
 		t.Fatal(err)
 	}
 	email := "carol-" + h.suffix() + "@suite.test"
@@ -38,11 +38,10 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	}
 	var waiting uuid.UUID
 	if err := h.super.QueryRow(ctx, `
-		SELECT r.user_id FROM org_join_request r JOIN app_user u ON u.id = r.user_id
-		WHERE r.org_id = $1 AND u.email = $2
-		  AND NOT EXISTS (SELECT 1 FROM org_member m WHERE m.org_id = r.org_id AND m.user_id = r.user_id)
+		SELECT r.user_id FROM join_request r JOIN app_user u ON u.id = r.user_id
+		WHERE u.email = $1 AND u.role IS NULL
 		  AND NOT EXISTS (SELECT 1 FROM user_session s WHERE s.user_id = r.user_id)
-		  AND NOT EXISTS (SELECT 1 FROM group_member g WHERE g.user_id = r.user_id)`, org.ID, email).Scan(&waiting); err != nil {
+		  AND NOT EXISTS (SELECT 1 FROM group_member g WHERE g.user_id = r.user_id)`, email).Scan(&waiting); err != nil {
 		t.Fatalf("no bare request for carol: %v", err)
 	}
 	if _, _, err := a.accounts.AdmitJoinRequest(ctx, waiting, auth.RoleMember, uuid.Nil, ""); err != nil {
@@ -57,10 +56,10 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 		t.Fatal("the admitted person signed in as somebody else")
 	}
 	var local uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO groups (org_id, name) VALUES ($1, $2) RETURNING id`, org.ID, "hand-made-"+h.suffix()).Scan(&local); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO groups (name) VALUES ($1) RETURNING id`, "hand-made-"+h.suffix()).Scan(&local); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO group_member (org_id, group_id, user_id) VALUES ($1, $2, $3)`, org.ID, local, first.UserID); err != nil {
+	if _, err := h.super.Exec(ctx, `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)`, local, first.UserID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -78,8 +77,8 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	var gotEmail, gotName string
 	var memberships int
 	if err := h.super.QueryRow(ctx, `
-		SELECT u.email, u.name, (SELECT count(*) FROM group_member m WHERE m.user_id = u.id AND m.org_id = $2)
-		FROM app_user u WHERE u.id = $1`, first.UserID, org.ID).Scan(&gotEmail, &gotName, &memberships); err != nil {
+		SELECT u.email, u.name, (SELECT count(*) FROM group_member m WHERE m.user_id = u.id)
+		FROM app_user u WHERE u.id = $1`, first.UserID).Scan(&gotEmail, &gotName, &memberships); err != nil {
 		t.Fatal(err)
 	}
 	if gotEmail != renamed || gotName != "Carol Renamed" || memberships != 3 {
@@ -87,7 +86,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	}
 
 	t.Run("a first sign-in finds the member account using the address", func(t *testing.T) {
-		admin := bootstrapAdmin(t, h, a, org.ID)
+		admin := bootstrapAdmin(t, h, a)
 		adminID := h.userID(t, admin)
 		s, err := a.sso.SignIn(ctx, &oidc.Identity{Issuer: issuer, Subject: "admin-" + uuid.NewString(), Email: admin, Name: "Admin"}, time.Hour, "", "")
 		if err != nil || s.UserID != adminID {

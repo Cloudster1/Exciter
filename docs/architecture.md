@@ -44,8 +44,8 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,
   `_REGION` and `_USE_SSL` name the bucket, which the api makes when missing;
   without an endpoint an upload is refused with the setting to fix. Every
-  object lives under `org/<org>/`, the one organization's id until #91
-  flattens it, and a row in the
+  object lives under `org/<installation id>/`, where every file stored
+  before #107 already was, and a row in the
   database says the object exists, so a removed row leaves at worst an
   unreachable object, never a broken link. `EXCITER_UPLOAD_LIMIT` caps an
   attachment (#21), 50 MB by default.
@@ -59,17 +59,17 @@ an organization. The seed makes the installation on the first start under
 organizations, and `internal/installation` is the one way to its name and
 default theme.
 
-Inside, one `org` row still stands for the installation until #108. The
-schema no longer asks for it (#106): keys, foreign keys and indexes leave
-`org_id` out, so project keys and the other names are unique in the
-installation, no function or permission policy reads it, and every `org_id`
-column defaults to the one row (`installation_org_id()`, which refuses
-rather than guess between two). The code names neither (#107): a transaction
-says only who acts, `org_id` fills from its default, and a unit test refuses
-the column or `current_org_id()` in product code. What was sealed or stored
-under the organization's id, the provider's client secret, Armature tokens
-and the webhook secret, and theme files, still is, under the installation's
-id, so nothing stored earlier is lost.
+The schema says the same (#106 to #108). `installation` is one row, the
+name and the default theme, and so are `oidc_provider` and
+`armature_connection`, each held to one by a unique index on `(true)`. A
+person's role and who decided it are columns of `app_user`, NULL for
+somebody who asked to join and was not let in. No table carries `org_id`,
+so project keys and the other names are unique in the installation, and a
+transaction says only who acts. Tests on the catalog and on the Go source
+refuse anything that names the organization again. What was sealed or
+stored under the organization's id, the provider's client secret, Armature
+tokens and the webhook secret, attachments and theme files, still is,
+under the installation's id, so nothing stored earlier is lost.
 
 Every table forces row level security. One permissive policy per table,
 `<table>_installation`, lets every role at the rows, and the permission rules,
@@ -162,8 +162,8 @@ app role holds no privilege on.
   the link on both ends. A link shows to whoever views both ends. It turns
   suspect when the end its type names has a newer revision (#36).
 - **Attachments** (#21): Stator's files, on requirements. The bytes live in
-  the bucket under `org/<org>/requirement/<requirement>/<id>`, a key derived
-  from the row, and are served only through the API; the `attachment` row is
+  the bucket under `org/<installation id>/requirement/<requirement>/<id>`, a
+  key a trigger gives the row, and are served only through the API; the `attachment` row is
   what row level security guards, seen with the requirement and written by
   who edits it. A statement shows a file by an `image` or `attachment` node.
   A file some revision of its requirement shows is only taken off the list,
@@ -197,7 +197,7 @@ app role holds no privilege on.
   tokens, fonts, radii, shadows, cursors, icons, a backdrop, a moving
   picture and extra CSS, validated as Armature validates it, so nothing in a
   theme can load from another site; its pictures and fonts sit in the object
-  store under `org/<org>/theme/<theme>/`. `armature-theme/1` packs a theme
+  store under `org/<installation id>/theme/<theme>/`. `armature-theme/1` packs a theme
   with its files as one JSON file; an import gives the files new ids and
   rewrites the spec and the CSS to name them. The examples and Armature's
   own theme files (`internal/theme/testdata`, byte for byte) are tested to
@@ -206,7 +206,7 @@ app role holds no privilege on.
   themes and the shared ones, changes their own or, as an administrator, a
   shared one, and never takes one over. `user_theme` is each person's
   choice, of a theme they may see or of the built-in theme;
-  `org.default_theme_id` is the shared theme everybody sees until they
+  `installation.default_theme_id` is the shared theme everybody sees until they
   choose, which only administrators name, and which a theme taken private
   stops being at once.
 
@@ -225,19 +225,21 @@ app role holds no privilege on.
 
 ### Identity (#5, #7)
 
-- People belong to the installation (`app_user`, with a role in
-  `org_member`): owner, admin, member or guest. Letting somebody go switches
+- People belong to the installation (`app_user.role`): owner, admin,
+  member or guest. Letting somebody go switches
   the account off (`is_active`), which ends their sessions and tokens and
   keeps their account and work for switching them on (#86). Through the app
   role only an administrator changes a role or switches somebody off, nobody
-  becomes or stops being an owner, and nobody leaves; the database keeps an
-  active administrator (`org_member_keeps_an_administrator`,
-  `app_user_keeps_an_administrator`), taking turns on an advisory lock so two
+  becomes or stops being an owner, and nobody leaves, neither by losing the
+  role nor by the account being deleted (`app_user_role_guard`); what only a
+  member may hold, a token, a grant or a requirement, a trigger keeps to
+  members (`held_by_a_member`). The database keeps an active administrator
+  (`app_user_keeps_an_administrator`), taking turns on an advisory lock so two
   administrators cannot switch each other off at once.
 - A sign-in opens a `user_session` whose secret lives only in an http-only
   cookie; the row holds its SHA-256. It lands in the installation (#85): the
-  session keeps how it was proven and the organization it opened in, both
-  written once (`session_keeps_its_opening`), and nothing switches it. Single
+  session keeps how it was proven, written once
+  (`session_keeps_its_opening`), and nothing switches it. Single
   sign-on starts at `/auth/oidc/start` with the installation's provider, and
   `/auth/me` answers the installation's name and the caller's role.
 - The installation has one OIDC provider (`oidc_provider`), its client
@@ -249,13 +251,13 @@ app role holds no privilege on.
   reach a provider at another address than the browser does, as in compose.
 - Provider groups are synced into `groups` at every sign-in;
   `oidc_group_role` maps a group to admin or member, and
-  `org_member.role_source` says whether a role follows the provider. A
+  `app_user.role_source` says whether a role follows the provider. A
   mapping never moves an owner or a guest. Somebody the provider vouches for
-  who is not a member is refused and noted in `org_join_request`, where an
+  who is not a member is refused and noted in `join_request`, where an
   administrator lets them in or turns them away. Through the app role only
   administrators read or change the provider, the mapping and the requests.
-- `authenticate` puts the principal, the installation's organization row and
-  the person it acts for on every request, so row level security sees both; `requireAuth` and
+- `authenticate` puts the principal and the person it acts for on every
+  request, so row level security sees who acts; `requireAuth` and
   `requireAdmin` guard the routes. Everybody signed in belongs to the
   installation (#84): a password sign-in of somebody without a membership is
   refused with "Your account has been switched off. Ask an administrator.",
@@ -296,7 +298,7 @@ German.
 ## Armature and Stator integration (M2, M4)
 
 - **Identity**: one OIDC realm serves all three products (#2, #7).
-- **Connection**: an org admin sets the Armature or Stator address; each
+- **Connection**: an administrator sets the Armature or Stator address; each
   person stores their own token, sealed at rest. Every call is made as the
   viewing person through the SSRF guard (#26, #40).
 - **Connecting Armature** (#26): `internal/armature` holds the client, the

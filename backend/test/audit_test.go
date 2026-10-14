@@ -22,12 +22,12 @@ import (
 
 // plantEntry writes an entry behind the policies' back, at a time of the test's choosing, and takes it out of the
 // installation's record again when the test ends.
-func (h *harness) plantEntry(t *testing.T, org uuid.UUID, action string, actor *uuid.UUID, targetType string, target *uuid.UUID, at time.Time) uuid.UUID {
+func (h *harness) plantEntry(t *testing.T, action string, actor *uuid.UUID, targetType string, target *uuid.UUID, at time.Time) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
 	if err := h.super.QueryRow(context.Background(), `
-		INSERT INTO audit_log (org_id, actor_user_id, action, target_type, target_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, org, actor, action, targetType, target, at).Scan(&id); err != nil {
+		INSERT INTO audit_log (actor_user_id, action, target_type, target_id, created_at)
+		VALUES ($1, $2, $3, $4, $5) RETURNING id`, actor, action, targetType, target, at).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM audit_log WHERE id = $1`, id) })
@@ -47,9 +47,9 @@ func permissionDenied(t *testing.T, what string, err error) {
 func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 	h := newHarness(t)
 	home := h.owner(t, "audit-read")
-	memberID := h.addPerson(t, home.org, "member")
-	adminID := h.addPerson(t, home.org, "admin")
-	h.plantEntry(t, home.org, audit.ActionEventDeadLettered, nil, "event", nil, time.Now())
+	memberID := h.addPerson(t, "member")
+	adminID := h.addPerson(t, "admin")
+	h.plantEntry(t, audit.ActionEventDeadLettered, nil, "event", nil, time.Now())
 	h.settle(t)
 
 	as := func(who uuid.UUID) context.Context {
@@ -92,7 +92,7 @@ func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 	if !errors.As(err, &pgErr) || pgErr.Code != "22023" {
 		t.Errorf("pruning the last day = %v, want refused", err)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1`, home.org); n == 0 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log`); n == 0 {
 		t.Error("the record lost its entries")
 	}
 }
@@ -162,17 +162,17 @@ func actionsOf(t *testing.T, s *audit.Service, ctx context.Context, f audit.Filt
 func TestTheAuditLogIsWalkedAndNarrowed(t *testing.T) {
 	h := newHarness(t)
 	home := h.owner(t, "audit-walk")
-	annID := h.namedPerson(t, home.org, "Ann Walker")
+	annID := h.namedPerson(t, "Ann Walker")
 	event, project := uuid.New(), uuid.New()
 	day := time.Date(2001, time.March, 1, 0, 0, 0, 0, time.UTC)
 	at := func(days int) time.Time { return day.AddDate(0, 0, days).Add(12 * time.Hour) }
-	h.plantEntry(t, home.org, "project.created", &home.user, "project", &project, at(0))
-	h.plantEntry(t, home.org, "project.key_changed", &annID, "project", &project, at(1))
-	h.plantEntry(t, home.org, audit.ActionAuditExported, &annID, "org", nil, at(2))
+	h.plantEntry(t, "project.created", &home.user, "project", &project, at(0))
+	h.plantEntry(t, "project.key_changed", &annID, "project", &project, at(1))
+	h.plantEntry(t, audit.ActionAuditExported, &annID, "org", nil, at(2))
 	// Two at one instant: the id keeps them in order across a window's edge.
-	h.plantEntry(t, home.org, "member.admitted", &home.user, "user", &annID, at(3))
-	h.plantEntry(t, home.org, "member.role_changed", &home.user, "user", &annID, at(3))
-	h.plantEntry(t, home.org, audit.ActionEventDeadLettered, nil, "event", &event, at(4))
+	h.plantEntry(t, "member.admitted", &home.user, "user", &annID, at(3))
+	h.plantEntry(t, "member.role_changed", &home.user, "user", &annID, at(3))
+	h.plantEntry(t, audit.ActionEventDeadLettered, nil, "event", &event, at(4))
 	h.settle(t)
 
 	s := audit.NewService(h.cluster)
@@ -234,10 +234,10 @@ func TestRetentionTakesOnlyTheOld(t *testing.T) {
 	now := time.Now()
 	window := 10 * 365 * 24 * time.Hour
 	past := func(days int) time.Time { return now.Add(-window).AddDate(0, 0, -days) }
-	old := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, past(10))
-	oldB := h.plantEntry(t, b.org, audit.ActionAuditExported, &b.user, "org", nil, past(1))
-	young := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, past(-1))
-	fresh := h.plantEntry(t, b.org, audit.ActionAuditExported, &b.user, "org", nil, now)
+	old := h.plantEntry(t, audit.ActionAuditExported, &a.user, "org", nil, past(10))
+	oldB := h.plantEntry(t, audit.ActionAuditExported, &b.user, "org", nil, past(1))
+	young := h.plantEntry(t, audit.ActionAuditExported, &a.user, "org", nil, past(-1))
+	fresh := h.plantEntry(t, audit.ActionAuditExported, &b.user, "org", nil, now)
 
 	n, err := audit.NewRetention(h.cluster, window, discard()).Once(context.Background())
 	if err != nil {

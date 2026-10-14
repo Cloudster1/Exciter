@@ -51,7 +51,7 @@ func (s *Service) noteJoinRequest(ctx context.Context, identity *Identity) error
 			return err
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO org_join_request (user_id) VALUES ($1)
+			INSERT INTO join_request (user_id) VALUES ($1)
 			ON CONFLICT DO NOTHING`, userID); err != nil {
 			return fmt.Errorf("note the request to join: %w", err)
 		}

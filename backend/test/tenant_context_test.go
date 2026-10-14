@@ -43,15 +43,6 @@ func TestATransactionActingForNobodyReachesNothingWalled(t *testing.T) {
 	}
 }
 
-// Nothing sets app.org_id any more, so current_org_id() answers the installation's one row until #108 drops it.
-func TestTheCurrentOrganizationIsTheInstallation(t *testing.T) {
-	h := newHarness(t)
-	var same bool
-	if err := h.appConnUnscoped(t).QueryRow(context.Background(), `SELECT current_org_id() = (SELECT id FROM org)`).Scan(&same); err != nil || !same {
-		t.Errorf("current_org_id() is the installation: %v (%v)", same, err)
-	}
-}
-
 // The service refusing is not proof. Straight through SQL as exciter_app, with no help from the Go code, a
 // connection acting for nobody reads the installation and its people, which are everyone's (#106), but no project,
 // requirement, session, identity, sign-in in flight or anything only an administrator reads; and every way around
@@ -61,8 +52,8 @@ func TestRawSQLAsTheAppRoleActingForNobody(t *testing.T) {
 	home := h.owner(t, "nobody-acting")
 	nobodyKey := projectKey(t, "NOBO")
 	var project uuid.UUID
-	if err := h.super.QueryRow(context.Background(), `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, $2, 'Walled', $3) RETURNING id`,
-		home.org, nobodyKey, home.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(context.Background(), `INSERT INTO project (key, name, created_by) VALUES ($1, 'Walled', $2) RETURNING id`,
+		nobodyKey, home.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
@@ -93,7 +84,7 @@ func TestRawSQLAsTheAppRoleActingForNobody(t *testing.T) {
 	}
 
 	t.Run("acting for nobody it reads the installation and its people, and nothing walled", func(t *testing.T) {
-		for _, table := range []string{"org", "app_user", "org_member"} {
+		for _, table := range []string{"installation", "app_user"} {
 			if got := countOf(`SELECT count(*) FROM ` + table); got == 0 {
 				t.Errorf("a connection acting for nobody reads no %s, want the installation's", table)
 			}
@@ -104,7 +95,7 @@ func TestRawSQLAsTheAppRoleActingForNobody(t *testing.T) {
 			"sessions":                 `SELECT count(*) FROM user_session`,
 			"identities":               `SELECT count(*) FROM user_identity`,
 			"the identity provider":    `SELECT count(*) FROM oidc_provider`,
-			"people waiting to be let": `SELECT count(*) FROM org_join_request`,
+			"people waiting to be let": `SELECT count(*) FROM join_request`,
 			"the audit log":            `SELECT count(*) FROM audit_log`,
 		} {
 			if got := countOf(sql); got != 0 {
@@ -117,11 +108,11 @@ func TestRawSQLAsTheAppRoleActingForNobody(t *testing.T) {
 	})
 
 	for _, attempt := range []struct{ name, sql string }{
-		{"turning row security off", `SET row_security = off; SELECT count(*) FROM org`},
-		{"disabling the policies", `ALTER TABLE org DISABLE ROW LEVEL SECURITY`},
-		{"dropping a policy", `DROP POLICY org_installation ON org`},
+		{"turning row security off", `SET row_security = off; SELECT count(*) FROM installation`},
+		{"disabling the policies", `ALTER TABLE installation DISABLE ROW LEVEL SECURITY`},
+		{"dropping a policy", `DROP POLICY installation_installation ON installation`},
 		{"becoming the exempt role", `SET ROLE exciter_admin`},
-		{"making an organization", `INSERT INTO org (slug, name) VALUES ('sneaky', 'Sneaky')`},
+		{"making a second installation", `INSERT INTO installation (name) VALUES ('Sneaky')`},
 	} {
 		t.Run(attempt.name+" is refused", func(t *testing.T) {
 			if _, err := conn.Exec(ctx, `RESET ALL`); err != nil {

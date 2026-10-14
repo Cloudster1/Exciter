@@ -12,7 +12,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 )
 
@@ -29,8 +28,8 @@ func Ensure(ctx context.Context, cluster *db.Cluster, name string) (Result, erro
 	var res Result
 	_, err := cluster.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
-			INSERT INTO org (slug, name) SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM org)
-			RETURNING id`, installation.Slug, name).Scan(&res.ID)
+			INSERT INTO installation (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM installation)
+			RETURNING id`, name).Scan(&res.ID)
 		if err == nil {
 			res.Created = true
 			return nil
@@ -38,7 +37,7 @@ func Ensure(ctx context.Context, cluster *db.Cluster, name string) (Result, erro
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		return tx.QueryRow(ctx, `SELECT id FROM org`).Scan(&res.ID)
+		return tx.QueryRow(ctx, `SELECT id FROM installation`).Scan(&res.ID)
 	})
 	return res, err
 }

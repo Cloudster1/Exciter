@@ -189,8 +189,8 @@ func (s *Service) objectKey(ctx context.Context, themeID, assetID uuid.UUID) (st
 }
 
 // ObjectKey is the key of one theme file in the object store.
-func ObjectKey(orgID, themeID, assetID uuid.UUID) string {
-	return objectstore.OrgPrefix(orgID) + "theme/" + themeID.String() + "/" + assetID.String()
+func ObjectKey(installationID, themeID, assetID uuid.UUID) string {
+	return objectstore.InstallationPrefix(installationID) + "theme/" + themeID.String() + "/" + assetID.String()
 }
 
 // UploadAsset puts a file on a theme. The type is what the bytes say.

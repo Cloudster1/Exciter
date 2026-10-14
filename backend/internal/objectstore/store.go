@@ -30,10 +30,10 @@ type Store interface {
 	List(ctx context.Context, prefix string) ([]string, error)
 }
 
-// OrgPrefix is where every object of the installation lives, under its id
-// as before #107, so the files stored earlier are still found.
-func OrgPrefix(org uuid.UUID) string {
-	return "org/" + org.String() + "/"
+// InstallationPrefix is where every object of the installation lives, under its id as before #107, so the files
+// stored earlier are still found.
+func InstallationPrefix(installation uuid.UUID) string {
+	return "org/" + installation.String() + "/"
 }
 
 // DeletePrefix removes every object under prefix. An empty prefix is refused:

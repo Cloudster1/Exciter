@@ -86,7 +86,7 @@ const selectThemes = `
 SELECT t.id, t.owner_id, COALESCE(u.name, ''), t.name, t.shared, t.spec, t.created_at, t.updated_at,
        theme_in_use(t.id),
        EXISTS (SELECT 1 FROM user_theme ut WHERE ut.theme_id = t.id AND ut.user_id = $1),
-       EXISTS (SELECT 1 FROM org o WHERE o.default_theme_id = t.id)
+       EXISTS (SELECT 1 FROM installation i WHERE i.default_theme_id = t.id)
 FROM theme t
 LEFT JOIN app_user u ON u.id = t.owner_id`
 

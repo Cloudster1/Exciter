@@ -143,7 +143,7 @@ func cookieJarClient() *http.Client {
 
 // as opens a session for a member in their organization, the row a sign-in
 // writes, and hands its cookie to a browser of their own.
-func (a *apiServer) as(t *testing.T, user, org uuid.UUID) *client {
+func (a *apiServer) as(t *testing.T, user uuid.UUID) *client {
 	t.Helper()
 	var token string
 	_, err := a.h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {

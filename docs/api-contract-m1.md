@@ -59,7 +59,7 @@ at 73d72dd. Where Exciter departs from them it says so, and
 | Table | Holds |
 |---|---|
 | `project` | `key`, `name`, `description`, `next_number`, `settings`, `template`, `archived_at` |
-| `project_key_alias` | a key a project had, which keeps resolving: `(org_id, key)` unique with `project.key` |
+| `project_key_alias` | a key a project had, which keeps resolving: `key` unique with `project.key` |
 | `project_grant` | the role a user, a group or everyone holds in a project |
 | `requirement` | `project_id`, `number`, `kind`, the normative content, `revision`, `normative_hash`, `status_id`, `owner_id`, `priority`, `parent_id`, `rank`, the trash columns, `copied_from` |
 | `requirement_old_key` | a key a requirement left on a move to another project |
@@ -76,8 +76,8 @@ at 73d72dd. Where Exciter departs from them it says so, and
 | `api_token`, `api_token_project` | personal access tokens, and the projects one is limited to |
 | `import_job` | a CSV file on its way into a project |
 
-Every table has `org_id` and the composite keys and row level security of
-`docs/architecture.md`. Every table that belongs to a requirement carries the
+Every table has the row level security of `docs/architecture.md`; the
+`org_id` and composite keys it was agreed with went in #106 to #108. Every table that belongs to a requirement carries the
 restrictive policies of #12.
 
 ## Migrations, packages and settings
@@ -928,7 +928,7 @@ New audit actions: `project.created`, `project.key_changed`,
   answer is 413 `too_large` with a sentence naming the limit, and an empty
   file is 422 on `file`. The content type sent is kept when specific, else the
   bytes are sniffed. Images report `width` and `height`.
-- **Storage.** The object key is `org/<org>/requirement/<requirement>/<attachment>`,
+- **Storage.** The object key is `org/<installation id>/requirement/<requirement>/<attachment>`,
   so a move to another project leaves the bytes where they are. The row
   guards the object: the database says a file exists and who may read it,
   and the bytes are served only through the API.

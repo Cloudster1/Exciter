@@ -5,6 +5,7 @@ package test
 import (
 	"context"
 	"crypto/sha256"
+	"maps"
 	"strings"
 	"testing"
 
@@ -13,24 +14,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// beforeTheSchemaLosesTheOrganization is the last migration before 00410, which drops the tenant policies (#106).
+// beforeTheSchemaLosesTheOrganization is the last migration before 00410, which drops the tenant policies (#106);
+// the upgrade test starts there and goes through #108's tables.
 const beforeTheSchemaLosesTheOrganization = 403
 
-// What names the organization until #108 drops the column: its own table's functions, the session's column, the
-// one-row keys and foreign keys of the organization, the provider and the connection, and objects' keys (#107).
-var (
-	organizationsOwnFunctions = []string{"link_type_seed", "session_keeps_its_opening"}
-	organizationsOwnKeys      = []string{"armature_connection_pkey", "oidc_provider_pkey", "attachment_tombstone_own_prefix"}
-)
-
-// Nothing in the schema asks which organization a row is of: no policy, function, key or index names org_id or
-// current_org_id(), apart from what the organization's own table and row keep until #108.
+// Nothing in the schema names the organization (#108): no table, column, function or policy asks for org_id,
+// current_org_id(), the membership table or the organization's own tables.
 func TestNothingInTheSchemaAsksForTheOrganization(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
-	names := func(sql string, args ...any) []string {
+	names := func(sql string) []string {
 		t.Helper()
-		rows, err := h.super.Query(ctx, sql, args...)
+		rows, err := h.super.Query(ctx, sql)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -40,30 +35,18 @@ func TestNothingInTheSchemaAsksForTheOrganization(t *testing.T) {
 		}
 		return found
 	}
-	asks := `'\morg_id\M|current_org_id'`
+	asks := `'\m(org_id|current_org_id|org_member|org_join_request|org_role)\M|\m(from|join|into|update|table)\s+org\M'`
 	for what, found := range map[string][]string{
-		"policies": names(`SELECT tablename || '.' || policyname FROM pg_policies
-			WHERE schemaname = 'public' AND coalesce(qual, '') || coalesce(with_check, '') ~ ` + asks),
-		"functions": names(`SELECT proname FROM pg_proc
-			WHERE pronamespace = 'public'::regnamespace AND prosrc ~ `+asks+` AND proname <> ALL ($1)`, organizationsOwnFunctions),
-		"keys": names(`SELECT conname FROM pg_constraint c
-			WHERE connamespace = 'public'::regnamespace AND conname <> ALL ($1) AND contype IN ('p', 'u', 'f', 'x', 'c')
-			  AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey) AND a.attname = 'org_id')
-			  AND NOT (c.contype = 'f' AND c.conkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = c.conrelid AND attname = 'org_id')]
-			           AND c.confrelid IN ('org'::regclass, 'oidc_provider'::regclass, 'armature_connection'::regclass))`, organizationsOwnKeys),
-		"indexes": names(`SELECT c.relname FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
-			WHERE c.relnamespace = 'public'::regnamespace
-			  AND NOT EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conindid = i.indexrelid)
-			  AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey) AND a.attname = 'org_id')`),
+		"tables": names(`SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relname ~ '^org(_|$)'`),
+		"columns": names(`SELECT table_name || '.' || column_name FROM information_schema.columns
+			WHERE table_schema = 'public' AND column_name IN ('org_id', 'current_org_id', 'proof_org_id', 'org_role')`),
+		"functions": names(`SELECT proname FROM pg_proc WHERE pronamespace = 'public'::regnamespace
+			AND (proname ~ '^(org_|current_org_id|installation_org_id)' OR prosrc ~* ` + asks + `)`),
+		"policies": names(`SELECT tablename || '.' || policyname FROM pg_policies WHERE schemaname = 'public'
+			AND (policyname ~ '^org_' OR coalesce(qual, '') || coalesce(with_check, '') ~* ` + asks + `)`),
 	} {
 		if len(found) > 0 {
-			t.Errorf("%d %s still ask for the organization: %s", len(found), what, strings.Join(found, ", "))
-		}
-	}
-	// A name kept for #108 that no longer names the organization would hide a slip; the list has to stay true.
-	for _, name := range organizationsOwnFunctions {
-		if len(names(`SELECT proname FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proname = $1 AND prosrc ~ `+asks, name)) == 0 {
-			t.Errorf("%s is kept for #108 but no longer names the organization; take it off the list", name)
+			t.Errorf("%d %s still name the organization: %s", len(found), what, strings.Join(found, ", "))
 		}
 	}
 }
@@ -206,8 +189,18 @@ func TestTheUpgradeKeepsEveryRowAndStepsBack(t *testing.T) {
 	if _, err := provider.Up(ctx); err != nil {
 		t.Fatalf("upgrade a populated installation: %v", err)
 	}
-	if after := rowCounts(t, super); !sameCounts(t, "the upgrade", before, after) {
+	// Two tables were renamed, and a membership is a role on its account now (#108).
+	upgraded := maps.Clone(before)
+	upgraded["installation"], upgraded["join_request"] = before["org"], before["org_join_request"]
+	delete(upgraded, "org")
+	delete(upgraded, "org_join_request")
+	delete(upgraded, "org_member")
+	if after := rowCounts(t, super); !sameCounts(t, "the upgrade", upgraded, after) {
 		return
+	}
+	var members int64
+	if err := super.QueryRow(ctx, `SELECT count(*) FROM app_user WHERE role IS NOT NULL`).Scan(&members); err != nil || members != before["org_member"] {
+		t.Errorf("the upgrade left %d people with a role (%v), want the %d members", members, err, before["org_member"])
 	}
 	var key string
 	if err := super.QueryRow(ctx, `SELECT key FROM project`).Scan(&key); err != nil || key != "POPX" {

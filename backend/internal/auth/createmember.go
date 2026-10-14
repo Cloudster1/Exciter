@@ -108,9 +108,7 @@ func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUI
 		default:
 			name = existingName
 		}
-		tag, err := tx.Exec(ctx, `
-			INSERT INTO org_member (user_id, org_role) VALUES ($1, $2)
-			ON CONFLICT (user_id) DO NOTHING`, userID, string(in.Role))
+		tag, err := tx.Exec(ctx, `UPDATE app_user SET role = $2 WHERE id = $1 AND role IS NULL`, userID, string(in.Role))
 		if err != nil {
 			return fmt.Errorf("create the membership: %w", err)
 		}

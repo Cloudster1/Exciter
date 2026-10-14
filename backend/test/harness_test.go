@@ -342,7 +342,6 @@ func (h *harness) resumeReplay(t *testing.T) {
 // member is a person who owns the installation, made behind the policies' back so that what a test observes
 // is only the policies' doing, with a context acting for them.
 type member struct {
-	org  uuid.UUID
 	user uuid.UUID
 	ctx  context.Context
 }
@@ -354,15 +353,11 @@ func (h *harness) suffix() string { return uuid.NewString()[:8] }
 func (h *harness) owner(t *testing.T, label string) member {
 	t.Helper()
 	ctx := context.Background()
-	inst := h.installation(t)
-	m := member{org: inst.ID}
+	var m member
 	email := fmt.Sprintf("%s-%s@example.test", label, h.suffix())
-	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name) VALUES ($1, $2) RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, $2, 'owner') RETURNING id`,
 		email, "Person of "+label).Scan(&m.user); err != nil {
 		t.Fatalf("create the owner %s: %v", email, err)
-	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'owner')`, m.org, m.user); err != nil {
-		t.Fatalf("make %s an owner: %v", email, err)
 	}
 	h.later(t, m.user)
 	m.ctx = db.WithUser(ctx, m.user)

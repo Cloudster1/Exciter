@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-const insertImport = `INSERT INTO import_job (org_id, project_id, created_by, file_name, headers, rows, total)
-	VALUES ($1, $2, $3, 'file.csv', '["title"]', '[{"line":2,"cells":["Pay"]}]', 1) RETURNING id`
+const insertImport = `INSERT INTO import_job (project_id, created_by, file_name, headers, rows, total)
+	VALUES ($1, $2, 'file.csv', '["title"]', '[{"line":2,"cells":["Pay"]}]', 1) RETURNING id`
 
 // Straight through SQL as exciter_app: an import is made by who administers its project and seen by them and
 // its maker, its file never changes, it only moves forward, and only it sets the status of what it just made.
@@ -19,16 +19,16 @@ func TestRawSQLGuardsImports(t *testing.T) {
 	ctx := context.Background()
 	admin := w.h.appConn(t, w.a.user)
 	var id uuid.UUID
-	if err := admin.QueryRow(ctx, insertImport, w.a.org, w.here, w.a.user).Scan(&id); err != nil {
+	if err := admin.QueryRow(ctx, insertImport, w.here, w.a.user).Scan(&id); err != nil {
 		t.Fatalf("an administrator uploads a file: %v", err)
 	}
 
 	t.Run("made by the project's administrators, in their own name, and seen by them", func(t *testing.T) {
 		var other uuid.UUID
-		if err := w.editor.QueryRow(ctx, insertImport, w.a.org, w.here, w.editorID).Scan(&other); err == nil {
+		if err := w.editor.QueryRow(ctx, insertImport, w.here, w.editorID).Scan(&other); err == nil {
 			t.Error("an editor who does not administer the project made an import")
 		}
-		if err := admin.QueryRow(ctx, insertImport, w.a.org, w.here, w.editorID).Scan(&other); err == nil {
+		if err := admin.QueryRow(ctx, insertImport, w.here, w.editorID).Scan(&other); err == nil {
 			t.Error("an import was made in somebody else's name")
 		}
 		if seesRows(t, w.editor, `SELECT count(*) FROM import_job WHERE id = $1`, id) != 0 || seesRows(t, w.stranger, `SELECT count(*) FROM import_job`) != 0 {
@@ -71,8 +71,8 @@ func TestRawSQLGuardsImports(t *testing.T) {
 		if _, err := admin.Exec(ctx, `SELECT requirement_import_status($1, $2)`, w.r1, approved); err == nil {
 			t.Error("the status of a requirement made earlier was set")
 		}
-		write := `INSERT INTO requirement (org_id, project_id, kind, title, statement, normative_hash, created_by)
-			VALUES ($1, $2, 'requirement', 'Imported', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`
+		write := `INSERT INTO requirement (project_id, kind, title, statement, normative_hash, created_by)
+			VALUES ($1, 'requirement', 'Imported', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`
 		for name, tc := range map[string]struct {
 			admin  bool
 			status uuid.UUID
@@ -91,11 +91,11 @@ func TestRawSQLGuardsImports(t *testing.T) {
 				t.Fatal(err)
 			}
 			var made uuid.UUID
-			if err := tx.QueryRow(ctx, write, w.a.org, w.here).Scan(&made); err != nil {
+			if err := tx.QueryRow(ctx, write, w.here).Scan(&made); err != nil {
 				t.Fatalf("%s: write: %v", name, err)
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, hash, created_by)
-				VALUES ($1, $2, 1, 'Imported', '{"type":"doc"}', 'h', current_actor_id())`, w.a.org, made); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO requirement_revision (requirement_id, number, title, statement, hash, created_by)
+				VALUES ($1, 1, 'Imported', '{"type":"doc"}', 'h', current_actor_id())`, made); err != nil {
 				t.Fatalf("%s: revision 1: %v", name, err)
 			}
 			_, err = tx.Exec(ctx, `SELECT requirement_import_status($1, $2)`, made, tc.status)
