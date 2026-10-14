@@ -3,6 +3,27 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: Review and control, agreed before it is built (#32)
+
+`docs/api-contract-m3.md` settles #33 to #38 before any of them is built, as
+M1 and M2 were.
+
+- **A review signs off a revision that is.** Stator's page review approves a
+  draft and publishes it; an Exciter revision is saved already, so a review
+  pins the current one, an approval counts only while it is still current,
+  and a new revision supersedes what was pending. Approval rules borrow
+  Stator's shape: people or groups, a count, per type.
+- **Suspect is computed, never stored.** Links already remember the revision
+  of each end they were confirmed against, and a type already says which end
+  it watches (#18); a view compares, and clearing moves the remembered
+  revisions on with a record of who, against what and why.
+- **Baselines copy nothing.** An item names a revision, taken in one
+  REPEATABLE READ snapshot, and never changes; a requirement's diff is #16's.
+- **Coverage counts the status stored for everyone** (#27), so it never asks
+  Armature as the viewer.
+- **The migration ranges moved up by a hundred**, to 00500 and on, because
+  the issues' 00400 to 00470 went to the one-installation work and M2.
+
 ## 2026-10-14: A removal Armature announces is a person's only for a wanted link (#29)
 
 "Armature removal wins" (#1) needs to know who removed Exciter's link from an

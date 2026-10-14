@@ -178,6 +178,13 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at e26a9ac, for the review and control contract (#32):
+- backend/internal/comment, watch and notify: the shapes of internal/comment,
+  internal/watch and internal/notify, over requirements, with a comment's
+  revision
+- backend/internal/review: the shapes of internal/review, for signing off a
+  revision rather than publishing a draft
+
 Adapted from Stator at cf0f6f7, for following the Armature theme (#30):
 - backend/migrations/00440_theme_follow_armature.sql: 00173, without the
   organization

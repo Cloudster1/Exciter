@@ -71,6 +71,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API of review and control, agreed before it is built (#32). Comments
+  and mentions, watching and notifications, review and approval of
+  revisions, suspect links, baselines, and coverage with the traceability
+  matrix are in `api/openapi.json` and answer 501 until each is built;
+  `docs/api-contract-m3.md` says what each means.
 - The suite (#31). `make suite-up ARMATURE_DIR= STATOR_DIR=` runs Exciter,
   Armature and Stator from their checkouts on one Keycloak realm, on fixed
   ports from 30000, connects Exciter and Stator to Armature with Armature's

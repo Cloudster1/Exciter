@@ -3,6 +3,8 @@ package httpapi
 import (
 	"encoding/json"
 	"github.com/cloudster1/exciter/backend/internal/armature"
+	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/comment"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,15 +16,18 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
+	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -609,6 +614,187 @@ var operations = []operation{
 	{method: "DELETE", path: "/armature/theme", handler: "handleUnfollowArmatureTheme", tag: "armature",
 		summary:   "Stop following the Armature theme and return to the default for everyone.",
 		responses: none()},
+
+	// Comments and mentions (#33), agreed in docs/api-contract-m3.md.
+	{method: "GET", path: "/requirements/{reqKey}/comments", handler: "handleListComments", tag: "comments", pending: true,
+		summary:   "A requirement's discussion: every thread, oldest first, each with its comments in order.",
+		responses: ok(env{"threads": []comment.Thread{}})},
+	{method: "POST", path: "/requirements/{reqKey}/comments", handler: "handleCreateComment", tag: "comments", pending: true,
+		summary: "Start a thread on a requirement; the comment records the revision it was written on and tells whoever it mentions.",
+		request: comment.Input{}, responses: map[int]any{http.StatusCreated: env{"thread": comment.Thread{}}, http.StatusConflict: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/requirements/{reqKey}/mentionable", handler: "handleListMentionable", tag: "comments", pending: true,
+		summary: "The people a comment on the requirement may mention, and whether each may read it.",
+		query: []param{
+			{name: "q", description: "Words the name or email starts with."},
+			{name: "limit", schema: intParam, description: "1 to " + strconv.Itoa(comment.MentionableMaxLimit) + "; " + strconv.Itoa(comment.MentionableDefaultLimit) + " when absent."},
+		}, responses: ok(env{"people": []comment.Mentionable{}})},
+	{method: "GET", path: "/comments/{commentID}", handler: "handleGetCommentThread", tag: "comments", pending: true,
+		summary:   "The whole thread a comment belongs to.",
+		responses: ok(env{"thread": comment.Thread{}})},
+	{method: "POST", path: "/comments/{commentID}/replies", handler: "handleReplyToComment", tag: "comments", pending: true,
+		summary: "Reply in the thread of a comment, at its end; a reply reopens a resolved thread.",
+		request: comment.Input{}, responses: map[int]any{http.StatusCreated: env{"comment": comment.Comment{}, "thread": comment.Thread{}},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "PATCH", path: "/comments/{commentID}", handler: "handleEditComment", tag: "comments", pending: true,
+		summary: "Rewrite a comment; its author's alone. People newly mentioned are told.",
+		request: comment.Input{}, responses: map[int]any{http.StatusOK: env{"comment": comment.Comment{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/comments/{commentID}", handler: "handleDeleteComment", tag: "comments", pending: true,
+		summary:   "Delete a comment, leaving its place in the thread; its author's, or the project's administrators'.",
+		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}}},
+	{method: "PUT", path: "/comment-threads/{threadID}/resolution", handler: "handleResolveThread", tag: "comments", pending: true,
+		summary:   "Mark a thread resolved; anybody who may comment on the requirement.",
+		responses: map[int]any{http.StatusOK: env{"thread": comment.Thread{}}, http.StatusForbidden: errorEnvelope{}}},
+	{method: "DELETE", path: "/comment-threads/{threadID}/resolution", handler: "handleReopenThread", tag: "comments", pending: true,
+		summary:   "Reopen a resolved thread.",
+		responses: map[int]any{http.StatusOK: env{"thread": comment.Thread{}}, http.StatusForbidden: errorEnvelope{}}},
+
+	// Watching and notifications (#34).
+	{method: "PUT", path: "/requirements/{reqKey}/watch", handler: "handleWatchRequirement", tag: "watching", pending: true,
+		summary:   "Follow a requirement: its revisions, transitions, suspect links, reviews and comments.",
+		responses: ok(env{"watching": watch.Watching{}})},
+	{method: "DELETE", path: "/requirements/{reqKey}/watch", handler: "handleUnwatchRequirement", tag: "watching", pending: true,
+		summary:   "Stop following a requirement, and stop being made to follow it again by editing it.",
+		responses: none()},
+	{method: "GET", path: "/requirements/{reqKey}/watchers", handler: "handleListWatchers", tag: "watching", pending: true,
+		summary: "Who follows a requirement, by itself or through its project.",
+		query:   windowQuery(watch.DefaultLimit, watch.MaxLimit), responses: ok(env{"watchers": []watch.Watcher{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "PUT", path: "/projects/{projectKey}/watch", handler: "handleWatchProject", tag: "watching", pending: true,
+		summary:   "Follow every requirement of a project.",
+		responses: ok(env{"watch": watch.Watch{}})},
+	{method: "DELETE", path: "/projects/{projectKey}/watch", handler: "handleUnwatchProject", tag: "watching", pending: true,
+		summary:   "Stop following a project.",
+		responses: none()},
+	{method: "GET", path: "/watches", handler: "handleListWatches", tag: "watching", pending: true,
+		summary: "What the caller follows, newest first.",
+		query:   windowQuery(watch.DefaultLimit, watch.MaxLimit), responses: ok(env{"watches": []watch.Watch{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "GET", path: "/notifications", handler: "handleListNotifications", tag: "notifications", pending: true,
+		summary: "What the caller was told, newest first.",
+		query: append([]param{{name: "unread", schema: &openapi.Schema{Type: "boolean"}, description: "true for the unread ones alone."}},
+			windowQuery(notify.DefaultLimit, notify.MaxLimit)...),
+		responses: ok(env{"notifications": []notify.Notification{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "GET", path: "/notifications/unread-count", handler: "handleCountUnreadNotifications", tag: "notifications", pending: true,
+		summary:   "How many of the caller's notifications are unread, which the bell asks every half minute.",
+		responses: ok(env{"unread": 0})},
+	{method: "POST", path: "/notifications/read", handler: "handleMarkNotificationsRead", tag: "notifications", pending: true,
+		summary: "Mark the caller's notifications read: those named, or all; ids of anybody else's are ignored.",
+		request: notify.ReadInput{}, responses: none()},
+	{method: "GET", path: "/notification-preferences", handler: "handleGetNotificationPreferences", tag: "notifications", pending: true,
+		summary:   "How the caller wants to be told: each kind in the app and by mail, the digest, and following what they edit.",
+		responses: ok(env{"preferences": notify.Preferences{}})},
+	{method: "PUT", path: "/notification-preferences", handler: "handleSaveNotificationPreferences", tag: "notifications", pending: true,
+		summary: "Change how the caller wants to be told.",
+		request: notify.Preferences{}, responses: map[int]any{http.StatusOK: env{"preferences": notify.Preferences{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// Review and approval of requirement revisions (#35).
+	{method: "GET", path: "/projects/{projectKey}/approval-rules", handler: "handleListApprovalRules", tag: "reviews", pending: true,
+		summary:   "Who approves the requirements of each type in a project, and how many must.",
+		responses: ok(env{"rules": []review.Rule{}})},
+	{method: "PUT", path: "/projects/{projectKey}/approval-rules", handler: "handleSaveApprovalRule", tag: "reviews", pending: true,
+		summary: "Set the approval rule of one type, or of every type without its own; the project's administrators'. Reviews already asked for keep theirs.",
+		request: review.RuleInput{}, responses: map[int]any{http.StatusOK: env{"rule": review.Rule{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/approval-rules/{ruleID}", handler: "handleDeleteApprovalRule", tag: "reviews", pending: true,
+		summary:   "Remove an approval rule; the project's administrators'.",
+		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}}},
+	{method: "GET", path: "/requirements/{reqKey}/approval", handler: "handleGetApproval", tag: "reviews", pending: true,
+		summary:   "A requirement's review now open, and the latest revision approved, which counts only while it is the current one.",
+		responses: ok(env{"approval": review.Approval{}})},
+	{method: "GET", path: "/requirements/{reqKey}/reviews", handler: "handleListReviews", tag: "reviews", pending: true,
+		summary: "A requirement's reviews, newest first.",
+		query:   windowQuery(review.DefaultLimit, review.MaxLimit), responses: ok(env{"reviews": []review.Review{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "POST", path: "/requirements/{reqKey}/reviews", handler: "handleRequestReview", tag: "reviews", pending: true,
+		summary: "Ask for the current revision to be approved: the review pins it and freezes the approvers its type's rule names.",
+		request: review.RequestInput{}, responses: map[int]any{http.StatusCreated: env{"review": review.Review{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/reviews/waiting", handler: "handleListWaitingReviews", tag: "reviews", pending: true,
+		summary: "The reviews waiting for the caller's decision, oldest first, across every project.",
+		query:   windowQuery(review.DefaultLimit, review.MaxLimit), responses: ok(env{"reviews": []review.Review{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "GET", path: "/reviews/{reviewID}", handler: "handleGetReview", tag: "reviews", pending: true,
+		summary:   "One review with every approver's decision.",
+		responses: ok(env{"review": review.Review{}})},
+	{method: "POST", path: "/reviews/{reviewID}/decisions", handler: "handleDecideReview", tag: "reviews", pending: true,
+		summary: "Approve or reject the revision under review, naming it as read; a decision on another revision is refused.",
+		request: review.DecisionInput{}, responses: map[int]any{http.StatusOK: env{"review": review.Review{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "POST", path: "/reviews/{reviewID}/withdraw", handler: "handleWithdrawReview", tag: "reviews", pending: true,
+		summary:   "Withdraw a pending review; whoever asked for it, or the project's administrators.",
+		responses: map[int]any{http.StatusOK: env{"review": review.Review{}}, http.StatusForbidden: errorEnvelope{}, http.StatusConflict: errorEnvelope{}}},
+
+	// Suspect links (#36).
+	{method: "GET", path: "/projects/{projectKey}/suspects", handler: "handleListSuspectLinks", tag: "links", pending: true,
+		summary:   "The suspect links touching a project's requirements, longest waiting first.",
+		query:     windowQuery(trace.SuspectDefaultLimit, trace.SuspectMaxLimit),
+		responses: ok(env{"links": []trace.SuspectLink{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "POST", path: "/links/{linkID}/clear", handler: "handleClearLink", tag: "links", pending: true,
+		summary: "Confirm a link against its ends as read, with a comment; whoever may edit either end.",
+		request: trace.ClearInput{}, responses: map[int]any{http.StatusOK: env{"link": trace.Link{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/links/{linkID}/clearances", handler: "handleListClearances", tag: "links", pending: true,
+		summary:   "Every confirmation of a link, newest first.",
+		responses: ok(env{"clearances": []trace.Clearance{}})},
+	{method: "POST", path: "/armature-links/{linkID}/clear", handler: "handleClearArmatureLink", tag: "armature", pending: true,
+		summary: "Confirm a trace to an Armature issue against the requirement's revision as read, with a comment.",
+		request: armature.ClearInput{}, responses: map[int]any{http.StatusOK: env{"link": armature.Link{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// Baselines (#37).
+	{method: "GET", path: "/projects/{projectKey}/baselines", handler: "handleListBaselines", tag: "baselines", pending: true,
+		summary:   "A project's baselines, newest first.",
+		responses: ok(env{"baselines": []baseline.Baseline{}})},
+	{method: "POST", path: "/projects/{projectKey}/baselines", handler: "handleTakeBaseline", tag: "baselines", pending: true,
+		summary: "Take a baseline of the project, or of one section's subtree, as one consistent snapshot; the project's administrators'.",
+		request: baseline.Input{}, responses: map[int]any{http.StatusCreated: env{"baseline": baseline.Baseline{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/baselines/{baselineID}", handler: "handleGetBaseline", tag: "baselines", pending: true,
+		summary:   "One baseline.",
+		responses: ok(env{"baseline": baseline.Baseline{}})},
+	{method: "PATCH", path: "/baselines/{baselineID}", handler: "handleUpdateBaseline", tag: "baselines", pending: true,
+		summary: "Rename a baseline, or lock it for good; the project's administrators'. Its items never change.",
+		request: baseline.UpdateInput{}, responses: map[int]any{http.StatusOK: env{"baseline": baseline.Baseline{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/baselines/{baselineID}", handler: "handleDeleteBaseline", tag: "baselines", pending: true,
+		summary:   "Delete a baseline that is not locked; the project's administrators'.",
+		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}, http.StatusConflict: errorEnvelope{}}},
+	{method: "GET", path: "/baselines/{baselineID}/spec", handler: "handleBaselineSpec", tag: "baselines", pending: true,
+		summary: "A baseline read as a specification, each requirement at the revision it holds, in its outline.",
+		query:   windowQuery(baseline.DefaultLimit, baseline.MaxLimit), responses: ok(env{"entries": []baseline.Entry{}, "total": 0, "limit": 0, "offset": 0})},
+	{method: "GET", path: "/baselines/{baselineID}/compare", handler: "handleCompareBaseline", tag: "baselines", pending: true,
+		summary:   "What differs between a baseline and another of the project, or now: requirements added, removed, revised, moved and transitioned, and links added and removed.",
+		query:     []param{{name: "with", description: "Another baseline's id, or now, the default."}},
+		responses: map[int]any{http.StatusOK: env{"comparison": baseline.Comparison{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// Coverage and the traceability matrix (#38).
+	{method: "GET", path: "/projects/{projectKey}/coverage-rules", handler: "handleListCoverageRules", tag: "coverage", pending: true,
+		summary:   "Which coverage dimensions apply to the requirements of each type in a project.",
+		responses: ok(env{"rules": []trace.CoverageRule{}})},
+	{method: "PUT", path: "/projects/{projectKey}/coverage-rules", handler: "handleSaveCoverageRule", tag: "coverage", pending: true,
+		summary: "Set the coverage rule of one type, or of every type without its own; the project's administrators'.",
+		request: trace.CoverageRuleInput{}, responses: map[int]any{http.StatusOK: env{"rule": trace.CoverageRule{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/coverage-rules/{ruleID}", handler: "handleDeleteCoverageRule", tag: "coverage", pending: true,
+		summary:   "Remove a coverage rule; the project's administrators'.",
+		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/coverage", handler: "handleProjectCoverage", tag: "coverage", pending: true,
+		summary: "How far a project's requirements, narrowed like the grid, are decomposed, implemented and verified: the totals, and each requirement.",
+		query:   append(append([]param{}, gridQuery...), windowQuery(trace.CoverageDefaultLimit, trace.CoverageMaxLimit)...),
+		responses: map[int]any{http.StatusOK: env{"summary": trace.CoverageSummary{}, "rows": []trace.CoverageRow{}, "total": 0, "limit": 0, "offset": 0},
+			http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/matrix", handler: "handleTraceMatrix", tag: "coverage", pending: true,
+		summary:   "A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to.",
+		query:     append(append([]param{}, gridQuery...), append(matrixQuery, windowQuery(trace.MatrixDefaultLimit, trace.MatrixMaxLimit)...)...),
+		responses: map[int]any{http.StatusOK: env{"matrix": trace.Matrix{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/matrix.csv", handler: "handleTraceMatrixCSV", tag: "coverage", pending: true,
+		summary: "The traceability matrix as a CSV file, every row the filter keeps.",
+		query:   append(append([]param{}, gridQuery...), matrixQuery...),
+		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
+}
+
+// matrixQuery says what a traceability matrix's columns are.
+var matrixQuery = []param{
+	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, or issues."},
+	{name: "columnProject", description: "For requirement columns, the project they come from; the same project when absent."},
 }
 
 var intParam = &openapi.Schema{Type: "integer"}

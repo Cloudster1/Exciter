@@ -229,3 +229,9 @@ type Follow struct {
 	Status    Status `json:"status"`
 	Error     string `json:"error"`
 }
+
+// ClearInput confirms an Armature link against the requirement's revision the caller read (#36).
+type ClearInput struct {
+	Revision int    `json:"revision"`
+	Comment  string `json:"comment"`
+}
