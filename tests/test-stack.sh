@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests the stack's definition without starting it: compose accepts the file, nothing is published beyond the
-# loopback, and the realm gives Exciter, Armature and Stator each a client with PKCE and a groups claim.
+# loopback, and the realm gives Exciter, Armature and Stator each a client with a groups claim, and PKCE where the
+# product sends it.
 set -u
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,11 +30,14 @@ else
 fi
 
 echo "== keycloak realm"
+# Armature's sign-in sends no PKCE challenge yet, so its client asks for none; docs/suite.md says so.
 for client in exciter armature stator; do
+  want=$'S256\t1'
+  [[ "$client" == armature ]] && want=$'\t1'
   got="$(jq -r --arg c "$client" '.clients[] | select(.clientId == $c)
-    | [.attributes["pkce.code.challenge.method"], ([.protocolMappers[] | select(.config["claim.name"] == "groups")] | length)] | @tsv' "$REALM")"
-  [[ "$got" == $'S256\t1' ]] && pass "client $client uses PKCE and carries the groups claim" \
-    || fail "client $client is missing or lacks PKCE or the groups claim: '$got'"
+    | [.attributes["pkce.code.challenge.method"] // "", ([.protocolMappers[] | select(.config["claim.name"] == "groups")] | length)] | @tsv' "$REALM")"
+  [[ "$got" == "$want" ]] && pass "client $client carries the groups claim, with PKCE where its product sends it" \
+    || fail "client $client is missing, or lacks the groups claim or the PKCE its product sends: '$got'"
 done
 [[ "$(jq -r .realm "$REALM")" == suite-dev ]] && pass "the realm is suite-dev" || fail "the realm is not suite-dev"
 unknown="$(jq -r '[.groups[].path] as $g | .users[] | .groups[] | select(. as $x | $g | index($x) | not)' "$REALM")"

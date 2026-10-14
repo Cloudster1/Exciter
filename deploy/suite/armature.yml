@@ -1,0 +1,47 @@
+# The suite's Armature (#31), over Armature's own deploy/docker-compose.yml: it signs in at the suite's Keycloak,
+# whose realm and port are Exciter's, and leaves out what the suite does not use. mk/suite.mk applies it.
+networks:
+  suite:
+    name: exciter-suite
+    external: true
+
+services:
+  # The suite's Keycloak is Exciter's; Git hosting, PDF export and mail over TLS are not part of the trial.
+  keycloak:
+    profiles: [off]
+  gitea:
+    profiles: [off]
+  gitea-init:
+    profiles: [off]
+  render:
+    profiles: [off]
+  mailpit-tls:
+    profiles: [off]
+
+  seed:
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ARMATURE_SEED_GITEA_URL: ""
+      ARMATURE_KEYCLOAK_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/suite-dev
+
+  # The callback goes to the api's own port, as Armature's does; the browser lands on the web port afterwards.
+  api:
+    networks:
+      default: {}
+      suite:
+        aliases: [suite-armature-api]
+    environment:
+      ARMATURE_APP_URL: http://localhost:${WEB_PORT}
+      ARMATURE_OIDC_REDIRECT_URL: http://localhost:${API_PORT}/api/v1/auth/oidc/callback
+      ARMATURE_OIDC_BACKCHANNEL: http://localhost:${SUITE_KEYCLOAK_PORT}=http://suite-keycloak:8080
+      ARMATURE_RENDER_URL: ""
+
+  # The worker posts the webhooks to Exciter and Stator inside the network.
+  worker:
+    networks:
+      default: {}
+      suite: {}
+    environment:
+      ARMATURE_APP_URL: http://localhost:${WEB_PORT}

@@ -9,6 +9,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The `armature` client of the development realm no longer requires PKCE,
+  which Armature's sign-in does not send yet (#31).
 - The tables are the installation's (#108): `org` is `installation`, a
   membership is a role on the account, the identity provider and the
   Armature connection are one row each, and no table has `org_id`. Scripts
@@ -69,6 +71,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The suite (#31). `make suite-up ARMATURE_DIR= STATOR_DIR=` runs Exciter,
+  Armature and Stator from their checkouts on one Keycloak realm, on fixed
+  ports from 30000, connects Exciter and Stator to Armature with Armature's
+  webhooks pointed at both, and writes the addresses and alice's Armature
+  token to `.cache/suite.env`; `make suite-smoke` signs alice in to all three
+  and watches a requirement's chip follow its issue. Nothing in Armature or
+  Stator changes; `docs/suite.md` explains it.
 - Following the Armature theme (#30). Whoever stored an Armature token can
   switch on "Follow my Armature theme" on the themes page: Exciter then
   shows the theme they use in Armature, kept as a private copy and fetched

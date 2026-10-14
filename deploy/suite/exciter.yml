@@ -1,0 +1,33 @@
+# The suite's Exciter (#31), over deploy/docker-compose.yml: its Keycloak serves all three products, and it reaches
+# the suite's Armature beside its own stub. mk/suite.mk applies it; docs/suite.md says how the three meet.
+#
+# Only services whose names no other product's joining service shares go on the suite's network under their own
+# name: every product has an api and a web, and a web proxying to "api" would reach any of them. The api and the
+# worker join, and are reached by their suite alias alone.
+networks:
+  suite:
+    name: exciter-suite
+    external: true
+
+services:
+  keycloak:
+    networks:
+      default: {}
+      suite:
+        aliases: [suite-keycloak]
+
+  api:
+    networks:
+      default: {}
+      suite:
+        aliases: [suite-exciter-api]
+    environment: &armature
+      EXCITER_OUTBOUND_ALLOW: armature-stub,suite-armature-api
+      EXCITER_ARMATURE_BACKCHANNEL: >-
+        http://localhost:${ARMATURE_STUB_PORT}=http://armature-stub:8080,http://localhost:${SUITE_ARMATURE_WEB_PORT}=http://suite-armature-api:8080
+
+  worker:
+    networks:
+      default: {}
+      suite: {}
+    environment: *armature
