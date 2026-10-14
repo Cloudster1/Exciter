@@ -24,7 +24,7 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
-		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL",
+		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
 	} {
 		t.Setenv(key, "")
 	}
@@ -425,5 +425,25 @@ func TestAnEndpointWithoutCredentialsIsRefused(t *testing.T) {
 	}
 	if c.S3 != (S3{Endpoint: "seaweedfs:8333", Bucket: "elsewhere", AccessKey: "exciter", SecretKey: "secret", Region: "eu-central-1", UseSSL: true}) {
 		t.Errorf("storage = %+v", c.S3)
+	}
+}
+
+// Mail is off until a relay is named, and a relay without a sender would send mail nobody could answer or trust.
+func TestMailNeedsASenderOnceARelayIsNamed(t *testing.T) {
+	clean(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Mail != (Mail{}) {
+		t.Errorf("mail without settings = %+v, want it off", c.Mail)
+	}
+	t.Setenv("EXCITER_SMTP_ADDR", "mailpit:1025")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_MAIL_FROM") {
+		t.Fatalf("a relay without a sender = %v, want the sender asked for", err)
+	}
+	t.Setenv("EXCITER_MAIL_FROM", "Exciter <no-reply@exciter.test>")
+	if c, err = Load(); err != nil || c.Mail != (Mail{SMTPAddr: "mailpit:1025", From: "Exciter <no-reply@exciter.test>"}) {
+		t.Fatalf("a complete relay = %+v, %v", c.Mail, err)
 	}
 }

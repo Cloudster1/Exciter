@@ -12,6 +12,7 @@ import { homeRoute } from "./home";
 import { installationRoute } from "./installation";
 import { labelRoute } from "./labels";
 import { loginRoute } from "./login";
+import { notificationSettingsRoute, notificationsRoute, watchingRoute } from "./notifications";
 import {
   newProjectRoute,
   gridRoute,
@@ -64,6 +65,9 @@ const routeTree = rootRoute.addChildren([
     allTokensRoute,
     armatureSettingsRoute,
     armatureAccountRoute,
+    notificationsRoute,
+    notificationSettingsRoute,
+    watchingRoute,
     themeNewRoute,
     themeEditRoute,
   ]),

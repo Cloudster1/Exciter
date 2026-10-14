@@ -19,6 +19,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     priority: null,
     labels: [],
     comments: { threads: 0, open: 0 },
+    watching: { requirement: false, project: false },
     parentId: null,
     outline: "",
     formerKeys: [],

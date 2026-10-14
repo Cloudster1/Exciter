@@ -76,6 +76,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Watching and notifications (#34). Anybody watches a requirement, or a
+  whole project, and hears about new revisions, status changes and comments
+  there; a mention, a reply in one's thread and a resolved thread are told
+  too. Writing, revising or being made the owner of a requirement watches it,
+  unless one unwatched it or switched that off. The bell in the top bar
+  counts what is unread, `/notifications` lists everything, and each kind is
+  switched in the app and by mail, sent at once or in an hourly or daily
+  digest. The worker mails through `EXCITER_SMTP_ADDR` as
+  `EXCITER_MAIL_FROM`; without an address it writes notifications alone.
 - Comments and mentions (#33). Anybody who may comment on a requirement
   starts a thread on it, replies, and resolves or reopens a thread; each
   comment says which revision it was written on. Naming somebody with @

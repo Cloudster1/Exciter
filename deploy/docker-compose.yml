@@ -266,11 +266,16 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      mailpit:
+        condition: service_healthy
     environment:
       <<: [*app-db-env, *s3-env, *armature-env]
       EXCITER_LOG_LEVEL: debug
-      # Where the links the worker puts on Armature issues lead.
+      # Where the links the worker puts on Armature issues and in notification mail lead.
       EXCITER_APP_URL: http://localhost:${WEB_PORT:-8000}
+      # Notification mail goes to Mailpit, which keeps it.
+      EXCITER_SMTP_ADDR: mailpit:1025
+      EXCITER_MAIL_FROM: Exciter <no-reply@exciter.test>
     healthcheck:
       # The worker's metrics are its sign of life.
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/metrics"]

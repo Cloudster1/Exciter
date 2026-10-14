@@ -27,11 +27,9 @@ const (
 // Kinds lists every Kind, for the API document.
 var Kinds = []Kind{KindRequirement, KindProject}
 
-// Watching is how the caller follows one requirement: by itself, through its project, or not.
-type Watching struct {
-	Requirement bool `json:"requirement"`
-	Project     bool `json:"project"`
-}
+// Watching is how the caller follows one requirement: by itself, through its project, or not. The requirement
+// carries it too, so it is the requirement's type.
+type Watching = requirement.Watching
 
 // Watch is one thing the caller follows.
 type Watch struct {

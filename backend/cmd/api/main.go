@@ -30,6 +30,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
+	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
@@ -41,6 +42,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -164,6 +166,8 @@ func run() error {
 		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
 		Armature:        armatures,
 		Comments:        comment.NewService(cluster),
+		Watches:         watch.NewService(cluster),
+		Notifications:   notify.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

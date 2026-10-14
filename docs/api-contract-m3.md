@@ -193,6 +193,25 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
 - **UI:** a Watch button on the requirement and the project, the bell in the
   top bar with the latest notifications, `/notifications`, and the
   preferences under Your account.
+- **As built** (#34):
+  - Migration 00510. Watching what one writes is the database's: triggers on
+    a new revision and on a new owner make that person watch the requirement,
+    unless they opted out, switched `autoWatch` off or may not view it.
+    `requirement_watch_coverage` reads watchers across people and is the
+    worker's alone; `requirement_watchers` is what the API lists. Deleting a
+    comment deletes what anybody was told about it.
+  - A project gains `watching` too, for its Watch button, and `/watches`
+    lists only what the caller may still view, out of the trash.
+  - The worker routes `comment.created`, `comment.edited`,
+    `thread.resolved`, `thread.reopened`, `requirement.revised` and
+    `requirement.changed` (status alone) to the fan-out. `review_requested`,
+    `reviewed` and `suspect` are kinds already, which #35 and #36 plan for.
+  - A notification and its mail lead to the requirement at `#thread-{id}`
+    when it has a thread; the requirement page brings that thread into view.
+    Mail links the permalink `/r/{id}`.
+  - `EXCITER_MAIL_FROM` has no default; with `EXCITER_SMTP_ADDR` set, an
+    address is required. The integration suite reads Mailpit through
+    `EXCITER_TEST_MAILPIT_URL`.
 
 ## #35 Review and approval of requirement revisions
 

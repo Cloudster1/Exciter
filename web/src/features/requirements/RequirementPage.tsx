@@ -29,12 +29,14 @@ import { CommentsSection } from "@/features/comments/CommentsSection";
 import { LinksPanel } from "@/features/links/LinksPanel";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
+import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
 export function RequirementPage({ project, requirement }: { project: Project; requirement: Requirement }) {
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState("");
+  const [watchFailed, setWatchFailed] = useState(false);
   const mayEdit = requirement.can.edit;
   const section = requirement.kind === "section";
   return (
@@ -72,14 +74,17 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           </span>
         }
         actions={
-          mayEdit &&
-          !editing && (
-            <Button variant="secondary" icon={<Icon.Edit />} onClick={() => setEditing(true)} data-action="edit-requirement">
-              {t.requirements.edit}
-            </Button>
-          )
+          <>
+            <WatchMenu requirement={requirement} onFailure={setWatchFailed} />
+            {mayEdit && !editing && (
+              <Button variant="secondary" icon={<Icon.Edit />} onClick={() => setEditing(true)} data-action="edit-requirement">
+                {t.requirements.edit}
+              </Button>
+            )}
+          </>
         }
       />
+      {watchFailed && <ErrorBanner>{t.watch.failed}</ErrorBanner>}
       {!section && <TransitionBar requirement={requirement} />}
       {requirement.trashedAt && (
         <p role="status" className="rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-trashed-notice>

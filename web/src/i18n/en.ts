@@ -11,6 +11,7 @@ import { attachmentsEn } from "./attachments.en";
 import { tokensEn } from "./tokens.en";
 import { armatureEn } from "./armature.en";
 import { commentsEn } from "./comments.en";
+import { notificationsEn, watchEn } from "./notifications.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -81,6 +82,8 @@ export const en = {
     themes: "Themes",
     tokens: "Access tokens",
     armature: "Armature account",
+    notifications: "Notification settings",
+    watching: "Watching",
     signOut: "Sign out",
   },
   login: {
@@ -309,6 +312,8 @@ export const en = {
   tokens: tokensEn,
   armature: armatureEn,
   comments: commentsEn,
+  watch: watchEn,
+  notifications: notificationsEn,
   imports: importsEn,
   search: searchEn,
   grid: gridEn,

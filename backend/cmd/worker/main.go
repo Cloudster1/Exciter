@@ -1,5 +1,6 @@
 // Command worker runs everything that happens outside a request: the outbox, whose topics each feature routes
-// to its handler as it lands, the audit log's retention, and the removal of files whose rows are gone.
+// to its handler as it lands, notifications and their mail, the audit log's retention, and the removal of files
+// whose rows are gone.
 package main
 
 import (
@@ -17,7 +18,9 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
+	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -80,6 +83,17 @@ func run() error {
 	imports := csvio.NewService(cluster, requirement.NewService(cluster), trace.NewService(cluster), search.NewService(cluster))
 	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports)).
 		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log))
+	var mailer mail.Mailer
+	if cfg.Mail.SMTPAddr == "" {
+		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")
+	} else {
+		mailer = mail.SMTPMailer{Addr: cfg.Mail.SMTPAddr, From: cfg.Mail.From}
+		go notify.NewDigester(cluster, mailer, cfg.AppBaseURL, log).Run(ctx)
+	}
+	fanOut := notify.NewFanOut(cluster, mailer, cfg.AppBaseURL, log)
+	for _, topic := range fanOut.Topics() {
+		handlers.Route(topic, fanOut)
+	}
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
 	store, err := objectstore.Open(objectstore.Config{

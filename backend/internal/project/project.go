@@ -38,6 +38,8 @@ type Project struct {
 	ArchivedByName string     `json:"archivedByName"`
 	// Can says what the reader may do here, so the interface offers only that.
 	Can perm.ProjectCan `json:"can"`
+	// Watching says the reader follows every requirement of the project (#34).
+	Watching bool `json:"watching"`
 }
 
 // Settings are the project's choices that are not a list of their own.

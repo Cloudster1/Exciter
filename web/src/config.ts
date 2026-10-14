@@ -282,3 +282,22 @@ export const COPY_FEEDBACK_MS = 2000;
 export const IMPORT_POLL_MS = 1000;
 /** The largest file an import takes, the API's csvio.MaxImportBytes. */
 export const IMPORT_MAX_BYTES = 8 * 1024 * 1024;
+
+/** Where a person reads what they were told, chooses how they are told, and sees what they watch (#34). */
+export const NOTIFICATIONS_PATH = "/notifications";
+export const NOTIFICATION_SETTINGS_PATH = "/settings/notifications";
+export const WATCHING_PATH = "/settings/watching";
+/** How often the bell asks for the unread count; it also asks when the window regains focus. */
+export const UNREAD_POLL_MS = 30_000;
+/** Above this many unread the badge shows the number with a plus. */
+export const UNREAD_BADGE_MAX = 99;
+/** How many notifications the bell's panel lists, within the API's limit of 100. */
+export const NOTIFICATION_PANEL_SIZE = 20;
+/** How many notifications one page of the notifications page lists, within the API's limit of 100. */
+export const NOTIFICATIONS_PAGE_SIZE = 50;
+/** How many watchers the watchers dialog lists, the most the API gives at once. */
+export const WATCHERS_LIMIT = 100;
+/** How many of the caller's watches one page of the watching list shows, within the API's limit of 100. */
+export const WATCHES_PAGE_SIZE = 20;
+/** The hour, in UTC, a daily digest goes out, matching the API's notify.DailyDigestHour. */
+export const DAILY_DIGEST_HOUR_UTC = 8;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
 import {
   useDeleteComment,
@@ -27,6 +28,13 @@ const when = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
 /** Where the specification's count and a notification's link lead. */
 export const COMMENTS_ID = "comments";
+
+const THREAD_ANCHOR_PREFIX = "thread-";
+
+/** The fragment of one thread, which a notification and its mail lead to (#34). */
+export function threadAnchor(threadId: string): string {
+  return THREAD_ANCHOR_PREFIX + threadId;
+}
 
 function authorOf(comment: Comment): string {
   return comment.authorName || t.comments.formerMember;
@@ -91,6 +99,14 @@ export function CommentsSection({ requirement }: { requirement: Requirement }) {
   const focusWhenRendered = useFocusWhenRendered();
   const threads = data ?? [];
   const open = requirement.can.comment && !requirement.trashedAt;
+  const hash = useRouterState({ select: (state) => state.location.hash });
+  // The thread a link names arrives with the discussion, after the router looked for it.
+  useEffect(() => {
+    if (!data || !hash.startsWith(THREAD_ANCHOR_PREFIX)) return;
+    const target = document.getElementById(hash);
+    target?.scrollIntoView?.({ block: "start" });
+    target?.focus({ preventScroll: true });
+  }, [data, hash]);
   return (
     <Card className="space-y-3 p-4">
       <section id={COMMENTS_ID} aria-labelledby="comments-title" className="scroll-mt-4 space-y-3" data-comments="">
@@ -166,6 +182,7 @@ function ThreadView({ reqKey, thread }: { reqKey: string; thread: Thread }) {
   if (!first) return null;
   return (
     <article
+      id={threadAnchor(thread.id)}
       tabIndex={-1}
       aria-label={t.comments.thread(authorOf(first))}
       className={cx(

@@ -195,6 +195,18 @@ Adapted from Stator at e26a9ac, for the review and control contract (#32):
 - backend/internal/review: the shapes of internal/review, for signing off a
   revision rather than publishing a draft
 
+Adapted from Stator at cf0f6f7, for watching and notifications (#34):
+- backend/migrations/00510_watching_notifications.sql: 00151, 00152 and
+  00153, over requirements and projects, with watching what one writes
+  made the database's
+- backend/internal/mail with its test: internal/mail
+- backend/internal/watch/service.go and backend/internal/notify: the same,
+  over requirements, with the planners of requirement events
+- web/src/api/watching.ts and notifications.ts, features/watching WatchMenu,
+  WatchersDialog and WatchingList, and features/notifications
+  NotificationBell and NotificationSettings with their tests: the same, over
+  requirements and projects, with a page of every notification
+
 Adapted from Stator at cf0f6f7, for following the Armature theme (#30):
 - backend/migrations/00440_theme_follow_armature.sql: 00173, without the
   organization

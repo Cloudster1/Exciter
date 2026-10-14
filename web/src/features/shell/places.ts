@@ -8,12 +8,15 @@ import {
   INSTALLATION_PATH,
   LINK_TYPES_PATH,
   MEMBERS_PATH,
+  NOTIFICATION_SETTINGS_PATH,
+  NOTIFICATIONS_PATH,
   ALL_TOKENS_PATH,
   PROJECTS_PATH,
   SEARCH_PATH,
   SSO_PATH,
   THEMES_PATH,
   TOKENS_PATH,
+  WATCHING_PATH,
 } from "@/config";
 import { t } from "@/i18n";
 
@@ -50,6 +53,9 @@ function allPlaces(): Place[] {
     { path: THEMES_PATH, icon: "Palette", label: t.nav.themes, section: t.account.menu, personal: true },
     { path: TOKENS_PATH, icon: "Key", label: t.account.tokens, section: t.account.menu, personal: true },
     { path: ARMATURE_ACCOUNT_PATH, icon: "Link", label: t.account.armature, section: t.account.menu, personal: true },
+    { path: NOTIFICATIONS_PATH, icon: "Bell", label: t.notifications.title, section: t.account.menu, personal: true },
+    { path: NOTIFICATION_SETTINGS_PATH, icon: "Settings", label: t.account.notifications, section: t.account.menu, personal: true },
+    { path: WATCHING_PATH, icon: "Eye", label: t.account.watching, section: t.account.menu, personal: true },
   ];
 }
 

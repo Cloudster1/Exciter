@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
+	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
@@ -30,6 +31,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -87,6 +89,10 @@ type Server struct {
 	Armature *armature.Service
 	// Comments keeps the discussion on requirements (#33); nil answers its routes that it is not set up.
 	Comments *comment.Service
+	// Watches and Notifications keep who follows what and what they were told (#34); nil answers their routes
+	// that they are not set up.
+	Watches       *watch.Service
+	Notifications *notify.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -345,6 +351,22 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/comments/{commentID}", s.handleDeleteComment)
 			r.Put("/comment-threads/{threadID}/resolution", s.handleResolveThread)
 			r.Delete("/comment-threads/{threadID}/resolution", s.handleReopenThread)
+		})
+
+		// Watching and notifications: each person's own, about what they may view (#34).
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.notificationsOn)
+			r.Put("/requirements/{reqKey}/watch", s.handleWatchRequirement)
+			r.Delete("/requirements/{reqKey}/watch", s.handleUnwatchRequirement)
+			r.Get("/requirements/{reqKey}/watchers", s.handleListWatchers)
+			r.Put("/projects/{projectKey}/watch", s.handleWatchProject)
+			r.Delete("/projects/{projectKey}/watch", s.handleUnwatchProject)
+			r.Get("/watches", s.handleListWatches)
+			r.Get("/notifications", s.handleListNotifications)
+			r.Get("/notifications/unread-count", s.handleCountUnreadNotifications)
+			r.Post("/notifications/read", s.handleMarkNotificationsRead)
+			r.Get("/notification-preferences", s.handleGetNotificationPreferences)
+			r.Put("/notification-preferences", s.handleSaveNotificationPreferences)
 		})
 
 		// Armature: the installation's connection for its administrators, each member's own token for them, and the
