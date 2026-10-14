@@ -9,6 +9,8 @@ export const themesEn = {
   usingBuiltInOverDefault: (name: string) => `You are using the built-in theme, over ${name}, the default for everyone.`,
   using: (name: string) => `You are using ${name}.`,
   usingDefault: (name: string) => `You are using ${name}, the default for everyone.`,
+  usingArmature: (name: string) => `You are using ${name}, the theme you use in Armature.`,
+  usingArmatureBuiltIn: "You are using the built-in theme, as you do in Armature.",
   useBuiltIn: "Use the built-in theme",
   useOrgDefault: "Use the default for everyone",
   show: "Show",
@@ -201,6 +203,15 @@ export const themesEn = {
     notAllowed: "Not allowed",
     wait: "Wait",
   } as Record<string, string>,
+  armature: {
+    follow: "Follow my Armature theme",
+    off: "Use the theme you chose in Armature here too. Choosing a theme below stops following it.",
+    on: "Exciter shows the theme you use in Armature. A change there shows here within a few minutes, or when you open this page.",
+    unreachable: "Armature did not answer in time, so you see the theme you would have without following. Exciter asks again on the next page you open.",
+    rejected:
+      "Armature no longer accepts your token, so you see the theme you would have without following. Paste a new token under Your account, Armature account.",
+    notConnected: "Connect your Armature account under Your account, Armature account to see your Armature theme here.",
+  },
   orgDefault: {
     title: "Default theme",
     intro: "What everybody sees until they choose a theme of their own. Only a shared theme can be the default.",

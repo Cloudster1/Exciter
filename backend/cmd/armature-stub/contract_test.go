@@ -17,6 +17,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
+	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
 // The contract, as docs/api-contract-m2.md sets it: the stub serves nothing
@@ -288,6 +289,20 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	c.expect("PUT", stubPrefix+"/acme/refused-summary", "", map[string]any{"summary": filed.Summary}, 204)
 	c.expect("POST", "/issues", alice, filed, 422)
 	c.expect("PUT", stubPrefix+"/acme/refused-summary", "", map[string]any{"summary": ""}, 204)
+
+	// The theme Armature shows a person, and its file (#30).
+	if got := c.expect("GET", "/themes/active", alice, nil, 200); got["theme"] != nil {
+		t.Errorf("alice has a theme before the stub is told: %v", got)
+	}
+	c.expect("PUT", stubPrefix+"/acme/people/alice/theme", "", map[string]any{"theme": "deep-tech"}, 204)
+	active := c.expect("GET", "/themes/active", alice, nil, 200)["theme"].(map[string]any)
+	status, pkg := c.call("GET", "/themes/"+active["id"].(string)+"/export", alice, nil)
+	var exported theme.Package
+	if err := json.Unmarshal(pkg, &exported); status != 200 || err != nil || exported.Format != theme.PackageFormat {
+		t.Errorf("the export is %d %s", status, pkg)
+	}
+	c.expect("GET", "/themes/"+active["id"].(string)+"/export", patFor("acme", "bob"), nil, 404)
+	c.expect("PUT", stubPrefix+"/acme/people/alice/theme-delay", "", map[string]any{"ms": 20000}, 422)
 
 	// Webhooks as Armature posts them (#29): every envelope in Armature's shape, signed as Exciter checks.
 	got := webhookBin(t, doc)

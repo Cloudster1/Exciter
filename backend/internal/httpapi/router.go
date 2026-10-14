@@ -350,6 +350,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/armature/projects", s.handleListArmatureProjects)
 			r.Get("/armature/issue-types", s.handleListArmatureIssueTypes)
 			r.Post("/projects/{projectKey}/armature-issues", s.handleCreateArmatureIssues)
+			r.With(s.themesOn).Get("/armature/theme", s.handleGetArmatureTheme)
+			r.With(s.themesOn).Put("/armature/theme", s.handleFollowArmatureTheme)
+			r.With(s.themesOn).Delete("/armature/theme", s.handleUnfollowArmatureTheme)
 		})
 
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,

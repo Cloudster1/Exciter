@@ -41,6 +41,8 @@ var routes = []route{
 	{Method: "GET", Path: "/issues/{issueKey}/remote-links", handler: (*stub).listLinks},
 	{Method: "POST", Path: "/issues/{issueKey}/remote-links", handler: (*stub).putLink},
 	{Method: "DELETE", Path: "/issues/{issueKey}/remote-links/{remoteLinkID}", handler: (*stub).deleteLink},
+	{Method: "GET", Path: "/themes/active", handler: (*stub).activeTheme},
+	{Method: "GET", Path: "/themes/{themeID}/export", handler: (*stub).exportTheme},
 }
 
 type stub struct {
@@ -86,6 +88,8 @@ func (s *stub) handler() http.Handler {
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/refused-summary", s.control((*stub).setRefused))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/webhook", s.control((*stub).setWebhook))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/theme", s.control((*stub).setTheme))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/theme-delay", s.control((*stub).setThemeDelay))
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/deliveries", s.control((*stub).listDeliveries))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/webhooks", s.control((*stub).sendEvent))
 	mux.HandleFunc("PATCH "+stubPrefix+"/{tenant}/issues/{issueKey}", s.control((*stub).changeIssue))
@@ -110,6 +114,15 @@ func (s *stub) serve(rt route) http.HandlerFunc {
 		if rt.Public {
 			rt.handler(s, c)
 			return
+		}
+		if rt.Path == "/themes/active" {
+			if delay := s.themeDelay(r); delay > 0 {
+				select {
+				case <-time.After(delay):
+				case <-r.Context().Done():
+					return
+				}
+			}
 		}
 		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		s.world.mu.Lock()

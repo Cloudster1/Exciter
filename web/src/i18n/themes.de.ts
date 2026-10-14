@@ -11,6 +11,8 @@ export const themesDe: typeof themesEn = {
   usingBuiltInOverDefault: (name: string) => `Sie verwenden das Standarddesign statt ${name}, der Vorgabe für alle.`,
   using: (name: string) => `Sie verwenden ${name}.`,
   usingDefault: (name: string) => `Sie verwenden ${name}, die Vorgabe für alle.`,
+  usingArmature: (name: string) => `Sie verwenden ${name}, Ihr Design in Armature.`,
+  usingArmatureBuiltIn: "Sie verwenden das eingebaute Design, wie in Armature.",
   useBuiltIn: "Standarddesign verwenden",
   useOrgDefault: "Vorgabe für alle verwenden",
   show: "Anzeigen",
@@ -204,6 +206,16 @@ export const themesDe: typeof themesEn = {
     notAllowed: "Nicht erlaubt",
     wait: "Warten",
   } as Record<string, string>,
+  armature: {
+    follow: "Meinem Armature-Design folgen",
+    off: "Das in Armature gewählte Design auch hier verwenden. Wenn Sie unten ein Design wählen, endet das Folgen.",
+    on: "Exciter zeigt das Design, das Sie in Armature verwenden. Eine Änderung dort erscheint hier innerhalb weniger Minuten oder wenn Sie diese Seite öffnen.",
+    unreachable:
+      "Armature hat nicht rechtzeitig geantwortet, daher sehen Sie das Design, das Sie ohne Folgen hätten. Exciter fragt auf der nächsten Seite erneut.",
+    rejected:
+      "Armature akzeptiert Ihr Token nicht mehr, daher sehen Sie das Design, das Sie ohne Folgen hätten. Fügen Sie unter Ihr Konto, Armature-Konto ein neues Token ein.",
+    notConnected: "Verbinden Sie Ihr Armature-Konto unter Ihr Konto, Armature-Konto, um Ihr Armature-Design hier zu sehen.",
+  },
   orgDefault: {
     title: "Design für alle",
     intro: "Was alle sehen, bis sie selbst ein Design wählen. Nur ein geteiltes Design kann die Vorgabe sein.",

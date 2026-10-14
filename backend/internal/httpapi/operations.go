@@ -161,7 +161,7 @@ var operations = []operation{
 	{method: "GET", path: "/themes/examples", handler: "handleThemeExamples", tag: "themes", summary: "The themes shipped with the product, to start a theme from.",
 		responses: ok(env{"examples": []theme.Example{}})},
 	{method: "GET", path: "/themes/active", handler: "handleActiveTheme", tag: "themes",
-		summary:   "The theme the caller sees: chosen, the default for everyone, or null for the built-in one; source says which.",
+		summary:   "The theme the caller sees: chosen, followed from Armature, the default for everyone, or null for the built-in one; source says which.",
 		responses: ok(env{"theme": (*theme.Theme)(nil), "source": theme.Source("")})},
 	{method: "PUT", path: "/themes/active", handler: "handleChooseTheme", tag: "themes",
 		summary: "Use a theme; null returns to the default for everyone, null with builtIn keeps the built-in one.",
@@ -600,13 +600,13 @@ var operations = []operation{
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// The followed Armature theme (#30).
-	{method: "GET", path: "/armature/theme", handler: "handleGetArmatureTheme", tag: "armature", pending: true,
+	{method: "GET", path: "/armature/theme", handler: "handleGetArmatureTheme", tag: "armature",
 		summary:   "Whether the caller follows their Armature theme, and why it is not shown when it is not.",
 		responses: ok(env{"follow": armature.Follow{}})},
-	{method: "PUT", path: "/armature/theme", handler: "handleFollowArmatureTheme", tag: "armature", pending: true,
+	{method: "PUT", path: "/armature/theme", handler: "handleFollowArmatureTheme", tag: "armature",
 		summary:   "Follow the caller's active Armature theme, mirrored here and refreshed when it changes.",
 		responses: map[int]any{http.StatusOK: env{"follow": armature.Follow{}}, http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "DELETE", path: "/armature/theme", handler: "handleUnfollowArmatureTheme", tag: "armature", pending: true,
+	{method: "DELETE", path: "/armature/theme", handler: "handleUnfollowArmatureTheme", tag: "armature",
 		summary:   "Stop following the Armature theme and return to the default for everyone.",
 		responses: none()},
 }

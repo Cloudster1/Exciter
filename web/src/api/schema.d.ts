@@ -1563,7 +1563,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The theme the caller sees: chosen, the default for everyone, or null for the built-in one; source says which. */
+        /** The theme the caller sees: chosen, followed from Armature, the default for everyone, or null for the built-in one; source says which. */
         get: operations["activeTheme"];
         /** Use a theme; null returns to the default for everyone, null with builtIn keeps the built-in one. */
         put: operations["chooseTheme"];
@@ -3838,15 +3838,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -3896,15 +3887,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -3931,15 +3913,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
@@ -8327,7 +8300,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        source: "chosen" | "everyone" | "";
+                        source: "chosen" | "everyone" | "armature" | "";
                         theme: components["schemas"]["Theme"] | null;
                     };
                 };

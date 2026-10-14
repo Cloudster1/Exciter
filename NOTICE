@@ -178,6 +178,22 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for following the Armature theme (#30):
+- backend/migrations/00440_theme_follow_armature.sql: 00173, without the
+  organization
+- backend/internal/theme mirror.go and mirror_test.go, and the mirror's
+  marks in service.go, edit.go and portable.go: Following, Follow,
+  Unfollow, Mirror, SaveMirror and dropMirrors of internal/theme
+  service.go, with importPackage of portable.go
+- backend/internal/armature/theme.go and
+  backend/internal/httpapi/armature_theme_handlers.go: the same files
+- backend/cmd/armature-stub/themes.go: the theme routes and controls of
+  server.go
+- backend/test/armature_theme_test.go: the integration test, on Exciter's
+  harness
+- web/src/features/armature FollowArmatureTheme.tsx with its test, and
+  e2e/tests/armature-theme.spec.ts: the same files
+
 Adapted from Stator at cf0f6f7, for Armature's webhooks (#29):
 - backend/internal/armature/webhook.go with webhook_test.go: Sign,
   ErrBadSignature, the stand-in secret and Webhook of internal/armature

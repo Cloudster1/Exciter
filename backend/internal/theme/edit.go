@@ -30,6 +30,14 @@ func cleanName(name *string) (string, error) {
 // Create saves a theme for the owner. Files come later, so the spec cannot
 // name any yet.
 func (s *Service) Create(ctx context.Context, owner uuid.UUID, in Input) (*Theme, db.LSN, error) {
+	return s.create(ctx, owner, in, nil)
+}
+
+func (s *Service) create(ctx context.Context, owner uuid.UUID, in Input, mirror *MirrorOf) (*Theme, db.LSN, error) {
+	var mirrorID, mirrorAt any
+	if mirror != nil {
+		mirrorID, mirrorAt = mirror.ID, mirror.UpdatedAt
+	}
 	name, err := cleanName(in.Name)
 	if err != nil {
 		return nil, 0, err
@@ -50,8 +58,8 @@ func (s *Service) Create(ctx context.Context, owner uuid.UUID, in Input) (*Theme
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var id uuid.UUID
 		err := tx.QueryRow(ctx, `
-			INSERT INTO theme (owner_id, name, shared, spec)
-			VALUES ($1, $2, $3, $4) RETURNING id`, owner, name, shared, encoded).Scan(&id)
+			INSERT INTO theme (owner_id, name, shared, spec, armature_theme_id, armature_updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, owner, name, shared, encoded, mirrorID, mirrorAt).Scan(&id)
 		if isUnique(err) {
 			return fmt.Errorf("%w: %s", ErrDuplicateName, name)
 		}
@@ -79,6 +87,8 @@ func lockOwned(ctx context.Context, tx db.DBTX, id, actor uuid.UUID, administers
 		return nil, err
 	}
 	switch {
+	case current.Mirror != nil && !mirroring(ctx):
+		return nil, ErrNotFound
 	case current.OwnerID == actor:
 		return current, nil
 	case !current.Shared:
