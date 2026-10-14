@@ -10,11 +10,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// traceWorld is an organization with two projects, four requirements and a section in the first, and people
+// traceWorld is two projects of the installation, four requirements and a section in the first, and people
 // who edit, view, or do not see it, each on their own exciter_app connection.
 type traceWorld struct {
 	h                                  *harness
-	a, b                               member
+	a                                  member
+	strangerID                         uuid.UUID
 	here, other                        uuid.UUID
 	editorID, viewerID                 uuid.UUID
 	editor, viewer, outsider, stranger *pgx.Conn
@@ -23,15 +24,19 @@ type traceWorld struct {
 }
 
 func newTraceWorld(t *testing.T, slug string) *traceWorld {
+	trcKey := projectKey(t, "TRC")
+	othKey := projectKey(t, "OTH")
 	h := newHarness(t)
-	w := &traceWorld{h: h, a: h.makeMember(t, slug+"-a"), b: h.makeMember(t, slug+"-b")}
-	w.here, w.other = w.project(t, "TRC"), w.project(t, "OTH")
+	w := &traceWorld{h: h, a: h.owner(t, slug)}
+	w.here, w.other = w.project(t, trcKey), w.project(t, othKey)
 	w.editorID = h.addPerson(t, w.a.org, "member")
 	w.viewerID = h.addPerson(t, w.a.org, "guest")
 	outsiderID := h.addPerson(t, w.a.org, "guest")
 	h.grantAs(t, w.a.org, w.here, w.viewerID, "viewer")
 	w.editor, w.viewer, w.outsider = h.appConn(t, w.a.org, w.editorID), h.appConn(t, w.a.org, w.viewerID), h.appConn(t, w.a.org, outsiderID)
-	w.stranger = h.appConn(t, w.b.org, w.b.user)
+	// A second guest no grant names, where another organization stood before one installation (#90).
+	w.strangerID = h.addPerson(t, w.a.org, "guest")
+	w.stranger = h.appConn(t, w.a.org, w.strangerID)
 	w.r1, w.r2, w.r3, w.r4, w.section = w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "section")
 	w.derives, w.relates = w.typeOf(t, "derives"), w.typeOf(t, "relates")
 	return w
@@ -82,8 +87,12 @@ func (w *traceWorld) mustLink(t *testing.T, conn *pgx.Conn, typ, source, target 
 // Straight through SQL as exciter_app: a link joins two requirements once, never round an acyclic circle,
 // records its ends' revisions, is seen with both ends, made by who edits one, and only ever tombstoned.
 func TestRawSQLGuardsTraceLinks(t *testing.T) {
+	hidKey := projectKey(t, "HID")
+	trcKey := projectKey(t, "TRC")
 	w := newTraceWorld(t, "trace-wall")
-	h, a, b := w.h, w.a, w.b
+	h, a := w.h, w.a
+	// The test retires a type for all projects straight through SQL.
+	h.keepLinkTypes(t)
 	ctx := context.Background()
 	other := w.other
 	viewerID := w.viewerID
@@ -95,13 +104,6 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 		return w.mustLink(t, conn, typ, source, target)
 	}
 	tryLink := w.tryLink
-
-	t.Run("every organization starts with the six link types", func(t *testing.T) {
-		var n int
-		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE org_id = $1 AND project_id IS NULL`, b.org).Scan(&n); err != nil || n != 6 {
-			t.Errorf("a new organization has %d link types: %v", n, err)
-		}
-	})
 
 	t.Run("the database refuses a self-link, a section, a repeat and a cycle", func(t *testing.T) {
 		if err := tryLink(editor, derives, r1, r1); !refusedBy(err, "trace_link_not_self") {
@@ -125,7 +127,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 	})
 
 	t.Run("a cycle is refused over links the writer cannot see", func(t *testing.T) {
-		hidden := project("HID")
+		hidden := project(hidKey)
 		var secret uuid.UUID
 		if err := h.super.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, created_by)
 			VALUES ($1, $2, 'Hidden', '{"type":"doc"}', 'h', $3) RETURNING id`, a.org, hidden, a.user).Scan(&secret); err != nil {
@@ -162,7 +164,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 	t.Run("a link is logged on both ends", func(t *testing.T) {
 		var to string
 		if err := h.super.QueryRow(ctx, `SELECT to_value FROM requirement_change WHERE requirement_id = $1 AND field = 'link' ORDER BY created_at, id LIMIT 1`,
-			r2).Scan(&to); err != nil || to != "is derived into TRC-R1" {
+			r2).Scan(&to); err != nil || to != "is derived into "+trcKey+"-R1" {
 			t.Errorf("the target logged %q: %v", to, err)
 		}
 	})
@@ -172,7 +174,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 			t.Errorf("a viewer made a link: %v", err)
 		}
 		if err := tryLink(stranger, relates, r1, r4); !isPolicyViolation(err) {
-			t.Errorf("another organization made a link: %v", err)
+			t.Errorf("a guest no grant names made a link: %v", err)
 		}
 		if _, err := editor.Exec(ctx, `INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by) VALUES ($1, $2, $3, $4, $5)`,
 			a.org, relates, r1, r4, viewerID); !isPolicyViolation(err) {
@@ -186,14 +188,14 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 			return n
 		}
 		if n := count(viewer); n != 2 {
-			t.Errorf("a viewer sees %d links of TRC-R1, want 2", n)
+			t.Errorf("a viewer sees %d links of "+trcKey+"-R1, want 2", n)
 		}
 		if n := count(outsider) + count(stranger); n != 0 {
 			t.Errorf("somebody without the project sees %d links", n)
 		}
 		var hiddenEnd int
 		if err := editor.QueryRow(ctx, `SELECT count(*) FROM trace_link WHERE source_id = $1`, r3).Scan(&hiddenEnd); err != nil || hiddenEnd != 1 {
-			t.Errorf("an editor sees %d links from TRC-R3, the one to a hidden requirement left out: %v", hiddenEnd, err)
+			t.Errorf("an editor sees %d links from "+trcKey+"-R3, the one to a hidden requirement left out: %v", hiddenEnd, err)
 		}
 	})
 
@@ -215,7 +217,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 			t.Error("a removed link came back")
 		}
 		var removals int
-		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM requirement_change WHERE requirement_id = $1 AND field = 'link' AND from_value = 'relates to TRC-R1'`,
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM requirement_change WHERE requirement_id = $1 AND field = 'link' AND from_value = 'relates to `+trcKey+`-R1'`,
 			r4).Scan(&removals); err != nil || removals != 1 {
 			t.Errorf("the far end logged %d removals: %v", removals, err)
 		}
@@ -240,12 +242,13 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 	})
 }
 
-// Straight through SQL as exciter_app: the organization's administrators shape its link types and a project's
+// Straight through SQL as exciter_app: the administrators shape the link types for all projects and a project's
 // administrators the project's, keys stay taken across both, and a type with links cannot be deleted.
 func TestRawSQLKeepsLinkTypesToTheirAdministrators(t *testing.T) {
 	w := newTraceWorld(t, "link-type-wall")
 	ctx := context.Background()
 	h, a, here, other := w.h, w.a, w.here, w.other
+	h.keepLinkTypes(t)
 	editor, viewer, derives := w.editor, w.viewer, w.derives
 	w.mustLink(t, editor, derives, w.r1, w.r2)
 
@@ -281,8 +284,14 @@ func TestRawSQLKeepsLinkTypesToTheirAdministrators(t *testing.T) {
 		a.org, here, derives, foreignType); !refusedBy(err, "link_type_project_reach") {
 		t.Errorf("a rule named another project's requirement type: %v", err)
 	}
-	var seen int
-	if err := viewer.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE org_id = $1`, a.org).Scan(&seen); err != nil || seen != 7 {
-		t.Errorf("a viewer of the project sees %d link types, want the six and the project's own: %v", seen, err)
+	var seen, allProjects int
+	if err := viewer.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE project_id IS NULL OR project_id = $1`, here).Scan(&seen); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.super.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE org_id = $1 AND project_id IS NULL`, a.org).Scan(&allProjects); err != nil {
+		t.Fatal(err)
+	}
+	if seen != allProjects+1 {
+		t.Errorf("a viewer of the project sees %d link types, want the %d for all projects and the project's own", seen, allProjects)
 	}
 }

@@ -6,11 +6,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
@@ -21,14 +23,14 @@ import (
 func TestMembersOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.makeMember(t, "members")
+	home := h.owner(t, "members")
 	adminID := h.addPerson(t, home.org, "admin")
 	memberID := h.addPerson(t, home.org, "member")
 	admin, member, nobody := a.as(t, adminID, home.org), a.as(t, memberID, home.org), a.anonymous()
 
 	people := list(t, want(t, admin.get(t, "/api/v1/users"), http.StatusOK, "list the people"), "members")
-	if len(people) != 3 || people[0].(map[string]any)["role"] != "owner" {
-		t.Errorf("the people read %v, want three, the owner first", people)
+	if people[0].(map[string]any)["role"] != "owner" || peopleIndex(people, home.user) < 0 || peopleIndex(people, adminID) < 0 || peopleIndex(people, memberID) < 0 {
+		t.Errorf("the people read %v, want the owners first and the test's three among them", people)
 	}
 
 	email := "added-" + h.suffix() + "@example.test"
@@ -97,8 +99,14 @@ func TestMembersOverTheAPI(t *testing.T) {
 		t.Errorf("a switched-off sign-in answers %s", code)
 	}
 	people = list(t, want(t, admin.get(t, "/api/v1/users"), http.StatusOK, "list the people"), "members")
-	if last := people[len(people)-1].(map[string]any); last["userId"] != added.String() || last["active"] != false || last["role"] != "guest" {
-		t.Errorf("the people read %v, want the guest last, switched off and still a guest", people)
+	at := peopleIndex(people, added)
+	if at < 0 || people[at].(map[string]any)["active"] != false || people[at].(map[string]any)["role"] != "guest" || people[len(people)-1].(map[string]any)["active"] != false {
+		t.Errorf("the people read %v, want the guest among those switched off, last, and still a guest", people)
+	}
+	for _, each := range people[at:] {
+		if each.(map[string]any)["active"] != false {
+			t.Errorf("somebody switched on comes after the guest switched off: %v", each)
+		}
 	}
 
 	back := obj(t, want(t, admin.patch(t, "/api/v1/users/"+added.String(), map[string]any{"active": true}), http.StatusOK, "switch the guest on"), "member")
@@ -127,10 +135,10 @@ func TestMembersOverTheAPI(t *testing.T) {
 }
 
 // Straight through SQL as exciter_app: only an administrator changes a role or switches somebody off, nobody is
-// made an owner or loses one's standing, nobody leaves, and the installation keeps an active administrator.
+// made an owner or loses one's standing, and nobody leaves.
 func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "members-sql")
+	home := h.owner(t, "members-sql")
 	memberID := h.addPerson(t, home.org, "member")
 	otherID := h.addPerson(t, home.org, "member")
 	asMember := db.WithUser(homeOrg(home), memberID)
@@ -154,7 +162,7 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	permissionDenied(t, "a member removing somebody", err)
 	_, err = affected(home.ctx, `DELETE FROM org_member WHERE user_id = $1`, otherID)
 	permissionDenied(t, "the owner removing somebody rather than switching them off", err)
-	newcomer := h.addPerson(t, h.makeMember(t, "members-sql-elsewhere").org, "member")
+	newcomer := h.outsider(t, "members-sql-newcomer")
 	_, err = affected(asMember, `INSERT INTO org_member (org_id, user_id, org_role) VALUES (current_org_id(), $1, 'member')`, newcomer)
 	permissionDenied(t, "a member letting somebody in", err)
 
@@ -173,28 +181,65 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 		t.Errorf("an administrator could not switch a member off: %d rows, %v", n, err)
 	}
 
-	// The owner and the new administrator are the two left; switching one off leaves the other the last.
-	if n, err := affected(home.ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, memberID); err != nil || n != 1 {
-		t.Fatalf("the owner could not switch the other administrator off: %d rows, %v", n, err)
+}
+
+// lastAdministratorDatabase is a database of its own, migrated, with an installation whose owner is its one
+// administrator: the shared installation always has others, so its last one is never reached.
+func lastAdministratorDatabase(t *testing.T, h *harness) (*pgxpool.Pool, uuid.UUID, uuid.UUID) {
+	t.Helper()
+	ctx := context.Background()
+	provider, super, _ := scratchDatabase(t, h, "exciter_last_administrator_test")
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("migrate: %v", err)
 	}
+	var org, owner uuid.UUID
+	if err := super.QueryRow(ctx, `INSERT INTO org (slug, name) VALUES ('exciter', 'Exciter') RETURNING id`).Scan(&org); err != nil {
+		t.Fatal(err)
+	}
+	if err := super.QueryRow(ctx, `INSERT INTO app_user (email, name) VALUES ('owner@example.test', 'Owner') RETURNING id`).Scan(&owner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'owner')`, org, owner); err != nil {
+		t.Fatal(err)
+	}
+	return super, org, owner
+}
+
+// addAdministrator puts a switched-on administrator into the scratch installation.
+func addAdministrator(t *testing.T, super *pgxpool.Pool, org uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	if err := super.QueryRow(context.Background(), `INSERT INTO app_user (email, name) VALUES ($1, $2) RETURNING id`, name+"@example.test", name).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := super.Exec(context.Background(), `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'admin')`, org, id); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// Straight through SQL, even as the superuser: the installation's last active administrator is neither switched
+// off, nor made a member, nor taken out, and an owner goes off once another administrator stays.
+func TestTheInstallationKeepsAnActiveAdministrator(t *testing.T) {
+	h := newHarness(t)
+	ctx := context.Background()
+	super, org, owner := lastAdministratorDatabase(t, h)
+	var pgErr *pgconn.PgError
 	for what, sql := range map[string]string{
 		"switching the last active administrator off": `UPDATE app_user SET is_active = false WHERE id = $1`,
 		"making them a member":                        `UPDATE org_member SET org_role = 'member' WHERE user_id = $1`,
 		"taking their membership away":                `DELETE FROM org_member WHERE user_id = $1`,
 	} {
-		_, err := h.super.Exec(context.Background(), sql, home.user)
-		if !errors.As(err, &pgErr) || pgErr.Code != "23514" {
-			t.Errorf("%s, even as the superuser, = %v, want refused", what, err)
+		if _, err := super.Exec(ctx, sql, owner); !errors.As(err, &pgErr) || pgErr.Code != "23514" {
+			t.Errorf("%s = %v, want refused", what, err)
 		}
 	}
-	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET is_active = true WHERE id = $1`, memberID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET is_active = false WHERE id = $1`, home.user); err != nil {
+	admin := addAdministrator(t, super, org, "admin")
+	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, owner); err != nil {
 		t.Errorf("switching the owner off beside an active administrator = %v, want allowed", err)
 	}
-	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET is_active = true WHERE id = $1`, home.user); err != nil {
-		t.Fatal(err)
+	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, admin); !errors.As(err, &pgErr) || pgErr.Code != "23514" {
+		t.Errorf("switching the administrator off once the owner is off = %v, want refused", err)
 	}
 }
 
@@ -203,17 +248,14 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 func TestTwoAdministratorsCannotSwitchEachOtherOff(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
-	home := h.makeMember(t, "members-race")
-	one, other := h.addPerson(t, home.org, "admin"), h.addPerson(t, home.org, "admin")
+	super, org, owner := lastAdministratorDatabase(t, h)
+	one, other := addAdministrator(t, super, org, "one"), addAdministrator(t, super, org, "other")
 	// With the owner switched off, the two are the only active administrators.
-	if _, err := h.super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, home.user); err != nil {
+	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, owner); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `UPDATE app_user SET is_active = true WHERE id = ANY($1)`, []uuid.UUID{home.user, one, other})
-	})
 
-	first, err := h.super.Begin(ctx)
+	first, err := super.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,10 +264,10 @@ func TestTwoAdministratorsCannotSwitchEachOtherOff(t *testing.T) {
 		t.Fatalf("the first switch-off = %v", err)
 	}
 	second := make(chan error, 1)
-	// Spelled out, so the wait below finds this statement and no other test's.
+	// Spelled out, so the wait below finds this statement and no other.
 	switchOff := `UPDATE app_user SET is_active = false WHERE id = '` + one.String() + `'`
 	go func() {
-		_, err := h.super.Exec(ctx, switchOff)
+		_, err := super.Exec(ctx, switchOff)
 		second <- err
 	}()
 	deadline := time.Now().Add(10 * time.Second)
@@ -249,18 +291,18 @@ func TestTwoAdministratorsCannotSwitchEachOtherOff(t *testing.T) {
 func TestTheAuditLogOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.makeMember(t, "audit-api")
+	home := h.owner(t, "audit-api")
 	adminID := h.addPerson(t, home.org, "admin")
 	memberID := h.addPerson(t, home.org, "member")
 	admin, member, nobody := a.as(t, adminID, home.org), a.as(t, memberID, home.org), a.anonymous()
 	want(t, admin.patch(t, "/api/v1/users/"+memberID.String(), map[string]any{"role": "guest"}), http.StatusOK, "make an entry")
 
-	entries := list(t, want(t, admin.get(t, "/api/v1/audit"), http.StatusOK, "read the log"), "entries")
+	entries := list(t, want(t, admin.get(t, "/api/v1/audit?actor="+adminID.String()), http.StatusOK, "read the log"), "entries")
 	if len(entries) != 1 || entries[0].(map[string]any)["action"] != audit.ActionMemberRoleChanged || entries[0].(map[string]any)["actorName"] == "" {
 		t.Errorf("the log reads %v", entries)
 	}
 	facets := obj(t, want(t, admin.get(t, "/api/v1/audit/facets"), http.StatusOK, "facets"), "facets")
-	if facets["retentionDays"] != float64(365) || len(facets["actions"].([]any)) != 1 {
+	if facets["retentionDays"] != float64(365) || !slices.Contains(facets["actions"].([]any), any(audit.ActionMemberRoleChanged)) {
 		t.Errorf("the facets read %v", facets)
 	}
 	for query, field := range map[string]string{"action=member.danced": "action", "actor=ann": "actor", "from=2026-13-01": "from", "cursor=nonsense": "cursor", "limit=0": "limit"} {
@@ -285,4 +327,14 @@ func TestTheAuditLogOverTheAPI(t *testing.T) {
 		}
 		want(t, nobody.get(t, path), http.StatusUnauthorized, "nobody reads "+path)
 	}
+}
+
+// peopleIndex is where the person stands in a list of members, or -1.
+func peopleIndex(people []any, id uuid.UUID) int {
+	for i, each := range people {
+		if each.(map[string]any)["userId"] == id.String() {
+			return i
+		}
+	}
+	return -1
 }

@@ -80,7 +80,7 @@ func named(t *testing.T, c *db.Cluster, ctx context.Context, name string) int {
 func TestReadsReachTheReplica(t *testing.T) {
 	h := newHarness(t)
 	needReplica(t, h)
-	m := h.makeMember(t, "routing")
+	m := h.owner(t, "routing")
 
 	before := h.cluster.Stats()
 	for range 5 {
@@ -96,7 +96,8 @@ func TestReadsReachTheReplica(t *testing.T) {
 // a replica there has not replayed the change.
 func TestWriteReportsThePositionPastItsCommit(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "commitlsn")
+	h.keepInstallationName(t)
+	m := h.owner(t, "commitlsn")
 
 	var inside db.LSN
 	after, err := h.cluster.Write(m.ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -123,11 +124,12 @@ func TestWriteReportsThePositionPastItsCommit(t *testing.T) {
 // race the test hopes to win.
 func TestReadYourWritesWhileReplayIsPaused(t *testing.T) {
 	h := newHarness(t)
+	h.keepInstallationName(t)
 	needReplica(t, h)
 	// The health loop is kept out of the way, so what is proven is the check
 	// on the connection each read gets.
 	c := h.openCluster(t, 0, neverHealth)
-	m := h.makeMember(t, "ryw")
+	m := h.owner(t, "ryw")
 
 	h.pauseReplay(t)
 	lsn := rename(t, c, m, "after-pause")
@@ -173,9 +175,10 @@ func TestReadYourWritesWhileReplayIsPaused(t *testing.T) {
 // passes of the health loop.
 func TestALaggingConnectionFallsBackToThePrimary(t *testing.T) {
 	h := newHarness(t)
+	h.keepInstallationName(t)
 	needReplica(t, h)
 	c := h.openCluster(t, testMaxLag, neverHealth)
-	m := h.makeMember(t, "lag")
+	m := h.owner(t, "lag")
 
 	// Every commit the replica has replayed came before the pause, so from here
 	// on it lags at least as long as it has been paused, however slow the host.
@@ -206,9 +209,10 @@ func TestALaggingConnectionFallsBackToThePrimary(t *testing.T) {
 // puts it back once it has caught up.
 func TestALaggingReplicaLeavesTheRotationAndReturns(t *testing.T) {
 	h := newHarness(t)
+	h.keepInstallationName(t)
 	needReplica(t, h)
 	c := h.openCluster(t, testMaxLag, quickHealth)
-	m := h.makeMember(t, "rotation")
+	m := h.owner(t, "rotation")
 
 	h.pauseReplay(t)
 	var last db.LSN
@@ -248,9 +252,10 @@ func waitFor(t *testing.T, what string, ok func() bool) {
 // two of them once served a page with an owner newer than its permissions.
 func TestAReadSeesOneMomentThroughout(t *testing.T) {
 	h := newHarness(t)
+	h.keepInstallationName(t)
 	needReplica(t, h)
 	c := h.openCluster(t, 0, neverHealth)
-	m := h.makeMember(t, "snapshot")
+	m := h.owner(t, "snapshot")
 
 	before := c.Stats()
 	err := c.Read(m.ctx, func(ctx context.Context, tx db.DBTX) error {

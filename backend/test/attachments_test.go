@@ -83,17 +83,18 @@ func stored(t *testing.T, store objectstore.Store, key string) bool {
 // Editors attach files to a requirement and viewers read them, through the API alone; a file some revision
 // shows is only taken off the list, and any other goes with its bytes.
 func TestAttachmentsOverTheAPI(t *testing.T) {
+	attKey := projectKey(t, "ATT")
 	f := newProjectFixture(t)
-	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": "ATT", "name": "Attached"}), http.StatusCreated, "make a project"), "project")
+	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": attKey, "name": "Attached"}), http.StatusCreated, "make a project"), "project")
 	editor := f.plain
 	viewerID := f.h.addPerson(t, f.home.org, "guest")
 	f.h.grantAs(t, f.home.org, uuid.MustParse(project["id"].(string)), viewerID, "viewer")
 	viewer := f.api.as(t, viewerID, f.home.org)
-	first := obj(t, want(t, editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{"title": "Show the basket"}), http.StatusCreated, "write ATT-R1"), "requirement")
-	want(t, editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{"title": "Pay"}), http.StatusCreated, "write ATT-R2")
+	first := obj(t, want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Show the basket"}), http.StatusCreated, "write "+attKey+"-R1"), "requirement")
+	want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Pay"}), http.StatusCreated, "write "+attKey+"-R2")
 	picture := aPicture(t)
 
-	file := obj(t, want(t, editor.upload(t, "/api/v1/requirements/ATT-R1/attachments", "basket.png", picture), http.StatusCreated, "attach a picture"), "attachment")
+	file := obj(t, want(t, editor.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "basket.png", picture), http.StatusCreated, "attach a picture"), "attachment")
 	if file["fileName"] != "basket.png" || file["contentType"] != "image/png" || file["width"] != float64(3) || file["height"] != float64(2) ||
 		file["size"] != float64(len(picture)) || file["referenced"] != false || file["requirementId"] != first["id"] {
 		t.Fatalf("the picture as stored: %v", file)
@@ -103,7 +104,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	if !stored(t, f.api.store, pictureKey) {
 		t.Fatal("the picture's bytes are not under the requirement's prefix")
 	}
-	note := obj(t, want(t, editor.uploadAs(t, "/api/v1/requirements/ATT-R1/attachments", "dir/note.svg", "image/svg+xml",
+	note := obj(t, want(t, editor.uploadAs(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "dir/note.svg", "image/svg+xml",
 		[]byte(`<svg xmlns="http://www.w3.org/2000/svg"/>`)), http.StatusCreated, "attach a drawing"), "attachment")
 	if note["fileName"] != "note.svg" || note["contentType"] != "image/svg+xml" || note["width"] != nil {
 		t.Errorf("the drawing keeps the base of its name and the type sent, unmeasured: %v", note)
@@ -111,22 +112,22 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	noteID := note["id"].(string)
 
 	t.Run("only editors attach, and only what fits", func(t *testing.T) {
-		refuse(t, "a viewer attaches", viewer.upload(t, "/api/v1/requirements/ATT-R1/attachments", "a.txt", []byte("a")), http.StatusForbidden, "forbidden")
-		refuse(t, "a guest who cannot see it", f.guest.upload(t, "/api/v1/requirements/ATT-R1/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
-		refuse(t, "another organization", f.outside.upload(t, "/api/v1/requirements/ATT-R1/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
-		refuse(t, "nobody signed in", f.api.anonymous().upload(t, "/api/v1/requirements/ATT-R1/attachments", "a.txt", []byte("a")), http.StatusUnauthorized, "unauthorized")
-		refuse(t, "a file over the limit", editor.upload(t, "/api/v1/requirements/ATT-R1/attachments", "big.bin", make([]byte, testUploadLimit+1)),
+		refuse(t, "a viewer attaches", viewer.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "a.txt", []byte("a")), http.StatusForbidden, "forbidden")
+		refuse(t, "a guest who cannot see it", f.guest.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
+		refuse(t, "a guest no grant names", f.outside.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
+		refuse(t, "nobody signed in", f.api.anonymous().upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "a.txt", []byte("a")), http.StatusUnauthorized, "unauthorized")
+		refuse(t, "a file over the limit", editor.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "big.bin", make([]byte, testUploadLimit+1)),
 			http.StatusRequestEntityTooLarge, "too_large")
-		refuse(t, "an empty file", editor.upload(t, "/api/v1/requirements/ATT-R1/attachments", "empty.txt", nil), http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "no such requirement", editor.upload(t, "/api/v1/requirements/ATT-R9/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
+		refuse(t, "an empty file", editor.upload(t, "/api/v1/requirements/"+attKey+"-R1/attachments", "empty.txt", nil), http.StatusUnprocessableEntity, "validation_failed")
+		refuse(t, "no such requirement", editor.upload(t, "/api/v1/requirements/"+attKey+"-R9/attachments", "a.txt", []byte("a")), http.StatusNotFound, "not_found")
 	})
 
 	t.Run("viewers list and read them, as downloads unless safe in place", func(t *testing.T) {
-		files := list(t, want(t, viewer.get(t, "/api/v1/requirements/ATT-R1/attachments"), http.StatusOK, "list them"), "attachments")
+		files := list(t, want(t, viewer.get(t, "/api/v1/requirements/"+attKey+"-R1/attachments"), http.StatusOK, "list them"), "attachments")
 		if len(files) != 2 || files[0].(map[string]any)["id"] != noteID {
 			t.Fatalf("the latest first: %v", files)
 		}
-		refuse(t, "a guest lists them", f.guest.get(t, "/api/v1/requirements/ATT-R1/attachments"), http.StatusNotFound, "not_found")
+		refuse(t, "a guest lists them", f.guest.get(t, "/api/v1/requirements/"+attKey+"-R1/attachments"), http.StatusNotFound, "not_found")
 
 		resp, body := viewer.download(t, "/api/v1/attachments/"+pictureID)
 		if resp.StatusCode != http.StatusOK || !bytes.Equal(body, picture) {
@@ -155,7 +156,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 		if stored(t, f.api.store, fileKey(f.home.org, first["id"].(string), noteID)) {
 			t.Error("the drawing's bytes stayed")
 		}
-		if n := f.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE org_id = $1`, f.home.org); n != 0 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`, fileKey(f.home.org, first["id"].(string), noteID)); n != 0 {
 			t.Errorf("%d tombstones stayed after the bytes went", n)
 		}
 		refuse(t, "it is gone", editor.delete(t, "/api/v1/attachments/"+noteID), http.StatusNotFound, "not_found")
@@ -163,13 +164,13 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	})
 
 	t.Run("a file a revision shows is only taken off the list", func(t *testing.T) {
-		want(t, editor.patch(t, "/api/v1/requirements/ATT-R1", map[string]any{"statement": showing(pictureID), "baseRevision": 1}), http.StatusOK, "show it")
-		files := list(t, want(t, editor.get(t, "/api/v1/requirements/ATT-R1/attachments"), http.StatusOK, "list"), "attachments")
+		want(t, editor.patch(t, "/api/v1/requirements/"+attKey+"-R1", map[string]any{"statement": showing(pictureID), "baseRevision": 1}), http.StatusOK, "show it")
+		files := list(t, want(t, editor.get(t, "/api/v1/requirements/"+attKey+"-R1/attachments"), http.StatusOK, "list"), "attachments")
 		if files[0].(map[string]any)["referenced"] != true {
 			t.Fatalf("the shown picture is not marked: %v", files)
 		}
 		want(t, editor.delete(t, "/api/v1/attachments/"+pictureID), http.StatusNoContent, "delete the shown picture")
-		if n := len(list(t, want(t, editor.get(t, "/api/v1/requirements/ATT-R1/attachments"), http.StatusOK, "list"), "attachments")); n != 0 {
+		if n := len(list(t, want(t, editor.get(t, "/api/v1/requirements/"+attKey+"-R1/attachments"), http.StatusOK, "list"), "attachments")); n != 0 {
 			t.Errorf("the list still holds %d files", n)
 		}
 		if resp, body := viewer.download(t, "/api/v1/attachments/"+pictureID); resp.StatusCode != http.StatusOK || !bytes.Equal(body, picture) {
@@ -182,12 +183,12 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	})
 
 	t.Run("a trashed requirement takes no files", func(t *testing.T) {
-		want(t, editor.delete(t, "/api/v1/requirements/ATT-R2"), http.StatusNoContent, "trash ATT-R2")
-		refuse(t, "an upload to the trash", editor.upload(t, "/api/v1/requirements/ATT-R2/attachments", "a.txt", []byte("a")), http.StatusConflict, "requirement_trashed")
+		want(t, editor.delete(t, "/api/v1/requirements/"+attKey+"-R2"), http.StatusNoContent, "trash "+attKey+"-R2")
+		refuse(t, "an upload to the trash", editor.upload(t, "/api/v1/requirements/"+attKey+"-R2/attachments", "a.txt", []byte("a")), http.StatusConflict, "requirement_trashed")
 	})
 
 	t.Run("a copy shows files of its own, and a purge takes them with their bytes", func(t *testing.T) {
-		copied := obj(t, want(t, editor.post(t, "/api/v1/requirements/ATT-R1/copy", map[string]any{"place": map[string]any{}}), http.StatusCreated, "copy"),
+		copied := obj(t, want(t, editor.post(t, "/api/v1/requirements/"+attKey+"-R1/copy", map[string]any{"place": map[string]any{}}), http.StatusCreated, "copy"),
 			"requirement")
 		files := list(t, want(t, editor.get(t, "/api/v1/requirements/"+copied["key"].(string)+"/attachments"), http.StatusOK, "the copy's files"), "attachments")
 		if len(files) != 1 {
@@ -204,7 +205,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 		}
 
 		want(t, editor.delete(t, "/api/v1/requirements/"+copied["key"].(string)), http.StatusNoContent, "trash the copy")
-		want(t, f.owner.delete(t, "/api/v1/projects/ATT/trash/"+copied["id"].(string)), http.StatusNoContent, "purge it")
+		want(t, f.owner.delete(t, "/api/v1/projects/"+attKey+"/trash/"+copied["id"].(string)), http.StatusNoContent, "purge it")
 		if n := f.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`, copyKey); n != 1 {
 			t.Fatal("the purged copy's file left no tombstone")
 		}

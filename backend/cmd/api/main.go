@@ -37,8 +37,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
-	"github.com/cloudster1/exciter/backend/internal/seed"
-	"github.com/cloudster1/exciter/backend/internal/testorg"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -172,11 +170,6 @@ func run() error {
 		AppBaseURL:      cfg.AppBaseURL,
 		CheckOrigin:     cfg.IsProduction(),
 		RequestTimeout:  cfg.RequestTimeout,
-	}
-	if cfg.TestEndpoints.Enabled {
-		log.Warn("EXCITER_TEST_ENDPOINTS is on: " + httpapi.APIPrefix + "/test makes and deletes organizations for anybody with its token")
-		server.TestOrgs = testorg.NewService(cluster, accounts, sso, store, cfg.Bootstrap.AdminEmail, seed.Bootstrapped(cfg.Bootstrap))
-		server.TestToken = cfg.TestEndpoints.Token
 	}
 	origins := cfg.CORSOrigins
 	if len(origins) == 0 && !cfg.IsProduction() {

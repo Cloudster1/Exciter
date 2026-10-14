@@ -32,6 +32,7 @@ func rolesOf(t *testing.T, r response) []string {
 // A project's administrators decide who holds which role in it, roles add up, a guest is let in only by name
 // or group, and the inspector says why somebody may or may not do something, as the database answers it.
 func TestProjectGrantsOverTheAPI(t *testing.T) {
+	graKey := projectKey(t, "GRA")
 	f := newProjectFixture(t)
 	ownerName := "Olive Owner"
 	if _, err := f.h.super.Exec(t.Context(), `UPDATE app_user SET name = $2 WHERE id = $1`, f.home.user, ownerName); err != nil {
@@ -40,15 +41,15 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 	plainID, guestID := f.h.namedPerson(t, f.home.org, "Paul Plain"), f.h.addPerson(t, f.home.org, "guest")
 	plain, guest := f.api.as(t, plainID, f.home.org), f.api.as(t, guestID, f.home.org)
 	reviewers := f.h.makeGroup(t, f.home.org, "Reviewers", plainID)
-	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": "GRA", "name": "Granted"}), http.StatusCreated, "make a project")
-	const grants = "/api/v1/projects/GRA/grants"
+	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": graKey, "name": "Granted"}), http.StatusCreated, "make a project")
+	grants := "/api/v1/projects/" + graKey + "/grants"
 
 	t.Run("a new project is its maker's to run and everybody's to work in", func(t *testing.T) {
 		sameList(t, "the first grants", rolesOf(t, want(t, f.owner.get(t, grants), http.StatusOK, "list grants")),
 			"everyone:Everyone=editor", "user:"+ownerName+"=admin")
 		refuse(t, "an editor reads the grants", plain.get(t, grants), http.StatusForbidden, "forbidden")
 		refuse(t, "a guest reads the grants", guest.get(t, grants), http.StatusNotFound, "not_found")
-		refuse(t, "another organization reads the grants", f.outside.get(t, grants), http.StatusNotFound, "not_found")
+		refuse(t, "somebody no grant names reads the grants", f.outside.get(t, grants), http.StatusNotFound, "not_found")
 	})
 
 	t.Run("the grants are replaced as a whole, and roles add up", func(t *testing.T) {
@@ -62,11 +63,11 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 		if rows := rolesOf(t, got); len(rows) != 5 || rows[0] != "everyone:Everyone=viewer" || rows[1][:6] != "group:" {
 			t.Errorf("the answer lists everyone, then groups, then people: %v", rows)
 		}
-		can := obj(t, want(t, plain.get(t, "/api/v1/projects/GRA"), http.StatusOK, "read as the editor"), "project", "can")
+		can := obj(t, want(t, plain.get(t, "/api/v1/projects/"+graKey), http.StatusOK, "read as the editor"), "project", "can")
 		if can["edit"] != true || can["approve"] != true || can["administer"] != false {
 			t.Errorf("an editor on their own and a reviewer through a group edits and approves: %v", can)
 		}
-		can = obj(t, want(t, guest.get(t, "/api/v1/projects/GRA"), http.StatusOK, "read as the guest"), "project", "can")
+		can = obj(t, want(t, guest.get(t, "/api/v1/projects/"+graKey), http.StatusOK, "read as the guest"), "project", "can")
 		if can["edit"] != true || can["approve"] != false {
 			t.Errorf("the guest is an editor by name: %v", can)
 		}
@@ -75,13 +76,12 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 	t.Run("a table nobody may hold is refused", func(t *testing.T) {
 		owner := grantRow(subjectOf("user", f.home.user), "admin")
 		for what, rows := range map[string][]any{
-			"admin for everyone":   {owner, grantRow(map[string]any{"type": "everyone"}, "admin")},
-			"admin for a guest":    {owner, grantRow(subjectOf("user", guestID), "admin")},
-			"a role that is none":  {grantRow(subjectOf("user", f.home.user), "boss")},
-			"somebody from abroad": {owner, grantRow(subjectOf("user", f.away.user), "viewer")},
-			"nobody at all":        {owner, map[string]any{"subject": map[string]any{"type": "user"}, "role": "viewer"}},
-			"a kind of subject":    {owner, grantRow(map[string]any{"type": "robot"}, "viewer")},
-			"somebody twice":       {owner, grantRow(subjectOf("user", f.home.user), "viewer")},
+			"admin for everyone":  {owner, grantRow(map[string]any{"type": "everyone"}, "admin")},
+			"admin for a guest":   {owner, grantRow(subjectOf("user", guestID), "admin")},
+			"a role that is none": {grantRow(subjectOf("user", f.home.user), "boss")},
+			"nobody at all":       {owner, map[string]any{"subject": map[string]any{"type": "user"}, "role": "viewer"}},
+			"a kind of subject":   {owner, grantRow(map[string]any{"type": "robot"}, "viewer")},
+			"somebody twice":      {owner, grantRow(subjectOf("user", f.home.user), "viewer")},
 		} {
 			refuse(t, what, f.owner.put(t, grants, map[string]any{"grants": rows}), http.StatusUnprocessableEntity, "validation_failed")
 		}
@@ -92,32 +92,31 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 	})
 
 	t.Run("the inspector says what the database answers, and why", func(t *testing.T) {
-		report := obj(t, want(t, f.owner.get(t, "/api/v1/projects/GRA/access/"+plainID.String()), http.StatusOK, "inspect the editor"), "access")
-		can := obj(t, want(t, plain.get(t, "/api/v1/projects/GRA"), http.StatusOK, "read as the editor"), "project", "can")
+		report := obj(t, want(t, f.owner.get(t, "/api/v1/projects/"+graKey+"/access/"+plainID.String()), http.StatusOK, "inspect the editor"), "access")
+		can := obj(t, want(t, plain.get(t, "/api/v1/projects/"+graKey), http.StatusOK, "read as the editor"), "project", "can")
 		for _, each := range report["rights"].([]any) {
 			right := each.(map[string]any)
 			if right["allowed"] != can[right["right"].(string)] {
 				t.Errorf("the inspector says %s is %v, the project says %v", right["right"], right["allowed"], can[right["right"].(string)])
 			}
 		}
-		guestReport := obj(t, want(t, f.owner.get(t, "/api/v1/projects/GRA/access/"+guestID.String()), http.StatusOK, "inspect the guest"), "access")
+		guestReport := obj(t, want(t, f.owner.get(t, "/api/v1/projects/"+graKey+"/access/"+guestID.String()), http.StatusOK, "inspect the guest"), "access")
 		approve := guestReport["rights"].([]any)[3].(map[string]any)
 		if approve["right"] != "approve" || approve["allowed"] != false {
 			t.Errorf("the guest does not approve: %v", approve)
 		}
-		refuse(t, "somebody from another organization", f.owner.get(t, "/api/v1/projects/GRA/access/"+f.away.user.String()), http.StatusNotFound, "not_found")
-		refuse(t, "an editor inspects", plain.get(t, "/api/v1/projects/GRA/access/"+guestID.String()), http.StatusForbidden, "forbidden")
-		refuse(t, "an id that is none", f.owner.get(t, "/api/v1/projects/GRA/access/nobody"), http.StatusBadRequest, "bad_request")
+		refuse(t, "somebody who is nobody", f.owner.get(t, "/api/v1/projects/"+graKey+"/access/"+uuid.NewString()), http.StatusNotFound, "not_found")
+		refuse(t, "an editor inspects", plain.get(t, "/api/v1/projects/"+graKey+"/access/"+guestID.String()), http.StatusForbidden, "forbidden")
+		refuse(t, "an id that is none", f.owner.get(t, "/api/v1/projects/"+graKey+"/access/nobody"), http.StatusBadRequest, "bad_request")
 	})
 
 	t.Run("the pickers and the caller's own rights", func(t *testing.T) {
-		people := list(t, want(t, f.owner.get(t, "/api/v1/people?q=plain"), http.StatusOK, "pick a person"), "people")
-		if len(people) != 1 || people[0].(map[string]any)["name"] != "Paul Plain" {
-			t.Errorf("a word of the name finds Paul Plain: %v", people)
+		// Other tests' people and groups share the lists, so what counts is that this test's are found as made.
+		if found := withID(list(t, want(t, f.owner.get(t, "/api/v1/people?q=plain&limit=50"), http.StatusOK, "pick a person"), "people"), plainID); found == nil || found["name"] != "Paul Plain" {
+			t.Errorf("a word of the name does not find Paul Plain")
 		}
-		groups := list(t, want(t, plain.get(t, "/api/v1/groups?q=rev&limit=5"), http.StatusOK, "pick a group"), "groups")
-		if len(groups) != 1 || groups[0].(map[string]any)["memberCount"] != float64(1) {
-			t.Errorf("Reviewers is found with its one member: %v", groups)
+		if found := withID(list(t, want(t, plain.get(t, "/api/v1/groups?q=rev&limit=50"), http.StatusOK, "pick a group"), "groups"), reviewers); found == nil || found["memberCount"] != float64(1) {
+			t.Errorf("Reviewers is not found with its one member: %v", found)
 		}
 		refuse(t, "too many people", f.owner.get(t, "/api/v1/people?limit=51"), http.StatusUnprocessableEntity, "validation_failed")
 		refuse(t, "no groups at all", f.owner.get(t, "/api/v1/groups?limit=0"), http.StatusUnprocessableEntity, "validation_failed")
@@ -125,16 +124,16 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 			t.Errorf("the owner makes projects: %v", mine)
 		}
 		if mine := obj(t, want(t, plain.get(t, "/api/v1/access/me"), http.StatusOK, "a member's rights"), "can"); mine["createProject"] != false || mine["administer"] != false {
-			t.Errorf("a member neither makes projects nor runs the organization: %v", mine)
+			t.Errorf("a member neither makes projects nor administers: %v", mine)
 		}
 		refuse(t, "nobody asks", f.api.anonymous().get(t, "/api/v1/access/me"), http.StatusUnauthorized, "unauthorized")
 	})
 
 	t.Run("an archived project's grants stay, and the change is audited", func(t *testing.T) {
-		want(t, f.owner.put(t, "/api/v1/projects/GRA/archive", nil), http.StatusOK, "archive")
+		want(t, f.owner.put(t, "/api/v1/projects/"+graKey+"/archive", nil), http.StatusOK, "archive")
 		refuse(t, "grants of an archived project", f.owner.put(t, grants, map[string]any{"grants": []any{
 			grantRow(subjectOf("user", f.home.user), "admin")}}), http.StatusConflict, "project_archived")
-		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = 'project.grants_changed'`, f.home.org); n != 1 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = 'project.grants_changed'`, f.home.user); n != 1 {
 			t.Errorf("the log holds %d grant changes, want 1", n)
 		}
 	})

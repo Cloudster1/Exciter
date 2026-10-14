@@ -19,6 +19,7 @@ func (h *harness) makeGroup(t *testing.T, org uuid.UUID, name string, members ..
 	if err := h.super.QueryRow(ctx, `INSERT INTO groups (org_id, name) VALUES ($1, $2) RETURNING id`, org, name+" "+h.suffix()).Scan(&id); err != nil {
 		t.Fatalf("make the group %s: %v", name, err)
 	}
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM groups WHERE id = $1`, id) })
 	for _, m := range members {
 		if _, err := h.super.Exec(ctx, `INSERT INTO group_member (org_id, group_id, user_id) VALUES ($1, $2, $3)`, org, id, m); err != nil {
 			t.Fatalf("put somebody in %s: %v", name, err)
@@ -37,12 +38,12 @@ func refusedBy(err error, constraint string) bool {
 // Straight through SQL as exciter_app: grants decide what a person may do, roles add up, a guest never runs a
 // project and is reached only by grants naming them or their groups, and only administrators touch grants.
 func TestRawSQLHoldsProjectsToTheirGrants(t *testing.T) {
+	graKey := projectKey(t, "GRA")
 	h := newHarness(t)
-	a := h.makeMember(t, "grants-a")
-	b := h.makeMember(t, "grants-b")
+	a := h.owner(t, "grants-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'GRA', 'Granted', $2) RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+graKey+`', 'Granted', $2) RETURNING id`,
 		a.org, a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
@@ -135,9 +136,9 @@ func TestRawSQLHoldsProjectsToTheirGrants(t *testing.T) {
 		if n := affects(t, plain, `DELETE FROM project_grant WHERE project_id = $1`, project); n != 0 {
 			t.Error("an editor removed a grant")
 		}
-		stranger := h.appConn(t, b.org, b.user)
-		if _, err := stranger.Exec(ctx, `INSERT INTO project_grant (org_id, project_id, subject_type, role) VALUES ($1, $2, 'everyone', 'viewer')`, a.org, project); !isPolicyViolation(err) {
-			t.Errorf("another organization granted in this one's project: %v", err)
+		outsider := h.appConn(t, a.org, h.addPerson(t, a.org, "guest"))
+		if _, err := outsider.Exec(ctx, `INSERT INTO project_grant (org_id, project_id, subject_type, role) VALUES ($1, $2, 'everyone', 'viewer')`, a.org, project); !isPolicyViolation(err) {
+			t.Errorf("a guest no grant names granted in the project: %v", err)
 		}
 	})
 
@@ -148,11 +149,6 @@ func TestRawSQLHoldsProjectsToTheirGrants(t *testing.T) {
 		}
 		if _, err := owner.Exec(ctx, `UPDATE project_grant SET role = 'admin' WHERE project_id = $1 AND subject_type = 'everyone'`, project); !refusedBy(err, "project_grant_everyone_not_admin") {
 			t.Errorf("everyone was made the project's administrator: %v", err)
-		}
-		elsewhere := h.makeGroup(t, b.org, "Elsewhere", b.user)
-		if _, err := owner.Exec(ctx, `INSERT INTO project_grant (org_id, project_id, subject_type, group_id, role) VALUES ($1, $2, 'group', $3, 'viewer')`,
-			a.org, project, elsewhere); err == nil {
-			t.Error("a grant named another organization's group")
 		}
 		if _, err := owner.Exec(ctx, `INSERT INTO project_grant (org_id, project_id, subject_type, role) VALUES ($1, $2, 'everyone', 'viewer')`, a.org, project); err == nil {
 			t.Error("everyone was granted twice in one project")

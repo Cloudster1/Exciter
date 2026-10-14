@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The integration suite works in the stack's one installation, keeping its
+  tests apart by the people, keys and names they make, and puts back every
+  setting there is one of (#90). The test-only endpoints `/api/v1/test/orgs`
+  and their settings `EXCITER_TEST_ENDPOINTS` and
+  `EXCITER_TEST_ENDPOINTS_TOKEN` are gone.
 - The interface and the API say "everyone", "all projects" or "Exciter"
   instead of "the organization" (#88). `GET /themes/active` answers `source:
   "everyone"` for the default theme, where it said `organization`.

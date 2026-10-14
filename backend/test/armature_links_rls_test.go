@@ -13,19 +13,20 @@ import (
 // Straight through SQL as exciter_app: a link is read by its requirement's viewers and made in one's own name on a
 // live requirement one edits; the stored status, sync records and sync events are the server's alone to write.
 func TestRawSQLGuardsArmatureLinks(t *testing.T) {
+	walKey := projectKey(t, "WAL")
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-link-wall")
-	other := h.makeMember(t, "arm-link-wall-other")
+	home := h.owner(t, "arm-link-wall")
 	owner := api.as(t, home.user, home.org)
 	editorID := h.addPerson(t, home.org, "member")
 	guestID := h.addPerson(t, home.org, "guest")
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
-	project := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": "WAL", "name": "Walled"}), http.StatusCreated, "make a project"), "project")
-	live := obj(t, want(t, owner.post(t, "/api/v1/projects/WAL/requirements", map[string]any{"title": "Live"}), http.StatusCreated, "write a requirement"), "requirement")
-	section := obj(t, want(t, owner.post(t, "/api/v1/projects/WAL/requirements", map[string]any{"title": "Part", "kind": "section"}), http.StatusCreated, "write a section"), "requirement")
-	trashed := obj(t, want(t, owner.post(t, "/api/v1/projects/WAL/requirements", map[string]any{"title": "Gone"}), http.StatusCreated, "write another"), "requirement")
-	want(t, owner.delete(t, "/api/v1/requirements/WAL-R3"), http.StatusNoContent, "trash it")
+	project := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": walKey, "name": "Walled"}), http.StatusCreated, "make a project"), "project")
+	live := obj(t, want(t, owner.post(t, "/api/v1/projects/"+walKey+"/requirements", map[string]any{"title": "Live"}), http.StatusCreated, "write a requirement"), "requirement")
+	section := obj(t, want(t, owner.post(t, "/api/v1/projects/"+walKey+"/requirements", map[string]any{"title": "Part", "kind": "section"}), http.StatusCreated, "write a section"), "requirement")
+	trashed := obj(t, want(t, owner.post(t, "/api/v1/projects/"+walKey+"/requirements", map[string]any{"title": "Gone"}), http.StatusCreated, "write another"), "requirement")
+	want(t, owner.delete(t, "/api/v1/requirements/"+walKey+"-R3"), http.StatusNoContent, "trash it")
 	h.settle(t)
 	ctx := context.Background()
 	insert := `INSERT INTO armature_issue_link (org_id, requirement_id, relation, issue_key, created_by) VALUES ($1, $2, 'implements', $3, $4) RETURNING id`
@@ -68,15 +69,6 @@ func TestRawSQLGuardsArmatureLinks(t *testing.T) {
 		}
 		touchesNothing(t, guest, "a viewer removing a link", `DELETE FROM armature_issue_link WHERE id = $1`, linkID)
 		refusedOutright(t, guest, "a viewer linking", insert, home.org, live["id"], "CP-3", guestID)
-	})
-
-	t.Run("another organization reaches none of it", func(t *testing.T) {
-		stranger := h.appConn(t, other.org, other.user)
-		if n := seesRows(t, stranger, `SELECT count(*) FROM armature_issue_link WHERE org_id = $1`, home.org); n != 0 {
-			t.Error("another organization reads the links")
-		}
-		touchesNothing(t, stranger, "removing another organization's link", `DELETE FROM armature_issue_link WHERE id = $1`, linkID)
-		refusedOutright(t, stranger, "linking in another organization", insert, home.org, live["id"], "CP-4", other.user)
 	})
 
 	t.Run("without a connection nothing is linked, and the links stay", func(t *testing.T) {

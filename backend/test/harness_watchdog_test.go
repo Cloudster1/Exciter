@@ -18,7 +18,7 @@ var heldBound = bound{deadline: 2 * time.Second, watchdog: 500 * time.Millisecon
 // the report taken then names the session that holds it up (#217).
 func TestHarnessGivesUpOnAStatementBehindALock(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "held")
+	m := h.owner(t, "held")
 	ctx := context.Background()
 
 	tx, err := h.super.Begin(ctx)
@@ -30,12 +30,12 @@ func TestHarnessGivesUpOnAStatementBehindALock(t *testing.T) {
 	if err := tx.QueryRow(ctx, `SELECT pg_backend_pid()`).Scan(&holder); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tx.Exec(ctx, `SELECT 1 FROM org WHERE id = $1 FOR UPDATE`, m.org); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM app_user WHERE id = $1 FOR UPDATE`, m.user); err != nil {
 		t.Fatal(err)
 	}
 
 	start := time.Now()
-	report, err := h.execBounded(t, h.super, heldBound, `DELETE FROM org WHERE id = $1`, m.org)
+	report, err := h.execBounded(t, h.super, heldBound, `DELETE FROM app_user WHERE id = $1`, m.user)
 	elapsed := time.Since(start)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("a delete behind a held row lock ended with %v, want it to give up at its deadline", err)
@@ -60,7 +60,7 @@ func TestHarnessGivesUpOnAStatementBehindALock(t *testing.T) {
 	if err := tx.Rollback(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.execBounded(t, h.super, heldBound, `DELETE FROM org WHERE id = $1`, m.org); err != nil {
+	if _, err := h.execBounded(t, h.super, heldBound, `DELETE FROM app_user WHERE id = $1`, m.user); err != nil {
 		t.Fatalf("the delete still fails once the lock is gone: %v", err)
 	}
 }

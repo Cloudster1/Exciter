@@ -90,9 +90,10 @@ func fieldError(t *testing.T, r response, field string) string {
 
 func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-connect")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-connect")
+	slug := stubTenant(t)
 	owner := api.as(t, home.user, home.org)
 	bobID := h.addPerson(t, home.org, "member")
 	bob := api.as(t, bobID, home.org)
@@ -144,7 +145,7 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	if err := h.super.QueryRow(context.Background(), `SELECT webhook_secret FROM armature_connection WHERE org_id = $1`, home.org).Scan(&sealed); err != nil || bytes.Contains(sealed, []byte(webhookSecret)) || len(sealed) == 0 {
 		t.Errorf("the webhook secret is not sealed at rest: %v", err)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = $2 AND data::text NOT LIKE '%armature_whs_%'`, home.org, armature.ActionConnectionSaved); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2 AND data::text NOT LIKE '%armature_whs_%'`, home.user, armature.ActionConnectionSaved); n != 1 {
 		t.Errorf("connecting is audited %d times without the secret", n)
 	}
 
@@ -223,7 +224,7 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	if got := obj(t, want(t, bob.get(t, "/api/v1/armature/account"), http.StatusOK, "bob after the move"), "account"); got["connected"] != false || got["status"] != "not_connected" {
 		t.Errorf("bob is still connected after the move: %v", got)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = $2 AND data->>'tokensForgotten' = '1'`, home.org, armature.ActionConnectionSaved); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2 AND data->>'tokensForgotten' = '1'`, home.user, armature.ActionConnectionSaved); n != 1 {
 		t.Errorf("the move is audited %d times with the forgotten token", n)
 	}
 
@@ -240,7 +241,7 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	if n := h.countRows(t, `SELECT count(*) FROM armature_token WHERE org_id = $1`, home.org); n != 0 {
 		t.Errorf("%d tokens outlived the connection", n)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = $2`, home.org, armature.ActionConnectionRemoved); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2`, home.user, armature.ActionConnectionRemoved); n != 1 {
 		t.Errorf("the removal is audited %d times", n)
 	}
 	if got := obj(t, want(t, bob.get(t, "/api/v1/armature/account"), http.StatusOK, "bob after the removal"), "account"); got["status"] != "not_configured" {
@@ -252,9 +253,10 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 // A token of Armature's read scope connects, and the account says it can make no issues or links.
 func TestAReadOnlyArmatureTokenIsNamedSo(t *testing.T) {
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-reader")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-reader")
+	slug := stubTenant(t)
 	owner := api.as(t, home.user, home.org)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	account := obj(t, want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "reader")}), http.StatusOK, "a read-only token"), "account")
@@ -274,9 +276,10 @@ func TestAReadOnlyArmatureTokenIsNamedSo(t *testing.T) {
 // without dropping the token.
 func TestAnArmatureThatDoesNotAnswer(t *testing.T) {
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-silent")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-silent")
+	slug := stubTenant(t)
 	owner := api.as(t, home.user, home.org)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
@@ -302,9 +305,10 @@ func TestAnArmatureThatDoesNotAnswer(t *testing.T) {
 // new one or a check finds it working.
 func TestACheckFindsARevokedToken(t *testing.T) {
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-revoked")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-revoked")
+	slug := stubTenant(t)
 	owner := api.as(t, home.user, home.org)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")

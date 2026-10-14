@@ -31,8 +31,6 @@ VALKEY_PASSWORD    ?= exciter_valkey
 # Seals stored secrets, as the compose file's default does. The integration suite seals the Armature tokens it stores
 # with it too, so the stack's worker can open them.
 EXCITER_SECRET_KEY ?= ZXhjaXRlci1kZXZlbG9wbWVudC1vbmx5LXNlY3JldC0=
-# The secret the api's test endpoints ask for, which the browser suite reads from the stack's env file.
-EXCITER_TEST_ENDPOINTS_TOKEN ?= exciter-dev-test-endpoints-token
 
 KEYCLOAK_REALM := suite-dev
 
@@ -42,7 +40,7 @@ STACK_TEST_BUCKET := exciter-test
 export COMPOSE_FILE := $(ROOT)/deploy/docker-compose.yml
 export COMPOSE_PROJECT_NAME := $(STACK_PROJECT)
 export WEB_PORT API_PORT KEYCLOAK_PORT MAILPIT_PORT POSTGRES_PORT POSTGRES_REPLICA_PORT VALKEY_PORT S3_PORT ARMATURE_STUB_PORT STATOR_STUB_PORT
-export POSTGRES_PASSWORD APP_DB_PASSWORD ADMIN_DB_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY VALKEY_PASSWORD EXCITER_TEST_ENDPOINTS_TOKEN
+export POSTGRES_PASSWORD APP_DB_PASSWORD ADMIN_DB_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY VALKEY_PASSWORD
 export EXCITER_SECRET_KEY
 
 STACK_PG_URL = postgres://$(1):$(2)@$(3):5432/exciter?sslmode=disable
@@ -91,7 +89,6 @@ stack-env:
 		'EXCITER_OIDC_ISSUER=http://localhost:$(KEYCLOAK_PORT)/realms/$(KEYCLOAK_REALM)' \
 		'EXCITER_MAILPIT_URL=http://localhost:$(MAILPIT_PORT)' \
 		'EXCITER_ARMATURE_URL=http://localhost:$(ARMATURE_STUB_PORT)' \
-		'EXCITER_TEST_ENDPOINTS_TOKEN=$(EXCITER_TEST_ENDPOINTS_TOKEN)' \
 		'EXCITER_TEST_SUPERUSER_URL=postgres://exciter:$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/exciter?sslmode=disable' \
 		> $(STACK_ENV_FILE)
 

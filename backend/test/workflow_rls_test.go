@@ -12,11 +12,12 @@ import (
 // Straight through SQL as exciter_app: a status changes only through its workflow's transitions, which the
 // database holds to their start and to who may take them, and only administrators shape statuses.
 func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
+	flowKey := projectKey(t, "FLOW")
 	h := newHarness(t)
-	a := h.makeMember(t, "flow-wall")
+	a := h.owner(t, "flow-wall")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'FLOW', 'Flow', $2) RETURNING id`, a.org, a.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+flowKey+`', 'Flow', $2) RETURNING id`, a.org, a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
 	status := func(name string) uuid.UUID {

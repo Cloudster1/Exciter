@@ -62,8 +62,7 @@ default theme.
 Inside, one `org` row still stands for the installation until #91 drops the
 tenant layer: every table has `org_id` and a primary key `(org_id, id)` with
 composite foreign keys, and FORCE ROW LEVEL SECURITY on `current_org_id()`
-scopes every query to that one row. Only the integration suite still makes
-organizations of its own, to keep its tests apart, until #90. The application
+scopes every query to that one row. The application
 connects as `exciter_app`, which row level security binds; permission rules
 are SQL functions used as restrictive policies, so a guard holds even for a
 query that forgot it, and those stay when the tenant layer goes.
@@ -328,6 +327,22 @@ jobs cover them all.
 | check-go | gofmt, vet, Go unit tests with the race detector, OpenAPI drift | #3 |
 | check-web | lint, types, vitest, API types drift | #6 |
 | test-integration | Go against the compose stack, every response validated against `api/openapi.json` | #3 |
+
+The integration suite (`backend/test`) works in the stack's one installation,
+one test at a time (#90). A test keeps apart by what it makes: owners and
+people with addresses of their own (`h.owner`, `h.addPerson`, `h.outsider`),
+projects under keys with the test's mark (`projectKey`), groups and names
+with a suffix, and an Armature stub tenant of its own. When it ends its
+projects go, newest first, and then its people. It asserts on what it made,
+never on totals the whole installation shares, and reads shared records such
+as the audit log by its own actor or since it started. A test that changes
+something there is one of (the link types for all projects, the default
+theme, the Armature connection, the identity provider and its people, the
+installation's name) puts it back through a keeper (`keepLinkTypes` and the
+like), and `installationWide` lists each with its reason, which
+`TestInstallationWideTestsAreListedAndRunAlone` holds to the code. The rules
+of the last active administrator need an installation with one, so those tests
+migrate a database of their own.
 | test-e2e | Playwright against the compose stack, with axe | #9 |
 
 The browser suite (#9, `e2e/`, run by `mk/e2e.mk`) drives Chromium in

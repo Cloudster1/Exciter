@@ -22,7 +22,7 @@ const (
 func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.makeOrg(t, "provider-settings")
+	org := h.singleSignOn(t)
 	admin, adminID := adminOf(t, h, a, org)
 	member := a.as(t, h.addPerson(t, org.ID, "member"), org.ID)
 	callback := a.URL + httpapi.APIPrefix + "/auth/oidc/callback"
@@ -97,7 +97,7 @@ func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 func TestGroupRolesAreRefusedWhatCannotWork(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.makeOrg(t, "group-role-refusals")
+	org := h.singleSignOn(t)
 	admin, _ := adminOf(t, h, a, org)
 	member := a.as(t, h.addPerson(t, org.ID, "member"), org.ID)
 

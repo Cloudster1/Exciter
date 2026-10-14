@@ -14,14 +14,16 @@ import (
 // Straight through SQL as exciter_app: only a project's administrators shape its types and attributes, a
 // requirement names only its own project's type and attributes, a kind never changes, and a used type stays.
 func TestRawSQLKeepsTypesAndAttributesToTheirProject(t *testing.T) {
+	homeKey := projectKey(t, "HOME")
+	awayKey := projectKey(t, "AWAY")
 	h := newHarness(t)
-	a := h.makeMember(t, "attr-wall")
+	a := h.owner(t, "attr-wall")
 	ctx := context.Background()
 	var home, other, homeType, otherAttr uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'HOME', 'Home', $2) RETURNING id`, a.org, a.user).Scan(&home); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+homeKey+`', 'Home', $2) RETURNING id`, a.org, a.user).Scan(&home); err != nil {
 		t.Fatal(err)
 	}
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'AWAY', 'Away', $2) RETURNING id`, a.org, a.user).Scan(&other); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+awayKey+`', 'Away', $2) RETURNING id`, a.org, a.user).Scan(&other); err != nil {
 		t.Fatal(err)
 	}
 	if err := h.super.QueryRow(ctx, `SELECT id FROM requirement_type WHERE project_id = $1`, home).Scan(&homeType); err != nil {

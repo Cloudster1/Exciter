@@ -36,6 +36,12 @@ the shell tests of the tooling itself. A layer joins the gate in the change
 that introduces it, through a Makefile target of the same name. A feature is
 finished when every layer passes, not when the code is written.
 
+Every integration test shares the stack's one installation and the suite runs
+one test at a time: make people with `h.owner` and `h.addPerson`, projects
+under `projectKey`, and assert on what the test made, never on totals. A test
+that changes something there is one of puts it back through a keeper and is
+listed in `installationWide` (`docs/architecture.md`, Testing).
+
 The API is described by `api/openapi.json`, derived from the route table.
 After changing a route, a request type or a response type, run `make openapi`
 and commit the regenerated document and `web/src/api/schema.d.ts`; a unit test
