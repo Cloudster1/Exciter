@@ -6,7 +6,7 @@ export const permissionsEn = {
     "Who may read, change and approve requirements in this project. Roles add up: somebody holds everything their own grants, their groups' and everyone's give together.",
   notProjectAdmin: "Only the project's administrators see and change who may do what in it.",
   archived: "This project is archived, so its permissions stay as they are until it is unarchived.",
-  empty: "Nobody but the organization's owners and administrators may open this project.",
+  empty: "Nobody but the administrators may open this project.",
   tableLabel: "Who holds which role",
   columnWho: "Who",
   columnRole: "Role",
@@ -22,7 +22,7 @@ export const permissionsEn = {
   remove: (name: string) => `Remove ${name}`,
   yourself: (name: string) => `${name} (you)`,
   everyone: "Everyone",
-  everyoneDetail: "Every member of the organization, guests left out",
+  everyoneDetail: "Everybody who signs in to Exciter, guests left out",
   members: (n: number): string => (n === 1 ? "1 member" : `${n} members`),
   pickerLabel: "Add a person, a group or everyone",
   pickerPlaceholder: "Type a name or an email",
@@ -34,7 +34,7 @@ export const permissionsEn = {
   discard: "Discard changes",
   saved: "Permissions saved.",
   unsaved: "Not saved yet.",
-  orgAdminsNote: "The organization's owners and administrators hold admin in every project, whatever this table says.",
+  orgAdminsNote: "The owners and administrators of Exciter hold admin in every project, whatever this table says.",
   checkAccess: "Check somebody's access",
 };
 
@@ -54,9 +54,9 @@ export const accessEn = {
   failed: "Not met",
   decides: "This decides it.",
   orgAdmin: (owner: boolean): string =>
-    owner ? "Owns the organization, which holds every right in every project." : "Administers the organization, which holds every right in every project.",
+    owner ? "Owns Exciter, which holds every right in every project." : "Administers Exciter, which holds every right in every project.",
   fromProvider: "The identity provider's groups give this role.",
-  memberReached: "Is a member of the organization, so everyone's grant reaches them too.",
+  memberReached: "Signs in to Exciter, so everyone's grant reaches them too.",
   guestNamed: "Is a guest, reached only by grants that name them or one of their groups.",
   guestNotReached: "Is a guest, so everyone's grant does not reach them. Name them or one of their groups to let them in.",
   grantYes: "Holds a role here that gives this right:",

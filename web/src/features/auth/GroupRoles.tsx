@@ -7,7 +7,7 @@ import { t } from "@/i18n";
 
 const GRANTED: GrantedRole[] = ["member", "admin"];
 
-/** Which of the provider's groups grant which role, for the organization's administrators. */
+/** Which of the provider's groups grant which role, for the installation's administrators. */
 export function GroupRoles() {
   const { data: view } = useProvider();
   const { data } = useGroupRoles();

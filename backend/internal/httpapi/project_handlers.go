@@ -141,7 +141,7 @@ func projectError(err error) *APIError {
 	case errors.Is(err, project.ErrNotFound):
 		return ErrNotFound("That project was not found. Check its key, or ask one of its administrators to let you in.")
 	case errors.Is(err, project.ErrNotAdmin):
-		return ErrForbidden("Only an owner or an administrator of the organization makes projects. Ask one of them.")
+		return ErrForbidden("Only an administrator makes projects. Ask one.")
 	case errors.Is(err, project.ErrForbidden):
 		return ErrForbidden("Only the project's administrators change it. Ask one of them.")
 	case errors.Is(err, project.ErrArchived):

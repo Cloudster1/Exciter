@@ -55,7 +55,7 @@ export const LANGUAGE_STORAGE_KEY = "exciter.language";
 /** Where an administrator renames the installation. */
 export const INSTALLATION_PATH = "/settings/installation";
 
-/** Where an administrator manages the organization's people. */
+/** Where an administrator manages the installation's people. */
 export const MEMBERS_PATH = "/settings/members";
 
 /** Where an administrator sets up single sign-on, maps its groups to roles and lets waiting people in. */
@@ -68,14 +68,14 @@ export const SSO_GROUP_EXAMPLE = "exciter-administrators";
 /** What a sign-in through the provider came back with when the person is known there but not let in here. */
 export const SSO_WAITING = "not_a_member";
 
-/** Where an administrator reads the organization's audit log. */
+/** Where an administrator reads the installation's audit log. */
 export const AUDIT_PATH = "/settings/audit";
 /** Entries the audit log shows per page, within the API's 200; the export has the rest. */
 export const AUDIT_PAGE_SIZE = 50;
 /** Where the audit log is downloaded as a spreadsheet, under the API's base. */
 export const AUDIT_EXPORT_PATH = "/audit/export";
 
-/** Where a person picks, makes and imports themes, and where an administrator names the organization's default. */
+/** Where a person picks, makes and imports themes, and where an administrator names the installation's default. */
 export const THEMES_PATH = "/settings/themes";
 export const DEFAULT_THEME_PATH = "/settings/default-theme";
 /** The largest file a theme takes, matching the API's limit. */
@@ -230,7 +230,7 @@ export const LINK_TYPE_NAME_MAX_LENGTH = 40;
 export const LINK_TYPE_PHRASE_MAX_LENGTH = 60;
 /** The most rules a link type takes in a project, the server's trace.MaxRules. */
 export const LINK_TYPE_MAX_RULES = 50;
-/** Where the organization's link types are kept. */
+/** Where the installation's link types are kept. */
 export const LINK_TYPES_PATH = "/settings/link-types";
 
 /** The longest description and widest picture a statement keeps, the server's document.MaxAltLength and MaxImageWidth. */

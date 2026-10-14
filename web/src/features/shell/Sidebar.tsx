@@ -54,7 +54,7 @@ export function Sidebar({ narrow, drawerOpen, onCloseDrawer }: { narrow: boolean
   );
 }
 
-/** The organization the reader acts in, under the mark. */
+/** The installation's name, under the mark. */
 function OrgHead({ children }: { children?: ReactNode }) {
   const { data: me } = useMe();
   return (

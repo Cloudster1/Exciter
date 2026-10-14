@@ -25,10 +25,10 @@ var (
 	ErrAssetNotFound = errors.New("that file is not in the theme")
 	// ErrNotAdmin is returned when somebody who does not administer the
 	// organization names its default theme.
-	ErrNotAdmin = errors.New("only an owner or an administrator of the organization can name its default theme")
+	ErrNotAdmin = errors.New("only an administrator can name the default theme for everyone")
 	// ErrDefaultNotShared is returned when a theme nobody else can see is made
 	// the organization's default.
-	ErrDefaultNotShared = errors.New("the organization's default has to be a shared theme")
+	ErrDefaultNotShared = errors.New("the default for everyone has to be a shared theme")
 )
 
 // Theme is one saved theme as the page and the loader see it.
@@ -205,16 +205,15 @@ type Source string
 const (
 	// SourceChosen is a theme the person picked for themselves.
 	SourceChosen Source = "chosen"
-	// SourceOrganization is the organization's default, shown to whoever has
-	// not chosen.
-	SourceOrganization Source = "organization"
+	// SourceEveryone is the default for everyone, shown to whoever has not chosen a theme.
+	SourceEveryone Source = "everyone"
 	// SourceBuiltIn is the stylesheet's own look: nothing chosen and no
 	// default, or the built-in theme chosen over the default.
 	SourceBuiltIn Source = ""
 )
 
 // Sources are the answers Active gives, for a client to name.
-var Sources = []Source{SourceChosen, SourceOrganization, SourceBuiltIn}
+var Sources = []Source{SourceChosen, SourceEveryone, SourceBuiltIn}
 
 // Active is the reader's chosen theme, else the organization's default, else
 // nil for the built-in one.
@@ -235,7 +234,7 @@ func (s *Service) Active(ctx context.Context, reader uuid.UUID) (*Theme, Source,
 			if fallback == nil {
 				return nil
 			}
-			chosen, source = fallback, SourceOrganization
+			chosen, source = fallback, SourceEveryone
 		case err != nil:
 			return err
 		case chosen == nil:

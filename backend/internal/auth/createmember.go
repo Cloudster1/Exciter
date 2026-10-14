@@ -35,7 +35,7 @@ var (
 	// ErrBadMemberName is returned for a name that is too long.
 	ErrBadMemberName = fmt.Errorf("a name has at most %d characters", MaxMemberNameLength)
 	// ErrAlreadyMember is returned when the address already belongs here.
-	ErrAlreadyMember = errors.New("that person is already a member of this organization")
+	ErrAlreadyMember = errors.New("that person is already a member")
 )
 
 // NewMember is a person an administrator adds. A blank Password has one made.

@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { LINK_TYPE_KEY_MAX_LENGTH, LINK_TYPE_MAX_RULES, LINK_TYPE_NAME_MAX_LENGTH, LINK_TYPE_PHRASE_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-/** Makes a link type, the organization's or with a project the project's own, or changes the one given. */
+/** Makes a link type, the installation's or with a project the project's own, or changes the one given. */
 export function LinkTypeForm({ projectKey, type, onDone }: { projectKey?: string; type?: LinkType; onDone: () => void }) {
   const actions = useLinkTypeActions(projectKey);
   const save = type ? actions.update : actions.create;

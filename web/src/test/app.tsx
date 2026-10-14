@@ -18,7 +18,7 @@ export const signedIn: Me = {
 /** The real router and the real shell, started at a path, signed in as `me`; null is nobody,
  * and then the page is wherever the router sends a visitor. */
 export async function renderAt(path: string, { me = signedIn }: { me?: Me | null } = {}) {
-  // A page that reads what every organization has still finds an organization behind it in a test that stubs nothing.
+  // A page that reads what every installation has still finds it behind it in a test that stubs nothing.
   if (!apiStubbed) stubApi({});
   const queryClient = createQueryClient((client) => sendToLogin(router, client));
   if (me) queryClient.setQueryData(meQueryKey, me);
@@ -57,8 +57,8 @@ export function arrival(router: ReturnType<typeof buildRouter>, pathname: string
 /** One stubbed API answer: a status and a JSON body, for a method and a path under /api/v1. */
 export type Answer = { status: number; body?: unknown };
 
-/** What a new organization answers to the reads every page of the shell may make, unless a test says otherwise. */
-const freshOrganization: Record<string, Answer> = {
+/** What a new installation answers to the reads every page of the shell may make, unless a test says otherwise. */
+const freshInstallation: Record<string, Answer> = {
   "GET /projects": { status: 200, body: { projects: [] } },
 };
 
@@ -86,7 +86,7 @@ export function stubApi(answers: Record<string, Answer | ((request: Request) => 
     const path = url.pathname.replace(/^\/api\/v1/, "");
     const text = await input.clone().text();
     sent.push({ method: input.method, path, body: text ? parsed(text) : undefined });
-    const found = answers[`${input.method} ${path}`] ?? freshOrganization[`${input.method} ${path}`];
+    const found = answers[`${input.method} ${path}`] ?? freshInstallation[`${input.method} ${path}`];
     const answer =
       typeof found === "function" ? await found(input) : (found ?? { status: 404, body: { error: { code: "not_found", message: "Not stubbed." } } });
     return new Response(answer.body === undefined ? null : JSON.stringify(answer.body), {

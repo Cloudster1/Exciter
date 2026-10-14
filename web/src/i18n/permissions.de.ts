@@ -8,7 +8,7 @@ export const permissionsDe: typeof permissionsEn = {
     "Wer in diesem Projekt Anforderungen lesen, ändern und freigeben darf. Rollen addieren sich: Jeder hat alles, was seine eigenen Freigaben, die seiner Gruppen und die für alle zusammen geben.",
   notProjectAdmin: "Nur die Administratoren des Projekts sehen und ändern, wer darin was darf.",
   archived: "Dieses Projekt ist archiviert, daher bleiben seine Berechtigungen, wie sie sind, bis es wiederhergestellt wird.",
-  empty: "Niemand außer den Eigentümern und Administratoren der Organisation darf dieses Projekt öffnen.",
+  empty: "Niemand außer den Administratoren darf dieses Projekt öffnen.",
   tableLabel: "Wer welche Rolle hat",
   columnWho: "Wer",
   columnRole: "Rolle",
@@ -24,7 +24,7 @@ export const permissionsDe: typeof permissionsEn = {
   remove: (name: string) => `${name} entfernen`,
   yourself: (name: string) => `${name} (Sie)`,
   everyone: "Alle",
-  everyoneDetail: "Jedes Mitglied der Organisation, außer Gästen",
+  everyoneDetail: "Alle, die sich bei Exciter anmelden, außer Gästen",
   members: (n: number) => (n === 1 ? "1 Mitglied" : `${n} Mitglieder`),
   pickerLabel: "Person, Gruppe oder alle hinzufügen",
   pickerPlaceholder: "Name oder E-Mail eingeben",
@@ -36,7 +36,7 @@ export const permissionsDe: typeof permissionsEn = {
   discard: "Änderungen verwerfen",
   saved: "Berechtigungen gespeichert.",
   unsaved: "Noch nicht gespeichert.",
-  orgAdminsNote: "Die Eigentümer und Administratoren der Organisation sind in jedem Projekt Admin, egal was diese Tabelle sagt.",
+  orgAdminsNote: "Die Eigentümer und Administratoren von Exciter sind in jedem Projekt Admin, egal was diese Tabelle sagt.",
   checkAccess: "Zugriff einer Person prüfen",
 };
 
@@ -56,11 +56,9 @@ export const accessDe: typeof accessEn = {
   failed: "Nicht erfüllt",
   decides: "Das entscheidet es.",
   orgAdmin: (owner: boolean) =>
-    owner
-      ? "Ist Eigentümer der Organisation und hat damit jedes Recht in jedem Projekt."
-      : "Verwaltet die Organisation und hat damit jedes Recht in jedem Projekt.",
+    owner ? "Ist Eigentümer von Exciter und hat damit jedes Recht in jedem Projekt." : "Verwaltet Exciter und hat damit jedes Recht in jedem Projekt.",
   fromProvider: "Die Gruppen des Identitätsanbieters geben diese Rolle.",
-  memberReached: "Ist Mitglied der Organisation, daher erreicht die Freigabe für alle auch diese Person.",
+  memberReached: "Meldet sich bei Exciter an, daher erreicht die Freigabe für alle auch diese Person.",
   guestNamed: "Ist Gast und wird nur von Freigaben erreicht, die die Person oder eine ihrer Gruppen nennen.",
   guestNotReached: "Ist Gast, daher erreicht die Freigabe für alle diese Person nicht. Nennen Sie die Person oder eine ihrer Gruppen, um sie hereinzulassen.",
   grantYes: "Hat hier eine Rolle, die dieses Recht gibt:",

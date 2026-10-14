@@ -91,19 +91,17 @@ describe("the single sign-on settings", () => {
     stubApi({
       "GET /oidc-provider": {
         status: 403,
-        body: { error: { code: "forbidden", message: "Only an administrator of this organization can do that. Ask one of them." } },
+        body: { error: { code: "forbidden", message: "Only an administrator can do that. Ask one." } },
       },
     });
     await renderAt(SSO_PATH);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Only an owner or administrator of this organization changes how its members sign in.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Only an administrator changes how people sign in.");
   });
 
   it("is not even asked for on behalf of a member", async () => {
     const sent = stubApi({});
     await renderAt(SSO_PATH, { me: { ...signedIn, role: "member" } });
-    expect(
-      await screen.findByText("Only an owner or administrator of this organization changes how its members sign in. Ask one of them."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Only an administrator changes how people sign in. Ask one.")).toBeInTheDocument();
     expect(sent.some((r) => r.path.startsWith("/oidc-provider"))).toBe(false);
   });
 

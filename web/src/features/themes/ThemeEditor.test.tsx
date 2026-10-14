@@ -126,7 +126,7 @@ describe("the theme editor", () => {
     await renderAt("/settings/themes/11111111-1111-1111-1111-111111111111");
     expect(await screen.findByLabelText("Theme name")).toHaveValue("Blocks");
     expect(screen.queryByRole("radiogroup", { name: "Start from" })).toBeNull();
-    expect(screen.getByRole("switch", { name: "Shared with the organization" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "Shared with everyone" })).toHaveAttribute("aria-checked", "true");
 
     await userEvent.click(screen.getByRole("tab", { name: "Files" }));
     const used = document.querySelector('[data-theme-asset="block.svg"]') as HTMLElement;

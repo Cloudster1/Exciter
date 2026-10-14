@@ -41,7 +41,7 @@ function typeLabel(type: string): string {
   return t.audit.targetTypes[type] ?? type;
 }
 
-/** The organization's audit log for its administrators: filters, a page of entries, and the export. */
+/** The installation's audit log for its administrators: filters, a page of entries, and the export. */
 export function AuditLog() {
   const [filter, setFilter] = useState<AuditFilter>({});
   const [targetLabel, setTargetLabel] = useState("");

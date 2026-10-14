@@ -30,7 +30,7 @@ const maxKeySuggestions = 99
 var (
 	ErrNotFound = errors.New("project not found")
 	// ErrNotAdmin is somebody who does not administer the organization making a project.
-	ErrNotAdmin = errors.New("only an owner or an administrator of the organization makes projects")
+	ErrNotAdmin = errors.New("only an administrator makes projects")
 	// ErrForbidden is somebody who may view a project changing what only its administrators change.
 	ErrForbidden = errors.New("only the project's administrators change it")
 	ErrArchived  = errors.New("the project is archived")

@@ -200,7 +200,7 @@ describe("link types", () => {
     );
   });
 
-  it("lets the organization's administrators make a type, and tells anybody else whose it is", async () => {
+  it("lets the administrators make a type for all projects, and tells anybody else whose it is", async () => {
     const sent = stubApi({
       "GET /link-types": { status: 200, body: { linkTypes: [derives, relates] } },
       "POST /link-types": { status: 201, body: { linkType: aLinkType({ key: "mitigates", name: "Mitigates" }) } },
@@ -225,9 +225,9 @@ describe("link types", () => {
     );
   });
 
-  it("refuses the organization's page to a member", async () => {
+  it("refuses the page for all projects to a member", async () => {
     stubApi({ "GET /link-types": { status: 200, body: { linkTypes: [derives] } } });
     await renderAt(LINK_TYPES_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only the organization's owners and administrators change its link types/)).toBeInTheDocument();
+    expect(await screen.findByText(/Only an administrator changes the link types for all projects/)).toBeInTheDocument();
   });
 });

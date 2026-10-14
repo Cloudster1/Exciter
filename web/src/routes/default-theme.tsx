@@ -5,7 +5,7 @@ import { OrgDefaultTheme } from "@/features/themes/OrgDefaultTheme";
 import { t } from "@/i18n";
 import { appRoute } from "./app";
 
-/** The theme everybody in the organization sees until they choose, for its administrators. */
+/** The theme everybody in the installation sees until they choose, for its administrators. */
 export const defaultThemeRoute = createRoute({
   getParentRoute: () => appRoute,
   path: DEFAULT_THEME_PATH,

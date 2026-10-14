@@ -24,7 +24,7 @@ const projectLinkTypesKey = (projectKey: string) => [...linkTypesKey, projectKey
 export const linksQueryKey = ["links"] as const;
 const linksKey = (reqKey: string) => [...linksQueryKey, reqKey.toUpperCase()] as const;
 
-/** The organization's link types, retired ones included. */
+/** The installation's link types, retired ones included. */
 export function useOrgLinkTypes() {
   return useQuery({
     queryKey: [...linkTypesKey, ""],
@@ -41,10 +41,10 @@ export function useProjectLinkTypes(projectKey: string) {
   });
 }
 
-/** Makes, changes and deletes link types, the organization's or, with a project, the project's own. */
+/** Makes, changes and deletes link types, the installation's or, with a project, the project's own. */
 export function useLinkTypeActions(projectKey?: string) {
   const queryClient = useQueryClient();
-  // A type of the organization shows in every project's list, so every list asks again.
+  // A type of the installation shows in every project's list, so every list asks again.
   const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: linkTypesKey }), queryClient.invalidateQueries({ queryKey: linksQueryKey })]);
   return {
     create: useMutation({

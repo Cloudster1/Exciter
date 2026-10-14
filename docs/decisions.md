@@ -3,6 +3,26 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: The screen says everyone, all projects or Exciter (#88)
+
+An installation is one team's, so a setting that reaches everybody is "for
+everyone", a link type that every project may use is "for all projects", and
+a refusal reads "Only an administrator ...". Where the subject is the
+installation itself, the copy names Exciter, as Armature's #215 names
+Armature.
+
+- **The theme source is `everyone`.** `GET /themes/active` answered
+  `organization` for the default; nothing stores it, so it changed without a
+  migration.
+- **Checked, not remembered.** A vitest check walks both catalogues, calling
+  every function with sample arguments, and refuses "organization" and
+  "Organisation"; a Go unit test does the same for the API document's
+  summaries, descriptions, tags and enums and the assistant's tool help, after
+  Armature's.
+- **What still says it.** Keys such as `ofOrg` and `data-*` hooks keep their
+  names, as do the test-only endpoints, which #90 removes, and the code's own
+  names, which #91 removes with the tenant layer.
+
 ## 2026-10-14: The Armature connection is an address (#87)
 
 Armature decided, as Exciter did, that an installation is one team's tracker,

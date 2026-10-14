@@ -6,7 +6,7 @@ import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { useFocusWhenRendered } from "@/lib/focus";
 
-// Adds a person with a password, for an organization whose people do not all come through an identity provider.
+// Adds a person with a password, for an installation whose people do not all come through an identity provider.
 // A password left out is made, and shown once in the dialog, since nothing keeps it.
 export function AddMember() {
   const create = useCreateMember();

@@ -12,7 +12,7 @@ import { Icon } from "@/components/icons";
 import { ARMATURE_WEBHOOK_SECRET_PREFIX, COPY_FEEDBACK_MS } from "@/config";
 import { t } from "@/i18n";
 
-/** The organization's Armature instance and its webhook, for administrators; Stator's page. */
+/** The installation's Armature instance and its webhook, for administrators; Stator's page. */
 export function ConnectionSettings() {
   const { data, isLoading, error } = useArmatureConnection();
   // Held here rather than in the form: a save remounts the form, and what it

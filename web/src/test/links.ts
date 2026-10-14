@@ -1,6 +1,6 @@
 import type { LinkType, TraceLink } from "@/api/links";
 
-/** A link type as the API answers it: the organization's derives unless a test says otherwise. */
+/** A link type as the API answers it: one for all projects derives unless a test says otherwise. */
 export function aLinkType(overrides: Partial<LinkType> = {}): LinkType {
   return {
     id: "0195f000-0000-7000-8000-0000000001a1",

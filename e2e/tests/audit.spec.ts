@@ -17,8 +17,8 @@ const PLANTED_ACTION = "theme.default_set";
 const FACET_PLANTED = `#audit-action option[value="${PLANTED_ACTION}"]`;
 // audit.CSVHeader, the export's first line.
 const CSV_HEADER = "time,action,actor_id,actor,target_type,target_id,ip,data";
-const REFUSED = /^Only an administrator of this organization can do that\. Ask one of them/;
-const NOT_ADMIN = "Only an owner or administrator of this organization reads its audit log.";
+const REFUSED = /^Only an administrator can do that\. Ask one/;
+const NOT_ADMIN = "Only an administrator reads the audit log.";
 
 // Written straight into the record, a second apart: making sixty through the API would only be slower at it.
 /** A theme the log names, and changes to it beyond one page of the log, all by alice. */

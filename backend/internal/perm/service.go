@@ -225,7 +225,7 @@ func resolveGrants(ctx context.Context, tx db.DBTX, rows []GrantInput) ([]Grant,
 		}
 		if row.Role == RoleAdmin && orgRole == auth.RoleGuest {
 			return nil, &FieldError{field + "role", fmt.Sprintf(
-				"%s is a guest, who can be given at most editor. Make them a member of the organization first to give them admin.", sub.Name)}
+				"%s is a guest, who can be given at most editor. Make them a member first to give them admin.", sub.Name)}
 		}
 		out = append(out, Grant{Subject: sub, Role: row.Role})
 	}
@@ -257,7 +257,7 @@ func resolveSubject(ctx context.Context, tx db.DBTX, field string, ref SubjectRe
 		err = tx.QueryRow(ctx, `SELECT name FROM groups WHERE org_id = current_org_id() AND id = $1`, *ref.ID).Scan(&name)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Subject{}, "", &FieldError{field, fmt.Sprintf("There is no %s with the id %s in this organization. Pick one from the list.", ref.Type, *ref.ID)}
+		return Subject{}, "", &FieldError{field, fmt.Sprintf("There is no %s with the id %s here. Pick one from the list.", ref.Type, *ref.ID)}
 	}
 	if err != nil {
 		return Subject{}, "", err

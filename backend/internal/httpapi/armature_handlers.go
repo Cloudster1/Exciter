@@ -42,7 +42,7 @@ func armatureError(err error) *APIError {
 		return &APIError{Status: status, Code: refused.Code, Message: sentence(refused.Message), Fields: refused.Fields, cause: err}
 	case errors.Is(err, armature.ErrNotConfigured):
 		return &APIError{Status: http.StatusConflict, Code: "armature_not_configured",
-			Message: "Your organization has not connected Armature yet. Ask an administrator to connect it under Settings, Armature."}
+			Message: "Exciter is not connected to Armature yet. Ask an administrator to connect it under Settings, Armature."}
 	case errors.Is(err, armature.ErrNotConnected):
 		return &APIError{Status: http.StatusConflict, Code: "armature_not_connected",
 			Message: "You have not connected your Armature account. Paste an Armature token under Your account, Armature account, then try again."}

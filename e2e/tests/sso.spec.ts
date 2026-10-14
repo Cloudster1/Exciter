@@ -7,7 +7,7 @@ import { WEB_URL } from "../fixtures/stack";
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
 const ADMINS_GROUP = "exciter-administrators";
 const MEMBERS_PATH = "/settings/members";
-const UNREACHABLE = "Exciter could not reach your organization's identity provider. Try again in a moment, and tell an administrator if it keeps failing.";
+const UNREACHABLE = "Exciter could not reach the identity provider. Try again in a moment, and tell an administrator if it keeps failing.";
 
 // The sign-in a browser alone can walk: the login page, Keycloak's own form, and back. It changes the installation's provider and
 // alice's role there, which nobody else's spec signs in through, and runs alone.

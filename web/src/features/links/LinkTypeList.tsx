@@ -10,7 +10,7 @@ import { LinkTypeForm, PairsDialog } from "./LinkTypeForm";
 const COLUMNS = 4;
 const PROJECT_COLUMNS = 5;
 
-/** The organization's link types, which its administrators make, change, retire and delete. */
+/** The installation's link types, which its administrators make, change, retire and delete. */
 export function OrgLinkTypes() {
   const { data: types, error, refetch } = useOrgLinkTypes();
   return (

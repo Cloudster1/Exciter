@@ -28,7 +28,7 @@ export function valuesFor(attributes: Attribute[], typeId: string | null | undef
   );
 }
 
-/** The names of the organization's members by id, for showing a person a value names. */
+/** The names of the installation's members by id, for showing a person a value names. */
 export function usePeopleNames() {
   return useQuery({
     queryKey: ["people", "names"],

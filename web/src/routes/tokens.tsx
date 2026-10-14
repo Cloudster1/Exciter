@@ -9,7 +9,7 @@ import { appRoute } from "./app";
 /** A person's own personal access tokens, under their account. */
 export const tokensRoute = createRoute({ getParentRoute: () => appRoute, path: TOKENS_PATH, component: TokensPage });
 
-/** Every token of the organization, for its administrators. */
+/** Every token of the installation, for its administrators. */
 export const allTokensRoute = createRoute({
   getParentRoute: () => appRoute,
   path: ALL_TOKENS_PATH,

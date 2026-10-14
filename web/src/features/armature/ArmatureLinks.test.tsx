@@ -116,7 +116,7 @@ describe("a requirement's Armature issues", () => {
     expect(within(panel).queryByRole("button", { name: /Remove/ })).toBeNull();
   });
 
-  it("is not there while the organization has no Armature", async () => {
+  it("is not there while Exciter has no Armature", async () => {
     stubPage({ account: { ...withoutToken, configured: false, baseUrl: "", status: "not_configured" } });
     await renderAt("/p/CHK/r/CHK-R1");
     await screen.findByRole("region", { name: "Trace links" });

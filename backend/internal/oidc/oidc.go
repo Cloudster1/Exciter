@@ -74,7 +74,7 @@ func (e *ValidationError) Error() string { return e.Field + ": " + e.Message }
 var (
 	// ErrNotConfigured is returned when an organization has no provider, or
 	// has turned the one it has off.
-	ErrNotConfigured = errors.New("this organization does not sign in through an identity provider")
+	ErrNotConfigured = errors.New("single sign-on is not set up here")
 	// ErrUnknownLogin is returned for a callback whose state matches no login
 	// this server started, which is what a forged or replayed callback is.
 	ErrUnknownLogin = errors.New("that sign-in did not start here, or it has expired")
@@ -89,7 +89,7 @@ var (
 	ErrUnreachable = errors.New("the identity provider could not be reached")
 	// ErrNotAMember is returned when somebody authenticates correctly but has
 	// not been let in. Signing in is not the same as being let in.
-	ErrNotAMember = errors.New("you are not a member of that organization")
+	ErrNotAMember = errors.New("you are not a member here")
 )
 
 // howLongALoginMayTake is long enough to type a password and answer a second

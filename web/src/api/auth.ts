@@ -131,7 +131,7 @@ export function useSetMemberActive() {
   });
 }
 
-/** The organization's identity provider and the callback address to register with it; asked only of administrators. */
+/** The installation's identity provider and the callback address to register with it; asked only of administrators. */
 export function useProvider() {
   return useQuery({
     queryKey: providerQueryKey,

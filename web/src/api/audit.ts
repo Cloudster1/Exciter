@@ -5,7 +5,7 @@ import type { components } from "./schema";
 
 type Wire = components["schemas"];
 
-/** One entry of the organization's record: who did what, to what, when. */
+/** One entry of the installation's record: who did what, to what, when. */
 export type AuditEntry = Wire["AuditEntry"];
 /** What the log holds to narrow it by, and how long it keeps an entry. */
 export type AuditFacets = Wire["AuditFacets"];

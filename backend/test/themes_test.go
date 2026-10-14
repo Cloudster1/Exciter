@@ -248,7 +248,7 @@ func themeDefault(t *testing.T, f *themeFixture) {
 		want(t, other.put(t, "/api/v1/themes/active", map[string]any{"themeId": nil}), http.StatusOK, "nothing chosen")
 		for _, who := range []*client{other, admin} {
 			seen := want(t, who.get(t, "/api/v1/themes/active"), http.StatusOK, "what a member sees")
-			if obj(t, seen, "theme")["id"] != themeID || seen.Body["source"] != "organization" {
+			if obj(t, seen, "theme")["id"] != themeID || seen.Body["source"] != "everyone" {
 				t.Fatalf("a member does not see the organization's default: %s", seen.Raw)
 			}
 		}
@@ -266,7 +266,7 @@ func themeDefault(t *testing.T, f *themeFixture) {
 			t.Fatalf("another organization reads this one's theme: %s", got.Raw)
 		}
 		want(t, other.put(t, "/api/v1/themes/active", map[string]any{"themeId": nil}), http.StatusOK, "back to the default")
-		if back := want(t, other.get(t, "/api/v1/themes/active"), http.StatusOK, "default again"); back.Body["source"] != "organization" {
+		if back := want(t, other.get(t, "/api/v1/themes/active"), http.StatusOK, "default again"); back.Body["source"] != "everyone" {
 			t.Fatalf("the default did not come back: %s", back.Raw)
 		}
 

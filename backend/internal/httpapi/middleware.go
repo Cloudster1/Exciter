@@ -200,7 +200,7 @@ func requireAuth(next http.Handler) http.Handler {
 func requireAdmin(next http.Handler) http.Handler {
 	return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !PrincipalFrom(r.Context()).CanAdminister() {
-			respondError(w, r, ErrForbidden("Only an administrator of this organization can do that. Ask one of them."))
+			respondError(w, r, ErrForbidden("Only an administrator can do that. Ask one."))
 			return
 		}
 		next.ServeHTTP(w, r)

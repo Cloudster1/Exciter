@@ -351,6 +351,10 @@ Adapted from Armature at 12ba67c:
   refusal that names the statement to run, since no release of Exciter could
   delete an organization
 
+Adapted from Armature at 5c18304:
+- backend/internal/httpapi/words_test.go: TestTheDocumentSaysEveryoneNotTheOrganization
+  and readWords from backend/internal/httpapi/openapi_test.go
+
 Adapted from Armature at 523dfe7:
 - backend/migrations/00402_last_administrator.sql: migration 00930's
   app_user_keeps_an_administrator, with the same rule on a membership's role

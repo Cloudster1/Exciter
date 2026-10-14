@@ -27,7 +27,7 @@ function draftOf(provider: Provider | null | undefined): Draft {
   };
 }
 
-/** The organization's identity provider, for its administrators. */
+/** The installation's identity provider, for its administrators. */
 export function ProviderSettings() {
   const { data, isLoading, error } = useProvider();
   // Held here rather than in the form: a save remounts the form, and what it says about that save outlives it.

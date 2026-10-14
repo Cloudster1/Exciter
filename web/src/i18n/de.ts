@@ -40,7 +40,7 @@ export const de: Messages = {
     sso: "Single Sign-on",
     audit: "Protokoll",
     themes: "Designs",
-    defaultTheme: "Design der Organisation",
+    defaultTheme: "Design für alle",
     linkTypes: "Verknüpfungsarten",
     allTokens: "Alle Zugriffstoken",
     armature: "Armature",
@@ -85,7 +85,7 @@ export const de: Messages = {
     subtitle: "Anforderungen, auf die sich Ihr Team einigt, verfolgt bis zur Arbeit, die sie erfüllt.",
     sso: "Mit Single Sign-on fortfahren",
     passwordTitle: "Mit Passwort anmelden",
-    passwordHint: "Für Personen, denen ein Administrator hier ein Passwort gegeben hat. Alle anderen melden sich über den Anbieter ihrer Organisation an.",
+    passwordHint: "Für Personen, denen ein Administrator hier ein Passwort gegeben hat. Alle anderen melden sich mit Single Sign-on an.",
     email: "E-Mail",
     password: "Passwort",
     submit: "Mit Passwort anmelden",
@@ -101,7 +101,7 @@ export const de: Messages = {
       inactive: "Ihr Konto wurde abgeschaltet. Wenden Sie sich an einen Administrator.",
       denied: "Ihr Identitätsanbieter hat Sie nicht hereingelassen. Versuchen Sie es erneut, oder fragen Sie seinen Administrator.",
       unreachable:
-        "Exciter konnte den Identitätsanbieter Ihrer Organisation nicht erreichen. Versuchen Sie es gleich noch einmal, und sagen Sie einem Administrator Bescheid, wenn es weiter fehlschlägt.",
+        "Exciter konnte den Identitätsanbieter nicht erreichen. Versuchen Sie es gleich noch einmal, und sagen Sie einem Administrator Bescheid, wenn es weiter fehlschlägt.",
       failed:
         "Die Anmeldung über Ihren Identitätsanbieter hat nicht funktioniert. Versuchen Sie es erneut, und sagen Sie einem Administrator Bescheid, wenn es weiter fehlschlägt.",
     },
@@ -116,7 +116,7 @@ export const de: Messages = {
   },
   sso: {
     title: "Single Sign-on",
-    notAdmin: "Nur Eigentümer und Administratoren dieser Organisation ändern, wie sich ihre Mitglieder anmelden. Fragen Sie eine dieser Personen.",
+    notAdmin: "Nur ein Administrator ändert, wie sich Personen anmelden. Fragen Sie einen.",
     intro: "Mitglieder melden sich über Ihren Identitätsanbieter an, und ihre Gruppen folgen ihnen von dort.",
     issuer: "Aussteller",
     issuerHint: "Die Aussteller-URL des Anbieters, unter der sein Discovery-Dokument liegt.",
@@ -161,7 +161,7 @@ export const de: Messages = {
     emptyBody:
       "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Legen Sie ein Projekt an, das sie aufnimmt.",
     emptyBodyMember:
-      "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Die Projekte dafür legen Inhaber und Administratoren Ihrer Organisation an.",
+      "Exciter verwaltet Ihre Anforderungen: jede einmal geschrieben, geprüft, in Baselines festgehalten und mit den Tickets verknüpft, die sie umsetzen, und den Seiten, die sie erklären. Die Projekte dafür legt ein Administrator an.",
     yourProjects: "Ihre Projekte",
   },
   members: {
@@ -208,12 +208,10 @@ export const de: Messages = {
   },
   audit: {
     title: "Protokoll",
-    intro:
-      "Wer in dieser Organisation was geändert hat: Mitglieder und ihre Rollen, Ereignisse, die nicht zugestellt werden konnten, und Exporte dieses Protokolls.",
+    intro: "Wer in Exciter was geändert hat: Mitglieder und ihre Rollen, Ereignisse, die nicht zugestellt werden konnten, und Exporte dieses Protokolls.",
     keptDays: (days: number) => `Jeder Eintrag wird ${days} Tage aufbewahrt.`,
-    keptForever: "Einträge bleiben erhalten, bis die Organisation gelöscht wird.",
-    notAdmin:
-      "Nur Eigentümer und Administratoren dieser Organisation lesen ihr Protokoll. Fragen Sie eine dieser Personen, wenn Sie wissen müssen, wer etwas geändert hat.",
+    keptForever: "Einträge bleiben dauerhaft erhalten.",
+    notAdmin: "Nur ein Administrator liest das Protokoll. Fragen Sie einen, wenn Sie wissen müssen, wer etwas geändert hat.",
     export: "Als CSV exportieren",
     filters: "Protokoll filtern",
     action: "Aktion",
@@ -258,7 +256,7 @@ export const de: Messages = {
       "sso.provider_saved": "Identitätsanbieter gespeichert",
       "sso.group_role_set": "Gruppe einer Rolle zugeordnet",
       "sso.group_role_removed": "Gruppenzuordnung aufgehoben",
-      "theme.default_set": "Design der Organisation festgelegt",
+      "theme.default_set": "Design für alle festgelegt",
       "project.created": "Projekt angelegt",
       "project.key_changed": "Projektschlüssel geändert",
       "project.archived": "Projekt archiviert",

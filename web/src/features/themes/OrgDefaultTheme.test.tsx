@@ -28,7 +28,7 @@ function theme(id: string, name: string, over: Record<string, unknown> = {}) {
 const blocks = theme("0195f000-0000-7000-8000-0000000000e1", "Blocks");
 const mine = theme("0195f000-0000-7000-8000-0000000000e2", "Mine alone", { shared: false, ownerId: signedIn.user.id });
 
-describe("the organization's default theme", () => {
+describe("the default theme for everyone", () => {
   it("offers the built-in theme and the shared ones, and names the one picked", async () => {
     const sent = stubApi({
       "GET /themes": { status: 200, body: { themes: [blocks, mine] } },
@@ -55,7 +55,7 @@ describe("the organization's default theme", () => {
   it("tells a member the choice is the administrators'", async () => {
     const sent = stubApi({});
     await renderAt(DEFAULT_THEME_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only an owner or administrator of this organization names its default theme/)).toBeInTheDocument();
+    expect(await screen.findByText(/Only an administrator names the default theme for everyone/)).toBeInTheDocument();
     expect(sent.filter((r) => r.path === "/themes")).toHaveLength(0);
   });
 });

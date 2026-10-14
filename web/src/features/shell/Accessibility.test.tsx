@@ -86,7 +86,7 @@ const settingsApi = () =>
     "GET /projects/CHK": { status: 200, body: { project: checkout } },
     "GET /projects/OLD": { status: 200, body: { project: archived } },
     "GET /themes": { status: 200, body: { themes: [sharedTheme] } },
-    "GET /themes/active": { status: 200, body: { theme: sharedTheme, source: "organization" } },
+    "GET /themes/active": { status: 200, body: { theme: sharedTheme, source: "everyone" } },
     "GET /themes/examples": { status: 200, body: { examples: [] } },
     "GET /users": { status: 200, body: { members: [member] } },
     "GET /audit": { status: 200, body: { entries: [], next: null } },
@@ -360,7 +360,7 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it("finds nothing on the organization's default with a shared theme chosen", async () => {
+  it("finds nothing on the default for everyone with a shared theme chosen", async () => {
     settingsApi();
     await renderAt(DEFAULT_THEME_PATH);
     expect(await screen.findByRole("radio", { name: /Blocks/ })).toHaveAttribute("aria-checked", "true");

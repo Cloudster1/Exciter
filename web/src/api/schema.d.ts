@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** What the caller may do across the organization, which decides which buttons to draw. */
+        /** What the caller may do across Exciter, which decides which buttons to draw. */
         get: operations["myAccess"];
         put?: never;
         post?: never;
@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's own standing with Armature: whether the organization is connected, and whom their token acts as. */
+        /** The caller's own standing with Armature: whether Exciter is connected, and whom their token acts as. */
         get: operations["getArmatureAccount"];
         put?: never;
         post?: never;
@@ -102,7 +102,7 @@ export interface paths {
         /** Connect the installation to an Armature, checked to answer as one; a new address forgets every stored token. For administrators. */
         put: operations["saveArmatureConnection"];
         post?: never;
-        /** Disconnect the organization from Armature, forgetting every stored token and link record. For administrators. */
+        /** Disconnect Exciter from Armature, forgetting every stored token and link record. For administrators. */
         delete: operations["removeArmatureConnection"];
         options?: never;
         head?: never;
@@ -206,7 +206,7 @@ export interface paths {
         /** Follow the caller's active Armature theme, mirrored here and refreshed when it changes. */
         put: operations["followArmatureTheme"];
         post?: never;
-        /** Stop following the Armature theme and return to the organization's default. */
+        /** Stop following the Armature theme and return to the default for everyone. */
         delete: operations["unfollowArmatureTheme"];
         options?: never;
         head?: never;
@@ -272,7 +272,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Who did what to the organization, newest first; next is the cursor for the window after, null at the end. For administrators. */
+        /** Who did what in Exciter, newest first; next is the cursor for the window after, null at the end. For administrators. */
         get: operations["listAudit"];
         put?: never;
         post?: never;
@@ -409,7 +409,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Groups of the organization, to pick whom to grant something. */
+        /** Groups, to pick whom to grant something. */
         get: operations["listGroups"];
         put?: never;
         post?: never;
@@ -547,7 +547,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's link types. */
+        /** The link types for all projects. */
         get: operations["listOrgLinkTypes"];
         put?: never;
         /** Make a link type for every project. For administrators. */
@@ -572,7 +572,7 @@ export interface paths {
         delete: operations["deleteLinkType"];
         options?: never;
         head?: never;
-        /** Change or retire a link type: the organization's for administrators, a project's own for its administrators. */
+        /** Change or retire a link type: one for all projects for administrators, a project's own for its administrators. */
         patch: operations["updateLinkType"];
         trace?: never;
     };
@@ -634,9 +634,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's identity provider, if one is configured, and the callback address to register with it. For administrators. */
+        /** The identity provider, if one is configured, and the callback address to register with it. For administrators. */
         get: operations["getOIDCProvider"];
-        /** Configure the organization's identity provider; a client secret left out keeps the stored one. For administrators. */
+        /** Configure the identity provider; a client secret left out keeps the stored one. For administrators. */
         put: operations["saveOIDCProvider"];
         post?: never;
         delete?: never;
@@ -704,7 +704,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Members of the organization, to pick whom to grant something or who owns a requirement. */
+        /** The people of Exciter, to pick whom to grant something or who owns a requirement. */
         get: operations["listPeople"];
         put?: never;
         post?: never;
@@ -949,7 +949,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The link types a project may use, the organization's and its own, with whether each is enabled there and its rules. */
+        /** The link types a project may use, those for all projects and its own, with whether each is enabled there and its rules. */
         get: operations["listProjectLinkTypes"];
         put?: never;
         /** Make a link type of the project's own. For the project's administrators. */
@@ -1563,9 +1563,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The theme the caller sees: chosen, the organization's default, or null for the built-in one; source says which. */
+        /** The theme the caller sees: chosen, the default for everyone, or null for the built-in one; source says which. */
         get: operations["activeTheme"];
-        /** Use a theme; null returns to the organization's default, null with builtIn keeps the built-in one. */
+        /** Use a theme; null returns to the default for everyone, null with builtIn keeps the built-in one. */
         put: operations["chooseTheme"];
         post?: never;
         delete?: never;
@@ -1581,7 +1581,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's default theme, whatever the caller chose for themselves, or null for the built-in one. */
+        /** The default theme for everyone, whatever the caller chose for themselves, or null for the built-in one. */
         get: operations["defaultTheme"];
         /** Name the shared theme everybody sees until they choose, or null for the built-in one. For administrators. */
         put: operations["setDefaultTheme"];
@@ -8338,7 +8338,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        source: "chosen" | "organization" | "";
+                        source: "chosen" | "everyone" | "";
                         theme: components["schemas"]["Theme"] | null;
                     };
                 };

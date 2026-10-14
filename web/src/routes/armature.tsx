@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui";
 import { t } from "@/i18n";
 import { appRoute } from "./app";
 
-/** Where an administrator connects the organization's Armature and its webhook. */
+/** Where an administrator connects the installation's Armature and its webhook. */
 export const armatureSettingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: ARMATURE_SETTINGS_PATH,
