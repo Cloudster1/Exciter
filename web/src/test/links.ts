@@ -63,6 +63,7 @@ export function aLink(other: { key: string; title: string }, overrides: Partial<
     },
     sourceRevision: 1,
     targetRevision: 1,
+    suspect: [],
     createdAt: "2026-10-01T08:00:00Z",
     createdByName: "Ada Lovelace",
     ...overrides,

@@ -138,10 +138,12 @@ type Link struct {
 	Other requirement.Ref `json:"other"`
 	// SourceRevision and TargetRevision are the revisions of the ends the link
 	// was made, or last confirmed (#36), against.
-	SourceRevision int       `json:"sourceRevision"`
-	TargetRevision int       `json:"targetRevision"`
-	CreatedAt      time.Time `json:"createdAt"`
-	CreatedByName  string    `json:"createdByName"`
+	SourceRevision int `json:"sourceRevision"`
+	TargetRevision int `json:"targetRevision"`
+	// Suspect is the ends that moved on since, empty when the link holds.
+	Suspect       []MovedEnd `json:"suspect"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	CreatedByName string     `json:"createdByName"`
 }
 
 // LinkInput links the requirement in the path to another.

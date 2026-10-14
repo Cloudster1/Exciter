@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SUSPECTS_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { components } from "./schema";
 
@@ -14,6 +15,12 @@ export type TraceLink = Wire["TraceLink"];
 export type LinkInput = Wire["TraceLinkInput"];
 export type Direction = TraceLink["direction"];
 export type SuspectEnd = LinkType["suspectEnd"];
+/** An end that moved on since the link was confirmed against it (#36). */
+export type MovedEnd = Wire["SuspectLinkEnd"];
+/** A suspect link as a project's list shows it, both ends at once. */
+export type SuspectLink = Wire["SuspectLink"];
+export type Clearance = Wire["LinkClearance"];
+export type ClearInput = Wire["LinkClearInput"];
 export type Counts = LinkType["counts"];
 
 export const SUSPECT_ENDS: readonly SuspectEnd[] = ["target", "source", "both", "none"];
@@ -22,6 +29,7 @@ export const COUNTS: readonly Counts[] = ["decomposition", "verification", "noth
 const linkTypesKey = ["link-types"] as const;
 const projectLinkTypesKey = (projectKey: string) => [...linkTypesKey, projectKey.toUpperCase()] as const;
 export const linksQueryKey = ["links"] as const;
+const suspectsKey = ["suspects"] as const;
 const linksKey = (reqKey: string) => [...linksQueryKey, reqKey.toUpperCase()] as const;
 
 /** The installation's link types, retired ones included. */
@@ -118,4 +126,40 @@ export function groupLinks(links: TraceLink[]): { type: LinkType; direction: Dir
     else groups.push({ type: link.type, direction, phrase: link.phrase, links: [link] });
   }
   return groups;
+}
+
+/** A window of the suspect links touching a project's requirements, the longest waiting first. */
+export function useSuspects(projectKey: string, offset: number) {
+  return useQuery({
+    queryKey: [...suspectsKey, projectKey.toUpperCase(), offset],
+    queryFn: async () =>
+      (await api.GET("/projects/{projectKey}/suspects", { params: { path: { projectKey }, query: { limit: SUSPECTS_PAGE_SIZE, offset } } })).data!,
+  });
+}
+
+/** Every confirmation of a link, newest first. */
+export function useClearances(linkId: string) {
+  return useQuery({
+    queryKey: ["clearances", linkId],
+    queryFn: async (): Promise<Clearance[]> => (await api.GET("/links/{linkID}/clearances", { params: { path: { linkID: linkId } } })).data!.clearances,
+  });
+}
+
+/** Everything that shows whether a link is suspect asks again once one is cleared. */
+export function refreshSuspects(queryClient: QueryClient) {
+  return Promise.all(
+    [linksQueryKey, suspectsKey, ["clearances"], ["requirements"], ["spec"], ["armature", "links"]].map((queryKey) =>
+      queryClient.invalidateQueries({ queryKey }),
+    ),
+  );
+}
+
+/** Confirms a link against its ends as read, with a comment. */
+export function useClearLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...body }: ClearInput & { id: string }): Promise<TraceLink> =>
+      (await api.POST("/links/{linkID}/clear", { params: { path: { linkID: id } }, body })).data!.link,
+    onSuccess: () => refreshSuspects(queryClient),
+  });
 }

@@ -51,6 +51,13 @@ func ParseGrid(v url.Values) (Filter, Sort, error) {
 		}
 		f.Attributes = append(f.Attributes, c)
 	}
+	switch v.Get("suspect") {
+	case "", "false":
+	case "true":
+		f.Suspect = true
+	default:
+		return f, Sort{}, &FieldError{"suspect", "Say true to keep only requirements with a suspect link, or false."}
+	}
 	sort := Sort{Column: strings.TrimSpace(v.Get("sort"))}
 	switch v.Get("desc") {
 	case "", "false":

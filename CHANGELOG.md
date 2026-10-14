@@ -76,6 +76,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Suspect links (#36). A link turns suspect when a requirement at an end its
+  type watches gets a new revision, and an Armature link when its
+  requirement does. The links panel, the specification, the grid and each
+  project's Suspect links list mark them, and the grid keeps only those with
+  one on request. Checking a link shows what changed since it was last
+  confirmed; confirming it records who, against which revisions and why.
+  The owner and watchers of the far end are told when a revision turns a
+  link.
 - Review and approval of revisions (#35). A project's administrators name
   who approves the requirements of each type and how many approvals it
   takes. An editor asks for the current revision to be approved; the review

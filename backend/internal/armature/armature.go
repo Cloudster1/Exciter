@@ -177,8 +177,12 @@ type Link struct {
 	Error          string     `json:"error"`
 	BrokenAt       *time.Time `json:"brokenAt"`
 	DetachedAt     *time.Time `json:"detachedAt"`
-	CreatedByName  string     `json:"createdByName"`
-	CreatedAt      time.Time  `json:"createdAt"`
+	// ReviewedRevision is the requirement's revision the link was made or last confirmed against (#36), and Suspect
+	// says the requirement has a newer one.
+	ReviewedRevision int       `json:"reviewedRevision"`
+	Suspect          bool      `json:"suspect"`
+	CreatedByName    string    `json:"createdByName"`
+	CreatedAt        time.Time `json:"createdAt"`
 }
 
 // LinkInput traces a requirement to an issue by its key.

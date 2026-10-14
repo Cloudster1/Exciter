@@ -132,3 +132,23 @@ func (s *Server) handleDeleteArmatureLink(w http.ResponseWriter, r *http.Request
 	}
 	respondNoContent(w)
 }
+
+func (s *Server) handleClearArmatureLink(w http.ResponseWriter, r *http.Request) {
+	id, apiErr := pathUUID(r, "linkID", "link")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	var req armature.ClearInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	link, lsn, err := s.Armature.Clear(r.Context(), id, req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"link": link})
+}

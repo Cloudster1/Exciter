@@ -20,9 +20,10 @@ import (
 const selectLinks = `
 SELECT l.id, l.type_id, l.source_id = $1, o.id, op.key, o.number, o.kind, o.title, o.revision,
        o.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), o.trashed_at IS NOT NULL,
-       l.source_reviewed_rev, l.target_reviewed_rev, l.created_at, COALESCE(u.name, '')
+       l.source_reviewed_rev, l.target_reviewed_rev, l.created_at, COALESCE(u.name, ''), h.revision, h.trashed_at IS NOT NULL
 FROM trace_link l
 JOIN link_type lt ON lt.id = l.type_id
+JOIN requirement h ON h.id = $1
 JOIN requirement o ON o.id = CASE WHEN l.source_id = $1 THEN l.target_id ELSE l.source_id END
 JOIN project op ON op.id = o.project_id
 LEFT JOIN req_status st ON st.id = o.status_id
@@ -30,6 +31,15 @@ LEFT JOIN app_user u ON u.id = l.created_by
 WHERE l.deleted_at IS NULL AND (l.source_id = $1 OR l.target_id = $1)`
 
 const linkOrder = ` ORDER BY lt.project_id IS NOT NULL, lt.id, l.source_id = $1 DESC, op.key, o.number`
+
+// found is a link as read, before its type is put in.
+type found struct {
+	link   Link
+	typeID uuid.UUID
+	// here is the requirement asked about, as its revision and trash stand.
+	here        int
+	hereTrashed bool
+}
 
 func readLinks(ctx context.Context, tx db.DBTX, id uuid.UUID, only *uuid.UUID) ([]Link, error) {
 	query, args := selectLinks+linkOrder, []any{id}
@@ -39,10 +49,6 @@ func readLinks(ctx context.Context, tx db.DBTX, id uuid.UUID, only *uuid.UUID) (
 	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("read links: %w", err)
-	}
-	type found struct {
-		link   Link
-		typeID uuid.UUID
 	}
 	var all []found
 	for rows.Next() {
@@ -56,7 +62,7 @@ func readLinks(ctx context.Context, tx db.DBTX, id uuid.UUID, only *uuid.UUID) (
 		o := &f.link.Other
 		if err := rows.Scan(&f.link.ID, &f.typeID, &outgoing, &o.ID, &o.ProjectKey, &number, &o.Kind, &o.Title, &o.Revision,
 			&statusID, &status.Name, &status.Category, &o.Trashed,
-			&f.link.SourceRevision, &f.link.TargetRevision, &f.link.CreatedAt, &f.link.CreatedByName); err != nil {
+			&f.link.SourceRevision, &f.link.TargetRevision, &f.link.CreatedAt, &f.link.CreatedByName, &f.here, &f.hereTrashed); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -92,9 +98,20 @@ func readLinks(ctx context.Context, tx db.DBTX, id uuid.UUID, only *uuid.UUID) (
 		}
 		f.link.Type = *t
 		f.link.Phrase = t.phrase(f.link.Direction)
+		f.link.Suspect = Moved(t.SuspectEnd, f.revisions())
 		out = append(out, f.link)
 	}
 	return out, nil
+}
+
+// revisions puts the requirement asked about and the other end in their places on the link.
+func (f found) revisions() Revisions {
+	r := Revisions{SourceReviewed: f.link.SourceRevision, TargetReviewed: f.link.TargetRevision, Trashed: f.hereTrashed || f.link.Other.Trashed}
+	r.SourceCurrent, r.TargetCurrent = f.here, f.link.Other.Revision
+	if f.link.Direction == Incoming {
+		r.SourceCurrent, r.TargetCurrent = f.link.Other.Revision, f.here
+	}
+	return r
 }
 
 // Links answers a requirement's live links in both directions, to requirements the reader may view.

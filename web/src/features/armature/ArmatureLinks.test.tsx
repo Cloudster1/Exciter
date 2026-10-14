@@ -48,6 +48,8 @@ function aLink(issueKey: string, over: Partial<ArmatureLink> = {}): ArmatureLink
     statusCategory: "in_progress",
     statusStale: false,
     sync: "synced",
+    reviewedRevision: 1,
+    suspect: false,
     error: "",
     brokenAt: null,
     detachedAt: null,
@@ -100,6 +102,38 @@ describe("a requirement's Armature issues", () => {
     expect(failed).toHaveTextContent("Armature did not let Bob link.");
     expect(panel.querySelector('[data-armature-link="CP-1"]')).not.toHaveTextContent("On the issue");
     expect(await axeViolations()).toEqual([]);
+  });
+
+  it("marks a trace the requirement moved past, and confirms it against the revision read", async () => {
+    const link = aLink("CP-1", { suspect: true, reviewedRevision: 1 });
+    const sent = stubPage({
+      links: [link],
+      more: {
+        "GET /requirements/CHK-R1": { status: 200, body: { requirement: aRequirement({ revision: 2 }) } },
+        "GET /requirements/CHK-R1/diff": {
+          status: 200,
+          body: {
+            comparison: {
+              from: { number: 1, title: "Pay the basket", type: null, authorName: "Ada", createdAt: "2026-10-01T08:00:00Z" },
+              to: { number: 2, title: "Pay the basket at once", type: null, authorName: "Ada", createdAt: "2026-10-02T08:00:00Z" },
+              statement: [],
+              rationale: [],
+              attributes: [],
+            },
+          },
+        },
+        [`POST /armature-links/${link.id}/clear`]: { status: 200, body: { link: { ...link, suspect: false, reviewedRevision: 2 } } },
+      },
+    });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const panel = await screen.findByRole("region", { name: "Armature issues" });
+    await waitFor(() => expect(panel.querySelector('[data-armature-link="CP-1"]')).toHaveTextContent("Suspect"));
+    await userEvent.click(within(panel).getByRole("button", { name: "Check the trace to CP-1" }));
+    const dialog = await screen.findByRole("dialog", { name: "Check the trace of CHK-R1 to CP-1" });
+    expect(await within(dialog).findByRole("region", { name: "CHK-R1, revision 1 to 2" })).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText("Why the link still holds"), "CP-1 still covers it.");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Confirm link" }));
+    await waitFor(() => expect(sent.find((each) => each.method === "POST")?.body).toEqual({ revision: 2, comment: "CP-1 still covers it." }));
   });
 
   it("shows a reader without a token the key and the stored status, and how to connect", async () => {

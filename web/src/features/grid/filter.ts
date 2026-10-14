@@ -24,7 +24,7 @@ export const SHOW_COLUMNS = ["labels", "outline"] as const;
 export const DEFAULT_COLUMNS = ["outline", "key", "title", "status", "owner", "priority", "updated"];
 
 export function emptyFilter(): Filter {
-  return { q: "", kinds: [], types: [], statuses: [], categories: [], labels: [], owners: [], priorities: [], attributes: [] };
+  return { q: "", kinds: [], types: [], statuses: [], categories: [], labels: [], owners: [], priorities: [], attributes: [], suspect: false };
 }
 
 /** One condition as the attr parameter spells it: attributeId:op:value. */
@@ -52,6 +52,7 @@ export function gridParams(filter: Filter, sort: Sort): GridParams {
   if (filter.owners.length) params.owner = filter.owners;
   if (filter.priorities.length) params.priority = filter.priorities;
   if (filter.attributes.length) params.attr = filter.attributes.map(conditionParam);
+  if (filter.suspect) params.suspect = true;
   if (sort.column) {
     params.sort = sort.column;
     if (sort.desc) params.desc = true;
@@ -70,6 +71,7 @@ export interface GridAddress {
   owner?: string[];
   priority?: string[];
   attr?: string[];
+  suspect?: boolean;
   sort?: string;
   desc?: boolean;
   columns?: string[];
@@ -91,6 +93,7 @@ export function readAddress(search: Record<string, unknown>): GridAddress {
     const list = strings(search[name]);
     if (list) address[name] = list;
   }
+  if (search.suspect === true || search.suspect === "true") address.suspect = true;
   if (typeof search.sort === "string" && search.sort) address.sort = search.sort;
   if (search.desc === true || search.desc === "true") address.desc = true;
   if (typeof search.view === "string" && search.view) address.view = search.view;
@@ -109,6 +112,7 @@ export function fromAddress(address: GridAddress): { filter: Filter; sort: Sort 
     owners: address.owner ?? [],
     priorities: (address.priority ?? []) as Filter["priorities"],
     attributes: (address.attr ?? []).map(parseCondition).filter((c): c is AttributeCondition => c !== undefined),
+    suspect: address.suspect === true,
   };
   return { filter, sort: { column: address.sort ?? "", desc: address.desc === true } };
 }
@@ -126,6 +130,7 @@ export function toAddress(filter: Filter, sort: Sort, keep: Pick<GridAddress, "c
   if (params.owner) address.owner = params.owner;
   if (params.priority) address.priority = params.priority;
   if (params.attr) address.attr = params.attr;
+  if (params.suspect) address.suspect = true;
   if (params.sort) address.sort = params.sort;
   if (params.desc) address.desc = true;
   return address;
@@ -133,5 +138,5 @@ export function toAddress(filter: Filter, sort: Sort, keep: Pick<GridAddress, "c
 
 /** Whether a filter narrows anything. */
 export function narrows(filter: Filter): boolean {
-  return filter.q.trim() !== "" || Object.entries(filter).some(([name, value]) => name !== "q" && Array.isArray(value) && value.length > 0);
+  return filter.q.trim() !== "" || filter.suspect || Object.entries(filter).some(([name, value]) => name !== "q" && Array.isArray(value) && value.length > 0);
 }

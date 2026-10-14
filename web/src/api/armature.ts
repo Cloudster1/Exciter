@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ARMATURE_LINKS_POLL_MS, ARMATURE_LOOKUP_MAX_KEYS, ARMATURE_SEARCH_LIMIT } from "@/config";
 import { api } from "./client";
+import { refreshSuspects } from "./links";
 import { armatureThemeQueryKey, themesQueryKey } from "./themes";
 import type { components } from "./schema";
 
@@ -180,8 +181,16 @@ export function useArmatureLinkActions(reqKey: string) {
     },
     onSuccess: refresh,
   });
-  return { create, remove };
+  const clear = useMutation({
+    mutationFn: async ({ id, ...body }: ArmatureClearInput & { id: string }): Promise<ArmatureLink> =>
+      (await api.POST("/armature-links/{linkID}/clear", { params: { path: { linkID: id } }, body })).data!.link,
+    onSuccess: () => refreshSuspects(queryClient),
+  });
+  return { create, remove, clear };
 }
+
+/** Confirms a trace to an issue against the requirement's revision as read (#36). */
+export type ArmatureClearInput = Wire["ArmatureClearInput"];
 
 /** An Armature project the caller may see, and whether they may file issues in it. */
 export type ArmatureProject = Wire["ArmatureProject"];

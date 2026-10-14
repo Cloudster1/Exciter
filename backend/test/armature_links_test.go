@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
@@ -258,6 +260,29 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "CP-5" {
 			t.Errorf("after both links went "+lnxKey+"-R1 is on %s", keys)
+		}
+	})
+
+	t.Run("a revision leaves a link suspect until an editor confirms it", func(t *testing.T) {
+		link := linkStates(t, carol, lnxKey+"-R1")["CP-5 relates"]
+		if link["suspect"] != true || link["reviewedRevision"] != float64(1) {
+			t.Fatalf("the link made before the revision reads %v", link)
+		}
+		clear := "/api/v1/armature-links/" + link["id"].(string) + "/clear"
+		refuse(t, "an older revision", bob.post(t, clear, map[string]any{"revision": 1, "comment": "Fine."}), http.StatusConflict, "revision_moved_on")
+		fieldError(t, bob.post(t, clear, map[string]any{"revision": 3, "comment": "Fine."}), "revision")
+		fieldError(t, bob.post(t, clear, map[string]any{"revision": 2, "comment": ""}), "comment")
+		refuse(t, "a link that is none", bob.post(t, "/api/v1/armature-links/"+uuid.NewString()+"/clear", map[string]any{"revision": 2, "comment": "Fine."}),
+			http.StatusNotFound, "not_found")
+		cleared := obj(t, want(t, bob.post(t, clear, map[string]any{"revision": 2, "comment": "CP-5 still covers it."}), http.StatusOK, "bob confirms the link"), "link")
+		if cleared["suspect"] != false || cleared["reviewedRevision"] != float64(2) {
+			t.Errorf("the confirmed link reads %v", cleared)
+		}
+		if event := h.lastEvent(t, "link.cleared", r1["id"].(string)); event["armatureLinkId"] != link["id"] {
+			t.Errorf("the event reads %v", event)
+		}
+		if n := h.countRows(t, `SELECT count(*) FROM trace_link_clearance WHERE armature_link_id = $1 AND source_rev = 2`, link["id"]); n != 1 {
+			t.Errorf("%d clearances recorded, want 1", n)
 		}
 	})
 

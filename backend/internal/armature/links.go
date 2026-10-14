@@ -11,7 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // Requirements traced to Armature issues (#27): the links a requirement has, made and removed as the person.
@@ -31,8 +34,10 @@ var (
 // waiting for the worker.
 const selectLinks = `
 SELECT l.id, l.relation, l.issue_key, COALESCE(l.status_category, ''), l.status_stale,
-       COALESCE(rl.state, 'pending'), COALESCE(rl.error, ''), l.broken_at, l.detached_at, COALESCE(u.name, ''), l.created_at
+       COALESCE(rl.state, 'pending'), COALESCE(rl.error, ''), l.broken_at, l.detached_at, l.reviewed_rev,
+       r.trashed_at IS NULL AND r.revision > l.reviewed_rev, COALESCE(u.name, ''), l.created_at
 FROM armature_issue_link l
+JOIN requirement r ON r.id = l.requirement_id
 LEFT JOIN armature_remote_link rl ON rl.requirement_id = l.requirement_id AND rl.issue_key = l.issue_key
 LEFT JOIN app_user u ON u.id = l.created_by
 WHERE l.requirement_id = $1`
@@ -51,7 +56,7 @@ func readLinks(ctx context.Context, tx db.DBTX, requirementID uuid.UUID, only *u
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Link, error) {
 		var l Link
 		err := row.Scan(&l.ID, &l.Relation, &l.IssueKey, &l.StatusCategory, &l.StatusStale, &l.Sync, &l.Error,
-			&l.BrokenAt, &l.DetachedAt, &l.CreatedByName, &l.CreatedAt)
+			&l.BrokenAt, &l.DetachedAt, &l.ReviewedRevision, &l.Suspect, &l.CreatedByName, &l.CreatedAt)
 		return l, err
 	})
 }
@@ -215,4 +220,60 @@ func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 		_, err = tx.Exec(ctx, `DELETE FROM armature_issue_link WHERE id = $1`, id)
 		return err
 	})
+}
+
+// Clear confirms a trace to an issue against the requirement's revision the actor read (#36); the requirement's
+// editors do.
+func (s *Service) Clear(ctx context.Context, id uuid.UUID, in ClearInput) (*Link, db.LSN, error) {
+	comment, err := trace.CheckClearComment(in.Comment)
+	if err != nil {
+		return nil, 0, err
+	}
+	actor, err := actorOf(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	var out *Link
+	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		var (
+			r                  requirement.Ref
+			number             int
+			editable, archived bool
+		)
+		err := tx.QueryRow(ctx, `
+			SELECT r.id, p.key, r.number, r.revision, r.trashed_at IS NOT NULL, perm_requirement_editable(r.id, $2),
+			       p.archived_at IS NOT NULL
+			FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id JOIN project p ON p.id = r.project_id
+			WHERE l.id = $1`, id, actor).Scan(&r.ID, &r.ProjectKey, &number, &r.Revision, &r.Trashed, &editable, &archived)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrLinkNotFound
+		}
+		if err != nil {
+			return err
+		}
+		switch {
+		case archived:
+			return project.ErrArchived
+		case !editable:
+			return requirement.ErrForbidden
+		case r.Trashed:
+			return requirement.ErrTrashed
+		}
+		if err := trace.CheckNamedRevision("revision", requirement.Key(r.ProjectKey, number), in.Revision, r.Revision); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT armature_issue_link_clear($1, $2, $3)`, id, in.Revision, comment); err != nil {
+			return trace.ClearRefusal(err, ErrLinkNotFound)
+		}
+		if err := events.Emit(ctx, tx, trace.TopicLinkCleared, map[string]any{"actorId": actor, "armatureLinkId": id, "requirementId": r.ID}); err != nil {
+			return err
+		}
+		links, err := readLinks(ctx, tx, r.ID, &id)
+		if err != nil || len(links) == 0 {
+			return errors.Join(err, ErrLinkNotFound)
+		}
+		out = &links[0]
+		return nil
+	})
+	return out, lsn, err
 }

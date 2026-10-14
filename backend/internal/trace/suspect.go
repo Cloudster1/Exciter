@@ -37,6 +37,33 @@ type MovedEnd struct {
 	Current  int `json:"current"`
 }
 
+// Watches says whether a link of a type with this setting turns suspect when the end moves on.
+func (s SuspectEnd) Watches(e End) bool { return s == SuspectBoth || string(s) == string(e) }
+
+// Revisions are a link's ends as it was confirmed against them and as they are now.
+type Revisions struct {
+	SourceReviewed, SourceCurrent int
+	TargetReviewed, TargetCurrent int
+	// Trashed is either end in the trash, where the link waits for it to come back.
+	Trashed bool
+}
+
+// Moved is the ends that make a link suspect, the rule the view trace_link_state applies in the database: those
+// the type watches with a newer revision than confirmed, none while an end is in the trash.
+func Moved(watch SuspectEnd, r Revisions) []MovedEnd {
+	out := []MovedEnd{}
+	if r.Trashed {
+		return out
+	}
+	if watch.Watches(EndSource) && r.SourceCurrent > r.SourceReviewed {
+		out = append(out, MovedEnd{End: EndSource, Reviewed: r.SourceReviewed, Current: r.SourceCurrent})
+	}
+	if watch.Watches(EndTarget) && r.TargetCurrent > r.TargetReviewed {
+		out = append(out, MovedEnd{End: EndTarget, Reviewed: r.TargetReviewed, Current: r.TargetCurrent})
+	}
+	return out
+}
+
 // SuspectLink is a suspect link as a project's list shows it, both ends at once.
 type SuspectLink struct {
 	ID     uuid.UUID       `json:"id"`
@@ -44,6 +71,8 @@ type SuspectLink struct {
 	Source requirement.Ref `json:"source"`
 	Target requirement.Ref `json:"target"`
 	Ends   []MovedEnd      `json:"ends"`
+	// Since is when the first revision past the confirmed one was saved.
+	Since time.Time `json:"since"`
 }
 
 // ClearInput confirms a link against the ends as the caller read them; revisions newer than those are refused.

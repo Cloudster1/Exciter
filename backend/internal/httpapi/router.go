@@ -320,6 +320,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/requirements/{reqKey}/links", s.handleListLinks)
 			r.Post("/requirements/{reqKey}/links", s.handleCreateLink)
 			r.Delete("/links/{linkID}", s.handleDeleteLink)
+			r.Get("/projects/{projectKey}/suspects", s.handleListSuspectLinks)
+			r.Post("/links/{linkID}/clear", s.handleClearLink)
+			r.Get("/links/{linkID}/clearances", s.handleListClearances)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.
@@ -406,6 +409,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/requirements/{reqKey}/armature-links", s.handleListArmatureLinks)
 			r.Post("/requirements/{reqKey}/armature-links", s.handleCreateArmatureLink)
 			r.Delete("/armature-links/{linkID}", s.handleDeleteArmatureLink)
+			r.Post("/armature-links/{linkID}/clear", s.handleClearArmatureLink)
 			r.Get("/armature/projects", s.handleListArmatureProjects)
 			r.Get("/armature/issue-types", s.handleListArmatureIssueTypes)
 			r.Post("/projects/{projectKey}/armature-issues", s.handleCreateArmatureIssues)

@@ -114,7 +114,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`
 			FROM walk w JOIN requirement r ON r.id = w.id
 			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
 		if err != nil {
@@ -129,7 +129,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			)
 			n := &e.Node
 			err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
-				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open)
+				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks)
 			if err != nil {
 				return e, err
 			}

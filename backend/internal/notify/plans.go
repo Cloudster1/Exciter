@@ -166,7 +166,63 @@ func planRevised(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error)
 	if err := tellWatchers(ctx, tx, plan, in.RequirementID, KindRevised); err != nil {
 		return nil, err
 	}
+	if err := tellSuspect(ctx, tx, plan, in); err != nil {
+		return nil, err
+	}
 	return plan, nil
+}
+
+// tellSuspect tells the owner and watchers of the far end of each link this revision turned (#36), about that end,
+// if they see both ends; a link suspect already, cleared since, or with an end in the trash tells nobody.
+func tellSuspect(ctx context.Context, tx db.DBTX, plan *Plan, in requirementEvent) error {
+	rows, err := tx.Query(ctx, `
+		SELECT l.id, d.id, d.revision
+		FROM trace_link l
+		JOIN link_type lt ON lt.id = l.type_id
+		JOIN requirement u ON u.id = $1 AND u.trashed_at IS NULL
+		JOIN requirement d ON d.id = CASE WHEN l.source_id = $1 THEN l.target_id ELSE l.source_id END AND d.trashed_at IS NULL
+		WHERE l.deleted_at IS NULL AND (
+		    (l.source_id = $1 AND lt.suspect_end IN ('source', 'both') AND l.source_reviewed_rev = $2 - 1
+		     AND NOT (lt.suspect_end = 'both' AND d.revision > l.target_reviewed_rev))
+		 OR (l.target_id = $1 AND lt.suspect_end IN ('target', 'both') AND l.target_reviewed_rev = $2 - 1
+		     AND NOT (lt.suspect_end = 'both' AND d.revision > l.source_reviewed_rev)))
+		ORDER BY l.id`, in.RequirementID, in.Revision)
+	if err != nil {
+		return err
+	}
+	var turned []Subject
+	for rows.Next() {
+		var (
+			link uuid.UUID
+			s    Subject
+		)
+		if err := rows.Scan(&link, &s.RequirementID, &s.Revision); err != nil {
+			rows.Close()
+			return err
+		}
+		s.LinkID, s.Excerpt = &link, plan.Subject.Excerpt
+		turned = append(turned, s)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, s := range turned {
+		told, err := people(ctx, tx, `
+			SELECT f.user_id FROM (
+				SELECT user_id FROM requirement_watch_coverage($1)
+				UNION
+				SELECT r.owner_id FROM requirement r JOIN app_user o ON o.id = r.owner_id AND o.is_active AND o.role IS NOT NULL
+				WHERE r.id = $1 AND NOT EXISTS (SELECT 1 FROM watch_optout x WHERE x.user_id = r.owner_id AND x.requirement_id = r.id)
+			) f
+			WHERE perm_requirement_viewable($2, f.user_id)`, s.RequirementID, in.RequirementID)
+		if err != nil {
+			return err
+		}
+		for _, id := range told {
+			plan.Tells = append(plan.Tells, Tell{UserID: id, Kind: KindSuspect, About: &s})
+		}
+	}
+	return nil
 }
 
 // planTransitioned tells the requirement's watchers that its status moved, naming the status it is in now. Every
