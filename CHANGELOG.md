@@ -69,6 +69,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Armature's webhooks (#29). Armature tells Exciter at
+  `/api/v1/armature/webhook` when a linked issue changes, signed with the
+  secret stored under Settings, Armature: a requirement then shows the issue
+  as it is now, its status for everyone, a move to another project, a
+  deletion, and a link somebody took off the issue in Armature, which stays
+  off. A replayed event changes nothing, and an envelope of a version
+  Exciter does not read is refused so Armature keeps it.
 - Armature issues made from requirements (#28). A project's editors pick
   requirements in the specification or the grid and create one Armature
   issue for each, in a project and type they may file in, summarized by the

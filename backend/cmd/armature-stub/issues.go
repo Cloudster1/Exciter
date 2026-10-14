@@ -237,6 +237,7 @@ func (s *stub) createIssue(c *call) {
 	}
 	is := c.tenant.add(pr, kind, summary, c.person, time.Now().UTC())
 	is.Description = req.Description
+	c.emit("issue.created", map[string]any{"issueId": is.ID, "key": is.Key, "summary": is.Summary, "actorId": c.person.ID})
 	respond(c.w, http.StatusCreated, map[string]any{"issue": issueView(is)})
 }
 
@@ -251,7 +252,7 @@ func (s *stub) getIssue(c *call) {
 
 func linkView(l *remoteLink) map[string]any {
 	return map[string]any{
-		"id": l.ID, "url": l.URL, "title": l.Title, "source": l.Source, "iconUrl": l.IconURL,
+		"id": l.ID, "url": l.URL, "title": l.Title, "source": l.Source, "relation": l.Relation, "iconUrl": l.IconURL,
 		"createdBy": l.CreatedBy, "createdAt": l.CreatedAt, "updatedAt": l.UpdatedAt,
 	}
 }
@@ -294,11 +295,15 @@ func (s *stub) listLinks(c *call) {
 }
 
 type remoteLinkRequest struct {
-	URL     string  `json:"url"`
-	Title   string  `json:"title"`
-	Source  string  `json:"source"`
-	IconURL *string `json:"iconUrl,omitempty"`
+	URL      string  `json:"url"`
+	Title    string  `json:"title"`
+	Source   string  `json:"source"`
+	Relation string  `json:"relation,omitempty"`
+	IconURL  *string `json:"iconUrl,omitempty"`
 }
+
+// relationPage is what a link is when its request names no relation.
+const relationPage = "page"
 
 // putLink puts a link on an issue, or retitles the one with the same url, as Armature does, so sending the same
 // link again is harmless.
@@ -323,12 +328,20 @@ func (s *stub) putLink(c *call) {
 	for _, l := range c.tenant.links {
 		if l.IssueID == is.ID && l.URL == req.URL {
 			l.Title, l.Source, l.IconURL, l.UpdatedAt = req.Title, req.Source, req.IconURL, now
+			// A resend without a relation keeps the one the link has, as Armature's does.
+			if req.Relation != "" {
+				l.Relation = req.Relation
+			}
 			respond(c.w, http.StatusOK, map[string]any{"remoteLink": linkView(l)})
 			return
 		}
 	}
-	l := &remoteLink{ID: uuid.New(), IssueID: is.ID, URL: req.URL, Title: req.Title, Source: req.Source, IconURL: req.IconURL,
-		CreatedBy: c.person.ID, CreatedAt: now, UpdatedAt: now}
+	relation := req.Relation
+	if relation == "" {
+		relation = relationPage
+	}
+	l := &remoteLink{ID: uuid.New(), IssueID: is.ID, URL: req.URL, Title: req.Title, Source: req.Source, Relation: relation,
+		IconURL: req.IconURL, CreatedBy: c.person.ID, CreatedAt: now, UpdatedAt: now}
 	c.tenant.links = append(c.tenant.links, l)
 	respond(c.w, http.StatusCreated, map[string]any{"remoteLink": linkView(l)})
 }
@@ -347,6 +360,7 @@ func (s *stub) deleteLink(c *call) {
 		refuse(c.w, http.StatusNotFound, "not_found", "That link was not found.")
 		return
 	}
+	c.emit("issue.remote_link.removed", linkRemoved(is, c.tenant.links[i], c.person))
 	c.tenant.links = slices.Delete(c.tenant.links, i, i+1)
 	c.w.WriteHeader(http.StatusNoContent)
 }

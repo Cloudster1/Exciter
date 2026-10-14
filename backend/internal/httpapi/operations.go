@@ -594,9 +594,10 @@ var operations = []operation{
 			http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
 
 	// Armature's webhooks (#29): vouched for by their signature alone.
-	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true, pending: true,
+	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true,
 		summary: "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
-		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{}, http.StatusRequestEntityTooLarge: errorEnvelope{}}},
+		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
+			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// The followed Armature theme (#30).
 	{method: "GET", path: "/armature/theme", handler: "handleGetArmatureTheme", tag: "armature", pending: true,

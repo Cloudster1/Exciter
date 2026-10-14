@@ -48,7 +48,20 @@ export function StatusLozenge({ name, category }: { name: string; category: stri
 }
 
 /** An issue a requirement is traced to, drawn from the lookup, falling back on the stored status category. */
-export function IssueChip({ issueKey, href, state, storedCategory }: { issueKey: string; href: string; state: ChipState; storedCategory: string }) {
+export function IssueChip({
+  issueKey,
+  href,
+  state,
+  storedCategory,
+  stale = false,
+}: {
+  issueKey: string;
+  href: string;
+  state: ChipState;
+  storedCategory: string;
+  /** Armature moved the issue since without saying where, so the stored category may be out of date. */
+  stale?: boolean;
+}) {
   if (state.kind === "issue") {
     const issue = state.issue;
     return (
@@ -74,6 +87,11 @@ export function IssueChip({ issueKey, href, state, storedCategory }: { issueKey:
         {issueKey}
       </a>
       {storedCategory && <StatusLozenge name={t.armature.chip.categories[storedCategory] ?? storedCategory} category={storedCategory} />}
+      {storedCategory && stale && (
+        <span className="text-xs text-ink-muted" data-status-stale>
+          {t.armature.chip.stale}
+        </span>
+      )}
       {state.kind === "connect" && (
         <a href={ARMATURE_ACCOUNT_PATH} className="text-xs text-ink-muted underline" data-action="connect-armature-hint">
           {t.armature.chip.connect}

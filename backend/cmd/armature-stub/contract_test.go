@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -288,6 +289,39 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	c.expect("POST", "/issues", alice, filed, 422)
 	c.expect("PUT", stubPrefix+"/acme/refused-summary", "", map[string]any{"summary": ""}, 204)
 
+	// Webhooks as Armature posts them (#29): every envelope in Armature's shape, signed as Exciter checks.
+	got := webhookBin(t, doc)
+	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": got.url + "/hook", "secret": "armature_whs_contract"}, 204)
+	summary, done := "Set up the build pipeline again", "done"
+	c.expect("PATCH", stubPrefix+"/acme/issues/CP-3", "", map[string]any{"summary": summary, "statusCategory": done}, 200)
+	c.expect("POST", stubPrefix+"/acme/issues/CP-3/move", "", map[string]any{"projectKey": "SEC"}, 200)
+	c.expect("DELETE", stubPrefix+"/acme/issues/SEC-3", "", nil, 204)
+	linked := c.expect("POST", "/issues/CP-2/remote-links", alice, sent, 201)["remoteLink"].(map[string]any)
+	c.expect("DELETE", stubPrefix+"/acme/issues/CP-2/remote-links?url="+sent.URL, "", nil, 204)
+	put = c.expect("POST", "/issues/CP-2/remote-links", alice, sent, 201)["remoteLink"].(map[string]any)
+	c.expect("DELETE", "/issues/CP-2/remote-links/"+put["id"].(string), alice, nil, 204)
+	c.expect("POST", "/issues", alice, armature.CreateRequest{ProjectKey: "CP", Summary: "Announced"}, 201)
+	replayed := c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping", "payload": map[string]any{"message": "Armature can reach this address."}}, 200)
+	if replayed["status"] != float64(http.StatusNoContent) {
+		t.Errorf("a sent event answers %v", replayed)
+	}
+	wantTopics := "issue.updated issue.transitioned issue.updated issue.deleted issue.remote_link.removed issue.remote_link.removed issue.created ping"
+	if topics := got.topics(); topics != wantTopics {
+		t.Errorf("the stub announced %s, want %s", topics, wantTopics)
+	}
+	moved, removed := got.payload(2), got.payload(4)
+	if moved["movedFrom"] != "CP-3" || moved["key"] != "SEC-3" || got.payload(1)["toStatusCategory"] != done {
+		t.Errorf("the move reads %v", moved)
+	}
+	if removed["linkId"] != linked["id"] || removed["url"] != sent.URL || removed["relation"] != "page" {
+		t.Errorf("the removal reads %v", removed)
+	}
+	if n := len(c.expect("GET", stubPrefix+"/acme/deliveries", "", nil, 200)["deliveries"].([]any)); n != 8 {
+		t.Errorf("the stub noted %d deliveries, want 8", n)
+	}
+	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": ""}, 204)
+	c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping"}, 409)
+
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
 	}
@@ -300,4 +334,58 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 			t.Errorf("the scenario never had %s %s answer with a success", rt.Method, rt.Path)
 		}
 	}
+}
+
+// bin receives the stub's webhooks, checking each against Armature's EnvelopeV1 and its signatures.
+type bin struct {
+	t      *testing.T
+	url    string
+	mu     sync.Mutex
+	bodies []map[string]any
+}
+
+func webhookBin(t *testing.T, doc *openapi.Document) *bin {
+	b := &bin{t: t}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		headers := armature.WebhookHeaders{Signature: r.Header.Get(armature.SignatureHeader), Timestamp: r.Header.Get(armature.TimestampHeader),
+			TimestampedSignature: r.Header.Get(armature.TimestampedSignatureHeader)}
+		if !headers.Verify(raw, "armature_whs_contract") || headers.Timestamp == "" {
+			t.Errorf("a delivery is not signed as Armature signs: %v", r.Header)
+		}
+		if err := doc.ValidateJSON(&openapi.Schema{Ref: "#/components/schemas/EnvelopeV1"}, raw); err != nil {
+			t.Errorf("a delivery is not Armature's envelope: %v\n%s", err, raw)
+		}
+		if r.Header.Get("X-Armature-Webhook-Version") != "1" || r.Header.Get("X-Armature-Event") == "" {
+			t.Errorf("a delivery's headers are %v", r.Header)
+		}
+		body := map[string]any{}
+		_ = json.Unmarshal(raw, &body)
+		b.mu.Lock()
+		b.bodies = append(b.bodies, body)
+		b.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	b.url = server.URL
+	return b
+}
+
+func (b *bin) topics() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	var out []string
+	for _, body := range b.bodies {
+		out = append(out, body["topic"].(string))
+	}
+	return strings.Join(out, " ")
+}
+
+func (b *bin) payload(i int) map[string]any {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if i >= len(b.bodies) {
+		b.t.Fatalf("only %d deliveries came", len(b.bodies))
+	}
+	return b.bodies[i]["payload"].(map[string]any)
 }

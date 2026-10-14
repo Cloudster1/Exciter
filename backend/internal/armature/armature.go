@@ -58,7 +58,7 @@ const (
 var StatusCategories = []string{"todo", "in_progress", "done"}
 
 // WebhookTopics are the Armature topics the receiver acts on (#29); the admin screen names them.
-var WebhookTopics = []string{"issue.created", "issue.updated", "issue.transitioned", "issue.deleted", "issue.remote_link.removed"}
+var WebhookTopics = []string{TopicIssueCreated, TopicIssueUpdated, TopicIssueTransitioned, TopicIssueDeleted, TopicRemoteLinkRemoved}
 
 // Status says why a read could not ask Armature, or ok when it did.
 type Status string

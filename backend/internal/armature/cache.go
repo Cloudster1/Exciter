@@ -135,19 +135,23 @@ func (c *Cache) ForgetSearches(ctx context.Context) {
 	c.warn(c.store.Del(ctx, SearchKey()).Err(), "forget searches")
 }
 
-// FirstDelivery marks a webhook event as acted on and says whether it is the
-// first time; without a cache every delivery is.
-func (c *Cache) FirstDelivery(ctx context.Context, eventID uuid.UUID) bool {
-	// The worst a replay does then is clear entries that are not there.
+// Delivered says whether a webhook event was acted on already; without a cache, or when Valkey does not answer,
+// none was, and acting again changes nothing a first time did not.
+func (c *Cache) Delivered(ctx context.Context, eventID uuid.UUID) bool {
 	if c == nil {
-		return true
+		return false
 	}
-	first, err := c.store.SetNX(ctx, EventKey(eventID), "1", WebhookReplayWindow).Result()
-	if err != nil {
-		c.warn(err, "remember a webhook event")
-		return true
+	n, err := c.store.Exists(ctx, EventKey(eventID)).Result()
+	c.warn(err, "read a webhook event")
+	return n > 0
+}
+
+// NoteDelivered remembers that a webhook event was acted on, for WebhookReplayWindow.
+func (c *Cache) NoteDelivered(ctx context.Context, eventID uuid.UUID) {
+	if c == nil {
+		return
 	}
-	return first
+	c.warn(c.store.Set(ctx, EventKey(eventID), "1", WebhookReplayWindow).Err(), "remember a webhook event")
 }
 
 func (c *Cache) getField(ctx context.Context, key, field string, ttl time.Duration, out any) bool {

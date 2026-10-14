@@ -117,6 +117,7 @@ export const armatureDe: typeof armatureEn = {
     connect: "Verbinden Sie Ihr Armature-Konto, um diesen Vorgang zu sehen",
     notAvailable: "In Armature für Sie nicht sichtbar",
     unreachable: "Armature hat nicht geantwortet",
+    stale: "Seitdem in Armature verschoben",
     categories: { todo: "Zu erledigen", in_progress: "In Arbeit", done: "Erledigt" },
   },
   picker: {

@@ -178,6 +178,14 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for Armature's webhooks (#29):
+- backend/internal/armature/webhook.go with webhook_test.go: Sign,
+  ErrBadSignature, the stand-in secret and Webhook of internal/armature
+  webhook.go, for the one installation, with the timestamped signature, the
+  envelope's version and what each topic writes
+- backend/cmd/armature-stub/hooks.go: sign and sendWebhook of server.go,
+  posting what the stub's changes announce to a registered endpoint
+
 Adapted from Stator at cf0f6f7, for creating Armature issues from requirements (#28):
 - backend/internal/armature/create.go with create_test.go: CheckCreate,
   Description, CreateRequest, CreateIssues, Projects, IssueTypes and meta of

@@ -112,6 +112,7 @@ export const armatureEn = {
     connect: "Connect your Armature account to see this issue",
     notAvailable: "Not available to you in Armature",
     unreachable: "Armature did not answer",
+    stale: "Moved in Armature since",
     categories: { todo: "To do", in_progress: "In progress", done: "Done" } as Record<string, string | undefined>,
   },
   picker: {
