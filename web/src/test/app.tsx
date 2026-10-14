@@ -60,6 +60,7 @@ export type Answer = { status: number; body?: unknown };
 /** What a new installation answers to the reads every page of the shell may make, unless a test says otherwise. */
 const freshInstallation: Record<string, Answer> = {
   "GET /projects": { status: 200, body: { projects: [] } },
+  "GET /notifications/unread-count": { status: 200, body: { unread: 0 } },
 };
 
 let apiStubbed = false;

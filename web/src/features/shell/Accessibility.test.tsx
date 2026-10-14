@@ -184,12 +184,14 @@ describe("the account menu", () => {
     const themes = within(menu).getByRole("menuitem", { name: "Themes" });
     const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
     const armature = within(menu).getByRole("menuitem", { name: "Armature account" });
+    const notifications = within(menu).getByRole("menuitem", { name: "Notification settings" });
+    const watching = within(menu).getByRole("menuitem", { name: "Watching" });
     const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
     const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
     expect(themes).toHaveFocus();
-    for (const next of [tokens, armature, browser, english, german, signOut, themes]) {
+    for (const next of [tokens, armature, notifications, watching, browser, english, german, signOut, themes]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }

@@ -3,7 +3,8 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useLogout, useMe, useSetLanguage } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { ARMATURE_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH } from "@/config";
+import { ARMATURE_ACCOUNT_PATH, NOTIFICATION_SETTINGS_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
 import { crumbsFor, placeAbove } from "./places";
 import { DRAWER_ID } from "./state";
@@ -66,6 +67,7 @@ export function TopBar({
           <span className="hidden min-w-0 flex-1 truncate text-left shell:inline">{t.switcher.placeholder}</span>
           <kbd className="hidden font-mono text-2xs shell:inline">{t.switcher.shortcut}</kbd>
         </button>
+        <NotificationBell />
         <AccountMenu />
       </div>
     </header>
@@ -116,6 +118,13 @@ function AccountMenu() {
       onSelect: () => navigate({ to: ARMATURE_ACCOUNT_PATH }),
       attrs: { "data-action": "armature-account" },
     },
+    {
+      label: t.account.notifications,
+      icon: <Icon.Bell />,
+      onSelect: () => navigate({ to: NOTIFICATION_SETTINGS_PATH }),
+      attrs: { "data-action": "notification-settings" },
+    },
+    { label: t.account.watching, icon: <Icon.Eye />, onSelect: () => navigate({ to: WATCHING_PATH }), attrs: { "data-action": "watching" } },
     ...languages,
     {
       label: t.account.signOut,

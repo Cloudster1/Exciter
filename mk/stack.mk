@@ -63,6 +63,7 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_TEST_ARMATURE_STUB_URL=http://armature-stub:8080 \
 	-e EXCITER_TEST_SECRET_KEY='$(EXCITER_SECRET_KEY)' \
 	-e EXCITER_TEST_APP_URL=http://localhost:$(WEB_PORT) \
+	-e EXCITER_TEST_MAILPIT_URL=http://mailpit:8025 \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.

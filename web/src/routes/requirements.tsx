@@ -18,7 +18,7 @@ export const requirementRoute = createRoute({
     const navigate = useNavigate();
     useEffect(() => {
       if (requirement && requirement.key !== reqKey) {
-        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, replace: true });
+        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, hash: true, replace: true });
       }
     }, [requirement, reqKey, navigate]);
     if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
@@ -38,7 +38,7 @@ export const permalinkRoute = createRoute({
     const navigate = useNavigate();
     useEffect(() => {
       if (requirement) {
-        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, replace: true });
+        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, hash: true, replace: true });
       }
     }, [requirement, navigate]);
     if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;

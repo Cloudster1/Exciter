@@ -9,6 +9,7 @@ import { attachmentsDe } from "./attachments.de";
 import { tokensDe } from "./tokens.de";
 import { armatureDe } from "./armature.de";
 import { commentsDe } from "./comments.de";
+import { notificationsDe, watchDe } from "./notifications.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -79,6 +80,8 @@ export const de: Messages = {
     themes: "Designs",
     tokens: "Zugriffstoken",
     armature: "Armature-Konto",
+    notifications: "Benachrichtigungseinstellungen",
+    watching: "Beobachtet",
     signOut: "Abmelden",
   },
   login: {
@@ -310,6 +313,8 @@ export const de: Messages = {
   tokens: tokensDe,
   armature: armatureDe,
   comments: commentsDe,
+  watch: watchDe,
+  notifications: notificationsDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

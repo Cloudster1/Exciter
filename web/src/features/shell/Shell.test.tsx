@@ -10,12 +10,15 @@ import {
   INSTALLATION_PATH,
   LINK_TYPES_PATH,
   MEMBERS_PATH,
+  NOTIFICATION_SETTINGS_PATH,
+  NOTIFICATIONS_PATH,
   ALL_TOKENS_PATH,
   PROJECTS_PATH,
   SEARCH_PATH,
   SSO_PATH,
   THEMES_PATH,
   TOKENS_PATH,
+  WATCHING_PATH,
 } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
@@ -141,6 +144,9 @@ describe("the quick switcher", () => {
       `place:${THEMES_PATH}`,
       `place:${TOKENS_PATH}`,
       `place:${ARMATURE_ACCOUNT_PATH}`,
+      `place:${NOTIFICATIONS_PATH}`,
+      `place:${NOTIFICATION_SETTINGS_PATH}`,
+      `place:${WATCHING_PATH}`,
     ]);
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[0]!.id);
@@ -149,9 +155,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[13]).toHaveAttribute("aria-selected", "true");
+    expect(options()[16]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[13]).toHaveAttribute("aria-selected", "true");
+    expect(options()[16]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
@@ -166,8 +172,8 @@ describe("the quick switcher", () => {
   it("offers only the places a member may go, and says when nothing matches", async () => {
     await renderAt("/", { me: member });
     await userEvent.keyboard("{Control>}k{/Control}");
-    // Home, the projects, the search, and their own themes, tokens and Armature account.
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(6);
+    // Home, the projects, the search, and their own themes, tokens, Armature account, notifications and watches.
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(9);
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     // Only the full search is left to offer.
     expect(within(screen.getByRole("listbox")).getByRole("option")).toHaveTextContent("Search everything for zzz");

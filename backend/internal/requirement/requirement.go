@@ -133,7 +133,20 @@ type Requirement struct {
 	Can           Can        `json:"can"`
 	// Comments counts its discussion (#33).
 	Comments CommentCounts `json:"comments"`
+	// Watching is how the reader follows it (#34).
+	Watching Watching `json:"watching"`
 }
+
+// Watching is how the reader follows a requirement: by itself, through its project, or not (#34).
+type Watching struct {
+	Requirement bool `json:"requirement"`
+	Project     bool `json:"project"`
+}
+
+// watching reads Watching of the requirement aliased r for the reader $1, two columns.
+const watching = `,
+       EXISTS (SELECT 1 FROM watch w WHERE w.user_id = $1 AND w.requirement_id = r.id),
+       EXISTS (SELECT 1 FROM watch w WHERE w.user_id = $1 AND w.project_id = r.project_id)`
 
 // CommentCounts are a requirement's threads with a live comment, and those still open (#33).
 type CommentCounts struct {

@@ -5,6 +5,7 @@ import { useRequirements } from "@/api/requirements";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REQUIREMENT_PAGE_SIZE } from "@/config";
+import { ProjectWatchButton } from "@/features/watching/ProjectWatchButton";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { LabelLink } from "@/features/labels/RequirementLabels";
@@ -26,11 +27,14 @@ export function RequirementList({ project, label }: { project: Project; label?: 
         title={t.requirements.title}
         meta={t.projects.projectAndKey(project.name, project.key)}
         actions={
-          mayWrite && (
-            <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
-              {t.requirements.create}
-            </Button>
-          )
+          <>
+            <ProjectWatchButton project={project} />
+            {mayWrite && (
+              <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
+                {t.requirements.create}
+              </Button>
+            )}
+          </>
         }
       />
       {project.archivedAt && (

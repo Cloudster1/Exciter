@@ -18,7 +18,7 @@ export type Priority = NonNullable<Requirement["priority"]>;
 /** The priorities in the order a chooser offers them, the highest first. */
 export const PRIORITIES: Priority[] = ["must", "should", "could", "wont"];
 
-const requirementsKey = ["requirements"] as const;
+export const requirementsKey = ["requirements"] as const;
 
 export function requirementQueryKey(key: string) {
   return [...requirementsKey, "one", key.toUpperCase()] as const;

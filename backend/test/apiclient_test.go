@@ -30,6 +30,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
+	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
@@ -39,6 +40,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
+	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -101,9 +103,11 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
-		Armature: h.armature(t),
-		Comments: comment.NewService(h.cluster),
-		Fresh:    h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+		Armature:      h.armature(t),
+		Comments:      comment.NewService(h.cluster),
+		Watches:       watch.NewService(h.cluster),
+		Notifications: notify.NewService(h.cluster),
+		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {
 		configure(a, server)

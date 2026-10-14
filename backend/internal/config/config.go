@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"net/mail"
 	"net/netip"
 	"net/url"
 	"strings"
@@ -76,6 +77,7 @@ type Config struct {
 	Telemetry Telemetry
 	Bootstrap Bootstrap
 	S3        S3
+	Mail      Mail
 
 	// UploadLimit is the largest file a requirement takes, in bytes.
 	UploadLimit int64
@@ -93,6 +95,13 @@ type Config struct {
 	// SecretKey encrypts secrets stored in the database, such as a person's
 	// Armature token. Nil in development when it is not set.
 	SecretKey []byte
+}
+
+// Mail is the relay the worker sends notifications through. A blank address
+// leaves mail off, and only the rows in the app are written.
+type Mail struct {
+	SMTPAddr string
+	From     string
 }
 
 // DB describes the Postgres cluster: one writable primary and optional read
@@ -246,6 +255,10 @@ func Load() (Config, error) {
 			Region:    l.str("EXCITER_S3_REGION", DefaultS3Region),
 			UseSSL:    l.boolean("EXCITER_S3_USE_SSL", false),
 		},
+		Mail: Mail{
+			SMTPAddr: l.str("EXCITER_SMTP_ADDR", ""),
+			From:     l.str("EXCITER_MAIL_FROM", ""),
+		},
 		Telemetry: Telemetry{
 			MetricsAddr:  l.strOrBlank("EXCITER_METRICS_ADDR", DefaultMetricsAddr),
 			OTLPEndpoint: l.str("EXCITER_OTEL_ENDPOINT", ""),
@@ -310,6 +323,11 @@ func Load() (Config, error) {
 	}
 	if c.S3.Endpoint != "" && (c.S3.AccessKey == "" || c.S3.SecretKey == "") {
 		l.problem("EXCITER_S3_ENDPOINT is set, so set EXCITER_S3_ACCESS_KEY and EXCITER_S3_SECRET_KEY as well.")
+	}
+	if c.Mail.SMTPAddr != "" {
+		if _, err := mail.ParseAddress(c.Mail.From); err != nil {
+			l.problem(fmt.Sprintf("EXCITER_SMTP_ADDR is set, but EXCITER_MAIL_FROM is %q; set it to an address such as Exciter <no-reply@example.com>.", c.Mail.From))
+		}
 	}
 	if c.Telemetry.SampleRatio < 0 || c.Telemetry.SampleRatio > 1 {
 		l.problem("EXCITER_OTEL_SAMPLE_RATIO must be between 0 and 1.")
