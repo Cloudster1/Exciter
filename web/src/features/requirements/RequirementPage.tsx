@@ -375,7 +375,14 @@ function TrashSection({ project, requirement }: { project: Project; requirement:
         variant="secondary"
         icon={<Icon.Trash />}
         loading={trash.isPending}
-        onClick={() => trash.mutate(undefined, { onSuccess: () => void navigate({ to: "/p/$projectKey", params: { projectKey: project.key } }) })}
+        onClick={() =>
+          // The refetch that shows the requirement trashed unmounts these actions, which drops a mutate call's own
+          // onSuccess; the promise resolves regardless.
+          void trash
+            .mutateAsync()
+            .then(() => navigate({ to: "/p/$projectKey", params: { projectKey: project.key } }))
+            .catch(() => {})
+        }
         data-action="trash-requirement"
       >
         {t.requirements.trash}
