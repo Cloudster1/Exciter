@@ -13,6 +13,7 @@ import { armatureEn } from "./armature.en";
 import { commentsEn } from "./comments.en";
 import { notificationsEn, watchEn } from "./notifications.en";
 import { reviewEn } from "./reviews.en";
+import { suspectEn } from "./suspect.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -319,6 +320,7 @@ export const en = {
   watch: watchEn,
   notifications: notificationsEn,
   review: reviewEn,
+  suspect: suspectEn,
   imports: importsEn,
   search: searchEn,
   grid: gridEn,

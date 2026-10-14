@@ -330,6 +330,26 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
 - **UI:** a Suspect badge on links in the links panel, the specification
   view and the grid; a Suspect list per project; Clear opens the diff and
   asks for the comment.
+- **As built** (#36):
+  - Migration 00540. `trace_link_state` reads as the reader, so it holds
+    only the links whose ends they view, with `suspect_since`, when the
+    first revision past the confirmed one was saved. `trace_link_clear` and
+    `armature_issue_link_clear` are the only way to move a confirmed
+    revision on; they refuse a link the caller does not see
+    (`no_data_found`), one they may not edit an end of, an end in the
+    trash, and revisions other than the current ones. Both record into
+    `trace_link_clearance`, an Armature link's revision as its source;
+    nothing changes a clearance, and the app role writes none directly.
+  - A suspect link of the project's list gains `since`, which orders it.
+    A clearance answers the link as its source reads it. Naming a revision
+    newer than the end has is 422 on that field; clearing a link with an
+    end in the trash is 409 `requirement_trashed`.
+  - `suspectLinks` counts trace links and Armature links, and the grid's
+    `suspect` is also a field of a saved view's filter.
+  - A revision tells the owner and watchers of each link's far end that it
+    turned, only when the link was not suspect already and only those who
+    see both ends; somebody it turns several links for hears once, about
+    the first.
 
 ## #37 Baselines
 

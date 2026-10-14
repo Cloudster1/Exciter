@@ -30,7 +30,7 @@ const risk: Attribute = {
   updatedAt: "2026-10-01T08:00:00Z",
 };
 const pay = aRequirement({ revision: 2, status: { id: draft.id, name: "Draft", category: "draft" } });
-const row: RequirementRow = { ...pay, outline: "1", trashed: false, attributes: { [risk.id]: low.id }, labels: ["checkout"] };
+const row: RequirementRow = { ...pay, outline: "1", trashed: false, attributes: { [risk.id]: low.id }, labels: ["checkout"], suspectLinks: 0 };
 const team: View = {
   id: "0195f000-0000-7000-8000-000000000f01",
   projectKey: "CHK",
@@ -78,6 +78,23 @@ describe("the grid", () => {
     await userEvent.click(within(table).getByRole("button", { name: /Sort by Title, sorted A to Z/ }));
     await waitFor(() => expect(router.state.location.search).toEqual({ sort: "title", desc: true }));
     expect(within(table).getByRole("columnheader", { name: /Title/ })).toHaveAttribute("aria-sort", "descending");
+  });
+
+  it("keeps only requirements with a suspect link, and marks how many each has", async () => {
+    const asked: URLSearchParams[] = [];
+    stubGrid({
+      "GET /projects/CHK/requirements": (request) => {
+        asked.push(new URL(request.url).searchParams);
+        return { status: 200, body: { rows: [{ ...row, suspectLinks: 2 }], total: 1, limit: 100, offset: 0 } };
+      },
+    });
+    const router = await renderAt("/p/CHK/grid");
+    const table = await screen.findByRole("table", { name: "Requirements of the project, as the grid shows them" });
+    expect(await within(table).findByText("2 suspect links")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Suspect links only" }));
+    await waitFor(() => expect(asked.at(-1)?.get("suspect")).toBe("true"));
+    expect(router.state.location.search).toMatchObject({ suspect: true });
+    expect(screen.getByRole("button", { name: "Suspect links only" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("narrows by an attribute condition and a field, and clears both", async () => {

@@ -2663,8 +2663,10 @@ export interface components {
             issueKey: string;
             /** @enum {string} */
             relation: "implements" | "verifies" | "relates";
+            reviewedRevision: number;
             statusCategory: string;
             statusStale: boolean;
+            suspect: boolean;
             /** @enum {string} */
             sync: "synced" | "pending" | "failed";
         };
@@ -3109,6 +3111,7 @@ export interface components {
             projectKey: string;
             revision: number;
             status: components["schemas"]["StatusRef"] | null;
+            suspectLinks: number;
             title: string;
             trashed: boolean;
             type: components["schemas"]["RequirementTypeRef"] | null;
@@ -3941,6 +3944,7 @@ export interface components {
             rationale: unknown;
             /** @description A JSON value. */
             statement: unknown;
+            suspectLinks: number;
         };
         Stats: {
             lagFallbacks: number;
@@ -3994,6 +3998,8 @@ export interface components {
             ends: components["schemas"]["SuspectLinkEnd"][];
             /** Format: uuid */
             id: string;
+            /** Format: date-time */
+            since: string;
             source: components["schemas"]["RequirementRef"];
             target: components["schemas"]["RequirementRef"];
             type: components["schemas"]["LinkType"];
@@ -4037,6 +4043,7 @@ export interface components {
             other: components["schemas"]["RequirementRef"];
             phrase: string;
             sourceRevision: number;
+            suspect: components["schemas"]["SuspectLinkEnd"][];
             targetRevision: number;
             type: components["schemas"]["LinkType"];
         };
@@ -4176,6 +4183,7 @@ export interface components {
             priorities: ("must" | "should" | "could" | "wont")[];
             q: string;
             statuses: string[];
+            suspect: boolean;
             types: string[];
         };
         ViewInput: {
@@ -4410,15 +4418,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6647,15 +6646,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -6687,15 +6677,6 @@ export interface operations {
                     "application/json": {
                         clearances: components["schemas"]["LinkClearance"][];
                     };
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -8003,6 +7984,8 @@ export interface operations {
                 priority?: ("must" | "should" | "could" | "wont")[];
                 /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
                 attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
                 /** @description A column to order by; outline order when absent. */
                 sort?: string;
                 /** @description true to order the column backwards. */
@@ -8191,6 +8174,8 @@ export interface operations {
                 priority?: ("must" | "should" | "could" | "wont")[];
                 /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
                 attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
                 /** @description A column to order by; outline order when absent. */
                 sort?: string;
                 /** @description true to order the column backwards. */
@@ -8574,6 +8559,8 @@ export interface operations {
                 priority?: ("must" | "should" | "could" | "wont")[];
                 /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
                 attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
                 /** @description A column to order by; outline order when absent. */
                 sort?: string;
                 /** @description true to order the column backwards. */
@@ -8656,6 +8643,8 @@ export interface operations {
                 priority?: ("must" | "should" | "could" | "wont")[];
                 /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
                 attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
                 /** @description A column to order by; outline order when absent. */
                 sort?: string;
                 /** @description true to order the column backwards. */
@@ -8732,6 +8721,8 @@ export interface operations {
                 priority?: ("must" | "should" | "could" | "wont")[];
                 /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
                 attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
                 /** @description A column to order by; outline order when absent. */
                 sort?: string;
                 /** @description true to order the column backwards. */
@@ -9054,15 +9045,6 @@ export interface operations {
                         offset: number;
                         total: number;
                     };
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

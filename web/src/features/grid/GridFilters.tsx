@@ -5,7 +5,7 @@ import type { Project } from "@/api/projects";
 import { PRIORITIES } from "@/api/requirements";
 import type { AttributeCondition, Filter, Op } from "@/api/search";
 import { STATUS_CATEGORIES, type Status } from "@/api/workflows";
-import { Button, IconButton, Input, SelectInput, Tag } from "@/components/ui";
+import { Button, Chip, IconButton, Input, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GRID_MAX_CONDITIONS, SEARCH_QUERY_MAX_LENGTH } from "@/config";
 import { LabelCombobox } from "@/features/labels/LabelCombobox";
@@ -105,6 +105,10 @@ export function GridFilters({
           {me && <option value={me.user.id}>{t.grid.ownedByMe}</option>}
           {filter.owners[0] && filter.owners[0] !== me?.user.id && <option value={filter.owners[0]}>{filter.owners[0]}</option>}
         </Choice>
+        <Chip pressed={filter.suspect} onClick={() => set({ suspect: !filter.suspect })} data-filter="suspect">
+          <Icon.Warning className="size-3.5" />
+          {t.suspect.onlySuspect}
+        </Chip>
         <div className="w-48" data-filter="label">
           <LabelCombobox
             label={t.grid.labels}

@@ -42,6 +42,9 @@ func traceError(err error) *APIError {
 		return ErrForbidden("Only an administrator changes the link types for all projects, and a project's administrators the project's own. Ask one of them.")
 	case errors.Is(err, trace.ErrLinkNotFound):
 		return ErrNotFound("That link was not found. Reload the links; somebody may have removed it already.")
+	case errors.Is(err, trace.ErrRevisionMovedOn):
+		return &APIError{Status: http.StatusConflict, Code: "revision_moved_on",
+			Message: "A requirement of this link has a newer revision than the one you read. Reload it and read the change first."}
 	case errors.Is(err, trace.ErrSection):
 		return &APIError{Status: http.StatusUnprocessableEntity, Code: "validation_failed",
 			Message: "Sections take no links. Link the requirements in it instead."}
@@ -189,4 +192,52 @@ func (s *Server) handleDeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleListSuspectLinks(w http.ResponseWriter, r *http.Request) {
+	limit, offset, apiErr := offsetWindow(r, trace.SuspectDefaultLimit, trace.SuspectMaxLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	links, total, err := s.Trace.Suspects(r.Context(), userFrom(r), projectKeyParam(r), limit, offset)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"links": links, "total": total, "limit": limit, "offset": offset})
+}
+
+func (s *Server) handleClearLink(w http.ResponseWriter, r *http.Request) {
+	id, apiErr := pathUUID(r, "linkID", "link")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	var req trace.ClearInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	link, lsn, err := s.Trace.Clear(r.Context(), userFrom(r), id, req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"link": link})
+}
+
+func (s *Server) handleListClearances(w http.ResponseWriter, r *http.Request) {
+	id, apiErr := pathUUID(r, "linkID", "link")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	clearances, err := s.Trace.Clearances(r.Context(), userFrom(r), id)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"clearances": clearances})
 }

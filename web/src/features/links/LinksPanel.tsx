@@ -10,8 +10,17 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { t } from "@/i18n";
 import { RequirementPicker } from "./RequirementPicker";
+import { ClearLinkDialog, SuspectBadge, type CheckedLink } from "./Suspect";
 
 const capitalized = (phrase: string) => phrase.charAt(0).toUpperCase() + phrase.slice(1);
+
+/** A link as the requirement it was read from holds it, both ends put in their places. */
+function checked(link: TraceLink, requirement: Requirement): CheckedLink {
+  const here = { key: requirement.key, revision: requirement.revision };
+  const other = { key: link.other.key, revision: link.other.revision };
+  const outgoing = link.direction === "outgoing";
+  return { id: link.id, forward: link.type.forward, source: outgoing ? here : other, target: outgoing ? other : here, ends: link.suspect };
+}
 
 /** A requirement's trace links grouped by type and direction, each a way to the other end; its editors link
  * it to more and remove links. */
@@ -20,6 +29,7 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
   const { data: links, error, refetch } = useLinks(requirement.key, !section);
   const actions = useLinkActions(requirement.key);
   const [notice, setNotice] = useState("");
+  const [checking, setChecking] = useState<TraceLink | null>(null);
   const mayLink = requirement.can.link;
 
   function remove(link: TraceLink) {
@@ -53,6 +63,12 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
                     </Link>
                     {link.other.status && <StatusBadge name={link.other.status.name} category={link.other.status.category as StatusCategory} />}
                     {link.other.trashed && <Tag>{t.links.trashed}</Tag>}
+                    {link.suspect.length > 0 && <SuspectBadge />}
+                    {link.suspect.length > 0 && mayLink && (
+                      <Button variant="link" onClick={() => setChecking(link)} aria-label={t.suspect.checkLabel(link.other.key)} data-action="check-link">
+                        {t.suspect.check}
+                      </Button>
+                    )}
                     {mayLink && (
                       <IconButton
                         icon={<Icon.X className="size-3" />}
@@ -80,6 +96,13 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
         <p role="status" className="sr-only" data-link-notice>
           {notice}
         </p>
+        {checking && (
+          <ClearLinkDialog
+            link={checked(checking, requirement)}
+            onCleared={() => setNotice(t.suspect.cleared(checking.other.key))}
+            onClose={() => setChecking(null)}
+          />
+        )}
       </section>
     </Card>
   );

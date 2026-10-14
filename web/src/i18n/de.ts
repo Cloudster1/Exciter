@@ -11,6 +11,7 @@ import { armatureDe } from "./armature.de";
 import { commentsDe } from "./comments.de";
 import { notificationsDe, watchDe } from "./notifications.de";
 import { reviewDe } from "./reviews.de";
+import { suspectDe } from "./suspect.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -320,6 +321,7 @@ export const de: Messages = {
   watch: watchDe,
   notifications: notificationsDe,
   review: reviewDe,
+  suspect: suspectDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

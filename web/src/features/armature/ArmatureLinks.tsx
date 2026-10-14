@@ -16,6 +16,7 @@ import { ARMATURE_ACCOUNT_PATH, ARMATURE_RELATIONS } from "@/config";
 import { t } from "@/i18n";
 import { IssueChip, chipState } from "./IssueChip";
 import { IssuePicker } from "./IssuePicker";
+import { ClearDialog, SuspectBadge } from "@/features/links/Suspect";
 
 /** Where an issue opens in the connected Armature. */
 export function issueUrl(baseUrl: string, key: string): string {
@@ -34,8 +35,9 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
     (links ?? []).map((link) => link.issueKey),
     connected && (links?.length ?? 0) > 0,
   );
-  const { remove } = useArmatureLinkActions(requirement.key);
+  const { remove, clear } = useArmatureLinkActions(requirement.key);
   const [notice, setNotice] = useState("");
+  const [checking, setChecking] = useState<ArmatureLink | null>(null);
   if (!configured || section) return null;
   const baseUrl = account.data!.baseUrl;
   const mayLink = requirement.can.link && !requirement.trashedAt;
@@ -73,6 +75,20 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
                         {link.brokenAt && <Tag>{l.broken}</Tag>}
                         {link.detachedAt && <Tag>{l.detached}</Tag>}
                         {!link.brokenAt && !link.detachedAt && link.sync !== "synced" && <Tag>{l.states[link.sync]}</Tag>}
+                        {link.suspect && <SuspectBadge />}
+                        {link.suspect && mayLink && (
+                          <Button
+                            variant="link"
+                            onClick={() => {
+                              clear.reset();
+                              setChecking(link);
+                            }}
+                            aria-label={t.suspect.armatureLabel(link.issueKey)}
+                            data-action="check-armature-link"
+                          >
+                            {t.suspect.check}
+                          </Button>
+                        )}
                         {mayLink && (
                           <IconButton
                             icon={<Icon.X className="size-3" />}
@@ -95,6 +111,27 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
         <p role="status" className="sr-only" data-armature-link-notice>
           {notice}
         </p>
+        {checking && (
+          <ClearDialog
+            title={t.suspect.armatureTitle(requirement.key, checking.issueKey)}
+            intro={t.suspect.armatureIntro}
+            changes={[{ reqKey: requirement.key, from: checking.reviewedRevision, to: requirement.revision }]}
+            pending={clear.isPending}
+            error={clear.error}
+            onClose={() => setChecking(null)}
+            onConfirm={(comment) =>
+              clear.mutate(
+                { id: checking.id, revision: requirement.revision, comment },
+                {
+                  onSuccess: () => {
+                    setNotice(t.suspect.armatureCleared(checking.issueKey));
+                    setChecking(null);
+                  },
+                },
+              )
+            }
+          />
+        )}
       </section>
     </Card>
   );

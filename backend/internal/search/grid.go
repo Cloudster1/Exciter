@@ -68,6 +68,9 @@ func gridConditions(f Filter, p *project.Project, defs []attribute.Def, bind fun
 		sql, _ := condition(c, defs, bind)
 		where = append(where, sql)
 	}
+	if f.Suspect {
+		where = append(where, requirement.SuspectLinks+` > 0`)
+	}
 	return where
 }
 
@@ -119,7 +122,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
 			       perm_project_holds(r.project_id, $2, 'edit'), perm_project_holds(r.project_id, $2, 'approve'),
 			       perm_project_holds(r.project_id, $2, 'comment'),
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name)`+from+`
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+requirement.SuspectLinks+from+`
 			ORDER BY `+order+` LIMIT `+limitAt+` OFFSET `+offsetAt, args...)
 		if err != nil {
 			return fmt.Errorf("list the requirements: %w", err)
@@ -150,7 +153,8 @@ func scanRow(projectKey string) pgx.RowToFunc[Row] {
 			status                requirement.StatusRef
 		)
 		err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &path, &ownerID, &ownerName, &priority, &r.UpdatedAt,
-			&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels)
+			&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels,
+			&r.SuspectLinks)
 		if err != nil {
 			return r, err
 		}

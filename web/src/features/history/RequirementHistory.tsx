@@ -281,7 +281,8 @@ function CompareScreen({ requirement, from, to, onSearch }: ScreenProps & { from
   );
 }
 
-function ComparisonView({ comparison }: { comparison: Comparison }) {
+/** Two revisions side by side: their titles, and what changed in the statement, the rationale and the attributes. */
+export function ComparisonView({ comparison }: { comparison: Comparison }) {
   const { from, to } = comparison;
   return (
     <div className="space-y-4">

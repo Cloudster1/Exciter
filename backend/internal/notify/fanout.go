@@ -31,10 +31,11 @@ type Subject struct {
 	Excerpt       string
 }
 
-// Tell is one person to tell, and why.
+// Tell is one person to tell, and why. About, when set, is what they are told about instead of the plan's subject.
 type Tell struct {
 	UserID uuid.UUID
 	Kind   Kind
+	About  *Subject
 }
 
 // Plan is who hears about one event.
@@ -143,6 +144,9 @@ func (f *FanOut) Handle(ctx context.Context, e events.Event) error {
 // view, and mails or queues it as they prefer.
 func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t Tell) error {
 	subject := plan.Subject
+	if t.About != nil {
+		subject = *t.About
+	}
 	var out *mail.Mail
 	_, err := f.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var (

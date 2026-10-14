@@ -15,6 +15,7 @@ import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { SORT_COLUMNS } from "./filter";
+import { SuspectBadge } from "@/features/links/Suspect";
 
 const changedOn = localDateFormat({ dateStyle: "medium" });
 
@@ -139,7 +140,12 @@ function Cell({
     case "outline":
       return <span className="text-ink-muted tabular-nums">{row.outline}</span>;
     case "key":
-      return <span className="font-mono text-xs text-ink-muted">{row.key}</span>;
+      return (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <span className="font-mono text-xs text-ink-muted">{row.key}</span>
+          {row.suspectLinks > 0 && <SuspectBadge count={row.suspectLinks} />}
+        </span>
+      );
     case "title":
       return <TitleCell projectKey={projectKey} row={row} onSave={(title) => save({ title, baseRevision: row.revision })} />;
     case "type":

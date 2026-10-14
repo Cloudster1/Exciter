@@ -64,6 +64,7 @@ const entry = (n: TreeNode, edit = true) => ({
   labels: [],
   can: { edit, transition: edit, delete: edit, link: edit, comment: true },
   comments: { threads: 0, open: 0 },
+  suspectLinks: 0,
 });
 
 function made(requirementKey: string, key: string, summary: string): ArmatureCreated {
@@ -88,6 +89,8 @@ function made(requirementKey: string, key: string, summary: string): ArmatureCre
       error: "",
       brokenAt: null,
       detachedAt: null,
+      reviewedRevision: 1,
+      suspect: false,
       createdByName: "Bob",
       createdAt: "2026-10-01T09:00:00Z",
     },
@@ -203,13 +206,21 @@ describe("picking requirements for Armature issues", () => {
   });
 
   it("picks every requirement a grid shows at once", async () => {
-    const one: RequirementRow = { ...aRequirement({ key: "CHK-R2", title: "Pay at once" }), outline: "1", trashed: false, attributes: {}, labels: [] };
+    const one: RequirementRow = {
+      ...aRequirement({ key: "CHK-R2", title: "Pay at once" }),
+      outline: "1",
+      trashed: false,
+      attributes: {},
+      labels: [],
+      suspectLinks: 0,
+    };
     const two: RequirementRow = {
       ...aRequirement({ key: "CHK-R4", title: "Refund", id: "0195f000-0000-7000-8000-0000000000f4" }),
       outline: "2",
       trashed: false,
       attributes: {},
       labels: [],
+      suspectLinks: 0,
     };
     stubApi({
       "GET /projects/CHK": { status: 200, body: { project } },

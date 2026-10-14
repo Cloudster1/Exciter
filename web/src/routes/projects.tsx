@@ -15,6 +15,7 @@ import { GridPage } from "@/features/grid/GridPage";
 import { SpecPage } from "@/features/tree/SpecPage";
 import { WorkflowDesignPage } from "@/features/workflows/WorkflowDesignPage";
 import { appRoute } from "./app";
+import { SuspectList } from "@/features/links/SuspectList";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
 export const newProjectRoute = createRoute({ getParentRoute: () => appRoute, path: NEW_PROJECT_PATH, component: NewProjectForm });
@@ -26,7 +27,8 @@ type ProjectPath =
   | "/p/$projectKey/new"
   | "/p/$projectKey/trash"
   | "/p/$projectKey/spec"
-  | "/p/$projectKey/grid";
+  | "/p/$projectKey/grid"
+  | "/p/$projectKey/suspects";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -110,6 +112,16 @@ export const trashRoute = createRoute({
   component: function ProjectTrashPage() {
     const { projectKey } = trashRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/trash" render={(project) => <TrashPage key={project.id} project={project} />} />;
+  },
+});
+
+/** The suspect links touching a project's requirements (#36). */
+export const suspectsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/suspects",
+  component: function ProjectSuspectsPage() {
+    const { projectKey } = suspectsRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/suspects" render={(project) => <SuspectList key={project.id} project={project} />} />;
   },
 });
 

@@ -14,6 +14,7 @@ import { RequirementEdit } from "@/features/requirements/RequirementPage";
 import { t } from "@/i18n";
 import { PlaceDialog, type Placed } from "./PlaceDialog";
 import { RequirementTree } from "./RequirementTree";
+import { SuspectBadge } from "@/features/links/Suspect";
 
 /** A project read as one numbered document beside its tree; editors change an entry in place and move by dragging. */
 export function SpecPage({ project }: { project: Project }) {
@@ -107,6 +108,7 @@ function Entry({ project, entry, selection }: { project: Project; entry: SpecEnt
             {t.comments.open(entry.comments.open)}
           </Link>
         )}
+        {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
         {entry.can.edit && !editing && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)} data-action="edit-entry">
             {t.requirements.edit}

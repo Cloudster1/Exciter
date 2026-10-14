@@ -294,16 +294,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -3489,16 +3479,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -3548,16 +3528,6 @@
                   "required": [
                     "clearances"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -5486,6 +5456,14 @@
             }
           },
           {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sort",
             "in": "query",
             "description": "A column to order by; outline order when absent.",
@@ -5868,6 +5846,14 @@
               "items": {
                 "type": "string"
               }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -6552,6 +6538,14 @@
             }
           },
           {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sort",
             "in": "query",
             "description": "A column to order by; outline order when absent.",
@@ -6789,6 +6783,14 @@
             }
           },
           {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sort",
             "in": "query",
             "description": "A column to order by; outline order when absent.",
@@ -7000,6 +7002,14 @@
               "items": {
                 "type": "string"
               }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -7540,16 +7550,6 @@
                     "offset",
                     "total"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -13334,10 +13334,16 @@
               "relates"
             ]
           },
+          "reviewedRevision": {
+            "type": "integer"
+          },
           "statusCategory": {
             "type": "string"
           },
           "statusStale": {
+            "type": "boolean"
+          },
+          "suspect": {
             "type": "boolean"
           },
           "sync": {
@@ -13359,6 +13365,8 @@
           "error",
           "brokenAt",
           "detachedAt",
+          "reviewedRevision",
+          "suspect",
           "createdByName",
           "createdAt"
         ]
@@ -15146,6 +15154,9 @@
               }
             ]
           },
+          "suspectLinks": {
+            "type": "integer"
+          },
           "title": {
             "type": "string"
           },
@@ -15183,7 +15194,8 @@
           "labels",
           "attributes",
           "updatedAt",
-          "can"
+          "can",
+          "suspectLinks"
         ]
       },
       "Group": {
@@ -18271,6 +18283,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "suspectLinks": {
+            "type": "integer"
           }
         },
         "required": [
@@ -18280,7 +18295,8 @@
           "attributes",
           "labels",
           "can",
-          "comments"
+          "comments",
+          "suspectLinks"
         ]
       },
       "Stats": {
@@ -18479,6 +18495,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
           "source": {
             "$ref": "#/components/schemas/RequirementRef"
           },
@@ -18494,7 +18514,8 @@
           "type",
           "source",
           "target",
-          "ends"
+          "ends",
+          "since"
         ]
       },
       "SuspectLinkEnd": {
@@ -18626,6 +18647,12 @@
           "sourceRevision": {
             "type": "integer"
           },
+          "suspect": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuspectLinkEnd"
+            }
+          },
           "targetRevision": {
             "type": "integer"
           },
@@ -18641,6 +18668,7 @@
           "other",
           "sourceRevision",
           "targetRevision",
+          "suspect",
           "createdAt",
           "createdByName"
         ]
@@ -19166,6 +19194,9 @@
               "format": "uuid"
             }
           },
+          "suspect": {
+            "type": "boolean"
+          },
           "types": {
             "type": "array",
             "items": {
@@ -19183,7 +19214,8 @@
           "labels",
           "owners",
           "priorities",
-          "attributes"
+          "attributes",
+          "suspect"
         ]
       },
       "ViewInput": {

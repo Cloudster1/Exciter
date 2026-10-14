@@ -176,6 +176,13 @@ const commentCounts = `
        (SELECT count(*)::int FROM comment_thread ct WHERE ct.requirement_id = r.id AND ct.resolved_at IS NULL
           AND EXISTS (SELECT 1 FROM comment cc WHERE cc.thread_id = ct.id AND cc.deleted_at IS NULL))`
 
+// SuspectLinks counts the suspect links of the requirement aliased r that the reader sees (#36), trace links and
+// Armature links, one column.
+const SuspectLinks = `
+       ((SELECT count(*) FROM trace_link_state sl WHERE sl.suspect AND (sl.source_id = r.id OR sl.target_id = r.id))
+        + (SELECT count(*) FROM armature_issue_link al
+           WHERE al.requirement_id = r.id AND r.trashed_at IS NULL AND r.revision > al.reviewed_rev))::int`
+
 // Place is where a node goes in a tree: below a parent, after a sibling.
 type Place struct {
 	// ParentID is the requirement or section above, null for the top level.
@@ -266,6 +273,8 @@ type SpecEntry struct {
 	Labels     []string                   `json:"labels"`
 	Can        Can                        `json:"can"`
 	Comments   CommentCounts              `json:"comments"`
+	// SuspectLinks counts its links waiting to be checked since an end moved on.
+	SuspectLinks int `json:"suspectLinks"`
 }
 
 // RevisionEntry is one revision as the history lists it.

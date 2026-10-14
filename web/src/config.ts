@@ -310,3 +310,8 @@ export const REVIEW_REQUIRED_MAX = 10;
 export const REVIEW_COMMENT_MAX_LENGTH = 500;
 /** How many of a requirement's reviews its panel lists, and of the waiting reviews one page of the inbox. */
 export const REVIEWS_PAGE_SIZE = 20;
+
+/** How many suspect links one page of a project's list shows, within the API's trace.SuspectMaxLimit (#36). */
+export const SUSPECTS_PAGE_SIZE = 20;
+/** The longest comment a clearance takes, as the API's trace.MaxClearCommentLength. */
+export const CLEAR_COMMENT_MAX_LENGTH = 500;

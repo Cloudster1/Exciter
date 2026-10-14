@@ -91,6 +91,8 @@ type Filter struct {
 	Owners     []uuid.UUID          `json:"owners"`
 	Priorities []string             `json:"priorities"`
 	Attributes []AttributeCondition `json:"attributes"`
+	// Suspect keeps only requirements with a suspect link (#36).
+	Suspect bool `json:"suspect"`
 }
 
 // filled answers f with every list present, empty where it names nothing, as the API document says.
@@ -131,6 +133,8 @@ type Row struct {
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	UpdatedAt  time.Time                  `json:"updatedAt"`
 	Can        requirement.Can            `json:"can"`
+	// SuspectLinks counts its links waiting to be checked since an end moved on (#36).
+	SuspectLinks int `json:"suspectLinks"`
 }
 
 // View is a saved grid: a filter, columns and an order.
