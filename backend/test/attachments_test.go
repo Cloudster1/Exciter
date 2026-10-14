@@ -61,9 +61,9 @@ func (c *client) uploadAs(t *testing.T, path, name, contentType string, data []b
 	return c.do(t, req)
 }
 
-// fileKey is where the bytes of a file on a requirement live.
-func fileKey(org uuid.UUID, requirementID, attachmentID string) string {
-	return objectstore.OrgPrefix(org) + "requirement/" + requirementID + "/" + attachmentID
+// fileKey is where the bytes of a file on a requirement live, under the installation's prefix.
+func fileKey(installation uuid.UUID, requirementID, attachmentID string) string {
+	return objectstore.InstallationPrefix(installation) + "requirement/" + requirementID + "/" + attachmentID
 }
 
 // stored says whether the bucket holds an object.
@@ -87,9 +87,9 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	f := newProjectFixture(t)
 	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": attKey, "name": "Attached"}), http.StatusCreated, "make a project"), "project")
 	editor := f.plain
-	viewerID := f.h.addPerson(t, f.home.org, "guest")
-	f.h.grantAs(t, f.home.org, uuid.MustParse(project["id"].(string)), viewerID, "viewer")
-	viewer := f.api.as(t, viewerID, f.home.org)
+	viewerID := f.h.addPerson(t, "guest")
+	f.h.grantAs(t, uuid.MustParse(project["id"].(string)), viewerID, "viewer")
+	viewer := f.api.as(t, viewerID)
 	first := obj(t, want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Show the basket"}), http.StatusCreated, "write "+attKey+"-R1"), "requirement")
 	want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Pay"}), http.StatusCreated, "write "+attKey+"-R2")
 	picture := aPicture(t)
@@ -100,7 +100,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 		t.Fatalf("the picture as stored: %v", file)
 	}
 	pictureID := file["id"].(string)
-	pictureKey := fileKey(f.home.org, first["id"].(string), pictureID)
+	pictureKey := fileKey(f.h.installation(t).ID, first["id"].(string), pictureID)
 	if !stored(t, f.api.store, pictureKey) {
 		t.Fatal("the picture's bytes are not under the requirement's prefix")
 	}
@@ -153,10 +153,10 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 	t.Run("a file nothing shows is deleted with its bytes", func(t *testing.T) {
 		refuse(t, "a viewer deletes", viewer.delete(t, "/api/v1/attachments/"+noteID), http.StatusForbidden, "forbidden")
 		want(t, editor.delete(t, "/api/v1/attachments/"+noteID), http.StatusNoContent, "delete the drawing")
-		if stored(t, f.api.store, fileKey(f.home.org, first["id"].(string), noteID)) {
+		if stored(t, f.api.store, fileKey(f.h.installation(t).ID, first["id"].(string), noteID)) {
 			t.Error("the drawing's bytes stayed")
 		}
-		if n := f.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`, fileKey(f.home.org, first["id"].(string), noteID)); n != 0 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`, fileKey(f.h.installation(t).ID, first["id"].(string), noteID)); n != 0 {
 			t.Errorf("%d tombstones stayed after the bytes went", n)
 		}
 		refuse(t, "it is gone", editor.delete(t, "/api/v1/attachments/"+noteID), http.StatusNotFound, "not_found")
@@ -177,7 +177,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 			t.Errorf("history can no longer show the picture: %d", resp.StatusCode)
 		}
 		refuse(t, "taking it off twice", editor.delete(t, "/api/v1/attachments/"+pictureID), http.StatusNotFound, "not_found")
-		if n := f.h.countRows(t, `SELECT count(*) FROM requirement_change WHERE org_id = $1 AND field = 'attachment'`, f.home.org); n != 4 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM requirement_change WHERE field = 'attachment'`); n != 4 {
 			t.Errorf("the history logs %d file changes, want two uploads and two deletions", n)
 		}
 	})
@@ -199,7 +199,7 @@ func TestAttachmentsOverTheAPI(t *testing.T) {
 		if copyFile["id"] == pictureID || shown != copyFile["id"] || copyFile["referenced"] != true {
 			t.Fatalf("the copy shows %v and holds %v", shown, copyFile)
 		}
-		copyKey := fileKey(f.home.org, copied["id"].(string), copyFile["id"].(string))
+		copyKey := fileKey(f.h.installation(t).ID, copied["id"].(string), copyFile["id"].(string))
 		if resp, body := viewer.download(t, "/api/v1/attachments/"+copyFile["id"].(string)); resp.StatusCode != http.StatusOK || !bytes.Equal(body, picture) {
 			t.Fatalf("the copy's picture came back as %d", resp.StatusCode)
 		}

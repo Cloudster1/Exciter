@@ -37,12 +37,12 @@ var errNotThisTest = errors.New("not this test's event")
 var deleteBound = bound{deadline: 10 * time.Second, watchdog: 2 * time.Second}
 
 // plantEvent adds an event behind the policies' back, already tried attempts times.
-func (h *harness) plantEvent(t *testing.T, org uuid.UUID, attempts int) uuid.UUID {
+func (h *harness) plantEvent(t *testing.T, attempts int) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
 	if err := h.super.QueryRow(context.Background(),
-		`INSERT INTO outbox_event (org_id, topic, payload, attempts) VALUES ($1, $2, '{}', $3) RETURNING id`,
-		org, testTopic, attempts).Scan(&id); err != nil {
+		`INSERT INTO outbox_event (topic, payload, attempts) VALUES ($1, '{}', $2) RETURNING id`,
+		testTopic, attempts).Scan(&id); err != nil {
 		t.Fatalf("add an event: %v", err)
 	}
 	return id
@@ -88,7 +88,7 @@ func TestAnEventCommitsAndRollsBackWithItsChange(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE payload ->> 'marker' = $1 AND org_id = $2`, marker, m.org); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE payload ->> 'marker' = $1`, marker); n != 1 {
 		t.Errorf("a committed change left %d events in its organization, want 1", n)
 	}
 }
@@ -98,8 +98,8 @@ func TestAnEventCommitsAndRollsBackWithItsChange(t *testing.T) {
 func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 	h := newHarness(t)
 	m := h.owner(t, "outbox-own")
-	other := h.addPerson(t, m.org, "member")
-	h.plantEvent(t, m.org, 0)
+	other := h.addPerson(t, "member")
+	h.plantEvent(t, 0)
 
 	denied := func(what string, err error) {
 		t.Helper()
@@ -174,15 +174,14 @@ func TestTwoWorkersNeverHandleOneEvent(t *testing.T) {
 // offers events until that worker, rather than the stack's, claims one.
 type offerer struct {
 	h       *harness
-	org     uuid.UUID
 	mu      sync.Mutex
 	ours    map[uuid.UUID]bool
 	claimed chan uuid.UUID
 }
 
-func newOfferer(t *testing.T, h *harness, org uuid.UUID) *offerer {
+func newOfferer(t *testing.T, h *harness) *offerer {
 	t.Helper()
-	o := &offerer{h: h, org: org, ours: map[uuid.UUID]bool{}, claimed: make(chan uuid.UUID, claimTries)}
+	o := &offerer{h: h, ours: map[uuid.UUID]bool{}, claimed: make(chan uuid.UUID, claimTries)}
 	h.runWorker(t, events.HandlerFunc(func(_ context.Context, e events.Event) error {
 		o.mu.Lock()
 		mine := o.ours[e.ID]
@@ -200,7 +199,7 @@ func newOfferer(t *testing.T, h *harness, org uuid.UUID) *offerer {
 func (o *offerer) offer(t *testing.T, attempts int) uuid.UUID {
 	t.Helper()
 	for range claimTries {
-		id := o.h.plantEvent(t, o.org, attempts)
+		id := o.h.plantEvent(t, attempts)
 		o.mu.Lock()
 		o.ours[id] = true
 		o.mu.Unlock()
@@ -236,9 +235,8 @@ func (o *offerer) awaitClaim(t *testing.T, id uuid.UUID) bool {
 // last attempt it is set aside and recorded in the audit log.
 func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 	h := newHarness(t)
-	m := h.owner(t, "outbox-retry")
 
-	o := newOfferer(t, h, m.org)
+	o := newOfferer(t, h)
 	first := o.offer(t, 0)
 	waitFor(t, "the first failure to be written", func() bool {
 		return h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1 AND attempts = 1`, first) == 1
@@ -261,7 +259,7 @@ func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 	var actor *uuid.UUID
 	err := h.super.QueryRow(context.Background(), `
 		SELECT data ->> 'topic', actor_user_id FROM audit_log
-		WHERE org_id = $1 AND action = $2 AND target_id = $3`, m.org, audit.ActionEventDeadLettered, last).Scan(&topic, &actor)
+		WHERE action = $1 AND target_id = $2`, audit.ActionEventDeadLettered, last).Scan(&topic, &actor)
 	if errors.Is(err, pgx.ErrNoRows) {
 		t.Fatal("an event given up on left no audit entry")
 	}
@@ -277,7 +275,6 @@ func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 // reaches the event, which would otherwise wait on the handler.
 func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 	h := newHarness(t)
-	m := h.owner(t, "outbox-lease")
 	var mu sync.Mutex
 	ours := map[uuid.UUID]bool{}
 	started := make(chan uuid.UUID, 1)
@@ -302,7 +299,7 @@ func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 
 	handling := uuid.Nil
 	for try := 0; try < claimTries && handling == uuid.Nil; try++ {
-		id := h.plantEvent(t, m.org, 0)
+		id := h.plantEvent(t, 0)
 		mu.Lock()
 		ours[id] = true
 		mu.Unlock()

@@ -13,17 +13,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/project"
 )
 
 // Every test works in the database's one installation (#90) and keeps apart from the others by what it makes:
 // people with addresses of their own, projects under keys of its own, and names nobody else uses.
 
-// installationRow is the installation as the tests name it, until #108 renames its table.
+// installationRow is the installation's one row, as the tests name it.
 type installationRow struct {
-	ID   uuid.UUID
-	Slug string
+	ID uuid.UUID
 }
 
 var (
@@ -32,13 +30,13 @@ var (
 	installationErr  error
 )
 
-// installation is the organization the stack's seed made, under the address it always gives it.
+// installation is the one the stack's seed made.
 func (h *harness) installation(t *testing.T) installationRow {
 	t.Helper()
 	installationOnce.Do(func() {
 		installationErr = h.super.QueryRow(context.Background(),
-			`SELECT id, slug FROM org WHERE slug = $1`, installation.Slug,
-		).Scan(&theInstallation.ID, &theInstallation.Slug)
+			`SELECT id FROM installation`,
+		).Scan(&theInstallation.ID)
 	})
 	if installationErr != nil {
 		t.Fatalf("the stack has no installation (%v). Start it with make stack-up, whose seed makes one.", installationErr)
@@ -117,17 +115,16 @@ func withID(rows []any, id uuid.UUID) map[string]any {
 // the ones it changed or removed return. Its projects go first, so no link of theirs holds a type back.
 func (h *harness) keepLinkTypes(t *testing.T) {
 	t.Helper()
-	inst := h.installation(t)
 	var saved []byte
 	if err := h.super.QueryRow(context.Background(),
-		`SELECT coalesce(jsonb_agg(l), '[]') FROM link_type l WHERE org_id = $1 AND project_id IS NULL`, inst.ID).Scan(&saved); err != nil {
+		`SELECT coalesce(jsonb_agg(l), '[]') FROM link_type l WHERE project_id IS NULL`).Scan(&saved); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
 		h.sweepProjects(t)
 		h.cleanupExec(t, h.super, `
-			DELETE FROM link_type WHERE org_id = $1 AND project_id IS NULL
-			   AND id NOT IN (SELECT (e->>'id')::uuid FROM jsonb_array_elements($2::jsonb) e)`, inst.ID, saved)
+			DELETE FROM link_type WHERE project_id IS NULL
+			   AND id NOT IN (SELECT (e->>'id')::uuid FROM jsonb_array_elements($1::jsonb) e)`, saved)
 		h.cleanupExec(t, h.super, `
 			UPDATE link_type l SET name = s.name, forward = s.forward, backward = s.backward, acyclic = s.acyclic,
 			       suspect_end = s.suspect_end, counts = s.counts, retired = s.retired
@@ -140,13 +137,12 @@ func (h *harness) keepLinkTypes(t *testing.T) {
 // keepDefaultTheme puts the default theme for everyone back once the test ends.
 func (h *harness) keepDefaultTheme(t *testing.T) {
 	t.Helper()
-	inst := h.installation(t)
 	var saved *uuid.UUID
-	if err := h.super.QueryRow(context.Background(), `SELECT default_theme_id FROM org WHERE id = $1`, inst.ID).Scan(&saved); err != nil {
+	if err := h.super.QueryRow(context.Background(), `SELECT default_theme_id FROM installation`).Scan(&saved); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `UPDATE org SET default_theme_id = $2 WHERE id = $1`, inst.ID, saved)
+		h.cleanupExec(t, h.super, `UPDATE installation SET default_theme_id = $1`, saved)
 	})
 }
 
@@ -154,17 +150,16 @@ func (h *harness) keepDefaultTheme(t *testing.T) {
 // own, and puts the connection and its members' tokens back once the test ends.
 func (h *harness) keepArmature(t *testing.T) {
 	t.Helper()
-	inst := h.installation(t)
 	var connection, tokens []byte
 	if err := h.super.QueryRow(context.Background(), `
-		SELECT (SELECT coalesce(jsonb_agg(c), '[]') FROM armature_connection c WHERE org_id = $1),
-		       (SELECT coalesce(jsonb_agg(k), '[]') FROM armature_token k WHERE org_id = $1)`, inst.ID).Scan(&connection, &tokens); err != nil {
+		SELECT (SELECT coalesce(jsonb_agg(c), '[]') FROM armature_connection c),
+		       (SELECT coalesce(jsonb_agg(k), '[]') FROM armature_token k)`).Scan(&connection, &tokens); err != nil {
 		t.Fatal(err)
 	}
-	h.cleanupExec(t, h.super, `DELETE FROM armature_connection WHERE org_id = $1`, inst.ID)
+	h.cleanupExec(t, h.super, `DELETE FROM armature_connection`)
 	h.settle(t)
 	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `DELETE FROM armature_connection WHERE org_id = $1`, inst.ID)
+		h.cleanupExec(t, h.super, `DELETE FROM armature_connection`)
 		h.cleanupExec(t, h.super, `INSERT INTO armature_connection SELECT * FROM jsonb_populate_recordset(NULL::armature_connection, $1::jsonb)`, connection)
 		h.cleanupExec(t, h.super, `
 			INSERT INTO armature_token SELECT * FROM jsonb_populate_recordset(NULL::armature_token, $1::jsonb) k
@@ -175,52 +170,47 @@ func (h *harness) keepArmature(t *testing.T) {
 // singleSignOn hands the test the installation with no identity provider, group roles or waiting people, and puts
 // them back once it ends, with the standing and groups of the realm's people, which the seed lets in and a test's
 // sign-ins change.
-func (h *harness) singleSignOn(t *testing.T) installationRow {
+func (h *harness) singleSignOn(t *testing.T) {
 	t.Helper()
-	inst := h.installation(t)
 	ctx := context.Background()
 	people := []string{aliceEmail, bobEmail, carolEmail, daveEmail}
-	var provider, roles, waiting, groups, members, memberships, accounts []byte
+	var provider, roles, waiting, groups, standings, memberships, accounts []byte
 	if err := h.super.QueryRow(ctx, `
-		SELECT (SELECT coalesce(jsonb_agg(p), '[]') FROM oidc_provider p WHERE org_id = $1),
-		       (SELECT coalesce(jsonb_agg(r), '[]') FROM oidc_group_role r WHERE org_id = $1),
-		       (SELECT coalesce(jsonb_agg(w), '[]') FROM org_join_request w WHERE org_id = $1),
-		       (SELECT coalesce(jsonb_agg(g.id), '[]') FROM groups g WHERE org_id = $1),
-		       (SELECT coalesce(jsonb_agg(m), '[]') FROM org_member m JOIN app_user u ON u.id = m.user_id
-		         WHERE m.org_id = $1 AND u.email = ANY($2)),
+		SELECT (SELECT coalesce(jsonb_agg(p), '[]') FROM oidc_provider p),
+		       (SELECT coalesce(jsonb_agg(r), '[]') FROM oidc_group_role r),
+		       (SELECT coalesce(jsonb_agg(w), '[]') FROM join_request w),
+		       (SELECT coalesce(jsonb_agg(g.id), '[]') FROM groups g),
+		       (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'role', u.role, 'role_source', u.role_source,
+		                                                     'joined_at', u.joined_at)), '[]')
+		          FROM app_user u WHERE u.email = ANY($1)),
 		       (SELECT coalesce(jsonb_agg(gm), '[]') FROM group_member gm JOIN app_user u ON u.id = gm.user_id
-		         WHERE gm.org_id = $1 AND u.email = ANY($2)),
-		       (SELECT coalesce(jsonb_agg(u.email), '[]') FROM app_user u WHERE u.email = ANY($2))`, inst.ID, people,
-	).Scan(&provider, &roles, &waiting, &groups, &members, &memberships, &accounts); err != nil {
+		         WHERE u.email = ANY($1)),
+		       (SELECT coalesce(jsonb_agg(u.email), '[]') FROM app_user u WHERE u.email = ANY($1))`, people,
+	).Scan(&provider, &roles, &waiting, &groups, &standings, &memberships, &accounts); err != nil {
 		t.Fatal(err)
 	}
-	h.cleanupExec(t, h.super, `DELETE FROM oidc_provider WHERE org_id = $1`, inst.ID)
-	h.cleanupExec(t, h.super, `DELETE FROM org_join_request WHERE org_id = $1`, inst.ID)
+	h.cleanupExec(t, h.super, `DELETE FROM oidc_provider`)
+	h.cleanupExec(t, h.super, `DELETE FROM join_request`)
 	h.started(t)
 	h.settle(t)
 	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `DELETE FROM groups WHERE org_id = $1 AND id NOT IN (SELECT (e #>> '{}')::uuid FROM jsonb_array_elements($2::jsonb) e)`, inst.ID, groups)
-		h.cleanupExec(t, h.super, `DELETE FROM oidc_provider WHERE org_id = $1`, inst.ID)
+		h.cleanupExec(t, h.super, `DELETE FROM groups WHERE id NOT IN (SELECT (e #>> '{}')::uuid FROM jsonb_array_elements($1::jsonb) e)`, groups)
+		h.cleanupExec(t, h.super, `DELETE FROM oidc_provider`)
 		h.cleanupExec(t, h.super, `INSERT INTO oidc_provider SELECT * FROM jsonb_populate_recordset(NULL::oidc_provider, $1::jsonb)`, provider)
 		h.cleanupExec(t, h.super, `INSERT INTO oidc_group_role SELECT * FROM jsonb_populate_recordset(NULL::oidc_group_role, $1::jsonb)`, roles)
-		h.cleanupExec(t, h.super, `DELETE FROM org_join_request WHERE org_id = $1`, inst.ID)
+		h.cleanupExec(t, h.super, `DELETE FROM join_request`)
 		h.cleanupExec(t, h.super, `
-			INSERT INTO org_join_request SELECT * FROM jsonb_populate_recordset(NULL::org_join_request, $1::jsonb) w
+			INSERT INTO join_request SELECT * FROM jsonb_populate_recordset(NULL::join_request, $1::jsonb) w
 			WHERE EXISTS (SELECT 1 FROM app_user WHERE id = w.user_id)`, waiting)
-		// Updated in place rather than taken away and given back, which would take their grants and tokens along.
+		// Their role as it was, which a sign-in may have given, changed or, for nobody the seed let in, made.
 		h.cleanupExec(t, h.super, `
-			UPDATE org_member m SET org_role = s.org_role, role_source = s.role_source
-			FROM jsonb_populate_recordset(NULL::org_member, $1::jsonb) s WHERE m.org_id = s.org_id AND m.user_id = s.user_id`, members)
+			UPDATE app_user u SET role = s.role, role_source = s.role_source, joined_at = s.joined_at
+			FROM jsonb_to_recordset($1::jsonb) s (id uuid, role text, role_source text, joined_at timestamptz)
+			WHERE u.id = s.id AND (u.role, u.role_source) IS DISTINCT FROM (s.role, s.role_source)`, standings)
 		h.cleanupExec(t, h.super, `
-			DELETE FROM org_member m USING app_user u WHERE u.id = m.user_id AND m.org_id = $1 AND u.email = ANY($2)
-			   AND m.user_id NOT IN (SELECT (e->>'user_id')::uuid FROM jsonb_array_elements($3::jsonb) e)`, inst.ID, people, members)
-		h.cleanupExec(t, h.super, `
-			INSERT INTO org_member SELECT * FROM jsonb_populate_recordset(NULL::org_member, $1::jsonb) s
-			WHERE EXISTS (SELECT 1 FROM app_user WHERE id = s.user_id) ON CONFLICT DO NOTHING`, members)
-		h.cleanupExec(t, h.super, `
-			DELETE FROM group_member gm USING app_user u WHERE u.id = gm.user_id AND gm.org_id = $1 AND u.email = ANY($2)
-			   AND (gm.group_id, gm.user_id) NOT IN (SELECT (e->>'group_id')::uuid, (e->>'user_id')::uuid FROM jsonb_array_elements($3::jsonb) e)`,
-			inst.ID, people, memberships)
+			DELETE FROM group_member gm USING app_user u WHERE u.id = gm.user_id AND u.email = ANY($1)
+			   AND (gm.group_id, gm.user_id) NOT IN (SELECT (e->>'group_id')::uuid, (e->>'user_id')::uuid FROM jsonb_array_elements($2::jsonb) e)`,
+			people, memberships)
 		h.cleanupExec(t, h.super, `
 			INSERT INTO group_member SELECT * FROM jsonb_populate_recordset(NULL::group_member, $1::jsonb) s
 			WHERE EXISTS (SELECT 1 FROM groups WHERE id = s.group_id) ON CONFLICT DO NOTHING`, memberships)
@@ -230,7 +220,6 @@ func (h *harness) singleSignOn(t *testing.T) installationRow {
 			   AND email::text NOT IN (SELECT e #>> '{}' FROM jsonb_array_elements($2::jsonb) e)`, people, accounts)
 		h.settle(t)
 	})
-	return inst
 }
 
 // outsider is an account that belongs to no installation, as somebody waiting to be let in has.
@@ -292,12 +281,11 @@ func (h *harness) started(t *testing.T) time.Time {
 // keepInstallationName puts the installation's name back once the test ends.
 func (h *harness) keepInstallationName(t *testing.T) {
 	t.Helper()
-	inst := h.installation(t)
 	var name string
-	if err := h.super.QueryRow(context.Background(), `SELECT name FROM org WHERE id = $1`, inst.ID).Scan(&name); err != nil {
+	if err := h.super.QueryRow(context.Background(), `SELECT name FROM installation`).Scan(&name); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { h.cleanupExec(t, h.super, `UPDATE org SET name = $2 WHERE id = $1`, inst.ID, name) })
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `UPDATE installation SET name = $1`, name) })
 }
 
 // stubTenant is the Armature stub's tenant of the test's own, which its tokens name, so a test never meets another's

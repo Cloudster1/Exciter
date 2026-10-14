@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
@@ -50,13 +48,13 @@ func testAppURL(t *testing.T) string {
 	return appURL
 }
 
-// drained waits until every event of the organization is done.
-func (h *harness) drained(t *testing.T, org uuid.UUID) {
+// drained waits until every event is done.
+func (h *harness) drained(t *testing.T) {
 	t.Helper()
 	deadline := time.Now().Add(drainWait)
-	for h.countRows(t, `SELECT count(*) FROM outbox_event WHERE org_id = $1 AND processed_at IS NULL`, org) > 0 {
+	for h.countRows(t, `SELECT count(*) FROM outbox_event WHERE processed_at IS NULL`) > 0 {
 		if time.Now().After(deadline) {
-			t.Fatalf("the outbox of %s did not drain within %s", org, drainWait)
+			t.Fatalf("the outbox did not drain within %s", drainWait)
 		}
 		time.Sleep(workerIdle)
 	}
@@ -135,11 +133,11 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	home := h.owner(t, "arm-links")
 	slug := stubTenant(t)
 	stubControl(t, http.MethodDelete, slug, nil)
-	owner := api.as(t, home.user, home.org)
-	bobID := h.addPerson(t, home.org, "member")
-	bob := api.as(t, bobID, home.org)
-	carol := api.as(t, h.addPerson(t, home.org, "member"), home.org)
-	dave := api.as(t, h.addPerson(t, home.org, "member"), home.org)
+	owner := api.as(t, home.user)
+	bobID := h.addPerson(t, "member")
+	bob := api.as(t, bobID)
+	carol := api.as(t, h.addPerson(t, "member"))
+	dave := api.as(t, h.addPerson(t, "member"))
 
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "the owner connects as alice")
@@ -216,7 +214,7 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 		}
 	})
 
-	h.drained(t, home.org)
+	h.drained(t)
 	t.Run("the worker puts one link per issue on Armature, as the person who linked", func(t *testing.T) {
 		got := linksOn(t, slug, url1)
 		if issueKeys(got) != "CP-1 CP-5" {
@@ -239,25 +237,25 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 
 	t.Run("a new revision, a new key and a removed link are synced", func(t *testing.T) {
 		want(t, bob.patch(t, "/api/v1/requirements/"+lnkKey+"-R1", map[string]any{"title": "Brakes engage within 80 ms", "baseRevision": 1}), http.StatusOK, "revise "+lnkKey+"-R1")
-		h.drained(t, home.org)
+		h.drained(t)
 		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnkKey+"-R1 Brakes engage within 80 ms (implements)" {
 			t.Errorf("after the revision CP-1 shows %v", title)
 		}
 		want(t, owner.put(t, "/api/v1/projects/"+lnkKey+"/key", map[string]any{"key": lnxKey}), http.StatusOK, "rekey the project")
-		h.drained(t, home.org)
+		h.drained(t)
 		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnxKey+"-R1 Brakes engage within 80 ms (implements)" {
 			t.Errorf("after the new key CP-1 shows %v", title)
 		}
 		implements := linkStates(t, bob, lnxKey+"-R1")["CP-1 implements"]["id"].(string)
 		want(t, bob.delete(t, "/api/v1/armature-links/"+implements), http.StatusNoContent, "remove the implements link")
-		h.drained(t, home.org)
+		h.drained(t)
 		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnxKey+"-R1 Brakes engage within 80 ms (verifies)" {
 			t.Errorf("with only the verifies link CP-1 shows %v", title)
 		}
 		verifies := linkStates(t, bob, lnxKey+"-R1")["CP-1 verifies"]["id"].(string)
 		want(t, bob.delete(t, "/api/v1/armature-links/"+verifies), http.StatusNoContent, "remove the verifies link")
 		want(t, bob.delete(t, "/api/v1/armature-links/"+verifies), http.StatusNotFound, "remove it again")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "CP-5" {
 			t.Errorf("after both links went "+lnxKey+"-R1 is on %s", keys)
 		}
@@ -266,14 +264,14 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	t.Run("an Armature that answers 503 is asked again through the outbox", func(t *testing.T) {
 		stubControl(t, http.MethodPut, slug+"/remote-links/outage", map[string]any{"status": http.StatusServiceUnavailable, "count": 1})
 		want(t, bob.post(t, "/api/v1/requirements/"+lnxKey+"-R2/armature-links", map[string]any{"issueKey": "CP-3", "relation": "implements"}), http.StatusCreated, "link CP-3")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "CP-2 CP-3" {
 			t.Errorf("after the outage "+lnxKey+"-R2 is on %s", keys)
 		}
 		if n := h.countRows(t, `
 			SELECT count(*) FROM outbox_event
-			WHERE org_id = $1 AND topic = $2 AND payload ->> 'requirementId' = $3 AND attempts > 1 AND last_error LIKE '%503%'`,
-			home.org, armature.TopicLinks, r2["id"]); n != 1 {
+			WHERE topic = $1 AND payload ->> 'requirementId' = $2 AND attempts > 1 AND last_error LIKE '%503%'`,
+			armature.TopicLinks, r2["id"]); n != 1 {
 			t.Errorf("%d events were tried again after the 503, want 1", n)
 		}
 	})
@@ -281,14 +279,14 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	t.Run("a refusal marks the link failed, and the next change tries it again", func(t *testing.T) {
 		stubControl(t, http.MethodPut, slug+"/people/bob/read-only-projects", map[string]any{"projects": []string{"CP"}})
 		want(t, bob.post(t, "/api/v1/requirements/"+lnxKey+"-R2/armature-links", map[string]any{"issueKey": "CP-4", "relation": "verifies"}), http.StatusCreated, "link CP-4")
-		h.drained(t, home.org)
+		h.drained(t)
 		failed := linkStates(t, owner, lnxKey+"-R2")["CP-4 verifies"]
 		if failed["sync"] != "failed" || !strings.Contains(failed["error"].(string), "did not let A member") || !strings.Contains(failed["error"].(string), "next change") {
 			t.Errorf("a refused link reads %v", failed)
 		}
 		stubControl(t, http.MethodPut, slug+"/people/bob/read-only-projects", map[string]any{"projects": []string{}})
 		want(t, bob.patch(t, "/api/v1/requirements/"+lnxKey+"-R2", map[string]any{"title": "Log every sign-in", "baseRevision": 1}), http.StatusOK, "revise "+lnxKey+"-R2")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "CP-2 CP-3 CP-4" {
 			t.Errorf("after the next change "+lnxKey+"-R2 is on %s", keys)
 		}
@@ -299,22 +297,22 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 
 	t.Run("trash takes the links off, restore puts them back, and a purge takes them off for good", func(t *testing.T) {
 		want(t, bob.delete(t, "/api/v1/requirements/"+lnxKey+"-R1"), http.StatusNoContent, "trash "+lnxKey+"-R1")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "" {
 			t.Errorf("a trashed requirement is still on %s", keys)
 		}
 		want(t, bob.post(t, "/api/v1/projects/"+lnxKey+"/trash/"+r1["id"].(string)+"/restore", nil), http.StatusOK, "restore "+lnxKey+"-R1")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "CP-5" {
 			t.Errorf("a restored requirement is on %s", keys)
 		}
 		want(t, bob.delete(t, "/api/v1/requirements/"+lnxKey+"-R2"), http.StatusNoContent, "trash "+lnxKey+"-R2")
 		want(t, owner.delete(t, "/api/v1/projects/"+lnxKey+"/trash/"+r2["id"].(string)), http.StatusNoContent, "purge "+lnxKey+"-R2")
-		h.drained(t, home.org)
+		h.drained(t)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "" {
 			t.Errorf("a purged requirement is still on %s", keys)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM armature_remote_link WHERE org_id = $1 AND requirement_id = $2`, home.org, r2["id"]); n != 0 {
+		if n := h.countRows(t, `SELECT count(*) FROM armature_remote_link WHERE requirement_id = $1`, r2["id"]); n != 0 {
 			t.Errorf("%d sync records outlived the purge", n)
 		}
 	})

@@ -31,8 +31,8 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), true)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), true)
 	ctx := context.Background()
 
 	suffix := h.suffix()
@@ -56,11 +56,11 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	t.Run("straight through SQL there is a request and nothing else", func(t *testing.T) {
 		var requests, members, sessions, groups int
 		if err := h.super.QueryRow(ctx, `
-			SELECT (SELECT count(*) FROM org_join_request r WHERE r.org_id = $1 AND r.user_id = u.id),
-			       (SELECT count(*) FROM org_member m WHERE m.user_id = u.id),
+			SELECT (SELECT count(*) FROM join_request r WHERE r.user_id = u.id),
+			       (CASE WHEN u.role IS NULL THEN 0 ELSE 1 END),
 			       (SELECT count(*) FROM user_session s WHERE s.user_id = u.id),
 			       (SELECT count(*) FROM group_member g WHERE g.user_id = u.id)
-			FROM app_user u WHERE u.email = $2`, org.ID, carol).Scan(&requests, &members, &sessions, &groups); err != nil {
+			FROM app_user u WHERE u.email = $1`, carol).Scan(&requests, &members, &sessions, &groups); err != nil {
 			t.Fatal(err)
 		}
 		if requests != 1 || members != 0 || sessions != 0 || groups != 0 {
@@ -74,7 +74,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	})
 
 	newBrowser(t, a).signIn(t, "dave-"+suffix, password, "")
-	admin, adminID := adminOf(t, h, a, org)
+	admin, adminID := adminOf(t, h, a)
 	carolID, daveID := h.userID(t, carol), h.userID(t, dave)
 
 	t.Run("an administrator sees who waits, oldest first", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		if role := carolIn.roleIn(t); role != "member" {
 			t.Fatalf("carol is %q", role)
 		}
-		if got := h.providerGroups(t, org, carol); len(got) != 1 || got[0] != "quality" {
+		if got := h.providerGroups(t, carol); len(got) != 1 || got[0] != "quality" {
 			t.Fatalf("carol's groups once let in = %q", got)
 		}
 	})
@@ -123,7 +123,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		if emails := waitingFor(t, admin); len(emails) != 0 {
 			t.Fatalf("still waiting: %v", emails)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM org_member WHERE user_id = $1`, daveID); n != 0 {
+		if n := h.countRows(t, `SELECT count(*) FROM app_user WHERE id = $1 AND role IS NOT NULL`, daveID); n != 0 {
 			t.Fatal("a person turned away became a member")
 		}
 		want(t, admin.delete(t, joinRequestsPath+"/"+daveID.String()), http.StatusNotFound, "decline twice")
@@ -134,8 +134,8 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		for target, action := range map[uuid.UUID]string{carolID: "member.admitted", daveID: "member.declined"} {
 			if n := h.countRows(t, `
 				SELECT count(*) FROM audit_log
-				WHERE org_id = $1 AND action = $2 AND target_type = 'user' AND target_id = $3 AND actor_user_id = $4 AND ip IS NOT NULL`,
-				org.ID, action, target, adminID); n != 1 {
+				WHERE action = $1 AND target_type = 'user' AND target_id = $2 AND actor_user_id = $3 AND ip IS NOT NULL`,
+				action, target, adminID); n != 1 {
 				t.Errorf("%s for %s recorded %d times", action, target, n)
 			}
 		}
@@ -149,29 +149,29 @@ func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 	a := h.owner(t, "omicron")
 	ctx := context.Background()
 	waiting := h.outsider(t, "rho")
-	if _, err := h.super.Exec(ctx, `INSERT INTO org_join_request (org_id, user_id) VALUES ($1, $2)`, a.org, waiting); err != nil {
+	if _, err := h.super.Exec(ctx, `INSERT INTO join_request (user_id) VALUES ($1)`, waiting); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
 
-	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
+	plain := h.appConn(t, h.addPerson(t, "member"))
 	var n int
-	if err := plain.QueryRow(ctx, `SELECT count(*) FROM org_join_request`).Scan(&n); err != nil || n != 0 {
+	if err := plain.QueryRow(ctx, `SELECT count(*) FROM join_request`).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("a plain member sees %d requests (%v), want none", n, err)
 	}
-	if tag, err := plain.Exec(ctx, `DELETE FROM org_join_request`); err != nil || tag.RowsAffected() != 0 {
+	if tag, err := plain.Exec(ctx, `DELETE FROM join_request`); err != nil || tag.RowsAffected() != 0 {
 		t.Fatalf("a plain member answered %v requests (%v)", tag, err)
 	}
-	if _, err := plain.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'member')`, a.org, waiting); !isPolicyViolation(err) {
-		t.Fatalf("a plain member let somebody in: %v", err)
+	if tag, err := plain.Exec(ctx, `UPDATE app_user SET role = 'member' WHERE id = $1`, waiting); err != nil || tag.RowsAffected() != 0 {
+		t.Fatalf("a plain member let somebody in: %v (%v)", tag, err)
 	}
 
 	owner := h.appConn(t, a.user)
-	if err := owner.QueryRow(ctx, `SELECT count(*) FROM org_join_request`).Scan(&n); err != nil || n != 1 {
+	if err := owner.QueryRow(ctx, `SELECT count(*) FROM join_request`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("an owner sees %d requests (%v), want the one", n, err)
 	}
 	var raw []byte
-	if err := owner.QueryRow(ctx, `SELECT coalesce(json_agg(user_id), '[]') FROM org_join_request`).Scan(&raw); err != nil {
+	if err := owner.QueryRow(ctx, `SELECT coalesce(json_agg(user_id), '[]') FROM join_request`).Scan(&raw); err != nil {
 		t.Fatal(err)
 	}
 	var ids []uuid.UUID

@@ -29,13 +29,13 @@ func newTraceWorld(t *testing.T, slug string) *traceWorld {
 	h := newHarness(t)
 	w := &traceWorld{h: h, a: h.owner(t, slug)}
 	w.here, w.other = w.project(t, trcKey), w.project(t, othKey)
-	w.editorID = h.addPerson(t, w.a.org, "member")
-	w.viewerID = h.addPerson(t, w.a.org, "guest")
-	outsiderID := h.addPerson(t, w.a.org, "guest")
-	h.grantAs(t, w.a.org, w.here, w.viewerID, "viewer")
+	w.editorID = h.addPerson(t, "member")
+	w.viewerID = h.addPerson(t, "guest")
+	outsiderID := h.addPerson(t, "guest")
+	h.grantAs(t, w.here, w.viewerID, "viewer")
 	w.editor, w.viewer, w.outsider = h.appConn(t, w.editorID), h.appConn(t, w.viewerID), h.appConn(t, outsiderID)
 	// A second guest no grant names, where another organization stood before one installation (#90).
-	w.strangerID = h.addPerson(t, w.a.org, "guest")
+	w.strangerID = h.addPerson(t, "guest")
 	w.stranger = h.appConn(t, w.strangerID)
 	w.r1, w.r2, w.r3, w.r4, w.section = w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "section")
 	w.derives, w.relates = w.typeOf(t, "derives"), w.typeOf(t, "relates")
@@ -44,8 +44,8 @@ func newTraceWorld(t *testing.T, slug string) *traceWorld {
 
 func (w *traceWorld) project(t *testing.T, key string) uuid.UUID {
 	var id uuid.UUID
-	if err := w.h.super.QueryRow(t.Context(), `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, $2, $2, $3) RETURNING id`,
-		w.a.org, key, w.a.user).Scan(&id); err != nil {
+	if err := w.h.super.QueryRow(t.Context(), `INSERT INTO project (key, name, created_by) VALUES ($1, $1, $2) RETURNING id`,
+		key, w.a.user).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
 	return id
@@ -53,8 +53,8 @@ func (w *traceWorld) project(t *testing.T, key string) uuid.UUID {
 
 func (w *traceWorld) write(t *testing.T, kind string) uuid.UUID {
 	var id uuid.UUID
-	if err := w.editor.QueryRow(t.Context(), `INSERT INTO requirement (org_id, project_id, kind, title, statement, normative_hash, created_by)
-		VALUES ($1, $2, $3, 'Linked', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`, w.a.org, w.here, kind).Scan(&id); err != nil {
+	if err := w.editor.QueryRow(t.Context(), `INSERT INTO requirement (project_id, kind, title, statement, normative_hash, created_by)
+		VALUES ($1, $2, 'Linked', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`, w.here, kind).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
 	return id
@@ -62,23 +62,23 @@ func (w *traceWorld) write(t *testing.T, kind string) uuid.UUID {
 
 func (w *traceWorld) typeOf(t *testing.T, key string) uuid.UUID {
 	var id uuid.UUID
-	if err := w.h.super.QueryRow(t.Context(), `SELECT id FROM link_type WHERE org_id = $1 AND project_id IS NULL AND key = $2`, w.a.org, key).Scan(&id); err != nil {
+	if err := w.h.super.QueryRow(t.Context(), `SELECT id FROM link_type WHERE project_id IS NULL AND key = $1`, key).Scan(&id); err != nil {
 		t.Fatalf("the organization was not given the %s type: %v", key, err)
 	}
 	return id
 }
 
-const insertLink = `INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by) VALUES ($1, $2, $3, $4, current_actor_id()) RETURNING id`
+const insertLink = `INSERT INTO trace_link (type_id, source_id, target_id, created_by) VALUES ($1, $2, $3, current_actor_id()) RETURNING id`
 
 func (w *traceWorld) tryLink(conn *pgx.Conn, typ, source, target uuid.UUID) error {
 	var id uuid.UUID
-	return conn.QueryRow(context.Background(), insertLink, w.a.org, typ, source, target).Scan(&id)
+	return conn.QueryRow(context.Background(), insertLink, typ, source, target).Scan(&id)
 }
 
 func (w *traceWorld) mustLink(t *testing.T, conn *pgx.Conn, typ, source, target uuid.UUID) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
-	if err := conn.QueryRow(t.Context(), insertLink, w.a.org, typ, source, target).Scan(&id); err != nil {
+	if err := conn.QueryRow(t.Context(), insertLink, typ, source, target).Scan(&id); err != nil {
 		t.Fatalf("link: %v", err)
 	}
 	return id
@@ -129,8 +129,8 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 	t.Run("a cycle is refused over links the writer cannot see", func(t *testing.T) {
 		hidden := project(hidKey)
 		var secret uuid.UUID
-		if err := h.super.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, created_by)
-			VALUES ($1, $2, 'Hidden', '{"type":"doc"}', 'h', $3) RETURNING id`, a.org, hidden, a.user).Scan(&secret); err != nil {
+		if err := h.super.QueryRow(ctx, `INSERT INTO requirement (project_id, title, statement, normative_hash, created_by)
+			VALUES ($1, 'Hidden', '{"type":"doc"}', 'h', $2) RETURNING id`, hidden, a.user).Scan(&secret); err != nil {
 			t.Fatal(err)
 		}
 		owner := h.appConn(t, a.user)
@@ -150,8 +150,8 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 			t.Fatal(err)
 		}
 		var id uuid.UUID
-		if err := editor.QueryRow(ctx, `INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by, source_reviewed_rev, target_reviewed_rev)
-			VALUES ($1, $2, $3, $4, current_actor_id(), 99, 99) RETURNING id`, a.org, relates, r4, r2).Scan(&id); err != nil {
+		if err := editor.QueryRow(ctx, `INSERT INTO trace_link (type_id, source_id, target_id, created_by, source_reviewed_rev, target_reviewed_rev)
+			VALUES ($1, $2, $3, current_actor_id(), 99, 99) RETURNING id`, relates, r4, r2).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		var source, target int
@@ -176,8 +176,8 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 		if err := tryLink(stranger, relates, r1, r4); !isPolicyViolation(err) {
 			t.Errorf("a guest no grant names made a link: %v", err)
 		}
-		if _, err := editor.Exec(ctx, `INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by) VALUES ($1, $2, $3, $4, $5)`,
-			a.org, relates, r1, r4, viewerID); !isPolicyViolation(err) {
+		if _, err := editor.Exec(ctx, `INSERT INTO trace_link (type_id, source_id, target_id, created_by) VALUES ($1, $2, $3, $4)`,
+			relates, r1, r4, viewerID); !isPolicyViolation(err) {
 			t.Errorf("an editor linked in somebody else's name: %v", err)
 		}
 		count := func(conn *pgx.Conn) int {
@@ -226,8 +226,8 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 
 	t.Run("a link takes a live type its source's project may use", func(t *testing.T) {
 		var foreign uuid.UUID
-		if err := h.super.QueryRow(ctx, `INSERT INTO link_type (org_id, project_id, key, name, forward, backward) VALUES ($1, $2, 'tests', 'Tests', 'tests', 'is tested by')
-			RETURNING id`, a.org, other).Scan(&foreign); err != nil {
+		if err := h.super.QueryRow(ctx, `INSERT INTO link_type (project_id, key, name, forward, backward) VALUES ($1, 'tests', 'Tests', 'tests', 'is tested by')
+			RETURNING id`, other).Scan(&foreign); err != nil {
 			t.Fatal(err)
 		}
 		if err := tryLink(editor, foreign, r1, r4); !refusedBy(err, "trace_link_type") {
@@ -252,43 +252,43 @@ func TestRawSQLKeepsLinkTypesToTheirAdministrators(t *testing.T) {
 	editor, viewer, derives := w.editor, w.viewer, w.derives
 	w.mustLink(t, editor, derives, w.r1, w.r2)
 
-	add := `INSERT INTO link_type (org_id, project_id, key, name, forward, backward, created_by) VALUES ($1, $2, $3, $3, 'a', 'b', current_actor_id())`
-	if _, err := editor.Exec(ctx, add, a.org, nil, "mine"); !isPolicyViolation(err) {
+	add := `INSERT INTO link_type (project_id, key, name, forward, backward, created_by) VALUES ($1, $2, $2, 'a', 'b', current_actor_id())`
+	if _, err := editor.Exec(ctx, add, nil, "mine"); !isPolicyViolation(err) {
 		t.Errorf("a member made a link type for the organization: %v", err)
 	}
-	if _, err := editor.Exec(ctx, add, a.org, here, "ours"); !isPolicyViolation(err) {
+	if _, err := editor.Exec(ctx, add, here, "ours"); !isPolicyViolation(err) {
 		t.Errorf("an editor made a link type for the project: %v", err)
 	}
 	owner := h.appConn(t, a.user)
-	if _, err := owner.Exec(ctx, add, a.org, here, "derives"); !refusedBy(err, "link_type_key_taken") {
+	if _, err := owner.Exec(ctx, add, here, "derives"); !refusedBy(err, "link_type_key_taken") {
 		t.Errorf("a project's type took the key of the organization's: %v", err)
 	}
-	if _, err := owner.Exec(ctx, add, a.org, here, "ours"); err != nil {
+	if _, err := owner.Exec(ctx, add, here, "ours"); err != nil {
 		t.Fatalf("an administrator could not make a project's type: %v", err)
 	}
-	if _, err := owner.Exec(ctx, `UPDATE link_type SET key = 'renamed' WHERE org_id = $1 AND key = 'ours'`, a.org); !refusedBy(err, "link_type_key_fixed") {
+	if _, err := owner.Exec(ctx, `UPDATE link_type SET key = 'renamed' WHERE key = 'ours'`); !refusedBy(err, "link_type_key_fixed") {
 		t.Errorf("a link type changed its key: %v", err)
 	}
 	if n := affects(t, owner, `DELETE FROM link_type WHERE id = $1`, derives); n != 0 {
 		t.Error("a link type with links was deleted")
 	}
-	if _, err := editor.Exec(ctx, `INSERT INTO link_type_project (org_id, project_id, link_type_id, enabled) VALUES ($1, $2, $3, false)`,
-		a.org, here, derives); !isPolicyViolation(err) {
+	if _, err := editor.Exec(ctx, `INSERT INTO link_type_project (project_id, link_type_id, enabled) VALUES ($1, $2, false)`,
+		here, derives); !isPolicyViolation(err) {
 		t.Errorf("an editor disabled a link type in the project: %v", err)
 	}
 	var foreignType uuid.UUID
 	if err := h.super.QueryRow(ctx, `SELECT id FROM requirement_type WHERE project_id = $1`, other).Scan(&foreignType); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := owner.Exec(ctx, `INSERT INTO link_type_rule (org_id, project_id, link_type_id, source_type_id) VALUES ($1, $2, $3, $4)`,
-		a.org, here, derives, foreignType); !refusedBy(err, "link_type_project_reach") {
+	if _, err := owner.Exec(ctx, `INSERT INTO link_type_rule (project_id, link_type_id, source_type_id) VALUES ($1, $2, $3)`,
+		here, derives, foreignType); !refusedBy(err, "link_type_project_reach") {
 		t.Errorf("a rule named another project's requirement type: %v", err)
 	}
 	var seen, allProjects int
 	if err := viewer.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE project_id IS NULL OR project_id = $1`, here).Scan(&seen); err != nil {
 		t.Fatal(err)
 	}
-	if err := h.super.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE org_id = $1 AND project_id IS NULL`, a.org).Scan(&allProjects); err != nil {
+	if err := h.super.QueryRow(ctx, `SELECT count(*) FROM link_type WHERE project_id IS NULL`).Scan(&allProjects); err != nil {
 		t.Fatal(err)
 	}
 	if seen != allProjects+1 {

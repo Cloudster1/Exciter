@@ -120,15 +120,14 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 	return &Credentials{Principal: &p, SessionSecret: secret, ExpiresAt: expiresAt, LSN: lsn}, nil
 }
 
-// sessionPrincipalSQL resolves a session to its caller and standing in one round trip; an outer join, so a session
-// whose membership went is told apart from none.
+// sessionPrincipalSQL resolves a session to its caller and standing in one round trip; the role is NULL for
+// somebody who does not belong, which is told apart from no session.
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
        u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       (SELECT name FROM org), m.org_role
+       (SELECT name FROM installation), u.role
 FROM user_session s
 JOIN app_user u ON u.id = s.user_id
-LEFT JOIN org_member m ON m.user_id = u.id
 WHERE s.token_hash = $1 AND s.expires_at > now()`
 
 // Authenticate resolves a session secret to its principal.
@@ -198,7 +197,7 @@ func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, stri
 	var name string
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT (SELECT org_role FROM org_member WHERE user_id = $1), name FROM org`, userID).Scan(&role, &name)
+			SELECT (SELECT role FROM app_user WHERE id = $1), name FROM installation`, userID).Scan(&role, &name)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", "", ErrNoInstallation
@@ -282,9 +281,8 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 			return fmt.Errorf("create the administrator: %w", err)
 		}
 		_, err = tx.Exec(ctx, `
-			INSERT INTO org_member (user_id, org_role) VALUES ($1, 'owner')
-			ON CONFLICT (user_id) DO UPDATE SET org_role = 'owner', role_source = 'manual'
-			WHERE org_member.org_role <> 'owner'`, userID)
+			UPDATE app_user SET role = 'owner', role_source = 'manual'
+			WHERE id = $1 AND role IS DISTINCT FROM 'owner'`, userID)
 		return err
 	})
 	return created, err

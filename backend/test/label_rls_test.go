@@ -18,38 +18,38 @@ func TestRawSQLKeepsLabelsWithTheirRequirement(t *testing.T) {
 	a := h.owner(t, "label-wall-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+labKey+`', 'Labelled', $2) RETURNING id`,
-		a.org, a.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+labKey+`', 'Labelled', $1) RETURNING id`,
+		a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
-	editorID := h.addPerson(t, a.org, "member")
-	viewerID := h.addPerson(t, a.org, "guest")
-	outsiderID := h.addPerson(t, a.org, "guest")
-	h.grantAs(t, a.org, project, viewerID, "viewer")
+	editorID := h.addPerson(t, "member")
+	viewerID := h.addPerson(t, "guest")
+	outsiderID := h.addPerson(t, "guest")
+	h.grantAs(t, project, viewerID, "viewer")
 	editor, viewer, outsider := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, outsiderID)
 	var id uuid.UUID
-	if err := editor.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, created_by)
-		VALUES ($1, $2, 'Labelled', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`, a.org, project).Scan(&id); err != nil {
+	if err := editor.QueryRow(ctx, `INSERT INTO requirement (project_id, title, statement, normative_hash, created_by)
+		VALUES ($1, 'Labelled', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`, project).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	put := `INSERT INTO requirement_label (org_id, requirement_id, name, created_by) VALUES ($1, $2, $3, current_actor_id())`
+	put := `INSERT INTO requirement_label (requirement_id, name, created_by) VALUES ($1, $2, current_actor_id())`
 
 	t.Run("editors put labels on in their own name, as Normalize writes them", func(t *testing.T) {
-		if _, err := editor.Exec(ctx, put, a.org, id, "safety-critical"); err != nil {
+		if _, err := editor.Exec(ctx, put, id, "safety-critical"); err != nil {
 			t.Fatalf("an editor could not label a requirement: %v", err)
 		}
-		if _, err := viewer.Exec(ctx, put, a.org, id, "viewed"); !isPolicyViolation(err) {
+		if _, err := viewer.Exec(ctx, put, id, "viewed"); !isPolicyViolation(err) {
 			t.Errorf("a viewer labelled a requirement: %v", err)
 		}
-		if _, err := outsider.Exec(ctx, put, a.org, id, "foreign"); !isPolicyViolation(err) {
+		if _, err := outsider.Exec(ctx, put, id, "foreign"); !isPolicyViolation(err) {
 			t.Errorf("a guest without a grant labelled a requirement: %v", err)
 		}
-		if _, err := editor.Exec(ctx, `INSERT INTO requirement_label (org_id, requirement_id, name, created_by) VALUES ($1, $2, 'forged', $3)`,
-			a.org, id, viewerID); !isPolicyViolation(err) {
+		if _, err := editor.Exec(ctx, `INSERT INTO requirement_label (requirement_id, name, created_by) VALUES ($1, 'forged', $2)`,
+			id, viewerID); !isPolicyViolation(err) {
 			t.Errorf("an editor labelled in somebody else's name: %v", err)
 		}
 		for _, name := range []string{"Upper", "two words", "-lead", "a/b", ""} {
-			if _, err := editor.Exec(ctx, put, a.org, id, name); !refusedBy(err, "requirement_label_name_normal") {
+			if _, err := editor.Exec(ctx, put, id, name); !refusedBy(err, "requirement_label_name_normal") {
 				t.Errorf("the label %q was stored: %v", name, err)
 			}
 		}

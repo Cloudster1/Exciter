@@ -133,9 +133,9 @@ func TestTraceLinksOverTheAPI(t *testing.T) {
 	f := newProjectFixture(t)
 	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": lnkKey, "name": "Linked"}), http.StatusCreated, "make a project"), "project")
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": sysKey, "name": "System"}), http.StatusCreated, "make a second project")
-	viewerID := f.h.addPerson(t, f.home.org, "guest")
-	f.h.grantAs(t, f.home.org, uuid.MustParse(project["id"].(string)), viewerID, "viewer")
-	viewer, editor := f.api.as(t, viewerID, f.home.org), f.plain
+	viewerID := f.h.addPerson(t, "guest")
+	f.h.grantAs(t, uuid.MustParse(project["id"].(string)), viewerID, "viewer")
+	viewer, editor := f.api.as(t, viewerID), f.plain
 	for _, title := range []string{"Pay", "Refund", "Receipt"} {
 		want(t, editor.post(t, "/api/v1/projects/"+lnkKey+"/requirements", map[string]any{"title": title}), http.StatusCreated, "write "+title)
 	}

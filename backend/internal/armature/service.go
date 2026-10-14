@@ -91,7 +91,7 @@ type endpoint struct {
 
 func (s *Service) endpoint(ctx context.Context, tx db.DBTX) (*endpoint, error) {
 	var e endpoint
-	err := tx.QueryRow(ctx, `SELECT (SELECT id FROM org), base_url, armature_org_id FROM armature_endpoint()`).
+	err := tx.QueryRow(ctx, `SELECT (SELECT id FROM installation), base_url, armature_org_id FROM armature_endpoint()`).
 		Scan(&e.Installation, &e.BaseURL, &e.ArmatureOrgID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -189,7 +189,7 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 		_, err := tx.Exec(ctx, `
 			INSERT INTO armature_connection (base_url, webhook_secret, updated_by)
 			VALUES ($1, $2, $3)
-			ON CONFLICT ON CONSTRAINT armature_connection_pkey DO UPDATE SET
+			ON CONFLICT ((true)) DO UPDATE SET
 			    base_url = EXCLUDED.base_url,
 			    webhook_secret = CASE WHEN $4 THEN armature_connection.webhook_secret ELSE EXCLUDED.webhook_secret END,
 			    updated_by = EXCLUDED.updated_by`,

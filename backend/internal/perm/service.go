@@ -246,8 +246,7 @@ func resolveSubject(ctx context.Context, tx db.DBTX, field string, ref SubjectRe
 	)
 	if ref.Type == SubjectUser {
 		err = tx.QueryRow(ctx, `
-			SELECT u.name, m.org_role FROM org_member m JOIN app_user u ON u.id = m.user_id
-			WHERE m.user_id = $1`, *ref.ID).Scan(&name, &orgRole)
+			SELECT name, role FROM app_user WHERE id = $1 AND role IS NOT NULL`, *ref.ID).Scan(&name, &orgRole)
 	} else {
 		err = tx.QueryRow(ctx, `SELECT name FROM groups WHERE id = $1`, *ref.ID).Scan(&name)
 	}
@@ -272,8 +271,8 @@ func (s *Service) People(ctx context.Context, q string, limit int) ([]Person, er
 	out := []Person{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
-			SELECT u.id, u.name, u.email::text FROM org_member m JOIN app_user u ON u.id = m.user_id
-			WHERE (u.name ILIKE $1 OR u.name ILIKE '% ' || $1 OR u.email::text ILIKE $1)
+			SELECT u.id, u.name, u.email::text FROM app_user u
+			WHERE u.role IS NOT NULL AND (u.name ILIKE $1 OR u.name ILIKE '% ' || $1 OR u.email::text ILIKE $1)
 			ORDER BY lower(u.name), u.email LIMIT $2`, likePrefix(q), limit)
 		if err != nil {
 			return err

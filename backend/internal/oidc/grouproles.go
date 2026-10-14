@@ -86,7 +86,7 @@ func (s *Service) GroupRoles(ctx context.Context) ([]GroupRole, error) {
 	out := []GroupRole{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, group_ref, org_role, updated_at FROM oidc_group_role ORDER BY group_ref`)
+			SELECT id, group_ref, role, updated_at FROM oidc_group_role ORDER BY group_ref`)
 		if err != nil {
 			return err
 		}
@@ -126,9 +126,9 @@ func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgR
 			return &ValidationError{Field: "group", Message: "Set up single sign-on first, then map its groups to roles."}
 		}
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO oidc_group_role (group_ref, org_role) VALUES ($1, $2)
-			ON CONFLICT (group_ref) DO UPDATE SET org_role = EXCLUDED.org_role
-			RETURNING id, group_ref, org_role, updated_at`, group, string(role),
+			INSERT INTO oidc_group_role (group_ref, role) VALUES ($1, $2)
+			ON CONFLICT (group_ref) DO UPDATE SET role = EXCLUDED.role
+			RETURNING id, group_ref, role, updated_at`, group, string(role),
 		).Scan(&saved.ID, &saved.Group, &saved.Role, &saved.UpdatedAt); err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgR
 func (s *Service) RemoveGroupRole(ctx context.Context, id, actor uuid.UUID, ip string) (db.LSN, error) {
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var group, role string
-		err := tx.QueryRow(ctx, `DELETE FROM oidc_group_role WHERE id = $1 RETURNING group_ref, org_role`, id).Scan(&group, &role)
+		err := tx.QueryRow(ctx, `DELETE FROM oidc_group_role WHERE id = $1 RETURNING group_ref, role`, id).Scan(&group, &role)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNoSuchGroupRole
 		}
@@ -166,7 +166,7 @@ func (s *Service) RemoveGroupRole(ctx context.Context, id, actor uuid.UUID, ip s
 // sign-in's transaction, and records every role it changes.
 func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []string) (auth.OrgRole, error) {
 	mapping := map[string]auth.OrgRole{}
-	rows, err := tx.Query(ctx, `SELECT group_ref, org_role FROM oidc_group_role`)
+	rows, err := tx.Query(ctx, `SELECT group_ref, role FROM oidc_group_role`)
 	if err != nil {
 		return "", fmt.Errorf("read the group roles: %w", err)
 	}
@@ -187,7 +187,7 @@ func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []
 	var current *standing
 	var found standing
 	err = tx.QueryRow(ctx, `
-		SELECT org_role, role_source FROM org_member WHERE user_id = $1 FOR UPDATE`,
+		SELECT role, role_source FROM app_user WHERE id = $1 AND role IS NOT NULL FOR UPDATE`,
 		userID).Scan(&found.Role, &found.Source)
 	switch {
 	case err == nil:
@@ -207,12 +207,12 @@ func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []
 
 	if current == nil {
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO org_member (user_id, org_role, role_source) VALUES ($1, $2, $3)`,
+			UPDATE app_user SET role = $2, role_source = $3 WHERE id = $1`,
 			userID, string(next.Role), string(next.Source)); err != nil {
 			return "", fmt.Errorf("let the person in by their group: %w", err)
 		}
 		// A request noted before the group was mapped has been answered now.
-		if _, err := tx.Exec(ctx, `DELETE FROM org_join_request WHERE user_id = $1`, userID); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM join_request WHERE user_id = $1`, userID); err != nil {
 			return "", err
 		}
 		return next.Role, audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberJoined, TargetType: "user", TargetID: &userID,
@@ -220,7 +220,7 @@ func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []
 	}
 
 	if _, err := tx.Exec(ctx, `
-		UPDATE org_member SET org_role = $2, role_source = $3 WHERE user_id = $1`,
+		UPDATE app_user SET role = $2, role_source = $3 WHERE id = $1`,
 		userID, string(next.Role), string(next.Source)); err != nil {
 		return "", fmt.Errorf("follow the group roles: %w", err)
 	}

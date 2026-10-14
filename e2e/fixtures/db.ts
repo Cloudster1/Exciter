@@ -1,5 +1,4 @@
 import pg from "pg";
-import { ORG_SLUG } from "./auth";
 import { superuserURL } from "./stack";
 
 // Straight into the stack's database, for what no endpoint makes yet. Keep it
@@ -38,16 +37,16 @@ async function settle(client: pg.Client): Promise<void> {
 /** Nothing listens on port 9 of the api's own container, so asking this issuer who it is fails at once. */
 export const DEAD_ISSUER = "http://127.0.0.1:9/realms/nowhere";
 
-const PROVIDER_ISSUER = "SELECT p.issuer FROM oidc_provider p JOIN org o ON o.id = p.org_id WHERE o.slug = $1";
-const SET_ISSUER = "UPDATE oidc_provider SET issuer = $1 WHERE org_id = (SELECT id FROM org WHERE slug = $2)";
+const PROVIDER_ISSUER = "SELECT issuer FROM oidc_provider";
+const SET_ISSUER = "UPDATE oidc_provider SET issuer = $1";
 
 /** Points the installation's provider at an issuer nobody answers for, until restore puts the one it had back. */
 export async function deadProvider(): Promise<{ restore: () => Promise<void> }> {
   const issuer = await withDatabase(async (db) => {
-    const { rows } = await db.query<{ issuer: string }>(PROVIDER_ISSUER, [ORG_SLUG]);
+    const { rows } = await db.query<{ issuer: string }>(PROVIDER_ISSUER);
     if (!rows[0]) throw new Error("The installation has no identity provider to make unreachable. Did the seed configure one?");
-    await db.query(SET_ISSUER, [DEAD_ISSUER, ORG_SLUG]);
+    await db.query(SET_ISSUER, [DEAD_ISSUER]);
     return rows[0].issuer;
   });
-  return { restore: () => withDatabase(async (db) => void (await db.query(SET_ISSUER, [issuer, ORG_SLUG]))) };
+  return { restore: () => withDatabase(async (db) => void (await db.query(SET_ISSUER, [issuer]))) };
 }

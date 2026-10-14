@@ -79,8 +79,8 @@ func (c *client) do(t *testing.T, req *http.Request) response {
 	return decoded(resp, raw)
 }
 
-func themeObject(org uuid.UUID, themeID, assetID string) string {
-	return theme.ObjectKey(org, uuid.MustParse(themeID), uuid.MustParse(assetID))
+func themeObject(installation uuid.UUID, themeID, assetID string) string {
+	return theme.ObjectKey(installation, uuid.MustParse(themeID), uuid.MustParse(assetID))
 }
 
 func ptr[T any](v T) *T { return &v }

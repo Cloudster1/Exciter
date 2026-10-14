@@ -22,18 +22,18 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 	projects := map[string]uuid.UUID{}
 	for _, key := range []string{treeKey, elseKey} {
 		var id uuid.UUID
-		if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, $2, $2, $3) RETURNING id`, a.org, key, a.user).Scan(&id); err != nil {
+		if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ($1, $1, $2) RETURNING id`, key, a.user).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		projects[key] = id
 	}
-	editorID := h.addPerson(t, a.org, "member")
+	editorID := h.addPerson(t, "member")
 	editor := h.appConn(t, editorID)
 	write := func(project string, parent *uuid.UUID) uuid.UUID {
 		t.Helper()
 		var id uuid.UUID
-		if err := editor.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, parent_id, created_by)
-			VALUES ($1, $2, 'Node', '{"type":"doc"}', 'h', $3, current_actor_id()) RETURNING id`, a.org, projects[project], parent).Scan(&id); err != nil {
+		if err := editor.QueryRow(ctx, `INSERT INTO requirement (project_id, title, statement, normative_hash, parent_id, created_by)
+			VALUES ($1, 'Node', '{"type":"doc"}', 'h', $2, current_actor_id()) RETURNING id`, projects[project], parent).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		return id
@@ -99,8 +99,8 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 		if err := editor.QueryRow(ctx, `SELECT key FROM requirement_old_key WHERE requirement_id = $1`, grandchild).Scan(&old); err != nil || old != treeKey+"-R3" {
 			t.Errorf("the old key stays behind: %q %v", old, err)
 		}
-		guest := h.addPerson(t, a.org, "guest")
-		h.grantAs(t, a.org, projects[treeKey], guest, "editor")
+		guest := h.addPerson(t, "guest")
+		h.grantAs(t, projects[treeKey], guest, "editor")
 		mover := h.appConn(t, guest)
 		if _, err := mover.Exec(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1`, child, projects[elseKey]); !isPolicyViolation(err) {
 			t.Errorf("a requirement moved into a project its mover may not edit: %v", err)

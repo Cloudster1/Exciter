@@ -27,8 +27,8 @@ async function busyTarget(api: ExciterApi, name: string): Promise<{ id: string; 
   const me = (await api.GET("/auth/me")).data!;
   await withDatabase(async (db) => {
     await db.query(
-      `INSERT INTO audit_log (org_id, actor_user_id, action, target_type, target_id, data, created_at)
-       SELECT (SELECT org_id FROM org_member WHERE user_id = $1), $1, $2, 'theme', $3, jsonb_build_object('name', $4::text),
+      `INSERT INTO audit_log (actor_user_id, action, target_type, target_id, data, created_at)
+       SELECT $1, $2, 'theme', $3, jsonb_build_object('name', $4::text),
               now() - make_interval(secs => n)
        FROM generate_series(1, $5::int) AS n`,
       [me.user.id, PLANTED_ACTION, id, name, PAGE_SIZE + SPILL],

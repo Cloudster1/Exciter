@@ -18,16 +18,14 @@ import (
 const workerIdle = 50 * time.Millisecond
 
 // addPerson makes somebody a member of the installation with role, behind the policies' back.
-func (h *harness) addPerson(t *testing.T, org uuid.UUID, role string) uuid.UUID {
+func (h *harness) addPerson(t *testing.T, role string) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
 	var id uuid.UUID
 	email := fmt.Sprintf("%s-%s@example.test", role, h.suffix())
-	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name) VALUES ($1, $2) RETURNING id`, email, "A "+role).Scan(&id); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, $2, $3) RETURNING id`,
+		email, "A "+role, role).Scan(&id); err != nil {
 		t.Fatalf("create a %s: %v", role, err)
-	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)`, org, id, role); err != nil {
-		t.Fatalf("make the %s a member: %v", role, err)
 	}
 	h.later(t, id)
 	h.settle(t)
@@ -35,24 +33,14 @@ func (h *harness) addPerson(t *testing.T, org uuid.UUID, role string) uuid.UUID 
 }
 
 // namedPerson is addPerson for a member who goes by name.
-func (h *harness) namedPerson(t *testing.T, org uuid.UUID, name string) uuid.UUID {
+func (h *harness) namedPerson(t *testing.T, name string) uuid.UUID {
 	t.Helper()
-	id := h.addPerson(t, org, "member")
+	id := h.addPerson(t, "member")
 	if _, err := h.super.Exec(context.Background(), `UPDATE app_user SET name = $2 WHERE id = $1`, id, name); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
 	return id
-}
-
-// slugOf is the slug an organization is addressed by.
-func (h *harness) slugOf(t *testing.T, org uuid.UUID) string {
-	t.Helper()
-	var slug string
-	if err := h.super.QueryRow(context.Background(), `SELECT slug FROM org WHERE id = $1`, org).Scan(&slug); err != nil {
-		t.Fatal(err)
-	}
-	return slug
 }
 
 // countRows counts as the superuser, past every policy, to see what is really there.

@@ -17,7 +17,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 	a := h.owner(t, "flow-wall")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+flowKey+`', 'Flow', $2) RETURNING id`, a.org, a.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+flowKey+`', 'Flow', $1) RETURNING id`, a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
 	status := func(name string) uuid.UUID {
@@ -37,13 +37,13 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 		}
 		return id
 	}
-	editorID := h.addPerson(t, a.org, "member")
-	viewerID := h.addPerson(t, a.org, "guest")
-	h.grantAs(t, a.org, project, viewerID, "viewer")
+	editorID := h.addPerson(t, "member")
+	viewerID := h.addPerson(t, "guest")
+	h.grantAs(t, project, viewerID, "viewer")
 	editor, viewer := h.appConn(t, editorID), h.appConn(t, viewerID)
 	var id, current uuid.UUID
-	if err := editor.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, status_id, created_by)
-		VALUES ($1, $2, 'Flowing', '{"type":"doc"}', 'h', $3, current_actor_id()) RETURNING id, status_id`, a.org, project, status("Approved")).Scan(&id, &current); err != nil {
+	if err := editor.QueryRow(ctx, `INSERT INTO requirement (project_id, title, statement, normative_hash, status_id, created_by)
+		VALUES ($1, 'Flowing', '{"type":"doc"}', 'h', $2, current_actor_id()) RETURNING id, status_id`, project, status("Approved")).Scan(&id, &current); err != nil {
 		t.Fatal(err)
 	}
 	if current != status("Draft") {
@@ -72,10 +72,10 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 	})
 
 	t.Run("an approver who may not edit takes the transition, and the database logs it and runs its post-functions", func(t *testing.T) {
-		reviewerID := h.addPerson(t, a.org, "guest")
-		h.grantAs(t, a.org, project, reviewerID, "reviewer")
-		if _, err := h.super.Exec(ctx, `INSERT INTO transition_rule (org_id, transition_id, kind, type, position) VALUES ($1, $2, 'postfunction', 'postfunction.assign_to_actor', 9)`,
-			a.org, transition("Approve")); err != nil {
+		reviewerID := h.addPerson(t, "guest")
+		h.grantAs(t, project, reviewerID, "reviewer")
+		if _, err := h.super.Exec(ctx, `INSERT INTO transition_rule (transition_id, kind, type, position) VALUES ($1, 'postfunction', 'postfunction.assign_to_actor', 9)`,
+			transition("Approve")); err != nil {
 			t.Fatal(err)
 		}
 		reviewer := h.appConn(t, reviewerID)
@@ -105,7 +105,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 	})
 
 	t.Run("only administrators shape statuses and workflows", func(t *testing.T) {
-		if _, err := editor.Exec(ctx, `INSERT INTO req_status (org_id, project_id, name, category) VALUES ($1, $2, 'Mine', 'draft')`, a.org, project); !isPolicyViolation(err) {
+		if _, err := editor.Exec(ctx, `INSERT INTO req_status (project_id, name, category) VALUES ($1, 'Mine', 'draft')`, project); !isPolicyViolation(err) {
 			t.Errorf("an editor made a status: %v", err)
 		}
 		if n := affects(t, editor, `UPDATE workflow_transition SET name = 'Hijacked' WHERE id = $1`, transition("Approve")); n != 0 {

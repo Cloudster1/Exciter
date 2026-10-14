@@ -20,26 +20,26 @@ func TestRawSQLKeepsTypesAndAttributesToTheirProject(t *testing.T) {
 	a := h.owner(t, "attr-wall")
 	ctx := context.Background()
 	var home, other, homeType, otherAttr uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+homeKey+`', 'Home', $2) RETURNING id`, a.org, a.user).Scan(&home); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+homeKey+`', 'Home', $1) RETURNING id`, a.user).Scan(&home); err != nil {
 		t.Fatal(err)
 	}
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+awayKey+`', 'Away', $2) RETURNING id`, a.org, a.user).Scan(&other); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+awayKey+`', 'Away', $1) RETURNING id`, a.user).Scan(&other); err != nil {
 		t.Fatal(err)
 	}
 	if err := h.super.QueryRow(ctx, `SELECT id FROM requirement_type WHERE project_id = $1`, home).Scan(&homeType); err != nil {
 		t.Fatalf("a new project has no type: %v", err)
 	}
-	if err := h.super.QueryRow(ctx, `INSERT INTO attribute_def (org_id, project_id, name, kind, position) VALUES ($1, $2, 'Elsewhere', 'text', 0) RETURNING id`,
-		a.org, other).Scan(&otherAttr); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO attribute_def (project_id, name, kind, position) VALUES ($1, 'Elsewhere', 'text', 0) RETURNING id`,
+		other).Scan(&otherAttr); err != nil {
 		t.Fatal(err)
 	}
-	editor, owner := h.appConn(t, h.addPerson(t, a.org, "member")), h.appConn(t, a.user)
-	insert := `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, type_id, attributes, created_by)
-		VALUES ($1, $2, 'Walled', '{"type":"doc"}', 'h', $3, $4, current_actor_id())`
+	editor, owner := h.appConn(t, h.addPerson(t, "member")), h.appConn(t, a.user)
+	insert := `INSERT INTO requirement (project_id, title, statement, normative_hash, type_id, attributes, created_by)
+		VALUES ($1, 'Walled', '{"type":"doc"}', 'h', $2, $3, current_actor_id())`
 
 	t.Run("only administrators shape a project's types and attributes", func(t *testing.T) {
-		if _, err := editor.Exec(ctx, `INSERT INTO requirement_type (org_id, project_id, name, icon, colour, position) VALUES ($1, $2, 'Mine', 'x', '#000000', 1)`,
-			a.org, home); !isPolicyViolation(err) {
+		if _, err := editor.Exec(ctx, `INSERT INTO requirement_type (project_id, name, icon, colour, position) VALUES ($1, 'Mine', 'x', '#000000', 1)`,
+			home); !isPolicyViolation(err) {
 			t.Errorf("an editor made a type: %v", err)
 		}
 		if n := affects(t, editor, `UPDATE requirement_type SET name = 'Renamed' WHERE id = $1`, homeType); n != 0 {
@@ -49,7 +49,7 @@ func TestRawSQLKeepsTypesAndAttributesToTheirProject(t *testing.T) {
 		if err := editor.QueryRow(ctx, `SELECT count(*) FROM requirement_type WHERE project_id = $1`, home).Scan(&n); err != nil || n != 1 {
 			t.Errorf("an editor reads %d types: %v", n, err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO attribute_def (org_id, project_id, name, kind, position) VALUES ($1, $2, 'Notes', 'text', 0)`, a.org, home); err != nil {
+		if _, err := owner.Exec(ctx, `INSERT INTO attribute_def (project_id, name, kind, position) VALUES ($1, 'Notes', 'text', 0)`, home); err != nil {
 			t.Errorf("the owner could not define an attribute: %v", err)
 		}
 	})
@@ -59,13 +59,13 @@ func TestRawSQLKeepsTypesAndAttributesToTheirProject(t *testing.T) {
 		if err := h.super.QueryRow(ctx, `SELECT id FROM requirement_type WHERE project_id = $1`, other).Scan(&awayType); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := editor.Exec(ctx, insert, a.org, home, awayType, `{}`); !refusedBy(err, "requirement_type_same_project") {
+		if _, err := editor.Exec(ctx, insert, home, awayType, `{}`); !refusedBy(err, "requirement_type_same_project") {
 			t.Errorf("a requirement took another project's type: %v", err)
 		}
-		if _, err := editor.Exec(ctx, insert, a.org, home, homeType, `{"`+otherAttr.String()+`":"x"}`); !refusedBy(err, "requirement_attributes_same_project") {
+		if _, err := editor.Exec(ctx, insert, home, homeType, `{"`+otherAttr.String()+`":"x"}`); !refusedBy(err, "requirement_attributes_same_project") {
 			t.Errorf("a requirement took another project's attribute: %v", err)
 		}
-		if _, err := editor.Exec(ctx, insert, a.org, home, homeType, `{}`); err != nil {
+		if _, err := editor.Exec(ctx, insert, home, homeType, `{}`); err != nil {
 			t.Fatalf("an editor could not write a typed requirement: %v", err)
 		}
 	})

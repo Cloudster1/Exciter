@@ -20,13 +20,12 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 )
 
-// standing is somebody's role in org and who decided it, straight from the table.
-func (h *harness) standing(t *testing.T, org installationRow, email string) (string, string) {
+// standing is somebody's role and who decided it, straight from the table.
+func (h *harness) standing(t *testing.T, email string) (string, string) {
 	t.Helper()
 	var role, source string
 	err := h.super.QueryRow(context.Background(), `
-		SELECT m.org_role, m.role_source FROM org_member m JOIN app_user u ON u.id = m.user_id
-		WHERE m.org_id = $1 AND u.email = $2`, org.ID, email).Scan(&role, &source)
+		SELECT role, role_source FROM app_user WHERE email = $1 AND role IS NOT NULL`, email).Scan(&role, &source)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ""
 	}
@@ -37,11 +36,11 @@ func (h *harness) standing(t *testing.T, org installationRow, email string) (str
 }
 
 // auditRows lists what the record holds about one person, oldest first.
-func (h *harness) auditRows(t *testing.T, org installationRow, action string, target uuid.UUID) []map[string]any {
+func (h *harness) auditRows(t *testing.T, action string, target uuid.UUID) []map[string]any {
 	t.Helper()
 	rows, err := h.super.Query(context.Background(), `
 		SELECT data, actor_user_id IS NULL FROM audit_log
-		WHERE org_id = $1 AND action = $2 AND target_id = $3 AND created_at >= $4 ORDER BY created_at, id`, org.ID, action, target, h.started(t))
+		WHERE action = $1 AND target_id = $2 AND created_at >= $3 ORDER BY created_at, id`, action, target, h.started(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,12 +75,12 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), false)
-	h.letIn(t, org, aliceEmail, "member")
-	h.letIn(t, org, bobEmail, "admin")
-	h.letIn(t, org, daveEmail, "admin")
-	admin, adminID := adminOf(t, h, a, org)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), false)
+	h.letIn(t, aliceEmail, "member")
+	h.letIn(t, bobEmail, "admin")
+	h.letIn(t, daveEmail, "admin")
+	admin, adminID := adminOf(t, h, a)
 	aliceID := h.userID(t, aliceEmail)
 
 	t.Run("with nothing mapped alice keeps the role she was given", func(t *testing.T) {
@@ -97,7 +96,7 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "admin" {
 			t.Fatalf("alice is %q after the mapping, want admin, the higher of her two groups", role)
 		}
-		if role, source := h.standing(t, org, aliceEmail); role != "admin" || source != "oidc" {
+		if role, source := h.standing(t, aliceEmail); role != "admin" || source != "oidc" {
 			t.Fatalf("alice's membership is %s from %s, want admin from oidc", role, source)
 		}
 	})
@@ -128,7 +127,7 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 		if role := signedIn(t, a, "bob", bobPassword).roleIn(t); role != "member" {
 			t.Fatalf("bob is %q, want the member engineering grants", role)
 		}
-		if role, source := h.standing(t, org, bobEmail); role != "member" || source != "oidc" {
+		if role, source := h.standing(t, bobEmail); role != "member" || source != "oidc" {
 			t.Fatalf("bob's membership is %s from %s", role, source)
 		}
 	})
@@ -137,7 +136,7 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 		if role := signedIn(t, a, "dave", davePassword).roleIn(t); role != "admin" {
 			t.Fatalf("dave is %q, want the admin somebody made him", role)
 		}
-		if role, source := h.standing(t, org, daveEmail); role != "admin" || source != "manual" {
+		if role, source := h.standing(t, daveEmail); role != "admin" || source != "manual" {
 			t.Fatalf("dave's membership is %s from %s", role, source)
 		}
 	})
@@ -148,25 +147,25 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "member" {
 			t.Fatalf("alice is %q after the unmapping, want member", role)
 		}
-		if role, source := h.standing(t, org, aliceEmail); role != "member" || source != "oidc" {
+		if role, source := h.standing(t, aliceEmail); role != "member" || source != "oidc" {
 			t.Fatalf("alice's membership is %s from %s, want member from oidc through engineering", role, source)
 		}
 	})
 
 	t.Run("with no mapped group left she stays a member", func(t *testing.T) {
 		var engineering string
-		_ = h.super.QueryRow(context.Background(), `SELECT id FROM oidc_group_role WHERE org_id = $1 AND group_ref = 'engineering'`, org.ID).Scan(&engineering)
+		_ = h.super.QueryRow(context.Background(), `SELECT id FROM oidc_group_role WHERE group_ref = 'engineering'`).Scan(&engineering)
 		want(t, admin.delete(t, groupRolesPath+"/"+engineering), http.StatusNoContent, "unmap engineering")
 		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "member" {
 			t.Fatalf("alice is %q, want member: the floor while she is still a member", role)
 		}
-		if role, source := h.standing(t, org, aliceEmail); role != "member" || source != "manual" {
+		if role, source := h.standing(t, aliceEmail); role != "member" || source != "manual" {
 			t.Fatalf("alice's membership is %s from %s, want member from manual", role, source)
 		}
 	})
 
 	t.Run("every role the mapping changed is on the record, by nobody here", func(t *testing.T) {
-		changes := h.auditRows(t, org, "member.role_changed", aliceID)
+		changes := h.auditRows(t, "member.role_changed", aliceID)
 		wantChanges := [][2]string{{"member", "admin"}, {"admin", "member"}}
 		if len(changes) != len(wantChanges) {
 			t.Fatalf("recorded changes = %v, want %v", changes, wantChanges)
@@ -182,7 +181,7 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 		var set, removed int
 		_ = h.super.QueryRow(context.Background(), `
 			SELECT count(*) FILTER (WHERE action = 'sso.group_role_set'), count(*) FILTER (WHERE action = 'sso.group_role_removed')
-			FROM audit_log WHERE org_id = $1 AND actor_user_id = $2`, org.ID, adminID).Scan(&set, &removed)
+			FROM audit_log WHERE actor_user_id = $1`, adminID).Scan(&set, &removed)
 		if set != 2 || removed != 2 {
 			t.Errorf("the administrator's mapping changes recorded %d sets and %d removals, want 2 and 2", set, removed)
 		}
@@ -195,15 +194,15 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), true)
-	admin, _ := adminOf(t, h, a, org)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), true)
+	admin, _ := adminOf(t, h, a)
 
 	t.Run("before the mapping carol waits like anybody", func(t *testing.T) {
 		if landing := newBrowser(t, a).signIn(t, "carol", carolPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("carol landed on %q", landing)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM org_join_request r JOIN app_user u ON u.id = r.user_id WHERE r.org_id = $1 AND u.email = $2`, org.ID, carolEmail); n != 1 {
+		if n := h.countRows(t, `SELECT count(*) FROM join_request r JOIN app_user u ON u.id = r.user_id WHERE u.email = $1`, carolEmail); n != 1 {
 			t.Fatalf("carol has %d requests, want 1", n)
 		}
 	})
@@ -219,19 +218,19 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 		if role := b.roleIn(t); role != "member" {
 			t.Fatalf("carol is %q, want member", role)
 		}
-		if role, source := h.standing(t, org, carolEmail); role != "member" || source != "oidc" {
+		if role, source := h.standing(t, carolEmail); role != "member" || source != "oidc" {
 			t.Fatalf("carol's membership is %s from %s", role, source)
 		}
-		if got := h.providerGroups(t, org, carolEmail); !slices.Equal(got, []string{"quality"}) {
+		if got := h.providerGroups(t, carolEmail); !slices.Equal(got, []string{"quality"}) {
 			t.Fatalf("carol's groups = %q", got)
 		}
 	})
 
 	t.Run("her request is answered and her joining is on the record", func(t *testing.T) {
-		if n := h.countRows(t, `SELECT count(*) FROM org_join_request WHERE org_id = $1 AND user_id = $2`, org.ID, carolID); n != 0 {
+		if n := h.countRows(t, `SELECT count(*) FROM join_request WHERE user_id = $1`, carolID); n != 0 {
 			t.Fatalf("carol still has %d requests", n)
 		}
-		joined := h.auditRows(t, org, "member.joined", carolID)
+		joined := h.auditRows(t, "member.joined", carolID)
 		if len(joined) != 1 || joined[0]["role"] != "member" || joined[0]["byProvider"] != true {
 			t.Fatalf("joining recorded as %v", joined)
 		}
@@ -247,7 +246,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 		if landing := newBrowser(t, a).signIn(t, username, bobPassword, "/"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("%s landed on %q", username, landing)
 		}
-		if role, _ := h.standing(t, org, email); role != "" {
+		if role, _ := h.standing(t, email); role != "" {
 			t.Fatalf("%s became %s", username, role)
 		}
 	})
@@ -259,10 +258,10 @@ func TestTheOwnerIsNeverDemotedByAMapping(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), false)
-	h.letIn(t, org, aliceEmail, "owner")
-	admin, adminID := adminOf(t, h, a, org)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), false)
+	h.letIn(t, aliceEmail, "owner")
+	admin, adminID := adminOf(t, h, a)
 	aliceID := h.userID(t, aliceEmail)
 	var since time.Time
 	if err := h.super.QueryRow(context.Background(), `SELECT now()`).Scan(&since); err != nil {
@@ -274,7 +273,7 @@ func TestTheOwnerIsNeverDemotedByAMapping(t *testing.T) {
 		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "owner" {
 			t.Fatalf("with %s mapped to %s alice is %q, want owner", mapping[0], mapping[1], role)
 		}
-		if role, source := h.standing(t, org, aliceEmail); role != "owner" || source != "manual" {
+		if role, source := h.standing(t, aliceEmail); role != "owner" || source != "manual" {
 			t.Fatalf("alice's membership is %s from %s", role, source)
 		}
 	}
@@ -283,8 +282,8 @@ func TestTheOwnerIsNeverDemotedByAMapping(t *testing.T) {
 	}
 
 	handOver := []string{
-		`UPDATE org_member SET org_role = 'member', role_source = 'oidc' WHERE user_id = $1`,
-		`UPDATE org_member SET role_source = 'oidc' WHERE user_id = $1`,
+		`UPDATE app_user SET role = 'member', role_source = 'oidc' WHERE id = $1`,
+		`UPDATE app_user SET role_source = 'oidc' WHERE id = $1`,
 	}
 	t.Run("straight through SQL an administrator cannot hand an owner to the provider", func(t *testing.T) {
 		conn := h.appConn(t, adminID)
@@ -340,10 +339,10 @@ func TestRawSQLKeepsGroupRolesToTheAdministrators(t *testing.T) {
 	h.singleSignOn(t)
 	a := h.owner(t, "nu")
 	ctx := context.Background()
-	if _, err := h.super.Exec(ctx, `INSERT INTO oidc_provider (org_id, issuer, client_id) VALUES ($1, 'https://id.test', 'exciter')`, a.org); err != nil {
+	if _, err := h.super.Exec(ctx, `INSERT INTO oidc_provider (issuer, client_id) VALUES ('https://id.test', 'exciter')`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, 'staff', 'admin')`, a.org); err != nil {
+	if _, err := h.super.Exec(ctx, `INSERT INTO oidc_group_role (group_ref, role) VALUES ('staff', 'admin')`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -352,11 +351,11 @@ func TestRawSQLKeepsGroupRolesToTheAdministrators(t *testing.T) {
 		t.Fatalf("an unscoped connection sees %d mappings (%v)", n, err)
 	}
 
-	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
+	plain := h.appConn(t, h.addPerson(t, "member"))
 	if err := plain.QueryRow(ctx, `SELECT count(*) FROM oidc_group_role`).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("a plain member sees %d mappings (%v), want none", n, err)
 	}
-	if _, err := plain.Exec(ctx, `INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, 'mine', 'admin')`, a.org); !isPolicyViolation(err) {
+	if _, err := plain.Exec(ctx, `INSERT INTO oidc_group_role (group_ref, role) VALUES ('mine', 'admin')`); !isPolicyViolation(err) {
 		t.Fatalf("a plain member mapped a group: %v", err)
 	}
 
@@ -369,9 +368,9 @@ func TestRawSQLKeepsGroupRolesToTheAdministrators(t *testing.T) {
 		args []any
 		code string
 	}{
-		"granting ownership through a group": {`INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, 'founders', 'owner')`, []any{a.org}, "23514"},
-		"mapping the same group twice":       {`INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, 'staff', 'member')`, []any{a.org}, "23505"},
-		"mapping a blank group":              {`INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, '  ', 'member')`, []any{a.org}, "23514"},
+		"granting ownership through a group": {`INSERT INTO oidc_group_role (group_ref, role) VALUES ('founders', 'owner')`, nil, "23514"},
+		"mapping the same group twice":       {`INSERT INTO oidc_group_role (group_ref, role) VALUES ('staff', 'member')`, nil, "23505"},
+		"mapping a blank group":              {`INSERT INTO oidc_group_role (group_ref, role) VALUES ('  ', 'member')`, nil, "23514"},
 	} {
 		t.Run(name+" is refused", func(t *testing.T) {
 			_, err := conn.Exec(ctx, attempt.sql, attempt.args...)
@@ -389,11 +388,11 @@ func TestAnAdministratorSwitchesOffASignedInMember(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.singleSignOn(t)
-	configureProvider(t, a, org, kc.issuer(), true)
-	h.letIn(t, org, aliceEmail, "admin")
-	h.letIn(t, org, bobEmail, "member")
-	admin, adminID := adminOf(t, h, a, org)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), true)
+	h.letIn(t, aliceEmail, "admin")
+	h.letIn(t, bobEmail, "member")
+	admin, adminID := adminOf(t, h, a)
 	aliceID, bobID := h.userID(t, aliceEmail), h.userID(t, bobEmail)
 	t.Cleanup(func() {
 		h.cleanupExec(t, h.super, `UPDATE app_user SET is_active = true WHERE id = ANY($1)`, []uuid.UUID{aliceID, bobID})
@@ -411,15 +410,15 @@ func TestAnAdministratorSwitchesOffASignedInMember(t *testing.T) {
 	if status := switchOff(alice, adminID); status != http.StatusForbidden {
 		t.Fatalf("alice switching the owner off = %d, want 403", status)
 	}
-	groups := h.providerGroups(t, org, bobEmail)
+	groups := h.providerGroups(t, bobEmail)
 	if len(groups) == 0 {
 		t.Fatal("bob has no groups to keep; the test proves nothing")
 	}
 	want(t, admin.delete(t, "/api/v1/users/"+bobID.String()), http.StatusNoContent, "switch bob off")
-	if role, _ := h.standing(t, org, bobEmail); role != "member" {
+	if role, _ := h.standing(t, bobEmail); role != "member" {
 		t.Fatalf("bob is %q once switched off, want still a member", role)
 	}
-	if got := h.providerGroups(t, org, bobEmail); len(got) != len(groups) {
+	if got := h.providerGroups(t, bobEmail); len(got) != len(groups) {
 		t.Fatalf("bob has the groups %q once switched off, want %q", got, groups)
 	}
 	if status, me := bob.me(t); status != http.StatusUnauthorized {

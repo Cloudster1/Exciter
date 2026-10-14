@@ -92,7 +92,7 @@ func (s *Service) Save(ctx context.Context, in Provider) (*Provider, db.LSN, err
 		_, err := tx.Exec(ctx, `
 			INSERT INTO oidc_provider (issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT ON CONSTRAINT oidc_provider_pkey DO UPDATE SET
+			ON CONFLICT ((true)) DO UPDATE SET
 			    issuer = EXCLUDED.issuer,
 			    client_id = EXCLUDED.client_id,
 			    client_secret = COALESCE(EXCLUDED.client_secret, oidc_provider.client_secret),
@@ -161,7 +161,7 @@ func (s *Service) signInProvider(ctx context.Context) (*Provider, error) {
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT (SELECT id FROM org), issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled, updated_at
+			SELECT (SELECT id FROM installation), issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled, updated_at
 			FROM oidc_provider`,
 		).Scan(&id, &p.Issuer, &p.ClientID, &sealed, &p.GroupsClaim, &p.Scopes, &p.CreateGroups, &p.Enabled, &p.UpdatedAt)
 	})

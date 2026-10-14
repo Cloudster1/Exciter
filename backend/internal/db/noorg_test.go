@@ -9,12 +9,12 @@ import (
 	"testing"
 )
 
-// organizationColumn is what product code named while an installation held organizations; armature_org_id is
-// Armature's and stays.
-var organizationColumn = regexp.MustCompile(`\b(org_id|current_org_id|app\.org_id)\b`)
+// organizationColumn is what product code named while an installation held organizations: its column, setting,
+// tables and membership. armature_org_id is Armature's and stays.
+var organizationColumn = regexp.MustCompile(`\b(org_id|current_org_id|app\.org_id|org_member|org_join_request)\b|(?i:\b(from|join|into|update|table)\s+org\b)`)
 
-// The code no longer carries the organization (#107): no query names its column or asks which one acts, so the
-// schema can drop both (#108) without a query failing only when it runs.
+// The code no longer carries the organization (#107) nor names its tables (#108), which the schema has dropped, so
+// no query fails only when it runs.
 func TestNoProductCodeAsksForTheOrganization(t *testing.T) {
 	seen := 0
 	for _, root := range []string{"..", "../../cmd"} {

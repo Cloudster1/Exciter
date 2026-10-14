@@ -10,16 +10,16 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const insertFile = `INSERT INTO attachment (org_id, requirement_id, uploaded_by, file_name, content_type, size_bytes)
-	VALUES ($1, $2, $3, 'spec.pdf', 'application/pdf', 10) RETURNING id`
+const insertFile = `INSERT INTO attachment (requirement_id, uploaded_by, file_name, content_type, size_bytes)
+	VALUES ($1, $2, 'spec.pdf', 'application/pdf', 10) RETURNING id`
 
 // showFile writes the requirement's next revision, its statement showing the file, as the editor saves one.
 func (w *traceWorld) showFile(t *testing.T, requirement, file uuid.UUID) {
 	t.Helper()
 	statement := `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"attachment","attrs":{"attachmentId":"` + file.String() + `","fileName":"spec.pdf"}}]}]}`
 	if _, err := w.editor.Exec(t.Context(), `
-		INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, hash, created_by)
-		SELECT org_id, id, revision + 1, title, $2, 'h', current_actor_id() FROM requirement WHERE id = $1`, requirement, statement); err != nil {
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, hash, created_by)
+		SELECT id, revision + 1, title, $2, 'h', current_actor_id() FROM requirement WHERE id = $1`, requirement, statement); err != nil {
 		t.Fatalf("show the file: %v", err)
 	}
 }
@@ -27,7 +27,7 @@ func (w *traceWorld) showFile(t *testing.T, requirement, file uuid.UUID) {
 func (w *traceWorld) attach(t *testing.T, requirement uuid.UUID) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
-	if err := w.editor.QueryRow(t.Context(), insertFile, w.a.org, requirement, w.editorID).Scan(&id); err != nil {
+	if err := w.editor.QueryRow(t.Context(), insertFile, requirement, w.editorID).Scan(&id); err != nil {
 		t.Fatalf("attach: %v", err)
 	}
 	return id
@@ -60,17 +60,17 @@ func TestRawSQLGuardsAttachments(t *testing.T) {
 
 	t.Run("attached only by an editor, in their own name", func(t *testing.T) {
 		var id uuid.UUID
-		if err := w.viewer.QueryRow(ctx, insertFile, w.a.org, w.r1, w.viewerID).Scan(&id); err == nil {
+		if err := w.viewer.QueryRow(ctx, insertFile, w.r1, w.viewerID).Scan(&id); err == nil {
 			t.Error("a viewer attached a file")
 		}
-		if err := w.editor.QueryRow(ctx, insertFile, w.a.org, w.r1, w.viewerID).Scan(&id); err == nil {
+		if err := w.editor.QueryRow(ctx, insertFile, w.r1, w.viewerID).Scan(&id); err == nil {
 			t.Error("an editor attached a file in somebody else's name")
 		}
-		if err := w.stranger.QueryRow(ctx, insertFile, w.a.org, w.r1, w.strangerID).Scan(&id); err == nil {
+		if err := w.stranger.QueryRow(ctx, insertFile, w.r1, w.strangerID).Scan(&id); err == nil {
 			t.Error("a guest no grant names attached a file")
 		}
-		if err := w.editor.QueryRow(ctx, `INSERT INTO attachment (org_id, requirement_id, uploaded_by, file_name, size_bytes, deleted_at)
-			VALUES ($1, $2, current_actor_id(), 'x', 1, now()) RETURNING id`, w.a.org, w.r1).Scan(&id); err == nil {
+		if err := w.editor.QueryRow(ctx, `INSERT INTO attachment (requirement_id, uploaded_by, file_name, size_bytes, deleted_at)
+			VALUES ($1, current_actor_id(), 'x', 1, now()) RETURNING id`, w.r1).Scan(&id); err == nil {
 			t.Error("a file was attached already taken off the list")
 		}
 	})
@@ -106,12 +106,12 @@ func TestRawSQLGuardsAttachments(t *testing.T) {
 			t.Fatalf("an editor deletes a file nothing shows: %v", err)
 		}
 		if n := w.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`,
-			fileKey(w.a.org, w.r2.String(), loose.String())); n != 1 {
+			fileKey(w.h.installation(t).ID, w.r2.String(), loose.String())); n != 1 {
 			t.Error("the deleted file left no tombstone")
 		}
 		var key string
-		if err := w.stranger.QueryRow(ctx, `INSERT INTO attachment_tombstone (org_id, object_key) VALUES ($1, $2) RETURNING object_key`,
-			w.a.org, fileKey(w.a.org, w.r2.String(), loose.String())).Scan(&key); err == nil {
+		if err := w.stranger.QueryRow(ctx, `INSERT INTO attachment_tombstone (object_key) VALUES ($1) RETURNING object_key`,
+			fileKey(w.h.installation(t).ID, w.r2.String(), loose.String())).Scan(&key); err == nil {
 			t.Error("a guest no grant names named somebody's object for the reaper")
 		}
 		if _, err := w.editor.Exec(ctx, `UPDATE attachment_tombstone SET created_at = now()`); err == nil {
@@ -131,7 +131,7 @@ func TestRawSQLGuardsAttachments(t *testing.T) {
 			t.Errorf("%d files outlived their requirement", n)
 		}
 		if n := w.h.countRows(t, `SELECT count(*) FROM attachment_tombstone WHERE object_key = $1`,
-			fileKey(w.a.org, w.r1.String(), file.String())); n != 1 {
+			fileKey(w.h.installation(t).ID, w.r1.String(), file.String())); n != 1 {
 			t.Error("the purged file left no tombstone for the reaper")
 		}
 	})

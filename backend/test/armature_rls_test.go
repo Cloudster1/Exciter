@@ -40,9 +40,9 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 	api := newAPIServer(t, h)
 	home := h.owner(t, "arm-wall")
 	slug := stubTenant(t)
-	owner := api.as(t, home.user, home.org)
-	bobID := h.addPerson(t, home.org, "member")
-	bob := api.as(t, bobID, home.org)
+	owner := api.as(t, home.user)
+	bobID := h.addPerson(t, "member")
+	bob := api.as(t, bobID)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "webhookSecret": webhookSecret}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "the owner connects")
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "bob")}), http.StatusOK, "bob connects")
@@ -67,10 +67,10 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 		touchesNothing(t, conn, "removing the connection", `DELETE FROM armature_connection`)
 		touchesNothing(t, conn, "marking the owner's token", `UPDATE armature_token SET status = 'rejected' WHERE user_id = $1`, home.user)
 		touchesNothing(t, conn, "removing the owner's token", `DELETE FROM armature_token WHERE user_id = $1`, home.user)
-		refusedOutright(t, conn, "storing a token for the owner", `INSERT INTO armature_token (org_id, user_id, token, status) VALUES ($1, $2, '\x00', 'ok')`, home.org, home.user)
+		refusedOutright(t, conn, "storing a token for the owner", `INSERT INTO armature_token (user_id, token, status) VALUES ($1, '\x00', 'ok')`, home.user)
 		refusedOutright(t, conn, "rewriting his token in place", `UPDATE armature_token SET token = '\x00' WHERE user_id = $1`, bobID)
-		refusedOutright(t, conn, "choosing his row id", `INSERT INTO armature_token (org_id, user_id, id, token, status) VALUES ($1, $2, $3, '\x00', 'ok')`, home.org, bobID, uuid.New())
-		refusedOutright(t, conn, "connecting Armature", `INSERT INTO armature_connection (org_id, base_url) VALUES ($1, 'https://evil.example')`, home.org)
+		refusedOutright(t, conn, "choosing his row id", `INSERT INTO armature_token (user_id, id, token, status) VALUES ($1, $2, '\x00', 'ok')`, bobID, uuid.New())
+		refusedOutright(t, conn, "connecting Armature", `INSERT INTO armature_connection (base_url) VALUES ('https://evil.example')`)
 	})
 
 	t.Run("an administrator keeps the connection and still reads only their own token", func(t *testing.T) {
@@ -86,10 +86,10 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 		if _, err := conn.Exec(context.Background(), `UPDATE armature_connection SET base_url = 'https://elsewhere.example'`); err != nil {
 			t.Fatalf("the owner moves the connection: %v", err)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM armature_token WHERE org_id = $1`, home.org); n != 0 {
+		if n := h.countRows(t, `SELECT count(*) FROM armature_token`); n != 0 {
 			t.Errorf("raw SQL moved the connection and kept %d tokens", n)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM armature_connection WHERE org_id = $1 AND armature_org_id IS NULL`, home.org); n != 1 {
+		if n := h.countRows(t, `SELECT count(*) FROM armature_connection WHERE armature_org_id IS NULL`); n != 1 {
 			t.Error("the learned organization id survived the move")
 		}
 	})

@@ -18,10 +18,10 @@ func statementSaying(text string) map[string]any {
 }
 
 // grantAs gives person role in the project behind the policies' back.
-func (h *harness) grantAs(t *testing.T, org, project, person uuid.UUID, role string) {
+func (h *harness) grantAs(t *testing.T, project, person uuid.UUID, role string) {
 	t.Helper()
-	if _, err := h.super.Exec(t.Context(), `INSERT INTO project_grant (org_id, project_id, subject_type, user_id, role) VALUES ($1, $2, 'user', $3, $4)`,
-		org, project, person, role); err != nil {
+	if _, err := h.super.Exec(t.Context(), `INSERT INTO project_grant (project_id, subject_type, user_id, role) VALUES ($1, 'user', $2, $3)`,
+		project, person, role); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
@@ -45,11 +45,11 @@ func TestRequirementsOverTheAPI(t *testing.T) {
 	f := newProjectFixture(t)
 	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": rqKey, "name": "Requirements"}), http.StatusCreated, "make a project"), "project")
 	projectID := uuid.MustParse(project["id"].(string))
-	viewerID := f.h.addPerson(t, f.home.org, "member")
+	viewerID := f.h.addPerson(t, "member")
 	// Everyone edits, so a viewer is somebody whom only a viewer grant reaches: a guest named by one.
-	guestViewerID := f.h.addPerson(t, f.home.org, "guest")
-	f.h.grantAs(t, f.home.org, projectID, guestViewerID, "viewer")
-	viewer := f.api.as(t, guestViewerID, f.home.org)
+	guestViewerID := f.h.addPerson(t, "guest")
+	f.h.grantAs(t, projectID, guestViewerID, "viewer")
+	viewer := f.api.as(t, guestViewerID)
 	editor := f.plain
 
 	made := obj(t, want(t, editor.post(t, "/api/v1/projects/"+rqKey+"/requirements", map[string]any{

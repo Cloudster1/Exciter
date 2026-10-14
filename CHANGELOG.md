@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The tables are the installation's (#108): `org` is `installation`, a
+  membership is a role on the account, the identity provider and the
+  Armature connection are one row each, and no table has `org_id`. Scripts
+  that read `org`, `org_member`, `org_join_request` or `org_id` need the new
+  names. Through SQL, the app role can no longer delete an account.
 - The code no longer carries an organization (#107). Admitting somebody who
   asked to join answers `membership: {userId, role}` instead of the
   organization's id, slug and name. Secrets and files stored earlier stay

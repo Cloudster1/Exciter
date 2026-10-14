@@ -38,9 +38,9 @@ func TestProjectGrantsOverTheAPI(t *testing.T) {
 	if _, err := f.h.super.Exec(t.Context(), `UPDATE app_user SET name = $2 WHERE id = $1`, f.home.user, ownerName); err != nil {
 		t.Fatal(err)
 	}
-	plainID, guestID := f.h.namedPerson(t, f.home.org, "Paul Plain"), f.h.addPerson(t, f.home.org, "guest")
-	plain, guest := f.api.as(t, plainID, f.home.org), f.api.as(t, guestID, f.home.org)
-	reviewers := f.h.makeGroup(t, f.home.org, "Reviewers", plainID)
+	plainID, guestID := f.h.namedPerson(t, "Paul Plain"), f.h.addPerson(t, "guest")
+	plain, guest := f.api.as(t, plainID), f.api.as(t, guestID)
+	reviewers := f.h.makeGroup(t, "Reviewers", plainID)
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": graKey, "name": "Granted"}), http.StatusCreated, "make a project")
 	grants := "/api/v1/projects/" + graKey + "/grants"
 

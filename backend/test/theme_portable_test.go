@@ -30,7 +30,7 @@ func TestAThemeTravelsAsOneFile(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
 	home := h.owner(t, "porter")
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 
 	made := want(t, owner.post(t, "/api/v1/themes", map[string]any{"name": "Traveller", "spec": map[string]any{"colors": map[string]any{"light": map[string]string{"accent": "#123456"}}, "shape": map[string]any{"radiusControl": 0}}}), http.StatusCreated, "make a theme")
 	themeID := obj(t, made, "theme")["id"].(string)
@@ -56,7 +56,7 @@ func TestAThemeTravelsAsOneFile(t *testing.T) {
 	}
 
 	t.Run("somebody else cannot export a private theme", func(t *testing.T) {
-		stranger := api.as(t, h.addPerson(t, home.org, "member"), home.org)
+		stranger := api.as(t, h.addPerson(t, "member"))
 		if resp, _ := stranger.download(t, "/api/v1/themes/"+themeID+"/export"); resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("somebody else exported a private theme: %d", resp.StatusCode)
 		}
@@ -84,7 +84,7 @@ func TestAThemeTravelsAsOneFile(t *testing.T) {
 		if resp, data := owner.download(t, "/api/v1/themes/"+newID+"/assets/"+newAsset); resp.StatusCode != http.StatusOK || string(data) != string(svg) {
 			t.Fatalf("the imported file does not read back: %d", resp.StatusCode)
 		}
-		if _, err := api.store.Get(context.Background(), themeObject(home.org, newID, newAsset)); err != nil {
+		if _, err := api.store.Get(context.Background(), themeObject(h.installation(t).ID, newID, newAsset)); err != nil {
 			t.Fatalf("the imported file is not in the bucket: %v", err)
 		}
 	})
@@ -117,7 +117,7 @@ func TestTheMinecraftThemeFromArmatureImports(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
 	home := h.owner(t, "minecraft")
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 
 	file, err := os.ReadFile(minecraftFile)
 	if err != nil {
@@ -182,7 +182,7 @@ func TestTheLuckyRainbowThemeImportsWithItsFiles(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
 	home := h.owner(t, "rainbow")
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 	file, err := os.ReadFile(luckyRainbowFile)
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestTheLuckyRainbowThemeImportsWithItsFiles(t *testing.T) {
 	cursors := made["spec"].(map[string]any)["cursors"].(map[string]any)
 	for _, a := range assets {
 		id := a.(map[string]any)["id"].(string)
-		if _, err := api.store.Get(context.Background(), themeObject(home.org, themeID, id)); err != nil {
+		if _, err := api.store.Get(context.Background(), themeObject(h.installation(t).ID, themeID, id)); err != nil {
 			t.Errorf("%s is not in the bucket: %v", a.(map[string]any)["name"], err)
 		}
 	}

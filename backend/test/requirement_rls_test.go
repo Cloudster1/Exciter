@@ -18,36 +18,36 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 	a := h.owner(t, "req-wall-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+reqKey+`', 'Walled', $2) RETURNING id`,
-		a.org, a.user).Scan(&project); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+reqKey+`', 'Walled', $1) RETURNING id`,
+		a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
-	editorID := h.addPerson(t, a.org, "member")
-	viewerID := h.addPerson(t, a.org, "guest")
-	h.grantAs(t, a.org, project, viewerID, "viewer")
+	editorID := h.addPerson(t, "member")
+	viewerID := h.addPerson(t, "guest")
+	h.grantAs(t, project, viewerID, "viewer")
 	editor, viewer, owner := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, a.user)
-	strangerID := h.addPerson(t, a.org, "guest")
+	strangerID := h.addPerson(t, "guest")
 	stranger := h.appConn(t, strangerID)
-	insert := `INSERT INTO requirement (org_id, project_id, number, title, statement, normative_hash, created_by)
-		VALUES ($1, $2, 99, 'Walled in', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id, number`
+	insert := `INSERT INTO requirement (project_id, number, title, statement, normative_hash, created_by)
+		VALUES ($1, 99, 'Walled in', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id, number`
 
 	var id uuid.UUID
 	var number int
 	t.Run("editors write, and the project hands out the number", func(t *testing.T) {
-		if err := editor.QueryRow(ctx, insert, a.org, project).Scan(&id, &number); err != nil {
+		if err := editor.QueryRow(ctx, insert, project).Scan(&id, &number); err != nil {
 			t.Fatalf("an editor could not write a requirement: %v", err)
 		}
 		if number != 1 {
 			t.Errorf("the requirement took number %d, want 1 whatever the insert said", number)
 		}
 		var second uuid.UUID
-		if err := editor.QueryRow(ctx, insert, a.org, project).Scan(&second, &number); err != nil || number != 2 {
+		if err := editor.QueryRow(ctx, insert, project).Scan(&second, &number); err != nil || number != 2 {
 			t.Errorf("the next requirement took number %d: %v", number, err)
 		}
-		if _, err := viewer.Exec(ctx, insert, a.org, project); !isPolicyViolation(err) {
+		if _, err := viewer.Exec(ctx, insert, project); !isPolicyViolation(err) {
 			t.Errorf("a viewer wrote a requirement: %v", err)
 		}
-		if _, err := stranger.Exec(ctx, insert, a.org, project); !isPolicyViolation(err) {
+		if _, err := stranger.Exec(ctx, insert, project); !isPolicyViolation(err) {
 			t.Errorf("a guest no grant names wrote a requirement: %v", err)
 		}
 		if _, err := editor.Exec(ctx, `UPDATE requirement SET number = 7 WHERE id = $1`, id); !refusedBy(err, "requirement_fixed") {
@@ -59,15 +59,15 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 	})
 
 	t.Run("revisions are written in sequence and never changed", func(t *testing.T) {
-		revision := `INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, hash, created_by)
-			VALUES ($1, $2, $3, 'Walled in', '{"type":"doc"}', 'h', current_actor_id())`
-		if _, err := editor.Exec(ctx, revision, a.org, id, 1); err != nil {
+		revision := `INSERT INTO requirement_revision (requirement_id, number, title, statement, hash, created_by)
+			VALUES ($1, $2, 'Walled in', '{"type":"doc"}', 'h', current_actor_id())`
+		if _, err := editor.Exec(ctx, revision, id, 1); err != nil {
 			t.Fatalf("an editor could not write revision 1: %v", err)
 		}
-		if _, err := editor.Exec(ctx, revision, a.org, id, 3); !refusedBy(err, "requirement_revision_in_sequence") {
+		if _, err := editor.Exec(ctx, revision, id, 3); !refusedBy(err, "requirement_revision_in_sequence") {
 			t.Errorf("revision 3 followed revision 1: %v", err)
 		}
-		if _, err := viewer.Exec(ctx, revision, a.org, id, 2); !isPolicyViolation(err) {
+		if _, err := viewer.Exec(ctx, revision, id, 2); !isPolicyViolation(err) {
 			t.Errorf("a viewer wrote a revision: %v", err)
 		}
 		var current int
@@ -80,13 +80,13 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 		if _, err := owner.Exec(ctx, `DELETE FROM requirement_revision WHERE requirement_id = $1`, id); !isPolicyViolation(err) {
 			t.Errorf("even the owner deleted history: %v", err)
 		}
-		if _, err := editor.Exec(ctx, `INSERT INTO requirement_change (org_id, requirement_id, field, actor_id) VALUES ($1, $2, 'owner', current_actor_id())`, a.org, id); err != nil {
+		if _, err := editor.Exec(ctx, `INSERT INTO requirement_change (requirement_id, field, actor_id) VALUES ($1, 'owner', current_actor_id())`, id); err != nil {
 			t.Errorf("an editor could not log a change: %v", err)
 		}
 		if _, err := owner.Exec(ctx, `DELETE FROM requirement_change WHERE requirement_id = $1`, id); !isPolicyViolation(err) {
 			t.Errorf("a logged change was deleted: %v", err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO requirement_old_key (org_id, key, requirement_id) VALUES ($1, '`+oldKey+`-R1', $2)`, a.org, id); !isPolicyViolation(err) {
+		if _, err := owner.Exec(ctx, `INSERT INTO requirement_old_key (key, requirement_id) VALUES ('`+oldKey+`-R1', $1)`, id); !isPolicyViolation(err) {
 			t.Errorf("the app wrote an old key by hand: %v", err)
 		}
 	})

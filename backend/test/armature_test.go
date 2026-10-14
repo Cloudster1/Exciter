@@ -94,9 +94,9 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	api := newAPIServer(t, h)
 	home := h.owner(t, "arm-connect")
 	slug := stubTenant(t)
-	owner := api.as(t, home.user, home.org)
-	bobID := h.addPerson(t, home.org, "member")
-	bob := api.as(t, bobID, home.org)
+	owner := api.as(t, home.user)
+	bobID := h.addPerson(t, "member")
+	bob := api.as(t, bobID)
 	base := armatureURL(t)
 	bobToken := patFor(slug, "bob")
 
@@ -142,7 +142,7 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 		t.Error("the webhook secret was answered")
 	}
 	var sealed []byte
-	if err := h.super.QueryRow(context.Background(), `SELECT webhook_secret FROM armature_connection WHERE org_id = $1`, home.org).Scan(&sealed); err != nil || bytes.Contains(sealed, []byte(webhookSecret)) || len(sealed) == 0 {
+	if err := h.super.QueryRow(context.Background(), `SELECT webhook_secret FROM armature_connection`).Scan(&sealed); err != nil || bytes.Contains(sealed, []byte(webhookSecret)) || len(sealed) == 0 {
 		t.Errorf("the webhook secret is not sealed at rest: %v", err)
 	}
 	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2 AND data::text NOT LIKE '%armature_whs_%'`, home.user, armature.ActionConnectionSaved); n != 1 {
@@ -170,13 +170,13 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	}
 	var sealedToken []byte
 	var tokenID uuid.UUID
-	if err := h.super.QueryRow(context.Background(), `SELECT id, token FROM armature_token WHERE org_id = $1 AND user_id = $2`, home.org, bobID).Scan(&tokenID, &sealedToken); err != nil {
+	if err := h.super.QueryRow(context.Background(), `SELECT id, token FROM armature_token WHERE user_id = $1`, bobID).Scan(&tokenID, &sealedToken); err != nil {
 		t.Fatal(err)
 	}
 	if bytes.Contains(sealedToken, []byte(bobToken)) || bytes.Contains(sealedToken, []byte("_bob")) {
 		t.Error("the token is readable at rest")
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM armature_connection WHERE org_id = $1 AND armature_org_id IS NOT NULL`, home.org); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM armature_connection WHERE armature_org_id IS NOT NULL`); n != 1 {
 		t.Error("the Armature organization's id was not learned from the first token")
 	}
 	// The address alone picks the Armature; what the first token taught keeps every later one to it.
@@ -199,7 +199,7 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	// A new token is a new row, so nothing cached for the old one is read for it.
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": bobToken}), http.StatusOK, "bob connects again")
 	var again uuid.UUID
-	_ = h.super.QueryRow(context.Background(), `SELECT id FROM armature_token WHERE org_id = $1 AND user_id = $2`, home.org, bobID).Scan(&again)
+	_ = h.super.QueryRow(context.Background(), `SELECT id FROM armature_token WHERE user_id = $1`, bobID).Scan(&again)
 	if again == tokenID {
 		t.Error("storing a token again kept the row id that keys the cache")
 	}
@@ -231,14 +231,14 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	want(t, bob.delete(t, "/api/v1/armature/account/token"), http.StatusNoContent, "disconnect with no token")
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": bobToken}), http.StatusOK, "bob connects to the new address")
 	want(t, bob.delete(t, "/api/v1/armature/account/token"), http.StatusNoContent, "bob disconnects")
-	if n := h.countRows(t, `SELECT count(*) FROM armature_token WHERE org_id = $1`, home.org); n != 0 {
+	if n := h.countRows(t, `SELECT count(*) FROM armature_token`); n != 0 {
 		t.Errorf("%d tokens are left after disconnecting", n)
 	}
 
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": bobToken}), http.StatusOK, "bob connects before the removal")
 	errorCode(t, want(t, bob.delete(t, "/api/v1/armature/connection"), http.StatusForbidden, "a member removes the connection"))
 	want(t, owner.delete(t, "/api/v1/armature/connection"), http.StatusNoContent, "remove the connection")
-	if n := h.countRows(t, `SELECT count(*) FROM armature_token WHERE org_id = $1`, home.org); n != 0 {
+	if n := h.countRows(t, `SELECT count(*) FROM armature_token`); n != 0 {
 		t.Errorf("%d tokens outlived the connection", n)
 	}
 	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2`, home.user, armature.ActionConnectionRemoved); n != 1 {
@@ -257,7 +257,7 @@ func TestAReadOnlyArmatureTokenIsNamedSo(t *testing.T) {
 	api := newAPIServer(t, h)
 	home := h.owner(t, "arm-reader")
 	slug := stubTenant(t)
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	account := obj(t, want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "reader")}), http.StatusOK, "a read-only token"), "account")
 	if account["readOnly"] != true || account["status"] != "ok" {
@@ -280,14 +280,14 @@ func TestAnArmatureThatDoesNotAnswer(t *testing.T) {
 	api := newAPIServer(t, h)
 	home := h.owner(t, "arm-silent")
 	slug := stubTenant(t)
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
 
 	// Behind the service's back: the same host on a port where nothing listens.
 	if _, err := h.super.Exec(context.Background(), `
 		ALTER TABLE armature_connection DISABLE TRIGGER armature_connection_moved;
-		UPDATE armature_connection SET base_url = 'http://armature-stub:9' WHERE org_id = '`+home.org.String()+`';
+		UPDATE armature_connection SET base_url = 'http://armature-stub:9';
 		ALTER TABLE armature_connection ENABLE TRIGGER armature_connection_moved;`); err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestACheckFindsARevokedToken(t *testing.T) {
 	api := newAPIServer(t, h)
 	home := h.owner(t, "arm-revoked")
 	slug := stubTenant(t)
-	owner := api.as(t, home.user, home.org)
+	owner := api.as(t, home.user)
 	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
 	service := h.armature(t)
@@ -319,7 +319,8 @@ func TestACheckFindsARevokedToken(t *testing.T) {
 	}
 
 	box, _ := secret.New(testSecretKey(t))
-	bound := append(append([]byte("armature.token:"), home.org[:]...), home.user[:]...)
+	installed := h.installation(t).ID
+	bound := append(append([]byte("armature.token:"), installed[:]...), home.user[:]...)
 	revoked, _ := box.Seal([]byte("armature_pat_revoked"), bound)
 	if _, err := h.super.Exec(context.Background(), `UPDATE armature_token SET token = $2 WHERE user_id = $1`, home.user, revoked); err != nil {
 		t.Fatal(err)

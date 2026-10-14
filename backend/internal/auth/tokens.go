@@ -254,10 +254,9 @@ SELECT t.id, t.name, t.scopes, t.last_used_at, t.expires_at, t.projects_only,
        ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.id = tp.project_id
              WHERE tp.token_id = t.id ORDER BY p.key),
        u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       (SELECT name FROM org), m.org_role
+       (SELECT name FROM installation), u.role
 FROM api_token t
-JOIN app_user u ON u.id = t.user_id
-JOIN org_member m ON m.user_id = t.user_id
+JOIN app_user u ON u.id = t.user_id AND u.role IS NOT NULL
 WHERE t.token_hash = $1 AND (t.expires_at IS NULL OR t.expires_at > now())`
 
 func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Principal, error) {

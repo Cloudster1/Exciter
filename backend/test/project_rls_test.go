@@ -31,14 +31,14 @@ func TestRawSQLKeepsProjectsToTheirPeople(t *testing.T) {
 	a := h.owner(t, "project-wall-a")
 	ctx := context.Background()
 	var projectID uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+sysKey+`', 'System', $2) RETURNING id`,
-		a.org, a.user).Scan(&projectID); err != nil {
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+sysKey+`', 'System', $1) RETURNING id`,
+		a.user).Scan(&projectID); err != nil {
 		t.Fatal(err)
 	}
-	strangerID := h.addPerson(t, a.org, "guest")
+	strangerID := h.addPerson(t, "guest")
 	stranger := h.appConn(t, strangerID)
-	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
-	guest := h.appConn(t, h.addPerson(t, a.org, "guest"))
+	plain := h.appConn(t, h.addPerson(t, "member"))
+	guest := h.appConn(t, h.addPerson(t, "guest"))
 	owner := h.appConn(t, a.user)
 
 	t.Run("a guest, another guest or nobody sees nothing", func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestRawSQLKeepsProjectsToTheirPeople(t *testing.T) {
 		if n := affects(t, stranger, `UPDATE project SET name = 'Taken' WHERE id = $1`, projectID); n != 0 {
 			t.Error("a guest renamed the project")
 		}
-		if _, err := stranger.Exec(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+plantKey+`', 'Planted', $2)`, a.org, strangerID); !isPolicyViolation(err) {
+		if _, err := stranger.Exec(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+plantKey+`', 'Planted', $1)`, strangerID); !isPolicyViolation(err) {
 			t.Errorf("a guest planted a project: %v", err)
 		}
 	})
@@ -68,10 +68,10 @@ func TestRawSQLKeepsProjectsToTheirPeople(t *testing.T) {
 		if n := affects(t, plain, `UPDATE project SET name = 'Mine' WHERE id = $1`, projectID); n != 0 {
 			t.Error("a member renamed the project")
 		}
-		if _, err := plain.Exec(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+mineKey+`', 'Mine', current_actor_id())`, a.org); !isPolicyViolation(err) {
+		if _, err := plain.Exec(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+mineKey+`', 'Mine', current_actor_id())`); !isPolicyViolation(err) {
 			t.Errorf("a member made a project: %v", err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+forgeKey+`', 'Forged', $2)`, a.org, strangerID); !isPolicyViolation(err) {
+		if _, err := owner.Exec(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+forgeKey+`', 'Forged', $1)`, strangerID); !isPolicyViolation(err) {
 			t.Errorf("a project was made in somebody else's name: %v", err)
 		}
 		if n := affects(t, owner, `UPDATE project SET description = 'Tidied' WHERE id = $1`, projectID); n != 1 {
@@ -102,17 +102,17 @@ func TestRawSQLKeepsProjectsToTheirPeople(t *testing.T) {
 		if err := owner.QueryRow(ctx, `SELECT key FROM project_key_alias WHERE project_id = $1`, projectID).Scan(&alias); err != nil || alias != sysKey {
 			t.Fatalf("the old key did not stay behind: %q %v", alias, err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+sysKey+`', 'Squatter', current_actor_id())`, a.org); !isKeyTaken(err) {
+		if _, err := owner.Exec(ctx, `INSERT INTO project (key, name, created_by) VALUES ('`+sysKey+`', 'Squatter', current_actor_id())`); !isKeyTaken(err) {
 			t.Errorf("a new project took a former key: %v", err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO project_key_alias (org_id, key, project_id) VALUES ($1, 'ANY', $2)`, a.org, projectID); err == nil {
+		if _, err := owner.Exec(ctx, `INSERT INTO project_key_alias (key, project_id) VALUES ('ANY', $1)`, projectID); err == nil {
 			t.Error("the app role wrote an alias by hand")
 		}
-		if _, err := h.super.Exec(ctx, `INSERT INTO project_key_alias (org_id, key, project_id) VALUES ($1, '`+sysxKey+`', $2)`, a.org, projectID); !isKeyTaken(err) {
+		if _, err := h.super.Exec(ctx, `INSERT INTO project_key_alias (key, project_id) VALUES ('`+sysxKey+`', $1)`, projectID); !isKeyTaken(err) {
 			t.Errorf("an alias took a current key: %v", err)
 		}
 		var otherID uuid.UUID
-		if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name) VALUES ($1, '`+otherKey+`', 'Other') RETURNING id`, a.org).Scan(&otherID); err != nil {
+		if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name) VALUES ('`+otherKey+`', 'Other') RETURNING id`).Scan(&otherID); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := owner.Exec(ctx, `UPDATE project SET key = '`+sysKey+`' WHERE id = $1`, otherID); !isKeyTaken(err) {

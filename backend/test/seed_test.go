@@ -17,8 +17,8 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
 	ctx := context.Background()
-	org := h.singleSignOn(t)
-	adminID := h.userID(t, bootstrapAdmin(t, h, a, org.ID))
+	h.singleSignOn(t)
+	adminID := h.userID(t, bootstrapAdmin(t, h, a))
 	first, second := "first-"+h.suffix()+"@suite.test", "second-"+h.suffix()+"@suite.test"
 	h.forgetPerson(t, first)
 	h.forgetPerson(t, second)
@@ -40,29 +40,28 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	}
 	for email, role := range map[string]string{first: "admin", second: "member"} {
 		if n := h.countRows(t, `
-			SELECT count(*) FROM org_member m JOIN app_user u ON u.id = m.user_id
-			WHERE m.org_id = $1 AND u.email = $2 AND m.org_role = $3 AND m.role_source = 'manual'`, org.ID, email, role); n != 1 {
+			SELECT count(*) FROM app_user WHERE email = $1 AND role = $2 AND role_source = 'manual'`, email, role); n != 1 {
 			t.Errorf("%s is not let in as %s", email, role)
 		}
 	}
 	if n := h.countRows(t, `
-		SELECT count(*) FROM oidc_provider WHERE org_id = $1 AND issuer = $2 AND client_secret IS NOT NULL
-		  AND position(convert_to($3, 'UTF8') in client_secret) = 0 AND create_groups AND enabled`,
-		org.ID, people.Provider.Issuer, exciterSecret); n != 1 {
+		SELECT count(*) FROM oidc_provider WHERE issuer = $1 AND client_secret IS NOT NULL
+		  AND position(convert_to($2, 'UTF8') in client_secret) = 0 AND create_groups AND enabled`,
+		people.Provider.Issuer, exciterSecret); n != 1 {
 		t.Fatal("the provider is not configured with its secret sealed")
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = 'sso.provider_saved' AND actor_user_id = $2`, org.ID, adminID); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE action = 'sso.provider_saved' AND actor_user_id = $1`, adminID); n != 1 {
 		t.Errorf("the provider's configuration is recorded %d times in the administrator's name, want once", n)
 	}
 
-	if _, err := h.super.Exec(ctx, `UPDATE oidc_provider SET client_id = 'changed' WHERE org_id = $1`, org.ID); err != nil {
+	if _, err := h.super.Exec(ctx, `UPDATE oidc_provider SET client_id = 'changed'`); err != nil {
 		t.Fatal(err)
 	}
 	again, err := seed.Populate(asAdmin, a.accounts, a.sso, people)
 	if err != nil || len(again.Added) != 0 || again.ProviderCreated || !again.ProviderExisting {
 		t.Fatalf("the second run = %+v, %v; want nothing made", again, err)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM oidc_provider WHERE org_id = $1 AND client_id = 'changed'`, org.ID); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM oidc_provider WHERE client_id = 'changed'`); n != 1 {
 		t.Error("the second run overwrote what an administrator changed")
 	}
 }

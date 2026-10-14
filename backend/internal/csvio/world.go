@@ -64,8 +64,8 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 	}{
 		{`SELECT id, name, lower(name) FROM requirement_type WHERE project_id = $1 AND NOT retired`, w.types},
 		{`SELECT id, name, lower(name) FROM req_status WHERE project_id = $1`, w.statuses},
-		{`SELECT u.id, u.email::text, lower(u.email::text) FROM org_member m JOIN app_user u ON u.id = m.user_id
-		  WHERE u.is_active AND perm_project_holds($1, u.id, 'view')`, w.members},
+		{`SELECT u.id, u.email::text, lower(u.email::text) FROM app_user u
+		  WHERE u.role IS NOT NULL AND u.is_active AND perm_project_holds($1, u.id, 'view')`, w.members},
 	}
 	for _, read := range reads {
 		if err := readNamed(ctx, tx, read.sql, p.ID, read.into); err != nil {
