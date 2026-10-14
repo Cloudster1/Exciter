@@ -27,6 +27,18 @@ func (c *Cluster) Write(ctx context.Context, fn func(context.Context, DBTX) erro
 	return c.committedLSN(ctx, c.primary)
 }
 
+// WriteSnapshot is Write in which every statement sees the database as the first one did, so several statements
+// copy one consistent state even while others commit.
+func (c *Cluster) WriteSnapshot(ctx context.Context, fn func(context.Context, DBTX) error) (LSN, error) {
+	err := c.inTx(ctx, c.primary, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadWrite}, func(ctx context.Context, tx pgx.Tx) error {
+		return fn(ctx, tx)
+	})
+	if err != nil {
+		return c.refusedLSN(ctx), err
+	}
+	return c.committedLSN(ctx, c.primary)
+}
+
 // refusedLSN is where the primary stood when a write was refused, or zero,
 // which pins nothing, when it cannot say.
 func (c *Cluster) refusedLSN(ctx context.Context) LSN {
