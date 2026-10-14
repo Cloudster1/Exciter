@@ -44,24 +44,29 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,
   `_REGION` and `_USE_SSL` name the bucket, which the api makes when missing;
   without an endpoint an upload is refused with the setting to fix. Every
-  object of an organization lives under `org/<org>/`, and a row in the
+  object lives under `org/<org>/`, the one organization's id until #91
+  flattens it, and a row in the
   database says the object exists, so a removed row leaves at worst an
   unreachable object, never a broken link. `EXCITER_UPLOAD_LIMIT` caps an
   attachment (#21), 50 MB by default.
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
-### Multi-tenancy
+### One installation
 
-An installation serves one team and holds one organization (#84): the seed
-makes it on the first start under `EXCITER_NAME`, migration `00400` refuses a
-database holding several, and `internal/installation` is the one way to its
-name and default theme. The tenant layer below stays until #91 drops it.
+An installation serves one team (#82): nothing people or the API see names
+an organization. The seed makes the installation on the first start under
+`EXCITER_NAME`, migration `00400` refuses a database holding several
+organizations, and `internal/installation` is the one way to its name and
+default theme.
 
-Every table has `org_id` and a primary key `(org_id, id)` with composite
-foreign keys, and FORCE ROW LEVEL SECURITY on `current_org_id()`. The
-application connects as `exciter_app`, which row level security binds;
-permission rules are SQL functions used as restrictive policies, so a guard
-holds even for a query that forgot it.
+Inside, one `org` row still stands for the installation until #91 drops the
+tenant layer: every table has `org_id` and a primary key `(org_id, id)` with
+composite foreign keys, and FORCE ROW LEVEL SECURITY on `current_org_id()`
+scopes every query to that one row. Only the integration suite still makes
+organizations of its own, to keep its tests apart, until #90. The application
+connects as `exciter_app`, which row level security binds; permission rules
+are SQL functions used as restrictive policies, so a guard holds even for a
+query that forgot it, and those stay when the tenant layer goes.
 
 ### Domains (M1 to M3)
 
@@ -75,7 +80,7 @@ holds even for a query that forgot it.
   the role viewer, reviewer, editor or admin in a project, and a person holds
   the union of the rights of every grant that reaches them.
   `perm_project_holds` reads the grants; owners and administrators of the
-  organization hold everything, everyone's grants leave guests out, and a
+  installation hold everything, everyone's grants leave guests out, and a
   guest holds at most editor. A trigger gives a new project its maker as
   admin and everyone as editor. The access inspector explains a verdict from
   the same function, so it says what the database enforces.
@@ -122,7 +127,7 @@ holds even for a query that forgot it.
   owner's and shared by editors, under `saved_view`'s own policies.
 - **Labels** (#19): Stator's labels on requirements. `requirement_label` holds
   a name per requirement and nothing else, so a label exists while something
-  carries it and is the organization's, not a project's. Its rows follow the
+  carries it and is everyone's, not a project's. Its rows follow the
   requirement's policies: seen by who may view it, put on and taken off by who
   edits it, never updated in place. Suggestions and a label's list count only
   requirements the reader may view, out of the trash.
@@ -135,8 +140,8 @@ holds even for a query that forgot it.
   reader sees them. A restore writes the old content as the next revision,
   and the activity merges revisions with the changes that wrote none.
 - **Trace links** (#18): typed and directed links between requirements,
-  read from the source. `link_type` holds the organization's types, seeded
-  for every organization, and the projects' own; `link_type_project` turns
+  read from the source. `link_type` holds the types for all projects, seeded
+  with the installation, and the projects' own; `link_type_project` turns
   one off in a project and `link_type_rule` limits it to pairs of
   requirement types. `trace_link` records the revision of each end and is
   tombstoned, never deleted, through the app role. A trigger refuses a link
@@ -156,7 +161,7 @@ holds even for a query that forgot it.
   removes the bytes behind each.
 - **Tokens and MCP** (#22): Stator's personal access tokens, `exciter_pat_`
   and 43 characters, stored as their SHA-256 and sent as a bearer. A token
-  acts as its owner in one organization; a read-only one is refused every
+  acts as its owner; a read-only one is refused every
   write before any handler, and one limited to projects carries them into
   every transaction (`app.token_projects`), where the permission functions
   read them. `POST /mcp` serves the table's tool-marked rows to assistants,
@@ -238,8 +243,8 @@ holds even for a query that forgot it.
   who is not a member is refused and noted in `org_join_request`, where an
   administrator lets them in or turns them away. Through the app role only
   administrators read or change the provider, the mapping and the requests.
-- `authenticate` puts the principal, its organization and the person it acts
-  for on every request, so row level security sees both; `requireAuth` and
+- `authenticate` puts the principal, the installation's organization row and
+  the person it acts for on every request, so row level security sees both; `requireAuth` and
   `requireAdmin` guard the routes. Everybody signed in belongs to the
   installation (#84): a password sign-in of somebody without a membership is
   refused with "Your account has been switched off. Ask an administrator.",
@@ -289,7 +294,7 @@ German.
   refuses any host inside the network that `EXCITER_OUTBOUND_ALLOW` does not
   name; `EXCITER_ARMATURE_BACKCHANNEL` reaches a public address at another
   inside the stack. A token is sealed with `EXCITER_SECRET_KEY` bound to the
-  organization and the person, and the database lets `exciter_app` read only
+  installation and the person, and the database lets `exciter_app` read only
   the actor's own token row and administrators alone the connection; moving
   the connection forgets every token in a trigger. `Service.Viewer` is what
   #27 to #30 call Armature through.
@@ -329,9 +334,10 @@ The browser suite (#9, `e2e/`, run by `mk/e2e.mk`) drives Chromium in
 Microsoft's Playwright image of the exact version `e2e/package.json` pins, on
 the host's network so it reaches the stack as a person at this machine does,
 at desktop size and at 360x740. It reads the ports from `.cache/stack.env`. A
-setup project signs alice and bob in to `demo` through Keycloak once and keeps
-their sessions in `e2e/.auth/`, and setup and teardown leave `demo` showing
-the built-in theme. Every spec shares `demo` and keeps to its own: with
+setup project signs alice and bob in to the installation through Keycloak once
+and keeps their sessions in `e2e/.auth/`, and setup and teardown leave it
+showing the built-in theme. Every spec shares the installation and keeps to
+its own: with
 `peopleTest` from `e2e/fixtures/people.ts`, each spec file gets per worker an
 alice who administers and a bob who is a member, made by the bootstrap owner
 and signed in with a password, on the built-in theme, and let go when the
@@ -364,6 +370,6 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
   integration suite writes to `exciter-test`, so what it leaves never shows
   among the app's files.
 - `migrate` applies the embedded migrations as the database owner, `seed`
-  makes the demo organization, and `api` serves on `API_PORT` once both are
-  done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`
+  makes the installation with its owner, provider and development people, and
+  `api` serves on `API_PORT` once both are done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`
   serves the client on `WEB_PORT` once the api is healthy (#6).

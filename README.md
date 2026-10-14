@@ -8,6 +8,11 @@ Armature issues that implement and verify them and to the Stator pages that
 explain them, review and approve them, and freeze what was agreed in
 baselines. Same look, same themes, same single sign-on as its siblings.
 
+An installation serves one team: everybody signed in works in it, and
+settings such as the theme, the link types and the Armature connection are
+for everyone. People who must not see each other's work run an installation
+each.
+
 Exciter is at the start: the plan is in the
 [issues](https://github.com/Cloudster1/Exciter/issues) and their milestones,
 from `M0 Foundation` to `M4 Stator integration`. What exists is described in
