@@ -4,8 +4,8 @@ import type { armatureEn } from "./armature.en";
 export const armatureDe: typeof armatureEn = {
   title: "Armature",
   intro:
-    "Verbinden Sie die Armature-Instanz, in der Ihre Organisation ihre Arbeit verfolgt. Anforderungen lassen sich dann auf ihre Vorgänge zurückverfolgen, und jede Person sieht, was Armature ihr zeigt.",
-  notAdmin: "Nur ein Administrator dieser Organisation kann Armature verbinden.",
+    "Verbinden Sie das Armature, in dem Ihr Team seine Arbeit verfolgt. Anforderungen lassen sich dann auf ihre Vorgänge zurückverfolgen, und jede Person sieht, was Armature ihr zeigt.",
+  notAdmin: "Nur ein Administrator kann Armature verbinden.",
   baseUrl: "Armature-Adresse",
   baseUrlHint: "Wo Armature geöffnet wird, etwa https://armature.example.com. Das Token jedes Mitglieds muss aus diesem Armature stammen.",
   movesForget: "Wenn Sie die Adresse ändern, werden die Tokens aller Mitglieder verworfen. Sie verbinden sich dann unter Ihr Konto, Armature-Konto neu.",
@@ -38,7 +38,7 @@ export const armatureDe: typeof armatureEn = {
   account: {
     title: "Armature-Konto",
     intro: "Verbinden Sie Ihr Armature-Konto, damit Anforderungen Ihnen die Vorgänge zeigen, die Sie in Armature sehen dürfen.",
-    notConfigured: "Ihre Organisation hat Armature noch nicht verbunden. Bitten Sie einen Administrator, es unter Einstellungen, Armature zu verbinden.",
+    notConfigured: "Exciter ist noch nicht mit Armature verbunden. Bitten Sie einen Administrator, es unter Einstellungen, Armature zu verbinden.",
     steps:
       "Öffnen Sie in Armature Tokens und erstellen Sie ein Token ohne den Bereich read, damit Exciter für Sie auch Vorgänge anlegen und verknüpfen kann. Fügen Sie es dann hier ein.",
     openArmature: "Armature öffnen",

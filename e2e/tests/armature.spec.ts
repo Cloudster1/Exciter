@@ -93,6 +93,6 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
     expect((await api.PUT("/armature/connection", { body: { baseUrl: armatureURL() } })).response.status).toBe(200);
     await openShowing(bob, ACCOUNT_PATH, bob.getByLabel("Armature token", { exact: true }));
     await bob.goto(SETTINGS_PATH);
-    await expect(bob.getByText("Only an administrator of this organization can connect Armature.")).toBeVisible();
+    await expect(bob.getByText("Only an administrator can connect Armature.")).toBeVisible();
   });
 });

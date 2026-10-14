@@ -111,7 +111,7 @@ func toAPIError(err error) *APIError {
 		return ErrUnauthorized("Your session has expired. Sign in again.")
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		return &APIError{Status: http.StatusUnauthorized, Code: "invalid_credentials",
-			Message: "That email and password do not match an account. Check both and try again, or sign in through your organization's provider."}
+			Message: "That email and password do not match an account. Check both and try again, or sign in with single sign-on."}
 	case errors.Is(err, auth.ErrSwitchedOff):
 		return &APIError{Status: http.StatusForbidden, Code: "account_switched_off", Message: "Your account has been switched off. Ask an administrator."}
 	case errors.Is(err, auth.ErrBadLocale):
@@ -138,7 +138,7 @@ func toAPIError(err error) *APIError {
 	case errors.Is(err, auth.ErrPasswordTooShort):
 		return ErrValidation(map[string]string{"password": sentence(err.Error()) + " Leave it empty to have one made."})
 	case errors.Is(err, auth.ErrAlreadyMember):
-		return ErrConflict("That person is already a member of this organization. Reload the list to find them.")
+		return ErrConflict("That person is already a member. Reload the list to find them.")
 	case errors.Is(err, auth.ErrNoSuchRequest):
 		return ErrNotFound("That person is not waiting to be let in. Reload the list; somebody may have answered already.")
 	case errors.Is(err, auth.ErrBadJoinRole):
@@ -207,7 +207,7 @@ func themeError(err error) *APIError {
 	case errors.Is(err, theme.ErrNotYours):
 		return ErrForbidden("Only the owner of a theme, or an administrator once it is shared, can change it. Make a copy of your own instead.")
 	case errors.Is(err, theme.ErrNotAdmin):
-		return ErrForbidden("Only an owner or administrator of this organization names its default theme. Ask one of them.")
+		return ErrForbidden("Only an administrator names the default theme for everyone. Ask one.")
 	case errors.Is(err, theme.ErrDuplicateName):
 		return ErrConflict("You already have a theme with that name. Choose another name.")
 	case errors.Is(err, theme.ErrAssetInUse), errors.Is(err, theme.ErrTooManyAssets):

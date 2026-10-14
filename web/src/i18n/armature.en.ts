@@ -1,9 +1,8 @@
 /** The strings of the Armature connection and of a person's own Armature account, after Stator's. */
 export const armatureEn = {
   title: "Armature",
-  intro:
-    "Connect the Armature instance your organization tracks its work in. Requirements then trace to its issues, each person seeing what Armature shows them.",
-  notAdmin: "Only an administrator of this organization can connect Armature.",
+  intro: "Connect the Armature your team tracks its work in. Requirements then trace to its issues, each person seeing what Armature shows them.",
+  notAdmin: "Only an administrator can connect Armature.",
   baseUrl: "Armature address",
   baseUrlHint: "Where people open Armature, such as https://armature.example.com. Every member's token has to come from this Armature.",
   movesForget: "Changing the address forgets every member's token. They connect again under Your account, Armature account.",
@@ -35,7 +34,7 @@ export const armatureEn = {
   account: {
     title: "Armature account",
     intro: "Connect your Armature account so requirements show you the issues you may see in Armature.",
-    notConfigured: "Your organization has not connected Armature yet. Ask an administrator to connect it under Settings, Armature.",
+    notConfigured: "Exciter is not connected to Armature yet. Ask an administrator to connect it under Settings, Armature.",
     steps: "In Armature, open Tokens and make a token without the read scope, so Exciter can also create issues and link them for you. Then paste it here.",
     openArmature: "Open Armature",
     token: "Armature token",

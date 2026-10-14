@@ -26,7 +26,7 @@ describe("the project list", () => {
 
   it("tells a member that administrators make projects, and offers no button", async () => {
     await renderAt(PROJECTS_PATH, { me: member });
-    expect(await screen.findByText(/An owner or administrator of your organization makes projects/)).toBeInTheDocument();
+    expect(await screen.findByText(/An administrator makes projects/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "New project" })).toBeNull();
   });
 

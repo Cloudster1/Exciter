@@ -1,7 +1,7 @@
 /** The strings of personal access tokens and of the assistants' endpoint, kept apart so the catalogue stays readable. */
 export const tokensEn = {
   title: "Personal access tokens",
-  intro: "A token lets a script or an assistant call the API as you, in this organization. Treat it like a password.",
+  intro: "A token lets a script or an assistant call the API as you. Treat it like a password.",
   newTitle: "Create a token",
   create: "Create token",
   name: "Token name",
@@ -11,7 +11,7 @@ export const tokensEn = {
   readOnlyHint: "It reads everything you can and changes nothing.",
   projects: "Projects",
   projectsAll: "Every project you can reach. Pick some to limit this token to them.",
-  projectsSome: "This token reaches only the projects picked here, never more than you can, and nothing that concerns the whole organization.",
+  projectsSome: "This token reaches only the projects picked here, never more than you can, and nothing that concerns everyone.",
   reachesAll: "Every project you can reach",
   reachesOnly: (keys: string) => `Only ${keys}`,
   reachesNone: "No project any more: every one it named was deleted.",
@@ -48,7 +48,7 @@ export const tokensEn = {
   mcpEndpoint: "MCP address",
   mcpConfig: "Client settings",
   mcpReadOnly: "With a read-only token the assistant is offered only the tools that read, and never changes a requirement.",
-  mcpProjects: "With a token limited to projects the assistant sees those projects alone, and is not offered the tools for the whole organization.",
+  mcpProjects: "With a token limited to projects the assistant sees those projects alone, and is not offered the tools that concern everyone.",
   mcpTokenPlaceholder: "<your token>",
   allTitle: "All tokens",
   allIntro: "Everybody's personal access tokens, with whose each is. Revoke one that should no longer work.",

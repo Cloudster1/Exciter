@@ -4,7 +4,7 @@ import { menuItem, openAccountMenu } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 const THEMES_PATH = "/settings/themes";
-const WRONG_PASSWORD = "That email and password do not match an account. Check both and try again, or sign in through your organization's provider.";
+const WRONG_PASSWORD = "That email and password do not match an account. Check both and try again, or sign in with single sign-on.";
 
 // The way in for somebody given a password here, from a browser nobody has signed in to.
 test.describe("signing in with a password", () => {

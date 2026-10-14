@@ -120,19 +120,19 @@ describe("connecting Armature as an administrator", () => {
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
     await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText("Only an administrator of this organization can connect Armature.")).toBeInTheDocument();
+    expect(await screen.findByText("Only an administrator can connect Armature.")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/armature/connection")).toBe(false);
   });
 
   it("says so when the server refuses an administrator who has just lost the role", async () => {
     stubApi({ "GET /armature/connection": { status: 403, body: { error: { code: "forbidden", message: "Only an administrator." } } } });
     await renderAt(ARMATURE_SETTINGS_PATH);
-    expect(await screen.findByText("Only an administrator of this organization can connect Armature.")).toBeInTheDocument();
+    expect(await screen.findByText("Only an administrator can connect Armature.")).toBeInTheDocument();
   });
 });
 
 describe("connecting one's own Armature account", () => {
-  it("says to ask an administrator while the organization has no connection", async () => {
+  it("says to ask an administrator while Exciter has no connection", async () => {
     stubApi({ "GET /armature/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } } });
     await renderAt(ARMATURE_ACCOUNT_PATH);
     expect(await screen.findByText(/Ask an administrator to connect it under Settings, Armature/)).toBeInTheDocument();

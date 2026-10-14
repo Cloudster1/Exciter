@@ -22,20 +22,20 @@ export const linksEn = {
   linkedAt: (source: number, target: number) => `Linked at revisions ${source} and ${target}`,
 };
 
-/** The strings of the organization's and a project's link types. */
+/** The strings of the link types for all projects and a project's own. */
 export const linkTypesEn = {
   tab: "Links",
   title: "Link types",
   orgIntro: "The kinds of link every project may use. A project can turn one off, limit it to pairs of requirement types, and make its own under its settings.",
-  projectIntro: "The link types this project uses: the organization's, and its own. Turn one off, or limit which requirement types it joins.",
-  notAdmin: "Only the organization's owners and administrators change its link types. Ask one of them.",
+  projectIntro: "The link types this project uses: those for all projects, and its own. Turn one off, or limit which requirement types it joins.",
+  notAdmin: "Only an administrator changes the link types for all projects. Ask one.",
   tableLabel: "Link types",
   columnType: "Type",
   columnReads: "Reads",
   columnLinks: "Links",
   columnUse: "In this project",
   columnActions: "Actions",
-  ofOrg: "Organization",
+  ofOrg: "All projects",
   ofProject: "This project",
   acyclicTag: "No circles",
   retired: "Retired",

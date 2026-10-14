@@ -87,7 +87,7 @@ export const en = {
     subtitle: "Requirements your team agrees on, traced to the work that fulfils them.",
     sso: "Continue with single sign-on",
     passwordTitle: "Sign in with a password",
-    passwordHint: "For somebody an administrator gave a password here. Everybody else signs in through their organization's provider.",
+    passwordHint: "For somebody an administrator gave a password here. Everybody else signs in through single sign-on.",
     email: "Email",
     password: "Password",
     submit: "Sign in with password",
@@ -101,7 +101,7 @@ export const en = {
       unverified_email: "Your identity provider has not verified your email address. Verify it there, then sign in again.",
       inactive: "Your account has been switched off. Ask an administrator.",
       denied: "Your identity provider did not let you in. Try again, or ask its administrator.",
-      unreachable: "Exciter could not reach your organization's identity provider. Try again in a moment, and tell an administrator if it keeps failing.",
+      unreachable: "Exciter could not reach the identity provider. Try again in a moment, and tell an administrator if it keeps failing.",
       failed: "Signing in through your identity provider did not work. Try again, and tell an administrator if it keeps failing.",
     },
   },
@@ -115,7 +115,7 @@ export const en = {
   },
   sso: {
     title: "Single sign-on",
-    notAdmin: "Only an owner or administrator of this organization changes how its members sign in. Ask one of them.",
+    notAdmin: "Only an administrator changes how people sign in. Ask one.",
     intro: "Members sign in through your identity provider, and their groups follow them from there.",
     issuer: "Issuer",
     issuerHint: "The provider's issuer URL, where its discovery document lives.",
@@ -160,7 +160,7 @@ export const en = {
     emptyBody:
       "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. Make a project to hold them.",
     emptyBodyMember:
-      "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. An owner or administrator of your organization makes the projects that hold them.",
+      "Exciter keeps your requirements: each written once, reviewed, baselined and traced to the issues that build it and the pages that explain it. An administrator makes the projects that hold them.",
     yourProjects: "Your projects",
   },
   members: {
@@ -207,10 +207,10 @@ export const en = {
   },
   audit: {
     title: "Audit log",
-    intro: "Who changed what in this organization: members and their roles, events that could not be delivered, and exports of this log.",
+    intro: "Who changed what in Exciter: members and their roles, events that could not be delivered, and exports of this log.",
     keptDays: (days: number) => `Each entry is kept for ${days} days.`,
-    keptForever: "Entries are kept until the organization is deleted.",
-    notAdmin: "Only an owner or administrator of this organization reads its audit log. Ask one of them when you need to know who changed something.",
+    keptForever: "Entries are kept for good.",
+    notAdmin: "Only an administrator reads the audit log. Ask one when you need to know who changed something.",
     export: "Export CSV",
     filters: "Filter the audit log",
     action: "Action",

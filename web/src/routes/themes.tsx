@@ -30,7 +30,7 @@ export function inThemeView(theme: Theme, view: View, me: string | undefined): b
 
 /** What the page says about the theme the reader sees. */
 export function activeThemeMeta(seen: Theme | null, source: string, orgDefault: Theme | undefined): string {
-  if (seen && source === "organization") return t.themes.usingDefault(seen.name);
+  if (seen && source === "everyone") return t.themes.usingDefault(seen.name);
   if (seen) return t.themes.using(seen.name);
   if (orgDefault) return t.themes.usingBuiltInOverDefault(orgDefault.name);
   return t.themes.usingBuiltIn;
@@ -66,7 +66,7 @@ function ThemesPage() {
         meta={activeThemeMeta(seen, source, orgDefault)}
         actions={
           <>
-            {seen && source === "organization" && (
+            {seen && source === "everyone" && (
               <Button
                 variant="secondary"
                 onClick={() => choose.mutate({ builtIn: true }, { onSuccess: () => setNotice(t.themes.backToBuiltIn) })}

@@ -3,7 +3,7 @@ import type { tokensEn } from "./tokens.en";
 /** The German strings of personal access tokens, held to the English shape. */
 export const tokensDe: typeof tokensEn = {
   title: "Persönliche Zugriffstoken",
-  intro: "Ein Token lässt ein Skript oder einen Assistenten die API in Ihrem Namen aufrufen, in dieser Organisation. Behandeln Sie es wie ein Passwort.",
+  intro: "Ein Token lässt ein Skript oder einen Assistenten die API in Ihrem Namen aufrufen. Behandeln Sie es wie ein Passwort.",
   newTitle: "Token erstellen",
   create: "Token erstellen",
   name: "Name des Tokens",
@@ -13,7 +13,7 @@ export const tokensDe: typeof tokensEn = {
   readOnlyHint: "Es liest alles, was Sie lesen können, und ändert nichts.",
   projects: "Projekte",
   projectsAll: "Jedes Projekt, das Sie erreichen. Wählen Sie einige, um das Token auf sie zu beschränken.",
-  projectsSome: "Dieses Token erreicht nur die hier gewählten Projekte, nie mehr als Sie, und nichts, was die ganze Organisation betrifft.",
+  projectsSome: "Dieses Token erreicht nur die hier gewählten Projekte, nie mehr als Sie, und nichts, was alle betrifft.",
   reachesAll: "Jedes Projekt, das Sie erreichen",
   reachesOnly: (keys: string) => `Nur ${keys}`,
   reachesNone: "Kein Projekt mehr: Jedes, das es nannte, wurde gelöscht.",
@@ -50,7 +50,7 @@ export const tokensDe: typeof tokensEn = {
   mcpEndpoint: "MCP-Adresse",
   mcpConfig: "Client-Einstellungen",
   mcpReadOnly: "Mit einem Token nur zum Lesen bekommt der Assistent nur die Werkzeuge, die lesen, und ändert nie eine Anforderung.",
-  mcpProjects: "Mit einem auf Projekte beschränkten Token sieht der Assistent nur diese Projekte und bekommt die Werkzeuge für die ganze Organisation nicht.",
+  mcpProjects: "Mit einem auf Projekte beschränkten Token sieht der Assistent nur diese Projekte und bekommt die Werkzeuge, die alle betreffen, nicht.",
   mcpTokenPlaceholder: "<Ihr Token>",
   allTitle: "Alle Zugriffstoken",
   allIntro: "Die persönlichen Zugriffstoken aller, jeweils mit Inhaber. Widerrufen Sie eines, das nicht mehr gelten soll.",

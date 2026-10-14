@@ -5,7 +5,7 @@ import { Card, ErrorBanner, OptionCard, PageHeader, Skeleton } from "@/component
 import { THEMES_PATH } from "@/config";
 import { t } from "@/i18n";
 
-/** The theme the organization shows to whoever has not chosen one: the built-in one or a shared theme. */
+/** The theme the installation shows to whoever has not chosen one: the built-in one or a shared theme. */
 export function OrgDefaultTheme() {
   const { data, isLoading, error } = useThemes();
   const setDefault = useSetDefaultTheme();

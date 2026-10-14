@@ -121,7 +121,7 @@ func permError(err error) *APIError {
 			Message: "This project is archived. Unarchive it under its settings to change anything in it."}
 	case errors.Is(err, perm.ErrNoAdministrator):
 		return &APIError{Status: http.StatusConflict, Code: "no_administrator",
-			Message: "Give at least one person or group the admin role, so somebody besides the organization's administrators can manage the project."}
+			Message: "Give at least one person or group the admin role, so somebody besides the administrators of Exciter can manage the project."}
 	}
 	return nil
 }

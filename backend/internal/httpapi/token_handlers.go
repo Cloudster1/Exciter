@@ -19,7 +19,7 @@ var (
 	errSessionOnly = &APIError{Status: http.StatusForbidden, Code: "session_only",
 		Message: "A token cannot do this. Sign in to Exciter and do it there."}
 	errProjectsToken = &APIError{Status: http.StatusForbidden, Code: "projects_token",
-		Message: "This token is limited to some projects, and this concerns the whole organization. Use a token without that limit, or sign in."}
+		Message: "This token is limited to some projects, and this concerns everyone. Use a token without that limit, or sign in."}
 )
 
 // tokenError maps the tokens' refusals; nil when err is none of theirs.

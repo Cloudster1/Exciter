@@ -7,7 +7,7 @@ import type { components } from "./schema";
 
 type Wire = components["schemas"];
 
-/** The organization's Armature instance, as its administrators see it; the webhook secret never comes back. */
+/** The installation's Armature instance, as its administrators see it; the webhook secret never comes back. */
 export type ArmatureConnection = Wire["ArmatureConnection"];
 export type ArmatureConnectionInput = Wire["ArmatureConnectionInput"];
 /** The caller's own link to Armature; the token never comes back. */

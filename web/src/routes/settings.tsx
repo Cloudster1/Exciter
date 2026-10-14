@@ -16,7 +16,7 @@ export const settingsRoute = createRoute({
   },
 });
 
-/** The organization's people and their roles, for its administrators. */
+/** The installation's people and their roles, for its administrators. */
 export const membersRoute = createRoute({
   getParentRoute: () => appRoute,
   path: MEMBERS_PATH,
@@ -27,7 +27,7 @@ export const membersRoute = createRoute({
   ),
 });
 
-/** The organization's link types, for its administrators. */
+/** The installation's link types, for its administrators. */
 export const linkTypesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: LINK_TYPES_PATH,

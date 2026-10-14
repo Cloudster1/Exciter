@@ -39,7 +39,7 @@ func traceError(err error) *APIError {
 	case errors.Is(err, trace.ErrNotFound):
 		return ErrNotFound("That link type was not found. Reload the list; somebody may have deleted it.")
 	case errors.Is(err, trace.ErrForbidden):
-		return ErrForbidden("Only the organization's administrators change its link types, and a project's administrators the project's own. Ask one of them.")
+		return ErrForbidden("Only an administrator changes the link types for all projects, and a project's administrators the project's own. Ask one of them.")
 	case errors.Is(err, trace.ErrLinkNotFound):
 		return ErrNotFound("That link was not found. Reload the links; somebody may have removed it already.")
 	case errors.Is(err, trace.ErrSection):

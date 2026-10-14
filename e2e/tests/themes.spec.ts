@@ -115,12 +115,12 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-default-theme-notice]")).toHaveText(`${name} is what everybody sees until they choose.`);
 
     const bob = await pageAs("bob");
-    await openShowing(bob, THEMES_PATH, bob.getByText(`You are using ${name}, the organization's default.`));
+    await openShowing(bob, THEMES_PATH, bob.getByText(`You are using ${name}, the default for everyone.`));
     await expect(customStyle(bob)).toBeAttached();
     expect(await rootVar(bob, "--color-canvas")).toBe("#0f0f0f");
 
     await bob.locator('[data-action="built-in-theme"]').click();
-    await expect(bob.getByText(`You are using the built-in theme, over the organization's default ${name}.`)).toBeVisible();
+    await expect(bob.getByText(`You are using the built-in theme, over ${name}, the default for everyone.`)).toBeVisible();
     await expect(customStyle(bob)).toHaveCount(0);
   });
 });

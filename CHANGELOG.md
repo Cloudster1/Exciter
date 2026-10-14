@@ -9,6 +9,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The interface and the API say "everyone", "all projects" or "Exciter"
+  instead of "the organization" (#88). `GET /themes/active` answers `source:
+  "everyone"` for the default theme, where it said `organization`.
 - The Armature connection is its address (#87). Settings, Armature asks for
   no organization any more, and the webhook address is
   `/api/v1/armature/webhook`. Every member's token still has to come from the

@@ -24,8 +24,8 @@ export interface ThemeInput {
   spec?: ThemeSpec;
 }
 
-/** Where the theme the reader sees came from: their choice, the organization's default, or nothing. */
-export type ThemeSource = "chosen" | "organization" | "";
+/** Where the theme the reader sees came from: their choice, the installation's default, or nothing. */
+export type ThemeSource = "chosen" | "everyone" | "";
 
 // The server leaves out a backdrop rather than sending null, and takes either;
 // the compiler's null is dropped on the way out so the wire type holds.
@@ -86,7 +86,7 @@ export function useActiveTheme() {
   });
 }
 
-/** The organization's own theme, whatever the reader chose; null is the built-in one. */
+/** The installation's own theme, whatever the reader chose; null is the built-in one. */
 export function useDefaultTheme(enabled = true) {
   return useQuery({
     queryKey: defaultThemeQueryKey,
@@ -126,10 +126,10 @@ export function useDeleteTheme() {
   });
 }
 
-/** A choice: a theme, null for whatever the organization shows, or the built-in theme over it. */
+/** A choice: a theme, null for whatever the installation shows, or the built-in theme over it. */
 export type ThemeChoice = string | null | { builtIn: true };
 
-/** Uses a theme, returns to the organization's default with null, or keeps the built-in one over it. */
+/** Uses a theme, returns to the installation's default with null, or keeps the built-in one over it. */
 export function useChooseTheme() {
   return useThemeMutation(async (choice: ThemeChoice) => {
     const body = choice !== null && typeof choice === "object" ? { themeId: null, builtIn: true } : { themeId: choice };

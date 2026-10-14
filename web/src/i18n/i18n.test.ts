@@ -114,3 +114,16 @@ describe("choosing the language", () => {
     }
   });
 });
+
+describe("the words on screen", () => {
+  // An installation is one team's: what a setting reaches is everyone, all projects or Exciter, never an organization.
+  it("never speak of an organization, in either language", () => {
+    for (const [name, catalogue] of [
+      ["English", en],
+      ["German", de],
+    ] as const) {
+      const found = [...strings(catalogue), ...strings(catalogue, [1, 2, 3])].filter((each) => /organi[sz]ation/i.test(each));
+      expect(found, `${name} says organization`).toEqual([]);
+    }
+  });
+});

@@ -24,7 +24,7 @@ export interface Place {
   label: string;
   /** The group it sits in, written before it in the breadcrumbs. */
   section?: string;
-  /** Kept for the organization's owners and administrators. */
+  /** Kept for the installation's owners and administrators. */
   adminOnly?: boolean;
   /** The person's own, reached from the account menu rather than the sidebar. */
   personal?: boolean;
@@ -59,7 +59,7 @@ export function placesFor(me: Me | undefined): Place[] {
   return allPlaces().filter((place) => admin || !place.adminOnly);
 }
 
-/** The crumbs from the organization to the page at a path, the page itself last; empty for a path that is no place. */
+/** The crumbs from the installation to the page at a path, the page itself last; empty for a path that is no place. */
 export function crumbsFor(pathname: string): string[] {
   const place = allPlaces().find((each) => each.path === pathname);
   if (!place) return [];
