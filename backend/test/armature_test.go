@@ -112,15 +112,14 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name, baseURL, slug, secret, field, says string
+		name, baseURL, secret, field, says string
 	}{
-		{"an address that is no origin", base + "/api/v1", slug, "", "baseUrl", "without a path"},
-		{"a host the guard does not let through", "http://valkey:6379", slug, "", "baseUrl", "EXCITER_OUTBOUND_ALLOW"},
-		{"an address inside the network", "http://10.11.12.13", slug, "", "baseUrl", "inside the server's own network"},
-		{"a slug Armature never makes", base, "Not A Slug", "", "orgSlug", "slug"},
-		{"a secret Armature never shows", base, slug, "hunter2", "webhookSecret", armature.WebhookSecretPrefix},
+		{"an address that is no origin", base + "/api/v1", "", "baseUrl", "without a path"},
+		{"a host the guard does not let through", "http://valkey:6379", "", "baseUrl", "EXCITER_OUTBOUND_ALLOW"},
+		{"an address inside the network", "http://10.11.12.13", "", "baseUrl", "inside the server's own network"},
+		{"a secret Armature never shows", base, "hunter2", "webhookSecret", armature.WebhookSecretPrefix},
 	} {
-		body := map[string]any{"baseUrl": tc.baseURL, "orgSlug": tc.slug}
+		body := map[string]any{"baseUrl": tc.baseURL}
 		if tc.secret != "" {
 			body["webhookSecret"] = tc.secret
 		}
@@ -128,14 +127,14 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 			t.Errorf("%s: %q does not say %q", tc.name, msg, tc.says)
 		}
 	}
-	errorCode(t, want(t, bob.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base, "orgSlug": slug}), http.StatusForbidden, "a member connects Armature"))
+	errorCode(t, want(t, bob.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base}), http.StatusForbidden, "a member connects Armature"))
 
-	saved := want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base + "/", "orgSlug": slug, "webhookSecret": webhookSecret}), http.StatusOK, "connect Armature")
+	saved := want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base + "/", "webhookSecret": webhookSecret}), http.StatusOK, "connect Armature")
 	conn := obj(t, saved, "connection")
-	if conn["baseUrl"] != base || conn["orgSlug"] != slug || conn["webhookSecretSet"] != true || conn["armatureOrgId"] != nil {
+	if conn["baseUrl"] != base || conn["orgSlug"] != nil || conn["webhookSecretSet"] != true || conn["armatureOrgId"] != nil {
 		t.Errorf("the connection is %v", conn)
 	}
-	if conn["webhookUrl"] != "http://"+appHost+armature.WebhookPath+slug || len(conn["webhookTopics"].([]any)) != len(armature.WebhookTopics) {
+	if conn["webhookUrl"] != "http://"+appHost+armature.WebhookPath || len(conn["webhookTopics"].([]any)) != len(armature.WebhookTopics) {
 		t.Errorf("the webhook settings are %v %v", conn["webhookUrl"], conn["webhookTopics"])
 	}
 	if bytes.Contains(saved.Raw, []byte(webhookSecret)) {
@@ -152,7 +151,6 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	for _, tc := range []struct{ name, token, says string }{
 		{"not an Armature token", "exciter_pat_something", armature.TokenPrefix},
 		{"a token Armature refuses", "armature_pat_revoked", "Armature did not accept this token. Make a new one under Tokens in Armature and paste it here."},
-		{"a token of another Armature organization", patFor("globex-corp", "bob"), "another Armature organization"},
 	} {
 		if msg := fieldError(t, want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": tc.token}), http.StatusUnprocessableEntity, tc.name), "token"); !strings.Contains(msg, tc.says) {
 			t.Errorf("%s: %q does not say %q", tc.name, msg, tc.says)
@@ -179,6 +177,10 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	}
 	if n := h.countRows(t, `SELECT count(*) FROM armature_connection WHERE org_id = $1 AND armature_org_id IS NOT NULL`, home.org); n != 1 {
 		t.Error("the Armature organization's id was not learned from the first token")
+	}
+	// The address alone picks the Armature; what the first token taught keeps every later one to it.
+	if msg := fieldError(t, want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor("globex-corp", "alice")}), http.StatusUnprocessableEntity, "a token of another Armature"), "token"); !strings.Contains(msg, "another Armature than the one connected at "+base) {
+		t.Errorf("a token of another Armature is refused with %q", msg)
 	}
 
 	got := obj(t, want(t, bob.get(t, "/api/v1/armature/account"), http.StatusOK, "bob reads his account"), "account")
@@ -209,12 +211,12 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	errorCode(t, want(t, script.delete(t, "/api/v1/armature/account/token"), http.StatusForbidden, "a read-only token disconnects"))
 
 	// Only the secret changes: the tokens stay.
-	kept := obj(t, want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base, "orgSlug": slug, "webhookSecret": ""}), http.StatusOK, "remove the secret"), "connection")
+	kept := obj(t, want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base, "webhookSecret": ""}), http.StatusOK, "remove the secret"), "connection")
 	if kept["webhookSecretSet"] != false || kept["connected"] != float64(1) || kept["armatureOrgId"] == nil {
 		t.Errorf("removing the secret changed more: %v", kept)
 	}
 	// Another address, even of the same Armature, forgets every token.
-	moved := obj(t, want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": os.Getenv(envArmatureStub), "orgSlug": slug}), http.StatusOK, "move the connection"), "connection")
+	moved := obj(t, want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": os.Getenv(envArmatureStub)}), http.StatusOK, "move the connection"), "connection")
 	if moved["connected"] != float64(0) || moved["armatureOrgId"] != nil {
 		t.Errorf("a new address kept the tokens: %v", moved)
 	}
@@ -254,7 +256,7 @@ func TestAReadOnlyArmatureTokenIsNamedSo(t *testing.T) {
 	home := h.makeMember(t, "arm-reader")
 	slug := h.slugOf(t, home.org)
 	owner := api.as(t, home.user, home.org)
-	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "orgSlug": slug}), http.StatusOK, "connect Armature")
+	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	account := obj(t, want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "reader")}), http.StatusOK, "a read-only token"), "account")
 	if account["readOnly"] != true || account["status"] != "ok" {
 		t.Errorf("a read-only token is %v", account)
@@ -276,7 +278,7 @@ func TestAnArmatureThatDoesNotAnswer(t *testing.T) {
 	home := h.makeMember(t, "arm-silent")
 	slug := h.slugOf(t, home.org)
 	owner := api.as(t, home.user, home.org)
-	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "orgSlug": slug}), http.StatusOK, "connect Armature")
+	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
 
 	// Behind the service's back: the same host on a port where nothing listens.
@@ -304,7 +306,7 @@ func TestACheckFindsARevokedToken(t *testing.T) {
 	home := h.makeMember(t, "arm-revoked")
 	slug := h.slugOf(t, home.org)
 	owner := api.as(t, home.user, home.org)
-	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "orgSlug": slug}), http.StatusOK, "connect Armature")
+	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
 	service := h.armature(t)
 	h.settle(t)

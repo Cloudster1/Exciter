@@ -41,7 +41,7 @@ func TestMeReadsWhomATokenActsAs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if me.User.ID != user || me.User.Name != "Alice" || me.OrgID != org || me.OrgSlug != "acme" || !me.ReadOnly {
+	if me.User.ID != user || me.User.Name != "Alice" || me.OrgID != org || !me.ReadOnly {
 		t.Errorf("me = %+v", me)
 	}
 	if _, err := loopback().As(srv.URL, "armature_pat_bad").Me(context.Background()); !errors.Is(err, ErrRejected) || StatusOf(err) != StatusRejected {
@@ -225,14 +225,17 @@ func TestASealedTokenOpensOnlyForItsOwner(t *testing.T) {
 	}
 }
 
-func TestAnIdentityBelongsToTheConnectedOrganization(t *testing.T) {
+func TestAnIdentityBelongsToTheConnectedArmature(t *testing.T) {
 	learned := uuid.New()
-	e := &endpoint{OrgSlug: "acme"}
-	if !e.owns(&Me{OrgSlug: "acme", OrgID: uuid.New()}) || e.owns(&Me{OrgSlug: "globex"}) || e.owns(nil) {
-		t.Error("before the id is learned, the slug decides")
+	e := &endpoint{BaseURL: "https://armature.example"}
+	if !e.owns(&Me{OrgID: uuid.New()}) || !e.owns(&Me{}) || e.owns(nil) {
+		t.Error("before an id is learned, any token the address answers belongs")
 	}
 	e.ArmatureOrgID = &learned
-	if !e.owns(&Me{OrgSlug: "acme", OrgID: learned}) || e.owns(&Me{OrgSlug: "acme", OrgID: uuid.New()}) {
-		t.Error("once learned, the id decides too")
+	if !e.owns(&Me{OrgID: learned}) || e.owns(&Me{OrgID: uuid.New()}) {
+		t.Error("once learned, the id decides")
+	}
+	if !e.owns(&Me{}) {
+		t.Error("an Armature that reports no organization has only its address to go by")
 	}
 }

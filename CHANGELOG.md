@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The Armature connection is its address (#87). Settings, Armature asks for
+  no organization any more, and the webhook address is
+  `/api/v1/armature/webhook`. Every member's token still has to come from the
+  Armature the first token was made in.
 - Letting somebody go switches their account off (#86). Members has Switch
   off and Switch on instead of Remove: switching off signs the person out
   everywhere and ends their tokens, and keeps their account, role and work.

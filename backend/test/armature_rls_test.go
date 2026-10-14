@@ -43,7 +43,7 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 	owner := api.as(t, home.user, home.org)
 	bobID := h.addPerson(t, home.org, "member")
 	bob := api.as(t, bobID, home.org)
-	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "orgSlug": slug, "webhookSecret": webhookSecret}), http.StatusOK, "connect Armature")
+	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t), "webhookSecret": webhookSecret}), http.StatusOK, "connect Armature")
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "the owner connects")
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "bob")}), http.StatusOK, "bob connects")
 	h.settle(t)
@@ -70,7 +70,7 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 		refusedOutright(t, conn, "storing a token for the owner", `INSERT INTO armature_token (org_id, user_id, token, status) VALUES ($1, $2, '\x00', 'ok')`, home.org, home.user)
 		refusedOutright(t, conn, "rewriting his token in place", `UPDATE armature_token SET token = '\x00' WHERE user_id = $1`, bobID)
 		refusedOutright(t, conn, "choosing his row id", `INSERT INTO armature_token (org_id, user_id, id, token, status) VALUES ($1, $2, $3, '\x00', 'ok')`, home.org, bobID, uuid.New())
-		refusedOutright(t, conn, "connecting Armature", `INSERT INTO armature_connection (org_id, base_url, org_slug) VALUES ($1, 'https://evil.example', 'evil')`, home.org)
+		refusedOutright(t, conn, "connecting Armature", `INSERT INTO armature_connection (org_id, base_url) VALUES ($1, 'https://evil.example')`, home.org)
 	})
 
 	t.Run("an administrator keeps the connection and still reads only their own token", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 			t.Error("another organization learns where Armature is")
 		}
 		touchesNothing(t, conn, "removing another organization's connection", `DELETE FROM armature_connection WHERE org_id = $1`, home.org)
-		refusedOutright(t, conn, "connecting another organization", `INSERT INTO armature_connection (org_id, base_url, org_slug) VALUES ($1, 'https://evil.example', 'evil')`, home.org)
+		refusedOutright(t, conn, "connecting another organization", `INSERT INTO armature_connection (org_id, base_url) VALUES ($1, 'https://evil.example')`, home.org)
 		refusedOutright(t, conn, "storing a token in another organization", `INSERT INTO armature_token (org_id, user_id, token, status) VALUES ($1, $2, '\x00', 'ok')`, home.org, other.user)
 	})
 }

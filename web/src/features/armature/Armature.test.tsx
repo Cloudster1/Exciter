@@ -21,10 +21,9 @@ const REFUSED = "Armature did not accept this token. Make a new one under Tokens
 function connection(over: Partial<ArmatureConnection> = {}): ArmatureConnection {
   return {
     baseUrl: BASE,
-    orgSlug: "acme",
     armatureOrgId: null,
     webhookSecretSet: false,
-    webhookUrl: "http://exciter.test/api/v1/armature/webhook/demo",
+    webhookUrl: "http://exciter.test/api/v1/armature/webhook",
     webhookTopics: ["issue.created", "issue.updated", "issue.transitioned", "issue.deleted"],
     connected: 0,
     updatedAt: "2026-10-01T08:00:00Z",
@@ -59,15 +58,14 @@ describe("connecting Armature as an administrator", () => {
     expect(document.querySelector("[data-copy-status]")).toBeNull();
 
     await user.type(screen.getByLabelText("Armature address"), `${BASE}/`);
-    await user.type(screen.getByLabelText("Armature organization"), "acme");
     await user.type(screen.getByLabelText("Webhook secret"), SECRET);
     await user.click(screen.getByRole("button", { name: "Connect Armature" }));
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
-    expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ baseUrl: `${BASE}/`, orgSlug: "acme", webhookSecret: SECRET });
+    expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ baseUrl: `${BASE}/`, webhookSecret: SECRET });
     expect(screen.getByLabelText("Webhook secret")).toHaveValue("");
     expect(screen.getByLabelText("Webhook secret")).toHaveAttribute("placeholder", "Stored. Leave blank to keep it.");
-    expect(screen.getByLabelText("Webhook address")).toHaveValue("http://exciter.test/api/v1/armature/webhook/demo");
+    expect(screen.getByLabelText("Webhook address")).toHaveValue("http://exciter.test/api/v1/armature/webhook");
     expect(within(screen.getByRole("list", { name: "Topics" })).getAllByRole("listitem")).toHaveLength(4);
     expect(await axeViolations()).toEqual([]);
   });
@@ -92,12 +90,12 @@ describe("connecting Armature as an administrator", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/Armature did not answer at this address/)).toBeInTheDocument();
     expect(screen.getByLabelText("Armature address")).toHaveAttribute("aria-invalid", "true");
-    expect(sent.filter((r) => r.method === "PUT")[0]?.body).toEqual({ baseUrl: BASE, orgSlug: "acme" });
+    expect(sent.filter((r) => r.method === "PUT")[0]?.body).toEqual({ baseUrl: BASE });
 
     await user.click(screen.getByLabelText("Forget the stored secret"));
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(sent.filter((r) => r.method === "PUT")).toHaveLength(2));
-    expect(sent.filter((r) => r.method === "PUT")[1]?.body).toEqual({ baseUrl: BASE, orgSlug: "acme", webhookSecret: "" });
+    expect(sent.filter((r) => r.method === "PUT")[1]?.body).toEqual({ baseUrl: BASE, webhookSecret: "" });
   });
 
   it("disconnects after asking", async () => {

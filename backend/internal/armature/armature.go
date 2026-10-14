@@ -74,11 +74,10 @@ const (
 // Statuses lists every Status, for the API document.
 var Statuses = []Status{StatusOK, StatusNotConfigured, StatusNotConnected, StatusRejected, StatusUnreachable}
 
-// Connection is the organization's Armature: where people open it, and which of its organizations it is.
+// Connection is the installation's Armature: its address is where people open it and which Armature it is.
 type Connection struct {
 	BaseURL string `json:"baseUrl"`
-	OrgSlug string `json:"orgSlug"`
-	// ArmatureOrgID is learned from the first token that checks out; webhooks from any other are refused.
+	// ArmatureOrgID is learned from the first token that checks out; tokens and webhooks from any other are refused.
 	ArmatureOrgID *uuid.UUID `json:"armatureOrgId"`
 	// WebhookSecretSet says whether a secret is stored; the secret itself is never answered.
 	WebhookSecretSet bool `json:"webhookSecretSet"`
@@ -92,7 +91,6 @@ type Connection struct {
 // ConnectionInput sets the connection; WebhookSecret absent keeps the stored one and empty removes it.
 type ConnectionInput struct {
 	BaseURL       string  `json:"baseUrl"`
-	OrgSlug       string  `json:"orgSlug"`
 	WebhookSecret *string `json:"webhookSecret,omitempty"`
 }
 

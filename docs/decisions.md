@@ -3,6 +3,29 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: The Armature connection is an address (#87)
+
+Armature decided, as Exciter did, that an installation is one team's tracker,
+so the slug of an Armature organization no longer says anything the address
+does not. The connection is its base URL alone: `armature_connection.org_slug`
+went in 00403, and with it the form's field, the input and the slug in
+`armature_endpoint()`. A new address is what forgets every member's token.
+
+- **The learned organization stays the check.** Armature at 7920a98 still
+  answers `principal.org` on `/auth/me`, so the first token that checks out
+  teaches its id and every later token must match it, which keeps a token of
+  some other Armature behind the same address from being stored.
+- **A token that names no organization is let through.** Armature's #218
+  drops the organization from its schema; once `/auth/me` stops reporting one,
+  the address is all there is to go by, and refusing every token then would
+  break the connection on Armature's upgrade.
+- **The webhook is `POST /armature/webhook`.** Still pending until #29; the
+  secret and the replay keys stay with the one installation row until #91.
+- **The stub keeps its tenants.** They are a test device, picked by the token,
+  so parallel tests stay apart; nothing in the product names one.
+- **The M2 ranges moved** to 00420, 00430 and 00440, after the epic's 00400 to
+  00419.
+
 ## 2026-10-13: Letting somebody go switches them off, and an active administrator stays (#86)
 
 People belong to the installation, so there is no membership to take away

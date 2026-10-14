@@ -111,7 +111,7 @@ func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, 
 	case err != nil:
 		return nil, 0, &FieldError{Field: "token", Message: "Armature did not accept this token. Make a new one under Tokens in Armature and paste it here."}
 	case !e.owns(me):
-		return nil, 0, &FieldError{Field: "token", Message: fmt.Sprintf("This token belongs to another Armature organization than %s. Make one while signed in to %s in Armature and paste it here.", e.OrgSlug, e.OrgSlug)}
+		return nil, 0, &FieldError{Field: "token", Message: fmt.Sprintf("This token was made in another Armature than the one connected at %s. Make one there and paste it here.", e.BaseURL)}
 	}
 	sealed, err := s.seal(token, tokenContext(org.ID, user), "token")
 	if err != nil {
@@ -281,13 +281,13 @@ func (s *Service) me(ctx context.Context, base, token string) (*Me, error) {
 	return me, err
 }
 
-// owns says whether a token's identity belongs to the connected organization,
-// by slug and, once learned, by id.
+// owns says whether a token comes from the Armature the first token taught; one that names no organization has
+// only the address to go by, which already picked the installation.
 func (e *endpoint) owns(me *Me) bool {
-	if me == nil || me.OrgSlug != e.OrgSlug {
+	if me == nil {
 		return false
 	}
-	return e.ArmatureOrgID == nil || *e.ArmatureOrgID == me.OrgID
+	return e.ArmatureOrgID == nil || me.OrgID == uuid.Nil || *e.ArmatureOrgID == me.OrgID
 }
 
 // learnOrg keeps the Armature organization's id from the first token that
@@ -301,8 +301,8 @@ func (s *Service) learnOrg(ctx context.Context, org uuid.UUID, e *endpoint, me *
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		_, err := tx.Exec(ctx, `
 			UPDATE armature_connection SET armature_org_id = $2
-			WHERE org_id = $1 AND armature_org_id IS NULL AND base_url = $3 AND org_slug = $4`,
-			org, me.OrgID, e.BaseURL, e.OrgSlug)
+			WHERE org_id = $1 AND armature_org_id IS NULL AND base_url = $3`,
+			org, me.OrgID, e.BaseURL)
 		return err
 	})
 	if err != nil {
