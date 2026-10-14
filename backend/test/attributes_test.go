@@ -25,11 +25,12 @@ func optionID(t *testing.T, attr map[string]any, name string) string {
 // A project's administrators shape its types and attributes, editors give requirements values that fit them,
 // and what was ever used is retired rather than deleted.
 func TestTypesAndAttributesOverTheAPI(t *testing.T) {
+	attKey := projectKey(t, "ATT")
 	f := newProjectFixture(t)
-	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": "ATT", "name": "Attributed"}), http.StatusCreated, "make a project"), "project")
+	project := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": attKey, "name": "Attributed"}), http.StatusCreated, "make a project"), "project")
 	defaultType := project["settings"].(map[string]any)["defaultTypeId"].(string)
 	editor := f.plain
-	const types, attrs = "/api/v1/projects/ATT/types", "/api/v1/projects/ATT/attributes"
+	types, attrs := "/api/v1/projects/"+attKey+"/types", "/api/v1/projects/"+attKey+"/attributes"
 
 	t.Run("a project starts with one type, its default", func(t *testing.T) {
 		got := list(t, want(t, editor.get(t, types), http.StatusOK, "list types"), "types")
@@ -85,15 +86,15 @@ func TestTypesAndAttributesOverTheAPI(t *testing.T) {
 
 	var reqID string
 	t.Run("a requirement takes the default type and values that fit its attributes", func(t *testing.T) {
-		refuse(t, "a required value left out", editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{"title": "Pay"}),
+		refuse(t, "a required value left out", editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Pay"}),
 			http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "a value of the wrong shape", editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{
+		refuse(t, "a value of the wrong shape", editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{
 			"title": "Pay", "attributes": map[string]any{verificationID: "Test"}}), http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "an attribute not on that type", editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{
+		refuse(t, "an attribute not on that type", editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{
 			"title": "Pay", "typeId": ifaceID, "attributes": map[string]any{verificationID: test}}), http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "an attribute of nowhere", editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{
+		refuse(t, "an attribute of nowhere", editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{
 			"title": "Pay", "attributes": map[string]any{uuid.NewString(): "x"}}), http.StatusUnprocessableEntity, "validation_failed")
-		made := obj(t, want(t, editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{
+		made := obj(t, want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{
 			"title": "Pay", "attributes": map[string]any{verificationID: test, notesID: "  fast  "},
 		}), http.StatusCreated, "write a requirement with values"), "requirement")
 		reqID = made["id"].(string)
@@ -101,20 +102,20 @@ func TestTypesAndAttributesOverTheAPI(t *testing.T) {
 		if made["type"].(map[string]any)["id"] != defaultType || values[verificationID] != test || values[notesID] != "fast" {
 			t.Fatalf("the requirement keeps the default type and its values: %v", made)
 		}
-		rows := list(t, want(t, editor.get(t, "/api/v1/projects/ATT/requirements"), http.StatusOK, "list"), "rows")
+		rows := list(t, want(t, editor.get(t, "/api/v1/projects/"+attKey+"/requirements"), http.StatusOK, "list"), "rows")
 		if rows[0].(map[string]any)["type"].(map[string]any)["name"] != "Requirement" {
 			t.Errorf("the list shows the type: %v", rows[0])
 		}
 	})
 
 	t.Run("a new type is a revision, and values that do not show on it leave the requirement", func(t *testing.T) {
-		got := obj(t, want(t, editor.patch(t, "/api/v1/requirements/ATT-R1", map[string]any{"typeId": ifaceID, "baseRevision": 1}),
+		got := obj(t, want(t, editor.patch(t, "/api/v1/requirements/"+attKey+"-R1", map[string]any{"typeId": ifaceID, "baseRevision": 1}),
 			http.StatusOK, "change the type"), "requirement")
 		values := got["attributes"].(map[string]any)
 		if got["revision"] != float64(2) || values[verificationID] != nil || values[notesID] != "fast" {
 			t.Errorf("the type change is revision 2 and keeps only the values that show: %v", got)
 		}
-		want(t, editor.patch(t, "/api/v1/requirements/ATT-R1", map[string]any{"typeId": defaultType, "attributes": map[string]any{verificationID: analysis}, "baseRevision": 2}),
+		want(t, editor.patch(t, "/api/v1/requirements/"+attKey+"-R1", map[string]any{"typeId": defaultType, "attributes": map[string]any{verificationID: analysis}, "baseRevision": 2}),
 			http.StatusOK, "change it back with a value")
 	})
 
@@ -125,11 +126,11 @@ func TestTypesAndAttributesOverTheAPI(t *testing.T) {
 		if optionID(t, renamed, "Testing") != test || optionID(t, renamed, "Analysis") != analysis {
 			t.Fatalf("the options kept their ids: %v", renamed["options"])
 		}
-		want(t, editor.patch(t, "/api/v1/requirements/ATT-R1", map[string]any{"attributes": map[string]any{verificationID: analysis}, "title": "Pay now", "baseRevision": 3}),
+		want(t, editor.patch(t, "/api/v1/requirements/"+attKey+"-R1", map[string]any{"attributes": map[string]any{verificationID: analysis}, "title": "Pay now", "baseRevision": 3}),
 			http.StatusOK, "keep a retired option")
-		want(t, editor.post(t, "/api/v1/projects/ATT/requirements", map[string]any{"title": "Second", "attributes": map[string]any{verificationID: test}}),
+		want(t, editor.post(t, "/api/v1/projects/"+attKey+"/requirements", map[string]any{"title": "Second", "attributes": map[string]any{verificationID: test}}),
 			http.StatusCreated, "a second requirement")
-		refuse(t, "a retired option chosen anew", editor.patch(t, "/api/v1/requirements/ATT-R2", map[string]any{
+		refuse(t, "a retired option chosen anew", editor.patch(t, "/api/v1/requirements/"+attKey+"-R2", map[string]any{
 			"attributes": map[string]any{verificationID: analysis}, "baseRevision": 1}), http.StatusUnprocessableEntity, "validation_failed")
 	})
 
@@ -142,7 +143,7 @@ func TestTypesAndAttributesOverTheAPI(t *testing.T) {
 		if retired["retired"] != true {
 			t.Errorf("the type was not retired: %v", retired)
 		}
-		refuse(t, "a retired type newly taken", editor.patch(t, "/api/v1/requirements/ATT-R2", map[string]any{"typeId": ifaceID, "baseRevision": 1}),
+		refuse(t, "a retired type newly taken", editor.patch(t, "/api/v1/requirements/"+attKey+"-R2", map[string]any{"typeId": ifaceID, "baseRevision": 1}),
 			http.StatusUnprocessableEntity, "validation_failed")
 		spare := obj(t, want(t, f.owner.post(t, types, map[string]any{"name": "Spare", "icon": "spare", "colour": "#123456"}), http.StatusCreated, "a spare type"), "type")
 		refuse(t, "an editor deletes a type", editor.delete(t, types+"/"+spare["id"].(string)), http.StatusForbidden, "forbidden")
@@ -162,12 +163,12 @@ func TestTypesAndAttributesOverTheAPI(t *testing.T) {
 	})
 
 	t.Run("the default type is one of the project's and in use", func(t *testing.T) {
-		refuse(t, "a retired default", f.owner.patch(t, "/api/v1/projects/ATT", map[string]any{"settings": map[string]any{"defaultTypeId": ifaceID}}),
+		refuse(t, "a retired default", f.owner.patch(t, "/api/v1/projects/"+attKey, map[string]any{"settings": map[string]any{"defaultTypeId": ifaceID}}),
 			http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "a default of nowhere", f.owner.patch(t, "/api/v1/projects/ATT", map[string]any{"settings": map[string]any{"defaultTypeId": uuid.NewString()}}),
+		refuse(t, "a default of nowhere", f.owner.patch(t, "/api/v1/projects/"+attKey, map[string]any{"settings": map[string]any{"defaultTypeId": uuid.NewString()}}),
 			http.StatusUnprocessableEntity, "validation_failed")
 		if n := f.h.countRows(t, `SELECT count(*) FROM requirement_revision WHERE requirement_id = $1 AND type_id IS NOT NULL`, reqID); n != 4 {
-			t.Errorf("%d revisions of ATT-R1 name their type, want 4", n)
+			t.Errorf("%d revisions of "+attKey+"-R1 name their type, want 4", n)
 		}
 	})
 }

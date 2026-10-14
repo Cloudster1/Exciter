@@ -29,7 +29,7 @@ var luckyRainbowFile = filepath.Join("..", "internal", "theme", "testdata", "luc
 func TestAThemeTravelsAsOneFile(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "porter")
+	home := h.owner(t, "porter")
 	owner := api.as(t, home.user, home.org)
 
 	made := want(t, owner.post(t, "/api/v1/themes", map[string]any{"name": "Traveller", "spec": map[string]any{"colors": map[string]any{"light": map[string]string{"accent": "#123456"}}, "shape": map[string]any{"radiusControl": 0}}}), http.StatusCreated, "make a theme")
@@ -55,11 +55,10 @@ func TestAThemeTravelsAsOneFile(t *testing.T) {
 		t.Fatalf("package = %+v", pkg)
 	}
 
-	t.Run("another organization cannot export it", func(t *testing.T) {
-		away := h.makeMember(t, "porter-away")
-		stranger := api.as(t, away.user, away.org)
+	t.Run("somebody else cannot export a private theme", func(t *testing.T) {
+		stranger := api.as(t, h.addPerson(t, home.org, "member"), home.org)
 		if resp, _ := stranger.download(t, "/api/v1/themes/"+themeID+"/export"); resp.StatusCode != http.StatusNotFound {
-			t.Fatalf("a theme was exported across organizations: %d", resp.StatusCode)
+			t.Fatalf("somebody else exported a private theme: %d", resp.StatusCode)
 		}
 	})
 
@@ -117,7 +116,7 @@ func TestAThemeTravelsAsOneFile(t *testing.T) {
 func TestTheMinecraftThemeFromArmatureImports(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "minecraft")
+	home := h.owner(t, "minecraft")
 	owner := api.as(t, home.user, home.org)
 
 	file, err := os.ReadFile(minecraftFile)
@@ -182,7 +181,7 @@ func TestTheMinecraftThemeFromArmatureImports(t *testing.T) {
 func TestTheLuckyRainbowThemeImportsWithItsFiles(t *testing.T) {
 	h := newHarness(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "rainbow")
+	home := h.owner(t, "rainbow")
 	owner := api.as(t, home.user, home.org)
 	file, err := os.ReadFile(luckyRainbowFile)
 	if err != nil {
@@ -245,7 +244,7 @@ func normalised(t *testing.T, spec theme.Spec) theme.Spec {
 // is half made.
 func TestUploadsWithoutABucketAreRefusedPlainly(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "no-bucket")
+	home := h.owner(t, "no-bucket")
 	svc := theme.NewService(h.cluster, objectstore.Unavailable{})
 	made, lsn, err := svc.Create(home.ctx, home.user, theme.Input{Name: ptr("Bucketless")})
 	if err != nil {

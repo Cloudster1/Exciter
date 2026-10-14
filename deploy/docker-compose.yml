@@ -28,8 +28,7 @@ x-s3-env: &s3-env
   EXCITER_S3_SECRET_KEY: ${S3_SECRET_KEY:-exciter-dev-secret}
 
 # The installation's first people: its owner, a way in before single sign-on, and the stack's Keycloak, under the
-# issuer the browser sees. The seed makes the installation with them, and the api's test endpoints the integration
-# suite's throwaway organizations until #90.
+# issuer the browser sees. The seed makes the installation with them.
 # For development only.
 x-bootstrap-env: &bootstrap-env
   EXCITER_BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@exciter.test}
@@ -246,9 +245,6 @@ services:
       # EXCITER_APP_URL, which nginx proxies. nginx names the client in X-Real-IP from inside the stack's network.
       EXCITER_OIDC_BACKCHANNEL: http://localhost:${KEYCLOAK_PORT:-8180}=http://keycloak:8080
       EXCITER_TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
-      # The integration suite's throwaway organizations come through these until #90; a deployment never sets them.
-      EXCITER_TEST_ENDPOINTS: "1"
-      EXCITER_TEST_ENDPOINTS_TOKEN: ${EXCITER_TEST_ENDPOINTS_TOKEN:-exciter-dev-test-endpoints-token}
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     healthcheck:

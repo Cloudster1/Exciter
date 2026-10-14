@@ -66,8 +66,8 @@ func TestRawSQLGuardsAttachments(t *testing.T) {
 		if err := w.editor.QueryRow(ctx, insertFile, w.a.org, w.r1, w.viewerID).Scan(&id); err == nil {
 			t.Error("an editor attached a file in somebody else's name")
 		}
-		if err := w.stranger.QueryRow(ctx, insertFile, w.a.org, w.r1, w.b.user).Scan(&id); err == nil {
-			t.Error("another organization attached a file")
+		if err := w.stranger.QueryRow(ctx, insertFile, w.a.org, w.r1, w.strangerID).Scan(&id); err == nil {
+			t.Error("a guest no grant names attached a file")
 		}
 		if err := w.editor.QueryRow(ctx, `INSERT INTO attachment (org_id, requirement_id, uploaded_by, file_name, size_bytes, deleted_at)
 			VALUES ($1, $2, current_actor_id(), 'x', 1, now()) RETURNING id`, w.a.org, w.r1).Scan(&id); err == nil {
@@ -111,8 +111,8 @@ func TestRawSQLGuardsAttachments(t *testing.T) {
 		}
 		var key string
 		if err := w.stranger.QueryRow(ctx, `INSERT INTO attachment_tombstone (org_id, object_key) VALUES ($1, $2) RETURNING object_key`,
-			w.b.org, fileKey(w.a.org, w.r2.String(), loose.String())).Scan(&key); err == nil {
-			t.Error("a tenant named another organization's object for the reaper")
+			w.a.org, fileKey(w.a.org, w.r2.String(), loose.String())).Scan(&key); err == nil {
+			t.Error("a guest no grant names named somebody's object for the reaper")
 		}
 		if _, err := w.editor.Exec(ctx, `UPDATE attachment_tombstone SET created_at = now()`); err == nil {
 			t.Error("the app changed a tombstone")

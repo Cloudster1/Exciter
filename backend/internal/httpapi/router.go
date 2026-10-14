@@ -26,7 +26,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -61,9 +60,6 @@ type Server struct {
 	// both. AuditRetention is how long the worker keeps an entry, zero forever.
 	Audit          *audit.Service
 	AuditRetention time.Duration
-	// SignInOrg is whose provider single sign-on starts with, the installation's when nil; the integration suite
-	// points it at a test's own organization until #90 gives each test its people instead.
-	SignInOrg func(context.Context) (*tenant.Org, error)
 	// Installation keeps the installation's name; nil answers its routes that it is not set up.
 	Installation *installation.Service
 	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
@@ -100,10 +96,6 @@ type Server struct {
 	// Fresh remembers each caller's last write between requests; nil leaves
 	// reads unpinned, which is only right without replicas.
 	Fresh Freshness
-	// TestOrgs serves /test/orgs for the browser suite when it is set, to
-	// callers with TestToken; nil leaves those paths unrouted.
-	TestOrgs  TestOrgs
-	TestToken string
 
 	// CookieName is the session cookie a sign-in sets and the same-site check guards.
 	CookieName string
@@ -375,14 +367,6 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(s.permsOn).Get("/people", s.handleListPeople)
 			r.With(s.permsOn).Get("/groups", s.handleListGroups)
 		})
-
-		if s.TestOrgs != nil {
-			r.Group(func(r chi.Router) {
-				r.Use(s.requireTestToken)
-				r.Post("/test/orgs", s.handleCreateTestOrg)
-				r.Delete("/test/orgs/{orgSlug}", s.handleDeleteTestOrg)
-			})
-		}
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)

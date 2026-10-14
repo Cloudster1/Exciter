@@ -12,12 +12,13 @@ import (
 // Straight through SQL as exciter_app: editors write requirements and numbers come from the project in order,
 // revisions are append only and run in sequence, the trash hides from readers, and only administrators purge.
 func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
+	reqKey := projectKey(t, "REQ")
+	oldKey := projectKey(t, "OLD")
 	h := newHarness(t)
-	a := h.makeMember(t, "req-wall-a")
-	b := h.makeMember(t, "req-wall-b")
+	a := h.owner(t, "req-wall-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'REQ', 'Walled', $2) RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+reqKey+`', 'Walled', $2) RETURNING id`,
 		a.org, a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +26,8 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 	viewerID := h.addPerson(t, a.org, "guest")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
 	editor, viewer, owner := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID), h.appConn(t, a.org, a.user)
-	stranger := h.appConn(t, b.org, b.user)
+	strangerID := h.addPerson(t, a.org, "guest")
+	stranger := h.appConn(t, a.org, strangerID)
 	insert := `INSERT INTO requirement (org_id, project_id, number, title, statement, normative_hash, created_by)
 		VALUES ($1, $2, 99, 'Walled in', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id, number`
 
@@ -46,7 +48,7 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 			t.Errorf("a viewer wrote a requirement: %v", err)
 		}
 		if _, err := stranger.Exec(ctx, insert, a.org, project); !isPolicyViolation(err) {
-			t.Errorf("another organization wrote a requirement: %v", err)
+			t.Errorf("a guest no grant names wrote a requirement: %v", err)
 		}
 		if _, err := editor.Exec(ctx, `UPDATE requirement SET number = 7 WHERE id = $1`, id); !refusedBy(err, "requirement_fixed") {
 			t.Errorf("a requirement's number changed: %v", err)
@@ -84,7 +86,7 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 		if _, err := owner.Exec(ctx, `DELETE FROM requirement_change WHERE requirement_id = $1`, id); !isPolicyViolation(err) {
 			t.Errorf("a logged change was deleted: %v", err)
 		}
-		if _, err := owner.Exec(ctx, `INSERT INTO requirement_old_key (org_id, key, requirement_id) VALUES ($1, 'OLD-R1', $2)`, a.org, id); !isPolicyViolation(err) {
+		if _, err := owner.Exec(ctx, `INSERT INTO requirement_old_key (org_id, key, requirement_id) VALUES ($1, '`+oldKey+`-R1', $2)`, a.org, id); !isPolicyViolation(err) {
 			t.Errorf("the app wrote an old key by hand: %v", err)
 		}
 	})
@@ -100,9 +102,9 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 		err := viewer.QueryRow(ctx, `SELECT count(*) FROM requirement WHERE project_id = $1`, project).Scan(&n)
 		seen("a viewer", n, 2, err)
 		err = stranger.QueryRow(ctx, `SELECT count(*) FROM requirement WHERE project_id = $1`, project).Scan(&n)
-		seen("another organization", n, 0, err)
+		seen("a guest no grant names", n, 0, err)
 		err = stranger.QueryRow(ctx, `SELECT count(*) FROM requirement_revision WHERE requirement_id = $1`, id).Scan(&n)
-		seen("another organization's history", n, 0, err)
+		seen("a guest no grant names, the history", n, 0, err)
 		if n := affects(t, editor, `UPDATE requirement SET trashed_at = now(), trash_id = id WHERE id = $1`, id); n != 1 {
 			t.Fatal("an editor could not trash a requirement")
 		}

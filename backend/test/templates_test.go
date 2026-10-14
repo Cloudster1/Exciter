@@ -22,7 +22,7 @@ func TestEveryTemplateMakesAValidProject(t *testing.T) {
 	}
 	for _, each := range templates {
 		tpl := each.(map[string]any)
-		key := strings.ToUpper(tpl["key"].(string)) + "T"
+		key := projectKey(t, strings.ToUpper(tpl["key"].(string))[:4])
 		t.Run(tpl["key"].(string), func(t *testing.T) {
 			made := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": tpl["name"], "template": tpl["key"]}),
 				http.StatusCreated, "make a project from it"), "project")

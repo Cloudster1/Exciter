@@ -17,7 +17,7 @@ import (
 // workerIdle is how long a worker the suite runs waits when nothing is due, short so a test does not wait it out.
 const workerIdle = 50 * time.Millisecond
 
-// addPerson makes somebody a member of org with role, behind the policies' back.
+// addPerson makes somebody a member of the installation with role, behind the policies' back.
 func (h *harness) addPerson(t *testing.T, org uuid.UUID, role string) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
@@ -29,7 +29,7 @@ func (h *harness) addPerson(t *testing.T, org uuid.UUID, role string) uuid.UUID 
 	if _, err := h.super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)`, org, id, role); err != nil {
 		t.Fatalf("make the %s a member: %v", role, err)
 	}
-	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE id = $1`, id) })
+	h.later(t, id)
 	h.settle(t)
 	return id
 }

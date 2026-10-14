@@ -20,7 +20,7 @@ import (
 func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	org := h.makeOrg(t, "upsert")
+	org := h.singleSignOn(t)
 	ctx := context.Background()
 	const issuer = "https://id.upsert.test"
 	if _, _, err := a.sso.Save(withActor(org, h.addPerson(t, org.ID, "admin")), oidc.Provider{Issuer: issuer, ClientID: exciterClient, CreateGroups: true, Enabled: true}); err != nil {

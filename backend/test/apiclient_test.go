@@ -36,7 +36,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
@@ -54,9 +53,6 @@ type apiServer struct {
 	// files is the server's attachment service, whose reaper a test runs.
 	files *attachment.Service
 	h     *harness
-	// signInOrg is whose provider single sign-on starts with, a test's own organization rather than the
-	// installation's, until #90 gives each test its people instead.
-	signInOrg *tenant.Org
 
 	mu         sync.Mutex
 	lastWriter *client
@@ -105,13 +101,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		Armature: h.armature(t),
-		SignInOrg: func(ctx context.Context) (*tenant.Org, error) {
-			if a.signInOrg != nil {
-				return a.signInOrg, nil
-			}
-			return accounts.InstallationOrg(ctx)
-		},
-		Fresh: h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+		Fresh:    h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {
 		configure(a, server)

@@ -113,6 +113,12 @@ func newHarness(t *testing.T) *harness {
 		super.Close()
 		cluster.Close()
 	})
+	// Last of the test's own cleanups, before the pools close: its projects, then its people, who a link or a
+	// requirement of those projects may still name. A person made in a subtest waits for its whole test.
+	t.Cleanup(func() {
+		h.sweepProjects(t)
+		h.forgetPeople(t)
+	})
 	return h
 }
 
@@ -157,13 +163,16 @@ func (h *harness) execBounded(t *testing.T, pool *pgxpool.Pool, b bound, sql str
 	return "", err
 }
 
-// cleanupExec runs a cleanup statement within statementBound, and fails the
-// test with a lock report when it does not finish in time.
+// cleanupExec runs a cleanup statement within statementBound, and fails the test when it does not: with a lock
+// report when it ran out of time, since in one installation what a test leaves behind meets the next.
 func (h *harness) cleanupExec(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) {
 	t.Helper()
 	report, err := h.execBounded(t, pool, statementBound, sql, args...)
-	if errors.Is(err, context.DeadlineExceeded) {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
 		t.Errorf("a cleanup gave up: %v. Find the session that blocks it below and make it finish:\n%s", err, report)
+	case err != nil:
+		t.Errorf("a cleanup failed, leaving its rows for the tests after: %q: %v", sql, err)
 	}
 }
 
@@ -331,8 +340,8 @@ func (h *harness) resumeReplay(t *testing.T) {
 	}
 }
 
-// member is one organization with one person in it, made behind the policies'
-// back so that what a test observes is only the policies' doing.
+// member is a person who owns the installation, made behind the policies' back so that what a test observes
+// is only the policies' doing, with a context acting for them.
 type member struct {
 	org  uuid.UUID
 	user uuid.UUID
@@ -342,27 +351,22 @@ type member struct {
 // suffix is unique per call, so repeated runs against a kept database do not collide.
 func (h *harness) suffix() string { return uuid.NewString()[:8] }
 
-func (h *harness) makeMember(t *testing.T, slug string) member {
+// owner makes somebody an owner of the installation, who goes when the whole test ends, after its projects.
+func (h *harness) owner(t *testing.T, label string) member {
 	t.Helper()
 	ctx := context.Background()
-	full := fmt.Sprintf("%s-%s", slug, h.suffix())
-
-	var m member
-	if err := h.super.QueryRow(ctx, `INSERT INTO org (slug, name) VALUES ($1, $2) RETURNING id`, full, slug).Scan(&m.org); err != nil {
-		t.Fatalf("create org %s: %v", full, err)
-	}
+	inst := h.installation(t)
+	m := member{org: inst.ID}
+	email := fmt.Sprintf("%s-%s@example.test", label, h.suffix())
 	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name) VALUES ($1, $2) RETURNING id`,
-		full+"@example.test", "Person of "+slug).Scan(&m.user); err != nil {
-		t.Fatalf("create user in %s: %v", full, err)
+		email, "Person of "+label).Scan(&m.user); err != nil {
+		t.Fatalf("create the owner %s: %v", email, err)
 	}
 	if _, err := h.super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'owner')`, m.org, m.user); err != nil {
-		t.Fatalf("make the user a member of %s: %v", full, err)
+		t.Fatalf("make %s an owner: %v", email, err)
 	}
-	t.Cleanup(func() {
-		h.cleanupExec(t, h.super, `DELETE FROM org WHERE id = $1`, m.org)
-		h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE id = $1`, m.user)
-	})
-	m.ctx = db.WithUser(tenant.WithOrg(ctx, tenant.Org{ID: m.org, Slug: full}), m.user)
+	h.later(t, m.user)
+	m.ctx = db.WithUser(tenant.WithOrg(ctx, inst), m.user)
 	h.settle(t)
 	return m
 }

@@ -127,10 +127,13 @@ func linkStates(t *testing.T, c *client, reqKey string) map[string]map[string]an
 }
 
 func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
+	lnkKey := projectKey(t, "LNK")
+	lnxKey := projectKey(t, "LNX")
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-links")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-links")
+	slug := stubTenant(t)
 	stubControl(t, http.MethodDelete, slug, nil)
 	owner := api.as(t, home.user, home.org)
 	bobID := h.addPerson(t, home.org, "member")
@@ -142,10 +145,10 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "the owner connects as alice")
 	want(t, bob.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "bob")}), http.StatusOK, "bob connects")
 	want(t, dave.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "reader")}), http.StatusOK, "dave connects with a read-only token")
-	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": "LNK", "name": "Linked"}), http.StatusCreated, "make a project")
-	r1 := obj(t, want(t, bob.post(t, "/api/v1/projects/LNK/requirements", map[string]any{"title": "Brakes engage within 100 ms"}), http.StatusCreated, "write LNK-R1"), "requirement")
-	r2 := obj(t, want(t, bob.post(t, "/api/v1/projects/LNK/requirements", map[string]any{"title": "Log every login"}), http.StatusCreated, "write LNK-R2"), "requirement")
-	want(t, bob.post(t, "/api/v1/projects/LNK/requirements", map[string]any{"title": "Safety", "kind": "section"}), http.StatusCreated, "write a section")
+	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": lnkKey, "name": "Linked"}), http.StatusCreated, "make a project")
+	r1 := obj(t, want(t, bob.post(t, "/api/v1/projects/"+lnkKey+"/requirements", map[string]any{"title": "Brakes engage within 100 ms"}), http.StatusCreated, "write "+lnkKey+"-R1"), "requirement")
+	r2 := obj(t, want(t, bob.post(t, "/api/v1/projects/"+lnkKey+"/requirements", map[string]any{"title": "Log every login"}), http.StatusCreated, "write "+lnkKey+"-R2"), "requirement")
+	want(t, bob.post(t, "/api/v1/projects/"+lnkKey+"/requirements", map[string]any{"title": "Safety", "kind": "section"}), http.StatusCreated, "write a section")
 	url1 := testAppURL(t) + armature.RequirementPath + r1["id"].(string)
 	url2 := testAppURL(t) + armature.RequirementPath + r2["id"].(string)
 	h.settle(t)
@@ -187,27 +190,27 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	})
 
 	t.Run("a link is made as the linker, to an issue they may see", func(t *testing.T) {
-		made := obj(t, want(t, bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "cp-1", "relation": "implements"}),
+		made := obj(t, want(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "cp-1", "relation": "implements"}),
 			http.StatusCreated, "bob links CP-1"), "link")
 		if made["issueKey"] != "CP-1" || made["relation"] != "implements" || made["statusCategory"] != "done" || made["createdByName"] == "" {
 			t.Errorf("the link reads %v", made)
 		}
-		want(t, bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "verifies"}), http.StatusCreated, "and as verifying")
-		want(t, bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "SEC-2", "relation": "relates"}), http.StatusCreated, "an old key")
-		want(t, bob.post(t, "/api/v1/requirements/LNK-R2/armature-links", map[string]any{"issueKey": "CP-2", "relation": "relates"}), http.StatusCreated, "LNK-R2 to CP-2")
-		refuse(t, "the same link again", bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "implements"}),
+		want(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "verifies"}), http.StatusCreated, "and as verifying")
+		want(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "SEC-2", "relation": "relates"}), http.StatusCreated, "an old key")
+		want(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R2/armature-links", map[string]any{"issueKey": "CP-2", "relation": "relates"}), http.StatusCreated, lnkKey+"-R2 to CP-2")
+		refuse(t, "the same link again", bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "implements"}),
 			http.StatusConflict, "armature_link_exists")
-		if msg := fieldError(t, bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "SEC-1", "relation": "implements"}), "issueKey"); !strings.Contains(msg, "SEC-1") {
+		if msg := fieldError(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "SEC-1", "relation": "implements"}), "issueKey"); !strings.Contains(msg, "SEC-1") {
 			t.Errorf("an issue bob may not see is refused with %q", msg)
 		}
-		fieldError(t, bob.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "blocks"}), "relation")
-		refuse(t, "a section", bob.post(t, "/api/v1/requirements/LNK-R3/armature-links", map[string]any{"issueKey": "CP-1", "relation": "relates"}),
+		fieldError(t, bob.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "CP-1", "relation": "blocks"}), "relation")
+		refuse(t, "a section", bob.post(t, "/api/v1/requirements/"+lnkKey+"-R3/armature-links", map[string]any{"issueKey": "CP-1", "relation": "relates"}),
 			http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "carol without a token", carol.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "CP-3", "relation": "relates"}),
+		refuse(t, "carol without a token", carol.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "CP-3", "relation": "relates"}),
 			http.StatusConflict, "armature_not_connected")
-		refuse(t, "dave with a read-only token", dave.post(t, "/api/v1/requirements/LNK-R1/armature-links", map[string]any{"issueKey": "CP-3", "relation": "relates"}),
+		refuse(t, "dave with a read-only token", dave.post(t, "/api/v1/requirements/"+lnkKey+"-R1/armature-links", map[string]any{"issueKey": "CP-3", "relation": "relates"}),
 			http.StatusConflict, "armature_rejected")
-		states := linkStates(t, carol, "LNK-R1")
+		states := linkStates(t, carol, lnkKey+"-R1")
 		if len(states) != 3 || states["CP-5 relates"] == nil || states["CP-1 implements"]["statusCategory"] != "done" {
 			t.Errorf("carol, without a token, reads the links as %v", states)
 		}
@@ -217,17 +220,17 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	t.Run("the worker puts one link per issue on Armature, as the person who linked", func(t *testing.T) {
 		got := linksOn(t, slug, url1)
 		if issueKeys(got) != "CP-1 CP-5" {
-			t.Fatalf("LNK-R1 is on %s, want CP-1 and CP-5", issueKeys(got))
+			t.Fatalf(lnkKey+"-R1 is on %s, want CP-1 and CP-5", issueKeys(got))
 		}
 		cp1 := got["CP-1"]
-		if cp1["title"] != "LNK-R1 Brakes engage within 100 ms (implements)" || cp1["source"] != armature.LinkSource ||
+		if cp1["title"] != lnkKey+"-R1 Brakes engage within 100 ms (implements)" || cp1["source"] != armature.LinkSource ||
 			cp1["createdByName"] != "Bob" || cp1["iconUrl"] != testAppURL(t)+armature.IconPath {
 			t.Errorf("the link on CP-1 is %v", cp1)
 		}
-		if got["CP-5"]["title"] != "LNK-R1 Brakes engage within 100 ms (relates)" {
+		if got["CP-5"]["title"] != lnkKey+"-R1 Brakes engage within 100 ms (relates)" {
 			t.Errorf("the link on CP-5 is titled %v", got["CP-5"]["title"])
 		}
-		for key, l := range linkStates(t, bob, "LNK-R1") {
+		for key, l := range linkStates(t, bob, lnkKey+"-R1") {
 			if l["sync"] != "synced" {
 				t.Errorf("%s reads %v", key, l)
 			}
@@ -235,37 +238,37 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 	})
 
 	t.Run("a new revision, a new key and a removed link are synced", func(t *testing.T) {
-		want(t, bob.patch(t, "/api/v1/requirements/LNK-R1", map[string]any{"title": "Brakes engage within 80 ms", "baseRevision": 1}), http.StatusOK, "revise LNK-R1")
+		want(t, bob.patch(t, "/api/v1/requirements/"+lnkKey+"-R1", map[string]any{"title": "Brakes engage within 80 ms", "baseRevision": 1}), http.StatusOK, "revise "+lnkKey+"-R1")
 		h.drained(t, home.org)
-		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != "LNK-R1 Brakes engage within 80 ms (implements)" {
+		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnkKey+"-R1 Brakes engage within 80 ms (implements)" {
 			t.Errorf("after the revision CP-1 shows %v", title)
 		}
-		want(t, owner.put(t, "/api/v1/projects/LNK/key", map[string]any{"key": "LNX"}), http.StatusOK, "rekey the project")
+		want(t, owner.put(t, "/api/v1/projects/"+lnkKey+"/key", map[string]any{"key": lnxKey}), http.StatusOK, "rekey the project")
 		h.drained(t, home.org)
-		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != "LNX-R1 Brakes engage within 80 ms (implements)" {
+		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnxKey+"-R1 Brakes engage within 80 ms (implements)" {
 			t.Errorf("after the new key CP-1 shows %v", title)
 		}
-		implements := linkStates(t, bob, "LNX-R1")["CP-1 implements"]["id"].(string)
+		implements := linkStates(t, bob, lnxKey+"-R1")["CP-1 implements"]["id"].(string)
 		want(t, bob.delete(t, "/api/v1/armature-links/"+implements), http.StatusNoContent, "remove the implements link")
 		h.drained(t, home.org)
-		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != "LNX-R1 Brakes engage within 80 ms (verifies)" {
+		if title := linksOn(t, slug, url1)["CP-1"]["title"]; title != lnxKey+"-R1 Brakes engage within 80 ms (verifies)" {
 			t.Errorf("with only the verifies link CP-1 shows %v", title)
 		}
-		verifies := linkStates(t, bob, "LNX-R1")["CP-1 verifies"]["id"].(string)
+		verifies := linkStates(t, bob, lnxKey+"-R1")["CP-1 verifies"]["id"].(string)
 		want(t, bob.delete(t, "/api/v1/armature-links/"+verifies), http.StatusNoContent, "remove the verifies link")
 		want(t, bob.delete(t, "/api/v1/armature-links/"+verifies), http.StatusNotFound, "remove it again")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "CP-5" {
-			t.Errorf("after both links went LNX-R1 is on %s", keys)
+			t.Errorf("after both links went "+lnxKey+"-R1 is on %s", keys)
 		}
 	})
 
 	t.Run("an Armature that answers 503 is asked again through the outbox", func(t *testing.T) {
 		stubControl(t, http.MethodPut, slug+"/remote-links/outage", map[string]any{"status": http.StatusServiceUnavailable, "count": 1})
-		want(t, bob.post(t, "/api/v1/requirements/LNX-R2/armature-links", map[string]any{"issueKey": "CP-3", "relation": "implements"}), http.StatusCreated, "link CP-3")
+		want(t, bob.post(t, "/api/v1/requirements/"+lnxKey+"-R2/armature-links", map[string]any{"issueKey": "CP-3", "relation": "implements"}), http.StatusCreated, "link CP-3")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "CP-2 CP-3" {
-			t.Errorf("after the outage LNX-R2 is on %s", keys)
+			t.Errorf("after the outage "+lnxKey+"-R2 is on %s", keys)
 		}
 		if n := h.countRows(t, `
 			SELECT count(*) FROM outbox_event
@@ -277,36 +280,36 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 
 	t.Run("a refusal marks the link failed, and the next change tries it again", func(t *testing.T) {
 		stubControl(t, http.MethodPut, slug+"/people/bob/read-only-projects", map[string]any{"projects": []string{"CP"}})
-		want(t, bob.post(t, "/api/v1/requirements/LNX-R2/armature-links", map[string]any{"issueKey": "CP-4", "relation": "verifies"}), http.StatusCreated, "link CP-4")
+		want(t, bob.post(t, "/api/v1/requirements/"+lnxKey+"-R2/armature-links", map[string]any{"issueKey": "CP-4", "relation": "verifies"}), http.StatusCreated, "link CP-4")
 		h.drained(t, home.org)
-		failed := linkStates(t, owner, "LNX-R2")["CP-4 verifies"]
+		failed := linkStates(t, owner, lnxKey+"-R2")["CP-4 verifies"]
 		if failed["sync"] != "failed" || !strings.Contains(failed["error"].(string), "did not let A member") || !strings.Contains(failed["error"].(string), "next change") {
 			t.Errorf("a refused link reads %v", failed)
 		}
 		stubControl(t, http.MethodPut, slug+"/people/bob/read-only-projects", map[string]any{"projects": []string{}})
-		want(t, bob.patch(t, "/api/v1/requirements/LNX-R2", map[string]any{"title": "Log every sign-in", "baseRevision": 1}), http.StatusOK, "revise LNX-R2")
+		want(t, bob.patch(t, "/api/v1/requirements/"+lnxKey+"-R2", map[string]any{"title": "Log every sign-in", "baseRevision": 1}), http.StatusOK, "revise "+lnxKey+"-R2")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "CP-2 CP-3 CP-4" {
-			t.Errorf("after the next change LNX-R2 is on %s", keys)
+			t.Errorf("after the next change "+lnxKey+"-R2 is on %s", keys)
 		}
-		if state := linkStates(t, owner, "LNX-R2")["CP-4 verifies"]["sync"]; state != "synced" {
+		if state := linkStates(t, owner, lnxKey+"-R2")["CP-4 verifies"]["sync"]; state != "synced" {
 			t.Errorf("CP-4 reads %v after the next change", state)
 		}
 	})
 
 	t.Run("trash takes the links off, restore puts them back, and a purge takes them off for good", func(t *testing.T) {
-		want(t, bob.delete(t, "/api/v1/requirements/LNX-R1"), http.StatusNoContent, "trash LNX-R1")
+		want(t, bob.delete(t, "/api/v1/requirements/"+lnxKey+"-R1"), http.StatusNoContent, "trash "+lnxKey+"-R1")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "" {
 			t.Errorf("a trashed requirement is still on %s", keys)
 		}
-		want(t, bob.post(t, "/api/v1/projects/LNX/trash/"+r1["id"].(string)+"/restore", nil), http.StatusOK, "restore LNX-R1")
+		want(t, bob.post(t, "/api/v1/projects/"+lnxKey+"/trash/"+r1["id"].(string)+"/restore", nil), http.StatusOK, "restore "+lnxKey+"-R1")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url1)); keys != "CP-5" {
 			t.Errorf("a restored requirement is on %s", keys)
 		}
-		want(t, bob.delete(t, "/api/v1/requirements/LNX-R2"), http.StatusNoContent, "trash LNX-R2")
-		want(t, owner.delete(t, "/api/v1/projects/LNX/trash/"+r2["id"].(string)), http.StatusNoContent, "purge LNX-R2")
+		want(t, bob.delete(t, "/api/v1/requirements/"+lnxKey+"-R2"), http.StatusNoContent, "trash "+lnxKey+"-R2")
+		want(t, owner.delete(t, "/api/v1/projects/"+lnxKey+"/trash/"+r2["id"].(string)), http.StatusNoContent, "purge "+lnxKey+"-R2")
 		h.drained(t, home.org)
 		if keys := issueKeys(linksOn(t, slug, url2)); keys != "" {
 			t.Errorf("a purged requirement is still on %s", keys)

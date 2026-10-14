@@ -32,14 +32,14 @@ func touchesNothing(t *testing.T, conn *pgx.Conn, what, sql string, args ...any)
 	}
 }
 
-// Straight through SQL as exciter_app: a member reads and changes only their own token, only administrators the
-// connection, and nobody another organization's.
+// Straight through SQL as exciter_app: a member reads and changes only their own token, and only administrators
+// the connection.
 func TestRawSQLWallsArmatureRows(t *testing.T) {
 	h := newHarness(t)
+	h.keepArmature(t)
 	api := newAPIServer(t, h)
-	home := h.makeMember(t, "arm-wall")
-	other := h.makeMember(t, "arm-wall-other")
-	slug := h.slugOf(t, home.org)
+	home := h.owner(t, "arm-wall")
+	slug := stubTenant(t)
 	owner := api.as(t, home.user, home.org)
 	bobID := h.addPerson(t, home.org, "member")
 	bob := api.as(t, bobID, home.org)
@@ -94,16 +94,4 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 		}
 	})
 
-	t.Run("another organization reaches none of it", func(t *testing.T) {
-		conn := h.appConn(t, other.org, other.user)
-		if n := seesRows(t, conn, `SELECT count(*) FROM armature_connection WHERE org_id = $1`, home.org); n != 0 {
-			t.Error("another organization reads the connection")
-		}
-		if n := seesRows(t, conn, `SELECT count(*) FROM armature_endpoint()`); n != 0 {
-			t.Error("another organization learns where Armature is")
-		}
-		touchesNothing(t, conn, "removing another organization's connection", `DELETE FROM armature_connection WHERE org_id = $1`, home.org)
-		refusedOutright(t, conn, "connecting another organization", `INSERT INTO armature_connection (org_id, base_url) VALUES ($1, 'https://evil.example')`, home.org)
-		refusedOutright(t, conn, "storing a token in another organization", `INSERT INTO armature_token (org_id, user_id, token, status) VALUES ($1, $2, '\x00', 'ok')`, home.org, other.user)
-	})
 }

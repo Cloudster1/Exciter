@@ -3,6 +3,42 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: Integration tests keep apart in one installation (#90)
+
+The integration suite gave every test an organization of its own, which the
+schema cannot offer once `org_id` goes (#91). Now every test works in the
+stack's installation and keeps apart by what it makes, as Armature's #217
+decided.
+
+- **One at a time, as before.** The suite never called `t.Parallel`, so a
+  test meets another's leftovers rather than its changes. Keys carry a mark
+  of the test's, people unique addresses, and the end of a test removes its
+  projects, newest first since a moved requirement names the project it left,
+  and then its people. A cleanup that fails now fails its test instead of
+  leaving rows for the next one.
+- **Shared settings are put back.** Tests that change the link types for all
+  projects, the default theme, the Armature connection, the identity provider
+  or the installation's name snapshot it and restore it; a list names each
+  with its reason and a test holds the list to the code. A run leaves the
+  installation as it found it.
+- **What only two organizations proved went.** `TestTenantIsolation`, the
+  cross-organization raw-SQL cases and the API's "another organization" cases
+  were deleted. Where they also proved a wall inside an installation, the
+  stranger became a guest no grant names, which the database refuses the same
+  way. The cases that still hold while tables carry `org_id`, nothing visible
+  without the installation and every way around the policies refused, stay in
+  `tenant_context_test.go`.
+- **Databases of their own** for what one installation cannot show: the
+  upgrade guard, a first start, and the last active administrator, which the
+  shared installation always has more than one of.
+- **The test endpoints went.** `POST` and `DELETE /test/orgs`,
+  `internal/testorg` and `EXCITER_TEST_ENDPOINTS` served the browser suite
+  until #83 and nothing since; they went, and with them the sign-in seam
+  `Server.SignInOrg` of #85.
+
+**Reconsider if** the suite grows slow enough to want `t.Parallel`: the
+list of installation-wide tests is then the list of those that run alone.
+
 ## 2026-10-14: One installation is one team's requirements (#89)
 
 Exciter is self-hosted, and an installation serves one team, as Armature and
@@ -354,7 +390,7 @@ import refuses rows only when the project changed meanwhile.
 ## 2026-10-12: Each browser spec file gets a throwaway organization (#9)
 
 Superseded by "Browser specs keep to people and keys of their own (#83)"; the
-test endpoints stay for the integration suite until #90.
+test endpoints went with #90.
 
 As in Stator: specs that change what an organization shows, such as its
 default theme or somebody's role, cannot share `demo` with specs that judge

@@ -33,7 +33,7 @@ const (
 // errNotThisTest leaves another test's event to the stack's worker.
 var errNotThisTest = errors.New("not this test's event")
 
-// deleteBound is how long deleting the organization may take while the handler runs; it waits on nothing.
+// deleteBound is how long deleting the event may take while the handler runs; it waits on nothing.
 var deleteBound = bound{deadline: 10 * time.Second, watchdog: 2 * time.Second}
 
 // plantEvent adds an event behind the policies' back, already tried attempts times.
@@ -67,7 +67,7 @@ func (h *harness) runWorker(t *testing.T, handler events.Handler) {
 // leaves none, a committed one always has one.
 func TestAnEventCommitsAndRollsBackWithItsChange(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "outbox-tx")
+	m := h.owner(t, "outbox-tx")
 	marker := uuid.NewString()
 	refused := errors.New("the change failed after its event was written")
 
@@ -97,7 +97,7 @@ func TestAnEventCommitsAndRollsBackWithItsChange(t *testing.T) {
 // the name of the person the transaction acts for.
 func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "outbox-own")
+	m := h.owner(t, "outbox-own")
 	other := h.addPerson(t, m.org, "member")
 	h.plantEvent(t, m.org, 0)
 
@@ -124,18 +124,13 @@ func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 	if err := write(`INSERT INTO outbox_event (org_id, topic, payload) VALUES (current_org_id(), $1, jsonb_build_object('actorId', $2::text))`, testTopic, m.user); err != nil {
 		t.Errorf("an event in the caller's own name was refused: %v", err)
 	}
-
-	// Another organization's id in the row is refused as well, by the tenant policy.
-	b := h.makeMember(t, "outbox-other")
-	denied("an event in another organization", write(
-		`INSERT INTO outbox_event (org_id, topic, payload) VALUES ($1, $2, jsonb_build_object('actorId', $3::text))`, b.org, testTopic, m.user))
 }
 
 // Any number of workers may run at once: each event is handled by one of them,
 // never by two, and every one is handled.
 func TestTwoWorkersNeverHandleOneEvent(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "outbox-race")
+	m := h.owner(t, "outbox-race")
 
 	var mu sync.Mutex
 	handledBy := map[uuid.UUID][]int{}
@@ -238,10 +233,10 @@ func (o *offerer) awaitClaim(t *testing.T, id uuid.UUID) bool {
 }
 
 // A failed event is tried again later, each time later still, and after the
-// last attempt it is set aside and recorded in the organization's audit log.
+// last attempt it is set aside and recorded in the audit log.
 func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "outbox-retry")
+	m := h.owner(t, "outbox-retry")
 
 	o := newOfferer(t, h, m.org)
 	first := o.offer(t, 0)
@@ -273,16 +268,16 @@ func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 	if err != nil || topic != testTopic || actor != nil {
 		t.Errorf("the entry reads topic %q actor %v (%v), want the event's topic and nobody", topic, actor, err)
 	}
-	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = $2`, m.org, audit.ActionEventDeadLettered); n != 1 {
+	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE action = $1 AND target_id IN ($2, $3)`, audit.ActionEventDeadLettered, first, last); n != 1 {
 		t.Errorf("%d events were recorded as given up, want only the last", n)
 	}
 }
 
-// While a handler runs, the worker holds no lock on its event: a handler's write
-// may wait on a delete of the organization, which would otherwise wait on the event.
+// While a handler runs, the worker holds no lock on its event: a handler's write may wait on a delete that
+// reaches the event, which would otherwise wait on the handler.
 func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 	h := newHarness(t)
-	m := h.makeMember(t, "outbox-lease")
+	m := h.owner(t, "outbox-lease")
 	var mu sync.Mutex
 	ours := map[uuid.UUID]bool{}
 	started := make(chan uuid.UUID, 1)
@@ -319,19 +314,19 @@ func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 	if handling == uuid.Nil {
 		t.Fatalf("the stack's worker took every one of %d events first", claimTries)
 	}
-	if report, err := h.execBounded(t, h.super, deleteBound, `DELETE FROM org WHERE id = $1`, m.org); err != nil {
-		t.Fatalf("deleting the organization while its event is handled: %v\n%s", err, report)
+	if report, err := h.execBounded(t, h.super, deleteBound, `DELETE FROM outbox_event WHERE id = $1`, handling); err != nil {
+		t.Fatalf("deleting the event while it is handled: %v\n%s", err, report)
 	}
 	stop()
-	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE org_id = $1`, m.org); n != 0 {
-		t.Errorf("%d events of the deleted organization are left", n)
+	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1`, handling); n != 0 {
+		t.Error("the event handled while it was deleted is still there")
 	}
 }
 
 // Emit names the organization the transaction is in, whatever the caller wished.
 func TestAnEventBelongsToTheTransactionsOrganization(t *testing.T) {
 	h := newHarness(t)
-	a := h.makeMember(t, "outbox-org-a")
+	a := h.owner(t, "outbox-org-a")
 	marker := uuid.NewString()
 	if _, err := h.cluster.Write(a.ctx, func(ctx context.Context, tx db.DBTX) error {
 		return events.Emit(ctx, tx, testTopic, map[string]any{"actorId": a.user, "marker": marker})

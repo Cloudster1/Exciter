@@ -20,11 +20,12 @@ type searchFixture struct {
 }
 
 func newSearchFixture(t *testing.T, key string) *searchFixture {
+	hidKey := projectKey(t, "HID")
 	t.Helper()
 	f := &searchFixture{projectFixture: newProjectFixture(t)}
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Searched"}), http.StatusCreated, "make a project")
-	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": "HID", "name": "Hidden"}), http.StatusCreated, "make a hidden project")
-	want(t, f.owner.put(t, "/api/v1/projects/HID/grants", map[string]any{"grants": []any{grantRow(subjectOf("user", f.home.user), "admin")}}),
+	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": hidKey, "name": "Hidden"}), http.StatusCreated, "make a hidden project")
+	want(t, f.owner.put(t, "/api/v1/projects/"+hidKey+"/grants", map[string]any{"grants": []any{grantRow(subjectOf("user", f.home.user), "admin")}}),
 		http.StatusOK, "keep the hidden project to its maker")
 	attr := func(body map[string]any) map[string]any {
 		return obj(t, want(t, f.owner.post(t, "/api/v1/projects/"+key+"/attributes", body), http.StatusCreated, "define "+body["name"].(string)), "attribute")
@@ -47,7 +48,7 @@ func newSearchFixture(t *testing.T, key string) *searchFixture {
 	write(key, map[string]any{"kind": "section", "title": "Receipts"})
 	write(key, map[string]any{"title": "Print the receipt", "statement": statementSaying("The till prints a receipt."), "labels": []string{"checkout", "paper"}})
 	write(key, map[string]any{"title": "Mail the receipt", "statement": statementSaying("A receipt goes by mail when asked.")})
-	want(t, f.owner.post(t, "/api/v1/projects/HID/requirements", map[string]any{"title": "Pay the secret basket"}), http.StatusCreated, "write a hidden one")
+	want(t, f.owner.post(t, "/api/v1/projects/"+hidKey+"/requirements", map[string]any{"title": "Pay the secret basket"}), http.StatusCreated, "write a hidden one")
 	return f
 }
 
@@ -102,7 +103,9 @@ func TestPlainTextInSQLIsDocumentPlainText(t *testing.T) {
 // Search finds requirements by key, title, statement, rationale and text values, ranks the title first, marks
 // what matched, and counts only what the reader may view, out of the trash.
 func TestSearchOverTheAPI(t *testing.T) {
-	f := newSearchFixture(t, "SRC")
+	srcKey := projectKey(t, "SRC")
+	hidKey := projectKey(t, "HID")
+	f := newSearchFixture(t, srcKey)
 	find := func(c *client, query string) response {
 		t.Helper()
 		return want(t, c.get(t, "/api/v1/search?"+query), http.StatusOK, "search "+query)
@@ -110,7 +113,7 @@ func TestSearchOverTheAPI(t *testing.T) {
 
 	t.Run("words find what the reader may view, the title first", func(t *testing.T) {
 		basket := find(f.plain, "q=basket")
-		sameList(t, "the member's hits", hitKeys(t, basket), "SRC-R1")
+		sameList(t, "the member's hits", hitKeys(t, basket), srcKey+"-R1")
 		if basket.Body["total"] != float64(1) {
 			t.Errorf("the total counts what the member sees: %v", basket.Body["total"])
 		}
@@ -121,32 +124,32 @@ func TestSearchOverTheAPI(t *testing.T) {
 		if got := find(f.owner, "q=basket").Body["total"]; got != float64(2) {
 			t.Errorf("the owner sees the hidden one too: %v", got)
 		}
-		sameList(t, "a statement beats a value", hitKeys(t, find(f.plain, "q=card")), "SRC-R2", "SRC-R1")
+		sameList(t, "a statement beats a value", hitKeys(t, find(f.plain, "q=card")), srcKey+"-R2", srcKey+"-R1")
 		refund := list(t, find(f.plain, "q=minds"), "hits")
 		if len(refund) != 1 || !strings.Contains(strings.Join(matched(refund[0].(map[string]any)["snippet"]), ""), "minds") {
 			t.Errorf("the rationale is found and its snippet marked: %v", refund)
 		}
-		sameList(t, "text values, accents ignored", hitKeys(t, find(f.plain, "q=cafe")), "SRC-R2")
-		sameList(t, "a text value", hitKeys(t, find(f.plain, "q=cash")), "SRC-R1")
-		sameList(t, "a phrase and a word left out", hitKeys(t, find(f.plain, "q="+url.QueryEscape(`"a receipt" -mail`))), "SRC-R4")
-		sameList(t, "a key typed whole comes first", hitKeys(t, find(f.plain, "q=src-r5")), "SRC-R5")
+		sameList(t, "text values, accents ignored", hitKeys(t, find(f.plain, "q=cafe")), srcKey+"-R2")
+		sameList(t, "a text value", hitKeys(t, find(f.plain, "q=cash")), srcKey+"-R1")
+		sameList(t, "a phrase and a word left out", hitKeys(t, find(f.plain, "q="+url.QueryEscape(`"a receipt" -mail`))), srcKey+"-R4")
+		sameList(t, "a key typed whole comes first", hitKeys(t, find(f.plain, "q="+strings.ToLower(srcKey)+"-r5")), srcKey+"-R5")
 	})
 
 	t.Run("filters narrow, and without words the latest change comes first", func(t *testing.T) {
-		sameList(t, "by label", hitKeys(t, find(f.plain, "label=Checkout")), "SRC-R4", "SRC-R1")
-		sameList(t, "by project and words", hitKeys(t, find(f.owner, "q=basket&project=hid")), "HID-R1")
-		sameList(t, "by category", hitKeys(t, find(f.plain, "q=receipt&category=draft&sort=updated")), "SRC-R5", "SRC-R4")
+		sameList(t, "by label", hitKeys(t, find(f.plain, "label=Checkout")), srcKey+"-R4", srcKey+"-R1")
+		sameList(t, "by project and words", hitKeys(t, find(f.owner, "q=basket&project="+strings.ToLower(hidKey))), hidKey+"-R1")
+		sameList(t, "by category", hitKeys(t, find(f.plain, "q=receipt&category=draft&sort=updated")), srcKey+"-R5", srcKey+"-R4")
 		if got := find(f.plain, "q=receipt&category=approved").Body["total"]; got != float64(0) {
 			t.Errorf("nothing is approved: %v", got)
 		}
 		if got := find(f.plain, "q=receipt&updatedBefore=2000-01-01").Body["total"]; got != float64(0) {
 			t.Errorf("nothing changed before 2000: %v", got)
 		}
-		sameList(t, "by the latest change", hitKeys(t, find(f.plain, "q=receipt&sort=updated")), "SRC-R5", "SRC-R4")
+		sameList(t, "by the latest change", hitKeys(t, find(f.plain, "q=receipt&sort=updated")), srcKey+"-R5", srcKey+"-R4")
 		refuse(t, "a search too long", f.plain.get(t, "/api/v1/search?q="+strings.Repeat("x", 201)), http.StatusUnprocessableEntity, "validation_failed")
 		refuse(t, "a category that is none", f.plain.get(t, "/api/v1/search?category=finished"), http.StatusUnprocessableEntity, "validation_failed")
 		if got := find(f.outside, "q=basket").Body["total"]; got != float64(0) {
-			t.Errorf("another organization found a requirement: %v", got)
+			t.Errorf("a guest no grant names found a requirement: %v", got)
 		}
 	})
 
@@ -163,18 +166,18 @@ func TestSearchOverTheAPI(t *testing.T) {
 			}
 			return keys
 		}
-		sameList(t, "by key", quick(f.plain, "q=src-r"), "SRC-R1", "SRC-R2", "SRC-R3", "SRC-R4", "SRC-R5")
-		sameList(t, "one key", quick(f.plain, "q=SRC-R2"), "SRC-R2")
-		sameList(t, "title words", quick(f.plain, "q=pa"), "SRC-R1", "SRC-R2")
-		sameList(t, "every word a prefix", quick(f.plain, "q=re+ma"), "SRC-R5")
-		sameList(t, "within a project", quick(f.owner, "q=pay&project=hid"), "HID-R1")
+		sameList(t, "by key", quick(f.plain, "q="+strings.ToLower(srcKey)+"-r"), srcKey+"-R1", srcKey+"-R2", srcKey+"-R3", srcKey+"-R4", srcKey+"-R5")
+		sameList(t, "one key", quick(f.plain, "q="+srcKey+"-R2"), srcKey+"-R2")
+		sameList(t, "title words", quick(f.plain, "q=pa"), srcKey+"-R1", srcKey+"-R2")
+		sameList(t, "every word a prefix", quick(f.plain, "q=re+ma"), srcKey+"-R5")
+		sameList(t, "within a project", quick(f.owner, "q=pay&project="+strings.ToLower(hidKey)), hidKey+"-R1")
 		sameList(t, "nothing typed", quick(f.plain, "q="))
 		refuse(t, "too many at once", f.plain.get(t, "/api/v1/search/quick?q=pa&limit=21"), http.StatusUnprocessableEntity, "validation_failed")
 	})
 
 	t.Run("the trash is never searched", func(t *testing.T) {
-		want(t, f.plain.delete(t, "/api/v1/requirements/SRC-R5"), http.StatusNoContent, "trash SRC-R5")
-		sameList(t, "without it", hitKeys(t, find(f.plain, "q=receipt")), "SRC-R4")
+		want(t, f.plain.delete(t, "/api/v1/requirements/"+srcKey+"-R5"), http.StatusNoContent, "trash "+srcKey+"-R5")
+		sameList(t, "without it", hitKeys(t, find(f.plain, "q=receipt")), srcKey+"-R4")
 		if got := list(t, want(t, f.plain.get(t, "/api/v1/search/quick?q=mail"), http.StatusOK, "quick"), "requirements"); len(got) != 0 {
 			t.Errorf("quick search found the trash: %v", got)
 		}

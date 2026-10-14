@@ -64,23 +64,25 @@ func treeOf(t *testing.T, c *client, projectKey string) []string {
 // A project goes out as a file and the file into an empty project, which then holds the same tree, content and
 // links; the mapping reports what matches nothing before anything is written.
 func TestExportThenImportMakesTheSameProject(t *testing.T) {
+	csvaKey := projectKey(t, "CSVA")
+	csvbKey := projectKey(t, "CSVB")
 	f := newProjectFixture(t)
 	owner := f.owner
-	for _, key := range []string{"CSVA", "CSVB"} {
+	for _, key := range []string{csvaKey, csvbKey} {
 		want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
 	}
-	section := obj(t, want(t, owner.post(t, "/api/v1/projects/CSVA/requirements", map[string]any{"kind": "section", "title": "Checkout"}),
+	section := obj(t, want(t, owner.post(t, "/api/v1/projects/"+csvaKey+"/requirements", map[string]any{"kind": "section", "title": "Checkout"}),
 		http.StatusCreated, "write a section"), "requirement")
 	under := map[string]any{"parentId": section["id"], "afterId": nil}
-	want(t, owner.post(t, "/api/v1/projects/CSVA/requirements", map[string]any{
+	want(t, owner.post(t, "/api/v1/projects/"+csvaKey+"/requirements", map[string]any{
 		"title": "Pay the basket", "statement": statementSaying("The shopper pays at once."), "place": under, "priority": "must",
 		"labels": []string{"checkout"}, "ownerId": owner.user.String(),
-	}), http.StatusCreated, "write CSVA-R2")
-	want(t, owner.post(t, "/api/v1/projects/CSVA/requirements", map[string]any{"title": "=Refund", "statement": statementSaying("Money goes back.")}),
-		http.StatusCreated, "write CSVA-R3, a title a spreadsheet would run")
-	want(t, owner.post(t, "/api/v1/requirements/CSVA-R3/links", map[string]any{"typeKey": "derives", "otherKey": "CSVA-R2"}), http.StatusCreated, "link them")
+	}), http.StatusCreated, "write "+csvaKey+"-R2")
+	want(t, owner.post(t, "/api/v1/projects/"+csvaKey+"/requirements", map[string]any{"title": "=Refund", "statement": statementSaying("Money goes back.")}),
+		http.StatusCreated, "write "+csvaKey+"-R3, a title a spreadsheet would run")
+	want(t, owner.post(t, "/api/v1/requirements/"+csvaKey+"-R3/links", map[string]any{"typeKey": "derives", "otherKey": csvaKey + "-R2"}), http.StatusCreated, "link them")
 
-	exported := want(t, f.plain.get(t, "/api/v1/projects/CSVA/export.csv"), http.StatusOK, "a member exports")
+	exported := want(t, f.plain.get(t, "/api/v1/projects/"+csvaKey+"/export.csv"), http.StatusOK, "a member exports")
 	if !strings.HasPrefix(exported.Header.Get("Content-Disposition"), "attachment") || exported.Header.Get("X-Export-Truncated") != "" {
 		t.Errorf("the export is a whole download: %v", exported.Header)
 	}
@@ -91,13 +93,13 @@ func TestExportThenImportMakesTheSameProject(t *testing.T) {
 	if strings.Join(records[0], ",") != "key,kind,title,statement,rationale,type,status,owner,priority,labels,links,outline,parent" || len(records) != 4 {
 		t.Fatalf("the export: %v", records)
 	}
-	if records[3][2] != "'=Refund" || records[3][10] != "derives:CSVA-R2" || records[2][12] != "CSVA-R1" || records[2][7] != owner.email(t) {
+	if records[3][2] != "'=Refund" || records[3][10] != "derives:"+csvaKey+"-R2" || records[2][12] != csvaKey+"-R1" || records[2][7] != owner.email(t) {
 		t.Errorf("the rows: %v", records)
 	}
-	refuse(t, "a column nobody has", owner.get(t, "/api/v1/projects/CSVA/export.csv?column=nope"), http.StatusUnprocessableEntity, "validation_failed")
+	refuse(t, "a column nobody has", owner.get(t, "/api/v1/projects/"+csvaKey+"/export.csv?column=nope"), http.StatusUnprocessableEntity, "validation_failed")
 
 	t.Run("the file imports into an empty project as the same project", func(t *testing.T) {
-		made := obj(t, want(t, uploadCSV(t, owner, "CSVB", "csva.csv", exported.Raw), http.StatusCreated, "upload it"), "import")
+		made := obj(t, want(t, uploadCSV(t, owner, csvbKey, "csva.csv", exported.Raw), http.StatusCreated, "upload it"), "import")
 		if made["state"] != "uploaded" || made["total"] != float64(3) || len(made["preview"].(map[string]any)["problems"].([]any)) != 0 {
 			t.Fatalf("the upload maps itself without problems: %v", made)
 		}
@@ -107,8 +109,8 @@ func TestExportThenImportMakesTheSameProject(t *testing.T) {
 		if done["state"] != "done" || len(done["imported"].([]any)) != 3 || len(done["refused"].([]any)) != 0 {
 			t.Fatalf("the import: %v", done)
 		}
-		sameList(t, "the tree", treeOf(t, owner, "CSVB"), "1 section Checkout", "1.1 requirement Pay the basket", "2 requirement =Refund")
-		paid := obj(t, want(t, owner.get(t, "/api/v1/requirements/CSVB-R2"), http.StatusOK, "read the copy"), "requirement")
+		sameList(t, "the tree", treeOf(t, owner, csvbKey), "1 section Checkout", "1.1 requirement Pay the basket", "2 requirement =Refund")
+		paid := obj(t, want(t, owner.get(t, "/api/v1/requirements/"+csvbKey+"-R2"), http.StatusOK, "read the copy"), "requirement")
 		if paid["title"] != "Pay the basket" || paid["priority"] != "must" || toStrings(paid["labels"])[0] != "checkout" ||
 			paid["owner"].(map[string]any)["id"] != owner.user.String() || paid["revision"] != float64(1) {
 			t.Errorf("the imported requirement: %v", paid)
@@ -116,18 +118,18 @@ func TestExportThenImportMakesTheSameProject(t *testing.T) {
 		if text := paid["statement"].(map[string]any)["content"].([]any)[0].(map[string]any)["content"].([]any)[0].(map[string]any)["text"]; text != "The shopper pays at once." {
 			t.Errorf("the statement came back as %v", text)
 		}
-		links := list(t, want(t, owner.get(t, "/api/v1/requirements/CSVB-R3/links"), http.StatusOK, "read its links"), "links")
-		if len(links) != 1 || links[0].(map[string]any)["other"].(map[string]any)["key"] != "CSVB-R2" {
+		links := list(t, want(t, owner.get(t, "/api/v1/requirements/"+csvbKey+"-R3/links"), http.StatusOK, "read its links"), "links")
+		if len(links) != 1 || links[0].(map[string]any)["other"].(map[string]any)["key"] != csvbKey+"-R2" {
 			t.Errorf("the link points into the new project: %v", links)
 		}
 	})
 
 	t.Run("what matches nothing is reported, and the import waits for it", func(t *testing.T) {
 		file := []byte("title,type,owner\nShip it,Feature,nobody@exciter.test\n")
-		refuse(t, "a member imports", uploadCSV(t, f.plain, "CSVB", "x.csv", file), http.StatusForbidden, "forbidden")
-		refuse(t, "a file that is no CSV", uploadCSV(t, owner, "CSVB", "x.csv", []byte("a,b\n\"x,y")), http.StatusUnprocessableEntity, "validation_failed")
-		refuse(t, "a file too large", uploadCSV(t, owner, "CSVB", "x.csv", make([]byte, 8<<20+1)), http.StatusRequestEntityTooLarge, "too_large")
-		made := obj(t, want(t, uploadCSV(t, owner, "CSVB", "x.csv", file), http.StatusCreated, "upload it"), "import")
+		refuse(t, "a member imports", uploadCSV(t, f.plain, csvbKey, "x.csv", file), http.StatusForbidden, "forbidden")
+		refuse(t, "a file that is no CSV", uploadCSV(t, owner, csvbKey, "x.csv", []byte("a,b\n\"x,y")), http.StatusUnprocessableEntity, "validation_failed")
+		refuse(t, "a file too large", uploadCSV(t, owner, csvbKey, "x.csv", make([]byte, 8<<20+1)), http.StatusRequestEntityTooLarge, "too_large")
+		made := obj(t, want(t, uploadCSV(t, owner, csvbKey, "x.csv", file), http.StatusCreated, "upload it"), "import")
 		id := made["id"].(string)
 		if n := len(made["preview"].(map[string]any)["problems"].([]any)); n != 2 {
 			t.Fatalf("an unknown type and person are %d problems: %v", n, made["preview"])
@@ -147,7 +149,7 @@ func TestExportThenImportMakesTheSameProject(t *testing.T) {
 		if done := finished(t, owner, id); done["state"] != "done" || len(done["imported"].([]any)) != 1 {
 			t.Errorf("the answered import: %v", done)
 		}
-		discarded := obj(t, want(t, uploadCSV(t, owner, "CSVB", "x.csv", file), http.StatusCreated, "upload again"), "import")["id"].(string)
+		discarded := obj(t, want(t, uploadCSV(t, owner, csvbKey, "x.csv", file), http.StatusCreated, "upload again"), "import")["id"].(string)
 		want(t, owner.delete(t, "/api/v1/imports/"+discarded), http.StatusNoContent, "discard it")
 		refuse(t, "a discarded import", owner.delete(t, "/api/v1/imports/"+discarded), http.StatusNotFound, "not_found")
 	})

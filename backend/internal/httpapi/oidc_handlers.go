@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -10,18 +9,10 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Signing in through an identity provider: the start and the callback come before anybody is signed in, the
-// configuration behind them and its group roles are the organization's administrators'.
-
-func (s *Server) signInOrg(ctx context.Context) (*tenant.Org, error) {
-	if s.SignInOrg != nil {
-		return s.SignInOrg(ctx)
-	}
-	return s.Accounts.InstallationOrg(ctx)
-}
+// configuration behind them and its group roles are the administrators'.
 
 // handleOIDCStart sends the browser to the installation's provider.
 func (s *Server) handleOIDCStart(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +22,7 @@ func (s *Server) handleOIDCStart(w http.ResponseWriter, r *http.Request) {
 	}
 	// The browser arrived by navigation, so a refusal sends it back to the
 	// sign-in page with a reason it can show, like the callback does.
-	org, err := s.signInOrg(r.Context())
+	org, err := s.Accounts.InstallationOrg(r.Context())
 	if err != nil {
 		// An installation nobody set up has no provider either.
 		s.landAfterSignIn(w, r, "", signInFailure(oidc.ErrNotConfigured))

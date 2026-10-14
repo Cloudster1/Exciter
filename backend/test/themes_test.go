@@ -15,14 +15,14 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 )
 
-// themeFixture is an organization with an owner, a plain member, an administrator and somebody from elsewhere,
-// and a private theme of the owner's.
+// themeFixture is an owner of the installation, a plain member and an administrator, and a private theme of the
+// owner's.
 type themeFixture struct {
-	h                            *harness
-	api                          *apiServer
-	home, away                   member
-	owner, other, admin, outside *client
-	themeID                      string
+	h                   *harness
+	api                 *apiServer
+	home                member
+	owner, other, admin *client
+	themeID             string
 }
 
 var magentaSpec = map[string]any{
@@ -34,11 +34,11 @@ var magentaSpec = map[string]any{
 func newThemeFixture(t *testing.T) *themeFixture {
 	t.Helper()
 	h := newHarness(t)
-	f := &themeFixture{h: h, api: newAPIServer(t, h), home: h.makeMember(t, "themes"), away: h.makeMember(t, "themes-away")}
+	f := &themeFixture{h: h, api: newAPIServer(t, h), home: h.owner(t, "themes")}
+	h.keepDefaultTheme(t)
 	f.owner = f.api.as(t, f.home.user, f.home.org)
 	f.other = f.api.as(t, h.addPerson(t, f.home.org, "member"), f.home.org)
 	f.admin = f.api.as(t, h.addPerson(t, f.home.org, "admin"), f.home.org)
-	f.outside = f.api.as(t, f.away.user, f.away.org)
 	made := want(t, f.owner.post(t, "/api/v1/themes", map[string]any{"name": "Magenta", "spec": magentaSpec}), http.StatusCreated, "make a theme")
 	theme := obj(t, made, "theme")
 	f.themeID = theme["id"].(string)
@@ -66,7 +66,7 @@ func refuse(t *testing.T, what string, got response, status int, code string) {
 // A theme is its maker's, shared when they say so, chosen per person, and walled by the tenant like everything else.
 func TestThemesOverTheAPI(t *testing.T) {
 	f := newThemeFixture(t)
-	owner, other, admin, outside := f.owner, f.other, f.admin, f.outside
+	owner, other, admin := f.owner, f.other, f.admin
 	themeID := f.themeID
 
 	t.Run("the shipped examples are offered, and one saves as a theme of one's own", func(t *testing.T) {
@@ -127,13 +127,15 @@ func TestThemesOverTheAPI(t *testing.T) {
 			t.Fatalf("a private theme was found by somebody else: %d", got.Status)
 		}
 		refuse(t, "somebody else changing a private theme", other.patch(t, "/api/v1/themes/"+themeID, map[string]any{"name": "Mine now"}), http.StatusNotFound, "not_found")
-		if seen := list(t, want(t, other.get(t, "/api/v1/themes"), http.StatusOK, "list as another"), "themes"); len(seen) != 0 {
-			t.Fatalf("somebody else sees %d themes before any is shared", len(seen))
+		// Other people's shared themes are on everybody's list too, so the list is read for this one.
+		id := uuid.MustParse(themeID)
+		if found := withID(list(t, want(t, other.get(t, "/api/v1/themes"), http.StatusOK, "list as another"), "themes"), id); found != nil {
+			t.Fatalf("somebody else sees the theme before it is shared: %v", found)
 		}
 		want(t, owner.patch(t, "/api/v1/themes/"+themeID, map[string]any{"shared": true}), http.StatusOK, "share")
-		seen := list(t, want(t, other.get(t, "/api/v1/themes"), http.StatusOK, "list as another"), "themes")
-		if len(seen) != 1 || seen[0].(map[string]any)["ownerId"] != f.home.user.String() || seen[0].(map[string]any)["ownerName"] == "" {
-			t.Fatalf("the shared theme is not seen with its owner: %v", seen)
+		found := withID(list(t, want(t, other.get(t, "/api/v1/themes"), http.StatusOK, "list as another"), "themes"), id)
+		if found == nil || found["ownerId"] != f.home.user.String() || found["ownerName"] == "" {
+			t.Fatalf("the shared theme is not seen with its owner: %v", found)
 		}
 		refuse(t, "a member changing a shared theme", other.patch(t, "/api/v1/themes/"+themeID, map[string]any{"name": "Mine now"}), http.StatusForbidden, "forbidden")
 		refuse(t, "a member deleting a shared theme", other.delete(t, "/api/v1/themes/"+themeID), http.StatusForbidden, "forbidden")
@@ -150,15 +152,6 @@ func TestThemesOverTheAPI(t *testing.T) {
 
 	assetID := themeFiles(t, f)
 	themeDefault(t, f)
-
-	t.Run("another organization sees nothing", func(t *testing.T) {
-		refuse(t, "another organization reading the theme", outside.get(t, "/api/v1/themes/"+themeID), http.StatusNotFound, "not_found")
-		refuse(t, "another organization choosing the theme", outside.put(t, "/api/v1/themes/active", map[string]any{"themeId": themeID}), http.StatusNotFound, "not_found")
-		refuse(t, "another organization changing the theme", outside.patch(t, "/api/v1/themes/"+themeID, map[string]any{"name": "Taken"}), http.StatusNotFound, "not_found")
-		if seen := list(t, want(t, outside.get(t, "/api/v1/themes"), http.StatusOK, "list"), "themes"); len(seen) != 0 {
-			t.Errorf("another organization lists %d themes", len(seen))
-		}
-	})
 
 	t.Run("deleting returns everybody to the built-in theme and empties the bucket", func(t *testing.T) {
 		want(t, owner.delete(t, "/api/v1/themes/"+themeID), http.StatusNoContent, "delete")
@@ -205,9 +198,6 @@ func themeFiles(t *testing.T, f *themeFixture) string {
 		if got, _ := other.download(t, base+"/"+assetID); got.StatusCode != http.StatusOK {
 			t.Errorf("a member cannot read a shared theme's file: %d", got.StatusCode)
 		}
-		if got, _ := f.outside.download(t, base+"/"+assetID); got.StatusCode != http.StatusNotFound {
-			t.Errorf("another organization read the file: %d", got.StatusCode)
-		}
 		refuse(t, "a scripted svg", owner.upload(t, base, "evil.svg", []byte(`<svg onload="alert(1)"><script>1</script></svg>`)), http.StatusBadRequest, "bad_request")
 		refuse(t, "text", owner.upload(t, base, "notes.txt", []byte("words")), http.StatusBadRequest, "bad_request")
 		refuse(t, "a member adding a file to somebody's theme", other.upload(t, base, "glyph.svg", safe), http.StatusForbidden, "forbidden")
@@ -228,10 +218,10 @@ func themeFiles(t *testing.T, f *themeFixture) string {
 	return assetID
 }
 
-// themeDefault makes the shared theme the organization's default, which everybody sees until they choose.
+// themeDefault makes the shared theme the default for everyone, which everybody sees until they choose.
 func themeDefault(t *testing.T, f *themeFixture) {
-	owner, other, admin, outside, themeID := f.owner, f.other, f.admin, f.outside, f.themeID
-	t.Run("the organization's default is shared and is what everybody sees until they choose", func(t *testing.T) {
+	owner, other, admin, themeID := f.owner, f.other, f.admin, f.themeID
+	t.Run("the default for everyone is shared and is what everybody sees until they choose", func(t *testing.T) {
 		want(t, owner.patch(t, "/api/v1/themes/"+themeID, map[string]any{"shared": false}), http.StatusOK, "take it private")
 		refuse(t, "an administrator naming a theme they cannot see", admin.put(t, "/api/v1/themes/default", map[string]any{"themeId": themeID}), http.StatusUnprocessableEntity, "validation_failed")
 		refuse(t, "the owner naming a private theme", owner.put(t, "/api/v1/themes/default", map[string]any{"themeId": themeID}), http.StatusUnprocessableEntity, "validation_failed")
@@ -241,7 +231,7 @@ func themeDefault(t *testing.T, f *themeFixture) {
 		if set := want(t, admin.put(t, "/api/v1/themes/default", map[string]any{"themeId": themeID}), http.StatusOK, "make it the default"); obj(t, set, "theme")["default"] != true {
 			t.Fatalf("not marked as the default: %s", set.Raw)
 		}
-		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action = 'theme.default_set' AND target_id = $2`, f.home.org, themeID); n != 1 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE action = 'theme.default_set' AND target_id = $1`, themeID); n != 1 {
 			t.Errorf("naming the default left %d audit entries, want 1", n)
 		}
 
@@ -249,21 +239,15 @@ func themeDefault(t *testing.T, f *themeFixture) {
 		for _, who := range []*client{other, admin} {
 			seen := want(t, who.get(t, "/api/v1/themes/active"), http.StatusOK, "what a member sees")
 			if obj(t, seen, "theme")["id"] != themeID || seen.Body["source"] != "everyone" {
-				t.Fatalf("a member does not see the organization's default: %s", seen.Raw)
+				t.Fatalf("a member does not see the default for everyone: %s", seen.Raw)
 			}
-		}
-		if got := want(t, outside.get(t, "/api/v1/themes/active"), http.StatusOK, "another organization"); got.Body["theme"] != nil {
-			t.Fatalf("another organization sees this one's default: %s", got.Raw)
 		}
 		want(t, other.put(t, "/api/v1/themes/active", map[string]any{"themeId": nil, "builtIn": true}), http.StatusOK, "keep the built-in")
 		if kept := want(t, other.get(t, "/api/v1/themes/active"), http.StatusOK, "built-in kept"); kept.Body["theme"] != nil || kept.Body["source"] != "" {
 			t.Fatalf("the built-in theme was not kept: %s", kept.Raw)
 		}
-		if org := want(t, other.get(t, "/api/v1/themes/default"), http.StatusOK, "the organization's theme"); obj(t, org, "theme")["id"] != themeID {
-			t.Fatalf("the organization's theme reads %s for a member who keeps the built-in", org.Raw)
-		}
-		if got := want(t, outside.get(t, "/api/v1/themes/default"), http.StatusOK, "another organization's"); got.Body["theme"] != nil {
-			t.Fatalf("another organization reads this one's theme: %s", got.Raw)
+		if org := want(t, other.get(t, "/api/v1/themes/default"), http.StatusOK, "the default for everyone"); obj(t, org, "theme")["id"] != themeID {
+			t.Fatalf("the default for everyone reads %s for a member who keeps the built-in", org.Raw)
 		}
 		want(t, other.put(t, "/api/v1/themes/active", map[string]any{"themeId": nil}), http.StatusOK, "back to the default")
 		if back := want(t, other.get(t, "/api/v1/themes/active"), http.StatusOK, "default again"); back.Body["source"] != "everyone" {

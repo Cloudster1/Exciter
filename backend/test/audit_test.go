@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// plantEntry writes an entry behind the policies' back, at a time of the test's choosing.
+// plantEntry writes an entry behind the policies' back, at a time of the test's choosing, and takes it out of the
+// installation's record again when the test ends.
 func (h *harness) plantEntry(t *testing.T, org uuid.UUID, action string, actor *uuid.UUID, targetType string, target *uuid.UUID, at time.Time) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
@@ -29,6 +31,7 @@ func (h *harness) plantEntry(t *testing.T, org uuid.UUID, action string, actor *
 		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, org, actor, action, targetType, target, at).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM audit_log WHERE id = $1`, id) })
 	return id
 }
 
@@ -40,11 +43,11 @@ func permissionDenied(t *testing.T, what string, err error) {
 	}
 }
 
-// Straight through SQL: only an organization's owners and administrators read
-// its record, and nobody rewrites, deletes or forges an entry.
+// Straight through SQL: only the installation's owners and administrators read its record, and nobody rewrites,
+// deletes or forges an entry.
 func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "audit-read")
+	home := h.owner(t, "audit-read")
 	memberID := h.addPerson(t, home.org, "member")
 	adminID := h.addPerson(t, home.org, "admin")
 	h.plantEntry(t, home.org, audit.ActionEventDeadLettered, nil, "event", nil, time.Now())
@@ -104,7 +107,7 @@ func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 // none, a committed one always has one.
 func TestAnEntryCommitsAndRollsBackWithItsAct(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "audit-tx")
+	home := h.owner(t, "audit-tx")
 	marker := uuid.New()
 	refused := errors.New("the act failed after its entry was written")
 	write := func(fail bool) error {
@@ -160,17 +163,17 @@ func actionsOf(t *testing.T, s *audit.Service, ctx context.Context, f audit.Filt
 	return nil
 }
 
-// The log is read newest first a window at a time, and narrowed by action,
-// actor, target and time; the export holds what the filter holds.
+// The log is read newest first a window at a time, and narrowed by action, actor, target and time; the export holds
+// what the filter holds. The entries are years old, so a window around them holds the test's alone.
 func TestTheAuditLogIsWalkedAndNarrowed(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "audit-walk")
+	home := h.owner(t, "audit-walk")
 	annID := h.namedPerson(t, home.org, "Ann Walker")
 	event, project := uuid.New(), uuid.New()
-	day := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -10)
+	day := time.Date(2001, time.March, 1, 0, 0, 0, 0, time.UTC)
 	at := func(days int) time.Time { return day.AddDate(0, 0, days).Add(12 * time.Hour) }
 	h.plantEntry(t, home.org, "project.created", &home.user, "project", &project, at(0))
-	h.plantEntry(t, home.org, "project.updated", &annID, "project", &project, at(1))
+	h.plantEntry(t, home.org, "project.key_changed", &annID, "project", &project, at(1))
 	h.plantEntry(t, home.org, audit.ActionAuditExported, &annID, "org", nil, at(2))
 	// Two at one instant: the id keeps them in order across a window's edge.
 	h.plantEntry(t, home.org, "member.admitted", &home.user, "user", &annID, at(3))
@@ -180,22 +183,33 @@ func TestTheAuditLogIsWalkedAndNarrowed(t *testing.T) {
 
 	s := audit.NewService(h.cluster)
 	ctx := home.ctx
-	all := actionsOf(t, s, ctx, audit.Filter{})
+	first, last := at(0).Truncate(24*time.Hour), at(5).Truncate(24*time.Hour)
+	ours := func(f audit.Filter) audit.Filter {
+		if f.From == nil {
+			f.From = &first
+		}
+		if f.To == nil {
+			f.To = &last
+		}
+		return f
+	}
+	all := actionsOf(t, s, ctx, ours(audit.Filter{}))
 	if len(all) != 6 || all[0] != audit.ActionEventDeadLettered || all[5] != "project.created" {
-		t.Errorf("the whole log reads %v", all)
+		t.Errorf("the whole stretch reads %v", all)
 	}
 	from, to := at(1).Truncate(24*time.Hour), at(3).Truncate(24*time.Hour)
-	sameList(t, "by action", actionsOf(t, s, ctx, audit.Filter{Action: "project.updated"}), "project.updated")
-	sameList(t, "by actor", actionsOf(t, s, ctx, audit.Filter{ActorID: &annID}), audit.ActionAuditExported, "project.updated")
-	sameList(t, "by target", actionsOf(t, s, ctx, audit.Filter{TargetID: &project}), "project.updated", "project.created")
-	sameList(t, "by kind of target", actionsOf(t, s, ctx, audit.Filter{TargetType: "user"}), "member.role_changed", "member.admitted")
-	sameList(t, "by time", actionsOf(t, s, ctx, audit.Filter{From: &from, To: &to}), audit.ActionAuditExported, "project.updated")
+	sameList(t, "by action", actionsOf(t, s, ctx, ours(audit.Filter{Action: "project.key_changed"})), "project.key_changed")
+	sameList(t, "by actor", actionsOf(t, s, ctx, audit.Filter{ActorID: &annID}), audit.ActionAuditExported, "project.key_changed")
+	sameList(t, "by target", actionsOf(t, s, ctx, audit.Filter{TargetID: &project}), "project.key_changed", "project.created")
+	sameList(t, "by kind of target", actionsOf(t, s, ctx, ours(audit.Filter{TargetType: "user"})), "member.role_changed", "member.admitted")
+	sameList(t, "by time", actionsOf(t, s, ctx, audit.Filter{From: &from, To: &to}), audit.ActionAuditExported, "project.key_changed")
 
+	// The facets span the installation's whole record, so they hold the test's among everybody's.
 	facets, err := s.Facets(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(facets.Actions) != 6 || len(facets.Actors) != 2 || len(facets.TargetTypes) != 4 {
+	if !slices.Contains(facets.Actions, "project.key_changed") || !slices.Contains(facets.TargetTypes, "event") || !hasActor(facets, annID) {
 		t.Errorf("the facets read %+v", facets)
 	}
 
@@ -213,22 +227,25 @@ func TestTheAuditLogIsWalkedAndNarrowed(t *testing.T) {
 
 	// A member reads nothing of it, by the database's policy rather than the service's.
 	member := db.WithUser(tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), annID)
-	if got := actionsOf(t, s, member, audit.Filter{}); len(got) != 0 {
+	if got := actionsOf(t, s, member, ours(audit.Filter{})); len(got) != 0 {
 		t.Errorf("a member walked %d entries", len(got))
 	}
 }
 
-// Retention deletes what is past its window, in every organization, and nothing younger.
+// Retention deletes what is past its window and nothing younger. The window is ten years, so the installation's own
+// record, which the stack keeps for a year, is out of its reach.
 func TestRetentionTakesOnlyTheOld(t *testing.T) {
 	h := newHarness(t)
-	a, b := h.makeMember(t, "audit-keep-a"), h.makeMember(t, "audit-keep-b")
+	a, b := h.owner(t, "audit-keep-a"), h.owner(t, "audit-keep-b")
 	now := time.Now()
-	old := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, now.AddDate(0, 0, -40))
-	oldB := h.plantEntry(t, b.org, audit.ActionAuditExported, &b.user, "org", nil, now.AddDate(0, 0, -31))
-	young := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, now.AddDate(0, 0, -29))
+	window := 10 * 365 * 24 * time.Hour
+	past := func(days int) time.Time { return now.Add(-window).AddDate(0, 0, -days) }
+	old := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, past(10))
+	oldB := h.plantEntry(t, b.org, audit.ActionAuditExported, &b.user, "org", nil, past(1))
+	young := h.plantEntry(t, a.org, audit.ActionAuditExported, &a.user, "org", nil, past(-1))
 	fresh := h.plantEntry(t, b.org, audit.ActionAuditExported, &b.user, "org", nil, now)
 
-	n, err := audit.NewRetention(h.cluster, 30*24*time.Hour, discard()).Once(context.Background())
+	n, err := audit.NewRetention(h.cluster, window, discard()).Once(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,4 +260,14 @@ func TestRetentionTakesOnlyTheOld(t *testing.T) {
 	if n, err := audit.NewRetention(h.cluster, 0, discard()).Once(context.Background()); n != 0 || err != nil {
 		t.Errorf("keeping forever took %d entries, %v", n, err)
 	}
+}
+
+// hasActor says whether the facets name the person among the actors.
+func hasActor(f *audit.AuditFacets, id uuid.UUID) bool {
+	for _, actor := range f.Actors {
+		if actor.ID == id {
+			return true
+		}
+	}
+	return false
 }

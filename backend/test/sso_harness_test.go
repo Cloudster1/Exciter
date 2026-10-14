@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"html"
 	"io"
 	"net"
@@ -58,18 +57,6 @@ const (
 	testSessionTTL = time.Hour
 )
 
-// makeOrg is an organization with nobody in it, made behind the policies' back.
-func (h *harness) makeOrg(t *testing.T, slug string) tenant.Org {
-	t.Helper()
-	full := fmt.Sprintf("%s-%s", slug, h.suffix())
-	org := tenant.Org{Slug: full}
-	if err := h.super.QueryRow(context.Background(), `INSERT INTO org (slug, name) VALUES ($1, $2) RETURNING id`, full, slug).Scan(&org.ID); err != nil {
-		t.Fatalf("create org %s: %v", full, err)
-	}
-	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM org WHERE id = $1`, org.ID) })
-	return org
-}
-
 // forgetPerson removes an account a test makes, by address, before and after,
 // so a run against a kept stack starts from nothing.
 func (h *harness) forgetPerson(t *testing.T, email string) {
@@ -79,8 +66,8 @@ func (h *harness) forgetPerson(t *testing.T, email string) {
 	t.Cleanup(clean)
 }
 
-// letIn makes the address a member of org ahead of its first sign-in, the way
-// the seed does, making the account if need be.
+// letIn makes the address a member of org with role ahead of its sign-in, the way the seed does, making the account
+// if need be; somebody the seed already let in gets the role instead.
 func (h *harness) letIn(t *testing.T, org tenant.Org, email, role string) {
 	t.Helper()
 	ctx := context.Background()
@@ -90,7 +77,9 @@ func (h *harness) letIn(t *testing.T, org tenant.Org, email, role string) {
 		ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id`, email, email).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)`, org.ID, id, role); err != nil {
+	if _, err := h.super.Exec(ctx, `
+		INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
+		ON CONFLICT (org_id, user_id) DO UPDATE SET org_role = EXCLUDED.org_role, role_source = 'manual'`, org.ID, id, role); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
@@ -201,9 +190,8 @@ var loginFormAction = regexp.MustCompile(`id="kc-form-login"[^>]*action="([^"]+)
 
 // signIn goes the whole way a person does, authorization code with PKCE through Keycloak's own login form, and
 // returns where the app was told to land; the replica then holds what the sign-in wrote.
-func (b *browser) signIn(t *testing.T, org tenant.Org, username, password, next string) string {
+func (b *browser) signIn(t *testing.T, username, password, next string) string {
 	t.Helper()
-	b.api.signInOrg = &org
 	start := b.api.URL + httpapi.APIPrefix + "/auth/oidc/start"
 	if next != "" {
 		start += "?next=" + url.QueryEscape(next)
@@ -265,12 +253,12 @@ func (b *browser) roleIn(t *testing.T) string {
 	return role
 }
 
-// signedIn signs somebody into org through Keycloak in a browser of their own,
+// signedIn signs somebody in through Keycloak in a browser of their own,
 // which a previous sign-in's provider session would otherwise skip the form of.
-func signedIn(t *testing.T, a *apiServer, org tenant.Org, username, password string) *browser {
+func signedIn(t *testing.T, a *apiServer, username, password string) *browser {
 	t.Helper()
 	b := newBrowser(t, a)
-	if landing := b.signIn(t, org, username, password, "/"); landing != "http://"+appHost+"/" {
+	if landing := b.signIn(t, username, password, "/"); landing != "http://"+appHost+"/" {
 		t.Fatalf("%s landed on %q", username, landing)
 	}
 	return b
@@ -381,6 +369,15 @@ func (k *keycloak) setMembership(t *testing.T, username, group string, member bo
 		method = http.MethodPut
 	}
 	k.send(t, method, "/users/"+user+"/groups/"+grp, nil, nil)
+}
+
+// newGroup adds a group to the realm that no installation has heard of, removed again when the test ends.
+func (k *keycloak) newGroup(t *testing.T, name string) {
+	t.Helper()
+	k.send(t, http.MethodPost, "/groups", map[string]any{"name": name}, nil)
+	t.Cleanup(func() {
+		k.send(t, http.MethodDelete, "/groups/"+k.idOf(t, "/groups?exact=true&search="+url.QueryEscape(name)), nil, nil)
+	})
 }
 
 // newPerson adds somebody to the realm whom Exciter has never seen, in the groups named, removed again here and

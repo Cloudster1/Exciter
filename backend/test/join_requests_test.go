@@ -31,7 +31,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
-	org := h.makeOrg(t, "doorway")
+	org := h.singleSignOn(t)
 	configureProvider(t, a, org, kc.issuer(), true)
 	ctx := context.Background()
 
@@ -42,7 +42,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 
 	t.Run("a first sign-in is refused and noted", func(t *testing.T) {
 		b := newBrowser(t, a)
-		if landing := b.signIn(t, org, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/login?sso=not_a_member" {
+		if landing := b.signIn(t, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/login?sso=not_a_member" {
 			t.Fatalf("landed on %q, want the sign-in page saying the request waits", landing)
 		}
 		if b.sessionCookie(t) != "" {
@@ -73,7 +73,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		}
 	})
 
-	newBrowser(t, a).signIn(t, org, "dave-"+suffix, password, "")
+	newBrowser(t, a).signIn(t, "dave-"+suffix, password, "")
 	admin, adminID := adminOf(t, h, a, org)
 	carolID, daveID := h.userID(t, carol), h.userID(t, dave)
 
@@ -98,7 +98,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		}
 		// A browser of her own: the first one still holds Keycloak's session, which would skip the login form.
 		carolIn = newBrowser(t, a)
-		if landing := carolIn.signIn(t, org, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/settings" {
+		if landing := carolIn.signIn(t, "carol-"+suffix, password, "/settings"); landing != "http://"+appHost+"/settings" {
 			t.Fatalf("carol landed on %q after being let in", landing)
 		}
 		if role := carolIn.roleIn(t); role != "member" {
@@ -142,18 +142,15 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	})
 }
 
-// Straight through SQL as exciter_app: waiting people are an administrator's to see and answer, in their own
-// organization only.
+// Straight through SQL as exciter_app: waiting people are an administrator's to see and answer.
 func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 	h := newHarness(t)
-	a := h.makeMember(t, "omicron")
-	b := h.makeMember(t, "pi")
+	h.singleSignOn(t)
+	a := h.owner(t, "omicron")
 	ctx := context.Background()
-	waiting := h.addPerson(t, h.makeMember(t, "rho").org, "member")
-	for _, m := range []member{a, b} {
-		if _, err := h.super.Exec(ctx, `INSERT INTO org_join_request (org_id, user_id) VALUES ($1, $2)`, m.org, waiting); err != nil {
-			t.Fatal(err)
-		}
+	waiting := h.outsider(t, "rho")
+	if _, err := h.super.Exec(ctx, `INSERT INTO org_join_request (org_id, user_id) VALUES ($1, $2)`, a.org, waiting); err != nil {
+		t.Fatal(err)
 	}
 	h.settle(t)
 
@@ -171,16 +168,7 @@ func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 
 	owner := h.appConn(t, a.org, a.user)
 	if err := owner.QueryRow(ctx, `SELECT count(*) FROM org_join_request`).Scan(&n); err != nil || n != 1 {
-		t.Fatalf("org A's owner sees %d requests (%v), want its own one", n, err)
-	}
-	if tag, err := owner.Exec(ctx, `DELETE FROM org_join_request WHERE org_id = $1`, b.org); err != nil || tag.RowsAffected() != 0 {
-		t.Fatalf("org A answered org B's request: %v %v", tag, err)
-	}
-	if _, err := owner.Exec(ctx, `INSERT INTO org_join_request (org_id, user_id) VALUES ($1, $2)`, b.org, a.user); !isPolicyViolation(err) {
-		t.Fatalf("org A asked to join org B on somebody's behalf: %v", err)
-	}
-	if n := h.countRows(t, `SELECT count(*) FROM org_join_request WHERE org_id = $1`, b.org); n != 1 {
-		t.Fatal("org B's request did not survive org A")
+		t.Fatalf("an owner sees %d requests (%v), want the one", n, err)
 	}
 	var raw []byte
 	if err := owner.QueryRow(ctx, `SELECT coalesce(json_agg(user_id), '[]') FROM org_join_request`).Scan(&raw); err != nil {
@@ -188,6 +176,6 @@ func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 	}
 	var ids []uuid.UUID
 	if err := json.Unmarshal(raw, &ids); err != nil || len(ids) != 1 || ids[0] != waiting {
-		t.Fatalf("org A's owner sees requests %s", raw)
+		t.Fatalf("an owner sees requests %s", raw)
 	}
 }

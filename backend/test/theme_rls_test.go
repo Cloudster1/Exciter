@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// themeRows gives an organization a private theme of its owner's with a file, a shared theme of a plain member's,
+// themeRows gives the installation a private theme of its owner's with a file, a shared theme of a plain member's,
 // and the member's choice of it, all written as the superuser so the policies play no part in making them.
 type themeRows struct {
 	member                  uuid.UUID
@@ -53,12 +53,12 @@ func affects(t *testing.T, conn *pgx.Conn, sql string, args ...any) int64 {
 	return tag.RowsAffected()
 }
 
-// The service refusing is not proof: straight through SQL as exciter_app, another tenant reaches none of the theme
-// rows, a member sees only their own and the shared themes, changes only their own, and chooses only for themselves.
+// The service refusing is not proof: straight through SQL as exciter_app, nothing unscoped reaches a theme row, a
+// member sees only their own and the shared themes, changes only their own, and chooses only for themselves.
 func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 	h := newHarness(t)
-	a := h.makeMember(t, "theme-wall-a")
-	b := h.makeMember(t, "theme-wall-b")
+	a := h.owner(t, "theme-wall-a")
+	h.keepDefaultTheme(t)
 	rows := h.themeRows(t, a)
 	ctx := context.Background()
 	count := func(conn *pgx.Conn, sql string, args ...any) int {
@@ -71,40 +71,31 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 	}
 	tables := []string{"theme", "theme_asset", "user_theme"}
 
-	t.Run("another tenant, or none, reaches nothing", func(t *testing.T) {
+	t.Run("nothing unscoped reaches a theme, and another member changes nobody's", func(t *testing.T) {
 		unscoped := h.appConnUnscoped(t)
-		stranger := h.appConn(t, b.org, b.user)
 		for _, table := range tables {
 			if n := count(unscoped, `SELECT count(*) FROM `+table); n != 0 {
 				t.Errorf("an unscoped connection sees %d rows in %s", n, table)
 			}
-			if n := count(stranger, `SELECT count(*) FROM `+table+` WHERE org_id = $1`, a.org); n != 0 {
-				t.Errorf("organization B sees %d of A's rows in %s", n, table)
-			}
 		}
-		if n := affects(t, stranger, `UPDATE theme SET name = 'Taken', org_id = $2 WHERE id = $1`, rows.sharedID, b.org); n != 0 {
-			t.Error("organization B renamed A's theme")
+		stranger := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
+		if n := affects(t, stranger, `UPDATE theme SET name = 'Taken' WHERE id = $1`, rows.sharedID); n != 0 {
+			t.Error("another member renamed a shared theme")
 		}
 		if n := affects(t, stranger, `DELETE FROM theme_asset WHERE theme_id = $1`, rows.sharedID); n != 0 {
-			t.Error("organization B deleted A's files")
-		}
-		if _, err := stranger.Exec(ctx, `INSERT INTO theme (org_id, owner_id, name) VALUES ($1, $2, 'Planted')`, a.org, b.user); !isPolicyViolation(err) {
-			t.Errorf("organization B planted a theme in A: %v", err)
-		}
-		if _, err := stranger.Exec(ctx, `INSERT INTO user_theme (org_id, user_id, theme_id) VALUES ($1, $2, $3)`, b.org, b.user, rows.sharedID); err == nil {
-			t.Error("organization B chose A's theme")
+			t.Error("another member deleted a shared theme's files")
 		}
 	})
 
 	plain := h.appConn(t, a.org, rows.member)
 	t.Run("a member sees their own and the shared themes, and the files of those alone", func(t *testing.T) {
-		if n := count(plain, `SELECT count(*) FROM theme`); n != 1 {
-			t.Errorf("a member sees %d themes, want the shared one", n)
+		if n := count(plain, `SELECT count(*) FROM theme WHERE id IN ($1, $2)`, rows.privateID, rows.sharedID); n != 1 {
+			t.Errorf("a member sees %d of the two themes, want the shared one", n)
 		}
 		if n := count(plain, `SELECT count(*) FROM theme_asset WHERE theme_id = $1`, rows.privateID); n != 0 {
 			t.Error("a member sees the files of somebody's private theme")
 		}
-		if n := count(plain, `SELECT count(*) FROM user_theme`); n != 1 {
+		if n := count(plain, `SELECT count(*) FROM user_theme WHERE user_id IN ($1, $2)`, rows.member, a.user); n != 1 {
 			t.Errorf("a member sees %d choices, want their own", n)
 		}
 		if n := count(plain, `SELECT theme_in_use($1)`, rows.sharedID); n != 2 {
@@ -122,7 +113,7 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 			t.Error("a member renamed somebody's private theme")
 		}
 		if n := affects(t, owner, `UPDATE theme SET name = 'Tidied' WHERE id = $1`, rows.sharedID); n != 1 {
-			t.Error("the organization's owner could not tidy a shared theme")
+			t.Error("an owner of the installation could not tidy a shared theme")
 		}
 		if n := affects(t, admin, `UPDATE theme SET name = 'Peeked' WHERE id = $1`, rows.privateID); n != 0 {
 			t.Error("an administrator changed somebody's private theme")
@@ -158,23 +149,20 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 
 	t.Run("only an administrator names the default, and only a shared theme", func(t *testing.T) {
 		if n := affects(t, plain, `UPDATE org SET default_theme_id = $1 WHERE id = $2`, rows.sharedID, a.org); n != 0 {
-			t.Error("a member named the organization's default")
+			t.Error("a member named the default for everyone")
 		}
 		if _, err := admin.Exec(ctx, `UPDATE org SET default_theme_id = $1 WHERE id = $2`, rows.privateID, a.org); !isCheckViolation(err) {
 			t.Errorf("a private theme became the default: %v", err)
 		}
-		if _, err := h.super.Exec(ctx, `UPDATE org SET default_theme_id = $1 WHERE id = $2`, rows.sharedID, b.org); !isCheckViolation(err) {
-			t.Errorf("another organization's theme became the default: %v", err)
-		}
 		if n := affects(t, admin, `UPDATE org SET default_theme_id = $1 WHERE id = $2`, rows.sharedID, a.org); n != 1 {
 			t.Fatal("an administrator could not name a shared theme the default")
 		}
-		// Its owner is no administrator, yet taking it private takes it off the organization.
+		// Its owner is no administrator, yet taking it private takes it off everyone.
 		if n := affects(t, plain, `UPDATE theme SET shared = false WHERE id = $1`, rows.sharedID); n != 1 {
 			t.Fatal("the owner could not take their theme private")
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM org WHERE id = $1 AND default_theme_id IS NOT NULL`, a.org); n != 0 {
-			t.Error("a private theme stayed the organization's default")
+			t.Error("a private theme stayed the default for everyone")
 		}
 	})
 }

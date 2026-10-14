@@ -29,7 +29,8 @@ const (
 )
 
 // scratchDatabase is a database of its own on the stack's cluster, dropped afterwards, with goose and a superuser
-// on it, and the way to name it in another address: the shared one holds every test's organizations at once.
+// on it, and the way to name it in another address, for what the shared installation cannot show: being empty,
+// holding several organizations, or having a single administrator.
 func scratchDatabase(t *testing.T, h *harness, name string) (*goose.Provider, *pgxpool.Pool, func(string) string) {
 	t.Helper()
 	ctx := context.Background()
@@ -189,8 +190,9 @@ func TestAFirstStartMakesTheOneOrganization(t *testing.T) {
 // refused, and straight through SQL as exciter_app the database refuses them too.
 func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	h := newHarness(t)
+	h.keepInstallationName(t)
 	a := newAPIServer(t, h)
-	home := h.makeMember(t, "installation")
+	home := h.owner(t, "installation")
 	memberID := h.addPerson(t, home.org, "member")
 	owner, member := a.as(t, home.user, home.org), a.as(t, memberID, home.org)
 
@@ -226,11 +228,10 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 	}
 }
 
-// Single sign-on names no organization: it starts with the installation's, the oldest, which the seed made.
+// Single sign-on names no organization: it starts with the installation's, which the seed made.
 func TestSingleSignOnIsTheInstallations(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	h.makeOrg(t, "younger")
 	org, err := a.accounts.InstallationOrg(context.Background())
 	if err != nil || org.Slug != installation.Slug {
 		t.Fatalf("single sign-on starts with %+v (%v), want the installation's organization %s", org, err, installation.Slug)

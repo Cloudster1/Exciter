@@ -39,7 +39,7 @@ func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) strin
 func TestASessionOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.makeMember(t, "signin-home")
+	home := h.owner(t, "signin-home")
 	email := bootstrapAdmin(t, h, a, home.org)
 
 	b := a.anonymous()
@@ -87,7 +87,7 @@ func TestASessionOverTheAPI(t *testing.T) {
 func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
-	home := h.makeMember(t, "signin-revoked")
+	home := h.owner(t, "signin-revoked")
 	memberID := h.addPerson(t, home.org, "member")
 	c := a.as(t, memberID, home.org)
 	if me := want(t, c.get(t, "/api/v1/auth/me"), http.StatusOK, "read who I am"); me.Body["role"] != "member" {
@@ -130,15 +130,11 @@ func TestASessionReachesOnlyWhatItsPersonStillHas(t *testing.T) {
 	}
 }
 
-// Straight through SQL: the app role reads no session, a session keeps how it
-// was proven, and a provider's sign-in does not travel to another organization.
+// Straight through SQL: the app role reads no session, and a session keeps how it was proven and where it opened,
+// which the trigger refuses to change before anything asks whether the place exists.
 func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 	h := newHarness(t)
-	home := h.makeMember(t, "session-sql-home")
-	away := h.makeMember(t, "session-sql-away")
-	if _, err := h.super.Exec(context.Background(), `INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'member')`, away.org, home.user); err != nil {
-		t.Fatal(err)
-	}
+	home := h.owner(t, "session-sql-home")
 	var sessionID string
 	_, err := h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
 		id, _, err := auth.OpenSession(ctx, tx, home.user, &home.org, auth.ProofOIDC, time.Now().Add(time.Hour), "", "")
@@ -154,8 +150,8 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 		t.Errorf("the app role reads %d sessions", n)
 	}
 	for what, sql := range map[string]string{
-		"moving a provider's sign-in to another organization": `UPDATE user_session SET current_org_id = '` + away.org.String() + `' WHERE id = '` + sessionID + `'`,
-		"changing how a session was proven":                   `UPDATE user_session SET proof = 'password' WHERE id = '` + sessionID + `'`,
+		"moving a sign-in somewhere else":   `UPDATE user_session SET current_org_id = '` + uuid.NewString() + `' WHERE id = '` + sessionID + `'`,
+		"changing how a session was proven": `UPDATE user_session SET proof = 'password' WHERE id = '` + sessionID + `'`,
 	} {
 		_, err := h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, sql)
@@ -173,7 +169,7 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 func TestTheBootstrapIsIdempotent(t *testing.T) {
 	h := newHarness(t)
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
-	org := h.makeOrg(t, "boot")
+	org := h.singleSignOn(t)
 	slug := org.Slug
 	email := "boot-" + h.suffix() + "@example.test"
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })

@@ -14,11 +14,13 @@ import (
 // moves that would close a loop together cannot both land, and a move to another project renumbers and keeps
 // the old key whoever makes it.
 func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
+	treeKey := projectKey(t, "TREE")
+	elseKey := projectKey(t, "ELSE")
 	h := newHarness(t)
-	a := h.makeMember(t, "tree-wall")
+	a := h.owner(t, "tree-wall")
 	ctx := context.Background()
 	projects := map[string]uuid.UUID{}
-	for _, key := range []string{"TREE", "ELSE"} {
+	for _, key := range []string{treeKey, elseKey} {
 		var id uuid.UUID
 		if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, $2, $2, $3) RETURNING id`, a.org, key, a.user).Scan(&id); err != nil {
 			t.Fatal(err)
@@ -36,10 +38,10 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 		}
 		return id
 	}
-	top := write("TREE", nil)
-	child := write("TREE", &top)
-	grandchild := write("TREE", &child)
-	elsewhere := write("ELSE", nil)
+	top := write(treeKey, nil)
+	child := write(treeKey, &top)
+	grandchild := write(treeKey, &child)
+	elsewhere := write(elseKey, nil)
 
 	t.Run("nothing goes below itself or into another project's tree", func(t *testing.T) {
 		if _, err := editor.Exec(ctx, `UPDATE requirement SET parent_id = $2 WHERE id = $1`, top, grandchild); !refusedBy(err, "requirement_tree_no_cycle") {
@@ -57,7 +59,7 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 	})
 
 	t.Run("two moves that would close a loop together cannot both land", func(t *testing.T) {
-		left, right := write("TREE", nil), write("TREE", nil)
+		left, right := write(treeKey, nil), write(treeKey, nil)
 		other := h.appConn(t, a.org, editorID)
 		first, err := editor.Begin(ctx)
 		if err != nil {
@@ -87,20 +89,20 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 
 	t.Run("a move to another project renumbers and keeps the old key", func(t *testing.T) {
 		var number int
-		if err := editor.QueryRow(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1 RETURNING number`, grandchild, projects["ELSE"]).Scan(&number); err != nil {
+		if err := editor.QueryRow(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1 RETURNING number`, grandchild, projects[elseKey]).Scan(&number); err != nil {
 			t.Fatalf("an editor of both could not move a requirement: %v", err)
 		}
 		if number != 2 {
-			t.Errorf("the moved requirement took number %d of ELSE, want 2", number)
+			t.Errorf("the moved requirement took number %d of the other project, want 2", number)
 		}
 		var old string
-		if err := editor.QueryRow(ctx, `SELECT key FROM requirement_old_key WHERE requirement_id = $1`, grandchild).Scan(&old); err != nil || old != "TREE-R3" {
+		if err := editor.QueryRow(ctx, `SELECT key FROM requirement_old_key WHERE requirement_id = $1`, grandchild).Scan(&old); err != nil || old != treeKey+"-R3" {
 			t.Errorf("the old key stays behind: %q %v", old, err)
 		}
 		guest := h.addPerson(t, a.org, "guest")
-		h.grantAs(t, a.org, projects["TREE"], guest, "editor")
+		h.grantAs(t, a.org, projects[treeKey], guest, "editor")
 		mover := h.appConn(t, a.org, guest)
-		if _, err := mover.Exec(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1`, child, projects["ELSE"]); !isPolicyViolation(err) {
+		if _, err := mover.Exec(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1`, child, projects[elseKey]); !isPolicyViolation(err) {
 			t.Errorf("a requirement moved into a project its mover may not edit: %v", err)
 		}
 	})

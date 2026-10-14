@@ -17,7 +17,7 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
 	ctx := context.Background()
-	org := h.makeOrg(t, "bootstrap-sso")
+	org := h.singleSignOn(t)
 	adminID := h.userID(t, bootstrapAdmin(t, h, a, org.ID))
 	first, second := "first-"+h.suffix()+"@suite.test", "second-"+h.suffix()+"@suite.test"
 	h.forgetPerson(t, first)

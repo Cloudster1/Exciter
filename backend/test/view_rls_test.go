@@ -13,12 +13,12 @@ import (
 // Straight through SQL as exciter_app: views keep to their owners, editors share them and administrators manage
 // shared ones; and the search function returns only what the caller may view.
 func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
+	viwKey := projectKey(t, "VIW")
 	h := newHarness(t)
-	a := h.makeMember(t, "view-wall-a")
-	b := h.makeMember(t, "view-wall-b")
+	a := h.owner(t, "view-wall-a")
 	ctx := context.Background()
 	var project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, 'VIW', 'Viewed', $2) RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, '`+viwKey+`', 'Viewed', $2) RETURNING id`,
 		a.org, a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,6 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 	h.grantAs(t, a.org, project, editorID, "editor")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
 	editor, viewer, outsider, owner := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID), h.appConn(t, a.org, outsiderID), h.appConn(t, a.org, a.user)
-	stranger := h.appConn(t, b.org, b.user)
 	save := `INSERT INTO saved_view (org_id, project_id, owner_id, name, shared) VALUES ($1, $2, current_actor_id(), $3, $4) RETURNING id`
 
 	var private, shared uuid.UUID
@@ -43,9 +42,6 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 		if _, err := outsider.Exec(ctx, save, a.org, project, "Peek", false); !isPolicyViolation(err) {
 			t.Errorf("somebody who may not view the project saved a view of it: %v", err)
 		}
-		if _, err := stranger.Exec(ctx, save, a.org, project, "Foreign", false); !isPolicyViolation(err) {
-			t.Errorf("another organization saved a view: %v", err)
-		}
 		if _, err := viewer.Exec(ctx, `INSERT INTO saved_view (org_id, project_id, owner_id, name) VALUES ($1, $2, $3, 'Forged')`,
 			a.org, project, editorID); !isPolicyViolation(err) {
 			t.Errorf("a view was saved in somebody else's name: %v", err)
@@ -57,14 +53,14 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 
 	t.Run("a view is read by its owner, or by the project's readers once shared", func(t *testing.T) {
 		count := map[string]int{}
-		for who, conn := range map[string]*pgx.Conn{"editor": editor, "viewer": viewer, "outsider": outsider, "stranger": stranger} {
+		for who, conn := range map[string]*pgx.Conn{"editor": editor, "viewer": viewer, "outsider": outsider} {
 			var n int
 			if err := conn.QueryRow(ctx, `SELECT count(*) FROM saved_view WHERE project_id = $1`, project).Scan(&n); err != nil {
 				t.Fatal(err)
 			}
 			count[who] = n
 		}
-		if count["editor"] != 2 || count["viewer"] != 1 || count["outsider"] != 0 || count["stranger"] != 0 {
+		if count["editor"] != 2 || count["viewer"] != 1 || count["outsider"] != 0 {
 			t.Errorf("views seen: %v", count)
 		}
 	})
@@ -99,14 +95,14 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 			t.Fatal(err)
 		}
 		query := `SELECT count(*) FROM requirement_search_rows(websearch_to_tsquery('exciter_search', 'basket'), '', 0)`
-		for who, want := range map[*pgx.Conn]int{viewer: 1, outsider: 0, stranger: 0} {
+		for who, want := range map[*pgx.Conn]int{viewer: 1, outsider: 0} {
 			var n int
 			if err := who.QueryRow(ctx, query).Scan(&n); err != nil || n != want {
 				t.Errorf("found %d, want %d: %v", n, want, err)
 			}
 		}
 		var n int
-		if err := outsider.QueryRow(ctx, `SELECT count(*) FROM requirement_search_rows(to_tsquery('exciter_search', 'nothing'), 'VIW', 1)`).Scan(&n); err != nil || n != 0 {
+		if err := outsider.QueryRow(ctx, `SELECT count(*) FROM requirement_search_rows(to_tsquery('exciter_search', 'nothing'), '`+viwKey+`', 1)`).Scan(&n); err != nil || n != 0 {
 			t.Errorf("a key reached past the caller's rights: %d %v", n, err)
 		}
 	})

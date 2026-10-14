@@ -62,8 +62,11 @@ func toolText(result map[string]any) string {
 // A person makes tokens from a session and a script acts with one as them: a full token as far as they may, a
 // read-only one reading alone, and a limited one inside its projects; the MCP endpoint offers each what it may.
 func TestTokensOverTheAPI(t *testing.T) {
+	tokKey := projectKey(t, "TOK")
+	othKey := projectKey(t, "OTH")
+	newKey := projectKey(t, "NEW")
 	f := newProjectFixture(t)
-	for _, key := range []string{"TOK", "OTH"} {
+	for _, key := range []string{tokKey, othKey} {
 		want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
 		want(t, f.owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Pay the basket"}), http.StatusCreated, "write in "+key)
 	}
@@ -97,15 +100,15 @@ func TestTokensOverTheAPI(t *testing.T) {
 		if want(t, person.get(t, "/api/v1/auth/me"), http.StatusOK, "a session").Body["token"] != nil {
 			t.Error("a session reports a token")
 		}
-		want(t, script.post(t, "/api/v1/projects/TOK/requirements", map[string]any{"title": "Written by a script"}), http.StatusCreated, "write with it")
+		want(t, script.post(t, "/api/v1/projects/"+tokKey+"/requirements", map[string]any{"title": "Written by a script"}), http.StatusCreated, "write with it")
 		refuse(t, "a malformed token", f.api.withToken(person.user, "exciter_pat_short").get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "unauthorized")
 	})
 
 	t.Run("a read-only token reads and is refused every write, through MCP too", func(t *testing.T) {
 		_, secret := makeToken(t, person, map[string]any{"name": "read", "scopes": []string{"read"}})
 		reader := f.api.withToken(person.user, secret)
-		want(t, reader.get(t, "/api/v1/requirements/TOK-R1"), http.StatusOK, "read with it")
-		refuse(t, "a write", reader.post(t, "/api/v1/projects/TOK/requirements", map[string]any{"title": "No"}), http.StatusForbidden, "read_only_token")
+		want(t, reader.get(t, "/api/v1/requirements/"+tokKey+"-R1"), http.StatusOK, "read with it")
+		refuse(t, "a write", reader.post(t, "/api/v1/projects/"+tokKey+"/requirements", map[string]any{"title": "No"}), http.StatusForbidden, "read_only_token")
 		refuse(t, "a change of language", reader.patch(t, "/api/v1/auth/me", map[string]any{"locale": "de"}), http.StatusForbidden, "read_only_token")
 		tools := rpc(t, reader, "tools/list", nil)["tools"].([]any)
 		for _, each := range tools {
@@ -113,33 +116,33 @@ func TestTokensOverTheAPI(t *testing.T) {
 				t.Error("a read-only token is offered create_requirement")
 			}
 		}
-		got := rpc(t, reader, "tools/call", map[string]any{"name": "get_requirement", "arguments": map[string]any{"reqKey": "TOK-R1"}})
+		got := rpc(t, reader, "tools/call", map[string]any{"name": "get_requirement", "arguments": map[string]any{"reqKey": tokKey + "-R1"}})
 		if got["isError"] == true || !strings.Contains(toolText(got), "Pay the basket") {
 			t.Errorf("get_requirement through MCP: %v", got)
 		}
-		refused := rpc(t, reader, "tools/call", map[string]any{"name": "create_requirement", "arguments": map[string]any{"projectKey": "TOK", "title": "No"}})
+		refused := rpc(t, reader, "tools/call", map[string]any{"name": "create_requirement", "arguments": map[string]any{"projectKey": tokKey, "title": "No"}})
 		if refused["isError"] != true || !strings.Contains(toolText(refused), "can only read") {
 			t.Errorf("create_requirement with a read-only token: %v", refused)
 		}
 	})
 
 	t.Run("a token limited to projects reaches nothing else and nothing organization-wide", func(t *testing.T) {
-		_, secret := makeToken(t, person, map[string]any{"name": "limited", "projects": []string{"tok"}})
+		_, secret := makeToken(t, person, map[string]any{"name": "limited", "projects": []string{strings.ToLower(tokKey)}})
 		limited := f.api.withToken(person.user, secret)
-		if keys := keysOf(t, want(t, limited.get(t, "/api/v1/projects"), http.StatusOK, "list projects")); strings.Join(keys, ",") != "TOK" {
-			t.Errorf("a token limited to TOK lists %v", keys)
+		if keys := keysOf(t, want(t, limited.get(t, "/api/v1/projects"), http.StatusOK, "list projects")); strings.Join(keys, ",") != tokKey {
+			t.Errorf("a token limited to "+tokKey+" lists %v", keys)
 		}
-		refuse(t, "a project outside it", limited.get(t, "/api/v1/projects/OTH"), http.StatusNotFound, "not_found")
-		refuse(t, "a requirement outside it", limited.get(t, "/api/v1/requirements/OTH-R1"), http.StatusNotFound, "not_found")
+		refuse(t, "a project outside it", limited.get(t, "/api/v1/projects/"+othKey), http.StatusNotFound, "not_found")
+		refuse(t, "a requirement outside it", limited.get(t, "/api/v1/requirements/"+othKey+"-R1"), http.StatusNotFound, "not_found")
 		refuse(t, "the tokens", limited.get(t, "/api/v1/tokens"), http.StatusForbidden, "projects_token")
-		refuse(t, "a new project", limited.post(t, "/api/v1/projects", map[string]any{"key": "NEW", "name": "New"}), http.StatusForbidden, "projects_token")
-		want(t, limited.post(t, "/api/v1/projects/TOK/requirements", map[string]any{"title": "Inside"}), http.StatusCreated, "write inside it")
+		refuse(t, "a new project", limited.post(t, "/api/v1/projects", map[string]any{"key": newKey, "name": "New"}), http.StatusForbidden, "projects_token")
+		want(t, limited.post(t, "/api/v1/projects/"+tokKey+"/requirements", map[string]any{"title": "Inside"}), http.StatusCreated, "write inside it")
 		token := obj(t, want(t, limited.get(t, "/api/v1/auth/me"), http.StatusOK, "who am I"), "token")
-		if token["allProjects"] != false || strings.Join(toStrings(token["projects"]), ",") != "TOK" {
+		if token["allProjects"] != false || strings.Join(toStrings(token["projects"]), ",") != tokKey {
 			t.Errorf("/auth/me reports the limit as %v", token)
 		}
 		got := rpc(t, limited, "tools/call", map[string]any{"name": "list_projects", "arguments": map[string]any{}})
-		if text := toolText(got); !strings.Contains(text, `"TOK"`) || strings.Contains(text, `"OTH"`) {
+		if text := toolText(got); !strings.Contains(text, `"`+tokKey+`"`) || strings.Contains(text, `"`+othKey+`"`) {
 			t.Errorf("list_projects through MCP: %s", text)
 		}
 	})
@@ -168,7 +171,7 @@ func TestTokensOverTheAPI(t *testing.T) {
 		refuse(t, "a member revokes through the organization's list", person.delete(t, "/api/v1/tokens/everyone/"+otherID), http.StatusForbidden, "forbidden")
 		want(t, f.owner.delete(t, "/api/v1/tokens/everyone/"+otherID), http.StatusNoContent, "an administrator revokes it")
 		refuse(t, "revoked by an administrator", f.api.withToken(person.user, otherSecret).get(t, "/api/v1/auth/me"), http.StatusUnauthorized, "unauthorized")
-		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE org_id = $1 AND action IN ('token.created', 'token.revoked')`, f.home.org); n < 2 {
+		if n := f.h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id IN ($1, $2) AND action IN ('token.created', 'token.revoked')`, f.home.user, person.user); n < 2 {
 			t.Errorf("the audit log holds %d token entries", n)
 		}
 	})
