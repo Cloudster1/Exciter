@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,6 +85,8 @@ type issue struct {
 	Priority string
 	Assignee *person
 	Reporter *person
+	// Description is the rich text it was filed with, nil for the seeded ones.
+	Description json.RawMessage
 	// DueDate is a day at midnight UTC, as Armature keeps it.
 	DueDate   *time.Time
 	CreatedAt time.Time
@@ -120,6 +123,8 @@ type tenant struct {
 	// test can watch a sync be tried again.
 	outage       int
 	outageStatus int
+	// refused is a summary Armature refuses to file, so a test can watch a create stop part way.
+	refused string
 }
 
 type world struct {
@@ -255,6 +260,15 @@ func (t *tenant) project(key string) *project {
 func (t *tenant) typeNamed(name string) *issueType {
 	for _, k := range t.types {
 		if k.Name == name {
+			return k
+		}
+	}
+	return nil
+}
+
+func (t *tenant) typeByID(id uuid.UUID) *issueType {
+	for _, k := range t.types {
+		if k.ID == id {
 			return k
 		}
 	}

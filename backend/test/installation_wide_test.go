@@ -42,6 +42,7 @@ var installationWide = map[string]string{
 	"TestRawSQLWallsArmatureRows":                              armatureLink,
 	"TestRawSQLGuardsArmatureLinks":                            armatureLink,
 	"TestRequirementsAreTracedToArmatureIssues":                armatureLink,
+	"TestIssuesAreMadeFromRequirements":                        armatureLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,

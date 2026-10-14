@@ -3,9 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { showsOn, type Attribute } from "@/api/attributes";
 import { PRIORITIES, useUpdateRequirement, type Priority, type RequirementChanges, type RequirementRow } from "@/api/requirements";
 import type { Sort } from "@/api/search";
-import { Button, IconButton, Input, SelectInput, Table, Td, Th, Tag } from "@/components/ui";
+import { Button, Checkbox, IconButton, Input, SelectInput, Table, Td, Th, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REQUIREMENT_TITLE_MAX_LENGTH } from "@/config";
+import { PickBox, type Picked, type Selection } from "@/features/armature/CreateIssues";
 import { textOf, type DocNode } from "@/features/editor/schema";
 import { LabelLink } from "@/features/labels/RequirementLabels";
 import { usePeopleNames } from "@/features/types/AttributeFields";
@@ -35,6 +36,7 @@ export function GridTable({
   columns,
   sort,
   attributes,
+  selection,
   onSort,
   onEdit,
 }: {
@@ -43,16 +45,33 @@ export function GridTable({
   columns: string[];
   sort: Sort;
   attributes: Attribute[];
+  /** Rows are picked for Armature issues when there is one. */
+  selection?: Selection;
   onSort: (next: Sort) => void;
   onEdit: (result: EditResult) => void;
 }) {
   const sortable = (column: string) => (SORT_COLUMNS as readonly string[]).includes(column) || attributes.some((each) => each.id === column);
   // A heading goes from A to Z, to Z to A, and back to the outline.
   const next = (column: string): Sort => (sort.column !== column ? { column, desc: false } : sort.desc ? { column: "", desc: false } : { column, desc: true });
+  const pickable: Picked[] = rows
+    .filter((row) => row.kind === "requirement" && row.can.link && !row.trashed)
+    .map((row) => ({ key: row.key, title: row.title, outline: row.outline }));
+  const allPicked = pickable.length > 0 && pickable.every((each) => selection?.has(each.key));
   return (
     <Table aria-label={t.grid.tableLabel} dense data-grid-table>
       <thead>
         <tr>
+          {selection && (
+            <Th>
+              <Checkbox
+                label={<span className="sr-only">{t.armature.create.selectShown}</span>}
+                checked={allPicked}
+                disabled={pickable.length === 0}
+                onChange={(event) => selection.set(pickable, event.target.checked)}
+                data-pick-shown
+              />
+            </Th>
+          )}
           {columns.map((column) => {
             const name = columnName(column, attributes);
             const sorted = sort.column === column ? (sort.desc ? "descending" : "ascending") : undefined;
@@ -80,6 +99,13 @@ export function GridTable({
       <tbody>
         {rows.map((row) => (
           <tr key={row.id} data-grid-row={row.key}>
+            {selection && (
+              <Td>
+                {pickable.some((each) => each.key === row.key) && (
+                  <PickBox selection={selection} item={{ key: row.key, title: row.title, outline: row.outline }} />
+                )}
+              </Td>
+            )}
             {columns.map((column) => (
               <Td key={column}>
                 <Cell projectKey={projectKey} row={row} column={column} attributes={attributes} onEdit={onEdit} />

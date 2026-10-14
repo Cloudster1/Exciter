@@ -172,18 +172,9 @@ func (s *Service) Link(ctx context.Context, reqKey string, in LinkInput) (*Link,
 // issueToLink asks Armature for the issue as the actor, past the cache, and names an issue moved since by the key
 // it has now.
 func (s *Service) issueToLink(ctx context.Context, key string) (*Issue, error) {
-	v, status, err := s.Viewer(ctx)
-	switch {
-	case err != nil:
+	v, err := s.writer(ctx)
+	if err != nil {
 		return nil, err
-	case status == StatusNotConfigured:
-		return nil, ErrNotConfigured
-	case status == StatusNotConnected:
-		return nil, ErrNotConnected
-	case v == nil:
-		return nil, ErrRejected
-	case v.ReadOnly:
-		return nil, ErrReadOnlyToken
 	}
 	callCtx, cancel := context.WithTimeout(ctx, CallTimeout)
 	defer cancel()

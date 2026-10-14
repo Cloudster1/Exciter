@@ -26,7 +26,7 @@ func armatureLinkError(err error) *APIError {
 			Message: "This requirement is linked to that issue with that relation already. Pick another relation, or another issue."}
 	case errors.Is(err, armature.ErrReadOnlyToken):
 		return &APIError{Status: http.StatusConflict, Code: "armature_rejected",
-			Message: "Your Armature token may only read, so it cannot link issues. Paste a token without the read scope under Your account, Armature account."}
+			Message: "Your Armature token may only read, so it cannot make issues or links. Paste a token without the read scope under Your account, Armature account."}
 	}
 	return nil
 }

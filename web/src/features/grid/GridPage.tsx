@@ -7,6 +7,7 @@ import { useStatuses } from "@/api/workflows";
 import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GRID_PAGE_SIZE } from "@/config";
+import { SelectionBar, useMayCreateIssues, useSelection } from "@/features/armature/CreateIssues";
 import { t } from "@/i18n";
 import { ColumnChooser } from "./ColumnChooser";
 import { DEFAULT_COLUMNS, fromAddress, gridParams, toAddress, type GridAddress } from "./filter";
@@ -33,6 +34,8 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
   const [notice, setNotice] = useState("");
   const [editError, setEditError] = useState("");
   const keep = { columns: address.columns, view: address.view };
+  const selection = useSelection();
+  const mayCreate = useMayCreateIssues(project);
   const rows = data?.rows ?? [];
 
   return (
@@ -97,6 +100,7 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
             columns={columns}
             sort={sort}
             attributes={attributes}
+            selection={mayCreate ? selection : undefined}
             onSort={(next) => onAddress(toAddress(filter, next, keep))}
             onEdit={(result) => {
               setNotice(result.saved ?? "");
@@ -115,6 +119,7 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
           )}
         </div>
       )}
+      {mayCreate && <SelectionBar projectKey={project.key} selection={selection} />}
     </div>
   );
 }

@@ -249,6 +249,45 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 		t.Error("tenants share ids")
 	}
 
+	// What the create dialog reads (#28), and an issue filed as a create sends it.
+	if keys := fmt.Sprint(c.expect("GET", "/access/me", alice, nil, 200)["projects"]); keys != "[CP]" {
+		t.Errorf("alice has access to %s, want CP alone", keys)
+	}
+	if keys := fmt.Sprint(c.expect("GET", "/access/me", admin, nil, 200)["projects"]); keys != "[CP SEC]" {
+		t.Errorf("the admin has access to %s, want CP and SEC", keys)
+	}
+	if n := len(c.expect("GET", "/projects", alice, nil, 200)["projects"].([]any)); n != 1 {
+		t.Errorf("alice lists %d projects, want 1", n)
+	}
+	types := c.expect("GET", "/issue-types", alice, nil, 200)["issueTypes"].([]any)
+	if len(types) != 5 {
+		t.Errorf("the stub has %d issue types, want 5", len(types))
+	}
+	filed := armature.CreateRequest{ProjectKey: "CP", Summary: armature.IssueSummary("CHK-R1", "Brakes engage within 100 ms"),
+		Description: armature.Description("CHK-R1", "https://exciter.example"+armature.RequirementPath+uuid.NewString())}
+	made := c.expect("POST", "/issues", alice, filed, 201)["issue"].(map[string]any)
+	if made["key"] != "CP-6" || made["type"].(map[string]any)["name"] != "Task" || made["description"] == nil {
+		t.Errorf("a create made %v %v", made["key"], made["type"])
+	}
+	bug := uuid.MustParse(types[1].(map[string]any)["id"].(string))
+	filed.TypeID = &bug
+	if kind := c.expect("POST", "/issues", alice, filed, 201)["issue"].(map[string]any)["type"].(map[string]any)["name"]; kind != "Bug" {
+		t.Errorf("a create naming Bug made a %v", kind)
+	}
+	filed.TypeID = nil
+	c.expect("POST", "/issues", reader, filed, 403)
+	c.expect("POST", "/issues", alice, armature.CreateRequest{ProjectKey: "SEC", Summary: "Not visible"}, 404)
+	c.expect("POST", "/issues", alice, armature.CreateRequest{ProjectKey: "CP", Summary: " "}, 422)
+	c.expect("PUT", stubPrefix+"/acme/people/alice/read-only-projects", "", map[string]any{"projects": []string{"CP"}}, 204)
+	c.expect("POST", "/issues", alice, filed, 403)
+	if perms := c.expect("GET", "/access/me", alice, nil, 200)["permissions"].(map[string]any)["projects"].(map[string]any)["CP"]; fmt.Sprint(perms) != "[issue.read]" {
+		t.Errorf("alice reading CP alone holds %v", perms)
+	}
+	c.expect("PUT", stubPrefix+"/acme/people/alice/read-only-projects", "", map[string]any{"projects": []string{}}, 204)
+	c.expect("PUT", stubPrefix+"/acme/refused-summary", "", map[string]any{"summary": filed.Summary}, 204)
+	c.expect("POST", "/issues", alice, filed, 422)
+	c.expect("PUT", stubPrefix+"/acme/refused-summary", "", map[string]any{"summary": ""}, 204)
+
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
 	}
