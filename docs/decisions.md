@@ -3,6 +3,18 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: A removal Armature announces is a person's only for a wanted link (#29)
+
+"Armature removal wins" (#1) needs to know who removed Exciter's link from an
+issue, and Armature announces every removal alike, the worker's own included.
+The worker takes a link off only when Exciter no longer wants it there: the
+trace was removed, the requirement went to the trash or was purged, or the
+link is broken or detached. So `issue.remote_link.removed` detaches a link
+only while its requirement is live, the link neither broken nor detached,
+and the sync record names the removed link's id. The worker's removal can be
+announced before its own transaction forgets the record; the requirement's
+state, committed before the worker ran, still tells the two apart.
+
 ## 2026-10-14: The tables are the installation's (#108)
 
 The last of #91's three steps, as Armature's #218 took it: what was left of

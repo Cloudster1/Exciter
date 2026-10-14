@@ -96,11 +96,13 @@ type issue struct {
 }
 
 type remoteLink struct {
-	ID        uuid.UUID
-	IssueID   uuid.UUID
-	URL       string
-	Title     string
-	Source    string
+	ID      uuid.UUID
+	IssueID uuid.UUID
+	URL     string
+	Title   string
+	Source  string
+	// Relation is page or requirement, page when the request named none.
+	Relation  string
 	IconURL   *string
 	CreatedBy uuid.UUID
 	CreatedAt time.Time
@@ -125,6 +127,9 @@ type tenant struct {
 	outageStatus int
 	// refused is a summary Armature refuses to file, so a test can watch a create stop part way.
 	refused string
+	// webhook is the endpoint its changes are posted to, and deliveries what became of the latest.
+	webhook    *webhook
+	deliveries []delivery
 }
 
 type world struct {

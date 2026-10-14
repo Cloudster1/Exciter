@@ -114,6 +114,17 @@ describe("a requirement's Armature issues", () => {
     expect(within(chip).getByRole("link", { name: /Connect your Armature account/ })).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/armature/issues")).toBe(false);
     expect(within(panel).queryByRole("button", { name: /Remove/ })).toBeNull();
+    expect(chip).not.toHaveTextContent("Moved in Armature since");
+  });
+
+  it("tells a reader without a token when the stored status may be out of date", async () => {
+    stubPage({ account: withoutToken, edit: false, links: [aLink("CP-1", { statusCategory: "in_progress", statusStale: true })] });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const panel = await screen.findByRole("region", { name: "Armature issues" });
+    await waitFor(() => expect(panel.querySelector('[data-armature-issue="CP-1"]')).not.toBeNull());
+    const chip = panel.querySelector<HTMLElement>('[data-armature-issue="CP-1"]')!;
+    expect(chip).toHaveTextContent("In progress");
+    expect(chip).toHaveTextContent("Moved in Armature since");
   });
 
   it("is not there while Exciter has no Armature", async () => {

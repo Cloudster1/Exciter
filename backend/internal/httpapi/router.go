@@ -145,6 +145,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Post("/auth/login", s.handleLogin)
 		r.Get("/auth/oidc/start", s.handleOIDCStart)
 		r.Get("/auth/oidc/callback", s.handleOIDCCallback)
+		r.With(s.armatureOn).Post("/armature/webhook", s.handleArmatureWebhook)
 		mountPending(r, true)
 
 		r.Group(func(r chi.Router) {

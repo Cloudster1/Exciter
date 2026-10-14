@@ -10,15 +10,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
 // Settings, from the environment like everything in the stack.
 const (
-	addrEnv     = "ARMATURE_STUB_ADDR"
-	openAPIEnv  = "ARMATURE_STUB_OPENAPI"
-	defaultAddr = ":8080"
+	addrEnv    = "ARMATURE_STUB_ADDR"
+	openAPIEnv = "ARMATURE_STUB_OPENAPI"
+	// backchannelEnv holds public=reachable origin pairs, comma separated, for posting webhooks inside the stack.
+	backchannelEnv = "ARMATURE_STUB_BACKCHANNEL"
+	defaultAddr    = ":8080"
 	// defaultOpenAPI is where the backend image carries Armature's document.
 	defaultOpenAPI = "/app/armature-openapi.json"
 
@@ -53,7 +56,9 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := &http.Server{Addr: addr, Handler: newStub(doc).handler(), ReadHeaderTimeout: readHeaderTimeout}
+	stub := newStub(doc)
+	stub.backchannel = pairs(os.Getenv(backchannelEnv))
+	srv := &http.Server{Addr: addr, Handler: stub.handler(), ReadHeaderTimeout: readHeaderTimeout}
 	served := make(chan error, 1)
 	go func() {
 		slog.Info("armature-stub listening", "addr", addr)
@@ -70,6 +75,17 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+// pairs reads "public=reachable" origins, comma separated.
+func pairs(raw string) map[string]string {
+	out := map[string]string{}
+	for _, pair := range strings.Split(raw, ",") {
+		if public, inside, ok := strings.Cut(strings.TrimSpace(pair), "="); ok && public != "" && inside != "" {
+			out[public] = inside
+		}
+	}
+	return out
 }
 
 // healthcheck lets the container check itself without curl in the image.

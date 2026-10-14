@@ -285,6 +285,9 @@ services:
   armature-stub:
     <<: *backend
     command: ["/app/armature-stub"]
+    environment:
+      # Webhooks go to the address Exciter shows, which people open; inside the stack the api answers it.
+      ARMATURE_STUB_BACKCHANNEL: http://localhost:${WEB_PORT:-8000}=http://api:8080
     ports:
       - "127.0.0.1:${ARMATURE_STUB_PORT:-8188}:8080"
     healthcheck:

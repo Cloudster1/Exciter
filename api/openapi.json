@@ -977,8 +977,8 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {

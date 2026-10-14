@@ -46,6 +46,9 @@ var routes = []route{
 type stub struct {
 	world   *world
 	openapi []byte
+	client  *http.Client
+	// backchannel maps an origin people open to the one the stub reaches it at.
+	backchannel map[string]string
 }
 
 // call is one request as a person of a tenant.
@@ -54,10 +57,21 @@ type call struct {
 	r      *http.Request
 	tenant *tenant
 	person *person
+	// events are the webhooks the call owes, posted before it answers; answer, when set, answers after them.
+	events []event
+	answer func([]delivery)
 }
 
 func newStub(openapi []byte) *stub {
-	return &stub{world: newWorld(), openapi: openapi}
+	return &stub{world: newWorld(), openapi: openapi, client: &http.Client{Timeout: webhookTimeout}}
+}
+
+// finish posts what a call owes, once the world is unlocked.
+func (s *stub) finish(c *call) {
+	done := s.deliver(c.r.Context(), c.events)
+	if c.answer != nil {
+		c.answer(done)
+	}
 }
 
 // handler routes Armature's operations and the /_stub/ controls.
@@ -71,6 +85,13 @@ func (s *stub) handler() http.Handler {
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/refused-summary", s.control((*stub).setRefused))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/webhook", s.control((*stub).setWebhook))
+	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/deliveries", s.control((*stub).listDeliveries))
+	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/webhooks", s.control((*stub).sendEvent))
+	mux.HandleFunc("PATCH "+stubPrefix+"/{tenant}/issues/{issueKey}", s.control((*stub).changeIssue))
+	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/issues/{issueKey}/move", s.control((*stub).moveIssue))
+	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/issues/{issueKey}", s.control((*stub).deleteIssue))
+	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/issues/{issueKey}/remote-links", s.control((*stub).takeOffLink))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}", func(w http.ResponseWriter, r *http.Request) {
 		s.world.mu.Lock()
 		delete(s.world.tenants, r.PathValue("tenant"))
@@ -86,26 +107,32 @@ func (s *stub) handler() http.Handler {
 func (s *stub) serve(rt route) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := &call{w: w, r: r}
-		if !rt.Public {
-			token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-			s.world.mu.Lock()
-			defer s.world.mu.Unlock()
-			t, p, ok := s.world.caller(strings.TrimSpace(token))
-			if !found || !ok {
-				refuse(w, http.StatusUnauthorized, "unauthorized", "Sign in to continue.")
-				return
-			}
-			c.tenant, c.person = t, p
+		if rt.Public {
+			rt.handler(s, c)
+			return
 		}
+		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		s.world.mu.Lock()
+		t, p, ok := s.world.caller(strings.TrimSpace(token))
+		if !found || !ok {
+			s.world.mu.Unlock()
+			refuse(w, http.StatusUnauthorized, "unauthorized", "Sign in to continue.")
+			return
+		}
+		c.tenant, c.person = t, p
 		rt.handler(s, c)
+		s.world.mu.Unlock()
+		s.finish(c)
 	}
 }
 
 func (s *stub) control(fn func(*stub, *call)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.world.mu.Lock()
-		defer s.world.mu.Unlock()
-		fn(s, &call{w: w, r: r, tenant: s.world.tenant(r.PathValue("tenant"))})
+		c := &call{w: w, r: r, tenant: s.world.tenant(r.PathValue("tenant"))}
+		fn(s, c)
+		s.world.mu.Unlock()
+		s.finish(c)
 	}
 }
 

@@ -68,6 +68,7 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
                           href={issueUrl(baseUrl, link.issueKey)}
                           state={chipState(link.issueKey, lookup, connected)}
                           storedCategory={link.statusCategory}
+                          stale={link.statusStale}
                         />
                         {link.brokenAt && <Tag>{l.broken}</Tag>}
                         {link.detachedAt && <Tag>{l.detached}</Tag>}

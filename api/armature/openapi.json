@@ -884,7 +884,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/invites/preview": {
@@ -933,7 +934,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/login": {
@@ -1004,7 +1006,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/login/second-factor": {
@@ -1053,7 +1056,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/logout": {
@@ -1607,7 +1611,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/oidc/start": {
@@ -1641,7 +1646,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/oidc/{orgSlug}/start": {
@@ -1683,7 +1689,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/password-reset": {
@@ -1732,7 +1739,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/password-reset/confirm": {
@@ -1766,7 +1774,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/auth/sessions": {
@@ -1896,7 +1905,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "operationId": "signup",
@@ -1943,7 +1953,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/automation/catalog": {
@@ -2043,7 +2054,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/automation/rules": {
@@ -2794,6 +2806,7 @@
       "get": {
         "operationId": "build",
         "summary": "Which build of Armature is answering.",
+        "description": "Read GET /meta instead, which answers the same build. Kept for at least one more release.",
         "tags": [
           "health"
         ],
@@ -2826,7 +2839,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/canned-responses/{responseID}": {
@@ -3113,7 +3127,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "operationId": "rate",
@@ -3170,7 +3185,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/dashboard-templates": {
@@ -3738,7 +3754,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/desk/codes": {
@@ -3787,7 +3804,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/desk/sessions": {
@@ -3836,7 +3854,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/desk/{orgSlug}": {
@@ -3870,7 +3889,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/desk/{orgSlug}/codes": {
@@ -3904,7 +3924,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/desk/{orgSlug}/sessions": {
@@ -3938,7 +3959,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/field-kinds": {
@@ -4757,7 +4779,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/groups": {
@@ -5087,7 +5110,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/holiday-calendars": {
@@ -8985,6 +9009,38 @@
         }
       }
     },
+    "/meta": {
+      "get": {
+        "operationId": "meta",
+        "summary": "Which build of Armature is answering, the API version it speaks and its capabilities; the commit and build time only for somebody signed in.",
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/milestones/{milestoneID}": {
       "delete": {
         "operationId": "deleteMilestone",
@@ -9510,7 +9566,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/permissions": {
@@ -13945,7 +14002,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/repositories/{repositoryID}": {
@@ -14638,7 +14696,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/shared/{token}/pdf": {
@@ -14669,7 +14728,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/shared/{token}/widgets/{widgetID}": {
@@ -14783,7 +14843,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/sla-policies/{policyID}": {
@@ -16299,7 +16360,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/users": {
@@ -18246,6 +18308,93 @@
             }
           }
         }
+      }
+    }
+  },
+  "webhooks": {
+    "event": {
+      "post": {
+        "operationId": "webhookEvent",
+        "summary": "What a webhook endpoint is posted for each event it subscribes to.",
+        "description": "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "X-Armature-Event",
+            "in": "header",
+            "required": true,
+            "description": "The topic, as in the body.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Armature-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "This attempt's id; a retry or a redelivery has its own.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Armature-Webhook-Version",
+            "in": "header",
+            "required": true,
+            "description": "The envelope version of the body, as in its version field.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Armature-Signature-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Armature-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "When this attempt was sent, in Unix seconds.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Armature-Signature-Timestamped-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the timestamp, a dot and the body.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvelopeV1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Taken: the delivery is done."
+          },
+          "default": {
+            "description": "Not taken: the delivery is tried again later, with backoff, as is one not answered in time."
+          }
+        },
+        "security": []
       }
     }
   },
@@ -21154,6 +21303,22 @@
             "items": {
               "$ref": "#/components/schemas/Tag"
             }
+          },
+          "webhooks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operation"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
           }
         },
         "required": [
@@ -21267,6 +21432,9 @@
           },
           "url": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         },
         "required": [
@@ -21275,6 +21443,7 @@
           "url",
           "topics",
           "enabled",
+          "version",
           "createdAt",
           "updatedAt"
         ]
@@ -21292,6 +21461,46 @@
         "required": [
           "secret",
           "uri"
+        ]
+      },
+      "EnvelopeV1": {
+        "type": "object",
+        "description": "What an endpoint registered for envelope version 1 is posted.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the delivery was queued."
+          },
+          "orgId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The installation's stable id, the same in every delivery. Envelope version 2 leaves it out; read nothing from it.",
+            "deprecated": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "The event's own fields, by topic, as docs/webhooks.md lists them."
+          },
+          "topic": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "description": "The envelope version, 1 here; it is the version header's value too."
+          }
+        },
+        "required": [
+          "version",
+          "id",
+          "topic",
+          "orgId",
+          "occurredAt",
+          "payload"
         ]
       },
       "EpicProgress": {
@@ -22106,11 +22315,16 @@
       "Installation": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
           }
         },
         "required": [
+          "id",
           "name"
         ]
       },
@@ -22134,7 +22348,9 @@
           },
           "orgId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The installation's id, kept for one more release; a later release removes it.",
+            "deprecated": true
           },
           "role": {
             "type": "string",
@@ -22933,6 +23149,32 @@
           "role"
         ]
       },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "build": {
+            "$ref": "#/components/schemas/BuildinfoInfo"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "product": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "build",
+          "apiVersion",
+          "capabilities"
+        ]
+      },
       "Milestone": {
         "type": "object",
         "properties": {
@@ -23304,6 +23546,9 @@
       "Operation": {
         "type": "object",
         "properties": {
+          "deprecated": {
+            "type": "boolean"
+          },
           "description": {
             "type": "string"
           },
@@ -24044,11 +24289,16 @@
       "Principal": {
         "type": "object",
         "properties": {
+          "installation": {
+            "$ref": "#/components/schemas/Installation"
+          },
           "mustEnrol": {
             "type": "boolean"
           },
           "org": {
-            "$ref": "#/components/schemas/Org"
+            "$ref": "#/components/schemas/Org",
+            "description": "The installation under its old name; read installation instead. A later release removes it.",
+            "deprecated": true
           },
           "portalDesk": {
             "type": "string"
@@ -24575,6 +24825,13 @@
             "type": "string",
             "format": "uuid"
           },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "page",
+              "requirement"
+            ]
+          },
           "source": {
             "type": "string"
           },
@@ -24594,6 +24851,7 @@
           "url",
           "title",
           "source",
+          "relation",
           "iconUrl",
           "createdAt",
           "updatedAt"
@@ -24604,6 +24862,13 @@
         "properties": {
           "iconUrl": {
             "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "page",
+              "requirement"
+            ]
           },
           "source": {
             "type": "string"
@@ -25732,6 +25997,9 @@
           },
           "additionalProperties": {
             "$ref": "#/components/schemas/Schema"
+          },
+          "deprecated": {
+            "type": "boolean"
           },
           "description": {
             "type": "string"
@@ -28273,6 +28541,9 @@
           },
           "url": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         },
         "required": [

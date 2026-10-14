@@ -18,7 +18,8 @@ It follows Stator's integration with Armature (`docs/api-contract-m3.md` at
 cf0f6f7), which settled the same questions for a wiki: what is the same here
 is said again briefly, and what differs is said in full. Everything said about
 Armature's API was read from Armature's `main` at fb100a6 and vendored again
-at 7920a98, after its one-installation work (#87), at
+at 7920a98, after its one-installation work (#87), and at 643ccec, which
+describes its webhook envelope (#29), at
 `api/armature/openapi.json` with `api/armature/SOURCE`. What Exciter would like
 from Armature and does not need is listed at the end.
 
@@ -29,7 +30,7 @@ from Armature and does not need is listed at the end.
 | 00300 to 00302 | connecting (#26) | `armature_connection` (one row for the installation: base URL, the Armature organization's id as learned, the webhook secret sealed; the slug went in 00403, #87), `armature_token` (one row per member: the token sealed, its row id, whom it acts as, its status, when it was checked), their policies |
 | 00310 to 00319 | trace to issues (#27) | `armature_issue_link` (a requirement, a relation and an issue key, the status category stored for everyone, the remote link's id and sync state, broken and detached), the outbox policy for `armature.links`, and the triggers that emit it |
 | 00420 to 00429 | create issues (#28) | nothing: a new issue's link is #27's |
-| 00430 to 00439 | webhooks (#29) | nothing is planned: replay protection and the cache live in Valkey, and the link columns are #27's |
+| 00430 to 00439 | webhooks (#29) | nothing: replay protection and the cache live in Valkey, and the link columns are #27's |
 | 00440 to 00449 | theme (#30) | following on `user_theme`, and the mirror columns on `theme` |
 
 The last three ranges moved from 00320, 00330 and 00340 when the
@@ -316,7 +317,7 @@ sees whether the work is done. It is written:
 
 | Operation | Needs | Answers |
 |---|---|---|
-| `POST /armature/webhook` | the signature | 204; 401 `bad_signature`; 413 `too_large` |
+| `POST /armature/webhook` | the signature | 204; 401 `bad_signature`; 413 `too_large`; 422 `unknown_version` |
 
 - **Verification** as Stator's: the body is read whole up to
   `armature.WebhookMaxBytes`, 1 MiB; an installation without a connection or
@@ -343,9 +344,30 @@ sees whether the work is done. It is written:
   | `ping` | nothing |
 
   Any other topic is 204 and ignored. A database change a webhook makes is
-  done as the admin role for the organization the signature vouched for,
-  since no person acts.
+  done as the admin role, since no person acts and only the signature
+  vouches for it.
 - **UI:** the admin screen of #26 shows the address, the topics and the steps.
+- **As built** (#29):
+  - Armature now numbers its envelope (`version`, and the
+    `X-Armature-Webhook-Version` header). Exciter reads version 1 and an
+    envelope without one, from an Armature before its #242; any other is
+    422 `unknown_version`, which Armature keeps and retries, as its
+    `docs/webhooks.md` asks of a receiver. `orgId` is deprecated there and
+    leaves with version 2, so it is compared only while it comes.
+  - An event is remembered once acted on, not before: a delivery that fails
+    in Exciter is answered 500 and acted on when Armature retries.
+  - A move rekeys the sync records too, so the worker keeps the link it put
+    on the issue rather than taking it off and putting it on again. A
+    deletion drops the issue's sync records, which went with the issue.
+  - `issue.remote_link.removed` detaches a link only when Exciter still
+    wants it there and its sync record names the removed link's id. The
+    worker takes off only what it no longer wants, a link removed, a
+    requirement in the trash or a broken link, and Armature announces that
+    as well; so a removal of a wanted link is a person's.
+  - Any topic Exciter does not act on is 204, `ping` included; one whose
+    `key` is no issue key changes nothing.
+  - A reader without a token sees "Moved in Armature since" beside a stored
+    category Armature marked stale.
 
 ## #30 Follow my Armature theme
 
@@ -396,7 +418,8 @@ forgetting a tenant.
   (with the old keys of moved issues), `POST /issues`, `GET` and
   `POST /issues/{issueKey}/remote-links`,
   `DELETE /issues/{issueKey}/remote-links/{remoteLinkID}`,
-  `GET /themes/active` and `GET /themes/{themeID}/export`.
+  `GET /themes/active` and `GET /themes/{themeID}/export`; and webhooks to
+  a registered endpoint.
 - **Who asks.** A token `armature_pat_{tenant}_{person}` is `person` in the
   stub's organization `tenant`, made on first use with fixed projects, types
   and issues; `reader` holds a token of the `read` scope, and
@@ -404,10 +427,20 @@ forgetting a tenant.
   of its own; since #83 they run one at a time, as the connection is the
   installation's.
 - **Steering it** under `/_stub/`, left out of the contract test: change, move
-  and delete an issue, set a person's theme, read the remote links it holds,
-  make remote link calls fail for a while, refuse one summary when an issue
-  is filed, and send a signed webhook to a
-  given address and secret exactly as Armature signs one.
+  and delete an issue, take a remote link off as a person would, set a
+  person's theme, read the remote links it holds, make remote link calls
+  fail for a while, and refuse one summary when an issue is filed.
+- **Its webhooks** (#29): `PUT /_stub/{tenant}/webhook` registers an
+  endpoint and its secret, as an administrator does in Armature. Each change
+  then, through the API or a control, is posted there as Armature posts it:
+  envelope version 1 with both signatures, before the call that made it
+  answers. `POST /_stub/{tenant}/webhooks` posts one event as given, a
+  replayed id or another version included, and `GET .../deliveries` says
+  what each endpoint answered. `ARMATURE_STUB_BACKCHANNEL`, pairs of
+  `public=reachable` origins, lets it reach the address Exciter shows from
+  inside the stack. The contract test holds every delivery to Armature's
+  `EnvelopeV1` and Exciter's own signature check. A remote link has the
+  `relation` Armature added at 643ccec, `page` when none is sent.
 - **The contract test**, a Go unit test beside the stub and so in
   `make check-go`, loads `api/armature/openapi.json` and checks that every
   route the stub serves outside `/_stub/` is an operation of that document with
