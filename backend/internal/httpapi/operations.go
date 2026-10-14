@@ -533,10 +533,10 @@ var operations = []operation{
 
 	// The Armature integration (M2, docs/api-contract-m2.md): the connection and each person's token (#26).
 	{method: "GET", path: "/armature/connection", handler: "handleGetArmatureConnection", orgWide: true, tag: "armature",
-		summary:   "The organization's Armature: where people open it, which organization, and where its webhooks go; null when none. For administrators.",
+		summary:   "The installation's Armature: where people open it and where its webhooks go; null when none. For administrators.",
 		responses: ok(env{"connection": (*armature.Connection)(nil)})},
 	{method: "PUT", path: "/armature/connection", handler: "handleSaveArmatureConnection", orgWide: true, tag: "armature",
-		summary: "Connect the organization to an Armature, checked to answer as one; a new address or organization forgets every stored token. For administrators.",
+		summary: "Connect the installation to an Armature, checked to answer as one; a new address forgets every stored token. For administrators.",
 		request: armature.ConnectionInput{}, responses: map[int]any{http.StatusOK: env{"connection": armature.Connection{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "DELETE", path: "/armature/connection", handler: "handleRemoveArmatureConnection", orgWide: true, tag: "armature",
 		summary:   "Disconnect the organization from Armature, forgetting every stored token and link record. For administrators.",
@@ -593,8 +593,8 @@ var operations = []operation{
 			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
 
 	// Armature's webhooks (#29): vouched for by their signature alone.
-	{method: "POST", path: "/armature/webhook/{orgSlug}", handler: "handleArmatureWebhook", tag: "armature", public: true, pending: true,
-		summary: "Where Armature sends the organization's webhooks; the body is Armature's signed envelope.",
+	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true, pending: true,
+		summary: "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
 		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{}, http.StatusRequestEntityTooLarge: errorEnvelope{}}},
 
 	// The followed Armature theme (#30).

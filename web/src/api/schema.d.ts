@@ -97,9 +97,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The organization's Armature: where people open it, which organization, and where its webhooks go; null when none. For administrators. */
+        /** The installation's Armature: where people open it and where its webhooks go; null when none. For administrators. */
         get: operations["getArmatureConnection"];
-        /** Connect the organization to an Armature, checked to answer as one; a new address or organization forgets every stored token. For administrators. */
+        /** Connect the installation to an Armature, checked to answer as one; a new address forgets every stored token. For administrators. */
         put: operations["saveArmatureConnection"];
         post?: never;
         /** Disconnect the organization from Armature, forgetting every stored token and link record. For administrators. */
@@ -213,7 +213,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/armature/webhook/{orgSlug}": {
+    "/armature/webhook": {
         parameters: {
             query?: never;
             header?: never;
@@ -222,7 +222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Where Armature sends the organization's webhooks; the body is Armature's signed envelope. */
+        /** Where Armature sends the installation's webhooks; the body is Armature's signed envelope. */
         post: operations["armatureWebhook"];
         delete?: never;
         options?: never;
@@ -1966,7 +1966,6 @@ export interface components {
             armatureOrgId: string | null;
             baseUrl: string;
             connected: number;
-            orgSlug: string;
             /** Format: date-time */
             updatedAt: string;
             webhookSecretSet: boolean;
@@ -1975,7 +1974,6 @@ export interface components {
         };
         ArmatureConnectionInput: {
             baseUrl: string;
-            orgSlug: string;
             webhookSecret?: string;
         };
         ArmatureCreateFailure: {
@@ -3978,9 +3976,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                orgSlug: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {

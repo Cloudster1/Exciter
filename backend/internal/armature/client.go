@@ -162,18 +162,16 @@ func (a *Caller) Send(ctx context.Context, method, path string, body, out any) e
 type Me struct {
 	User     AccountUser
 	OrgID    uuid.UUID
-	OrgSlug  string
 	ReadOnly bool
 }
 
-// Me asks Armature who the token acts as, and in which organization.
+// Me asks Armature who the token acts as, and in which of its organizations while it still reports one.
 func (a *Caller) Me(ctx context.Context) (*Me, error) {
 	var answer struct {
 		Principal struct {
 			User AccountUser `json:"user"`
 			Org  *struct {
-				ID   uuid.UUID `json:"id"`
-				Slug string    `json:"slug"`
+				ID uuid.UUID `json:"id"`
 			} `json:"org"`
 		} `json:"principal"`
 		Token *struct {
@@ -188,7 +186,7 @@ func (a *Caller) Me(ctx context.Context) (*Me, error) {
 		me.ReadOnly = slices.Contains(answer.Token.Scopes, ScopeRead)
 	}
 	if answer.Principal.Org != nil {
-		me.OrgID, me.OrgSlug = answer.Principal.Org.ID, answer.Principal.Org.Slug
+		me.OrgID = answer.Principal.Org.ID
 	}
 	return me, nil
 }

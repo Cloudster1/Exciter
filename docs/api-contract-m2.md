@@ -17,7 +17,8 @@ requirement the caller may not view is 404, never 403.
 It follows Stator's integration with Armature (`docs/api-contract-m3.md` at
 cf0f6f7), which settled the same questions for a wiki: what is the same here
 is said again briefly, and what differs is said in full. Everything said about
-Armature's API was read from Armature's `main` at fb100a6, vendored at
+Armature's API was read from Armature's `main` at fb100a6 and vendored again
+at 7920a98, after its one-installation work (#87), at
 `api/armature/openapi.json` with `api/armature/SOURCE`. What Exciter would like
 from Armature and does not need is listed at the end.
 
@@ -25,11 +26,15 @@ from Armature and does not need is listed at the end.
 
 | Range | Owner | Holds |
 |---|---|---|
-| 00300 to 00302 | connecting (#26) | `armature_connection` (one row per organization: base URL, Armature organization slug and id, the webhook secret sealed), `armature_token` (one row per member: the token sealed, its row id, whom it acts as, its status, when it was checked), their policies |
+| 00300 to 00302 | connecting (#26) | `armature_connection` (one row for the installation: base URL, the Armature organization's id as learned, the webhook secret sealed; the slug went in 00403, #87), `armature_token` (one row per member: the token sealed, its row id, whom it acts as, its status, when it was checked), their policies |
 | 00310 to 00319 | trace to issues (#27) | `armature_issue_link` (a requirement, a relation and an issue key, the status category stored for everyone, the remote link's id and sync state, broken and detached), the outbox policy for `armature.links`, and the triggers that emit it |
-| 00320 to 00329 | create issues (#28) | nothing is planned; kept for what building it finds |
-| 00330 to 00339 | webhooks (#29) | nothing is planned: replay protection and the cache live in Valkey, and the link columns are #27's |
-| 00340 to 00349 | theme (#30) | following on `user_theme`, and the mirror columns on `theme` |
+| 00420 to 00429 | create issues (#28) | nothing is planned; kept for what building it finds |
+| 00430 to 00439 | webhooks (#29) | nothing is planned: replay protection and the cache live in Valkey, and the link columns are #27's |
+| 00440 to 00449 | theme (#30) | following on `user_theme`, and the mirror columns on `theme` |
+
+The last three ranges moved from 00320, 00330 and 00340 when the
+one-installation work (#82) took 00400 to 00419, so goose never meets a lower
+number after a higher one.
 
 Packages: `internal/armature` (the client, the cache, link sync, the webhook
 check, the theme mirror), `internal/netguard` (Armature's, credited in
@@ -121,7 +126,7 @@ sees whether the work is done. It is written:
 | Operation | Needs | Answers |
 |---|---|---|
 | `GET /armature/connection` | admin | `{connection}`, null when none |
-| `PUT /armature/connection` | admin | `{connection}`; 422 on `baseUrl`, `orgSlug`, `webhookSecret` |
+| `PUT /armature/connection` | admin | `{connection}`; 422 on `baseUrl`, `webhookSecret` |
 | `DELETE /armature/connection` | admin | 204 |
 | `GET /armature/account` | member | `{account}` |
 | `PUT /armature/account/token` | member, signed in with a session | `{account}`; 422 on `token`, 409 `armature_not_configured`, 502 `armature_unreachable` |
@@ -130,26 +135,28 @@ sees whether the work is done. It is written:
 
 - **The connection** is the base URL people open Armature at (absolute `http`
   or `https`, no user, query, fragment or path; `https` outside development
-  unless `EXCITER_OUTBOUND_ALLOW` names the host) and the slug of the Armature
-  organization. Saving a new or changed address fetches
+  unless `EXCITER_OUTBOUND_ALLOW` names the host). An Armature installation is
+  one team's tracker, so the address is what names it (#87). Saving a new or changed address fetches
   `GET {baseUrl}/api/v1/openapi.json` through the guard and the backchannel,
   and refuses it on `baseUrl` unless `info.title` is `Armature`. An issue opens
   at `{baseUrl}/issues/{KEY}`.
 - **The webhook secret** (`armature_whs_`, shown once by Armature) is sealed
   with `EXCITER_SECRET_KEY`, bound to the organization, and never answered;
   `webhookSecretSet` says whether there is one. Absent keeps it, empty removes
-  it. `webhookUrl` is `{EXCITER_APP_URL}/api/v1/armature/webhook/{orgSlug}`
+  it. `webhookUrl` is `{EXCITER_APP_URL}/api/v1/armature/webhook`
   and `webhookTopics` what to subscribe it to (#29).
-- **A new address or organization forgets every stored token** in the same
+- **A new address forgets every stored token** in the same
   transaction, and the link records' remote link ids, so an administrator can
   never send the members' tokens to a host of their choosing. Removing the
   connection does the same; the links themselves stay, keyed by issue.
 - **`armatureOrgId`** is learned from the first token that checks out and kept
-  until the address or organization changes. `connected` counts the members
+  until the address changes; every later token must come from the same
+  Armature organization, while Armature still reports one on `/auth/me`. A
+  token naming none has the address alone to go by. `connected` counts the members
   with a stored token.
 - **A token** is made by the person in Armature and pasted under Your
   account, Armature account. Storing it asks `GET /auth/me` with it: a 401, a token of another
-  Armature organization, or one that does not start with `armature_pat_` is
+  Armature than the one learned, or one that does not start with `armature_pat_` is
   422 on `token` with a sentence saying how to make one. Armature's `/auth/me`
   answers the token's `scopes`: a token of the `read` scope is stored, and
   `account.readOnly` says it will not link or create (#27, #28). It is sealed
@@ -289,11 +296,11 @@ sees whether the work is done. It is written:
 
 | Operation | Needs | Answers |
 |---|---|---|
-| `POST /armature/webhook/{orgSlug}` | the signature | 204; 401 `bad_signature`; 413 `too_large` |
+| `POST /armature/webhook` | the signature | 204; 401 `bad_signature`; 413 `too_large` |
 
 - **Verification** as Stator's: the body is read whole up to
-  `armature.WebhookMaxBytes`, 1 MiB; an unknown organization, or one without a
-  connection or secret, is 401 `bad_signature` like a wrong signature, with a
+  `armature.WebhookMaxBytes`, 1 MiB; an installation without a connection or
+  secret is 401 `bad_signature` like a wrong signature, with a
   stand-in secret checked so the timing is the same. `X-Armature-Signature-256`
   must be the HMAC-SHA256 of the body under the secret. Armature at fb100a6
   also sends `X-Armature-Timestamp` and `X-Armature-Signature-Timestamped-256`

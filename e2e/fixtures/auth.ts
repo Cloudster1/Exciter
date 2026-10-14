@@ -16,7 +16,7 @@ export const USERS: Record<User, { username: string; password: string; email: st
   bob: { username: "bob", password: "bob password", email: "bob@suite.test", name: "Bob Builder" },
 };
 
-/** The address of the organization a first start makes, installation.Slug, which the Armature webhook names until #87. */
+/** The address of the organization a first start makes, installation.Slug, by which the database helpers find it. */
 export const ORG_SLUG = "exciter";
 
 /** The owner the seed bootstraps, who signs in with a password and makes each spec's people. */

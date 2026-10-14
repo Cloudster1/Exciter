@@ -358,7 +358,7 @@
       },
       "get": {
         "operationId": "getArmatureConnection",
-        "summary": "The organization's Armature: where people open it, which organization, and where its webhooks go; null when none. For administrators.",
+        "summary": "The installation's Armature: where people open it and where its webhooks go; null when none. For administrators.",
         "tags": [
           "armature"
         ],
@@ -402,7 +402,7 @@
       },
       "put": {
         "operationId": "saveArmatureConnection",
-        "summary": "Connect the organization to an Armature, checked to answer as one; a new address or organization forgets every stored token. For administrators.",
+        "summary": "Connect the installation to an Armature, checked to answer as one; a new address forgets every stored token. For administrators.",
         "tags": [
           "armature"
         ],
@@ -956,22 +956,12 @@
         }
       }
     },
-    "/armature/webhook/{orgSlug}": {
+    "/armature/webhook": {
       "post": {
         "operationId": "armatureWebhook",
-        "summary": "Where Armature sends the organization's webhooks; the body is Armature's signed envelope.",
+        "summary": "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
         "tags": [
           "armature"
-        ],
-        "parameters": [
-          {
-            "name": "orgSlug",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "requestBody": {
           "required": true,
@@ -9373,9 +9363,6 @@
           "connected": {
             "type": "integer"
           },
-          "orgSlug": {
-            "type": "string"
-          },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
@@ -9395,7 +9382,6 @@
         },
         "required": [
           "baseUrl",
-          "orgSlug",
           "armatureOrgId",
           "webhookSecretSet",
           "webhookUrl",
@@ -9410,16 +9396,12 @@
           "baseUrl": {
             "type": "string"
           },
-          "orgSlug": {
-            "type": "string"
-          },
           "webhookSecret": {
             "type": "string"
           }
         },
         "required": [
-          "baseUrl",
-          "orgSlug"
+          "baseUrl"
         ]
       },
       "ArmatureCreateFailure": {

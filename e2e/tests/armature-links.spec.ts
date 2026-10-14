@@ -28,7 +28,7 @@ async function stubLinks(tenant: string): Promise<StubLink[]> {
 test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, () => {
   test.beforeEach(async ({ api }) => {
     await fetch(`${armatureURL()}/_stub/${TENANT}`, { method: "DELETE" });
-    must(await api.PUT("/armature/connection", { body: { baseUrl: armatureURL(), orgSlug: TENANT } }));
+    must(await api.PUT("/armature/connection", { body: { baseUrl: armatureURL() } }));
     must(await api.PUT("/armature/account/token", { body: { token: patFor(TENANT, "alice") } }));
     must(await api.POST("/projects", { body: { key: KEY, name: "Armature links" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Brakes engage within 100 ms" } }));

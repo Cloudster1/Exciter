@@ -19,9 +19,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// WebhookPath is where Armature posts an organization's events, under the
-// app's origin; the organization's slug follows.
-const WebhookPath = "/api/v1/armature/webhook/"
+// WebhookPath is where Armature posts the installation's events, under the app's origin.
+const WebhookPath = "/api/v1/armature/webhook"
 
 // Audit actions of the connection.
 const (
@@ -30,12 +29,11 @@ const (
 )
 
 var (
-	// ErrNotConfigured is an organization without an Armature connection.
-	ErrNotConfigured = errors.New("the organization has not connected Armature")
+	// ErrNotConfigured is an installation without an Armature connection.
+	ErrNotConfigured = errors.New("the installation has not connected Armature")
 	// ErrNotConnected is a caller who stored no token.
 	ErrNotConnected = errors.New("the caller has not connected their Armature account")
 
-	slugShape          = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$`)
 	webhookSecretShape = regexp.MustCompile(`^` + WebhookSecretPrefix + `[A-Za-z0-9_-]{43}$`)
 )
 
@@ -86,14 +84,13 @@ func (s *Service) Client() *Client { return s.client }
 // endpoint is what any member may know of the connection.
 type endpoint struct {
 	BaseURL       string
-	OrgSlug       string
 	ArmatureOrgID *uuid.UUID
 }
 
 func (s *Service) endpoint(ctx context.Context, tx db.DBTX) (*endpoint, error) {
 	var e endpoint
-	err := tx.QueryRow(ctx, `SELECT base_url, org_slug, armature_org_id FROM armature_endpoint()`).
-		Scan(&e.BaseURL, &e.OrgSlug, &e.ArmatureOrgID)
+	err := tx.QueryRow(ctx, `SELECT base_url, armature_org_id FROM armature_endpoint()`).
+		Scan(&e.BaseURL, &e.ArmatureOrgID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -103,7 +100,7 @@ func (s *Service) endpoint(ctx context.Context, tx db.DBTX) (*endpoint, error) {
 	return &e, nil
 }
 
-// Connection is the organization's connection for an administrator, or nil.
+// Connection is the installation's connection for an administrator, or nil.
 func (s *Service) Connection(ctx context.Context) (*Connection, error) {
 	org, err := tenant.MustFromContext(ctx)
 	if err != nil {
@@ -118,12 +115,12 @@ func (s *Service) Connection(ctx context.Context) (*Connection, error) {
 }
 
 func (s *Service) readConnection(ctx context.Context, tx db.DBTX, org tenant.Org) (*Connection, error) {
-	c := Connection{WebhookURL: s.opts.AppURL + WebhookPath + org.Slug, WebhookTopics: WebhookTopics}
+	c := Connection{WebhookURL: s.opts.AppURL + WebhookPath, WebhookTopics: WebhookTopics}
 	var connected *int
 	err := tx.QueryRow(ctx, `
-		SELECT base_url, org_slug, armature_org_id, webhook_secret IS NOT NULL, updated_at, armature_connected_count()
+		SELECT base_url, armature_org_id, webhook_secret IS NOT NULL, updated_at, armature_connected_count()
 		FROM armature_connection WHERE org_id = $1`, org.ID,
-	).Scan(&c.BaseURL, &c.OrgSlug, &c.ArmatureOrgID, &c.WebhookSecretSet, &c.UpdatedAt, &connected)
+	).Scan(&c.BaseURL, &c.ArmatureOrgID, &c.WebhookSecretSet, &c.UpdatedAt, &connected)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -136,8 +133,8 @@ func (s *Service) readConnection(ctx context.Context, tx db.DBTX, org tenant.Org
 	return &c, nil
 }
 
-// SaveConnection sets the organization's Armature. A new address or
-// organization forgets every stored token in the same transaction.
+// SaveConnection sets the installation's Armature. A new address forgets every stored token in the same
+// transaction.
 func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip string) (*Connection, db.LSN, error) {
 	org, err := tenant.MustFromContext(ctx)
 	if err != nil {
@@ -147,10 +144,6 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 	base, err := s.normalizeBaseURL(in.BaseURL)
 	if err != nil {
 		return nil, 0, err
-	}
-	slug := strings.ToLower(strings.TrimSpace(in.OrgSlug))
-	if !slugShape.MatchString(slug) {
-		return nil, 0, &FieldError{Field: "orgSlug", Message: "Enter the slug of your organization in Armature, such as acme: 3 to 40 lower case letters, digits and hyphens."}
 	}
 	var sealed []byte
 	secretChange := "kept"
@@ -174,8 +167,8 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 	}); err != nil {
 		return nil, 0, err
 	}
-	moved := before == nil || before.BaseURL != base || before.OrgSlug != slug
-	if before == nil || before.BaseURL != base {
+	moved := before == nil || before.BaseURL != base
+	if moved {
 		if err := s.describe(ctx, base); err != nil {
 			return nil, 0, err
 		}
@@ -190,20 +183,19 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 			}
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO armature_connection (org_id, base_url, org_slug, webhook_secret, updated_by)
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO armature_connection (org_id, base_url, webhook_secret, updated_by)
+			VALUES ($1, $2, $3, $4)
 			ON CONFLICT (org_id) DO UPDATE SET
 			    base_url = EXCLUDED.base_url,
-			    org_slug = EXCLUDED.org_slug,
-			    webhook_secret = CASE WHEN $6 THEN armature_connection.webhook_secret ELSE EXCLUDED.webhook_secret END,
+			    webhook_secret = CASE WHEN $5 THEN armature_connection.webhook_secret ELSE EXCLUDED.webhook_secret END,
 			    updated_by = EXCLUDED.updated_by`,
-			org.ID, base, slug, sealed, nullable(actor), in.WebhookSecret == nil)
+			org.ID, base, sealed, nullable(actor), in.WebhookSecret == nil)
 		if err != nil {
 			return fmt.Errorf("save the Armature connection: %w", err)
 		}
 		if err := audit.Write(ctx, tx, org.ID, audit.Entry{
 			Action: ActionConnectionSaved, TargetType: "armature_connection", Actor: actor, IP: ip,
-			Data: map[string]any{"baseUrl": base, "orgSlug": slug, "webhookSecret": secretChange, "moved": moved, "tokensForgotten": forgotten},
+			Data: map[string]any{"baseUrl": base, "webhookSecret": secretChange, "moved": moved, "tokensForgotten": forgotten},
 		}); err != nil {
 			return err
 		}
