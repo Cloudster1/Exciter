@@ -36,6 +36,7 @@ const entry = (n: TreeNode, text: string) => ({
   attributes: {},
   labels: [],
   can: { edit: true, transition: true, delete: true, link: true, comment: true },
+  comments: { threads: 0, open: 0 },
 });
 
 describe("a drop in the tree", () => {

@@ -51,6 +51,19 @@ func Parse(body json.RawMessage) (Node, error) {
 	if len(body) > MaxBytes {
 		return Node{}, invalid("This text is too long; keep it under %d MB, or split it into several requirements.", MaxBytes>>20)
 	}
+	return parse(body, &Allowed)
+}
+
+// ParseComment decodes a comment's document and holds it to CommentAllowed, answering the decoded node so the
+// caller can read its words.
+func ParseComment(body json.RawMessage) (Node, error) {
+	if len(body) > MaxCommentBytes {
+		return Node{}, invalid("This comment is too long; keep it under %d KB, or put the text in the requirement.", MaxCommentBytes>>10)
+	}
+	return parse(body, &CommentAllowed)
+}
+
+func parse(body json.RawMessage, list *Allowlist) (Node, error) {
 	var root Node
 	dec := json.NewDecoder(bytes.NewReader(body))
 	// A field the schema does not name would be stored and served back unread, so it is refused.
@@ -61,14 +74,14 @@ func Parse(body json.RawMessage) (Node, error) {
 	if root.Type != "doc" {
 		return Node{}, invalid(`This text must be a document with "type":"doc".`)
 	}
-	return root, check(root, NodeSpec{Content: []string{"doc"}}, 0)
+	return root, check(list, root, NodeSpec{Content: []string{"doc"}}, 0)
 }
 
-func check(n Node, parent NodeSpec, depth int) error {
+func check(list *Allowlist, n Node, parent NodeSpec, depth int) error {
 	if depth > MaxDepth {
 		return invalid("This text is nested too deeply; flatten its lists and quotes.")
 	}
-	spec, ok := Allowed.Nodes[n.Type]
+	spec, ok := list.Nodes[n.Type]
 	if !ok {
 		return invalid("This text holds a %q block, which the editor cannot show; take it out.", n.Type)
 	}
@@ -93,7 +106,7 @@ func check(n Node, parent NodeSpec, depth int) error {
 	}
 	seen := map[string]bool{}
 	for _, m := range n.Marks {
-		ms, ok := Allowed.Marks[m.Type]
+		ms, ok := list.Marks[m.Type]
 		if !ok {
 			return invalid("This text uses a %q style, which the editor cannot show; take it out.", m.Type)
 		}
@@ -106,7 +119,7 @@ func check(n Node, parent NodeSpec, depth int) error {
 		}
 	}
 	for _, child := range n.Content {
-		if err := check(child, spec, depth+1); err != nil {
+		if err := check(list, child, spec, depth+1); err != nil {
 			return err
 		}
 	}

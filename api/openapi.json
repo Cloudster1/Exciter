@@ -1315,7 +1315,8 @@
                 "link_type.deleted",
                 "armature.connected",
                 "armature.disconnected",
-                "installation.renamed"
+                "installation.renamed",
+                "comment.deleted"
               ]
             }
           },
@@ -1466,7 +1467,8 @@
                 "link_type.deleted",
                 "armature.connected",
                 "armature.disconnected",
-                "installation.renamed"
+                "installation.renamed",
+                "comment.deleted"
               ]
             }
           },
@@ -2240,16 +2242,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2308,16 +2300,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2355,16 +2337,6 @@
           },
           "403": {
             "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2417,16 +2389,6 @@
                   "required": [
                     "thread"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -2501,16 +2463,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2595,16 +2547,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9466,16 +9408,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -9545,16 +9477,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10048,16 +9970,6 @@
                   "required": [
                     "people"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -14147,7 +14059,8 @@
               "link_type.deleted",
               "armature.connected",
               "armature.disconnected",
-              "installation.renamed"
+              "installation.renamed",
+              "comment.deleted"
             ]
           },
           "actorId": {
@@ -14236,7 +14149,8 @@
                 "link_type.deleted",
                 "armature.connected",
                 "armature.disconnected",
-                "installation.renamed"
+                "installation.renamed",
+                "comment.deleted"
               ]
             }
           },
@@ -14762,6 +14676,21 @@
         "required": [
           "edit",
           "delete"
+        ]
+      },
+      "CommentCounts": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "integer"
+          },
+          "threads": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "threads",
+          "open"
         ]
       },
       "CommentInput": {
@@ -17393,6 +17322,9 @@
           "can": {
             "$ref": "#/components/schemas/RequirementCan"
           },
+          "comments": {
+            "$ref": "#/components/schemas/CommentCounts"
+          },
           "copiedFrom": {
             "oneOf": [
               {
@@ -17550,7 +17482,8 @@
           "updatedAt",
           "updatedByName",
           "trashedAt",
-          "can"
+          "can",
+          "comments"
         ]
       },
       "RequirementCan": {
@@ -18507,6 +18440,9 @@
           "can": {
             "$ref": "#/components/schemas/RequirementCan"
           },
+          "comments": {
+            "$ref": "#/components/schemas/CommentCounts"
+          },
           "labels": {
             "type": "array",
             "items": {
@@ -18529,7 +18465,8 @@
           "rationale",
           "attributes",
           "labels",
-          "can"
+          "can",
+          "comments"
         ]
       },
       "Stats": {

@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/document"
 )
 
 // Agreed limits, Stator's where Stator has them.
 const (
 	// MaxBodyBytes bounds one comment's document; the body is the requirement editor's comment subset.
-	MaxBodyBytes = 64 << 10
+	MaxBodyBytes = document.MaxCommentBytes
 	// MentionableDefaultLimit and MentionableMaxLimit bound the mention picker's answer.
 	MentionableDefaultLimit = 20
 	MentionableMaxLimit     = 50
@@ -60,12 +62,6 @@ type Can struct {
 // Input is a comment's body, a document in the comment subset of the requirement editor.
 type Input struct {
 	Body any `json:"body"`
-}
-
-// Counts are a requirement's threads, and those still open.
-type Counts struct {
-	Threads int `json:"threads"`
-	Open    int `json:"open"`
 }
 
 // Mentionable is somebody the mention picker offers, and whether they may read the requirement.

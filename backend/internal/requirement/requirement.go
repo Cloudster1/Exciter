@@ -131,7 +131,22 @@ type Requirement struct {
 	UpdatedByName string     `json:"updatedByName"`
 	TrashedAt     *time.Time `json:"trashedAt"`
 	Can           Can        `json:"can"`
+	// Comments counts its discussion (#33).
+	Comments CommentCounts `json:"comments"`
 }
+
+// CommentCounts are a requirement's threads with a live comment, and those still open (#33).
+type CommentCounts struct {
+	Threads int `json:"threads"`
+	Open    int `json:"open"`
+}
+
+// commentCounts reads CommentCounts of the requirement aliased r, two columns.
+const commentCounts = `
+       (SELECT count(*)::int FROM comment_thread ct WHERE ct.requirement_id = r.id
+          AND EXISTS (SELECT 1 FROM comment cc WHERE cc.thread_id = ct.id AND cc.deleted_at IS NULL)),
+       (SELECT count(*)::int FROM comment_thread ct WHERE ct.requirement_id = r.id AND ct.resolved_at IS NULL
+          AND EXISTS (SELECT 1 FROM comment cc WHERE cc.thread_id = ct.id AND cc.deleted_at IS NULL))`
 
 // Place is where a node goes in a tree: below a parent, after a sibling.
 type Place struct {
@@ -222,6 +237,7 @@ type SpecEntry struct {
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	Labels     []string                   `json:"labels"`
 	Can        Can                        `json:"can"`
+	Comments   CommentCounts              `json:"comments"`
 }
 
 // RevisionEntry is one revision as the history lists it.

@@ -17,8 +17,8 @@ import (
 
 // The tools docs/api-contract-m1.md names, and the three the foundation marked before it.
 var contractTools = []string{
-	"create_requirement", "diff_revisions", "get_project", "get_requirement", "get_revision", "get_tree",
-	"link_armature_issue", "link_requirements", "list_armature_links", "list_audit_log", "list_links", "list_people",
+	"comment_on_requirement", "create_requirement", "diff_revisions", "get_project", "get_requirement", "get_revision", "get_tree",
+	"link_armature_issue", "link_requirements", "list_armature_links", "list_audit_log", "list_comments", "list_links", "list_people",
 	"list_projects", "list_requirements",
 	"list_revisions", "list_transitions", "search_requirements", "server_info", "transition_requirement",
 	"update_requirement", "whoami",

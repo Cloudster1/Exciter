@@ -8,6 +8,7 @@ import { labelsDe } from "./labels.de";
 import { attachmentsDe } from "./attachments.de";
 import { tokensDe } from "./tokens.de";
 import { armatureDe } from "./armature.de";
+import { commentsDe } from "./comments.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -275,6 +276,7 @@ export const de: Messages = {
       "armature.connected": "Armature verbunden",
       "armature.disconnected": "Armature getrennt",
       "installation.renamed": "Installation umbenannt",
+      "comment.deleted": "Kommentar gelöscht",
     },
     targetTypes: {
       user: "Person",
@@ -307,6 +309,7 @@ export const de: Messages = {
   attachments: attachmentsDe,
   tokens: tokensDe,
   armature: armatureDe,
+  comments: commentsDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

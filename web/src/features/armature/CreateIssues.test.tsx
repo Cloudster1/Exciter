@@ -63,6 +63,7 @@ const entry = (n: TreeNode, edit = true) => ({
   attributes: {},
   labels: [],
   can: { edit, transition: edit, delete: edit, link: edit, comment: true },
+  comments: { threads: 0, open: 0 },
 });
 
 function made(requirementKey: string, key: string, summary: string): ArmatureCreated {

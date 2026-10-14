@@ -10,6 +10,7 @@ import { labelsEn } from "./labels.en";
 import { attachmentsEn } from "./attachments.en";
 import { tokensEn } from "./tokens.en";
 import { armatureEn } from "./armature.en";
+import { commentsEn } from "./comments.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -274,6 +275,7 @@ export const en = {
       "armature.connected": "Armature connected",
       "armature.disconnected": "Armature disconnected",
       "installation.renamed": "Installation renamed",
+      "comment.deleted": "Comment deleted",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -306,6 +308,7 @@ export const en = {
   attachments: attachmentsEn,
   tokens: tokensEn,
   armature: armatureEn,
+  comments: commentsEn,
   imports: importsEn,
   search: searchEn,
   grid: gridEn,

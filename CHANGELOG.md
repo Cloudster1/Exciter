@@ -69,8 +69,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
     `/armature/webhook/{orgSlug}` (now `/armature/webhook`) and the Armature
     connection's `orgSlug`.
 
+### Fixed
+
+- The list of people an @ offers in the editor stays under the caret on a page
+  scrolled down, where it used to land out of view (#33).
+
 ### Added
 
+- Comments and mentions (#33). Anybody who may comment on a requirement
+  starts a thread on it, replies, and resolves or reopens a thread; each
+  comment says which revision it was written on. Naming somebody with @
+  mentions them, and an edit mentions only whom it adds. Only its author
+  rewrites a comment; its author or the project's administrators delete it,
+  leaving its place, and an administrator's deletion is audited. The
+  specification shows each requirement's open threads.
 - The API of review and control, agreed before it is built (#32). Comments
   and mentions, watching and notifications, review and approval of
   revisions, suspect links, baselines, and coverage with the traceability
