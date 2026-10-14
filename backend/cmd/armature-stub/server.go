@@ -32,7 +32,11 @@ type route struct {
 var routes = []route{
 	{Method: "GET", Path: "/openapi.json", Public: true, handler: (*stub).openAPI},
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
+	{Method: "GET", Path: "/access/me", handler: (*stub).access},
+	{Method: "GET", Path: "/projects", handler: (*stub).projects},
+	{Method: "GET", Path: "/issue-types", handler: (*stub).issueTypes},
 	{Method: "GET", Path: "/issues", handler: (*stub).search},
+	{Method: "POST", Path: "/issues", handler: (*stub).createIssue},
 	{Method: "GET", Path: "/issues/{issueKey}", handler: (*stub).getIssue},
 	{Method: "GET", Path: "/issues/{issueKey}/remote-links", handler: (*stub).listLinks},
 	{Method: "POST", Path: "/issues/{issueKey}/remote-links", handler: (*stub).putLink},
@@ -66,6 +70,7 @@ func (s *stub) handler() http.Handler {
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/refused-summary", s.control((*stub).setRefused))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}", func(w http.ResponseWriter, r *http.Request) {
 		s.world.mu.Lock()
 		delete(s.world.tenants, r.PathValue("tenant"))

@@ -28,7 +28,7 @@ from Armature and does not need is listed at the end.
 |---|---|---|
 | 00300 to 00302 | connecting (#26) | `armature_connection` (one row for the installation: base URL, the Armature organization's id as learned, the webhook secret sealed; the slug went in 00403, #87), `armature_token` (one row per member: the token sealed, its row id, whom it acts as, its status, when it was checked), their policies |
 | 00310 to 00319 | trace to issues (#27) | `armature_issue_link` (a requirement, a relation and an issue key, the status category stored for everyone, the remote link's id and sync state, broken and detached), the outbox policy for `armature.links`, and the triggers that emit it |
-| 00420 to 00429 | create issues (#28) | nothing is planned; kept for what building it finds |
+| 00420 to 00429 | create issues (#28) | nothing: a new issue's link is #27's |
 | 00430 to 00439 | webhooks (#29) | nothing is planned: replay protection and the cache live in Valkey, and the link columns are #27's |
 | 00440 to 00449 | theme (#30) | following on `user_theme`, and the mirror columns on `theme` |
 
@@ -291,6 +291,26 @@ sees whether the work is done. It is written:
   the refusal is the answer.
 - **UI:** "Create Armature issues" in the specification view and the grid,
   for the requirements selected, with the project, type and relation.
+- **As built** (#28):
+  - Every requirement is checked before Armature is asked: one outside the
+    project in the path, missing, a section or not the caller's to edit
+    refuses the whole round, as 422, 403 or 404. Keys are taken in upper
+    case and each once.
+  - A summary too long for Armature keeps the key and cuts the title,
+    ending in three dots, as a link's title does.
+  - `projects` leaves out archived ones; `canCreate` is false for every
+    project while the caller's token may only read.
+  - A refused item is `failed: {requirementKey, code, message}`, with
+    Armature's sentences on its fields joined. An issue Armature made whose
+    link Exciter could not write, as when the requirement went to the trash
+    meanwhile, is `failed` with code `armature_unlinked`, naming the issue,
+    even when it was the first.
+  - Picking is offered while Armature is connected and the caller edits the
+    project; the bar holding the picked requirements files them in outline
+    order, at most `MaxCreateItems` at a time.
+  - The stub files a Task unless a type is named, and refuses one summary
+    on request (`PUT /_stub/{tenant}/refused-summary`), so a test can watch
+    a round stop part way.
 
 ## #29 Receive Armature webhooks
 
@@ -385,7 +405,8 @@ forgetting a tenant.
   installation's.
 - **Steering it** under `/_stub/`, left out of the contract test: change, move
   and delete an issue, set a person's theme, read the remote links it holds,
-  make remote link calls fail for a while, and send a signed webhook to a
+  make remote link calls fail for a while, refuse one summary when an issue
+  is filed, and send a signed webhook to a
   given address and secret exactly as Armature signs one.
 - **The contract test**, a Go unit test beside the stub and so in
   `make check-go`, loads `api/armature/openapi.json` and checks that every

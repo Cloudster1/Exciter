@@ -6,6 +6,7 @@ import { useRequirement } from "@/api/requirements";
 import { useSpec, useTree, type SpecEntry, type TreeNode } from "@/api/tree";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { RequirementEdit } from "@/features/requirements/RequirementPage";
@@ -19,6 +20,8 @@ export function SpecPage({ project }: { project: Project }) {
   const tree = useTree(project.key);
   const spec = useSpec(project.key);
   const [moving, setMoving] = useState<Placed | null>(null);
+  const selection = useSelection();
+  const mayCreate = useMayCreateIssues(project);
   const entries = spec.data?.pages.flatMap((page) => page.entries) ?? [];
   const mayWrite = project.can.edit && !project.archivedAt;
   const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
@@ -51,7 +54,7 @@ export function SpecPage({ project }: { project: Project }) {
           </nav>
           <article className="min-w-0 space-y-6" aria-label={t.tree.specTitle} data-spec-document>
             {entries.map((entry) => (
-              <Entry key={entry.node.id} project={project} entry={entry} />
+              <Entry key={entry.node.id} project={project} entry={entry} selection={mayCreate ? selection : undefined} />
             ))}
             {spec.isLoading && <Skeleton />}
             {spec.hasNextPage && (
@@ -62,12 +65,13 @@ export function SpecPage({ project }: { project: Project }) {
           </article>
         </div>
       )}
+      {mayCreate && <SelectionBar projectKey={project.key} selection={selection} />}
       {moving && <PlaceDialog placed={moving} mode="move" onClose={() => setMoving(null)} onDone={() => setMoving(null)} />}
     </div>
   );
 }
 
-function Entry({ project, entry }: { project: Project; entry: SpecEntry }) {
+function Entry({ project, entry, selection }: { project: Project; entry: SpecEntry; selection?: Selection }) {
   const [editing, setEditing] = useState(false);
   const queryClient = useQueryClient();
   const { node } = entry;
@@ -76,6 +80,7 @@ function Entry({ project, entry }: { project: Project; entry: SpecEntry }) {
   return (
     <section aria-labelledby={`spec-${node.id}`} className={cx("space-y-2", node.depth > 0 && "border-l border-border pl-4")} data-spec-entry={node.key}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {selection && !section && entry.can.link && <PickBox selection={selection} item={{ key: node.key, title: node.title, outline: node.outline }} />}
         <Heading id={`spec-${node.id}`} className={cx("font-semibold text-ink", section ? "text-lg" : "text-base")}>
           <span className="font-mono text-ink-muted" data-spec-outline>
             {node.outline}

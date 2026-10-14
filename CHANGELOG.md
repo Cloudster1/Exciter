@@ -69,6 +69,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Armature issues made from requirements (#28). A project's editors pick
+  requirements in the specification or the grid and create one Armature
+  issue for each, in a project and type they may file in, summarized by the
+  requirement's key and title and linking back to it. Each requirement is
+  traced to its new issue at once, as implementing or verifying it; a round
+  stops at the first issue Armature refuses and says why in its words.
 - Requirements traced to Armature issues (#27). A requirement's editors trace
   it to the issues that implement, verify or relate to it, found by key or
   summary as they may see them in Armature; the requirement page shows each

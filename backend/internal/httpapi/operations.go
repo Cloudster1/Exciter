@@ -581,16 +581,17 @@ var operations = []operation{
 		responses: none()},
 
 	// Issues made from requirements (#28).
-	{method: "GET", path: "/armature/projects", handler: "handleListArmatureProjects", tag: "armature", pending: true,
+	{method: "GET", path: "/armature/projects", handler: "handleListArmatureProjects", tag: "armature",
 		summary:   "The Armature projects the caller may see, and whether they may file issues in each.",
 		responses: ok(env{"status": armature.StatusOK, "projects": []armature.Project{}})},
-	{method: "GET", path: "/armature/issue-types", handler: "handleListArmatureIssueTypes", tag: "armature", pending: true,
+	{method: "GET", path: "/armature/issue-types", handler: "handleListArmatureIssueTypes", tag: "armature",
 		summary:   "The kinds of issue Armature files, subtasks left out.",
 		responses: ok(env{"status": armature.StatusOK, "issueTypes": []armature.IssueType{}})},
-	{method: "POST", path: "/projects/{projectKey}/armature-issues", handler: "handleCreateArmatureIssues", tag: "armature", pending: true,
+	{method: "POST", path: "/projects/{projectKey}/armature-issues", handler: "handleCreateArmatureIssues", tag: "armature",
 		summary: "Make one Armature issue per requirement, each traced to its requirement; stops at the first Armature refuses.",
 		request: armature.CreateInput{}, responses: map[int]any{http.StatusCreated: env{"created": []armature.Created{}, "failed": (*armature.CreateFailure)(nil)},
-			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+			http.StatusForbidden: errorEnvelope{}, http.StatusNotFound: errorEnvelope{}, http.StatusConflict: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
 
 	// Armature's webhooks (#29): vouched for by their signature alone.
 	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true, pending: true,

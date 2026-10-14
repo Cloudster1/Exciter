@@ -7,7 +7,7 @@ const MOBILE_VIEWPORT = { width: 360, height: 740 };
 
 // The specs that change what the whole installation shares, its name, provider, default theme or Armature
 // connection, run one at a time beside the rest, which keep to their own people and projects.
-const SERIAL = /\/(sso|themes|armature|armature-links|installation)\.spec\.ts$/;
+const SERIAL = /\/(sso|themes|armature|armature-links|armature-create|installation)\.spec\.ts$/;
 
 // CI's browser jobs each leave a blob that its report job merges (merge.config.ts); anywhere
 // else the suite writes the HTML report and the JSON the gate's summary reads itself.

@@ -181,3 +181,41 @@ export function useArmatureLinkActions(reqKey: string) {
   });
   return { create, remove };
 }
+
+/** An Armature project the caller may see, and whether they may file issues in it. */
+export type ArmatureProject = Wire["ArmatureProject"];
+export type ArmatureIssueType = Wire["ArmatureIssueType"];
+export type ArmatureCreateInput = Wire["ArmatureCreateInput"];
+/** One issue made from a requirement, and the link that traces the requirement to it. */
+export type ArmatureCreated = Wire["ArmatureCreated"];
+/** The requirement a round of creating stopped at, and why. */
+export type ArmatureCreateFailure = Wire["ArmatureCreateFailure"];
+
+/** What the create dialog offers: the caller's Armature projects, read only while it is open. */
+export function useArmatureProjects(enabled: boolean) {
+  return useQuery({
+    queryKey: [...armatureQueryKey, "projects"],
+    queryFn: async () => (await api.GET("/armature/projects")).data!,
+    enabled,
+  });
+}
+
+export function useArmatureIssueTypes(enabled: boolean) {
+  return useQuery({
+    queryKey: [...armatureQueryKey, "issue-types"],
+    queryFn: async () => (await api.GET("/armature/issue-types")).data!,
+    enabled,
+  });
+}
+
+/** Makes one issue per requirement; every requirement that got one shows its new link. */
+export function useCreateArmatureIssues(projectKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: ArmatureCreateInput): Promise<{ created: ArmatureCreated[]; failed: ArmatureCreateFailure | null }> =>
+      (await api.POST("/projects/{projectKey}/armature-issues", { params: { path: { projectKey } }, body })).data!,
+    onSuccess: (answer) => {
+      for (const each of answer.created) void queryClient.invalidateQueries({ queryKey: linksKey(each.requirementKey) });
+    },
+  });
+}

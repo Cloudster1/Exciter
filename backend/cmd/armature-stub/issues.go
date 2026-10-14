@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -20,6 +21,8 @@ const (
 	maxLimit     = 100
 	// maxBody bounds what the stub reads of a request.
 	maxBody = 1 << 20
+	// maxSummary is Armature's bound on an issue's summary, in characters.
+	maxSummary = 255
 )
 
 func refuseField(w http.ResponseWriter, field, message string) {
@@ -78,6 +81,9 @@ func issueView(is *issue) map[string]any {
 	if is.ResolvedAt != nil {
 		v["resolvedAt"] = is.ResolvedAt
 	}
+	if is.Description != nil {
+		v["description"] = is.Description
+	}
 	return v
 }
 
@@ -117,6 +123,121 @@ func (s *stub) search(c *call) {
 		page = append(page, issueView(found[i]))
 	}
 	respond(c.w, http.StatusOK, map[string]any{"issues": page, "total": len(found), "limit": limit, "offset": offset})
+}
+
+// issuePermissions are what Armature grants a member on a project they work in; issueRead alone where they may
+// only read.
+var issuePermissions = []string{issueRead, issueWrite, "comment.write"}
+
+const (
+	issueRead  = "issue.read"
+	issueWrite = "issue.write"
+)
+
+func (s *stub) access(c *call) {
+	projects := map[string][]string{}
+	keys := []string{}
+	grants := []map[string]string{}
+	for _, pr := range c.tenant.projects {
+		if !c.person.sees(pr) {
+			continue
+		}
+		projects[pr.Key] = issuePermissions
+		if !c.person.writes(pr) {
+			projects[pr.Key] = []string{issueRead}
+		}
+		keys = append(keys, pr.Key)
+		grants = append(grants, map[string]string{"projectKey": pr.Key, "role": "developer"})
+	}
+	org := []string{}
+	if c.person.Name == adminName {
+		org = []string{"org.administer"}
+	}
+	respond(c.w, http.StatusOK, map[string]any{
+		"canAdministerOrg": c.person.Name == adminName,
+		"canCreateProject": c.person.Name == adminName,
+		"grants":           grants,
+		"projects":         keys,
+		"permissions":      map[string]any{"org": org, "projects": projects},
+	})
+}
+
+func (s *stub) projects(c *call) {
+	out := []map[string]any{}
+	for _, pr := range c.tenant.projects {
+		if !c.person.sees(pr) {
+			continue
+		}
+		count, open := 0, 0
+		for _, is := range c.tenant.issues {
+			if is.Project == pr {
+				count++
+				if is.Status.Category != "done" {
+					open++
+				}
+			}
+		}
+		out = append(out, map[string]any{
+			"id": pr.ID, "key": pr.Key, "name": pr.Name, "description": "", "kind": "software",
+			"issueCount": count, "openIssueCount": open, "portalVerifies": false, "trustedDomains": []string{},
+			"features": []string{"board"}, "planningMethod": "kanban", "resourceGrouping": "team",
+			"createdAt": seeded, "updatedAt": seeded,
+		})
+	}
+	respond(c.w, http.StatusOK, map[string]any{"projects": out})
+}
+
+func (s *stub) issueTypes(c *call) {
+	out := []map[string]any{}
+	for _, k := range c.tenant.types {
+		v := typeView(k)
+		v["position"], v["description"] = k.Position, ""
+		out = append(out, v)
+	}
+	respond(c.w, http.StatusOK, map[string]any{"issueTypes": out})
+}
+
+type createIssueRequest struct {
+	ProjectKey  string          `json:"projectKey"`
+	TypeID      *uuid.UUID      `json:"typeId,omitempty"`
+	Summary     string          `json:"summary"`
+	Description json.RawMessage `json:"description,omitempty"`
+}
+
+// createIssue files a Task unless a type is named, as Armature does with a project's default type.
+func (s *stub) createIssue(c *call) {
+	var req createIssueRequest
+	if !decode(c, &req) || c.readOnly() {
+		return
+	}
+	pr := c.tenant.project(req.ProjectKey)
+	if pr == nil || !c.person.sees(pr) {
+		refuse(c.w, http.StatusNotFound, "not_found", "That project was not found.")
+		return
+	}
+	if !c.person.writes(pr) {
+		refuse(c.w, http.StatusForbidden, "forbidden", "You may not file issues in this project.")
+		return
+	}
+	summary := strings.TrimSpace(req.Summary)
+	if summary == "" || utf8.RuneCountInString(summary) > maxSummary {
+		refuseField(c.w, "summary", "Give the issue a summary of 1 to 255 characters.")
+		return
+	}
+	if c.tenant.refused != "" && summary == c.tenant.refused {
+		refuseField(c.w, "summary", "Armature refuses this summary.")
+		return
+	}
+	kind := c.tenant.typeNamed("Task")
+	if req.TypeID != nil {
+		if kind = c.tenant.typeByID(*req.TypeID); kind == nil || kind.IsSubtask {
+			refuseField(c.w, "typeId", "Choose an issue type of this project that is not a sub-task.")
+			return
+		}
+	}
+	is := c.tenant.add(pr, kind, summary, c.person, time.Now().UTC())
+	is.Description = req.Description
+	respond(c.w, http.StatusCreated, map[string]any{"issue": issueView(is)})
 }
 
 func (s *stub) getIssue(c *call) {
@@ -245,6 +366,18 @@ func (s *stub) setReads(c *call) {
 	for _, key := range req.Projects {
 		p.Reads[key] = true
 	}
+	c.w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *stub) setRefused(c *call) {
+	var req struct {
+		// Summary is refused from now on; empty refuses none.
+		Summary string `json:"summary"`
+	}
+	if !decode(c, &req) {
+		return
+	}
+	c.tenant.refused = req.Summary
 	c.w.WriteHeader(http.StatusNoContent)
 }
 

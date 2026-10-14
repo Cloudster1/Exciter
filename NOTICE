@@ -178,6 +178,20 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at cf0f6f7, for creating Armature issues from requirements (#28):
+- backend/internal/armature/create.go with create_test.go: CheckCreate,
+  Description, CreateRequest, CreateIssues, Projects, IssueTypes and meta of
+  internal/armature create.go and issues.go, filing one issue per
+  requirement, each linked to it at once, rather than per item of a page's
+  selection
+- backend/internal/httpapi/armature_create_handlers.go: the create handlers
+  and refusalSentence of internal/httpapi/armature_handlers.go
+- backend/cmd/armature-stub: access, projects, issueTypes, createIssue and
+  the refused summary of server.go, with their contract test
+- web/src/features/armature/CreateIssues.tsx: CreateIssuesDialog and
+  refusalText of features/armature/CreateIssuesDialog.tsx, over picked
+  requirements rather than a selection's text
+
 Adapted from Stator at cf0f6f7, for tracing requirements to Armature issues (#27):
 - backend/internal/armature issues.go, links.go and sync.go with
   sync_test.go: the lookup, the link sync, PlanLinks and the refusals'

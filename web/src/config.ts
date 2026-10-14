@@ -271,6 +271,10 @@ export const ARMATURE_SEARCH_DEBOUNCE_MS = 250;
 export const ARMATURE_LINKS_POLL_MS = 2000;
 /** The relations a requirement takes to an issue, in the order the picker offers them, the API's armature.Relations. */
 export const ARMATURE_RELATIONS = ["implements", "verifies", "relates"] as const;
+/** The relations a new issue takes to its requirement, the API's armature.CreateRelations (#28). */
+export const ARMATURE_CREATE_RELATIONS = ["implements", "verifies"] as const;
+/** The most requirements one round of creating issues takes, the API's armature.MaxCreateItems. */
+export const ARMATURE_CREATE_MAX = 50;
 /** How long "Copied" stays after a secret is copied. */
 export const COPY_FEEDBACK_MS = 2000;
 
