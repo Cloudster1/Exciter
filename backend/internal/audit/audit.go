@@ -74,6 +74,10 @@ const (
 	ActionApprovalRuleSaved   = "approval_rule.saved"
 	ActionApprovalRuleRemoved = "approval_rule.removed"
 	ActionReviewWithdrawn     = "review.withdrawn"
+	// ActionBaselineTaken, ActionBaselineLocked and ActionBaselineDeleted keep a project's baselines (#37).
+	ActionBaselineTaken   = "baseline.taken"
+	ActionBaselineLocked  = "baseline.locked"
+	ActionBaselineDeleted = "baseline.deleted"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -85,7 +89,8 @@ var Actions = []string{
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
-	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn,
+	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
+	ActionBaselineDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

@@ -390,6 +390,26 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
 - **UI:** Baselines in the project, Take baseline for administrators, a
   baseline read like the specification, and Compare with another or now,
   each requirement opening its diff.
+- **As built** (#37):
+  - Migration 00550. An item records the requirement's number, kind,
+    revision, parent, rank, outline path and status (its id, name and
+    category as they were), and names its revision without a foreign key,
+    so a purge leaves it named by its key with no content. A baseline
+    records its transaction (`taken_xact`); the triggers refuse rows
+    written in any other, any change to them, and deleting them but with
+    their baseline. An item must name a revision its project's requirement
+    has. A locked baseline is refused every change and deletion, but goes
+    with its project.
+  - Taking reads the database in one REPEATABLE READ snapshot; the
+    integration suite holds the service between its items and its links
+    while another person commits, and the baseline holds none of it.
+  - `moved` is another parent or another rank among the siblings; a
+    requirement only renumbered by a sibling inserted before it is not
+    moved. A requirement in the trash where the reader may not look reads
+    without content, as one purged.
+  - Comparing a baseline of a section with now reads the section's subtree
+    as it is now. Comparing with a baseline of another project, or an
+    unknown one, is 422 on `with`.
 
 ## #38 Traceability matrix and coverage
 

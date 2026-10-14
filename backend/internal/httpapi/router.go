@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -97,6 +98,8 @@ type Server struct {
 	// Reviews keeps approval rules and the reviews of revisions (#35); nil answers their routes that they are not
 	// set up.
 	Reviews *review.Service
+	// Baselines takes and compares snapshots of projects (#37); nil answers their routes that they are not set up.
+	Baselines *baseline.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -390,6 +393,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/reviews/{reviewID}", s.handleGetReview)
 			r.Post("/reviews/{reviewID}/decisions", s.handleDecideReview)
 			r.Post("/reviews/{reviewID}/withdraw", s.handleWithdrawReview)
+		})
+
+		// Baselines: read by a project's readers, taken, renamed, locked and deleted by its administrators (#37).
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.baselinesOn)
+			r.Get("/projects/{projectKey}/baselines", s.handleListBaselines)
+			r.Post("/projects/{projectKey}/baselines", s.handleTakeBaseline)
+			r.Get("/baselines/{baselineID}", s.handleGetBaseline)
+			r.Patch("/baselines/{baselineID}", s.handleUpdateBaseline)
+			r.Delete("/baselines/{baselineID}", s.handleDeleteBaseline)
+			r.Get("/baselines/{baselineID}/spec", s.handleBaselineSpec)
+			r.Get("/baselines/{baselineID}/compare", s.handleCompareBaseline)
 		})
 
 		// Armature: the installation's connection for its administrators, each member's own token for them, and the

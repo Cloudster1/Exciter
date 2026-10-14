@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -109,6 +110,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Watches:       watch.NewService(h.cluster),
 		Notifications: notify.NewService(h.cluster),
 		Reviews:       review.NewService(h.cluster),
+		Baselines:     baseline.NewService(h.cluster),
 		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

@@ -76,6 +76,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Baselines (#37). A project's administrators take a named baseline of the
+  project, or of one section and everything below it: each requirement's
+  revision, place and status, and its trace and Armature links, read as one
+  snapshot however busy the project is. A baseline reads like the
+  specification as it was, and compares with another baseline or with now,
+  saying what was added, removed, revised, moved or moved to another status
+  and which links came and went, each revised requirement opening its diff.
+  A locked baseline keeps its name and is never deleted; nothing a baseline
+  holds ever changes.
 - Suspect links (#36). A link turns suspect when a requirement at an end its
   type watches gets a new revision, and an Armature link when its
   requirement does. The links panel, the specification, the grid and each

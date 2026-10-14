@@ -24,6 +24,9 @@ import {
   specRoute,
   trashRoute,
   suspectsRoute,
+  baselinesRoute,
+  baselineRoute,
+  baselineCompareRoute,
   workflowDesignRoute,
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
@@ -49,6 +52,9 @@ const routeTree = rootRoute.addChildren([
     newRequirementRoute,
     trashRoute,
     suspectsRoute,
+    baselinesRoute,
+    baselineRoute,
+    baselineCompareRoute,
     specRoute,
     gridRoute,
     requirementRoute,

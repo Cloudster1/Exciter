@@ -14,6 +14,7 @@ import { commentsEn } from "./comments.en";
 import { notificationsEn, watchEn } from "./notifications.en";
 import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
+import { baselineEn } from "./baselines.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -284,6 +285,9 @@ export const en = {
       "approval_rule.saved": "Approval rule saved",
       "approval_rule.removed": "Approval rule removed",
       "review.withdrawn": "Review withdrawn",
+      "baseline.taken": "Baseline taken",
+      "baseline.locked": "Baseline locked",
+      "baseline.deleted": "Baseline deleted",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -321,6 +325,7 @@ export const en = {
   notifications: notificationsEn,
   review: reviewEn,
   suspect: suspectEn,
+  baseline: baselineEn,
   imports: importsEn,
   search: searchEn,
   grid: gridEn,

@@ -315,3 +315,9 @@ export const REVIEWS_PAGE_SIZE = 20;
 export const SUSPECTS_PAGE_SIZE = 20;
 /** The longest comment a clearance takes, as the API's trace.MaxClearCommentLength. */
 export const CLEAR_COMMENT_MAX_LENGTH = 500;
+
+/** How many requirements one page of a baseline read as a specification shows, the API's baseline.DefaultLimit (#37). */
+export const BASELINE_SPEC_PAGE_SIZE = 50;
+/** The longest name and description a baseline takes, as the API's baseline.MaxNameLength and MaxDescriptionLength. */
+export const BASELINE_NAME_MAX_LENGTH = 100;
+export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;

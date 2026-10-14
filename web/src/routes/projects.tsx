@@ -16,6 +16,9 @@ import { SpecPage } from "@/features/tree/SpecPage";
 import { WorkflowDesignPage } from "@/features/workflows/WorkflowDesignPage";
 import { appRoute } from "./app";
 import { SuspectList } from "@/features/links/SuspectList";
+import { BaselineList } from "@/features/baselines/Baselines";
+import { BaselinePage } from "@/features/baselines/BaselinePage";
+import { BaselineCompare } from "@/features/baselines/BaselineCompare";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
 export const newProjectRoute = createRoute({ getParentRoute: () => appRoute, path: NEW_PROJECT_PATH, component: NewProjectForm });
@@ -28,7 +31,8 @@ type ProjectPath =
   | "/p/$projectKey/trash"
   | "/p/$projectKey/spec"
   | "/p/$projectKey/grid"
-  | "/p/$projectKey/suspects";
+  | "/p/$projectKey/suspects"
+  | "/p/$projectKey/baselines";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -122,6 +126,50 @@ export const suspectsRoute = createRoute({
   component: function ProjectSuspectsPage() {
     const { projectKey } = suspectsRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/suspects" render={(project) => <SuspectList key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's baselines (#37). */
+export const baselinesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/baselines",
+  component: function ProjectBaselinesPage() {
+    const { projectKey } = baselinesRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/baselines" render={(project) => <BaselineList key={project.id} project={project} />} />;
+  },
+});
+
+/** One baseline, read as a specification. */
+export const baselineRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/baselines/$baselineId",
+  component: function ProjectBaselinePage() {
+    const { projectKey, baselineId } = baselineRoute.useParams();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/baselines"
+        render={(project) => <BaselinePage key={baselineId} project={project} baselineId={baselineId} />}
+      />
+    );
+  },
+});
+
+/** A baseline compared with another of its project, or with now. */
+export const baselineCompareRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/baselines/$baselineId/compare",
+  validateSearch: (search: Record<string, unknown>): { with?: string } => (typeof search.with === "string" && search.with ? { with: search.with } : {}),
+  component: function ProjectBaselineComparePage() {
+    const { projectKey, baselineId } = baselineCompareRoute.useParams();
+    const { with: other } = baselineCompareRoute.useSearch();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/baselines"
+        render={(project) => <BaselineCompare project={project} baselineId={baselineId} other={other ?? ""} />}
+      />
+    );
   },
 });
 

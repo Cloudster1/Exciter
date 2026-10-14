@@ -12,6 +12,7 @@ import { commentsDe } from "./comments.de";
 import { notificationsDe, watchDe } from "./notifications.de";
 import { reviewDe } from "./reviews.de";
 import { suspectDe } from "./suspect.de";
+import { baselineDe } from "./baselines.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -285,6 +286,9 @@ export const de: Messages = {
       "approval_rule.saved": "Freigaberegel gespeichert",
       "approval_rule.removed": "Freigaberegel entfernt",
       "review.withdrawn": "Prüfung zurückgezogen",
+      "baseline.taken": "Baseline erstellt",
+      "baseline.locked": "Baseline gesperrt",
+      "baseline.deleted": "Baseline gelöscht",
     },
     targetTypes: {
       user: "Person",
@@ -322,6 +326,7 @@ export const de: Messages = {
   notifications: notificationsDe,
   review: reviewDe,
   suspect: suspectDe,
+  baseline: baselineDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,
