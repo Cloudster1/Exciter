@@ -12,7 +12,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 )
 
-// OrgTypes answers the organization's link types, retired ones included.
+// OrgTypes answers the installation's link types, retired ones included.
 func (s *Service) OrgTypes(ctx context.Context, reader uuid.UUID) ([]LinkType, error) {
 	out := []LinkType{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -42,14 +42,14 @@ func (s *Service) ProjectTypes(ctx context.Context, reader uuid.UUID, projectKey
 	return out, err
 }
 
-// create makes a type of the organization, or of a project when projectID is set, with what in says.
+// create makes a type of the installation, or of a project when projectID is set, with what in says.
 func create(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectID *uuid.UUID, in LinkTypeInput) (*LinkType, error) {
 	var t LinkType
 	if err := applyType(&t, in, true); err != nil {
 		return nil, err
 	}
 	var count int
-	if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM link_type WHERE org_id = current_org_id() AND project_id IS NOT DISTINCT FROM $1`,
+	if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM link_type WHERE project_id IS NOT DISTINCT FROM $1`,
 		projectID).Scan(&count); err != nil {
 		return nil, err
 	}
@@ -58,8 +58,8 @@ func create(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectID *uuid.UU
 	}
 	var id uuid.UUID
 	err := tx.QueryRow(ctx, `
-		INSERT INTO link_type (org_id, project_id, key, name, forward, backward, acyclic, suspect_end, counts, created_by)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+		INSERT INTO link_type (project_id, key, name, forward, backward, acyclic, suspect_end, counts, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
 		projectID, t.Key, t.Name, t.Forward, t.Backward, t.Acyclic, t.SuspectEnd, t.Counts, actor).Scan(&id)
 	if err != nil {
 		return nil, typeRefusal(err, t.Key)
@@ -71,7 +71,7 @@ func create(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectID *uuid.UU
 	return made, record(ctx, tx, actor, audit.ActionLinkTypeCreated, made, map[string]any{})
 }
 
-// CreateOrgType makes a link type every project may use; the policies hold it to the organization's administrators.
+// CreateOrgType makes a link type every project may use; the policies hold it to the installation's administrators.
 func (s *Service) CreateOrgType(ctx context.Context, actor uuid.UUID, in LinkTypeInput) (*LinkType, db.LSN, error) {
 	var out *LinkType
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -187,7 +187,7 @@ func (s *Service) SetProjectType(ctx context.Context, actor uuid.UUID, projectKe
 			return err
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO link_type_project (org_id, project_id, link_type_id, enabled) VALUES (current_org_id(), $1, $2, $3)
+			INSERT INTO link_type_project (project_id, link_type_id, enabled) VALUES ($1, $2, $3)
 			ON CONFLICT (project_id, link_type_id) DO UPDATE SET enabled = EXCLUDED.enabled`, p.ID, id, in.Enabled); err != nil {
 			return err
 		}
@@ -196,8 +196,8 @@ func (s *Service) SetProjectType(ctx context.Context, actor uuid.UUID, projectKe
 		}
 		for _, rule := range rules {
 			if _, err := tx.Exec(ctx, `
-				INSERT INTO link_type_rule (org_id, project_id, link_type_id, source_type_id, target_type_id)
-				VALUES (current_org_id(), $1, $2, $3, $4)`, p.ID, id, rule.SourceTypeID, rule.TargetTypeID); err != nil {
+				INSERT INTO link_type_rule (project_id, link_type_id, source_type_id, target_type_id)
+				VALUES ($1, $2, $3, $4)`, p.ID, id, rule.SourceTypeID, rule.TargetTypeID); err != nil {
 				return err
 			}
 		}

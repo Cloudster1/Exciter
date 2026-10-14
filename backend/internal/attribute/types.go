@@ -15,7 +15,7 @@ import (
 
 const selectType = `
 SELECT t.id, t.name, t.description, t.icon, t.colour, t.position, t.retired, t.created_at, t.updated_at,
-       (SELECT count(*)::int FROM requirement r WHERE r.org_id = t.org_id AND r.type_id = t.id AND r.trashed_at IS NULL)
+       (SELECT count(*)::int FROM requirement r WHERE r.type_id = t.id AND r.trashed_at IS NULL)
 FROM requirement_type t`
 
 func scanType(row pgx.CollectableRow) (Type, error) {
@@ -120,8 +120,8 @@ func (s *Service) CreateType(ctx context.Context, actor uuid.UUID, projectKey st
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO requirement_type (org_id, project_id, name, description, icon, colour, position)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6) RETURNING id`, p.ID, t.Name, t.Description, t.Icon, t.Colour, count).Scan(&id)
+			INSERT INTO requirement_type (project_id, name, description, icon, colour, position)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, p.ID, t.Name, t.Description, t.Icon, t.Colour, count).Scan(&id)
 		if nameTaken(err) {
 			return &FieldError{"name", "Another type of this project is called that. Pick another name."}
 		}

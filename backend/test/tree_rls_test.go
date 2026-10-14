@@ -28,7 +28,7 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 		projects[key] = id
 	}
 	editorID := h.addPerson(t, a.org, "member")
-	editor := h.appConn(t, a.org, editorID)
+	editor := h.appConn(t, editorID)
 	write := func(project string, parent *uuid.UUID) uuid.UUID {
 		t.Helper()
 		var id uuid.UUID
@@ -60,7 +60,7 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 
 	t.Run("two moves that would close a loop together cannot both land", func(t *testing.T) {
 		left, right := write(treeKey, nil), write(treeKey, nil)
-		other := h.appConn(t, a.org, editorID)
+		other := h.appConn(t, editorID)
 		first, err := editor.Begin(ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -101,7 +101,7 @@ func TestRawSQLKeepsTheTreeWhole(t *testing.T) {
 		}
 		guest := h.addPerson(t, a.org, "guest")
 		h.grantAs(t, a.org, projects[treeKey], guest, "editor")
-		mover := h.appConn(t, a.org, guest)
+		mover := h.appConn(t, guest)
 		if _, err := mover.Exec(ctx, `UPDATE requirement SET project_id = $2, parent_id = NULL WHERE id = $1`, child, projects[elseKey]); !isPolicyViolation(err) {
 			t.Errorf("a requirement moved into a project its mover may not edit: %v", err)
 		}

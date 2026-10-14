@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// OrgRole is a member's standing within one organization.
+// OrgRole is a member's standing in the installation.
 type OrgRole string
 
 const (
@@ -24,7 +24,7 @@ var OrgRoles = []OrgRole{RoleOwner, RoleAdmin, RoleMember, RoleGuest}
 // AssignableRoles are the roles an administrator gives; ownership is the bootstrap's alone.
 var AssignableRoles = []OrgRole{RoleAdmin, RoleMember, RoleGuest}
 
-// CanAdminister reports whether the role may change organization settings.
+// CanAdminister reports whether the role may change the installation's settings.
 func (r OrgRole) CanAdminister() bool { return r == RoleOwner || r == RoleAdmin }
 
 // RoleSource says who decided a member's role.
@@ -42,7 +42,7 @@ const (
 // RoleSources lists every source, in the order the API documents them.
 var RoleSources = []RoleSource{RoleSourceManual, RoleSourceProvider}
 
-// Member is somebody in the organization, as its administrators see them.
+// Member is somebody in the installation, as its administrators see them.
 type Member struct {
 	UserID uuid.UUID `json:"userId"`
 	Email  string    `json:"email"`
@@ -68,7 +68,7 @@ const (
 // Locales lists every value a person may choose, in the order the API documents them.
 var Locales = []Locale{LocaleBrowser, LocaleEnglish, LocaleGerman}
 
-// User is a person, global across organizations.
+// User is a person with an account.
 type User struct {
 	ID    uuid.UUID `json:"id"`
 	Email string    `json:"email"`
@@ -79,20 +79,10 @@ type User struct {
 	Locale Locale `json:"locale"`
 }
 
-// CurrentOrg is the organization a session is acting in, with the caller's standing there.
-type CurrentOrg struct {
-	ID   uuid.UUID `json:"id"`
-	Slug string    `json:"slug"`
-	Name string    `json:"name"`
-	Role OrgRole   `json:"role"`
-}
-
-// Membership is a user's place in one organization.
+// Membership is a person's place in the installation.
 type Membership struct {
-	OrgID   uuid.UUID `json:"orgId"`
-	OrgSlug string    `json:"orgSlug"`
-	OrgName string    `json:"orgName"`
-	Role    OrgRole   `json:"role"`
+	UserID uuid.UUID `json:"userId"`
+	Role   OrgRole   `json:"role"`
 }
 
 // Proof is how a session was opened, which decides how far it reaches.
@@ -110,7 +100,7 @@ var (
 	// ErrSwitchedOff is returned when somebody whose account is switched off, or who belongs to no installation,
 	// signs in.
 	ErrSwitchedOff = errors.New("account switched off")
-	// ErrNoInstallation is returned when nothing has made the installation's organization yet.
+	// ErrNoInstallation is returned when nothing has made the installation yet.
 	ErrNoInstallation = errors.New("the installation has not been set up")
 	// ErrBadLocale is returned for a language the interface does not speak.
 	ErrBadLocale = errors.New("choose a language from the list")

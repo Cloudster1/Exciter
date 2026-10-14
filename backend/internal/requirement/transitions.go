@@ -32,7 +32,7 @@ func subjectOf(ctx context.Context, tx db.DBTX, l *loaded) (workflow.Subject, er
 	if l.Owner != nil {
 		s.OwnerID = &l.Owner.ID
 	}
-	err := tx.QueryRow(ctx, `SELECT created_by FROM requirement_revision WHERE org_id = current_org_id() AND requirement_id = $1 AND number = $2`,
+	err := tx.QueryRow(ctx, `SELECT created_by FROM requirement_revision WHERE requirement_id = $1 AND number = $2`,
 		l.ID, l.Revision).Scan(&s.LatestAuthor)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return s, err
@@ -178,8 +178,8 @@ func settleStatus(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, t
 	if _, err := tx.Exec(ctx, `SELECT requirement_remap_status($1, $2)`, l.ID, initial.ID); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (org_id, requirement_id, field, from_value, to_value, reason, actor_id)
-		VALUES (current_org_id(), $1, 'status', $2, $3, $4, $5)`, l.ID, from, initial.Name, reason, actor); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (requirement_id, field, from_value, to_value, reason, actor_id)
+		VALUES ($1, 'status', $2, $3, $4, $5)`, l.ID, from, initial.Name, reason, actor); err != nil {
 		return err
 	}
 	return events.Emit(ctx, tx, TopicChanged, map[string]any{"actorId": actor, "requirementId": l.ID, "field": ChangeStatus})
@@ -196,8 +196,8 @@ func afterRevision(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, revisio
 		id, *left).Scan(&from, &to); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (org_id, requirement_id, field, from_value, to_value, reason, actor_id)
-		VALUES (current_org_id(), $1, 'status', $2, $3, $4, $5)`, id, from, to, fmt.Sprintf("Revision %d changed the requirement while it was %s.", revision, from), actor); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (requirement_id, field, from_value, to_value, reason, actor_id)
+		VALUES ($1, 'status', $2, $3, $4, $5)`, id, from, to, fmt.Sprintf("Revision %d changed the requirement while it was %s.", revision, from), actor); err != nil {
 		return err
 	}
 	return events.Emit(ctx, tx, TopicChanged, map[string]any{"actorId": actor, "requirementId": id, "field": ChangeStatus})

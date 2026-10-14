@@ -23,7 +23,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	org := h.singleSignOn(t)
 	ctx := context.Background()
 	const issuer = "https://id.upsert.test"
-	if _, _, err := a.sso.Save(withActor(org, h.addPerson(t, org.ID, "admin")), oidc.Provider{Issuer: issuer, ClientID: exciterClient, CreateGroups: true, Enabled: true}); err != nil {
+	if _, _, err := a.sso.Save(withActor(h.addPerson(t, org.ID, "admin")), oidc.Provider{Issuer: issuer, ClientID: exciterClient, CreateGroups: true, Enabled: true}); err != nil {
 		t.Fatal(err)
 	}
 	email := "carol-" + h.suffix() + "@suite.test"
@@ -33,7 +33,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	identity := &oidc.Identity{Issuer: issuer, Subject: "carol-" + uuid.NewString(), Email: email, Name: "Carol", Groups: []string{"a", "b"}}
 
 	// Not a member yet: refused, with a request noted and nothing else given.
-	if _, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", ""); !errors.Is(err, oidc.ErrNotAMember) {
+	if _, err := a.sso.SignIn(ctx, identity, time.Hour, "", ""); !errors.Is(err, oidc.ErrNotAMember) {
 		t.Fatalf("a first sign-in = %v, want oidc.ErrNotAMember", err)
 	}
 	var waiting uuid.UUID
@@ -45,11 +45,11 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 		  AND NOT EXISTS (SELECT 1 FROM group_member g WHERE g.user_id = r.user_id)`, org.ID, email).Scan(&waiting); err != nil {
 		t.Fatalf("no bare request for carol: %v", err)
 	}
-	if _, _, err := a.accounts.AdmitJoinRequest(ctx, org.ID, waiting, auth.RoleMember, uuid.Nil, ""); err != nil {
+	if _, _, err := a.accounts.AdmitJoinRequest(ctx, waiting, auth.RoleMember, uuid.Nil, ""); err != nil {
 		t.Fatal(err)
 	}
 
-	first, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", "")
+	first, err := a.sso.SignIn(ctx, identity, time.Hour, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	}
 
 	identity.Email, identity.Name, identity.Groups = renamed, "Carol Renamed", []string{"b", "c"}
-	second, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", "")
+	second, err := a.sso.SignIn(ctx, identity, time.Hour, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	t.Run("a first sign-in finds the member account using the address", func(t *testing.T) {
 		admin := bootstrapAdmin(t, h, a, org.ID)
 		adminID := h.userID(t, admin)
-		s, err := a.sso.SignIn(ctx, org.ID, &oidc.Identity{Issuer: issuer, Subject: "admin-" + uuid.NewString(), Email: admin, Name: "Admin"}, time.Hour, "", "")
+		s, err := a.sso.SignIn(ctx, &oidc.Identity{Issuer: issuer, Subject: "admin-" + uuid.NewString(), Email: admin, Name: "Admin"}, time.Hour, "", "")
 		if err != nil || s.UserID != adminID {
 			t.Fatalf("the administrator signed in as %v (%v), want %v", s, err, adminID)
 		}
@@ -99,7 +99,7 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 		if _, err := h.super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, first.UserID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := a.sso.SignIn(ctx, org.ID, identity, time.Hour, "", ""); !errors.Is(err, auth.ErrSwitchedOff) {
+		if _, err := a.sso.SignIn(ctx, identity, time.Hour, "", ""); !errors.Is(err, auth.ErrSwitchedOff) {
 			t.Fatalf("a deactivated sign-in = %v, want auth.ErrSwitchedOff", err)
 		}
 	})

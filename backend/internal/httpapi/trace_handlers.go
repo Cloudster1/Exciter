@@ -8,7 +8,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
-// Trace links (#18): typed links between requirements, and the organization's and the projects' link types.
+// Trace links (#18): typed links between requirements, and the installation's and the projects' link types.
 
 var errTraceOff = &APIError{Status: http.StatusServiceUnavailable, Code: "links_unavailable",
 	Message: "Trace links are not set up on this server. Ask its operator to configure it."}

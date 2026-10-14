@@ -71,7 +71,7 @@ func ErrForbidden(message string) *APIError {
 	return &APIError{Status: http.StatusForbidden, Code: "forbidden", Message: message}
 }
 
-// ErrNotFound is also what a caller gets for a resource in another tenant:
+// ErrNotFound is also what a caller gets for a resource behind a wall:
 // existence itself is privileged information.
 func ErrNotFound(what string) *APIError {
 	if what == "" {

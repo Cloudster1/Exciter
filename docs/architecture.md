@@ -64,8 +64,12 @@ schema no longer asks for it (#106): keys, foreign keys and indexes leave
 `org_id` out, so project keys and the other names are unique in the
 installation, no function or permission policy reads it, and every `org_id`
 column defaults to the one row (`installation_org_id()`, which refuses
-rather than guess between two). The code still sets `app.org_id` and writes
-the column until #107.
+rather than guess between two). The code names neither (#107): a transaction
+says only who acts, `org_id` fills from its default, and a unit test refuses
+the column or `current_org_id()` in product code. What was sealed or stored
+under the organization's id, the provider's client secret, Armature tokens
+and the webhook secret, and theme files, still is, under the installation's
+id, so nothing stored earlier is lost.
 
 Every table forces row level security. One permissive policy per table,
 `<table>_installation`, lets every role at the rows, and the permission rules,

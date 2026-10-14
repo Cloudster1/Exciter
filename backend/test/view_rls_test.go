@@ -25,7 +25,7 @@ func TestRawSQLKeepsViewsAndSearchHitsToTheirReaders(t *testing.T) {
 	editorID, viewerID, outsiderID := h.addPerson(t, a.org, "member"), h.addPerson(t, a.org, "guest"), h.addPerson(t, a.org, "guest")
 	h.grantAs(t, a.org, project, editorID, "editor")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
-	editor, viewer, outsider, owner := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID), h.appConn(t, a.org, outsiderID), h.appConn(t, a.org, a.user)
+	editor, viewer, outsider, owner := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, outsiderID), h.appConn(t, a.user)
 	save := `INSERT INTO saved_view (org_id, project_id, owner_id, name, shared) VALUES ($1, $2, current_actor_id(), $3, $4) RETURNING id`
 
 	var private, shared uuid.UUID

@@ -66,7 +66,7 @@ const (
 	MultiSelect Kind = "multiSelect"
 	// Date is a day, YYYY-MM-DD.
 	Date Kind = "date"
-	// User is the id of a member of the organization.
+	// User is the id of a member of the installation.
 	User Kind = "user"
 	// Boolean is true or false.
 	Boolean Kind = "boolean"

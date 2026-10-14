@@ -26,7 +26,7 @@ func textOfHit(chars int) string {
 // Without words a search reads requirements as they are, among those the reader may view.
 const unmatched = `(SELECT r.id, r.project_id, r.number, r.kind, r.title, r.statement, r.rationale, r.revision, r.status_id,
 	r.owner_id, r.updated_at, r.updated_by, 0::real AS rank, false AS key_match
-	FROM requirement r WHERE r.org_id = current_org_id() AND r.trashed_at IS NULL AND ` + `%s)`
+	FROM requirement r WHERE r.trashed_at IS NULL AND ` + `%s)`
 
 // How much of a statement is read for its snippet. A headline reads its whole text, so a long one is cut first;
 // its opening is what a hit mostly shows.
@@ -175,9 +175,9 @@ func (s *Service) Quick(ctx context.Context, reader uuid.UUID, typed, projectKey
 			SELECT r.id, r.project_id, p.key, p.name, r.number, r.kind, r.title, r.revision, r.status_id,
 			       COALESCE(st.name, ''), COALESCE(st.category, '')
 			FROM requirement r
-			JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
+			JOIN project p ON p.id = r.project_id
 			LEFT JOIN req_status st ON st.id = r.status_id
-			WHERE r.org_id = current_org_id() AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + within + `
+			WHERE r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + within + `
 			  AND p.key = $` + strconv.Itoa(len(args)-1) + ` AND r.number::text LIKE $` + n + `
 			ORDER BY char_length(r.number::text), r.number
 			LIMIT $2`

@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 func cleanName(name *string) (string, error) {
@@ -50,8 +50,8 @@ func (s *Service) Create(ctx context.Context, owner uuid.UUID, in Input) (*Theme
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var id uuid.UUID
 		err := tx.QueryRow(ctx, `
-			INSERT INTO theme (org_id, owner_id, name, shared, spec)
-			VALUES (current_org_id(), $1, $2, $3, $4) RETURNING id`, owner, name, shared, encoded).Scan(&id)
+			INSERT INTO theme (owner_id, name, shared, spec)
+			VALUES ($1, $2, $3, $4) RETURNING id`, owner, name, shared, encoded).Scan(&id)
 		if isUnique(err) {
 			return fmt.Errorf("%w: %s", ErrDuplicateName, name)
 		}
@@ -144,7 +144,11 @@ func (s *Service) Delete(ctx context.Context, id, actor uuid.UUID, administers b
 			return err
 		}
 		for _, a := range current.Assets {
-			keys = append(keys, objectKey(ctx, id, a.ID))
+			key, err := s.objectKey(ctx, id, a.ID)
+			if err != nil {
+				return err
+			}
+			keys = append(keys, key)
 		}
 		_, err = tx.Exec(ctx, `DELETE FROM theme WHERE id = $1`, id)
 		return err
@@ -167,11 +171,21 @@ func (s *Service) dropObjects(ctx context.Context, keys []string) {
 	}
 }
 
-// objectKey is where a file's bytes live, under its organization's prefix so
-// removing an organization finds every file it has.
-func objectKey(ctx context.Context, themeID, assetID uuid.UUID) string {
-	org, _ := tenant.FromContext(ctx)
-	return ObjectKey(org.ID, themeID, assetID)
+// objectKey is where a file's bytes live, under the installation's prefix.
+func (s *Service) objectKey(ctx context.Context, themeID, assetID uuid.UUID) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.installed == uuid.Nil {
+		err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+			var err error
+			s.installed, err = installation.ID(ctx, tx)
+			return err
+		})
+		if err != nil {
+			return "", err
+		}
+	}
+	return ObjectKey(s.installed, themeID, assetID), nil
 }
 
 // ObjectKey is the key of one theme file in the object store.
@@ -208,12 +222,16 @@ func (s *Service) UploadAsset(ctx context.Context, id, actor uuid.UUID, administ
 		}
 		out = Asset{ID: assetID, Name: name, ContentType: contentType, Size: int64(len(data))}
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO theme_asset (id, org_id, theme_id, name, content_type, size)
-			VALUES ($1, current_org_id(), $2, $3, $4, $5) RETURNING created_at`,
+			INSERT INTO theme_asset (id, theme_id, name, content_type, size)
+			VALUES ($1, $2, $3, $4, $5) RETURNING created_at`,
 			assetID, id, name, contentType, len(data)).Scan(&out.CreatedAt); err != nil {
 			return fmt.Errorf("record the file: %w", err)
 		}
-		return s.store.Put(ctx, objectKey(ctx, id, assetID), bytes.NewReader(data), int64(len(data)), contentType)
+		key, err := s.objectKey(ctx, id, assetID)
+		if err != nil {
+			return err
+		}
+		return s.store.Put(ctx, key, bytes.NewReader(data), int64(len(data)), contentType)
 	})
 	if err != nil {
 		return nil, 0, err
@@ -243,7 +261,11 @@ func (s *Service) OpenAsset(ctx context.Context, id, assetID, reader uuid.UUID) 
 	if err != nil {
 		return nil, nil, err
 	}
-	body, err := s.store.Get(ctx, objectKey(ctx, id, assetID))
+	key, err := s.objectKey(ctx, id, assetID)
+	if err != nil {
+		return nil, nil, err
+	}
+	body, err := s.store.Get(ctx, key)
 	if err != nil {
 		return nil, nil, ErrAssetNotFound
 	}
@@ -271,6 +293,8 @@ func (s *Service) DeleteAsset(ctx context.Context, id, assetID, actor uuid.UUID,
 	if err != nil {
 		return 0, err
 	}
-	s.dropObjects(ctx, []string{objectKey(ctx, id, assetID)})
+	if key, err := s.objectKey(ctx, id, assetID); err == nil {
+		s.dropObjects(ctx, []string{key})
+	}
 	return lsn, nil
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -169,14 +170,14 @@ func TestAFirstStartMakesTheOneOrganization(t *testing.T) {
 	t.Cleanup(cluster.Close)
 
 	first, err := seed.Ensure(ctx, cluster, "Acme requirements")
-	if err != nil || !first.OrgCreated || first.Org.Slug != installation.Slug {
-		t.Fatalf("the first start = %+v, %v; want the organization made", first, err)
+	if err != nil || !first.Created || first.ID == uuid.Nil {
+		t.Fatalf("the first start = %+v, %v; want the installation made", first, err)
 	}
 	if _, err := super.Exec(ctx, `UPDATE org SET name = 'Renamed'`); err != nil {
 		t.Fatal(err)
 	}
 	again, err := seed.Ensure(ctx, cluster, "Something else")
-	if err != nil || again.OrgCreated || again.Org != first.Org {
+	if err != nil || again.Created || again.ID != first.ID {
 		t.Fatalf("the second start = %+v, %v; want the first one found", again, err)
 	}
 	var count int
@@ -222,18 +223,8 @@ func TestTheInstallationIsRenamedByAnAdministrator(t *testing.T) {
 		t.Errorf("a member renaming answers %s", code)
 	}
 
-	touchesNothing(t, h.appConn(t, home.org, memberID), "a member renaming through SQL", `UPDATE org SET name = 'Mine' WHERE id = $1`, home.org)
+	touchesNothing(t, h.appConn(t, memberID), "a member renaming through SQL", `UPDATE org SET name = 'Mine' WHERE id = $1`, home.org)
 	if n := h.countRows(t, `SELECT count(*) FROM org WHERE id = $1 AND name = 'Acme requirements'`, home.org); n != 1 {
 		t.Error("a member's statement changed the name")
-	}
-}
-
-// Single sign-on names no organization: it starts with the installation's, which the seed made.
-func TestSingleSignOnIsTheInstallations(t *testing.T) {
-	h := newHarness(t)
-	a := newAPIServer(t, h)
-	org, err := a.accounts.InstallationOrg(context.Background())
-	if err != nil || org.Slug != installation.Slug {
-		t.Fatalf("single sign-on starts with %+v (%v), want the installation's organization %s", org, err, installation.Slug)
 	}
 }

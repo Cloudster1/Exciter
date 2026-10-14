@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The code no longer carries an organization (#107). Admitting somebody who
+  asked to join answers `membership: {userId, role}` instead of the
+  organization's id, slug and name. Secrets and files stored earlier stay
+  readable.
 - The schema no longer asks which organization a row is of (#106). Keys and
   names, such as project keys, are unique in the installation; the tenant
   policies became one open policy per table beside the permission policies,

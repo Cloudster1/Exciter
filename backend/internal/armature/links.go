@@ -33,9 +33,9 @@ const selectLinks = `
 SELECT l.id, l.relation, l.issue_key, COALESCE(l.status_category, ''), l.status_stale,
        COALESCE(rl.state, 'pending'), COALESCE(rl.error, ''), l.broken_at, l.detached_at, COALESCE(u.name, ''), l.created_at
 FROM armature_issue_link l
-LEFT JOIN armature_remote_link rl ON rl.org_id = l.org_id AND rl.requirement_id = l.requirement_id AND rl.issue_key = l.issue_key
+LEFT JOIN armature_remote_link rl ON rl.requirement_id = l.requirement_id AND rl.issue_key = l.issue_key
 LEFT JOIN app_user u ON u.id = l.created_by
-WHERE l.org_id = current_org_id() AND l.requirement_id = $1`
+WHERE l.requirement_id = $1`
 
 const linkOrder = ` ORDER BY array_position(ARRAY['implements', 'verifies', 'relates'], l.relation), l.issue_key, l.created_at`
 
@@ -64,7 +64,7 @@ func actorOf(ctx context.Context) (uuid.UUID, error) {
 	return actor, nil
 }
 
-// Links answers the issues a requirement the reader views is traced to; none while the organization has no
+// Links answers the issues a requirement the reader views is traced to; none while the installation has no
 // connection, since there is nothing to open them in.
 func (s *Service) Links(ctx context.Context, reqKey string) ([]Link, error) {
 	actor, err := actorOf(ctx)
@@ -145,8 +145,8 @@ func (s *Service) Link(ctx context.Context, reqKey string, in LinkInput) (*Link,
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO armature_issue_link (org_id, requirement_id, relation, issue_key, created_by)
-			VALUES (current_org_id(), $1, $2, $3, $4) RETURNING id`, r.ID, in.Relation, issue.Key, actor).Scan(&id)
+			INSERT INTO armature_issue_link (requirement_id, relation, issue_key, created_by)
+			VALUES ($1, $2, $3, $4) RETURNING id`, r.ID, in.Relation, issue.Key, actor).Scan(&id)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.ConstraintName == "armature_issue_link_once" {
 			return ErrLinkExists
@@ -197,7 +197,7 @@ func (s *Service) issueToLink(ctx context.Context, key string) (*Issue, error) {
 	if issue == nil {
 		return nil, &FieldError{Field: "issueKey", Message: "Armature has no issue " + key + " that you may see. Check the key, or ask for access to its project in Armature."}
 	}
-	s.cache.PutIssue(ctx, v.OrgID, v.TokenID, key, issue)
+	s.cache.PutIssue(ctx, v.TokenID, key, issue)
 	return issue, nil
 }
 
@@ -211,7 +211,7 @@ func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 		var editable bool
 		err := tx.QueryRow(ctx, `
 			SELECT perm_requirement_editable(requirement_id, $2) FROM armature_issue_link
-			WHERE org_id = current_org_id() AND id = $1`, id, actor).Scan(&editable)
+			WHERE id = $1`, id, actor).Scan(&editable)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
 		}
@@ -221,7 +221,7 @@ func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 		if !editable {
 			return requirement.ErrForbidden
 		}
-		_, err = tx.Exec(ctx, `DELETE FROM armature_issue_link WHERE org_id = current_org_id() AND id = $1`, id)
+		_, err = tx.Exec(ctx, `DELETE FROM armature_issue_link WHERE id = $1`, id)
 		return err
 	})
 }

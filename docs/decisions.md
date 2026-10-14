@@ -3,6 +3,37 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: The code stops carrying the organization (#107)
+
+With the schema no longer asking (#106), the organization in the code was
+only weight: `internal/tenant`, the `app.org_id` setting, `events.Event.OrgID`
+and an `org_id` in every insert and filter. They went, as Armature's #218
+removes them.
+
+- **A transaction says only who acts.** `inTx` sets the acting person, and a
+  token's projects, whenever the context has somebody; there is no
+  organization to refuse a transaction without. What that refusal guarded is
+  the permission policies' to guard, and a transaction acting for nobody
+  reaches nothing walled, which a test shows through the service and one
+  straight through SQL.
+- **What was sealed with the organization's id still opens.** The provider's
+  client secret, Armature tokens and the webhook secret are sealed with the
+  installation's id, the same bytes as before, read with the connection or
+  through `installation.ID`. Theme files keep their prefix for the same
+  reason. Armature's cache keys lost the organization, since a token id is
+  already unique; entries under the old keys age out.
+- **The principal is the person and their role.** It carries the
+  installation's name for the shell and the role, empty for somebody who no
+  longer belongs, which the middleware refuses as switched off. Admitting a
+  join request answers `{userId, role}`.
+- **`current_org_id()` answers the installation** (00414) rather than a
+  setting nobody sets any more, so what still calls it outside the code keeps
+  working until #108 drops it.
+- **Audit retention runs once,** not once per organization.
+- **A unit test holds the line:** no product Go file names `org_id` or
+  `current_org_id`. The tests' own SQL still names the column, which #108
+  drops with the tables.
+
 ## 2026-10-14: Row security keeps the walls, not the organization (#106)
 
 The tenant policies kept one organization apart from none, so they went: each
@@ -34,7 +65,7 @@ on the table owner too.
 - **What still names it** until #108: `current_org_id()`, the organization's
   own seed, the session's column, the provider's and the Armature
   connection's one-row keys, the foreign keys to the organization, and an
-  attachment's object key, which #107 flattens. A test lists them and fails
+  attachment's object key, which #108 settles. A test lists them and fails
   when one stops naming it.
 
 ## 2026-10-14: Integration tests keep apart in one installation (#90)

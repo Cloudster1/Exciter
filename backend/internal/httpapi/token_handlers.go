@@ -11,7 +11,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 )
 
-// Personal access tokens (#22): a person's own, and the organization's for its administrators, as in Stator.
+// Personal access tokens (#22): a person's own, and the installation's for its administrators, as in Stator.
 
 var (
 	errReadOnlyToken = &APIError{Status: http.StatusForbidden, Code: "read_only_token",
@@ -77,7 +77,7 @@ func requireSession(next http.Handler) http.Handler {
 	})
 }
 
-// orgWideRoutes are the operations of the table that concern the whole organization, by method and pattern.
+// orgWideRoutes are the operations of the table that concern the whole installation, by method and pattern.
 var orgWideRoutes = sync.OnceValue(func() map[string]bool {
 	out := map[string]bool{}
 	for _, op := range operations {
@@ -112,7 +112,7 @@ func (s *Server) handleCreateAPIToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := PrincipalFrom(r.Context())
-	token, lsn, err := s.Accounts.CreateAPIToken(r.Context(), p.Org.ID, p.UserID, req, s.clientIP(r))
+	token, lsn, err := s.Accounts.CreateAPIToken(r.Context(), p.UserID, req, s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
@@ -137,7 +137,7 @@ func (s *Server) handleRevokeAPIToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := PrincipalFrom(r.Context())
-	lsn, err := s.Accounts.RevokeAPIToken(r.Context(), p.Org.ID, p.UserID, id, s.clientIP(r))
+	lsn, err := s.Accounts.RevokeAPIToken(r.Context(), p.UserID, id, s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
@@ -162,7 +162,7 @@ func (s *Server) handleRevokeAnybodysAPIToken(w http.ResponseWriter, r *http.Req
 		return
 	}
 	p := PrincipalFrom(r.Context())
-	lsn, err := s.Accounts.RevokeOrgAPIToken(r.Context(), p.Org.ID, p.UserID, id, s.clientIP(r))
+	lsn, err := s.Accounts.RevokeAnybodysAPIToken(r.Context(), p.UserID, id, s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)

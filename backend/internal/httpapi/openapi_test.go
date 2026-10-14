@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // routed lists every method and path the router serves, in the form the
@@ -160,7 +159,7 @@ func TestAPendingOperationAnswersNotImplemented(t *testing.T) {
 	})
 
 	s := newServer(t)
-	s.Auth = fakeAuth{"member": {UserID: uuid.New(), Org: &tenant.Org{ID: uuid.New(), Slug: "acme"}, Role: auth.RoleMember}}
+	s.Auth = fakeAuth{"member": {UserID: uuid.New(), Role: auth.RoleMember}}
 	path := APIPrefix + pathParamPattern.ReplaceAllString("/projects/{projectKey}/promises/{promiseID}", uuid.NewString())
 	signedIn := httptestRequest(http.MethodPost, path, `{}`)
 	signedIn.Header.Set("Authorization", "Bearer member")

@@ -70,7 +70,7 @@ func scanRevision(row pgx.Row) (*stored, error) {
 }
 
 func revisionAt(ctx context.Context, tx db.DBTX, id uuid.UUID, number int) (*stored, error) {
-	return scanRevision(tx.QueryRow(ctx, selectRevision+` WHERE v.org_id = current_org_id() AND v.requirement_id = $1 AND v.number = $2`, id, number))
+	return scanRevision(tx.QueryRow(ctx, selectRevision+` WHERE v.requirement_id = $1 AND v.number = $2`, id, number))
 }
 
 // Revisions answers a window of a requirement's revisions, the latest first, and how many it has.
@@ -83,7 +83,7 @@ func (s *Service) Revisions(ctx context.Context, reader uuid.UUID, key string, l
 			return err
 		}
 		total = l.Revision
-		rows, err := tx.Query(ctx, selectRevision+` WHERE v.org_id = current_org_id() AND v.requirement_id = $1 ORDER BY v.number DESC LIMIT $2 OFFSET $3`,
+		rows, err := tx.Query(ctx, selectRevision+` WHERE v.requirement_id = $1 ORDER BY v.number DESC LIMIT $2 OFFSET $3`,
 			l.ID, limit, offset)
 		if err != nil {
 			return err
@@ -433,12 +433,12 @@ func (s *Service) Activity(ctx context.Context, reader uuid.UUID, key string, af
 				SELECT 'revision' AS kind, v.created_at, `+revisionEntryID+` AS id, COALESCE(u.name, '') AS actor,
 				       v.number, v.title, v.comment, v.created_by, v.restored_from, v.hash, '' AS field, '' AS from_value, '' AS to_value, '' AS reason
 				FROM requirement_revision v LEFT JOIN app_user u ON u.id = v.created_by
-				WHERE v.org_id = current_org_id() AND v.requirement_id = $1
+				WHERE v.requirement_id = $1
 				UNION ALL
 				SELECT 'change', c.created_at, c.id, COALESCE(u.name, ''),
 				       0, '', '', c.actor_id, NULL, '', c.field, c.from_value, c.to_value, c.reason
 				FROM requirement_change c LEFT JOIN app_user u ON u.id = c.actor_id
-				WHERE c.org_id = current_org_id() AND c.requirement_id = $1
+				WHERE c.requirement_id = $1
 			) a
 			WHERE $2::timestamptz IS NULL OR (a.created_at, a.id) < ($2, $3)
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $4`, l.ID, at, id, limit+1)

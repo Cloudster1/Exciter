@@ -22,7 +22,7 @@ import (
 const walkTree = `
 WITH RECURSIVE live AS (
 	SELECT id, parent_id, row_number() OVER (PARTITION BY parent_id ORDER BY rank, number) AS pos
-	FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND trashed_at IS NULL
+	FROM requirement WHERE project_id = $1 AND trashed_at IS NULL
 ), walk AS (
 	SELECT id, ARRAY[pos]::int[] AS path FROM live WHERE parent_id IS NULL
 	UNION ALL
@@ -50,7 +50,7 @@ func outline(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (string, 
 
 const selectNodes = walkTree + `
 SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
-       (SELECT count(*)::int FROM requirement c WHERE c.org_id = r.org_id AND c.parent_id = r.id AND c.trashed_at IS NULL),
+       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
        r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')
 FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id
 ORDER BY w.path`
@@ -106,15 +106,15 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 		if err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND trashed_at IS NULL`,
+		if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM requirement WHERE project_id = $1 AND trashed_at IS NULL`,
 			p.ID).Scan(&total); err != nil {
 			return err
 		}
 		rows, err := tx.Query(ctx, walkTree+`
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
-			       (SELECT count(*)::int FROM requirement c WHERE c.org_id = r.org_id AND c.parent_id = r.id AND c.trashed_at IS NULL),
+			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name)
 			FROM walk w JOIN requirement r ON r.id = w.id
 			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
 		if err != nil {
@@ -177,7 +177,7 @@ func rankAt(ctx context.Context, tx db.DBTX, projectID uuid.UUID, place Place, m
 			return "", placeError("parentId", noCycle)
 		}
 		var live bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND id = $2 AND trashed_at IS NULL)`,
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM requirement WHERE project_id = $1 AND id = $2 AND trashed_at IS NULL)`,
 			projectID, *place.ParentID).Scan(&live); err != nil {
 			return "", err
 		}
@@ -185,7 +185,7 @@ func rankAt(ctx context.Context, tx db.DBTX, projectID uuid.UUID, place Place, m
 			return "", placeError("parentId", "That parent is not in this project, or it is in the trash. Pick another place.")
 		}
 	}
-	siblings := `FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND parent_id IS NOT DISTINCT FROM $2
+	siblings := `FROM requirement WHERE project_id = $1 AND parent_id IS NOT DISTINCT FROM $2
 		AND trashed_at IS NULL AND ($3::uuid IS NULL OR id <> $3)`
 	var before, after string
 	if place.AfterID != nil {
@@ -220,7 +220,7 @@ func rankAt(ctx context.Context, tx db.DBTX, projectID uuid.UUID, place Place, m
 // lastAtTop is the rank after everything at the top of a project, where a node without a place goes.
 func lastAtTop(ctx context.Context, tx db.DBTX, projectID uuid.UUID) (string, error) {
 	var last string
-	err := tx.QueryRow(ctx, `SELECT rank FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND parent_id IS NULL
+	err := tx.QueryRow(ctx, `SELECT rank FROM requirement WHERE project_id = $1 AND parent_id IS NULL
 		AND trashed_at IS NULL ORDER BY rank DESC, number DESC LIMIT 1`, projectID).Scan(&last)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
@@ -233,7 +233,7 @@ func subtree(ctx context.Context, tx db.DBTX, projectID, root uuid.UUID) ([]uuid
 	rows, err := tx.Query(ctx, `
 		WITH RECURSIVE live AS (
 			SELECT id, parent_id, row_number() OVER (PARTITION BY parent_id ORDER BY rank, number) AS pos
-			FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND (trashed_at IS NULL OR id = $2)
+			FROM requirement WHERE project_id = $1 AND (trashed_at IS NULL OR id = $2)
 		), below AS (
 			SELECT id, ARRAY[0]::int[] AS path FROM live WHERE id = $2
 			UNION ALL

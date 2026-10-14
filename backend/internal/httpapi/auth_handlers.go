@@ -66,7 +66,7 @@ type meResponse struct {
 func (s *Server) me(_ *http.Request, p *auth.Principal) (*meResponse, error) {
 	return &meResponse{
 		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
-		Installation: installation.Installation{Name: p.OrgName},
+		Installation: installation.Installation{Name: p.InstallationName},
 		Role:         p.Role,
 		Token:        p.Token,
 	}, nil

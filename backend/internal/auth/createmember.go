@@ -15,7 +15,6 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // GeneratedPasswordLength is the length of a password made for somebody, well
@@ -59,13 +58,10 @@ type CreatedMember struct {
 	Password   string `json:"password,omitempty"`
 }
 
-// CreateMember adds a person with a password to the organization on ctx. An address that already has an account
+// CreateMember adds a person with a password to the installation. An address that already has an account
 // joins with its password untouched: an administrator here must not set a password for somebody else's account.
 func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUID, ip string) (*CreatedMember, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
+	var err error
 	email := NormalizeEmail(in.Email)
 	at := strings.LastIndex(email, "@")
 	if at < 1 || at == len(email)-1 || len(email) > 254 || strings.ContainsAny(email, " \t\r\n<>,;") {
@@ -113,8 +109,8 @@ func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUI
 			name = existingName
 		}
 		tag, err := tx.Exec(ctx, `
-			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
-			ON CONFLICT (user_id) DO NOTHING`, org.ID, userID, string(in.Role))
+			INSERT INTO org_member (user_id, org_role) VALUES ($1, $2)
+			ON CONFLICT (user_id) DO NOTHING`, userID, string(in.Role))
 		if err != nil {
 			return fmt.Errorf("create the membership: %w", err)
 		}
@@ -122,7 +118,7 @@ func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUI
 			return ErrAlreadyMember
 		}
 		out.UserID, out.Email, out.Name, out.Role = userID, email, name, in.Role
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: audit.ActionMemberCreated, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberCreated, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
 			Data: map[string]any{"role": in.Role, "newAccount": out.NewAccount}})
 	})
 	if err != nil {

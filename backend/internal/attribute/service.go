@@ -255,7 +255,7 @@ func setTypes(ctx context.Context, tx db.DBTX, projectID, attributeID uuid.UUID,
 		return err
 	}
 	for _, id := range typeIDs {
-		if _, err := tx.Exec(ctx, `INSERT INTO attribute_def_type (org_id, attribute_id, type_id) VALUES (current_org_id(), $1, $2) ON CONFLICT DO NOTHING`,
+		if _, err := tx.Exec(ctx, `INSERT INTO attribute_def_type (attribute_id, type_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 			attributeID, id); err != nil {
 			return err
 		}
@@ -313,8 +313,8 @@ func (s *Service) CreateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO attribute_def (org_id, project_id, name, description, kind, required, options, position)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+			INSERT INTO attribute_def (project_id, name, description, kind, required, options, position)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 			p.ID, name, description, in.Kind, in.Required != nil && *in.Required, encoded, count).Scan(&id)
 		if nameTaken(err) {
 			return &FieldError{"name", "Another attribute of this project is called that. Pick another name."}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // memberSQL reads a member as Member holds one, in memberFields' order.
@@ -23,18 +22,13 @@ func memberFields(m *Member) []any {
 }
 
 // Members lists the installation's people, those switched on first, owners first among them, then by name. It
-// reads through row level security like any other tenant data.
+// reads through row level security like any other data.
 func (s *Service) Members(ctx context.Context) ([]Member, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 	out := []Member{}
-	err = s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, memberSQL+`
-			WHERE m.org_id = $1
 			ORDER BY NOT u.is_active, CASE m.org_role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END,
-				lower(u.name), u.email`, org.ID)
+				lower(u.name), u.email`)
 		if err != nil {
 			return err
 		}
@@ -52,9 +46,9 @@ func (s *Service) Members(ctx context.Context) ([]Member, error) {
 }
 
 // memberRole locks a membership for the change about to be made and says its role.
-func memberRole(ctx context.Context, tx db.DBTX, org, userID uuid.UUID) (OrgRole, error) {
+func memberRole(ctx context.Context, tx db.DBTX, userID uuid.UUID) (OrgRole, error) {
 	var role OrgRole
-	err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE org_id = $1 AND user_id = $2 FOR UPDATE`, org, userID).Scan(&role)
+	err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE user_id = $1 FOR UPDATE`, userID).Scan(&role)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNoSuchMember
 	}
@@ -64,10 +58,6 @@ func memberRole(ctx context.Context, tx db.DBTX, org, userID uuid.UUID) (OrgRole
 // SetRole gives a member of the installation another standing, which the provider then leaves alone until a
 // mapped group applies. The owner and the caller keep theirs, so nobody locks themselves or everybody else out.
 func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, actor uuid.UUID, ip string) (*Member, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	if !slices.Contains(AssignableRoles, role) {
 		return nil, 0, ErrBadRole
 	}
@@ -76,7 +66,7 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, a
 	}
 	var out Member
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		was, err := memberRole(ctx, tx, org.ID, userID)
+		was, err := memberRole(ctx, tx, userID)
 		if err != nil {
 			return err
 		}
@@ -84,17 +74,17 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, a
 			return ErrOwnerStanding
 		}
 		if _, err := tx.Exec(ctx, `
-			UPDATE org_member SET org_role = $3, role_source = 'manual', updated_at = now()
-			WHERE org_id = $1 AND user_id = $2`, org.ID, userID, string(role)); err != nil {
+			UPDATE org_member SET org_role = $2, role_source = 'manual', updated_at = now()
+			WHERE user_id = $1`, userID, string(role)); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.org_id = $1 AND m.user_id = $2`, org.ID, userID).Scan(memberFields(&out)...); err != nil {
+		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.user_id = $1`, userID).Scan(memberFields(&out)...); err != nil {
 			return err
 		}
 		if was == role {
 			return nil
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: audit.ActionMemberRoleChanged, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberRoleChanged, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
 			Data: map[string]any{"from": was, "to": role}})
 	})
 	if err != nil {
@@ -106,21 +96,17 @@ func (s *Service) SetRole(ctx context.Context, userID uuid.UUID, role OrgRole, a
 // SetActive switches a member's account off or on. Off ends their sessions and tokens at once and keeps their
 // account, roles and work, so switching them on brings them back as they were.
 func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, actor uuid.UUID, ip string) (*Member, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	if userID == actor && !active {
 		return nil, 0, ErrSwitchSelfOff
 	}
 	var out Member
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		role, err := memberRole(ctx, tx, org.ID, userID)
+		role, err := memberRole(ctx, tx, userID)
 		if err != nil {
 			return err
 		}
 		if !active {
-			if err := mayBeSwitchedOff(ctx, tx, org.ID, userID, role, actor); err != nil {
+			if err := mayBeSwitchedOff(ctx, tx, userID, role, actor); err != nil {
 				return err
 			}
 		}
@@ -128,7 +114,7 @@ func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, 
 		if err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.org_id = $1 AND m.user_id = $2`, org.ID, userID).Scan(memberFields(&out)...); err != nil {
+		if err := tx.QueryRow(ctx, memberSQL+` WHERE m.user_id = $1`, userID).Scan(memberFields(&out)...); err != nil {
 			return err
 		}
 		if tag.RowsAffected() == 0 {
@@ -141,7 +127,7 @@ func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, 
 				return err
 			}
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
 			Data: map[string]any{"role": role}})
 	})
 	if err != nil {
@@ -161,10 +147,10 @@ func (s *Service) SetActive(ctx context.Context, userID uuid.UUID, active bool, 
 
 // mayBeSwitchedOff refuses switching off an owner for anybody but an owner, and the installation's last active
 // administrator for anybody at all.
-func mayBeSwitchedOff(ctx context.Context, tx db.DBTX, org, userID uuid.UUID, role OrgRole, actor uuid.UUID) error {
+func mayBeSwitchedOff(ctx context.Context, tx db.DBTX, userID uuid.UUID, role OrgRole, actor uuid.UUID) error {
 	if role == RoleOwner {
 		var actorRole OrgRole
-		if err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE org_id = $1 AND user_id = $2`, org, actor).Scan(&actorRole); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		if err := tx.QueryRow(ctx, `SELECT org_role FROM org_member WHERE user_id = $1`, actor).Scan(&actorRole); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 		if actorRole != RoleOwner {

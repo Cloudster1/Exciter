@@ -3,6 +3,7 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync"
@@ -16,7 +17,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 const (
@@ -116,12 +116,12 @@ func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 		return err
 	}
 	denied("an event in somebody else's name", write(
-		`INSERT INTO outbox_event (org_id, topic, payload) VALUES (current_org_id(), $1, jsonb_build_object('actorId', $2::text))`, testTopic, other))
-	denied("an event in nobody's name", write(`INSERT INTO outbox_event (org_id, topic, payload) VALUES (current_org_id(), $1, '{}')`, testTopic))
+		`INSERT INTO outbox_event (topic, payload) VALUES ($1, jsonb_build_object('actorId', $2::text))`, testTopic, other))
+	denied("an event in nobody's name", write(`INSERT INTO outbox_event (topic, payload) VALUES ($1, '{}')`, testTopic))
 	denied("reading the outbox", write(`SELECT count(*) FROM outbox_event`))
 	denied("marking events done", write(`UPDATE outbox_event SET processed_at = now()`))
 	denied("deleting events", write(`DELETE FROM outbox_event`))
-	if err := write(`INSERT INTO outbox_event (org_id, topic, payload) VALUES (current_org_id(), $1, jsonb_build_object('actorId', $2::text))`, testTopic, m.user); err != nil {
+	if err := write(`INSERT INTO outbox_event (topic, payload) VALUES ($1, jsonb_build_object('actorId', $2::text))`, testTopic, m.user); err != nil {
 		t.Errorf("an event in the caller's own name was refused: %v", err)
 	}
 }
@@ -130,13 +130,13 @@ func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 // never by two, and every one is handled.
 func TestTwoWorkersNeverHandleOneEvent(t *testing.T) {
 	h := newHarness(t)
-	m := h.owner(t, "outbox-race")
+	race := uuid.NewString()
 
 	var mu sync.Mutex
 	handledBy := map[uuid.UUID][]int{}
 	worker := func(n int) events.Handler {
 		return events.HandlerFunc(func(_ context.Context, e events.Event) error {
-			if e.OrgID != m.org {
+			if !bytes.Contains(e.Payload, []byte(race)) {
 				return errNotThisTest
 			}
 			mu.Lock()
@@ -149,13 +149,13 @@ func TestTwoWorkersNeverHandleOneEvent(t *testing.T) {
 	h.runWorker(t, worker(1))
 	h.runWorker(t, worker(2))
 	if _, err := h.super.Exec(context.Background(),
-		`INSERT INTO outbox_event (org_id, topic, payload) SELECT $1, $2, '{}' FROM generate_series(1, $3)`,
-		m.org, testTopic, manyEvents); err != nil {
+		`INSERT INTO outbox_event (topic, payload) SELECT $1, jsonb_build_object('race', $2::text) FROM generate_series(1, $3)`,
+		testTopic, race, manyEvents); err != nil {
 		t.Fatalf("add the events: %v", err)
 	}
 
 	waitFor(t, "every planted event to be done", func() bool {
-		return h.countRows(t, `SELECT count(*) FROM outbox_event WHERE org_id = $1 AND processed_at IS NULL`, m.org) == 0
+		return h.countRows(t, `SELECT count(*) FROM outbox_event WHERE payload ->> 'race' = $1 AND processed_at IS NULL`, race) == 0
 	})
 	mu.Lock()
 	defer mu.Unlock()
@@ -320,26 +320,5 @@ func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 	stop()
 	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1`, handling); n != 0 {
 		t.Error("the event handled while it was deleted is still there")
-	}
-}
-
-// Emit names the organization the transaction is in, whatever the caller wished.
-func TestAnEventBelongsToTheTransactionsOrganization(t *testing.T) {
-	h := newHarness(t)
-	a := h.owner(t, "outbox-org-a")
-	marker := uuid.NewString()
-	if _, err := h.cluster.Write(a.ctx, func(ctx context.Context, tx db.DBTX) error {
-		return events.Emit(ctx, tx, testTopic, map[string]any{"actorId": a.user, "marker": marker})
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if n := h.countRows(t, `SELECT count(*) FROM outbox_event WHERE payload ->> 'marker' = $1 AND org_id = $2`, marker, a.org); n != 1 {
-		t.Errorf("the event is not in the transaction's organization")
-	}
-	_, err := h.cluster.Write(context.Background(), func(ctx context.Context, tx db.DBTX) error {
-		return events.Emit(ctx, tx, testTopic, map[string]any{"actorId": a.user})
-	})
-	if !errors.Is(err, tenant.ErrNoTenant) {
-		t.Errorf("an event with no organization = %v, want tenant.ErrNoTenant", err)
 	}
 }

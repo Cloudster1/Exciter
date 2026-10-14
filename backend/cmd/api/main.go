@@ -94,7 +94,7 @@ func run() error {
 		return err
 	}
 	defer cluster.Close()
-	// Outside development the tenant wall is the database's to keep, and a
+	// Outside development the permission walls are the database's to keep, and a
 	// role that ignores it would make every policy decoration.
 	if cfg.Env != config.EnvDevelopment {
 		if err := cluster.RefuseSuperuser(ctx); err != nil {

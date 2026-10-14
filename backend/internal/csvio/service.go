@@ -59,7 +59,7 @@ const selectJob = `
 SELECT j.id, p.key, j.file_name, j.state, j.mapping, j.choices, j.preview, j.done, j.total, j.imported, j.updated, j.refused,
        j.error, COALESCE(u.name, ''), j.created_at, j.finished_at, j.project_id, j.created_by, j.headers, j.rows
 FROM import_job j
-JOIN project p ON p.org_id = j.org_id AND p.id = j.project_id
+JOIN project p ON p.id = j.project_id
 LEFT JOIN app_user u ON u.id = j.created_by`
 
 func scanJob(row pgx.Row) (*job, error) {
@@ -93,7 +93,7 @@ func scanJob(row pgx.Row) (*job, error) {
 }
 
 func findJob(ctx context.Context, tx db.DBTX, id uuid.UUID) (*job, error) {
-	return scanJob(tx.QueryRow(ctx, selectJob+` WHERE j.org_id = current_org_id() AND j.id = $1`, id))
+	return scanJob(tx.QueryRow(ctx, selectJob+` WHERE j.id = $1`, id))
 }
 
 // running reads the project an import goes into as the actor, who must run it.
@@ -149,8 +149,8 @@ func (s *Service) Upload(ctx context.Context, actor uuid.UUID, projectKey, fileN
 		preview := w.analyze(headers, rows, mapping, Choices{}).preview
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO import_job (org_id, project_id, created_by, file_name, headers, rows, mapping, preview, total)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+			INSERT INTO import_job (project_id, created_by, file_name, headers, rows, mapping, preview, total)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
 			p.ID, actor, fileName, headers, rows, mapping, preview, len(rows)).Scan(&id); err != nil {
 			return fmt.Errorf("keep the import: %w", err)
 		}
@@ -180,7 +180,7 @@ func (s *Service) Get(ctx context.Context, actor, id uuid.UUID) (*Import, error)
 
 // mapping reads an import its maker changes, held so two tabs do not map it at once.
 func mapping(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*job, *world, error) {
-	if _, err := tx.Exec(ctx, `SELECT 1 FROM import_job WHERE org_id = current_org_id() AND id = $1 FOR UPDATE`, id); err != nil {
+	if _, err := tx.Exec(ctx, `SELECT 1 FROM import_job WHERE id = $1 FOR UPDATE`, id); err != nil {
 		return nil, nil, err
 	}
 	j, err := findJob(ctx, tx, id)

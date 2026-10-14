@@ -36,8 +36,8 @@ func putLabels(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, names []str
 		return nil
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_label (org_id, requirement_id, name, created_by)
-		SELECT current_org_id(), $1, n, $3 FROM unnest($2::text[]) AS n
+		INSERT INTO requirement_label (requirement_id, name, created_by)
+		SELECT $1, n, $3 FROM unnest($2::text[]) AS n
 		ON CONFLICT DO NOTHING`, id, names, actor); err != nil {
 		return fmt.Errorf("label the requirement: %w", err)
 	}
@@ -118,7 +118,7 @@ func (s *Service) RemoveLabel(ctx context.Context, actor uuid.UUID, key, raw str
 		if err != nil || !slices.Contains(l.Labels, name) {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM requirement_label WHERE org_id = current_org_id() AND requirement_id = $1 AND name = $2`,
+		if _, err := tx.Exec(ctx, `DELETE FROM requirement_label WHERE requirement_id = $1 AND name = $2`,
 			l.ID, name); err != nil {
 			return fmt.Errorf("remove the label: %w", err)
 		}

@@ -28,13 +28,13 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	})
 
 	t.Run("nobody's name configures nothing", func(t *testing.T) {
-		if _, err := seed.Populate(ctx, a.accounts, a.sso, org, seed.People{Provider: people.Provider}); err == nil {
+		if _, err := seed.Populate(ctx, a.accounts, a.sso, seed.People{Provider: people.Provider}); err == nil {
 			t.Fatal("a provider was configured in nobody's name")
 		}
 	})
 
 	asAdmin := db.WithUser(ctx, adminID)
-	done, err := seed.Populate(asAdmin, a.accounts, a.sso, org, people)
+	done, err := seed.Populate(asAdmin, a.accounts, a.sso, people)
 	if err != nil || len(done.Added) != 2 || !done.ProviderCreated {
 		t.Fatalf("the first run = %+v, %v; want both let in and the provider made", done, err)
 	}
@@ -58,7 +58,7 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	if _, err := h.super.Exec(ctx, `UPDATE oidc_provider SET client_id = 'changed' WHERE org_id = $1`, org.ID); err != nil {
 		t.Fatal(err)
 	}
-	again, err := seed.Populate(asAdmin, a.accounts, a.sso, org, people)
+	again, err := seed.Populate(asAdmin, a.accounts, a.sso, people)
 	if err != nil || len(again.Added) != 0 || again.ProviderCreated || !again.ProviderExisting {
 		t.Fatalf("the second run = %+v, %v; want nothing made", again, err)
 	}

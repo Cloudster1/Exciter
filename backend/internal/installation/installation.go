@@ -1,5 +1,5 @@
-// Package installation is the one way to the installation's name and settings, which live on the context tenant's
-// org row until the schema drops it (#91). Adapted from Armature's.
+// Package installation is the one way to the installation's name and settings, which live on the one org row
+// until #108 renames it. Adapted from Armature's.
 package installation
 
 import (
@@ -14,11 +14,9 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// Slug is the address of the organization a first start makes; nothing outside reads it once sign-in stops asking
-// for one (#85).
+// Slug is what a first start calls the installation's row inside; nothing outside reads it (#85).
 const Slug = "exciter"
 
 // MaxNameLength keeps a name to what the sidebar head shows on one line or two.
@@ -34,7 +32,7 @@ var (
 	ErrNameRequired = errors.New("the installation needs a name")
 	// ErrNameTooLong is a name past MaxNameLength.
 	ErrNameTooLong = fmt.Errorf("the installation's name is longer than %d characters", MaxNameLength)
-	// ErrNotFound is a tenant in the context with no row behind it, or a rename an administrator may not make.
+	// ErrNotFound is an installation not yet made, or a rename an administrator may not make.
 	ErrNotFound = errors.New("the installation was not found")
 )
 
@@ -70,20 +68,20 @@ func (s *Service) Rename(ctx context.Context, actor uuid.UUID, name string) (*In
 	case utf8.RuneCountInString(name) > MaxNameLength:
 		return nil, 0, ErrNameTooLong
 	}
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		before, err := Name(ctx, tx)
+		if err != nil {
+			return err
+		}
+		id, err := ID(ctx, tx)
 		if err != nil {
 			return err
 		}
 		if err := set(ctx, tx, "name", name); err != nil {
 			return err
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{
-			Action: audit.ActionInstallationRenamed, TargetType: "installation", TargetID: &org.ID, Actor: actor,
+		return audit.Write(ctx, tx, audit.Entry{
+			Action: audit.ActionInstallationRenamed, TargetType: "installation", TargetID: &id, Actor: actor,
 			Data: map[string]any{"from": before, "to": name},
 		})
 	})
@@ -91,6 +89,12 @@ func (s *Service) Rename(ctx context.Context, actor uuid.UUID, name string) (*In
 		return nil, 0, err
 	}
 	return &Installation{Name: name}, lsn, nil
+}
+
+// ID is the installation's own id, which an audit entry about it names and every object's key carries.
+func ID(ctx context.Context, tx db.DBTX) (uuid.UUID, error) {
+	var id uuid.UUID
+	return id, get(ctx, tx, "id", &id)
 }
 
 // Name is what the installation is called.
@@ -112,7 +116,7 @@ func SetDefaultTheme(ctx context.Context, tx db.DBTX, id *uuid.UUID) error {
 
 // get and set take a column from the fixed list above, never from a caller.
 func get(ctx context.Context, tx db.DBTX, column string, into any) error {
-	err := tx.QueryRow(ctx, `SELECT `+column+` FROM org WHERE id = current_org_id()`).Scan(into)
+	err := tx.QueryRow(ctx, `SELECT `+column+` FROM org`).Scan(into)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -123,7 +127,7 @@ func get(ctx context.Context, tx db.DBTX, column string, into any) error {
 }
 
 func set(ctx context.Context, tx db.DBTX, column string, value any) error {
-	tag, err := tx.Exec(ctx, `UPDATE org SET `+column+` = $1 WHERE id = current_org_id()`, value)
+	tag, err := tx.Exec(ctx, `UPDATE org SET `+column+` = $1`, value)
 	if err != nil {
 		return fmt.Errorf("change the installation's %s: %w", column, err)
 	}

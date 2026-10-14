@@ -11,7 +11,6 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // fakeAuth knows one credential per principal and refuses "blocked" outright.
@@ -35,9 +34,8 @@ func authenticated(s *Server, guards ...func(http.Handler) http.Handler) http.Ha
 	r := chi.NewRouter()
 	r.Use(requestID, s.authenticate)
 	r.With(guards...).Get("/", func(w http.ResponseWriter, r *http.Request) {
-		org, _ := tenant.FromContext(r.Context())
 		user, _ := db.UserFrom(r.Context())
-		respondJSON(w, r, http.StatusOK, map[string]any{"org": org.Slug, "signedIn": PrincipalFrom(r.Context()) != nil, "actsFor": user.String()})
+		respondJSON(w, r, http.StatusOK, map[string]any{"signedIn": PrincipalFrom(r.Context()) != nil, "actsFor": user.String()})
 	})
 	return r
 }
@@ -50,18 +48,18 @@ func bearer(credential string) *http.Request {
 	return req
 }
 
-func TestAuthenticationScopesTheTenantAndThePerson(t *testing.T) {
+func TestAuthenticationActsForThePerson(t *testing.T) {
 	s := newServer(t)
-	orgID, person := uuid.New(), uuid.New()
+	person := uuid.New()
 	s.Auth = fakeAuth{
-		"in-org": {UserID: person, Org: &tenant.Org{ID: orgID, Slug: "acme"}, Role: auth.RoleMember},
-		"no-org": {UserID: uuid.New()},
-		"admin":  {UserID: uuid.New(), Org: &tenant.Org{ID: orgID, Slug: "acme"}, Role: auth.RoleAdmin},
+		"member":       {UserID: person, Role: auth.RoleMember},
+		"switched-off": {UserID: uuid.New()},
+		"admin":        {UserID: uuid.New(), Role: auth.RoleAdmin},
 	}
 
-	_, body := serve(t, authenticated(s), bearer("in-org"))
-	if body["org"] != "acme" || body["signedIn"] != true || body["actsFor"] != person.String() {
-		t.Errorf("a member's request = %v, want scoped to acme and acting for them", body)
+	_, body := serve(t, authenticated(s), bearer("member"))
+	if body["signedIn"] != true || body["actsFor"] != person.String() {
+		t.Errorf("a member's request = %v, want acting for them", body)
 	}
 
 	cookie := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -84,12 +82,12 @@ func TestAuthenticationScopesTheTenantAndThePerson(t *testing.T) {
 		t.Errorf("anonymous past requireAuth = %d %v", resp.StatusCode, body)
 	}
 
-	resp, body = serve(t, authenticated(s), bearer("no-org"))
+	resp, body = serve(t, authenticated(s), bearer("switched-off"))
 	if resp.StatusCode != http.StatusForbidden || errorOf(t, body)["code"] != "account_switched_off" {
 		t.Errorf("somebody outside the installation = %d %v", resp.StatusCode, body)
 	}
 
-	resp, body = serve(t, authenticated(s, requireAdmin), bearer("in-org"))
+	resp, body = serve(t, authenticated(s, requireAdmin), bearer("member"))
 	if resp.StatusCode != http.StatusForbidden || errorOf(t, body)["code"] != "forbidden" {
 		t.Errorf("a member past requireAdmin = %d %v", resp.StatusCode, body)
 	}

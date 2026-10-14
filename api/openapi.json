@@ -11603,16 +11603,6 @@
       "Membership": {
         "type": "object",
         "properties": {
-          "orgId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "orgName": {
-            "type": "string"
-          },
-          "orgSlug": {
-            "type": "string"
-          },
           "role": {
             "type": "string",
             "enum": [
@@ -11621,12 +11611,14 @@
               "member",
               "guest"
             ]
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
-          "orgId",
-          "orgSlug",
-          "orgName",
+          "userId",
           "role"
         ]
       },

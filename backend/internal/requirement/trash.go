@@ -13,7 +13,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // trashedNote is how the activity log words a requirement going to the trash and coming back.
@@ -72,9 +71,9 @@ func (s *Service) TrashItems(ctx context.Context, actor uuid.UUID, projectKey st
 		rows, err := tx.Query(ctx, `
 			SELECT r.id, r.number, r.kind, r.title, r.trashed_at, COALESCE(u.name, ''),
 			       r.parent_id IS NULL OR EXISTS (SELECT 1 FROM requirement x WHERE x.id = r.parent_id AND x.trashed_at IS NULL),
-			       (SELECT count(*)::int FROM requirement x WHERE x.org_id = r.org_id AND x.trash_id = r.id)
+			       (SELECT count(*)::int FROM requirement x WHERE x.trash_id = r.id)
 			FROM requirement r LEFT JOIN app_user u ON u.id = r.trashed_by
-			WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trash_id = r.id
+			WHERE r.project_id = $1 AND r.trash_id = r.id
 			ORDER BY r.trashed_at DESC, r.number DESC`, p.ID)
 		if err != nil {
 			return err
@@ -108,7 +107,7 @@ func (s *Service) Restore(ctx context.Context, actor uuid.UUID, projectKey strin
 		var parentGone bool
 		if err := tx.QueryRow(ctx, `
 			SELECT r.parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM requirement x WHERE x.id = r.parent_id AND x.trashed_at IS NULL)
-			FROM requirement r WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.id = $2 AND r.trash_id = r.id`, p.ID, id).Scan(&parentGone); err != nil {
+			FROM requirement r WHERE r.project_id = $1 AND r.id = $2 AND r.trash_id = r.id`, p.ID, id).Scan(&parentGone); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -125,7 +124,7 @@ func (s *Service) Restore(ctx context.Context, actor uuid.UUID, projectKey strin
 		}
 		rows, err := tx.Query(ctx, `
 			UPDATE requirement SET trashed_at = NULL, trashed_by = NULL, trash_id = NULL, updated_by = $3
-			WHERE org_id = current_org_id() AND project_id = $1 AND trash_id = $2 RETURNING id`, p.ID, id, actor)
+			WHERE project_id = $1 AND trash_id = $2 RETURNING id`, p.ID, id, actor)
 		if err != nil {
 			return err
 		}
@@ -174,13 +173,13 @@ func (s *Service) purge(ctx context.Context, actor uuid.UUID, projectKey string,
 		// What went with a root goes by the cascade on trash_id; the count is taken first, to say it.
 		var gone int
 		if err := tx.QueryRow(ctx, `
-			SELECT count(*)::int FROM requirement x JOIN requirement r ON r.org_id = x.org_id AND r.id = x.trash_id
-			WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trash_id = r.id AND ($2::uuid IS NULL OR r.id = $2)`,
+			SELECT count(*)::int FROM requirement x JOIN requirement r ON r.id = x.trash_id
+			WHERE r.project_id = $1 AND r.trash_id = r.id AND ($2::uuid IS NULL OR r.id = $2)`,
 			p.ID, item).Scan(&gone); err != nil {
 			return err
 		}
 		rows, err := tx.Query(ctx, `
-			DELETE FROM requirement WHERE org_id = current_org_id() AND project_id = $1 AND trash_id = id AND ($2::uuid IS NULL OR id = $2)
+			DELETE FROM requirement WHERE project_id = $1 AND trash_id = id AND ($2::uuid IS NULL OR id = $2)
 			RETURNING number`, p.ID, item)
 		if err != nil {
 			return err
@@ -197,17 +196,13 @@ func (s *Service) purge(ctx context.Context, actor uuid.UUID, projectKey string,
 		for _, n := range numbers {
 			keys = append(keys, Key(p.Key, n))
 		}
-		org, err := tenant.MustFromContext(ctx)
-		if err != nil {
-			return err
-		}
 		action := audit.ActionTrashEmptied
 		target := p.ID
 		targetType := "project"
 		if item != nil {
 			action, target, targetType = audit.ActionRequirementPurged, *item, "requirement"
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: targetType, TargetID: &target, Actor: actor,
+		return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: targetType, TargetID: &target, Actor: actor,
 			Data: map[string]any{"project": p.Key, "keys": keys, "requirements": gone}})
 	})
 }

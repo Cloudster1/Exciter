@@ -15,7 +15,6 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // adminPassword is the bootstrap administrator's in these tests; long enough for the rule.
@@ -25,7 +24,7 @@ const adminPassword = "a long enough password"
 func bootstrapAdmin(t *testing.T, h *harness, a *apiServer, org uuid.UUID) string {
 	t.Helper()
 	email := "owner-" + h.suffix() + "@example.test"
-	ctx := tenant.WithOrg(context.Background(), tenant.Org{ID: org, Slug: h.slugOf(t, org)})
+	ctx := context.Background()
 	if _, err := a.accounts.EnsureAdmin(ctx, email, "", adminPassword); err != nil {
 		t.Fatalf("make the bootstrap administrator: %v", err)
 	}
@@ -137,7 +136,7 @@ func TestSessionsAreTheAdminRolesAndStayWhereTheyWereProven(t *testing.T) {
 	home := h.owner(t, "session-sql-home")
 	var sessionID string
 	_, err := h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
-		id, _, err := auth.OpenSession(ctx, tx, home.user, &home.org, auth.ProofOIDC, time.Now().Add(time.Hour), "", "")
+		id, _, err := auth.OpenSession(ctx, tx, home.user, auth.ProofOIDC, time.Now().Add(time.Hour), "", "")
 		sessionID = id.String()
 		return err
 	})
@@ -173,7 +172,7 @@ func TestTheBootstrapIsIdempotent(t *testing.T) {
 	slug := org.Slug
 	email := "boot-" + h.suffix() + "@example.test"
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, email) })
-	ctx := tenant.WithOrg(context.Background(), org)
+	ctx := context.Background()
 	for i, pw := range []string{adminPassword, adminPassword, "another long password"} {
 		made, err := accounts.EnsureAdmin(ctx, email, "", pw)
 		if err != nil || made != (i == 0) {

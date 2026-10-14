@@ -3,18 +3,10 @@
 package test
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"testing"
-
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
-
-// homeOrg is the member's organization on a context of its own, acting for nobody yet.
-func homeOrg(m member) context.Context {
-	return tenant.WithOrg(context.Background(), tenant.Org{ID: m.org})
-}
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 

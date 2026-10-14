@@ -20,11 +20,11 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/secret"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// Service runs the sign-in flow and keeps each organization's provider, with
+// Service runs the sign-in flow and keeps the installation's provider, with
 // discovery cached per issuer; the library refreshes keys it has not seen.
 type Service struct {
 	db          *db.Cluster
@@ -48,20 +48,15 @@ func NewService(cluster *db.Cluster, box *secret.Box, redirectURL string) *Servi
 	}
 }
 
-// Provider reads the configuration of the organization on ctx, through row
-// level security like any other tenant data.
+// Provider reads the installation's configuration, through row level security like any other data.
 func (s *Service) Provider(ctx context.Context) (*Provider, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 	var p Provider
-	err = s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT org_id, issuer, client_id, client_secret IS NOT NULL, groups_claim, scopes,
+			SELECT issuer, client_id, client_secret IS NOT NULL, groups_claim, scopes,
 			       create_groups, enabled, updated_at
-			FROM oidc_provider WHERE org_id = $1`, org.ID,
-		).Scan(&p.OrgID, &p.Issuer, &p.ClientID, &p.HasSecret, &p.GroupsClaim, &p.Scopes,
+			FROM oidc_provider`,
+		).Scan(&p.Issuer, &p.ClientID, &p.HasSecret, &p.GroupsClaim, &p.Scopes,
 			&p.CreateGroups, &p.Enabled, &p.UpdatedAt)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -73,33 +68,31 @@ func (s *Service) Provider(ctx context.Context) (*Provider, error) {
 	return &p, nil
 }
 
-// Save writes the configuration of the organization on ctx. An empty secret
-// keeps the stored one, so a form that never shows it cannot erase it.
+// Save writes the installation's configuration. An empty secret keeps the stored one, so a form that never shows it
+// cannot erase it.
 func (s *Service) Save(ctx context.Context, in Provider) (*Provider, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
-	in, err = normalize(in)
+	in, err := normalize(in)
 	if err != nil {
 		return nil, 0, err
 	}
 	var sealed []byte
-	if in.ClientSecret != "" {
-		sealed, err = s.box.Seal([]byte(in.ClientSecret), org.ID[:])
-		if errors.Is(err, secret.ErrNoKey) {
-			return nil, 0, &ValidationError{Field: "clientSecret", Message: "The server has no EXCITER_SECRET_KEY, so it cannot store a client secret. Set one and try again."}
-		}
-		if err != nil {
-			return nil, 0, err
-		}
-	}
-
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		if in.ClientSecret != "" {
+			id, err := installation.ID(ctx, tx)
+			if err != nil {
+				return err
+			}
+			// Sealed for the installation, as before (#107), so a secret stored earlier still opens.
+			if sealed, err = s.box.Seal([]byte(in.ClientSecret), id[:]); errors.Is(err, secret.ErrNoKey) {
+				return &ValidationError{Field: "clientSecret", Message: "The server has no EXCITER_SECRET_KEY, so it cannot store a client secret. Set one and try again."}
+			} else if err != nil {
+				return err
+			}
+		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO oidc_provider (org_id, issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-			ON CONFLICT (org_id) DO UPDATE SET
+			INSERT INTO oidc_provider (issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT ON CONSTRAINT oidc_provider_pkey DO UPDATE SET
 			    issuer = EXCLUDED.issuer,
 			    client_id = EXCLUDED.client_id,
 			    client_secret = COALESCE(EXCLUDED.client_secret, oidc_provider.client_secret),
@@ -107,7 +100,7 @@ func (s *Service) Save(ctx context.Context, in Provider) (*Provider, db.LSN, err
 			    scopes = EXCLUDED.scopes,
 			    create_groups = EXCLUDED.create_groups,
 			    enabled = EXCLUDED.enabled`,
-			org.ID, in.Issuer, in.ClientID, sealed, in.GroupsClaim, in.Scopes, in.CreateGroups, in.Enabled)
+			in.Issuer, in.ClientID, sealed, in.GroupsClaim, in.Scopes, in.CreateGroups, in.Enabled)
 		if err != nil {
 			return err
 		}
@@ -116,7 +109,7 @@ func (s *Service) Save(ctx context.Context, in Provider) (*Provider, db.LSN, err
 			secretChange = "set"
 		}
 		actor, _ := db.UserFrom(ctx)
-		return audit.Write(ctx, tx, org.ID, audit.Entry{
+		return audit.Write(ctx, tx, audit.Entry{
 			Action: audit.ActionSSOProviderSaved, TargetType: "oidc_provider", Actor: actor,
 			Data: map[string]any{
 				"issuer": in.Issuer, "clientId": in.ClientID, "clientSecret": secretChange, "groupsClaim": in.GroupsClaim,
@@ -159,18 +152,18 @@ func normalize(in Provider) (Provider, error) {
 	return in, nil
 }
 
-// signInProvider reads a provider for a sign-in, which happens before any
-// tenant is known, and opens its secret.
-func (s *Service) signInProvider(ctx context.Context, orgID uuid.UUID) (*Provider, error) {
+// signInProvider reads the provider for a sign-in, which happens before anybody acts, and opens its secret.
+func (s *Service) signInProvider(ctx context.Context) (*Provider, error) {
 	var (
 		p      Provider
 		sealed []byte
+		id     uuid.UUID
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT org_id, issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled, updated_at
-			FROM oidc_provider WHERE org_id = $1`, orgID,
-		).Scan(&p.OrgID, &p.Issuer, &p.ClientID, &sealed, &p.GroupsClaim, &p.Scopes, &p.CreateGroups, &p.Enabled, &p.UpdatedAt)
+			SELECT (SELECT id FROM org), issuer, client_id, client_secret, groups_claim, scopes, create_groups, enabled, updated_at
+			FROM oidc_provider`,
+		).Scan(&id, &p.Issuer, &p.ClientID, &sealed, &p.GroupsClaim, &p.Scopes, &p.CreateGroups, &p.Enabled, &p.UpdatedAt)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotConfigured
@@ -182,7 +175,7 @@ func (s *Service) signInProvider(ctx context.Context, orgID uuid.UUID) (*Provide
 		return nil, ErrNotConfigured
 	}
 	if sealed != nil {
-		plain, err := s.box.Open(sealed, orgID[:])
+		plain, err := s.box.Open(sealed, id[:])
 		if err != nil {
 			return nil, fmt.Errorf("open the client secret: %w", err)
 		}
@@ -220,8 +213,8 @@ func (s *Service) oauthConfig(p *Provider, discovered *coreoidc.Provider) *oauth
 }
 
 // Start begins a sign-in and returns the URL to send the browser to.
-func (s *Service) Start(ctx context.Context, orgID uuid.UUID, redirect string) (string, error) {
-	provider, err := s.signInProvider(ctx, orgID)
+func (s *Service) Start(ctx context.Context, redirect string) (string, error) {
+	provider, err := s.signInProvider(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -248,9 +241,9 @@ func (s *Service) Start(ctx context.Context, orgID uuid.UUID, redirect string) (
 			return err
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO oidc_login (state, org_id, nonce, code_verifier, redirect, expires_at)
-			VALUES ($1, $2, $3, $4, $5, $6)`,
-			state, orgID, nonce, verifier, redirect, time.Now().Add(howLongALoginMayTake))
+			INSERT INTO oidc_login (state, nonce, code_verifier, redirect, expires_at)
+			VALUES ($1, $2, $3, $4, $5)`,
+			state, nonce, verifier, redirect, time.Now().Add(howLongALoginMayTake))
 		return err
 	}); err != nil {
 		return "", fmt.Errorf("remember this sign-in: %w", err)
@@ -267,9 +260,8 @@ func authCodeURL(config *oauth2.Config, state, nonce, verifier string) string {
 
 // Exchange trades the code for a verified id token and returns its identity,
 // with where the browser was headed before it left.
-func (s *Service) Exchange(ctx context.Context, state, code string) (uuid.UUID, *Identity, string, error) {
+func (s *Service) Exchange(ctx context.Context, state, code string) (*Identity, string, error) {
 	var (
-		orgID    uuid.UUID
 		nonce    string
 		verifier string
 		redirect string
@@ -279,55 +271,55 @@ func (s *Service) Exchange(ctx context.Context, state, code string) (uuid.UUID, 
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
 			DELETE FROM oidc_login WHERE state = $1 AND expires_at > now()
-			RETURNING org_id, nonce, code_verifier, redirect`, state,
-		).Scan(&orgID, &nonce, &verifier, &redirect)
+			RETURNING nonce, code_verifier, redirect`, state,
+		).Scan(&nonce, &verifier, &redirect)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrUnknownLogin
 		}
 		return err
 	})
 	if err != nil {
-		return uuid.Nil, nil, "", err
+		return nil, "", err
 	}
 
-	provider, err := s.signInProvider(ctx, orgID)
+	provider, err := s.signInProvider(ctx)
 	if err != nil {
-		return uuid.Nil, nil, "", err
+		return nil, "", err
 	}
 	discovered, err := s.discover(ctx, provider.Issuer)
 	if err != nil {
-		return uuid.Nil, nil, "", err
+		return nil, "", err
 	}
 
 	ctx = s.providerContext(ctx)
 	tokens, err := s.oauthConfig(provider, discovered).Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return uuid.Nil, nil, "", fmt.Errorf("exchange the code: %w", err)
+		return nil, "", fmt.Errorf("exchange the code: %w", err)
 	}
 	raw, ok := tokens.Extra("id_token").(string)
 	if !ok || raw == "" {
-		return uuid.Nil, nil, "", errors.New("the identity provider returned no id token")
+		return nil, "", errors.New("the identity provider returned no id token")
 	}
 
 	// Verified against the issuer's published keys, for this client, unexpired; the library refuses an
 	// unsigned token and one signed with a symmetric key, the two ways this check is usually skipped.
 	verified, err := discovered.Verifier(&coreoidc.Config{ClientID: provider.ClientID}).Verify(ctx, raw)
 	if err != nil {
-		return uuid.Nil, nil, "", fmt.Errorf("verify the id token: %w", err)
+		return nil, "", fmt.Errorf("verify the id token: %w", err)
 	}
 	if subtle.ConstantTimeCompare([]byte(verified.Nonce), []byte(nonce)) != 1 {
-		return uuid.Nil, nil, "", errors.New("the id token belongs to a different sign-in")
+		return nil, "", errors.New("the id token belongs to a different sign-in")
 	}
 
 	var claims map[string]any
 	if err := verified.Claims(&claims); err != nil {
-		return uuid.Nil, nil, "", fmt.Errorf("read the token's claims: %w", err)
+		return nil, "", fmt.Errorf("read the token's claims: %w", err)
 	}
 	identity, err := identityFromClaims(verified.Issuer, verified.Subject, claims, provider.GroupsClaim)
 	if err != nil {
-		return uuid.Nil, nil, "", err
+		return nil, "", err
 	}
-	return orgID, identity, redirect, nil
+	return identity, redirect, nil
 }
 
 // randomTokenBytes is what both the state and the nonce need to be unguessable.

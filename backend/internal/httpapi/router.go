@@ -49,10 +49,10 @@ type Database interface {
 type Server struct {
 	DB   Database
 	Auth Authenticator
-	// Accounts signs people in and out and keeps the organization's members;
+	// Accounts signs people in and out and keeps the installation's members;
 	// nil answers every sign-in route that it is not set up.
 	Accounts *auth.Service
-	// OIDC runs sign-in through an organization's identity provider; nil answers its routes that it is not set
+	// OIDC runs sign-in through the installation's identity provider; nil answers its routes that it is not set
 	// up. OIDCCallbackURL is the address to register with a provider.
 	OIDC            *oidc.Service
 	OIDCCallbackURL string
@@ -81,7 +81,7 @@ type Server struct {
 	Labels *label.Service
 	// Trace keeps link types and the links between requirements; nil answers their routes that they are not set up.
 	Trace *trace.Service
-	// Armature connects the organization to Armature and holds each member's token; nil answers its routes that
+	// Armature connects the installation to Armature and holds each member's token; nil answers its routes that
 	// it is not set up.
 	Armature *armature.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
@@ -179,7 +179,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireAdmin).Put("/installation", s.handleRenameInstallation)
 		})
 
-		// Themes are a person's in an organization; the examples are anybody's who is signed in.
+		// Themes are a person's; the examples are anybody's who is signed in.
 		r.With(requireAuth).Get("/themes/examples", s.handleThemeExamples)
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
@@ -202,7 +202,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			})
 		})
 
-		// Projects: every member reads those they may view; the organization's administrators make them.
+		// Projects: every member reads those they may view; the installation's administrators make them.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.projectsOn)
 			r.Get("/projects", s.handleListProjects)
@@ -293,7 +293,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		})
 
 		// Trace links: read by whoever views both ends, made by whoever edits one; link types shaped by the
-		// organization's administrators, or a project's for its own.
+		// installation's administrators, or a project's for its own.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.traceOn)
 			r.Get("/link-types", s.handleListOrgLinkTypes)
@@ -329,7 +329,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		})
 		r.With(requireAuth).Post("/mcp", s.handleMCP)
 
-		// Armature: the organization's connection for its administrators, each member's own token for them, and the
+		// Armature: the installation's connection for its administrators, each member's own token for them, and the
 		// issues requirements are traced to, read as the caller.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.armatureOn)
@@ -360,7 +360,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/export.csv", s.handleExportCSV)
 		})
 
-		// What the caller may do across the organization, and the people and groups a grant names.
+		// What the caller may do across the installation, and the people and groups a grant names.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
 			r.Get("/access/me", s.handleMyAccess)

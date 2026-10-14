@@ -19,7 +19,7 @@ const beforeTheSchemaLosesTheOrganization = 403
 // What names the organization until #108 drops the column: its own table's functions, the session's column, the
 // one-row keys and foreign keys of the organization, the provider and the connection, and objects' keys (#107).
 var (
-	organizationsOwnFunctions = []string{"current_org_id", "link_type_seed", "session_keeps_its_opening"}
+	organizationsOwnFunctions = []string{"link_type_seed", "session_keeps_its_opening"}
 	organizationsOwnKeys      = []string{"armature_connection_pkey", "oidc_provider_pkey", "attachment_tombstone_own_prefix"}
 )
 

@@ -15,7 +15,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// CachePrefix starts every key the cache writes; the organization follows.
+// CachePrefix starts every key the cache writes.
 const CachePrefix = "exciter:armature:"
 
 // Cache keeps Armature's answers per person in Valkey, keyed by their token
@@ -46,17 +46,17 @@ type entry struct {
 	Value json.RawMessage `json:"value"`
 }
 
-func orgKey(org uuid.UUID, rest string) string {
-	return CachePrefix + org.String() + ":" + rest
+func cacheKey(rest string) string {
+	return CachePrefix + rest
 }
 
 // IssueKey is the hash holding one issue key's answers, one field per token row.
-func IssueKey(org uuid.UUID, issueKey string) string {
-	return orgKey(org, "issue:"+strings.ToUpper(issueKey))
+func IssueKey(issueKey string) string {
+	return cacheKey("issue:" + strings.ToUpper(issueKey))
 }
 
-// SearchKey is the hash holding every search's answers in an organization.
-func SearchKey(org uuid.UUID) string { return orgKey(org, "search") }
+// SearchKey is the hash holding every search's answers.
+func SearchKey() string { return cacheKey("search") }
 
 // SearchField names one person's answer to one query and page.
 func SearchField(tokenID uuid.UUID, query string, limit, offset int) string {
@@ -65,84 +65,84 @@ func SearchField(tokenID uuid.UUID, query string, limit, offset int) string {
 }
 
 // MetaKey holds one person's projects and issue types.
-func MetaKey(org, tokenID uuid.UUID) string { return orgKey(org, "meta:"+tokenID.String()) }
+func MetaKey(tokenID uuid.UUID) string { return cacheKey("meta:" + tokenID.String()) }
 
 // ThemeKey holds the Armature theme one person sees.
-func ThemeKey(org, tokenID uuid.UUID) string { return orgKey(org, "theme:"+tokenID.String()) }
+func ThemeKey(tokenID uuid.UUID) string { return cacheKey("theme:" + tokenID.String()) }
 
 // EventKey marks a webhook event as acted on.
-func EventKey(org, eventID uuid.UUID) string { return orgKey(org, "event:"+eventID.String()) }
+func EventKey(eventID uuid.UUID) string { return cacheKey("event:" + eventID.String()) }
 
 // Issue reads the owner of tokenID's answer for issueKey into out, null for
 // an issue they may not see; false is a miss, a field past its TTL included.
-func (c *Cache) Issue(ctx context.Context, org, tokenID uuid.UUID, issueKey string, out any) (ok bool) {
-	return c.getField(ctx, IssueKey(org, issueKey), tokenID.String(), IssueCacheTTL, out)
+func (c *Cache) Issue(ctx context.Context, tokenID uuid.UUID, issueKey string, out any) (ok bool) {
+	return c.getField(ctx, IssueKey(issueKey), tokenID.String(), IssueCacheTTL, out)
 }
 
 // PutIssue stores value, which may be nil, as the owner of tokenID's answer
 // for issueKey.
-func (c *Cache) PutIssue(ctx context.Context, org, tokenID uuid.UUID, issueKey string, value any) {
-	c.putField(ctx, IssueKey(org, issueKey), tokenID.String(), IssueCacheTTL, value)
+func (c *Cache) PutIssue(ctx context.Context, tokenID uuid.UUID, issueKey string, value any) {
+	c.putField(ctx, IssueKey(issueKey), tokenID.String(), IssueCacheTTL, value)
 }
 
 // Search reads a cached search answer; see Issue.
-func (c *Cache) Search(ctx context.Context, org, tokenID uuid.UUID, query string, limit, offset int, out any) bool {
-	return c.getField(ctx, SearchKey(org), SearchField(tokenID, query, limit, offset), SearchCacheTTL, out)
+func (c *Cache) Search(ctx context.Context, tokenID uuid.UUID, query string, limit, offset int, out any) bool {
+	return c.getField(ctx, SearchKey(), SearchField(tokenID, query, limit, offset), SearchCacheTTL, out)
 }
 
 // PutSearch stores a search answer.
-func (c *Cache) PutSearch(ctx context.Context, org, tokenID uuid.UUID, query string, limit, offset int, value any) {
-	c.putField(ctx, SearchKey(org), SearchField(tokenID, query, limit, offset), SearchCacheTTL, value)
+func (c *Cache) PutSearch(ctx context.Context, tokenID uuid.UUID, query string, limit, offset int, value any) {
+	c.putField(ctx, SearchKey(), SearchField(tokenID, query, limit, offset), SearchCacheTTL, value)
 }
 
 // Meta reads a person's cached projects and issue types into out.
-func (c *Cache) Meta(ctx context.Context, org, tokenID uuid.UUID, out any) bool {
-	return c.get(ctx, MetaKey(org, tokenID), MetaCacheTTL, out)
+func (c *Cache) Meta(ctx context.Context, tokenID uuid.UUID, out any) bool {
+	return c.get(ctx, MetaKey(tokenID), MetaCacheTTL, out)
 }
 
 // PutMeta stores a person's projects and issue types.
-func (c *Cache) PutMeta(ctx context.Context, org, tokenID uuid.UUID, value any) {
-	c.put(ctx, MetaKey(org, tokenID), MetaCacheTTL, value)
+func (c *Cache) PutMeta(ctx context.Context, tokenID uuid.UUID, value any) {
+	c.put(ctx, MetaKey(tokenID), MetaCacheTTL, value)
 }
 
 // Theme reads the Armature theme a person saw last into out.
-func (c *Cache) Theme(ctx context.Context, org, tokenID uuid.UUID, out any) bool {
-	return c.get(ctx, ThemeKey(org, tokenID), ThemeCacheTTL, out)
+func (c *Cache) Theme(ctx context.Context, tokenID uuid.UUID, out any) bool {
+	return c.get(ctx, ThemeKey(tokenID), ThemeCacheTTL, out)
 }
 
 // PutTheme stores the Armature theme a person sees, or nil for the built-in one.
-func (c *Cache) PutTheme(ctx context.Context, org, tokenID uuid.UUID, value any) {
-	c.put(ctx, ThemeKey(org, tokenID), ThemeCacheTTL, value)
+func (c *Cache) PutTheme(ctx context.Context, tokenID uuid.UUID, value any) {
+	c.put(ctx, ThemeKey(tokenID), ThemeCacheTTL, value)
 }
 
 // ForgetIssues clears every person's answers for the issue keys.
-func (c *Cache) ForgetIssues(ctx context.Context, org uuid.UUID, issueKeys ...string) {
+func (c *Cache) ForgetIssues(ctx context.Context, issueKeys ...string) {
 	if c == nil || len(issueKeys) == 0 {
 		return
 	}
 	keys := make([]string, len(issueKeys))
 	for i, k := range issueKeys {
-		keys[i] = IssueKey(org, k)
+		keys[i] = IssueKey(k)
 	}
 	c.warn(c.store.Del(ctx, keys...).Err(), "forget issues")
 }
 
-// ForgetSearches clears every search answer in the organization.
-func (c *Cache) ForgetSearches(ctx context.Context, org uuid.UUID) {
+// ForgetSearches clears every search answer in the installation.
+func (c *Cache) ForgetSearches(ctx context.Context) {
 	if c == nil {
 		return
 	}
-	c.warn(c.store.Del(ctx, SearchKey(org)).Err(), "forget searches")
+	c.warn(c.store.Del(ctx, SearchKey()).Err(), "forget searches")
 }
 
 // FirstDelivery marks a webhook event as acted on and says whether it is the
 // first time; without a cache every delivery is.
-func (c *Cache) FirstDelivery(ctx context.Context, org, eventID uuid.UUID) bool {
+func (c *Cache) FirstDelivery(ctx context.Context, eventID uuid.UUID) bool {
 	// The worst a replay does then is clear entries that are not there.
 	if c == nil {
 		return true
 	}
-	first, err := c.store.SetNX(ctx, EventKey(org, eventID), "1", WebhookReplayWindow).Result()
+	first, err := c.store.SetNX(ctx, EventKey(eventID), "1", WebhookReplayWindow).Result()
 	if err != nil {
 		c.warn(err, "remember a webhook event")
 		return true

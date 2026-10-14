@@ -26,7 +26,7 @@ func TestRawSQLKeepsLabelsWithTheirRequirement(t *testing.T) {
 	viewerID := h.addPerson(t, a.org, "guest")
 	outsiderID := h.addPerson(t, a.org, "guest")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
-	editor, viewer, outsider := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID), h.appConn(t, a.org, outsiderID)
+	editor, viewer, outsider := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, outsiderID)
 	var id uuid.UUID
 	if err := editor.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, created_by)
 		VALUES ($1, $2, 'Labelled', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id`, a.org, project).Scan(&id); err != nil {

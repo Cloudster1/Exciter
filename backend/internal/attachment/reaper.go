@@ -17,7 +17,7 @@ const DefaultReapInterval = time.Minute
 type writeFunc func(context.Context, func(context.Context, db.DBTX) error) (db.LSN, error)
 type readFunc func(context.Context, func(context.Context, db.DBTX) error) error
 
-// reap removes one object and then its tombstone, with whichever transaction the caller has: a tenant's own
+// reap removes one object and then its tombstone, with whichever transaction the caller has: the person's own
 // after a delete, the admin's from the reaper.
 func (s *Service) reap(ctx context.Context, key string, write writeFunc) error {
 	if err := s.store.Delete(ctx, key); err != nil {
@@ -63,8 +63,8 @@ func (s *Service) reapBatchWith(ctx context.Context, read readFunc, write writeF
 	return removed, nil
 }
 
-// Reaper removes the bytes behind tombstones across every organization, in the worker: those of purged
-// requirements and deleted projects, what a delete missed, and what a deleted organization left.
+// Reaper removes the bytes behind tombstones, in the worker: those of purged requirements and deleted projects,
+// and what a delete missed.
 type Reaper struct {
 	service  *Service
 	log      *slog.Logger

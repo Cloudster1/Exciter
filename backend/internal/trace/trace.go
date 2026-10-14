@@ -15,7 +15,7 @@ const (
 	MaxKeyLength    = 40
 	MaxNameLength   = 40
 	MaxPhraseLength = 60
-	// MaxLinkTypes bounds the organization's types, and each project's own.
+	// MaxLinkTypes bounds the installation's types, and each project's own.
 	MaxLinkTypes = 50
 	// MaxRules bounds the pairs of requirement types one link type joins in a project.
 	MaxRules = 50
@@ -52,7 +52,7 @@ const (
 // CountsValues lists every Counts, for the API document.
 var CountsValues = []Counts{CountsDecomposition, CountsVerification, CountsNothing}
 
-// Scope says whether a link type is the organization's or one project's.
+// Scope says whether a link type is the installation's or one project's.
 type Scope string
 
 const (
@@ -84,7 +84,7 @@ type LinkType struct {
 	SuspectEnd SuspectEnd `json:"suspectEnd"`
 	Counts     Counts     `json:"counts"`
 	Scope      Scope      `json:"scope"`
-	// ProjectKey is the project of a project's own type, empty for the organization's.
+	// ProjectKey is the project of a project's own type, empty for the installation's.
 	ProjectKey string `json:"projectKey"`
 	// Enabled and Rules are the project's when listed for one; elsewhere every
 	// type is enabled and joins any types.

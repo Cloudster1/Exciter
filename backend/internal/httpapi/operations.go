@@ -67,7 +67,7 @@ type operation struct {
 	// tool names the operation for an assistant and toolHelp is the sentence
 	// the model reads; empty means it is not offered.
 	tool, toolHelp string
-	// orgWide routes concern the organization as a whole, which a token
+	// orgWide routes concern the installation as a whole, which a token
 	// limited to projects is refused.
 	orgWide bool
 }
@@ -92,7 +92,7 @@ var operations = []operation{
 		summary: "Rename the installation; written to the audit log. For administrators.",
 		request: renameInstallationRequest{}, responses: ok(env{"installation": installation.Installation{}})},
 
-	// Signing in with a password or through the organization's identity provider, and the session's own settings.
+	// Signing in with a password or through the installation's identity provider, and the session's own settings.
 	{method: "POST", path: "/auth/login", handler: "handleLogin", tag: "auth", summary: "Sign in a local account with email and password, and set the session cookie.", public: true,
 		request: loginRequest{}, responses: ok(meResponse{})},
 	{method: "GET", path: "/auth/oidc/start", handler: "handleOIDCStart", tag: "auth", summary: "Begin signing in through the installation's identity provider.", public: true, redirect: true,
@@ -126,7 +126,7 @@ var operations = []operation{
 	{method: "DELETE", path: "/users/requests/{userID}", handler: "handleDeclineJoinRequest", orgWide: true, tag: "members",
 		summary: "Turn a waiting person away; they may ask again. For administrators.", responses: none()},
 
-	// The organization's identity provider and the roles its groups grant, for its administrators.
+	// The installation's identity provider and the roles its groups grant, for its administrators.
 	{method: "GET", path: "/oidc-provider", handler: "handleGetOIDCProvider", orgWide: true, tag: "sso",
 		summary:   "The identity provider, if one is configured, and the callback address to register with it. For administrators.",
 		responses: ok(providerView{})},

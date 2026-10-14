@@ -95,7 +95,7 @@ the secret).
 
 As Stator's: Armature's answers are kept per person in Valkey, keyed by the
 id of their stored token row, which is new each time a token is stored. Every
-key starts `exciter:armature:{orgID}:`.
+key starts `exciter:armature:` (#107 dropped the organization from it).
 
 | Key | Holds | Lives |
 |---|---|---|

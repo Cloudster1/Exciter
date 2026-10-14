@@ -120,15 +120,15 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		}
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO requirement (org_id, project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
+			INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
 			                         parent_id, rank, created_by, updated_by)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13) RETURNING id`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13) RETURNING id`,
 			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, parent, at, actor).Scan(&id); err != nil {
 			return fmt.Errorf("write the requirement: %w", treeRefusal(err))
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
-			VALUES (current_org_id(), $1, 1, $2, $3, $4, $5, $6, $7, $8, $9)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor); err != nil {
+			INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
+			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor); err != nil {
 			return fmt.Errorf("write revision 1: %w", err)
 		}
 		if err := putLabels(ctx, tx, actor, id, labels); err != nil {
@@ -174,8 +174,8 @@ func changing(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string) (*lo
 // logChange notes a change that writes no revision.
 func logChange(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, field ChangeField, from, to string) error {
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_change (org_id, requirement_id, field, from_value, to_value, actor_id)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5)`, id, field, from, to, actor); err != nil {
+		INSERT INTO requirement_change (requirement_id, field, from_value, to_value, actor_id)
+		VALUES ($1, $2, $3, $4, $5)`, id, field, from, to, actor); err != nil {
 		return fmt.Errorf("log the %s change: %w", field, err)
 	}
 	return events.Emit(ctx, tx, TopicChanged, map[string]any{"actorId": actor, "requirementId": id, "field": field})
@@ -315,8 +315,8 @@ func (s *Service) revise(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *
 	}
 	number := cur.Revision + 1
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor); err != nil {
 		return fmt.Errorf("write revision %d of %s: %w", number, cur.Key, err)
 	}

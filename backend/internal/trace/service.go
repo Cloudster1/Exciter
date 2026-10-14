@@ -12,12 +12,11 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 var (
 	ErrNotFound = errors.New("link type not found")
-	// ErrForbidden is somebody changing a link type that is the organization's administrators', or a
+	// ErrForbidden is somebody changing a link type that is the installation's administrators', or a
 	// project's administrators', to change.
 	ErrForbidden = errors.New("only administrators change link types")
 	// ErrLinkNotFound is a link that is gone, or one whose ends the reader does not both see.
@@ -44,9 +43,9 @@ const selectLinkType = `
 SELECT t.id, t.key, t.name, t.forward, t.backward, t.acyclic, t.suspect_end, t.counts, COALESCE(p.key, ''),
        t.retired, t.updated_at, link_type_usage(t.id, true)
 FROM link_type t
-LEFT JOIN project p ON p.org_id = t.org_id AND p.id = t.project_id`
+LEFT JOIN project p ON p.id = t.project_id`
 
-// typeOrder puts the organization's types first, each scope in the order they were made.
+// typeOrder puts the installation's types first, each scope in the order they were made.
 const typeOrder = ` ORDER BY t.project_id IS NOT NULL, t.id`
 
 func scanLinkType(row pgx.CollectableRow) (LinkType, error) {
@@ -61,7 +60,7 @@ func scanLinkType(row pgx.CollectableRow) (LinkType, error) {
 }
 
 func linkTypes(ctx context.Context, tx db.DBTX, where string, args ...any) ([]LinkType, error) {
-	rows, err := tx.Query(ctx, selectLinkType+` WHERE t.org_id = current_org_id() AND `+where+typeOrder, args...)
+	rows, err := tx.Query(ctx, selectLinkType+` WHERE `+where+typeOrder, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func linkTypeByID(ctx context.Context, tx db.DBTX, id uuid.UUID) (*LinkType, err
 	return &types[0], nil
 }
 
-// usable answers the types a project may use, the organization's and its own, with whether it uses each and
+// usable answers the types a project may use, the installation's and its own, with whether it uses each and
 // the rules it sets for them.
 func usable(ctx context.Context, tx db.DBTX, projectID uuid.UUID) ([]LinkType, error) {
 	types, err := linkTypes(ctx, tx, `(t.project_id IS NULL OR t.project_id = $1)`, projectID)
@@ -140,7 +139,7 @@ func shaping(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectKey string
 	return p, nil
 }
 
-// managing reads a type for a change, refusing whoever does not shape it: the organization's administrators
+// managing reads a type for a change, refusing whoever does not shape it: the installation's administrators
 // shape its own, a project's administrators the project's.
 func managing(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*LinkType, error) {
 	t, err := linkTypeByID(ctx, tx, id)
@@ -164,15 +163,11 @@ func managing(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*LinkType, 
 }
 
 func record(ctx context.Context, tx db.DBTX, actor uuid.UUID, action string, t *LinkType, data map[string]any) error {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return err
-	}
 	data["key"], data["name"] = t.Key, t.Name
 	if t.ProjectKey != "" {
 		data["project"] = t.ProjectKey
 	}
-	return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: "link_type", TargetID: &t.ID, Actor: actor, Data: data})
+	return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: "link_type", TargetID: &t.ID, Actor: actor, Data: data})
 }
 
 // typeRefusal names the database's refusals of a type that the caller can do something about.

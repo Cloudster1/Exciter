@@ -81,7 +81,7 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 				t.Errorf("a connection acting for nobody sees %d of %s", n, what)
 			}
 		}
-		stranger := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
+		stranger := h.appConn(t, h.addPerson(t, a.org, "member"))
 		if n := affects(t, stranger, `UPDATE theme SET name = 'Taken' WHERE id = $1`, rows.sharedID); n != 0 {
 			t.Error("another member renamed a shared theme")
 		}
@@ -90,7 +90,7 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 		}
 	})
 
-	plain := h.appConn(t, a.org, rows.member)
+	plain := h.appConn(t, rows.member)
 	t.Run("a member sees their own and the shared themes, and the files of those alone", func(t *testing.T) {
 		if n := count(plain, `SELECT count(*) FROM theme WHERE id IN ($1, $2)`, rows.privateID, rows.sharedID); n != 1 {
 			t.Errorf("a member sees %d of the two themes, want the shared one", n)
@@ -109,8 +109,8 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 		}
 	})
 
-	owner := h.appConn(t, a.org, a.user)
-	admin := h.appConn(t, a.org, h.addPerson(t, a.org, "admin"))
+	owner := h.appConn(t, a.user)
+	admin := h.appConn(t, h.addPerson(t, a.org, "admin"))
 	t.Run("only the owner, or an administrator once shared, changes a theme or its files", func(t *testing.T) {
 		if n := affects(t, plain, `UPDATE theme SET name = 'Mine now' WHERE id = $1`, rows.privateID); n != 0 {
 			t.Error("a member renamed somebody's private theme")

@@ -55,7 +55,7 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 	limKey := projectKey(t, "LIM")
 	w := newTraceWorld(t, "tokens")
 	ctx := context.Background()
-	admin := w.h.appConn(t, w.a.org, w.a.user)
+	admin := w.h.appConn(t, w.a.user)
 	var mine uuid.UUID
 	if err := w.editor.QueryRow(ctx, insertToken, w.a.org, w.editorID, aDigest(t), false).Scan(&mine); err != nil {
 		t.Fatalf("a member makes a token of their own: %v", err)
@@ -123,7 +123,7 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 	})
 
 	t.Run("a limited token reaches its projects alone, and nothing of the whole organization", func(t *testing.T) {
-		limited := w.h.appConn(t, w.a.org, w.a.user)
+		limited := w.h.appConn(t, w.a.user)
 		limitTo(t, limited, w.here)
 		if seesRows(t, limited, `SELECT count(*) FROM project WHERE id = $1`, w.other) != 0 || seesRows(t, limited, `SELECT count(*) FROM project WHERE id = $1`, w.here) != 1 {
 			t.Error("the owner's limited token sees outside its project, or not inside it")
@@ -151,7 +151,7 @@ func TestRawSQLGuardsTokens(t *testing.T) {
 		if err := limited.QueryRow(ctx, `SELECT perm_project_holds($1, $2, 'view')`, w.other, w.editorID).Scan(&held); err != nil || !held {
 			t.Errorf("the limit leaked onto another person's rights: %v", err)
 		}
-		none := w.h.appConn(t, w.a.org, w.a.user)
+		none := w.h.appConn(t, w.a.user)
 		limitTo(t, none)
 		if seesRows(t, none, `SELECT count(*) FROM project`) != 0 {
 			t.Error("a token whose projects are all gone reaches some")

@@ -34,7 +34,7 @@ const selectViews = `
 SELECT v.id, p.key, v.name, v.owner_id, COALESCE(u.name, ''), v.shared, v.filter, v.columns, v.sort, v.created_at, v.updated_at,
        v.owner_id = $1 OR (v.shared AND perm_project_holds(v.project_id, $1, 'administer'))
 FROM saved_view v
-JOIN project p ON p.org_id = v.org_id AND p.id = v.project_id
+JOIN project p ON p.id = v.project_id
 LEFT JOIN app_user u ON u.id = v.owner_id`
 
 func scanView(row pgx.Row) (*View, error) {
@@ -70,7 +70,7 @@ func (s *Service) Views(ctx context.Context, reader uuid.UUID, projectKey string
 		if err != nil {
 			return err
 		}
-		rows, err := tx.Query(ctx, selectViews+` WHERE v.org_id = current_org_id() AND v.project_id = $2
+		rows, err := tx.Query(ctx, selectViews+` WHERE v.project_id = $2
 			ORDER BY v.owner_id <> $1, lower(v.name), v.id`, reader, p.ID)
 		if err != nil {
 			return fmt.Errorf("list the views: %w", err)
@@ -151,8 +151,8 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 		}
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO saved_view (org_id, project_id, owner_id, name, shared, filter, columns, sort)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+			INSERT INTO saved_view (project_id, owner_id, name, shared, filter, columns, sort)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 			p.ID, actor, v.Name, v.Shared, filter, v.Columns, sort).Scan(&id); err != nil {
 			return fmt.Errorf("save the view: %w", nameTaken(err))
 		}
@@ -240,7 +240,7 @@ func (s *Service) DeleteView(ctx context.Context, actor, id uuid.UUID) (db.LSN, 
 
 // managed reads a view the actor may change, with its project.
 func managed(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*View, *project.Project, error) {
-	v, err := scanView(tx.QueryRow(ctx, selectViews+` WHERE v.org_id = current_org_id() AND v.id = $2`, actor, id))
+	v, err := scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2`, actor, id))
 	if err != nil {
 		return nil, nil, err
 	}

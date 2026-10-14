@@ -99,7 +99,7 @@ func (s *Service) List(ctx context.Context, actor uuid.UUID, key string) ([]Atta
 			return err
 		}
 		rows, err := tx.Query(ctx, selectAttachment+`
-			WHERE a.org_id = current_org_id() AND a.requirement_id = $1 AND a.deleted_at IS NULL
+			WHERE a.requirement_id = $1 AND a.deleted_at IS NULL
 			ORDER BY a.created_at DESC, a.id DESC`, e.ID)
 		if err != nil {
 			return err
@@ -150,8 +150,8 @@ func (s *Service) Upload(ctx context.Context, actor uuid.UUID, key string, in Up
 		var id uuid.UUID
 		var objectKey string
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO attachment (org_id, requirement_id, uploaded_by, file_name, content_type, size_bytes, width, height)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7)
+			INSERT INTO attachment (requirement_id, uploaded_by, file_name, content_type, size_bytes, width, height)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING id, object_key`,
 			e.ID, actor, name, contentType, len(data), width, height).Scan(&id, &objectKey); err != nil {
 			return fmt.Errorf("record the file: %w", err)
@@ -208,7 +208,7 @@ func (s *Service) Locate(ctx context.Context, actor uuid.UUID, id uuid.UUID) (*L
 	var found *stored
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var err error
-		found, err = scan(tx.QueryRow(ctx, selectAttachment+` WHERE a.org_id = current_org_id() AND a.id = $1`, id))
+		found, err = scan(tx.QueryRow(ctx, selectAttachment+` WHERE a.id = $1`, id))
 		return err
 	})
 	if err != nil {
@@ -223,7 +223,7 @@ func (s *Service) Delete(ctx context.Context, actor uuid.UUID, id uuid.UUID) (db
 	var gone string
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var requirementID uuid.UUID
-		if err := tx.QueryRow(ctx, `SELECT requirement_id FROM attachment WHERE org_id = current_org_id() AND id = $1 AND deleted_at IS NULL`,
+		if err := tx.QueryRow(ctx, `SELECT requirement_id FROM attachment WHERE id = $1 AND deleted_at IS NULL`,
 			id).Scan(&requirementID); errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {

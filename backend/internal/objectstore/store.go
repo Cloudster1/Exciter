@@ -30,8 +30,8 @@ type Store interface {
 	List(ctx context.Context, prefix string) ([]string, error)
 }
 
-// OrgPrefix is where every object of one organization lives, so all of an
-// organization's files are found, and removed, by one listing.
+// OrgPrefix is where every object of the installation lives, under its id
+// as before #107, so the files stored earlier are still found.
 func OrgPrefix(org uuid.UUID) string {
 	return "org/" + org.String() + "/"
 }

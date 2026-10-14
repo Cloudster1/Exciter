@@ -101,7 +101,7 @@ type DB struct {
 	PrimaryURL  string
 	ReplicaURLs []string
 	// AdminURL connects as exciter_admin, exempt from row level security by
-	// policy, for signup, login and cross-tenant jobs. Defaults to PrimaryURL.
+	// policy, for signing in and jobs that act for nobody. Defaults to PrimaryURL.
 	AdminURL string
 
 	// PrimaryMaxConns bounds the write pool, and the admin pool beside it;

@@ -9,14 +9,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Every theme route needs somebody signed in, and somebody outside the installation is not; either is told so
 // in the envelope.
 func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 	s := newServer(t)
-	s.Auth = fakeAuth{"no-org": {UserID: uuid.New()}, "in-org": {UserID: uuid.New(), Org: &tenant.Org{ID: uuid.New(), Slug: "acme"}}}
+	s.Auth = fakeAuth{"switched-off": {UserID: uuid.New()}, "member": {UserID: uuid.New(), Role: auth.RoleMember}}
 	h := s.Routes(nil)
 	someID := uuid.NewString()
 	for _, op := range operations {
@@ -29,7 +28,7 @@ func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 			t.Errorf("anonymous %s %s = %d %v, want 401", op.method, op.path, resp.StatusCode, body)
 		}
 		req := httptest.NewRequest(op.method, APIPrefix+path, nil)
-		req.Header.Set("Authorization", "Bearer no-org")
+		req.Header.Set("Authorization", "Bearer switched-off")
 		resp, body = serve(t, h, req)
 		if resp.StatusCode != http.StatusForbidden || errorOf(t, body)["code"] != "account_switched_off" {
 			t.Errorf("%s %s outside the installation = %d %v, want 403", op.method, op.path, resp.StatusCode, body)
@@ -37,7 +36,7 @@ func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, APIPrefix+"/themes/examples", nil)
-	req.Header.Set("Authorization", "Bearer in-org")
+	req.Header.Set("Authorization", "Bearer member")
 	resp, body := serve(t, h, req)
 	examples, _ := body["examples"].([]any)
 	if resp.StatusCode != http.StatusOK || len(examples) != 2 {
@@ -49,10 +48,9 @@ func TestThemeRoutesRefuseAnonymousCallers(t *testing.T) {
 // and only an administrator gets as far as naming the organization's default.
 func TestThemeRoutesWithoutTheServiceAndTheDefaultForMembers(t *testing.T) {
 	s := newServer(t)
-	org := &tenant.Org{ID: uuid.New(), Slug: "acme"}
 	s.Auth = fakeAuth{
-		"member": {UserID: uuid.New(), Org: org, Role: auth.RoleMember},
-		"admin":  {UserID: uuid.New(), Org: org, Role: auth.RoleAdmin},
+		"member": {UserID: uuid.New(), Role: auth.RoleMember},
+		"admin":  {UserID: uuid.New(), Role: auth.RoleAdmin},
 	}
 	h := s.Routes(nil)
 	asked := func(credential, method, path string) (*http.Response, map[string]any) {
