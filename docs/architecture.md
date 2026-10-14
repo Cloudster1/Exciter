@@ -393,8 +393,9 @@ Docker Compose for development (`deploy/docker-compose.yml`, run through
   `exciter_admin`, exempt by policy rather than as superuser, and the
   replication role.
 - Keycloak imports `deploy/keycloak/realm.json` on every start: realm
-  `suite-dev` with clients `exciter`, `armature` and `stator` (PKCE, a
-  `groups` claim) and the development people.
+  `suite-dev` with clients `exciter`, `armature` and `stator` (a `groups`
+  claim, and PKCE for the two that send it; Armature does not yet) and the
+  development people.
 - The api keeps its files in SeaweedFS's bucket `exciter-files`; the
   integration suite writes to `exciter-test`, so what it leaves never shows
   among the app's files.

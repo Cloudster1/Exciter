@@ -71,8 +71,7 @@
         "+"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "+",
-        "pkce.code.challenge.method": "S256"
+        "post.logout.redirect.uris": "+"
       },
       "defaultClientScopes": [
         "web-origins",

@@ -1,0 +1,43 @@
+# The suite's Stator (#31), over Stator's own deploy/docker-compose.yml: it signs in at the suite's Keycloak, whose
+# realm and port are Exciter's, and reaches the suite's Armature beside its stub. mk/suite.mk applies it.
+networks:
+  suite:
+    name: exciter-suite
+    external: true
+
+x-suite-auth: &auth
+  STATOR_OIDC_BACKCHANNEL: http://localhost:${SUITE_KEYCLOAK_PORT}=http://suite-keycloak:8080
+  STATOR_BOOTSTRAP_OIDC_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/suite-dev
+  STATOR_BOOTSTRAP_MEMBERS: alice@suite.test=admin,bob@suite.test=member
+
+x-suite-armature: &armature
+  STATOR_OUTBOUND_ALLOW: armature-stub,web,suite-armature-api
+  STATOR_ARMATURE_BACKCHANNEL: >-
+    http://localhost:${ARMATURE_STUB_PORT}=http://armature-stub:8080,http://localhost:${SUITE_ARMATURE_WEB_PORT}=http://suite-armature-api:8080
+
+services:
+  # The suite's Keycloak is Exciter's, and PDF export is not part of the trial.
+  keycloak:
+    profiles: [off]
+  render:
+    profiles: [off]
+
+  seed:
+    environment:
+      <<: *auth
+      STATOR_BOOTSTRAP_ORG_NAME: Stator
+
+  api:
+    networks:
+      default: {}
+      suite:
+        aliases: [suite-stator-api]
+    environment:
+      <<: [*auth, *armature]
+      STATOR_RENDER_URL: ""
+
+  worker:
+    networks:
+      default: {}
+      suite: {}
+    environment: *armature

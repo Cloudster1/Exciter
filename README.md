@@ -49,6 +49,11 @@ written to `.cache/stack.env`. Keycloak's realm `suite-dev` (admin console
 `admin` / `admin`) holds alice, bob, carol and dave, each with the password
 `<name> password`, and a client for each of Exciter, Armature and Stator.
 
+To try the integration end to end, `make suite-up ARMATURE_DIR=<checkout>
+STATOR_DIR=<checkout>` runs Exciter, Armature and Stator side by side on that
+one realm, connected to each other; [docs/suite.md](docs/suite.md) says where
+everything is.
+
 ## Releasing
 
 `./release.sh` works out the next version from the Conventional Commits since

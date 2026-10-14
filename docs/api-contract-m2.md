@@ -423,6 +423,24 @@ to Armature made by seed steps. A smoke spec runs outside the gate. A change
 Armature or Stator need goes through an issue in their repository, and this
 issue is labelled `blocked` until it ships.
 
+- **As built** (#31), as `docs/suite.md` describes it:
+  - `mk/suite.mk` runs each product's own compose file under a project of its
+    own (`suite-exciter`, `suite-armature`, `suite-stator`) with an override
+    from `deploy/suite/`, on fixed ports from 30000; nothing in Armature or
+    Stator changed.
+  - The shared network joins only Exciter's Keycloak and each product's api
+    and worker, reached by their suite aliases: compose names every service
+    by its own name on each network it joins, so a web on the shared network
+    proxied to another product's api.
+  - `cmd/suite-seed` makes the connections through each product's API:
+    Armature's identity provider pointed at the realm, alice and bob made
+    members with the realm's passwords, alice's token, Exciter's and
+    Stator's connections and Armature's webhook to each api with its secret.
+    Armature's own seed runs only while nobody has set Armature up, as it
+    refuses a second run.
+  - The realm's `armature` client no longer asks for PKCE, which Armature
+    does not send; the stack test holds Exciter and Stator to it.
+
 ## The armature-stub
 
 `cmd/armature-stub` stands in for Armature in the integration suite and in
