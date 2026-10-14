@@ -69,6 +69,11 @@ const (
 	ActionLinkTypeDeleted = "link_type.deleted"
 	// ActionInstallationRenamed keeps what the installation was called before.
 	ActionInstallationRenamed = "installation.renamed"
+	// ActionApprovalRuleSaved and ActionApprovalRuleRemoved keep who approves a project's requirements, and
+	// ActionReviewWithdrawn an administrator withdrawing somebody else's review (#35).
+	ActionApprovalRuleSaved   = "approval_rule.saved"
+	ActionApprovalRuleRemoved = "approval_rule.removed"
+	ActionReviewWithdrawn     = "review.withdrawn"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -80,6 +85,7 @@ var Actions = []string{
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
+	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

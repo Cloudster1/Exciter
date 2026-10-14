@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/review"
 )
 
 // Subject is what one event tells people about: a requirement at a revision, and a thread, comment, review or link
@@ -92,6 +93,8 @@ func NewFanOut(cluster *db.Cluster, mailer mail.Mailer, appURL string, log *slog
 		comment.TopicReopened:    planThreadResolved,
 		requirement.TopicRevised: planRevised,
 		requirement.TopicChanged: planTransitioned,
+		review.TopicRequested:    planReviewRequested,
+		review.TopicDecided:      planReviewDecided,
 	}}
 }
 

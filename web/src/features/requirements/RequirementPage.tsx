@@ -26,6 +26,7 @@ import { RequirementLabels } from "@/features/labels/RequirementLabels";
 import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
 import { ArmatureLinks } from "@/features/armature/ArmatureLinks";
 import { CommentsSection } from "@/features/comments/CommentsSection";
+import { ReviewPanel } from "@/features/reviews/ReviewPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
@@ -126,6 +127,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
         <Content project={project} requirement={requirement} />
       )}
       {!section && <Facts requirement={requirement} />}
+      {!section && <ReviewPanel requirement={requirement} />}
       <RequirementLabels requirement={requirement} />
       <LinksPanel requirement={requirement} />
       <ArmatureLinks requirement={requirement} />

@@ -27,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -93,6 +94,9 @@ type Server struct {
 	// that they are not set up.
 	Watches       *watch.Service
 	Notifications *notify.Service
+	// Reviews keeps approval rules and the reviews of revisions (#35); nil answers their routes that they are not
+	// set up.
+	Reviews *review.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -367,6 +371,22 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/notifications/read", s.handleMarkNotificationsRead)
 			r.Get("/notification-preferences", s.handleGetNotificationPreferences)
 			r.Put("/notification-preferences", s.handleSaveNotificationPreferences)
+		})
+
+		// Reviews: rules set by a project's administrators, reviews asked by its editors and decided by the
+		// approvers each review froze (#35).
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.reviewsOn)
+			r.Get("/projects/{projectKey}/approval-rules", s.handleListApprovalRules)
+			r.Put("/projects/{projectKey}/approval-rules", s.handleSaveApprovalRule)
+			r.Delete("/approval-rules/{ruleID}", s.handleDeleteApprovalRule)
+			r.Get("/requirements/{reqKey}/approval", s.handleGetApproval)
+			r.Get("/requirements/{reqKey}/reviews", s.handleListReviews)
+			r.Post("/requirements/{reqKey}/reviews", s.handleRequestReview)
+			r.Get("/reviews/waiting", s.handleListWaitingReviews)
+			r.Get("/reviews/{reviewID}", s.handleGetReview)
+			r.Post("/reviews/{reviewID}/decisions", s.handleDecideReview)
+			r.Post("/reviews/{reviewID}/withdraw", s.handleWithdrawReview)
 		})
 
 		// Armature: the installation's connection for its administrators, each member's own token for them, and the

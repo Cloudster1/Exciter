@@ -62,7 +62,7 @@ export const notificationsEn = {
       case "review_requested":
         return `${who} asks you to review ${key}`;
       case "reviewed":
-        return `The review of ${key} is decided`;
+        return `${who} decided the review of ${key}`;
       case "suspect":
         return `A link of ${key} needs checking after ${who} revised its other end`;
       case "replied":

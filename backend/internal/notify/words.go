@@ -38,7 +38,7 @@ func Sentence(kind Kind, actor, key, title string) string {
 	case KindReviewRequested:
 		return fmt.Sprintf("%s asks you to review %s", actor, named)
 	case KindReviewed:
-		return fmt.Sprintf("The review of %s is decided", named)
+		return fmt.Sprintf("%s decided the review of %s", actor, named)
 	case KindSuspect:
 		return fmt.Sprintf("A link of %s needs checking after %s revised the other end", named, actor)
 	case KindReplied:

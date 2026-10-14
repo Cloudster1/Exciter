@@ -14,6 +14,8 @@ type Subject struct {
 	OwnerID  *uuid.UUID
 	// LatestAuthor wrote the latest revision, whom not_author keeps from approving their own words.
 	LatestAuthor *uuid.UUID
+	// Approved says an approved review covers the current revision (#35).
+	Approved bool
 	// MissingRequired names a required attribute without a value, empty when none is missing.
 	MissingRequired string
 	MissingField    string
@@ -106,6 +108,12 @@ var registry = []rule{
 		allow: func(_ json.RawMessage, s Subject, a Actor) bool {
 			return s.LatestAuthor == nil || *s.LatestAuthor != a.UserID
 		},
+	},
+	{
+		RuleType: RuleType{Kind: KindCondition, Type: "condition.approved", Label: "Approved",
+			Description: "Only a requirement whose current revision its approvers approved may take it."},
+		check: noConfig,
+		allow: func(_ json.RawMessage, s Subject, _ Actor) bool { return s.Approved },
 	},
 	{
 		RuleType: RuleType{Kind: KindValidator, Type: "validator.comment_required", Label: "Comment required",

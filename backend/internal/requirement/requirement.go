@@ -135,7 +135,22 @@ type Requirement struct {
 	Comments CommentCounts `json:"comments"`
 	// Watching is how the reader follows it (#34).
 	Watching Watching `json:"watching"`
+	// Approval is its review now open and the latest revision approved (#35).
+	Approval Approval `json:"approval"`
 }
+
+// Approval is a requirement's standing for the workflow and the page: the review now open, and the latest revision
+// approved, which counts only while it is the current one (#35).
+type Approval struct {
+	Pending          *uuid.UUID `json:"pendingReviewId"`
+	ApprovedRevision *int       `json:"approvedRevision"`
+	Current          bool       `json:"current"`
+}
+
+// approval reads Approval of the requirement aliased r, two columns.
+const approval = `,
+       (SELECT v.id FROM requirement_review v WHERE v.requirement_id = r.id AND v.state = 'pending'),
+       (SELECT max(v.revision) FROM requirement_review v WHERE v.requirement_id = r.id AND v.state = 'approved')`
 
 // Watching is how the reader follows a requirement: by itself, through its project, or not (#34).
 type Watching struct {

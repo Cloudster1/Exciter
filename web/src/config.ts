@@ -301,3 +301,12 @@ export const WATCHERS_LIMIT = 100;
 export const WATCHES_PAGE_SIZE = 20;
 /** The hour, in UTC, a daily digest goes out, matching the API's notify.DailyDigestHour. */
 export const DAILY_DIGEST_HOUR_UTC = 8;
+
+/** Where the reviews waiting on the reader are listed (#35). */
+export const REVIEWS_PATH = "/reviews";
+/** The most approvals a rule asks for, as the API's review.MaxRequired. */
+export const REVIEW_REQUIRED_MAX = 10;
+/** The longest comment a review request or decision takes, as the API's review.MaxCommentLength. */
+export const REVIEW_COMMENT_MAX_LENGTH = 500;
+/** How many of a requirement's reviews its panel lists, and of the waiting reviews one page of the inbox. */
+export const REVIEWS_PAGE_SIZE = 20;

@@ -61,6 +61,7 @@ export type Answer = { status: number; body?: unknown };
 const freshInstallation: Record<string, Answer> = {
   "GET /projects": { status: 200, body: { projects: [] } },
   "GET /notifications/unread-count": { status: 200, body: { unread: 0 } },
+  "GET /reviews/waiting": { status: 200, body: { reviews: [], total: 0, limit: 20, offset: 0 } },
 };
 
 let apiStubbed = false;

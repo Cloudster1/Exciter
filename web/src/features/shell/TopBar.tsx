@@ -5,6 +5,7 @@ import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuIte
 import { Icon } from "@/components/icons";
 import { ARMATURE_ACCOUNT_PATH, NOTIFICATION_SETTINGS_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
+import { WaitingReviewsButton } from "@/features/reviews/WaitingReviews";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
 import { crumbsFor, placeAbove } from "./places";
 import { DRAWER_ID } from "./state";
@@ -67,6 +68,7 @@ export function TopBar({
           <span className="hidden min-w-0 flex-1 truncate text-left shell:inline">{t.switcher.placeholder}</span>
           <kbd className="hidden font-mono text-2xs shell:inline">{t.switcher.shortcut}</kbd>
         </button>
+        <WaitingReviewsButton />
         <NotificationBell />
         <AccountMenu />
       </div>

@@ -267,6 +267,24 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
   Approve and Reject for an approver, Ask for review for an editor; the
   project's settings hold the rules; `/reviews` is the inbox, with a count in
   the top bar.
+- **As built** (#35):
+  - Migration 00520. A review is inserted only of the requirement's current
+    revision, by an editor, asking the count and author setting its rule says
+    now, and given only the approvers that rule names, before anybody
+    decides. A decision is written only by a frozen approver who may view
+    the requirement, while the review is pending on the current revision,
+    and not by the revision's author unless allowed.
+    `requirement_review_guard` moves a review only forward. The superseding
+    trigger writes `review.closed` in the reviser's name.
+    `requirement_transition` refuses a transition carrying
+    `condition.approved` without an approved current revision.
+  - A section is refused with 409 `section_not_reviewed`. A rule naming only
+    people asks for at most as many approvals as it names; a group may
+    grow, so a rule with a group is not held to that.
+  - `/reviews/waiting` leaves out what the caller has decided already. The
+    approvers are asked through `review_requested`, the revision's author
+    left out unless the rule lets them approve. Whoever asked and the
+    revision's author hear `reviewed` of the decision that closed it.
 
 ## #36 Suspect links
 

@@ -219,3 +219,86 @@ func people(ctx context.Context, tx db.DBTX, sql string, args ...any) ([]uuid.UU
 	}
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
+
+type reviewEvent struct {
+	ActorID       uuid.UUID `json:"actorId"`
+	ReviewID      uuid.UUID `json:"reviewId"`
+	RequirementID uuid.UUID `json:"requirementId"`
+	State         string    `json:"state"`
+}
+
+// reviewOf is what a notification of a review quotes and which revision it is about; nothing for a review gone.
+func reviewOf(ctx context.Context, tx db.DBTX, id uuid.UUID) (string, int, error) {
+	var (
+		comment  string
+		revision int
+	)
+	err := tx.QueryRow(ctx, `SELECT comment, revision FROM requirement_review WHERE id = $1`, id).Scan(&comment, &revision)
+	return comment, revision, err
+}
+
+// planReviewRequested tells the approvers the review froze, every member of a group among them, but the revision's
+// author when the rule keeps them from deciding. A review closed before the worker came to it tells nobody.
+func planReviewRequested(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+	var in reviewEvent
+	if err := json.Unmarshal(e.Payload, &in); err != nil {
+		return nil, nil
+	}
+	comment, revision, err := reviewOf(ctx, tx, in.ReviewID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	review := in.ReviewID
+	plan := &Plan{Actor: in.ActorID, Subject: Subject{RequirementID: in.RequirementID, Revision: revision, ReviewID: &review, Excerpt: Excerpt(comment)}}
+	approvers, err := people(ctx, tx, `
+		SELECT DISTINCT a.user_id FROM (
+			SELECT s.user_id FROM review_subject s WHERE s.review_id = $1 AND s.user_id IS NOT NULL
+			UNION
+			SELECT m.user_id FROM review_subject s JOIN group_member m ON m.group_id = s.group_id WHERE s.review_id = $1
+		) a
+		JOIN requirement_review v ON v.id = $1 AND v.state = 'pending'
+		JOIN requirement_revision rv ON rv.requirement_id = v.requirement_id AND rv.number = v.revision
+		WHERE v.author_may_approve OR rv.created_by IS DISTINCT FROM a.user_id`, in.ReviewID)
+	for _, id := range approvers {
+		plan.Tells = append(plan.Tells, Tell{UserID: id, Kind: KindReviewRequested})
+	}
+	return plan, err
+}
+
+// planReviewDecided tells whoever asked, and the revision's author, of a decision that closed the review, quoting
+// what the deciding approver said.
+func planReviewDecided(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+	var in reviewEvent
+	if err := json.Unmarshal(e.Payload, &in); err != nil || (in.State != "approved" && in.State != "rejected") {
+		return nil, nil
+	}
+	var (
+		revision        int
+		asked, author   *uuid.UUID
+		decisionComment string
+	)
+	err := tx.QueryRow(ctx, `
+		SELECT v.revision, v.requested_by, rv.created_by,
+		       COALESCE((SELECT d.comment FROM review_decision d WHERE d.review_id = v.id AND d.reviewer_id = $2), '')
+		FROM requirement_review v
+		JOIN requirement_revision rv ON rv.requirement_id = v.requirement_id AND rv.number = v.revision
+		WHERE v.id = $1`, in.ReviewID, in.ActorID).Scan(&revision, &asked, &author, &decisionComment)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	review := in.ReviewID
+	plan := &Plan{Actor: in.ActorID, Subject: Subject{RequirementID: in.RequirementID, Revision: revision, ReviewID: &review,
+		Excerpt: Excerpt(decisionComment)}}
+	for _, id := range []*uuid.UUID{asked, author} {
+		if id != nil {
+			plan.Tells = append(plan.Tells, Tell{UserID: *id, Kind: KindReviewed})
+		}
+	}
+	return plan, nil
+}

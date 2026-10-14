@@ -1,0 +1,88 @@
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { useWaitingReviews } from "@/api/reviews";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { REVIEWS_PAGE_SIZE, REVIEWS_PATH, UNREAD_BADGE_MAX } from "@/config";
+import { t } from "@/i18n";
+import { localDateFormat } from "@/lib/format";
+
+// The reviews waiting on the reader (#35), after Stator's WaitingReviews.
+
+const askedOn = localDateFormat({ dateStyle: "medium" });
+
+/** Every review waiting for the reader's decision, the oldest first. */
+export function WaitingReviewsScreen() {
+  const [offset, setOffset] = useState(0);
+  const { data, error, refetch, isLoading } = useWaitingReviews(offset);
+  const rows = data?.reviews ?? [];
+  const total = data?.total ?? 0;
+  return (
+    <div className="mx-auto max-w-3xl" data-waiting-reviews="">
+      <PageHeader title={t.review.inboxTitle} meta={t.review.inboxIntro} />
+      {error ? (
+        <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
+      ) : isLoading || !data ? (
+        <Skeleton />
+      ) : rows.length === 0 ? (
+        <EmptyState icon={<Icon.Check />} title={t.review.inboxEmpty} />
+      ) : (
+        <>
+          <ul className="flex flex-col divide-y divide-border" aria-label={t.review.inboxTitle}>
+            {rows.map((review) => (
+              <li key={review.id} className="flex min-w-0 flex-col gap-0.5 py-3" data-waiting-review={review.id}>
+                <Link
+                  to="/p/$projectKey/r/$reqKey"
+                  params={{ projectKey: review.requirement.projectKey, reqKey: review.requirement.key }}
+                  className="truncate text-sm font-medium text-ink hover:text-accent hover:underline"
+                >
+                  <span className="font-mono">{review.requirement.key}</span> {review.requirement.title}
+                </Link>
+                <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-subtle">
+                  <span>{t.review.inboxRow(review.requestedByName, askedOn.format(new Date(review.requestedAt)))}</span>
+                  <span aria-hidden="true">·</span>
+                  <span data-waiting-approvals={`${review.approvals}/${review.required}`}>{t.review.approvals(review.approvals, review.required)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {total > REVIEWS_PAGE_SIZE && (
+            <nav aria-label={t.review.inboxTitle} className="mt-4 flex items-center justify-between gap-2">
+              <Button variant="secondary" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - REVIEWS_PAGE_SIZE))}>
+                {t.review.previous}
+              </Button>
+              <span className="text-sm text-ink-subtle tabular-nums">{t.review.range(offset + 1, offset + rows.length, total)}</span>
+              <Button variant="secondary" size="sm" disabled={offset + REVIEWS_PAGE_SIZE >= total} onClick={() => setOffset(offset + REVIEWS_PAGE_SIZE)}>
+                {t.review.next}
+              </Button>
+            </nav>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The top bar's way to the reviews waiting on the reader, with their count; nothing while none wait. */
+export function WaitingReviewsButton() {
+  const { data } = useWaitingReviews();
+  const count = data?.total ?? 0;
+  if (count === 0) return null;
+  return (
+    <Link
+      to={REVIEWS_PATH}
+      aria-label={t.review.inboxButton(count)}
+      className="relative inline-flex size-8 items-center justify-center rounded-control text-ink-muted hover:bg-surface-raised hover:text-ink"
+      data-action="waiting-reviews"
+    >
+      <Icon.Check />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-accent px-1 text-center text-2xs leading-4 font-medium text-on-accent"
+        data-waiting-badge={count}
+      >
+        {count > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : count}
+      </span>
+    </Link>
+  );
+}
