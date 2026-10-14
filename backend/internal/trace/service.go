@@ -182,7 +182,7 @@ func typeRefusal(err error, key string) error {
 		return err
 	}
 	switch {
-	case pgErr.Code == "23505" && (pgErr.ConstraintName == "link_type_key_taken" || pgErr.ConstraintName == "link_type_org_key_idx" ||
+	case pgErr.Code == "23505" && (pgErr.ConstraintName == "link_type_key_taken" || pgErr.ConstraintName == "link_type_key_idx" ||
 		pgErr.ConstraintName == "link_type_project_key_idx"):
 		return &FieldError{"key", fmt.Sprintf("Another link type has the key %s. Pick another key.", key)}
 	case pgErr.Code == "23505":

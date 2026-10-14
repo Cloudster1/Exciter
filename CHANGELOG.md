@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The schema no longer asks which organization a row is of (#106). Keys and
+  names, such as project keys, are unique in the installation; the tenant
+  policies became one open policy per table beside the permission policies,
+  which stay. Upgrading stops, naming them, at policies Exciter did not make
+  and at rows that would share a key, so they can be dealt with first.
 - The integration suite works in the stack's one installation, keeping its
   tests apart by the people, keys and names they make, and puts back every
   setting there is one of (#90). The test-only endpoints `/api/v1/test/orgs`

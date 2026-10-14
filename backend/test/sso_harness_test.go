@@ -79,7 +79,7 @@ func (h *harness) letIn(t *testing.T, org tenant.Org, email, role string) {
 	}
 	if _, err := h.super.Exec(ctx, `
 		INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
-		ON CONFLICT (org_id, user_id) DO UPDATE SET org_role = EXCLUDED.org_role, role_source = 'manual'`, org.ID, id, role); err != nil {
+		ON CONFLICT (user_id) DO UPDATE SET org_role = EXCLUDED.org_role, role_source = 'manual'`, org.ID, id, role); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)

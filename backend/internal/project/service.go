@@ -199,7 +199,7 @@ func keyTakenError(key string) error {
 func isKeyTaken(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505" &&
-		(pgErr.ConstraintName == "project_key_taken" || pgErr.ConstraintName == "project_org_key_idx")
+		(pgErr.ConstraintName == "project_key_taken" || pgErr.ConstraintName == "project_key_idx")
 }
 
 func checkName(name string) (string, error) {

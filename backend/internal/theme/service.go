@@ -291,7 +291,7 @@ func (s *Service) Choose(ctx context.Context, reader uuid.UUID, id *uuid.UUID, b
 		}
 		_, err := tx.Exec(ctx, `
 			INSERT INTO user_theme (org_id, user_id, theme_id) VALUES (current_org_id(), $1, $2)
-			ON CONFLICT (org_id, user_id) DO UPDATE SET theme_id = EXCLUDED.theme_id`, reader, id)
+			ON CONFLICT (user_id) DO UPDATE SET theme_id = EXCLUDED.theme_id`, reader, id)
 		return err
 	})
 	return out, lsn, err

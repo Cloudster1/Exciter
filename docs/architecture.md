@@ -59,13 +59,21 @@ an organization. The seed makes the installation on the first start under
 organizations, and `internal/installation` is the one way to its name and
 default theme.
 
-Inside, one `org` row still stands for the installation until #91 drops the
-tenant layer: every table has `org_id` and a primary key `(org_id, id)` with
-composite foreign keys, and FORCE ROW LEVEL SECURITY on `current_org_id()`
-scopes every query to that one row. The application
-connects as `exciter_app`, which row level security binds; permission rules
-are SQL functions used as restrictive policies, so a guard holds even for a
-query that forgot it, and those stay when the tenant layer goes.
+Inside, one `org` row still stands for the installation until #108. The
+schema no longer asks for it (#106): keys, foreign keys and indexes leave
+`org_id` out, so project keys and the other names are unique in the
+installation, no function or permission policy reads it, and every `org_id`
+column defaults to the one row (`installation_org_id()`, which refuses
+rather than guess between two). The code still sets `app.org_id` and writes
+the column until #107.
+
+Every table forces row level security. One permissive policy per table,
+`<table>_installation`, lets every role at the rows, and the permission rules,
+SQL functions used as restrictive policies for `exciter_app`, are the walls,
+so a guard holds even for a query that forgot it. `app_user` shows the app
+role only the people who belong to the installation, and the admin role
+alone reads accounts, sessions, identities and sign-ins in flight, which the
+app role holds no privilege on.
 
 ### Domains (M1 to M3)
 

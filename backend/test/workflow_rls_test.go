@@ -99,7 +99,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 			t.Errorf("a viewer reads %d statuses, want 7", n)
 		}
 		admin := h.appConn(t, a.org, a.user)
-		if _, err := admin.Exec(ctx, `DELETE FROM req_status WHERE id = $1`, status("Obsolete")); !refusedBy(err, "workflow_step_org_id_status_id_fkey") {
+		if _, err := admin.Exec(ctx, `DELETE FROM req_status WHERE id = $1`, status("Obsolete")); !refusedBy(err, "workflow_step_status_id_fkey") {
 			t.Errorf("an administrator deleted a status a workflow names: %v", err)
 		}
 	})

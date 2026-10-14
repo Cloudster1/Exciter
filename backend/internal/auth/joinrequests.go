@@ -72,7 +72,7 @@ func (s *Service) AdmitJoinRequest(ctx context.Context, orgID, userID uuid.UUID,
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
-			ON CONFLICT (org_id, user_id) DO UPDATE SET org_role = EXCLUDED.org_role, role_source = 'manual'`,
+			ON CONFLICT (user_id) DO UPDATE SET org_role = EXCLUDED.org_role, role_source = 'manual'`,
 			orgID, userID, string(role)); err != nil {
 			return fmt.Errorf("create membership: %w", err)
 		}
@@ -130,7 +130,7 @@ func (s *Service) EnsureMember(ctx context.Context, email string, role OrgRole) 
 		}
 		tag, err := tx.Exec(ctx, `
 			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, $3)
-			ON CONFLICT (org_id, user_id) DO NOTHING`, org.ID, userID, string(role))
+			ON CONFLICT (user_id) DO NOTHING`, org.ID, userID, string(role))
 		added = tag.RowsAffected() == 1
 		return err
 	})

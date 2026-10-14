@@ -137,7 +137,7 @@ func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgR
 		}
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, $2, $3)
-			ON CONFLICT (org_id, group_ref) DO UPDATE SET org_role = EXCLUDED.org_role
+			ON CONFLICT (group_ref) DO UPDATE SET org_role = EXCLUDED.org_role
 			RETURNING id, group_ref, org_role, updated_at`, org.ID, group, string(role),
 		).Scan(&saved.ID, &saved.Group, &saved.Role, &saved.UpdatedAt); err != nil {
 			return err
