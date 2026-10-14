@@ -169,16 +169,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -1316,7 +1306,10 @@
                 "armature.connected",
                 "armature.disconnected",
                 "installation.renamed",
-                "comment.deleted"
+                "comment.deleted",
+                "approval_rule.saved",
+                "approval_rule.removed",
+                "review.withdrawn"
               ]
             }
           },
@@ -1468,7 +1461,10 @@
                 "armature.connected",
                 "armature.disconnected",
                 "installation.renamed",
-                "comment.deleted"
+                "comment.deleted",
+                "approval_rule.saved",
+                "approval_rule.removed",
+                "review.withdrawn"
               ]
             }
           },
@@ -4641,16 +4637,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4720,16 +4706,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9009,16 +8985,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10053,16 +10019,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10142,16 +10098,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10740,16 +10686,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10796,16 +10732,6 @@
                   "required": [
                     "review"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -10900,16 +10826,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10972,16 +10888,6 @@
           },
           "409": {
             "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13950,7 +13856,10 @@
               "armature.connected",
               "armature.disconnected",
               "installation.renamed",
-              "comment.deleted"
+              "comment.deleted",
+              "approval_rule.saved",
+              "approval_rule.removed",
+              "review.withdrawn"
             ]
           },
           "actorId": {
@@ -14040,7 +13949,10 @@
                 "armature.connected",
                 "armature.disconnected",
                 "installation.renamed",
-                "comment.deleted"
+                "comment.deleted",
+                "approval_rule.saved",
+                "approval_rule.removed",
+                "review.withdrawn"
               ]
             }
           },
@@ -17207,6 +17119,9 @@
       "Requirement": {
         "type": "object",
         "properties": {
+          "approval": {
+            "$ref": "#/components/schemas/Approval"
+          },
           "attributes": {
             "type": "object",
             "additionalProperties": {
@@ -17381,7 +17296,8 @@
           "trashedAt",
           "can",
           "comments",
-          "watching"
+          "watching",
+          "approval"
         ]
       },
       "RequirementCan": {

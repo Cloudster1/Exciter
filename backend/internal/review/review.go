@@ -133,10 +133,6 @@ type DecisionInput struct {
 	Comment  string   `json:"comment,omitempty"`
 }
 
-// Approval is a requirement's standing for the workflow and the page: the review now open, and the latest revision
-// approved, which counts only while it is the current one.
-type Approval struct {
-	Pending          *uuid.UUID `json:"pendingReviewId"`
-	ApprovedRevision *int       `json:"approvedRevision"`
-	Current          bool       `json:"current"`
-}
+// Approval is a requirement's standing for the workflow and the page; the requirement carries it too, so it is the
+// requirement's type.
+type Approval = requirement.Approval

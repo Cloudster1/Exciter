@@ -36,6 +36,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/theme"
@@ -107,6 +108,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Comments:      comment.NewService(h.cluster),
 		Watches:       watch.NewService(h.cluster),
 		Notifications: notify.NewService(h.cluster),
+		Reviews:       review.NewService(h.cluster),
 		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

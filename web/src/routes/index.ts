@@ -26,6 +26,7 @@ import {
   workflowDesignRoute,
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
+import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
 import { linkTypesRoute, membersRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
@@ -68,6 +69,7 @@ const routeTree = rootRoute.addChildren([
     notificationsRoute,
     notificationSettingsRoute,
     watchingRoute,
+    reviewsRoute,
     themeNewRoute,
     themeEditRoute,
   ]),

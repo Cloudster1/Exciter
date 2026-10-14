@@ -141,7 +141,7 @@ describe("the notification bell", () => {
     for (const words of [
       "Bob Builder mentioned you in a comment on CHK-R1",
       "Bob Builder asks you to review CHK-R1",
-      "The review of CHK-R1 is decided",
+      "Bob Builder decided the review of CHK-R1",
       "A link of CHK-R1 needs checking after Bob Builder revised its other end",
       "Bob Builder replied in a thread on CHK-R1",
       "Bob Builder commented on CHK-R1",

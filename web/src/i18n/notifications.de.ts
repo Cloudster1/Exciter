@@ -61,7 +61,7 @@ export const notificationsDe: typeof notificationsEn = {
       case "review_requested":
         return `${who} bittet Sie, ${key} zu prüfen`;
       case "reviewed":
-        return `Über die Prüfung von ${key} ist entschieden`;
+        return `${who} hat über die Prüfung von ${key} entschieden`;
       case "suspect":
         return `Eine Verknüpfung von ${key} muss geprüft werden, weil ${who} ihr anderes Ende überarbeitet hat`;
       case "replied":

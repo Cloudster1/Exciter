@@ -10,6 +10,7 @@ import { tokensDe } from "./tokens.de";
 import { armatureDe } from "./armature.de";
 import { commentsDe } from "./comments.de";
 import { notificationsDe, watchDe } from "./notifications.de";
+import { reviewDe } from "./reviews.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -280,6 +281,9 @@ export const de: Messages = {
       "armature.disconnected": "Armature getrennt",
       "installation.renamed": "Installation umbenannt",
       "comment.deleted": "Kommentar gelöscht",
+      "approval_rule.saved": "Freigaberegel gespeichert",
+      "approval_rule.removed": "Freigaberegel entfernt",
+      "review.withdrawn": "Prüfung zurückgezogen",
     },
     targetTypes: {
       user: "Person",
@@ -315,6 +319,7 @@ export const de: Messages = {
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,
+  review: reviewDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

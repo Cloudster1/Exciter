@@ -76,6 +76,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Review and approval of revisions (#35). A project's administrators name
+  who approves the requirements of each type and how many approvals it
+  takes. An editor asks for the current revision to be approved; the review
+  pins it and freezes its approvers, who approve or reject it from the
+  requirement or from their inbox at `/reviews`. A new revision supersedes a
+  pending review, and an approval counts only for the revision it named. The
+  workflow condition "Approved" lets a transition through only for an
+  approved current revision.
 - Watching and notifications (#34). Anybody watches a requirement, or a
   whole project, and hears about new revisions, status changes and comments
   there; a mention, a reply in one's thread and a resolved thread are told

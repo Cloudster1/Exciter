@@ -32,8 +32,8 @@ func subjectOf(ctx context.Context, tx db.DBTX, l *loaded) (workflow.Subject, er
 	if l.Owner != nil {
 		s.OwnerID = &l.Owner.ID
 	}
-	err := tx.QueryRow(ctx, `SELECT created_by FROM requirement_revision WHERE requirement_id = $1 AND number = $2`,
-		l.ID, l.Revision).Scan(&s.LatestAuthor)
+	err := tx.QueryRow(ctx, `SELECT created_by, requirement_approved($1) FROM requirement_revision WHERE requirement_id = $1 AND number = $2`,
+		l.ID, l.Revision).Scan(&s.LatestAuthor, &s.Approved)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return s, err
 	}

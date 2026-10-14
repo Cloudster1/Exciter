@@ -188,6 +188,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := notifyError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := reviewError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := armatureLinkError(err); apiErr != nil {
 			return apiErr
 		}
