@@ -78,6 +78,10 @@ var ownAssetURL = regexp.MustCompile(`/api/v1/themes/([0-9a-f-]{36})/assets/([0-
 // Import makes the package a theme of the owner's own, its files under new ids
 // that the spec and the CSS are rewritten to name; a taken name gets a number.
 func (s *Service) Import(ctx context.Context, owner uuid.UUID, pkg *Package) (*Theme, db.LSN, error) {
+	return s.importPackage(ctx, owner, pkg, nil)
+}
+
+func (s *Service) importPackage(ctx context.Context, owner uuid.UUID, pkg *Package, mirror *MirrorOf) (*Theme, db.LSN, error) {
 	if pkg == nil || pkg.Format != PackageFormat {
 		return nil, 0, ErrNotAThemeFile
 	}
@@ -101,7 +105,7 @@ func (s *Service) Import(ctx context.Context, owner uuid.UUID, pkg *Package) (*T
 		if n > 1 {
 			attempt = fmt.Sprintf("%s (%d)", name, n)
 		}
-		made, lsn, err = s.Create(ctx, owner, Input{Name: &attempt})
+		made, lsn, err = s.create(ctx, owner, Input{Name: &attempt}, mirror)
 		if !errors.Is(err, ErrDuplicateName) {
 			break
 		}

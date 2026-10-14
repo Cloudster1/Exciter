@@ -25,7 +25,7 @@ export interface ThemeInput {
 }
 
 /** Where the theme the reader sees came from: their choice, the installation's default, or nothing. */
-export type ThemeSource = "chosen" | "everyone" | "";
+export type ThemeSource = "chosen" | "everyone" | "armature" | "";
 
 // The server leaves out a backdrop rather than sending null, and takes either;
 // the compiler's null is dropped on the way out so the wire type holds.
@@ -42,6 +42,8 @@ export const themesQueryKey = ["themes"] as const;
 export const activeThemeQueryKey = ["themes", "active"] as const;
 export const defaultThemeQueryKey = ["themes", "default"] as const;
 export const themeExamplesQueryKey = ["themes", "examples"] as const;
+/** Whether the caller follows their Armature theme (#30), which choosing a theme ends. */
+export const armatureThemeQueryKey = ["armature", "theme"] as const;
 
 export function useThemes() {
   return useQuery({
@@ -131,10 +133,18 @@ export type ThemeChoice = string | null | { builtIn: true };
 
 /** Uses a theme, returns to the installation's default with null, or keeps the built-in one over it. */
 export function useChooseTheme() {
-  return useThemeMutation(async (choice: ThemeChoice) => {
-    const body = choice !== null && typeof choice === "object" ? { themeId: null, builtIn: true } : { themeId: choice };
-    const { data } = await api.PUT("/themes/active", { body });
-    return { theme: data?.theme ? fromWire(data.theme) : null };
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (choice: ThemeChoice) => {
+      const body = choice !== null && typeof choice === "object" ? { themeId: null, builtIn: true } : { themeId: choice };
+      const { data } = await api.PUT("/themes/active", { body });
+      return { theme: data?.theme ? fromWire(data.theme) : null };
+    },
+    // Any choice ends following the Armature theme.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: themesQueryKey });
+      void queryClient.invalidateQueries({ queryKey: armatureThemeQueryKey });
+    },
   });
 }
 

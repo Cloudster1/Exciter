@@ -44,6 +44,7 @@ var installationWide = map[string]string{
 	"TestRequirementsAreTracedToArmatureIssues":                armatureLink,
 	"TestIssuesAreMadeFromRequirements":                        armatureLink,
 	"TestArmatureWebhooksRefreshLinkedIssues":                  armatureLink,
+	"TestAPersonFollowsTheThemeArmatureShowsThem":              armatureLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,

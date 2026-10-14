@@ -381,7 +381,7 @@ Changed: `GET /themes/active` answers `source: "armature"` while the caller
 follows Armature and Armature answered.
 
 - As Stator's #34: following is kept on the person's `user_theme`, wins over
-  the organization's default and ends when they choose a theme. The theme is
+  the default for everyone and ends when they choose a theme. The theme is
   Armature's `GET /themes/active` within `armature.ThemeTimeout`, 2 seconds,
   downloaded with `GET /themes/{id}/export`, checked as an `armature-theme/1`
   import and kept as the person's private mirror, downloaded again only for
@@ -390,6 +390,28 @@ follows Armature and Armature answered.
   `GET /armature/theme` says why.
 - **UI:** "Follow my Armature theme" on the themes page, for whoever stored a
   token.
+- **As built** (#30):
+  - Migration 00440, Stator's 00173: `theme.armature_theme_id` and
+    `armature_updated_at` mark a mirror, which is never shared
+    (`theme_mirror_private`) and takes Armature's name beside a theme of the
+    same name; `user_theme.follow_armature` never names a theme as well
+    (`user_theme_follow_alone`), and a mirror is never chosen
+    (`user_theme_not_mirror`). Each is proven through SQL as `exciter_app`.
+  - A mirror is not listed, read, edited, shared, exported or chosen through
+    `/themes`; only its owner's page loads its files. Choosing a theme or
+    stopping removes it, files included.
+  - A copy takes several writes, so a mirror under way carries
+    `theme.MirrorPending` as its time: no reader takes it, and no other copy
+    removes it.
+  - A theme Armature shows that fails Exciter's checks is remembered in the
+    cache as invalid, so it is not downloaded on every page; following it is
+    422 `armature_theme_invalid`, and a follower sees why on the themes page.
+  - `error` in `{follow}` is empty, not null, when there is nothing to say.
+  - The themes page names a followed theme: "You are using Deep-Tech, the
+    theme you use in Armature."
+  - The stub shows each person one of the example themes, set with
+    `PUT /_stub/{tenant}/people/{person}/theme`, broken on request, and holds
+    the answer back with `.../theme-delay`.
 
 ## #31 Run Exciter, Armature and Stator together
 

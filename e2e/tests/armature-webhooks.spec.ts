@@ -12,6 +12,8 @@ const KEY = uniqueKey("AWH");
 const TENANT = "e2e-armature-webhooks";
 const SECRET = `armature_whs_${"e2e".repeat(14)}x`;
 const patFor = (tenant: string, person: string) => `armature_pat_${tenant}_${person}`;
+// A webhook writes as nobody, so a page read may reach a replica that has not replayed it yet; it is read again.
+const REPLAY_WAIT_MS = 1000;
 
 async function stub(method: string, path: string, body?: unknown): Promise<Response> {
   const res = await fetch(`${armatureURL()}/_stub/${TENANT}${path}`, {
@@ -73,12 +75,16 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
     expect(ours?.url).toContain("/r/");
     await stub("DELETE", `/issues/CP-4/remote-links?url=${encodeURIComponent(ours!.url)}`);
     expect(await lastDelivery()).toMatchObject({ topic: "issue.remote_link.removed", status: 204 });
-    await page.goto(url.toString());
-    await expect(link.getByText("Removed in Armature")).toBeVisible();
+    await expect(async () => {
+      await page.goto(url.toString());
+      await expect(link.getByText("Removed in Armature")).toBeVisible({ timeout: REPLAY_WAIT_MS });
+    }).toPass();
 
     await stub("DELETE", "/issues/CP-4");
     expect(await lastDelivery()).toMatchObject({ topic: "issue.deleted", status: 204 });
-    await page.reload();
-    await expect(link.getByText("Deleted in Armature")).toBeVisible();
+    await expect(async () => {
+      await page.reload();
+      await expect(link.getByText("Deleted in Armature")).toBeVisible({ timeout: REPLAY_WAIT_MS });
+    }).toPass();
   });
 });

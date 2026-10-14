@@ -46,6 +46,12 @@ type person struct {
 	ReadOnly bool
 	// Reads are the projects they see but may not file issues in.
 	Reads map[string]bool
+	// Theme is the key of the example theme Armature shows them, or empty for its built-in one; ThemeBroken exports
+	// it with a colour no theme may hold, and ThemeDelay holds back the answer to GET /themes/active.
+	Theme        string
+	ThemeChanged time.Time
+	ThemeBroken  bool
+	ThemeDelay   time.Duration
 }
 
 func (p *person) writes(pr *project) bool { return p.sees(pr) && !p.Reads[pr.Key] }

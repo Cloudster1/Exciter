@@ -799,16 +799,6 @@
           "204": {
             "description": "No Content"
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -842,16 +832,6 @@
                   "required": [
                     "follow"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -905,16 +885,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7719,7 +7689,7 @@
     "/themes/active": {
       "get": {
         "operationId": "activeTheme",
-        "summary": "The theme the caller sees: chosen, the default for everyone, or null for the built-in one; source says which.",
+        "summary": "The theme the caller sees: chosen, followed from Armature, the default for everyone, or null for the built-in one; source says which.",
         "tags": [
           "themes"
         ],
@@ -7736,6 +7706,7 @@
                       "enum": [
                         "chosen",
                         "everyone",
+                        "armature",
                         ""
                       ]
                     },

@@ -55,6 +55,8 @@ describe("the themes page", () => {
   it("says which theme the reader sees and where it came from", () => {
     expect(activeThemeMeta(null, "", undefined)).toBe("You are using the built-in theme.");
     expect(activeThemeMeta(theme({}), "chosen", undefined)).toBe("You are using Magenta.");
+    expect(activeThemeMeta(theme({}), "armature", undefined)).toBe("You are using Magenta, the theme you use in Armature.");
+    expect(activeThemeMeta(null, "armature", theme({}))).toBe("You are using the built-in theme, as you do in Armature.");
     expect(activeThemeMeta(theme({}), "everyone", undefined)).toBe("You are using Magenta, the default for everyone.");
     expect(activeThemeMeta(null, "", theme({ name: "House" }))).toBe("You are using the built-in theme, over House, the default for everyone.");
   });

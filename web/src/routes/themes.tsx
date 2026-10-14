@@ -12,6 +12,7 @@ import {
   type Theme,
 } from "@/api/themes";
 import { administers as canAdminister, useMe } from "@/api/auth";
+import { FollowArmatureTheme } from "@/features/armature/FollowArmatureTheme";
 import { Button, EmptyState, ErrorBanner, IconButton, Menu, PageHeader, Segmented, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { THEMES_PATH } from "@/config";
@@ -31,6 +32,7 @@ export function inThemeView(theme: Theme, view: View, me: string | undefined): b
 /** What the page says about the theme the reader sees. */
 export function activeThemeMeta(seen: Theme | null, source: string, orgDefault: Theme | undefined): string {
   if (seen && source === "everyone") return t.themes.usingDefault(seen.name);
+  if (source === "armature") return seen ? t.themes.usingArmature(seen.name) : t.themes.usingArmatureBuiltIn;
   if (seen) return t.themes.using(seen.name);
   if (orgDefault) return t.themes.usingBuiltInOverDefault(orgDefault.name);
   return t.themes.usingBuiltIn;
@@ -112,6 +114,7 @@ function ThemesPage() {
           </>
         }
       />
+      <FollowArmatureTheme />
       <div className="mb-4">
         <Segmented<View>
           label={t.themes.show}

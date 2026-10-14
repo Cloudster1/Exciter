@@ -69,6 +69,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Following the Armature theme (#30). Whoever stored an Armature token can
+  switch on "Follow my Armature theme" on the themes page: Exciter then
+  shows the theme they use in Armature, kept as a private copy and fetched
+  again when it changes there. A slow Armature, a refused token or a theme
+  Exciter cannot use falls back to the theme they would have otherwise, and
+  the page says why. Choosing a theme stops following.
 - Armature's webhooks (#29). Armature tells Exciter at
   `/api/v1/armature/webhook` when a linked issue changes, signed with the
   secret stored under Settings, Armature: a requirement then shows the issue
