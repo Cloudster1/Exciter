@@ -35,9 +35,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `EXCITER_BOOTSTRAP_ORG_NAME`; an administrator renames it under Settings,
   Installation. Somebody let go is told their account has been switched off,
   and their open session ends.
-- Upgrading: a database holding several organizations is refused, naming
-  them; keep the one to go on with, delete the others with
-  `DELETE FROM org WHERE slug = ...`, and migrate again.
+- Upgrading to one installation (#82, #89):
+  - A database holding several organizations is refused, naming them; keep
+    the one to go on with, delete the others with
+    `DELETE FROM org WHERE slug = ...`, and migrate again.
+  - `EXCITER_NAME` names the installation on its first start and replaces
+    `EXCITER_BOOTSTRAP_ORG_SLUG` and `EXCITER_BOOTSTRAP_ORG_NAME`.
+  - Removed without a redirect, as no release shipped with them:
+    `/auth/oidc/{orgSlug}/start` (now `/auth/oidc/start`),
+    `POST /auth/switch-org`, `/org/tokens` (now `/tokens/everyone`),
+    `/settings/organization-tokens` (now `/settings/all-tokens`),
+    `/armature/webhook/{orgSlug}` (now `/armature/webhook`) and the Armature
+    connection's `orgSlug`.
 
 ### Added
 
@@ -48,7 +57,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
   know without a token. The worker puts the requirement on each issue in
   Armature as the person who changed it, keeps it current through new
   revisions, keys, trash and purge, and says why when Armature refused it.
-- Connecting Armature (#26). An administrator connects the organization's
+- Connecting Armature (#26). An administrator connects the installation's
   Armature under Settings, Armature, with the webhook's address, topics and
   secret; each person pastes their own Armature token under Your account,
   Armature account, sees whom it acts as, checks it and disconnects it, and
@@ -79,8 +88,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - Personal access tokens and MCP (#22). A person makes tokens under their
   account, read-only or not, limited to some projects or not, with an
   expiry, and sees each secret once; administrators see and revoke
-  everybody's. A script sends one as a bearer and acts as its owner in one
-  organization: a read-only token is refused every write, and a limited one
+  everybody's. A script sends one as a bearer and acts as its owner: a read-only token is refused every write, and a limited one
   reaches its projects alone, which the database holds too. `POST /mcp`
   serves assistants the tools to list projects, read, search, write, link
   and transition requirements and read their history, offering a token only
@@ -95,7 +103,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
   removes for purged requirements and deleted projects too. A copy takes
   the files and shows its own.
 - Trace links (#18). A requirement links to another, in this project or any
-  other the person may view, by the organization's link types (derives,
+  other the person may view, by the link types for all projects (derives,
   refines, satisfies, verifies, conflicts, relates) or a project's own. The
   links panel groups them by type and direction, finds the other end by key
   or title, and refuses a link to the requirement itself, a repeat, and a
@@ -114,8 +122,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
   shows the columns chosen and changes titles, priorities and values in
   place. A grid saves as a view, kept to its owner or shared with the
   project.
-- Labels (#19). Any requirement or section carries the organization's
-  labels, coined by typing one that nobody uses yet; the label box offers
+- Labels (#19). Any requirement or section carries
+  labels shared by everyone, coined by typing one that nobody uses yet; the label box offers
   the labels already in use, the most used first, counting only what the
   reader may see. Adding or removing one is logged in the activity and never
   writes a revision. A label leads to the project's requirements with it,
@@ -171,9 +179,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   maker's to run and everyone's to edit. Guests are let in only by grants
   that name them or their groups, and never run a project. The access
   inspector shows, for any member, what they may do in the project and which
-  grant decides it, as the database answers it. The organization's owners and
+  grant decides it, as the database answers it. The installation's owners and
   administrators still hold every right in every project.
-- Projects (#11). Owners and administrators of the organization make a
+- Projects (#11). Owners and administrators make a
   project with a key such as `CHK`, which the form suggests from the name and
   the server keeps free. A project can be renamed, given a new key, archived
   and deleted once archived. A key it had keeps finding it, and stays taken.
@@ -193,14 +201,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   theme's editor, the not-found page and the sign-in page in light and dark,
   at desktop and phone widths. The specs sign in with a password and out
   again, sign in through the stack's Keycloak as alice@suite.test and land in
-  the organization with the role her groups give, switch light and dark from
-  the rail, import Armature's Minecraft theme, name the organization's default
-  theme and see it as another member, add, re-role and remove members, and
-  page through the audit log by mouse and keyboard. Each spec file works in a
-  throwaway organization of its own, which the api makes and removes through
-  test endpoints that only the development stack switches on
-  (`EXCITER_TEST_ENDPOINTS`, refused in production) and that the API's
-  document leaves out. `make test-e2e ONLY=<grep>` runs part of it. The link
+  the installation with the role her groups give, switch light and dark from
+  the rail, import Armature's Minecraft theme, name the default theme for
+  everyone and see it as another member, add, re-role and switch members off
+  and on, and page through the audit log by mouse and keyboard. Each spec file
+  keeps to people and project keys of its own, and the specs that change
+  what everyone sees run one at a time (#83). `make test-e2e ONLY=<grep>` runs part of it. The link
   to the themes on the default theme page is underlined, which axe asked for.
 - Themes (#8), in Armature's `armature-theme/1` format, so a theme exported
   from Armature or Stator imports unchanged and leaves the same way. The rail
@@ -216,21 +222,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
   private theme its owner's, lets only the owner or, once shared, an
   administrator change one, and keeps each choice to the person who made it.
 - Exciter has a logo and a favicon (#56). The sign-in page shows the logo, the
-  sidebar shows the gopher's face beside the organization's name, and the
+  sidebar shows the gopher's face beside the installation's name, and the
   browser tab, touch icon and web app manifest use the same face, which still
   reads at 16 pixels. `make branding` makes them from
   `assets/branding/logo.jpg`.
-- Single sign-on through the organization's identity provider (#7). The
-  sign-in page takes the organization's name and sends the reader to its
-  provider (authorization code with PKCE); a person is matched by the
+- Single sign-on through the installation's identity provider (#7). The
+  sign-in page sends the reader to the provider (authorization code with
+  PKCE); a person is matched by the
   provider's subject, so they are the same user in Exciter, Armature and
   Stator, and their provider groups are synced at every sign-in.
   Administrators set the provider up under Settings, Single sign-on, map
   provider groups to the admin or member role, which members follow at their
   next sign-in, and let in or turn away people the provider vouched for who
-  are not members yet; every change is in the audit log. A sign-in through a
-  provider reaches the organizations that trust the same provider.
-  `make up` signs the demo organization in through the stack's Keycloak as
+  are not members yet; every change is in the audit log.
+  `make up` signs the demo installation in through the stack's Keycloak as
   alice@suite.test (an administrator) or bob@suite.test, and behind nginx
   sessions and the audit log record the client's address rather than the
   proxy's (`EXCITER_TRUSTED_PROXIES`).
@@ -239,24 +244,22 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `http://localhost:<web port>`. A person signs in with a password, lands on a
   home page that says what Exciter is for, and finds their way by a rail, a
   sidebar that folds or becomes a drawer on a phone, breadcrumbs, and Ctrl K,
-  which goes to any page or organization from the keyboard. The account menu
-  switches between English and German and signs out; a person in more than
-  one organization switches between them in the top bar. Administrators
-  add members (a made password is shown once), change their roles, remove
-  them after a confirmation, and read, filter and export the audit log. A
+  which goes to any page from the keyboard. The account menu switches between
+  English and German and signs out. Administrators add members (a made
+  password is shown once), change their roles, switch them off after a
+  confirmation, and read, filter and export the audit log. A
   session that ends sends the reader to sign in and back. `make check-web`
   and `make check-format` join the gate.
-- Organizations, members and password sessions (#5). `POST /auth/login` signs
-  a local account in with an argon2id password and sets an http-only session
-  cookie; `/auth/me`, `/auth/switch-org` and `/auth/logout` follow it. An
-  administrator lists, adds, re-roles (admin, member, guest) and removes
-  members, each act in the audit log, which administrators now read, filter
-  and export through `/audit`. `seed bootstrap` makes the first organization
-  and its owner; `make up` signs in as `admin@exciter.test`.
+- Members and password sessions (#5). `POST /auth/login` signs a local
+  account in with an argon2id password and sets an http-only session cookie;
+  `/auth/me` and `/auth/logout` follow it. An administrator lists, adds,
+  re-roles (admin, member, guest) and switches off members, each act in the audit log, which administrators now read, filter
+  and export through `/audit`. `seed bootstrap` makes the installation and its
+  owner; `make up` signs in as `admin@exciter.test`.
 - The outbox, the worker and the audit log (#4). A change and the event it
   causes commit together or not at all; the worker drains the outbox, any
   number of copies at once, retries a failing event a little later each time
-  and after ten attempts sets it aside with an entry in the organization's
+  and after ten attempts sets it aside with an entry in the
   audit log. The log is only ever added to, read only by owners and
   administrators, and pruned after `EXCITER_RETAIN_AUDIT` (a year by default,
   never less than a day). Its endpoints are agreed and served with #5.
@@ -264,9 +267,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `/api/v1/openapi.json` and `/api/v1/meta` from one route table that also
   writes `api/openapi.json`; reads go to the replica unless it has not
   replayed the caller's own last write. `make up` now migrates, seeds the demo
-  organization and starts the api. Every table forces row level security, and
-  the integration suite proves through raw SQL as `exciter_app` that one
-  organization cannot read another's rows.
+  installation and starts the api. Every table forces row level security, and
+  the integration suite proves through raw SQL as `exciter_app` that the
+  permission policies hold.
 - A development stack (#2). `make up` starts Postgres with a streaming
   replica, Valkey, SeaweedFS, Mailpit and Keycloak on twenty ports of the
   checkout's own between 10000 and 19999, so worktrees and a Stator checkout

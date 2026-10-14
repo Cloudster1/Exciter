@@ -3,6 +3,43 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: One installation is one team's requirements (#89)
+
+Exciter is self-hosted, and an installation serves one team, as Armature and
+Stator decided for theirs. Organizations were a layer such an installation
+never used: naming one at sign-in, switching between them, a provider and a
+slug each, an owner rule per organization, and one copy per organization of
+settings there is really one of. They are gone from everything people and the
+API see (#82): the first start makes the installation, a sign-in lands in it,
+letting somebody go switches them off, the Armature connection is an address,
+and the product says "everyone", "all projects" or "Exciter". People who must
+not see each other's work run an installation each.
+
+Several organizations in one database are refused at the upgrade rather than
+merged (#84). Their project keys, statuses, workflows, link types, roles and
+people would collide, every rule for which one wins would be wrong for
+somebody, and a migration would be choosing for them with nobody watching.
+Refusing leaves the choice with the operator, and the refusal names the
+statement that deletes the others.
+
+Inside, the product went first and the schema follows. The one organization
+row still holds the installation's name and default theme, the tables still
+carry `org_id`, and forced row level security on `current_org_id()` still
+scopes every query, now to the one organization there is. That kept every
+step shippable with all four test layers green. The integration suite keeps
+its tests apart by organization until it isolates them another way (#90), and
+the columns and tenant policies go with the schema ticket (#91); the
+restrictive permission policies, which are Exciter's guards, stay.
+
+This supersedes what the older entries say about organizations as part of
+the product. An entry that calls labels, statuses, workflows, link types or
+themes "the organization's", or takes a lock per organization, was written
+while that was the installation's name, and its argument stands.
+
+**Reconsider if** one installation routinely needs a group inside it that the
+others must not see at all: that is a wall around people and settings, the
+way a project is a wall around work, not organizations coming back.
+
 ## 2026-10-14: The screen says everyone, all projects or Exciter (#88)
 
 An installation is one team's, so a setting that reaches everybody is "for
