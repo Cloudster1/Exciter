@@ -69,13 +69,16 @@ func TestRawSQLKeepsThemesToTheirPeople(t *testing.T) {
 		}
 		return n
 	}
-	tables := []string{"theme", "theme_asset", "user_theme"}
 
-	t.Run("nothing unscoped reaches a theme, and another member changes nobody's", func(t *testing.T) {
+	t.Run("acting for nobody reaches no private theme or choice, and another member changes nobody's", func(t *testing.T) {
 		unscoped := h.appConnUnscoped(t)
-		for _, table := range tables {
-			if n := count(unscoped, `SELECT count(*) FROM `+table); n != 0 {
-				t.Errorf("an unscoped connection sees %d rows in %s", n, table)
+		for what, sql := range map[string]string{
+			"the private theme":  `SELECT count(*) FROM theme WHERE id = '` + rows.privateID.String() + `'`,
+			"its file":           `SELECT count(*) FROM theme_asset WHERE id = '` + rows.privateFile.String() + `'`,
+			"anybody's choosing": `SELECT count(*) FROM user_theme`,
+		} {
+			if n := count(unscoped, sql); n != 0 {
+				t.Errorf("a connection acting for nobody sees %d of %s", n, what)
 			}
 		}
 		stranger := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))

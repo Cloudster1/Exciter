@@ -175,7 +175,7 @@ func mayBeSwitchedOff(ctx context.Context, tx db.DBTX, org, userID uuid.UUID, ro
 		return nil
 	}
 	var others bool
-	if err := tx.QueryRow(ctx, `SELECT administered_without($1, $2)`, org, userID).Scan(&others); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT administered_without($1)`, userID).Scan(&others); err != nil {
 		return err
 	}
 	if !others {

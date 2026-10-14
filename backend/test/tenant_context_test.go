@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -36,12 +37,20 @@ func TestUnscopedAccessIsRefused(t *testing.T) {
 	}
 }
 
-// The service refusing is not proof. Straight through SQL as exciter_app, with no help from the Go code, the
-// database shows nothing to a connection that names no installation, and refuses every way around its policies.
-// While the tables carry org_id (#91) that is the tenant setting; the cases between organizations went with them
-// from the product (#90).
-func TestRawSQLAsTheAppRoleSeesNothingUnscoped(t *testing.T) {
-	newHarness(t)
+// The service refusing is not proof. Straight through SQL as exciter_app, with no help from the Go code, a
+// connection acting for nobody reads the installation and its people, which are everyone's (#106), but no project,
+// requirement, session, identity, sign-in in flight or anything only an administrator reads; and every way around
+// the policies is refused.
+func TestRawSQLAsTheAppRoleActingForNobody(t *testing.T) {
+	h := newHarness(t)
+	home := h.owner(t, "nobody-acting")
+	nobodyKey := projectKey(t, "NOBO")
+	var project uuid.UUID
+	if err := h.super.QueryRow(context.Background(), `INSERT INTO project (org_id, key, name, created_by) VALUES ($1, $2, 'Walled', $3) RETURNING id`,
+		home.org, nobodyKey, home.user).Scan(&project); err != nil {
+		t.Fatal(err)
+	}
+	h.settle(t)
 
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, os.Getenv(envPrimary))
@@ -68,18 +77,34 @@ func TestRawSQLAsTheAppRoleSeesNothingUnscoped(t *testing.T) {
 		return n
 	}
 
-	t.Run("with no tenant set nothing is visible", func(t *testing.T) {
+	t.Run("acting for nobody it reads the installation and its people, and nothing walled", func(t *testing.T) {
 		for _, table := range []string{"org", "app_user", "org_member"} {
-			if got := countOf(`SELECT count(*) FROM ` + table); got != 0 {
-				t.Errorf("an unscoped connection sees %d rows in %s, want none", got, table)
+			if got := countOf(`SELECT count(*) FROM ` + table); got == 0 {
+				t.Errorf("a connection acting for nobody reads no %s, want the installation's", table)
 			}
+		}
+		for what, sql := range map[string]string{
+			"the project":              `SELECT count(*) FROM project WHERE id = '` + project.String() + `'`,
+			"its statuses":             `SELECT count(*) FROM req_status WHERE project_id = '` + project.String() + `'`,
+			"sessions":                 `SELECT count(*) FROM user_session`,
+			"identities":               `SELECT count(*) FROM user_identity`,
+			"the identity provider":    `SELECT count(*) FROM oidc_provider`,
+			"people waiting to be let": `SELECT count(*) FROM org_join_request`,
+			"the audit log":            `SELECT count(*) FROM audit_log`,
+		} {
+			if got := countOf(sql); got != 0 {
+				t.Errorf("a connection acting for nobody reads %d of %s, want none", got, what)
+			}
+		}
+		if _, err := conn.Exec(ctx, `SELECT count(*) FROM oidc_login`); !isPermissionDenied(err) {
+			t.Errorf("the app role reading sign-ins in flight = %v, want permission denied", err)
 		}
 	})
 
 	for _, attempt := range []struct{ name, sql string }{
 		{"turning row security off", `SET row_security = off; SELECT count(*) FROM org`},
 		{"disabling the policies", `ALTER TABLE org DISABLE ROW LEVEL SECURITY`},
-		{"dropping a policy", `DROP POLICY org_tenant_isolation ON org`},
+		{"dropping a policy", `DROP POLICY org_installation ON org`},
 		{"becoming the exempt role", `SET ROLE exciter_admin`},
 		{"making an organization", `INSERT INTO org (slug, name) VALUES ('sneaky', 'Sneaky')`},
 	} {
@@ -121,14 +146,15 @@ func TestPrivilegedRolesAreRefused(t *testing.T) {
 	}
 }
 
-// A table a migration adds without forcing row level security, or without the
-// admin's bypass, is caught here rather than in production.
+// A table a migration adds without forcing row level security, or without a permissive policy that lets the admin
+// role through, is caught here rather than in production.
 func TestEveryTableForcesRowSecurity(t *testing.T) {
 	h := newHarness(t)
 	rows, err := h.super.Query(context.Background(), `
 		SELECT c.relname, c.relrowsecurity AND c.relforcerowsecurity,
 		       EXISTS (SELECT 1 FROM pg_policies p
-		               WHERE p.schemaname = 'public' AND p.tablename = c.relname AND 'exciter_admin' = ANY (p.roles))
+		               WHERE p.schemaname = 'public' AND p.tablename = c.relname AND p.permissive = 'PERMISSIVE'
+		                 AND p.qual = 'true' AND ('exciter_admin' = ANY (p.roles) OR 'public' = ANY (p.roles)))
 		FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
 		WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname <> 'goose_db_version'
 		ORDER BY c.relname`)
@@ -162,6 +188,12 @@ func TestEveryTableForcesRowSecurity(t *testing.T) {
 
 // isPolicyViolation recognises the error a WITH CHECK clause raises.
 func isPolicyViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "42501"
+}
+
+// isPermissionDenied recognises the error a privilege the role lacks raises.
+func isPermissionDenied(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "42501"
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -57,16 +58,22 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 	a := h.owner(t, "iota")
 	h.signInRows(t, a)
 	ctx := context.Background()
-	tenantTables := []string{"groups", "group_member", "oidc_provider", "oidc_group_role", "oidc_login", "org_join_request"}
+	tenantTables := []string{"groups", "group_member", "oidc_provider", "oidc_group_role", "org_join_request"}
 	adminTables := []string{"oidc_provider", "oidc_group_role", "org_join_request"}
 	globalTables := []string{"user_session", "user_identity"}
 
-	t.Run("with no tenant set nothing is visible", func(t *testing.T) {
+	t.Run("acting for nobody, the administrators' rows and the tables that span the installation stay hidden", func(t *testing.T) {
 		unscoped := h.appConnUnscoped(t)
-		for _, table := range append(tenantTables, globalTables...) {
+		for _, table := range append(adminTables, globalTables...) {
 			var n int
 			if err := unscoped.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&n); err != nil || n != 0 {
-				t.Errorf("an unscoped connection sees %d rows in %s (%v)", n, table, err)
+				t.Errorf("a connection acting for nobody sees %d rows in %s (%v)", n, table, err)
+			}
+		}
+		// A sign-in in flight, with its nonce and verifier, is the admin role's alone, whoever acts.
+		for who, conn := range map[string]*pgx.Conn{"nobody": unscoped, "an owner": h.appConn(t, a.org, a.user)} {
+			if _, err := conn.Exec(ctx, `SELECT count(*) FROM oidc_login`); !isPermissionDenied(err) {
+				t.Errorf("the app role acting for %s reading sign-ins in flight = %v, want permission denied", who, err)
 			}
 		}
 	})

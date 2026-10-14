@@ -85,11 +85,6 @@ func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 		return audit.Write(ctx, tx, home.org, audit.Entry{Action: audit.ActionAuditExported, TargetType: "org", Actor: memberID})
 	})
 	permissionDenied(t, "an entry naming somebody else", err)
-	_, err = h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `SELECT audit_log_prune(now() - interval '400 days')`)
-		return err
-	})
-	permissionDenied(t, "pruning outside an organization", err)
 	_, err = h.cluster.WriteAdmin(tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), func(ctx context.Context, tx db.DBTX) error {
 		_, err := tx.Exec(ctx, `SELECT audit_log_prune(now() - interval '23 hours')`)
 		return err

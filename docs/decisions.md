@@ -3,6 +3,40 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-14: Row security keeps the walls, not the organization (#106)
+
+The tenant policies kept one organization apart from none, so they went: each
+table's became one permissive policy for every role, `USING (true)`, and the
+admin role's bypass went with it as redundant. Armature dropped row security
+altogether at the same step; Exciter keeps it, because its walls are its 109
+restrictive permission policies, all for `exciter_app`, and FORCE keeps them
+on the table owner too.
+
+- **The admin role passes through the open policy**, as every role does; the
+  permission policies never name it. `BYPASSRLS` would need a superuser to
+  grant at every install and would exempt the role from what a later wall
+  might want of it. Where the admin role alone reads, the app role holds no
+  privilege (`oidc_login`, sessions, identities) or a policy that is not open
+  (`app_user`, members only).
+- **What the tenant policies hid by accident is now said on purpose.** A
+  connection acting for nobody reads the installation and its people, which
+  are everyone's, and nothing walled. The app role may no longer make or
+  remove an organization, nor read a sign-in in flight, which it never needed.
+- **Keys are the installation's.** Every key, foreign key and index was made
+  again without `org_id`, under its name or its name without the word org,
+  from the catalog, with a check first that names rows that would share a new
+  key; up then down gives back the same catalog.
+- **Functions keep their rules.** 58 functions lost the organization from
+  their filters, joins, locks and inserts; three that took it as an argument
+  were made again without it. Rows they write take `org_id` from a default,
+  `installation_org_id()`, moved here from #107 so no function has to name
+  the column.
+- **What still names it** until #108: `current_org_id()`, the organization's
+  own seed, the session's column, the provider's and the Armature
+  connection's one-row keys, the foreign keys to the organization, and an
+  attachment's object key, which #107 flattens. A test lists them and fails
+  when one stops naming it.
+
 ## 2026-10-14: Integration tests keep apart in one installation (#90)
 
 The integration suite gave every test an organization of its own, which the

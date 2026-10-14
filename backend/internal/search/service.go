@@ -24,7 +24,7 @@ func textOfHit(chars int) string {
 }
 
 // Without words a search reads requirements as they are, among those the reader may view.
-const unmatched = `(SELECT r.id, r.org_id, r.project_id, r.number, r.kind, r.title, r.statement, r.rationale, r.revision, r.status_id,
+const unmatched = `(SELECT r.id, r.project_id, r.number, r.kind, r.title, r.statement, r.rationale, r.revision, r.status_id,
 	r.owner_id, r.updated_at, r.updated_by, 0::real AS rank, false AS key_match
 	FROM requirement r WHERE r.org_id = current_org_id() AND r.trashed_at IS NULL AND ` + `%s)`
 
@@ -65,7 +65,7 @@ func (s *Service) Search(ctx context.Context, reader uuid.UUID, q Query) ([]Hit,
 		where = append(where, `st.category = ANY (`+bind(q.Categories)+`::text[])`)
 	}
 	if len(q.Labels) > 0 {
-		where = append(where, `EXISTS (SELECT 1 FROM requirement_label l WHERE l.org_id = h.org_id AND l.requirement_id = h.id AND l.name = ANY (`+
+		where = append(where, `EXISTS (SELECT 1 FROM requirement_label l WHERE l.requirement_id = h.id AND l.name = ANY (`+
 			bind(q.Labels)+`::text[]))`)
 	}
 	if len(q.Owners) > 0 {
@@ -85,7 +85,7 @@ func (s *Service) Search(ctx context.Context, reader uuid.UUID, q Query) ([]Hit,
 		SELECT h.*, p.key AS project_key, p.name AS project_name, st.name AS status_name, st.category AS status_category,
 		       ` + titleMatch + ` AS title_match
 		FROM ` + source + ` h
-		JOIN project p ON p.org_id = h.org_id AND p.id = h.project_id
+		JOIN project p ON p.id = h.project_id
 		LEFT JOIN req_status st ON st.id = h.status_id
 		WHERE ` + strings.Join(where, ` AND `) + `
 	)`
@@ -109,7 +109,7 @@ func (s *Service) Search(ctx context.Context, reader uuid.UUID, q Query) ([]Hit,
 		)
 		SELECT h.id, h.project_key, h.number, h.kind, h.title, h.revision, h.status_id, COALESCE(h.status_name, ''),
 		       COALESCE(h.status_category, ''), h.project_name, ` + title + `, ` + snippet + `, h.updated_at, COALESCE(u.name, ''),
-		       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = h.org_id AND l.requirement_id = h.id ORDER BY l.name)
+		       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = h.id ORDER BY l.name)
 		FROM chosen h LEFT JOIN app_user u ON u.id = h.updated_by
 		ORDER BY h.ord`
 
@@ -193,7 +193,7 @@ func (s *Service) Quick(ctx context.Context, reader uuid.UUID, typed, projectKey
 			SELECT h.id, h.project_id, p.key, p.name, h.number, h.kind, h.title, h.revision, h.status_id,
 			       COALESCE(st.name, ''), COALESCE(st.category, '')
 			FROM requirement_search_rows(to_tsquery(` + config + `, $` + strconv.Itoa(n-1) + `), '', 0) h
-			JOIN project p ON p.org_id = h.org_id AND p.id = h.project_id
+			JOIN project p ON p.id = h.project_id
 			LEFT JOIN req_status st ON st.id = h.status_id
 			WHERE $1::uuid IS NOT NULL` + within + `
 			ORDER BY starts_with(lower(h.title), lower($` + strconv.Itoa(n) + `)) DESC, h.rank DESC,
