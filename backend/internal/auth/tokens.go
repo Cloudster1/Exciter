@@ -14,10 +14,9 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
-// Personal access tokens (#22), as Stator's: a token belongs to one person in one organization and acts as them
+// Personal access tokens (#22), as Stator's: a token belongs to one person in the installation and acts as them
 // there, never more. docs/api-contract-m1.md says how.
 const (
 	APITokenPrefix     = "exciter_pat_"
@@ -44,7 +43,7 @@ type APIToken struct {
 	Secret    string     `json:"secret,omitempty"`
 }
 
-// OrgAPIToken is a token in the organization's list, with whose it is.
+// OrgAPIToken is a token in the installation's list, with whose it is.
 type OrgAPIToken struct {
 	APIToken
 	Owner User `json:"owner"`
@@ -121,9 +120,8 @@ func (s *Service) validateNewToken(in *NewAPIToken) error {
 	return nil
 }
 
-// CreateAPIToken makes a token for the caller in the organization the context names, under row level security
-// like any other tenant data.
-func (s *Service) CreateAPIToken(ctx context.Context, orgID, userID uuid.UUID, in NewAPIToken, ip string) (*APIToken, db.LSN, error) {
+// CreateAPIToken makes a token for the caller, under row level security like any other data.
+func (s *Service) CreateAPIToken(ctx context.Context, userID uuid.UUID, in NewAPIToken, ip string) (*APIToken, db.LSN, error) {
 	if err := s.validateNewToken(&in); err != nil {
 		return nil, 0, err
 	}
@@ -134,8 +132,8 @@ func (s *Service) CreateAPIToken(ctx context.Context, orgID, userID uuid.UUID, i
 	tok := APIToken{Name: in.Name, Scopes: in.Scopes, Projects: in.Projects, AllProjects: len(in.Projects) == 0, ExpiresAt: in.ExpiresAt, Secret: secret}
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO api_token (org_id, user_id, name, token_hash, scopes, expires_at, projects_only)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6)
+			INSERT INTO api_token (user_id, name, token_hash, scopes, expires_at, projects_only)
+			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING id, created_at`,
 			userID, tok.Name, digest, tok.Scopes, tok.ExpiresAt, !tok.AllProjects,
 		).Scan(&tok.ID, &tok.CreatedAt); err != nil {
@@ -145,8 +143,8 @@ func (s *Service) CreateAPIToken(ctx context.Context, orgID, userID uuid.UUID, i
 			// The projects are read under the maker's own rights, so a key they cannot see inserts nothing and the
 			// count refuses it.
 			tag, err := tx.Exec(ctx, `
-				INSERT INTO api_token_project (org_id, token_id, project_id)
-				SELECT current_org_id(), $1, p.id FROM project p WHERE p.org_id = current_org_id() AND p.key = ANY ($2)`, tok.ID, tok.Projects)
+				INSERT INTO api_token_project (token_id, project_id)
+				SELECT $1, p.id FROM project p WHERE p.key = ANY ($2)`, tok.ID, tok.Projects)
 			if err != nil {
 				return fmt.Errorf("limit the token to its projects: %w", err)
 			}
@@ -154,7 +152,7 @@ func (s *Service) CreateAPIToken(ctx context.Context, orgID, userID uuid.UUID, i
 				return ErrNoSuchProject
 			}
 		}
-		return audit.Write(ctx, tx, orgID, audit.Entry{Action: audit.ActionTokenCreated, TargetType: "api_token", TargetID: &tok.ID, Actor: userID, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionTokenCreated, TargetType: "api_token", TargetID: &tok.ID, Actor: userID, IP: ip,
 			Data: map[string]any{"name": tok.Name, "scopes": tok.Scopes, "projects": tok.Projects}})
 	})
 	if err != nil {
@@ -166,7 +164,7 @@ func (s *Service) CreateAPIToken(ctx context.Context, orgID, userID uuid.UUID, i
 // tokenColumns name a token's projects through the reader's own rights, so a list never spells the key of a
 // project its reader may not see.
 const tokenColumns = `t.id, t.name, t.scopes, t.last_used_at, t.expires_at, t.created_at, NOT t.projects_only,
-	ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.org_id = tp.org_id AND p.id = tp.project_id
+	ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.id = tp.project_id
 	      WHERE tp.token_id = t.id ORDER BY p.key)`
 
 func scanToken(row pgx.Row, extra ...any) (APIToken, error) {
@@ -175,7 +173,7 @@ func scanToken(row pgx.Row, extra ...any) (APIToken, error) {
 	return t, err
 }
 
-// ListAPITokens answers the caller's tokens in the organization, newest first and without their secrets.
+// ListAPITokens answers the caller's tokens in the installation, newest first and without their secrets.
 func (s *Service) ListAPITokens(ctx context.Context, userID uuid.UUID) ([]APIToken, error) {
 	out := []APIToken{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -222,16 +220,16 @@ func (s *Service) ListEveryonesAPITokens(ctx context.Context) ([]OrgAPIToken, er
 }
 
 // RevokeAPIToken deletes one of the caller's own tokens.
-func (s *Service) RevokeAPIToken(ctx context.Context, orgID, userID, tokenID uuid.UUID, ip string) (db.LSN, error) {
-	return s.revoke(ctx, orgID, &userID, userID, tokenID, ip)
+func (s *Service) RevokeAPIToken(ctx context.Context, userID, tokenID uuid.UUID, ip string) (db.LSN, error) {
+	return s.revoke(ctx, &userID, userID, tokenID, ip)
 }
 
-// RevokeOrgAPIToken deletes anybody's token in the organization, for an administrator.
-func (s *Service) RevokeOrgAPIToken(ctx context.Context, orgID, actor, tokenID uuid.UUID, ip string) (db.LSN, error) {
-	return s.revoke(ctx, orgID, nil, actor, tokenID, ip)
+// RevokeAnybodysAPIToken deletes anybody's token, for an administrator.
+func (s *Service) RevokeAnybodysAPIToken(ctx context.Context, actor, tokenID uuid.UUID, ip string) (db.LSN, error) {
+	return s.revoke(ctx, nil, actor, tokenID, ip)
 }
 
-func (s *Service) revoke(ctx context.Context, orgID uuid.UUID, owner *uuid.UUID, actor, tokenID uuid.UUID, ip string) (db.LSN, error) {
+func (s *Service) revoke(ctx context.Context, owner *uuid.UUID, actor, tokenID uuid.UUID, ip string) (db.LSN, error) {
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var holder uuid.UUID
 		err := tx.QueryRow(ctx, `
@@ -243,24 +241,23 @@ func (s *Service) revoke(ctx context.Context, orgID uuid.UUID, owner *uuid.UUID,
 		if err != nil {
 			return err
 		}
-		return audit.Write(ctx, tx, orgID, audit.Entry{Action: audit.ActionTokenRevoked, TargetType: "api_token", TargetID: &tokenID, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionTokenRevoked, TargetType: "api_token", TargetID: &tokenID, Actor: actor, IP: ip,
 			Data: map[string]any{"owner": holder}})
 	})
 }
 
-// apiTokenPrincipalSQL resolves a token to its owner in its organization. The membership is joined, not left
+// apiTokenPrincipalSQL resolves a token to its owner and their standing. The membership is joined, not left
 // joined: a token outlives no membership.
 const apiTokenPrincipalSQL = `
 SELECT t.id, t.name, t.scopes, t.last_used_at, t.expires_at, t.projects_only,
        ARRAY(SELECT tp.project_id FROM api_token_project tp WHERE tp.token_id = t.id ORDER BY tp.project_id),
-       ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.org_id = tp.org_id AND p.id = tp.project_id
+       ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.id = tp.project_id
              WHERE tp.token_id = t.id ORDER BY p.key),
        u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       o.id, o.slug, o.name, m.org_role
+       (SELECT name FROM org), m.org_role
 FROM api_token t
 JOIN app_user u ON u.id = t.user_id
-JOIN org o ON o.id = t.org_id AND o.archived_at IS NULL
-JOIN org_member m ON m.org_id = t.org_id AND m.user_id = t.user_id
+JOIN org_member m ON m.user_id = t.user_id
 WHERE t.token_hash = $1 AND (t.expires_at IS NULL OR t.expires_at > now())`
 
 func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Principal, error) {
@@ -273,14 +270,12 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 		lastUsed *time.Time
 		only     bool
 		active   bool
-		orgID    uuid.UUID
-		orgSlug  string
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, apiTokenPrincipalSQL, HashToken(secret)).Scan(
 			&tok.ID, &tok.Name, &tok.Scopes, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active,
-			&orgID, &orgSlug, &p.OrgName, &p.Role,
+			&p.InstallationName, &p.Role,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -294,7 +289,6 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 	}
 	tok.AllProjects = !only
 	p.Token = &tok
-	p.Org = &tenant.Org{ID: orgID, Slug: orgSlug}
 	if lastUsed == nil || s.now().Sub(*lastUsed) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, `UPDATE api_token SET last_used_at = now() WHERE id = $1`, tok.ID)

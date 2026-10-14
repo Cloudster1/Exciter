@@ -19,7 +19,7 @@ describe("the people waiting to be let in", () => {
       "GET /oidc-provider": { status: 200, body: provider },
       [`POST /users/requests/${carol.userId}/admit`]: () => {
         waiting = [dave];
-        return { status: 200, body: { membership: { orgId: "o-demo", orgSlug: "demo", orgName: "Demo", role: "member" } } };
+        return { status: 200, body: { membership: { userId: carol.userId, role: "member" } } };
       },
     });
     await renderAt(SSO_PATH);

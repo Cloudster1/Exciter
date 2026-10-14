@@ -46,12 +46,12 @@ func (h *harness) openCluster(t *testing.T, maxLag, health time.Duration) *db.Cl
 	return c
 }
 
-// rename gives the member's organization a new name: the one write a tenant may
-// make before any feature table exists, and as good a probe of replication.
+// rename gives the installation a new name: a write any owner may make, and as
+// good a probe of replication as any.
 func rename(t *testing.T, c *db.Cluster, m member, name string) db.LSN {
 	t.Helper()
 	lsn, err := c.Write(m.ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `UPDATE org SET name = $1 WHERE id = current_org_id()`, name)
+		_, err := tx.Exec(ctx, `UPDATE org SET name = $1`, name)
 		return err
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func TestWriteReportsThePositionPastItsCommit(t *testing.T) {
 
 	var inside db.LSN
 	after, err := h.cluster.Write(m.ctx, func(ctx context.Context, tx db.DBTX) error {
-		if _, err := tx.Exec(ctx, `UPDATE org SET name = 'commit' WHERE id = current_org_id()`); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE org SET name = 'commit'`); err != nil {
 			return err
 		}
 		var text string

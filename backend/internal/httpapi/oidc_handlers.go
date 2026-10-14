@@ -22,15 +22,9 @@ func (s *Server) handleOIDCStart(w http.ResponseWriter, r *http.Request) {
 	}
 	// The browser arrived by navigation, so a refusal sends it back to the
 	// sign-in page with a reason it can show, like the callback does.
-	org, err := s.Accounts.InstallationOrg(r.Context())
+	target, err := s.OIDC.Start(r.Context(), safeRedirect(r.URL.Query().Get("next")))
 	if err != nil {
-		// An installation nobody set up has no provider either.
-		s.landAfterSignIn(w, r, "", signInFailure(oidc.ErrNotConfigured))
-		return
-	}
-	target, err := s.OIDC.Start(r.Context(), org.ID, safeRedirect(r.URL.Query().Get("next")))
-	if err != nil {
-		loggerFrom(r.Context()).Warn("a sign-in through an identity provider could not start", "error", err, "org_id", org.ID)
+		loggerFrom(r.Context()).Warn("a sign-in through an identity provider could not start", "error", err)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
 		return
 	}
@@ -51,19 +45,19 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orgID, identity, redirect, err := s.OIDC.Exchange(r.Context(), query.Get("state"), query.Get("code"))
+	identity, redirect, err := s.OIDC.Exchange(r.Context(), query.Get("state"), query.Get("code"))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a sign-in through an identity provider failed", "error", err)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
 		return
 	}
-	session, err := s.OIDC.SignIn(r.Context(), orgID, identity, s.Accounts.SessionTTL(), r.UserAgent(), s.clientIP(r))
+	session, err := s.OIDC.SignIn(r.Context(), identity, s.Accounts.SessionTTL(), r.UserAgent(), s.clientIP(r))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a verified identity could not be signed in", "error", err, "subject", identity.Subject)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
 		return
 	}
-	loggerFrom(r.Context()).Info("signed in through an identity provider", "user_id", session.UserID, "org_id", orgID, "role", session.Role,
+	loggerFrom(r.Context()).Info("signed in through an identity provider", "user_id", session.UserID, "role", session.Role,
 		"groups_joined", session.Joined, "groups_left", session.Left)
 	s.noteSession(r.Context(), session.SessionID, session.LSN)
 	s.setSessionCookie(w, session.Secret, session.ExpiresAt)
@@ -71,7 +65,7 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 // signInFailure names a refusal for the sign-in page to explain, without
-// handing back anything about the tenant that was asked for.
+// handing back anything about the provider or the account.
 func signInFailure(err error) string {
 	switch {
 	case errors.Is(err, oidc.ErrNotAMember):
@@ -122,7 +116,7 @@ type providerView struct {
 	CallbackURL string         `json:"callbackUrl"`
 }
 
-// handleGetOIDCProvider returns the organization's provider. The client secret
+// handleGetOIDCProvider returns the installation's provider. The client secret
 // is never included, only whether one is stored.
 func (s *Server) handleGetOIDCProvider(w http.ResponseWriter, r *http.Request) {
 	if s.OIDC == nil {

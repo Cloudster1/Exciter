@@ -15,7 +15,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Topics this package emits, which M2 and M3 build on.
@@ -29,7 +28,7 @@ const maxKeySuggestions = 99
 
 var (
 	ErrNotFound = errors.New("project not found")
-	// ErrNotAdmin is somebody who does not administer the organization making a project.
+	// ErrNotAdmin is somebody who does not administer the installation making a project.
 	ErrNotAdmin = errors.New("only an administrator makes projects")
 	// ErrForbidden is somebody who may view a project changing what only its administrators change.
 	ErrForbidden = errors.New("only the project's administrators change it")
@@ -61,7 +60,7 @@ const selectProjects = `
 SELECT p.id, p.key, p.name, p.description, p.settings, p.template, p.created_at, p.updated_at, p.archived_at,
        COALESCE(a.name, ''),
        COALESCE((SELECT array_agg(k.key ORDER BY k.created_at DESC, k.key) FROM project_key_alias k
-                 WHERE k.org_id = p.org_id AND k.project_id = p.id), '{}'),
+                 WHERE k.project_id = p.id), '{}'),
        perm_project_holds(p.id, $1, 'view'), perm_project_holds(p.id, $1, 'comment'),
        perm_project_holds(p.id, $1, 'edit'), perm_project_holds(p.id, $1, 'approve'),
        perm_project_holds(p.id, $1, 'administer')
@@ -69,8 +68,8 @@ FROM project p
 LEFT JOIN app_user a ON a.id = p.archived_by`
 
 // byKey finds a project by its key or a key it had; $2 is the key, normalized.
-const byKey = ` WHERE p.org_id = current_org_id() AND (p.key = $2 OR p.id = (
-	SELECT k.project_id FROM project_key_alias k WHERE k.org_id = current_org_id() AND k.key = $2))`
+const byKey = ` WHERE (p.key = $2 OR p.id = (
+	SELECT k.project_id FROM project_key_alias k WHERE k.key = $2))`
 
 func scan(row pgx.Row) (*Project, error) {
 	var (
@@ -98,7 +97,7 @@ func (s *Service) List(ctx context.Context, reader uuid.UUID, archived bool) ([]
 	out := []Project{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, selectProjects+`
-			WHERE p.org_id = current_org_id() AND ($2 OR p.archived_at IS NULL)
+			WHERE ($2 OR p.archived_at IS NULL)
 			ORDER BY lower(p.name), p.key`, reader, archived)
 		if err != nil {
 			return err
@@ -221,7 +220,7 @@ func checkDescription(description string) (string, error) {
 	return description, nil
 }
 
-// Create makes a project; the organization's owners and administrators may.
+// Create makes a project; the installation's owners and administrators may.
 func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) (*Project, db.LSN, error) {
 	key := NormalizeKey(in.Key)
 	if err := checkKey(key); err != nil {
@@ -255,8 +254,8 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 		}
 		// Without RETURNING: the policy that would let it be read back cannot see the row its own statement adds.
 		_, err := tx.Exec(ctx, `
-			INSERT INTO project (org_id, key, name, description, settings, template, created_by)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6)`, key, name, description, settings, in.Template, reader)
+			INSERT INTO project (key, name, description, settings, template, created_by)
+			VALUES ($1, $2, $3, $4, $5, $6)`, key, name, description, settings, in.Template, reader)
 		if isKeyTaken(err) {
 			return keyTakenError(key)
 		}
@@ -281,11 +280,7 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 
 // note records an act on a project in the audit log.
 func (s *Service) note(ctx context.Context, tx db.DBTX, actor uuid.UUID, action string, p *Project, data map[string]any) error {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return err
-	}
-	return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: "project", TargetID: &p.ID, Actor: actor, Data: data})
+	return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: "project", TargetID: &p.ID, Actor: actor, Data: data})
 }
 
 // administered reads a project for a change only its administrators make; an archived one refuses all but

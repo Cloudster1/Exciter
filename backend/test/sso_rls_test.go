@@ -71,14 +71,14 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 			}
 		}
 		// A sign-in in flight, with its nonce and verifier, is the admin role's alone, whoever acts.
-		for who, conn := range map[string]*pgx.Conn{"nobody": unscoped, "an owner": h.appConn(t, a.org, a.user)} {
+		for who, conn := range map[string]*pgx.Conn{"nobody": unscoped, "an owner": h.appConn(t, a.user)} {
 			if _, err := conn.Exec(ctx, `SELECT count(*) FROM oidc_login`); !isPermissionDenied(err) {
 				t.Errorf("the app role acting for %s reading sign-ins in flight = %v, want permission denied", who, err)
 			}
 		}
 	})
 
-	owner := h.appConn(t, a.org, a.user)
+	owner := h.appConn(t, a.user)
 	countOf := func(t *testing.T, sql string, args ...any) int {
 		t.Helper()
 		var n int
@@ -102,7 +102,7 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 	})
 
 	t.Run("a plain member sees none of the administrators' rows", func(t *testing.T) {
-		plain := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
+		plain := h.appConn(t, h.addPerson(t, a.org, "member"))
 		for _, table := range adminTables {
 			var n int
 			if err := plain.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&n); err != nil || n != 0 {

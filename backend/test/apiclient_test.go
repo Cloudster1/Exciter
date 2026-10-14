@@ -148,7 +148,7 @@ func (a *apiServer) as(t *testing.T, user, org uuid.UUID) *client {
 	var token string
 	_, err := a.h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
 		var err error
-		_, token, err = auth.OpenSession(ctx, tx, user, &org, auth.ProofPassword, time.Now().Add(time.Hour), "", "")
+		_, token, err = auth.OpenSession(ctx, tx, user, auth.ProofPassword, time.Now().Add(time.Hour), "", "")
 		return err
 	})
 	if err != nil {

@@ -13,7 +13,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // ErrStatusInUse is a save that drops a status requirements under the workflow are in.
@@ -99,11 +98,7 @@ func statusNames(ctx context.Context, tx db.DBTX, projectID uuid.UUID) (map[uuid
 }
 
 func record(ctx context.Context, tx db.DBTX, actor uuid.UUID, action string, target uuid.UUID, data map[string]any) error {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return err
-	}
-	return audit.Write(ctx, tx, org.ID, audit.Entry{Action: action, TargetType: "workflow", TargetID: &target, Actor: actor, Data: data})
+	return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: "workflow", TargetID: &target, Actor: actor, Data: data})
 }
 
 // CreateWorkflow makes a workflow from the designer's graph; nobody follows it until it is assigned.
@@ -122,7 +117,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, actor uuid.UUID, projectKe
 			return err
 		}
 		var id uuid.UUID
-		err = tx.QueryRow(ctx, `INSERT INTO workflow (org_id, project_id, name, description) VALUES (current_org_id(), $1, $2, $3) RETURNING id`,
+		err = tx.QueryRow(ctx, `INSERT INTO workflow (project_id, name, description) VALUES ($1, $2, $3) RETURNING id`,
 			p.ID, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description)).Scan(&id)
 		if taken(err) {
 			return &InvalidError{"name", "Another workflow of this project is called that. Pick another name."}
@@ -227,8 +222,8 @@ func writeGraph(ctx context.Context, tx db.DBTX, id uuid.UUID, in GraphInput) er
 			x, y = &st.Layout.X, &st.Layout.Y
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO workflow_step (org_id, workflow_id, status_id, is_initial, on_revision_status_id, layout_x, layout_y)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6)
+			INSERT INTO workflow_step (workflow_id, status_id, is_initial, on_revision_status_id, layout_x, layout_y)
+			VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (workflow_id, status_id) DO UPDATE SET is_initial = EXCLUDED.is_initial,
 			    on_revision_status_id = EXCLUDED.on_revision_status_id, layout_x = EXCLUDED.layout_x, layout_y = EXCLUDED.layout_y`,
 			id, st.StatusID, st.IsInitial, st.OnRevisionStatusID, x, y); err != nil {
@@ -253,8 +248,8 @@ func writeGraph(ctx context.Context, tx db.DBTX, id uuid.UUID, in GraphInput) er
 			}
 			edge = *t.ID
 		} else {
-			err = tx.QueryRow(ctx, `INSERT INTO workflow_transition (org_id, workflow_id, name, description, from_status_id, to_status_id, position)
-				VALUES (current_org_id(), $1, $2, $3, $4, $5, $6) RETURNING id`, id, name, description, t.FromStatusID, t.ToStatusID, i).Scan(&edge)
+			err = tx.QueryRow(ctx, `INSERT INTO workflow_transition (workflow_id, name, description, from_status_id, to_status_id, position)
+				VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, id, name, description, t.FromStatusID, t.ToStatusID, i).Scan(&edge)
 			if err != nil {
 				return err
 			}
@@ -264,8 +259,8 @@ func writeGraph(ctx context.Context, tx db.DBTX, id uuid.UUID, in GraphInput) er
 			if len(config) == 0 {
 				config = []byte("{}")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO transition_rule (org_id, transition_id, kind, type, config, position)
-				VALUES (current_org_id(), $1, $2, $3, $4, $5)`, edge, r.Kind, r.Type, config, j); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO transition_rule (transition_id, kind, type, config, position)
+				VALUES ($1, $2, $3, $4, $5)`, edge, r.Kind, r.Type, config, j); err != nil {
 				return err
 			}
 		}
@@ -367,8 +362,8 @@ func (s *Service) Assign(ctx context.Context, actor uuid.UUID, projectKey string
 				return err
 			}
 			toStatus, _ := w.Status(to)
-			if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (org_id, requirement_id, field, from_value, to_value, reason, actor_id)
-				VALUES (current_org_id(), $1, 'status', $2, $3, $4, $5)`, s.id, s.name, toStatus.Name, remapReason, actor); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO requirement_change (requirement_id, field, from_value, to_value, reason, actor_id)
+				VALUES ($1, 'status', $2, $3, $4, $5)`, s.id, s.name, toStatus.Name, remapReason, actor); err != nil {
 				return err
 			}
 			if err := events.Emit(ctx, tx, "requirement.changed", map[string]any{"actorId": actor, "requirementId": s.id, "field": "status"}); err != nil {

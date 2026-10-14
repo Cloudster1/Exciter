@@ -61,8 +61,8 @@ func (s *Service) Suggest(ctx context.Context, reader uuid.UUID, typed, projectK
 		rows, err := tx.Query(ctx, `
 			SELECT l.name, count(*)::int
 			FROM requirement_label l
-			JOIN requirement r ON r.org_id = l.org_id AND r.id = l.requirement_id
-			WHERE l.org_id = current_org_id() AND l.name LIKE $2 AND r.trashed_at IS NULL AND `+perm.ViewableRequirement("r", 1)+narrow+`
+			JOIN requirement r ON r.id = l.requirement_id
+			WHERE l.name LIKE $2 AND r.trashed_at IS NULL AND `+perm.ViewableRequirement("r", 1)+narrow+`
 			GROUP BY l.name
 			ORDER BY count(*) DESC, l.name
 			LIMIT $3`, args...)
@@ -91,17 +91,17 @@ func (s *Service) Requirements(ctx context.Context, reader uuid.UUID, raw, proje
 		}
 		where := `
 			FROM requirement_label l
-			JOIN requirement r ON r.org_id = l.org_id AND r.id = l.requirement_id
-			JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
+			JOIN requirement r ON r.id = l.requirement_id
+			JOIN project p ON p.id = r.project_id
 			LEFT JOIN app_user u ON u.id = r.updated_by
-			WHERE l.org_id = current_org_id() AND l.name = $2 AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + narrow
+			WHERE l.name = $2 AND r.trashed_at IS NULL AND ` + perm.ViewableRequirement("r", 1) + narrow
 		if err := tx.QueryRow(ctx, `SELECT count(*)::int `+where, args...).Scan(&total); err != nil {
 			return fmt.Errorf("count the requirements: %w", err)
 		}
 		n := len(args)
 		rows, err := tx.Query(ctx, `
 			SELECT r.id, p.key || '-R' || r.number, p.key, p.name, r.kind, r.title,
-			       ARRAY(SELECT o.name FROM requirement_label o WHERE o.org_id = r.org_id AND o.requirement_id = r.id ORDER BY o.name),
+			       ARRAY(SELECT o.name FROM requirement_label o WHERE o.requirement_id = r.id ORDER BY o.name),
 			       COALESCE(u.name, ''), r.updated_at
 			`+where+`
 			ORDER BY p.key, r.number

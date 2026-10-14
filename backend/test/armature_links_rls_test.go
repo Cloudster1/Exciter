@@ -31,7 +31,7 @@ func TestRawSQLGuardsArmatureLinks(t *testing.T) {
 	ctx := context.Background()
 	insert := `INSERT INTO armature_issue_link (org_id, requirement_id, relation, issue_key, created_by) VALUES ($1, $2, 'implements', $3, $4) RETURNING id`
 
-	editor := h.appConn(t, home.org, editorID)
+	editor := h.appConn(t, editorID)
 	var linkID uuid.UUID
 	if err := editor.QueryRow(ctx, insert, home.org, live["id"], "CP-1", editorID).Scan(&linkID); err != nil {
 		t.Fatalf("an editor links in their own name: %v", err)
@@ -58,7 +58,7 @@ func TestRawSQLGuardsArmatureLinks(t *testing.T) {
 	})
 
 	t.Run("a guest without the project reads and removes nothing, and a viewer reads but removes nothing", func(t *testing.T) {
-		guest := h.appConn(t, home.org, guestID)
+		guest := h.appConn(t, guestID)
 		if n := seesRows(t, guest, `SELECT count(*) FROM armature_issue_link`); n != 0 {
 			t.Errorf("a guest reads %d links", n)
 		}
@@ -74,7 +74,7 @@ func TestRawSQLGuardsArmatureLinks(t *testing.T) {
 	t.Run("without a connection nothing is linked, and the links stay", func(t *testing.T) {
 		want(t, owner.delete(t, "/api/v1/armature/connection"), http.StatusNoContent, "disconnect Armature")
 		h.settle(t)
-		refusedOutright(t, h.appConn(t, home.org, editorID), "a link without a connection", insert, home.org, live["id"], "CP-5", editorID)
+		refusedOutright(t, h.appConn(t, editorID), "a link without a connection", insert, home.org, live["id"], "CP-5", editorID)
 		if n := h.countRows(t, `SELECT count(*) FROM armature_issue_link WHERE org_id = $1`, home.org); n != 1 {
 			t.Errorf("disconnecting left %d links, want the 1 made", n)
 		}

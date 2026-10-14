@@ -344,8 +344,8 @@ func revisionOf(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, number int
 		return err
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, restored_from, created_by)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, restored_from, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor); err != nil {
 		return fmt.Errorf("write revision %d: %w", number, err)
 	}
@@ -471,9 +471,9 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 	}
 	var id uuid.UUID
 	err = tx.QueryRow(ctx, `
-		INSERT INTO requirement (org_id, project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
+		INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
 		                         parent_id, rank, copied_from, created_by, updated_by)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14) RETURNING id`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14) RETURNING id`,
 		to.ID, l.Kind, l.Title, content.Statement, content.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound

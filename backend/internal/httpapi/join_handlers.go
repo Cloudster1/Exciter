@@ -19,7 +19,7 @@ func (s *Server) handleListJoinRequests(w http.ResponseWriter, r *http.Request) 
 		respondError(w, r, errSignInOff)
 		return
 	}
-	requests, err := s.Accounts.JoinRequests(r.Context(), PrincipalFrom(r.Context()).Org.ID)
+	requests, err := s.Accounts.JoinRequests(r.Context())
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -43,7 +43,7 @@ func (s *Server) handleAdmitJoinRequest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	p := PrincipalFrom(r.Context())
-	membership, lsn, err := s.Accounts.AdmitJoinRequest(r.Context(), p.Org.ID, userID, req.Role, p.UserID, s.clientIP(r))
+	membership, lsn, err := s.Accounts.AdmitJoinRequest(r.Context(), userID, req.Role, p.UserID, s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
@@ -63,7 +63,7 @@ func (s *Server) handleDeclineJoinRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 	p := PrincipalFrom(r.Context())
-	lsn, err := s.Accounts.DeclineJoinRequest(r.Context(), p.Org.ID, userID, p.UserID, s.clientIP(r))
+	lsn, err := s.Accounts.DeclineJoinRequest(r.Context(), userID, p.UserID, s.clientIP(r))
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)

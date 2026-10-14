@@ -40,7 +40,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 	editorID := h.addPerson(t, a.org, "member")
 	viewerID := h.addPerson(t, a.org, "guest")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
-	editor, viewer := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID)
+	editor, viewer := h.appConn(t, editorID), h.appConn(t, viewerID)
 	var id, current uuid.UUID
 	if err := editor.QueryRow(ctx, `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, status_id, created_by)
 		VALUES ($1, $2, 'Flowing', '{"type":"doc"}', 'h', $3, current_actor_id()) RETURNING id, status_id`, a.org, project, status("Approved")).Scan(&id, &current); err != nil {
@@ -78,7 +78,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 			a.org, transition("Approve")); err != nil {
 			t.Fatal(err)
 		}
-		reviewer := h.appConn(t, a.org, reviewerID)
+		reviewer := h.appConn(t, reviewerID)
 		if n := affects(t, reviewer, `UPDATE requirement SET owner_id = current_actor_id() WHERE id = $1`, id); n != 0 {
 			t.Fatal("a reviewer made themselves the owner by hand")
 		}
@@ -98,7 +98,7 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 		if n := affects(t, viewer, `SELECT 1 FROM req_status WHERE project_id = $1`, project); n != 7 {
 			t.Errorf("a viewer reads %d statuses, want 7", n)
 		}
-		admin := h.appConn(t, a.org, a.user)
+		admin := h.appConn(t, a.user)
 		if _, err := admin.Exec(ctx, `DELETE FROM req_status WHERE id = $1`, status("Obsolete")); !refusedBy(err, "workflow_step_status_id_fkey") {
 			t.Errorf("an administrator deleted a status a workflow names: %v", err)
 		}

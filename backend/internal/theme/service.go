@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +16,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 var (
@@ -24,10 +24,10 @@ var (
 	ErrNotYours      = errors.New("only the owner or an administrator can change a theme")
 	ErrAssetNotFound = errors.New("that file is not in the theme")
 	// ErrNotAdmin is returned when somebody who does not administer the
-	// organization names its default theme.
+	// installation names its default theme.
 	ErrNotAdmin = errors.New("only an administrator can name the default theme for everyone")
 	// ErrDefaultNotShared is returned when a theme nobody else can see is made
-	// the organization's default.
+	// the installation's default.
 	ErrDefaultNotShared = errors.New("the default for everyone has to be a shared theme")
 )
 
@@ -41,7 +41,7 @@ type Theme struct {
 	Spec      Spec      `json:"spec"`
 	Assets    []Asset   `json:"assets"`
 	// InUse counts the people who chose it; Active says the reader is one;
-	// Default says the organization shows it to whoever has not chosen.
+	// Default says the installation shows it to whoever has not chosen.
 	InUse     int       `json:"inUse"`
 	Active    bool      `json:"active"`
 	Default   bool      `json:"default"`
@@ -70,6 +70,10 @@ type Input struct {
 type Service struct {
 	db    *db.Cluster
 	store objectstore.Store
+
+	// installed is the installation's id, which never changes; files keep its prefix from before #107.
+	mu        sync.Mutex
+	installed uuid.UUID
 }
 
 func NewService(cluster *db.Cluster, store objectstore.Store) *Service {
@@ -82,7 +86,7 @@ const selectThemes = `
 SELECT t.id, t.owner_id, COALESCE(u.name, ''), t.name, t.shared, t.spec, t.created_at, t.updated_at,
        theme_in_use(t.id),
        EXISTS (SELECT 1 FROM user_theme ut WHERE ut.theme_id = t.id AND ut.user_id = $1),
-       EXISTS (SELECT 1 FROM org o WHERE o.id = t.org_id AND o.default_theme_id = t.id)
+       EXISTS (SELECT 1 FROM org o WHERE o.default_theme_id = t.id)
 FROM theme t
 LEFT JOIN app_user u ON u.id = t.owner_id`
 
@@ -215,7 +219,7 @@ const (
 // Sources are the answers Active gives, for a client to name.
 var Sources = []Source{SourceChosen, SourceEveryone, SourceBuiltIn}
 
-// Active is the reader's chosen theme, else the organization's default, else
+// Active is the reader's chosen theme, else the installation's default, else
 // nil for the built-in one.
 func (s *Service) Active(ctx context.Context, reader uuid.UUID) (*Theme, Source, error) {
 	var (
@@ -253,8 +257,8 @@ func (s *Service) Active(ctx context.Context, reader uuid.UUID) (*Theme, Source,
 	return out, source, err
 }
 
-// Default is the organization's default theme, nil for the built-in one,
-// whatever the reader chose for themselves: what the organization looks like.
+// Default is the installation's default theme, nil for the built-in one,
+// whatever the reader chose for themselves: what the installation looks like.
 func (s *Service) Default(ctx context.Context, reader uuid.UUID) (*Theme, error) {
 	var out *Theme
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -273,7 +277,7 @@ func (s *Service) Default(ctx context.Context, reader uuid.UUID) (*Theme, error)
 }
 
 // Choose makes a theme the reader's own. Nil returns them to the
-// organization's; nil with builtIn keeps the built-in one.
+// installation's; nil with builtIn keeps the built-in one.
 func (s *Service) Choose(ctx context.Context, reader uuid.UUID, id *uuid.UUID, builtIn bool) (*Theme, db.LSN, error) {
 	var out *Theme
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -290,14 +294,14 @@ func (s *Service) Choose(ctx context.Context, reader uuid.UUID, id *uuid.UUID, b
 			out = t
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO user_theme (org_id, user_id, theme_id) VALUES (current_org_id(), $1, $2)
+			INSERT INTO user_theme (user_id, theme_id) VALUES ($1, $2)
 			ON CONFLICT (user_id) DO UPDATE SET theme_id = EXCLUDED.theme_id`, reader, id)
 		return err
 	})
 	return out, lsn, err
 }
 
-// SetDefault names the shared theme the organization shows to whoever has not
+// SetDefault names the shared theme the installation shows to whoever has not
 // chosen, or nil for the built-in one; the database refuses a private one.
 func (s *Service) SetDefault(ctx context.Context, reader uuid.UUID, id *uuid.UUID) (*Theme, db.LSN, error) {
 	var out *Theme
@@ -310,10 +314,6 @@ func (s *Service) SetDefault(ctx context.Context, reader uuid.UUID, id *uuid.UUI
 		case err != nil:
 			return err
 		}
-		org, err := tenant.MustFromContext(ctx)
-		if err != nil {
-			return err
-		}
 		entry := audit.Entry{Action: audit.ActionThemeDefaultSet, TargetType: "theme", TargetID: id, Actor: reader,
 			Data: map[string]any{"builtIn": true}}
 		if id != nil {
@@ -324,7 +324,7 @@ func (s *Service) SetDefault(ctx context.Context, reader uuid.UUID, id *uuid.UUI
 			out = t
 			entry.Data = map[string]any{"name": t.Name}
 		}
-		return audit.Write(ctx, tx, org.ID, entry)
+		return audit.Write(ctx, tx, entry)
 	})
 	return out, lsn, err
 }

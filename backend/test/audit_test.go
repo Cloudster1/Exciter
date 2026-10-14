@@ -18,7 +18,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/keyset"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // plantEntry writes an entry behind the policies' back, at a time of the test's choosing, and takes it out of the
@@ -54,14 +53,14 @@ func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 	h.settle(t)
 
 	as := func(who uuid.UUID) context.Context {
-		return db.WithUser(tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), who)
+		return db.WithUser(context.Background(), who)
 	}
 	for who, want := range map[uuid.UUID]bool{home.user: true, adminID: true, memberID: false} {
 		if n := h.count(t, as(who), `SELECT count(*) FROM audit_log`); (n > 0) != want {
 			t.Errorf("%s reads %d entries, want any: %v", who, n, want)
 		}
 	}
-	if n := h.count(t, tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), `SELECT count(*) FROM audit_log`); n != 0 {
+	if n := h.count(t, context.Background(), `SELECT count(*) FROM audit_log`); n != 0 {
 		t.Errorf("a transaction acting for nobody reads %d entries", n)
 	}
 
@@ -82,10 +81,10 @@ func TestTheAuditLogIsTheAdministratorsAndOnlyEverAddedTo(t *testing.T) {
 		permissionDenied(t, sql+" as the admin role", err)
 	}
 	_, err := h.cluster.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		return audit.Write(ctx, tx, home.org, audit.Entry{Action: audit.ActionAuditExported, TargetType: "org", Actor: memberID})
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionAuditExported, TargetType: "org", Actor: memberID})
 	})
 	permissionDenied(t, "an entry naming somebody else", err)
-	_, err = h.cluster.WriteAdmin(tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), func(ctx context.Context, tx db.DBTX) error {
+	_, err = h.cluster.WriteAdmin(context.Background(), func(ctx context.Context, tx db.DBTX) error {
 		_, err := tx.Exec(ctx, `SELECT audit_log_prune(now() - interval '23 hours')`)
 		return err
 	})
@@ -107,7 +106,7 @@ func TestAnEntryCommitsAndRollsBackWithItsAct(t *testing.T) {
 	refused := errors.New("the act failed after its entry was written")
 	write := func(fail bool) error {
 		_, err := h.cluster.Write(home.ctx, func(ctx context.Context, tx db.DBTX) error {
-			if err := audit.Write(ctx, tx, home.org, audit.Entry{Action: audit.ActionAuditExported, TargetType: "org", TargetID: &marker, Actor: home.user}); err != nil {
+			if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionAuditExported, TargetType: "org", TargetID: &marker, Actor: home.user}); err != nil {
 				return err
 			}
 			if fail {
@@ -221,7 +220,7 @@ func TestTheAuditLogIsWalkedAndNarrowed(t *testing.T) {
 	}
 
 	// A member reads nothing of it, by the database's policy rather than the service's.
-	member := db.WithUser(tenant.WithOrg(context.Background(), tenant.Org{ID: home.org}), annID)
+	member := db.WithUser(context.Background(), annID)
 	if got := actionsOf(t, s, member, ours(audit.Filter{})); len(got) != 0 {
 		t.Errorf("a member walked %d entries", len(got))
 	}

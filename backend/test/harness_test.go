@@ -22,7 +22,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Environment the harness needs, set by make test-integration.
@@ -366,7 +365,7 @@ func (h *harness) owner(t *testing.T, label string) member {
 		t.Fatalf("make %s an owner: %v", email, err)
 	}
 	h.later(t, m.user)
-	m.ctx = db.WithUser(tenant.WithOrg(ctx, inst), m.user)
+	m.ctx = db.WithUser(ctx, m.user)
 	h.settle(t)
 	return m
 }
@@ -383,8 +382,6 @@ func (h *harness) count(t *testing.T, ctx context.Context, sql string, args ...a
 	}
 	return n
 }
-
-func isNoTenant(err error) bool { return errors.Is(err, tenant.ErrNoTenant) }
 
 // freshness is the Valkey tracker the running api would use, under a prefix of
 // the suite's own so a test never reads the stack's positions.

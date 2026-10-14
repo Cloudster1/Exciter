@@ -137,8 +137,8 @@ func (s *Service) CreateStatus(ctx context.Context, actor uuid.UUID, projectKey 
 			}
 		}
 		var id uuid.UUID
-		err = tx.QueryRow(ctx, `INSERT INTO req_status (org_id, project_id, name, category, description, position)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5) RETURNING id`, p.ID, st.Name, st.Category, st.Description, st.Position).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO req_status (project_id, name, category, description, position)
+			VALUES ($1, $2, $3, $4, $5) RETURNING id`, p.ID, st.Name, st.Category, st.Description, st.Position).Scan(&id)
 		if taken(err) {
 			return &InvalidError{"name", "Another status of this project is called that. Pick another name."}
 		}

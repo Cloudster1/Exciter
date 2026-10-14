@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -13,33 +14,31 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Result says what a run made, as opposed to what it found already there.
 type Result struct {
-	// Org is the installation's organization, made or found.
-	Org        tenant.Org
-	OrgCreated bool
+	// ID is the installation's, made or found.
+	ID      uuid.UUID
+	Created bool
 }
 
-// Ensure makes the installation's organization on a first start, called name, and finds the one there on every
-// later start, whatever an administrator renamed it to. Through the admin role, since it precedes any tenant.
+// Ensure makes the installation on a first start, called name, and finds the one there on every later start,
+// whatever an administrator renamed it to. Through the admin role, since it precedes anybody acting.
 func Ensure(ctx context.Context, cluster *db.Cluster, name string) (Result, error) {
 	var res Result
 	_, err := cluster.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
 			INSERT INTO org (slug, name) SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM org)
-			RETURNING id, slug`, installation.Slug, name).Scan(&res.Org.ID, &res.Org.Slug)
+			RETURNING id`, installation.Slug, name).Scan(&res.ID)
 		if err == nil {
-			res.OrgCreated = true
+			res.Created = true
 			return nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		// The oldest, while the integration suite still makes organizations of its own beside it (#90).
-		return tx.QueryRow(ctx, `SELECT id, slug FROM org ORDER BY created_at, slug LIMIT 1`).Scan(&res.Org.ID, &res.Org.Slug)
+		return tx.QueryRow(ctx, `SELECT id FROM org`).Scan(&res.ID)
 	})
 	return res, err
 }
@@ -83,11 +82,10 @@ type Populated struct {
 	ProviderExisting bool
 }
 
-// Populate lets the people into the organization and points it at the provider, once: a provider already there
+// Populate lets the people into the installation and points it at the provider, once: a provider already there
 // is an administrator's to change. ctx acts for the administrator the provider is configured in the name of.
-func Populate(ctx context.Context, accounts *auth.Service, sso *oidc.Service, org tenant.Org, people People) (Populated, error) {
+func Populate(ctx context.Context, accounts *auth.Service, sso *oidc.Service, people People) (Populated, error) {
 	var out Populated
-	ctx = tenant.WithOrg(ctx, org)
 	for _, m := range people.Members {
 		added, err := accounts.EnsureMember(ctx, m.Email, m.Role)
 		if err != nil {

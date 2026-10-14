@@ -16,8 +16,8 @@ import (
 // content shows although they were taken off it, which the copy shows too.
 func (s *Service) PlanCopy(ctx context.Context, tx db.DBTX, original uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
 	rows, err := tx.Query(ctx, `
-		SELECT a.id FROM attachment a JOIN requirement r ON r.org_id = a.org_id AND r.id = a.requirement_id
-		WHERE a.org_id = current_org_id() AND a.requirement_id = $1
+		SELECT a.id FROM attachment a JOIN requirement r ON r.id = a.requirement_id
+		WHERE a.requirement_id = $1
 		  AND (a.deleted_at IS NULL OR jsonb_path_exists(jsonb_build_array(r.statement, r.rationale, r.attributes),
 		        'lax $.** ? ((@.type == "image" || @.type == "attachment") && @.attrs.attachmentId == $id)',
 		        jsonb_build_object('id', a.id::text)))
@@ -43,9 +43,9 @@ func (s *Service) CopyFiles(ctx context.Context, tx db.DBTX, actor, copy uuid.UU
 	for from, to := range ids {
 		var fromKey, toKey, contentType string
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO attachment (id, org_id, requirement_id, uploaded_by, file_name, content_type, size_bytes, width, height, created_at)
-			SELECT $2, org_id, $3, $4, file_name, content_type, size_bytes, width, height, created_at
-			FROM attachment WHERE org_id = current_org_id() AND id = $1
+			INSERT INTO attachment (id, requirement_id, uploaded_by, file_name, content_type, size_bytes, width, height, created_at)
+			SELECT $2, $3, $4, file_name, content_type, size_bytes, width, height, created_at
+			FROM attachment WHERE id = $1
 			RETURNING (SELECT object_key FROM attachment WHERE id = $1), object_key, content_type`,
 			from, to, copy, actor).Scan(&fromKey, &toKey, &contentType); err != nil {
 			return fmt.Errorf("copy the file: %w", err)

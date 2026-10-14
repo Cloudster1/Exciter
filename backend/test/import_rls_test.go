@@ -17,7 +17,7 @@ const insertImport = `INSERT INTO import_job (org_id, project_id, created_by, fi
 func TestRawSQLGuardsImports(t *testing.T) {
 	w := newTraceWorld(t, "imports")
 	ctx := context.Background()
-	admin := w.h.appConn(t, w.a.org, w.a.user)
+	admin := w.h.appConn(t, w.a.user)
 	var id uuid.UUID
 	if err := admin.QueryRow(ctx, insertImport, w.a.org, w.here, w.a.user).Scan(&id); err != nil {
 		t.Fatalf("an administrator uploads a file: %v", err)

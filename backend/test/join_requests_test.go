@@ -66,10 +66,10 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 		if requests != 1 || members != 0 || sessions != 0 || groups != 0 {
 			t.Fatalf("carol has %d requests, %d memberships, %d sessions, %d groups; want 1, 0, 0, 0", requests, members, sessions, groups)
 		}
-		// As the application, scoped to the organization, she is not among its people: app_user shows members only.
+		// As the application she is not among the installation's people: app_user shows members only.
 		var visible int
-		if err := h.appConn(t, org.ID).QueryRow(ctx, `SELECT count(*) FROM app_user WHERE email = $1`, carol).Scan(&visible); err != nil || visible != 0 {
-			t.Fatalf("the organization sees carol among its people: %d (%v)", visible, err)
+		if err := h.appConn(t).QueryRow(ctx, `SELECT count(*) FROM app_user WHERE email = $1`, carol).Scan(&visible); err != nil || visible != 0 {
+			t.Fatalf("the installation sees carol among its people: %d (%v)", visible, err)
 		}
 	})
 
@@ -93,7 +93,7 @@ func TestANewPersonWaitsUntilAnAdministratorLetsThemIn(t *testing.T) {
 	var carolIn *browser
 	t.Run("letting carol in makes her a member who signs in directly", func(t *testing.T) {
 		got := want(t, admin.post(t, joinRequestsPath+"/"+carolID.String()+"/admit", map[string]string{"role": "member"}), http.StatusOK, "admit carol")
-		if m := obj(t, got, "membership"); m["orgSlug"] != org.Slug || m["role"] != "member" {
+		if m := obj(t, got, "membership"); m["userId"] != carolID.String() || m["role"] != "member" {
 			t.Fatalf("membership = %s", got.Raw)
 		}
 		// A browser of her own: the first one still holds Keycloak's session, which would skip the login form.
@@ -154,7 +154,7 @@ func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 	}
 	h.settle(t)
 
-	plain := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
+	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
 	var n int
 	if err := plain.QueryRow(ctx, `SELECT count(*) FROM org_join_request`).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("a plain member sees %d requests (%v), want none", n, err)
@@ -166,7 +166,7 @@ func TestRawSQLKeepsJoinRequestsToTheirAdministrators(t *testing.T) {
 		t.Fatalf("a plain member let somebody in: %v", err)
 	}
 
-	owner := h.appConn(t, a.org, a.user)
+	owner := h.appConn(t, a.user)
 	if err := owner.QueryRow(ctx, `SELECT count(*) FROM org_join_request`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("an owner sees %d requests (%v), want the one", n, err)
 	}

@@ -23,7 +23,7 @@ type SubjectType string
 const (
 	SubjectUser  SubjectType = "user"
 	SubjectGroup SubjectType = "group"
-	// SubjectEveryone is every member of the organization, guests left out.
+	// SubjectEveryone is every member of the installation, guests left out.
 	SubjectEveryone SubjectType = "everyone"
 )
 
@@ -93,11 +93,11 @@ type GrantsInput struct {
 	Grants []GrantInput `json:"grants"`
 }
 
-// OrgCan is what the caller may do across the organization.
+// OrgCan is what the caller may do across the installation.
 type OrgCan struct {
 	// CreateProject is making projects: owners and administrators.
 	CreateProject bool `json:"createProject"`
-	// Administer is the organization's settings, people and link types.
+	// Administer is the installation's settings, people and link types.
 	Administer bool `json:"administer"`
 }
 
@@ -113,14 +113,14 @@ type ProjectCan struct {
 	Purge bool `json:"purge"`
 }
 
-// Person is a member of the organization, as a picker offers them.
+// Person is a member of the installation, as a picker offers them.
 type Person struct {
 	ID    uuid.UUID `json:"id"`
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
 }
 
-// Group is a group of the organization, as a picker offers it.
+// Group is a group of the installation, as a picker offers it.
 type Group struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
@@ -133,7 +133,7 @@ type Group struct {
 type StepKind string
 
 const (
-	// StepOrgAdmin is administering the organization, which holds every
+	// StepOrgAdmin is administering the installation, which holds every
 	// right in every project.
 	StepOrgAdmin StepKind = "orgAdmin"
 	// StepGuest is being a guest, whom only grants naming them or their

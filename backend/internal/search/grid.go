@@ -55,7 +55,7 @@ func gridConditions(f Filter, p *project.Project, defs []attribute.Def, bind fun
 		where = append(where, `st.category = ANY (`+bind(f.Categories)+`::text[])`)
 	}
 	if len(f.Labels) > 0 {
-		where = append(where, `EXISTS (SELECT 1 FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id AND l.name = ANY (`+
+		where = append(where, `EXISTS (SELECT 1 FROM requirement_label l WHERE l.requirement_id = r.id AND l.name = ANY (`+
 			bind(f.Labels)+`::text[]))`)
 	}
 	if len(f.Owners) > 0 {
@@ -119,7 +119,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
 			       perm_project_holds(r.project_id, $2, 'edit'), perm_project_holds(r.project_id, $2, 'approve'),
 			       perm_project_holds(r.project_id, $2, 'comment'),
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.org_id = r.org_id AND l.requirement_id = r.id ORDER BY l.name)`+from+`
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name)`+from+`
 			ORDER BY `+order+` LIMIT `+limitAt+` OFFSET `+offsetAt, args...)
 		if err != nil {
 			return fmt.Errorf("list the requirements: %w", err)

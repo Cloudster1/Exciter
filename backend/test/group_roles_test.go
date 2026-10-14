@@ -18,11 +18,10 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // standing is somebody's role in org and who decided it, straight from the table.
-func (h *harness) standing(t *testing.T, org tenant.Org, email string) (string, string) {
+func (h *harness) standing(t *testing.T, org installationRow, email string) (string, string) {
 	t.Helper()
 	var role, source string
 	err := h.super.QueryRow(context.Background(), `
@@ -38,7 +37,7 @@ func (h *harness) standing(t *testing.T, org tenant.Org, email string) (string, 
 }
 
 // auditRows lists what the record holds about one person, oldest first.
-func (h *harness) auditRows(t *testing.T, org tenant.Org, action string, target uuid.UUID) []map[string]any {
+func (h *harness) auditRows(t *testing.T, org installationRow, action string, target uuid.UUID) []map[string]any {
 	t.Helper()
 	rows, err := h.super.Query(context.Background(), `
 		SELECT data, actor_user_id IS NULL FROM audit_log
@@ -288,7 +287,7 @@ func TestTheOwnerIsNeverDemotedByAMapping(t *testing.T) {
 		`UPDATE org_member SET role_source = 'oidc' WHERE user_id = $1`,
 	}
 	t.Run("straight through SQL an administrator cannot hand an owner to the provider", func(t *testing.T) {
-		conn := h.appConn(t, org.ID, adminID)
+		conn := h.appConn(t, adminID)
 		for _, sql := range handOver {
 			_, err := conn.Exec(context.Background(), sql, aliceID)
 			var pgErr *pgconn.PgError
@@ -310,7 +309,7 @@ func TestTheOwnerIsNeverDemotedByAMapping(t *testing.T) {
 	})
 }
 
-// appConnUnscoped is a connection as exciter_app that names no organization.
+// appConnUnscoped is a connection as exciter_app acting for nobody.
 func (h *harness) appConnUnscoped(t *testing.T) *pgx.Conn {
 	t.Helper()
 	conn, err := pgx.Connect(context.Background(), os.Getenv(envPrimary))
@@ -321,14 +320,11 @@ func (h *harness) appConnUnscoped(t *testing.T) *pgx.Conn {
 	return conn
 }
 
-// appConn is a connection as exciter_app scoped to one organization, acting for somebody when one is named.
-func (h *harness) appConn(t *testing.T, org uuid.UUID, actor ...uuid.UUID) *pgx.Conn {
+// appConn is a connection as exciter_app, acting for somebody when one is named.
+func (h *harness) appConn(t *testing.T, actor ...uuid.UUID) *pgx.Conn {
 	t.Helper()
 	ctx := context.Background()
 	conn := h.appConnUnscoped(t)
-	if _, err := conn.Exec(ctx, `SELECT set_config($1, $2, false)`, tenant.PostgresVar, org.String()); err != nil {
-		t.Fatal(err)
-	}
 	for _, id := range actor {
 		if _, err := conn.Exec(ctx, `SELECT set_config($1, $2, false)`, db.UserVar, id.String()); err != nil {
 			t.Fatal(err)
@@ -356,7 +352,7 @@ func TestRawSQLKeepsGroupRolesToTheAdministrators(t *testing.T) {
 		t.Fatalf("an unscoped connection sees %d mappings (%v)", n, err)
 	}
 
-	plain := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
+	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
 	if err := plain.QueryRow(ctx, `SELECT count(*) FROM oidc_group_role`).Scan(&n); err != nil || n != 0 {
 		t.Fatalf("a plain member sees %d mappings (%v), want none", n, err)
 	}
@@ -364,7 +360,7 @@ func TestRawSQLKeepsGroupRolesToTheAdministrators(t *testing.T) {
 		t.Fatalf("a plain member mapped a group: %v", err)
 	}
 
-	conn := h.appConn(t, a.org, a.user)
+	conn := h.appConn(t, a.user)
 	if err := conn.QueryRow(ctx, `SELECT count(*) FROM oidc_group_role`).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("an owner sees %d mappings, want the one (%v)", n, err)
 	}

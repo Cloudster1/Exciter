@@ -33,7 +33,7 @@ func TestRawSQLKeepsTypesAndAttributesToTheirProject(t *testing.T) {
 		a.org, other).Scan(&otherAttr); err != nil {
 		t.Fatal(err)
 	}
-	editor, owner := h.appConn(t, a.org, h.addPerson(t, a.org, "member")), h.appConn(t, a.org, a.user)
+	editor, owner := h.appConn(t, h.addPerson(t, a.org, "member")), h.appConn(t, a.user)
 	insert := `INSERT INTO requirement (org_id, project_id, title, statement, normative_hash, type_id, attributes, created_by)
 		VALUES ($1, $2, 'Walled', '{"type":"doc"}', 'h', $3, $4, current_actor_id())`
 

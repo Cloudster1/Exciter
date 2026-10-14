@@ -14,7 +14,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // GroupRole grants a role to everybody the provider names in a group.
@@ -53,7 +52,7 @@ func grantedRole(mapping map[string]auth.OrgRole, claimed []string) (auth.OrgRol
 	return best, from
 }
 
-// standing is somebody's role in an organization and who decided it.
+// standing is somebody's role in the installation and who decided it.
 type standing struct {
 	Role   auth.OrgRole
 	Source auth.RoleSource
@@ -82,17 +81,12 @@ func nextStanding(current *standing, granted auth.OrgRole) *standing {
 	}
 }
 
-// GroupRoles lists the mapping of the organization on ctx, by group.
+// GroupRoles lists the mapping, by group.
 func (s *Service) GroupRoles(ctx context.Context) ([]GroupRole, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 	out := []GroupRole{}
-	err = s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
-			SELECT id, group_ref, org_role, updated_at FROM oidc_group_role
-			WHERE org_id = $1 ORDER BY group_ref`, org.ID)
+			SELECT id, group_ref, org_role, updated_at FROM oidc_group_role ORDER BY group_ref`)
 		if err != nil {
 			return err
 		}
@@ -115,10 +109,6 @@ func (s *Service) GroupRoles(ctx context.Context) ([]GroupRole, error) {
 // SetGroupRole maps a group to a role, or changes the role it maps to. It
 // takes effect at each member's next sign-in, when their groups are known.
 func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgRole, actor uuid.UUID, ip string) (*GroupRole, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	group = strings.TrimSpace(group)
 	if group == "" {
 		return nil, 0, &ValidationError{Field: "group", Message: "Enter the group's name as the provider sends it in the groups claim."}
@@ -129,20 +119,20 @@ func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgR
 	var saved GroupRole
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var configured bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM oidc_provider WHERE org_id = $1)`, org.ID).Scan(&configured); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM oidc_provider)`).Scan(&configured); err != nil {
 			return err
 		}
 		if !configured {
 			return &ValidationError{Field: "group", Message: "Set up single sign-on first, then map its groups to roles."}
 		}
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO oidc_group_role (org_id, group_ref, org_role) VALUES ($1, $2, $3)
+			INSERT INTO oidc_group_role (group_ref, org_role) VALUES ($1, $2)
 			ON CONFLICT (group_ref) DO UPDATE SET org_role = EXCLUDED.org_role
-			RETURNING id, group_ref, org_role, updated_at`, org.ID, group, string(role),
+			RETURNING id, group_ref, org_role, updated_at`, group, string(role),
 		).Scan(&saved.ID, &saved.Group, &saved.Role, &saved.UpdatedAt); err != nil {
 			return err
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: audit.ActionGroupRoleSet, TargetType: "group_role", TargetID: &saved.ID, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionGroupRoleSet, TargetType: "group_role", TargetID: &saved.ID, Actor: actor, IP: ip,
 			Data: map[string]any{"group": group, "role": role}})
 	})
 	if err != nil {
@@ -158,29 +148,25 @@ func (s *Service) SetGroupRole(ctx context.Context, group string, role auth.OrgR
 // RemoveGroupRole unmaps a group. Roles it granted fall back to member at
 // each person's next sign-in, unless another mapped group grants one.
 func (s *Service) RemoveGroupRole(ctx context.Context, id, actor uuid.UUID, ip string) (db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return 0, err
-	}
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var group, role string
-		err := tx.QueryRow(ctx, `DELETE FROM oidc_group_role WHERE org_id = $1 AND id = $2 RETURNING group_ref, org_role`, org.ID, id).Scan(&group, &role)
+		err := tx.QueryRow(ctx, `DELETE FROM oidc_group_role WHERE id = $1 RETURNING group_ref, org_role`, id).Scan(&group, &role)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNoSuchGroupRole
 		}
 		if err != nil {
 			return err
 		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: audit.ActionGroupRoleRemoved, TargetType: "group_role", TargetID: &id, Actor: actor, IP: ip,
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionGroupRoleRemoved, TargetType: "group_role", TargetID: &id, Actor: actor, IP: ip,
 			Data: map[string]any{"group": group, "role": role}})
 	})
 }
 
 // followMapping settles a sign-in's membership by the mapping, inside the
 // sign-in's transaction, and records every role it changes.
-func followMapping(ctx context.Context, tx db.DBTX, orgID, userID uuid.UUID, claimed []string) (auth.OrgRole, error) {
+func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []string) (auth.OrgRole, error) {
 	mapping := map[string]auth.OrgRole{}
-	rows, err := tx.Query(ctx, `SELECT group_ref, org_role FROM oidc_group_role WHERE org_id = $1`, orgID)
+	rows, err := tx.Query(ctx, `SELECT group_ref, org_role FROM oidc_group_role`)
 	if err != nil {
 		return "", fmt.Errorf("read the group roles: %w", err)
 	}
@@ -201,8 +187,8 @@ func followMapping(ctx context.Context, tx db.DBTX, orgID, userID uuid.UUID, cla
 	var current *standing
 	var found standing
 	err = tx.QueryRow(ctx, `
-		SELECT org_role, role_source FROM org_member WHERE org_id = $1 AND user_id = $2 FOR UPDATE`,
-		orgID, userID).Scan(&found.Role, &found.Source)
+		SELECT org_role, role_source FROM org_member WHERE user_id = $1 FOR UPDATE`,
+		userID).Scan(&found.Role, &found.Source)
 	switch {
 	case err == nil:
 		current = &found
@@ -221,21 +207,21 @@ func followMapping(ctx context.Context, tx db.DBTX, orgID, userID uuid.UUID, cla
 
 	if current == nil {
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO org_member (org_id, user_id, org_role, role_source) VALUES ($1, $2, $3, $4)`,
-			orgID, userID, string(next.Role), string(next.Source)); err != nil {
+			INSERT INTO org_member (user_id, org_role, role_source) VALUES ($1, $2, $3)`,
+			userID, string(next.Role), string(next.Source)); err != nil {
 			return "", fmt.Errorf("let the person in by their group: %w", err)
 		}
 		// A request noted before the group was mapped has been answered now.
-		if _, err := tx.Exec(ctx, `DELETE FROM org_join_request WHERE org_id = $1 AND user_id = $2`, orgID, userID); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM org_join_request WHERE user_id = $1`, userID); err != nil {
 			return "", err
 		}
-		return next.Role, audit.Write(ctx, tx, orgID, audit.Entry{Action: audit.ActionMemberJoined, TargetType: "user", TargetID: &userID,
+		return next.Role, audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberJoined, TargetType: "user", TargetID: &userID,
 			Data: map[string]any{"role": next.Role, "groups": groups}})
 	}
 
 	if _, err := tx.Exec(ctx, `
-		UPDATE org_member SET org_role = $3, role_source = $4 WHERE org_id = $1 AND user_id = $2`,
-		orgID, userID, string(next.Role), string(next.Source)); err != nil {
+		UPDATE org_member SET org_role = $2, role_source = $3 WHERE user_id = $1`,
+		userID, string(next.Role), string(next.Source)); err != nil {
 		return "", fmt.Errorf("follow the group roles: %w", err)
 	}
 	// A hand-set role a mapped group now manages changes who decides it, not
@@ -243,6 +229,6 @@ func followMapping(ctx context.Context, tx db.DBTX, orgID, userID uuid.UUID, cla
 	if next.Role == current.Role {
 		return next.Role, nil
 	}
-	return next.Role, audit.Write(ctx, tx, orgID, audit.Entry{Action: audit.ActionMemberRoleChanged, TargetType: "user", TargetID: &userID,
+	return next.Role, audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberRoleChanged, TargetType: "user", TargetID: &userID,
 		Data: map[string]any{"from": current.Role, "to": next.Role, "groups": groups}})
 }

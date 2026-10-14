@@ -36,10 +36,10 @@ func TestRawSQLKeepsProjectsToTheirPeople(t *testing.T) {
 		t.Fatal(err)
 	}
 	strangerID := h.addPerson(t, a.org, "guest")
-	stranger := h.appConn(t, a.org, strangerID)
-	plain := h.appConn(t, a.org, h.addPerson(t, a.org, "member"))
-	guest := h.appConn(t, a.org, h.addPerson(t, a.org, "guest"))
-	owner := h.appConn(t, a.org, a.user)
+	stranger := h.appConn(t, strangerID)
+	plain := h.appConn(t, h.addPerson(t, a.org, "member"))
+	guest := h.appConn(t, h.addPerson(t, a.org, "guest"))
+	owner := h.appConn(t, a.user)
 
 	t.Run("a guest, another guest or nobody sees nothing", func(t *testing.T) {
 		unscoped := h.appConnUnscoped(t)

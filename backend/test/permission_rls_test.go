@@ -49,7 +49,7 @@ func TestRawSQLHoldsProjectsToTheirGrants(t *testing.T) {
 	}
 	plainID := h.addPerson(t, a.org, "member")
 	guestID := h.addPerson(t, a.org, "guest")
-	plain, guest, owner := h.appConn(t, a.org, plainID), h.appConn(t, a.org, guestID), h.appConn(t, a.org, a.user)
+	plain, guest, owner := h.appConn(t, plainID), h.appConn(t, guestID), h.appConn(t, a.user)
 	holds := func(person uuid.UUID, right string) bool {
 		t.Helper()
 		var ok bool
@@ -136,7 +136,7 @@ func TestRawSQLHoldsProjectsToTheirGrants(t *testing.T) {
 		if n := affects(t, plain, `DELETE FROM project_grant WHERE project_id = $1`, project); n != 0 {
 			t.Error("an editor removed a grant")
 		}
-		outsider := h.appConn(t, a.org, h.addPerson(t, a.org, "guest"))
+		outsider := h.appConn(t, h.addPerson(t, a.org, "guest"))
 		if _, err := outsider.Exec(ctx, `INSERT INTO project_grant (org_id, project_id, subject_type, role) VALUES ($1, $2, 'everyone', 'viewer')`, a.org, project); !isPolicyViolation(err) {
 			t.Errorf("a guest no grant names granted in the project: %v", err)
 		}

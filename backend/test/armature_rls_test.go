@@ -49,7 +49,7 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 	h.settle(t)
 
 	t.Run("a member reads their own token and where Armature is, nothing more", func(t *testing.T) {
-		conn := h.appConn(t, home.org, bobID)
+		conn := h.appConn(t, bobID)
 		if n := seesRows(t, conn, `SELECT count(*) FROM armature_token`); n != 1 {
 			t.Errorf("bob reads %d tokens, want his own", n)
 		}
@@ -74,7 +74,7 @@ func TestRawSQLWallsArmatureRows(t *testing.T) {
 	})
 
 	t.Run("an administrator keeps the connection and still reads only their own token", func(t *testing.T) {
-		conn := h.appConn(t, home.org, home.user)
+		conn := h.appConn(t, home.user)
 		if n := seesRows(t, conn, `SELECT count(*) FROM armature_token`); n != 1 {
 			t.Errorf("the owner reads %d tokens, want their own", n)
 		}

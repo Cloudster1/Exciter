@@ -12,15 +12,14 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // lastSeenEvery is how stale last_seen_at may get before a request refreshes
 // it; otherwise every request would be a write, for a field nobody reads live.
 const lastSeenEvery = time.Minute
 
-// Service implements the identity use cases. Everything here runs before a
-// tenant is known, or spans tenants, so it goes through the admin path.
+// Service implements the identity use cases. Everything here runs before anybody acts, so it goes through the
+// admin path.
 type Service struct {
 	db         *db.Cluster
 	params     PasswordParams
@@ -49,8 +48,8 @@ type Credentials struct {
 // when the email is unknown so that both branches of Login cost the same.
 const decoyHash = "$argon2id$v=19$m=65536,t=3,p=4$c29tZS1zdGF0aWMtc2FsdA$Zm9yLXRpbWluZy1lcXVhbGl0eS1vbmx5LW5vdC1hLXNl"
 
-// Login verifies a password and opens a session in the person's first
-// organization. An unknown address and a wrong password fail alike.
+// Login verifies a password and opens a session. An unknown address and a
+// wrong password fail alike.
 func (s *Service) Login(ctx context.Context, email, password, userAgent, ip string) (*Credentials, error) {
 	email = NormalizeEmail(email)
 
@@ -94,24 +93,19 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		}
 	}
 
-	memberships, err := s.memberships(ctx, p.UserID)
+	p.Role, p.InstallationName, err = s.standing(ctx, p.UserID)
 	if err != nil {
 		return nil, err
 	}
 	// Everybody signed in belongs to the installation: somebody let go hears so rather than seeing an empty shell.
-	if len(memberships) == 0 {
+	if p.Role == "" {
 		return nil, ErrSwitchedOff
 	}
-	m := memberships[0]
-	orgID := &m.OrgID
-	p.Org = &tenant.Org{ID: m.OrgID, Slug: m.OrgSlug}
-	p.OrgName = m.OrgName
-	p.Role = m.Role
 
 	expiresAt := s.now().Add(s.sessionTTL)
 	var secret string
 	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		id, sessionSecret, err := OpenSession(ctx, tx, p.UserID, orgID, ProofPassword, expiresAt, userAgent, ip)
+		id, sessionSecret, err := OpenSession(ctx, tx, p.UserID, ProofPassword, expiresAt, userAgent, ip)
 		if err != nil {
 			return err
 		}
@@ -126,16 +120,15 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 	return &Credentials{Principal: &p, SessionSecret: secret, ExpiresAt: expiresAt, LSN: lsn}, nil
 }
 
-// sessionPrincipalSQL resolves a session to its caller and standing in one
-// round trip; outer joins, so a session whose membership went is told apart from none.
+// sessionPrincipalSQL resolves a session to its caller and standing in one round trip; an outer join, so a session
+// whose membership went is told apart from none.
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
        u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       o.id, o.slug, o.name, m.org_role
+       (SELECT name FROM org), m.org_role
 FROM user_session s
 JOIN app_user u ON u.id = s.user_id
-LEFT JOIN org o ON o.id = s.current_org_id AND o.archived_at IS NULL
-LEFT JOIN org_member m ON m.org_id = o.id AND m.user_id = u.id
+LEFT JOIN org_member m ON m.user_id = u.id
 WHERE s.token_hash = $1 AND s.expires_at > now()`
 
 // Authenticate resolves a session secret to its principal.
@@ -151,16 +144,14 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		sessionID  uuid.UUID
 		lastSeen   time.Time
 		active     bool
-		orgID      *uuid.UUID
-		orgSlug    *string
-		orgName    *string
+		name       *string
 		memberRole *string
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, sessionPrincipalSQL, HashToken(secret)).Scan(
 			&sessionID, &lastSeen, &p.Proof,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active,
-			&orgID, &orgSlug, &orgName, &memberRole,
+			&name, &memberRole,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -173,16 +164,15 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		return nil, ErrSwitchedOff
 	}
 	p.SessionID = &sessionID
-	// A membership row is required, not merely an org row: letting somebody go ends their open session at once,
-	// so the browser goes back to sign in and hears why there.
-	if orgID == nil || memberRole == nil {
+	// A membership row is required: letting somebody go ends their open session at once, so the browser goes back
+	// to sign in and hears why there.
+	if name == nil || memberRole == nil {
 		if err := s.Logout(ctx, sessionID); err != nil {
 			return nil, err
 		}
 		return nil, ErrInvalidToken
 	}
-	p.Org = &tenant.Org{ID: *orgID, Slug: *orgSlug}
-	p.OrgName = *orgName
+	p.InstallationName = *name
 	p.Role = OrgRole(*memberRole)
 	if s.now().Sub(lastSeen) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -202,31 +192,21 @@ func (s *Service) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	return err
 }
 
-// memberships are the person's, oldest first, so the first is a stable default while the integration suite still
-// lets the same people in to organizations of its own (#90).
-func (s *Service) memberships(ctx context.Context, userID uuid.UUID) ([]Membership, error) {
-	out := []Membership{}
+// standing is the person's role in the installation, empty when they hold none, and the installation's name.
+func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, string, error) {
+	var role *string
+	var name string
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, `
-			SELECT o.id, o.slug, o.name, m.org_role
-			FROM org_member m
-			JOIN org o ON o.id = m.org_id
-			WHERE m.user_id = $1 AND o.archived_at IS NULL
-			ORDER BY m.created_at, o.slug`, userID)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var m Membership
-			if err := rows.Scan(&m.OrgID, &m.OrgSlug, &m.OrgName, &m.Role); err != nil {
-				return err
-			}
-			out = append(out, m)
-		}
-		return rows.Err()
+		return tx.QueryRow(ctx, `
+			SELECT (SELECT org_role FROM org_member WHERE user_id = $1), name FROM org`, userID).Scan(&role, &name)
 	})
-	return out, err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrNoInstallation
+	}
+	if err != nil || role == nil {
+		return "", name, err
+	}
+	return OrgRole(*role), name, nil
 }
 
 // SetLocale records the language a person reads the interface in;
@@ -239,22 +219,6 @@ func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale
 		_, err := tx.Exec(ctx, `UPDATE app_user SET locale = NULLIF($2, '') WHERE id = $1`, userID, string(locale))
 		return err
 	})
-}
-
-// InstallationOrg is the organization a sign-in that names none is for, such as single sign-on's: the oldest,
-// as the seed finds it. Through the admin path, since nobody is signed in yet.
-func (s *Service) InstallationOrg(ctx context.Context) (*tenant.Org, error) {
-	var org tenant.Org
-	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		return tx.QueryRow(ctx, `SELECT id, slug FROM org WHERE archived_at IS NULL ORDER BY created_at, slug LIMIT 1`).Scan(&org.ID, &org.Slug)
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrNoInstallation
-	}
-	if err != nil {
-		return nil, fmt.Errorf("find the installation: %w", err)
-	}
-	return &org, nil
 }
 
 // AccountID finds the account of an address, for a bootstrap acting in that
@@ -270,13 +234,9 @@ func (s *Service) AccountID(ctx context.Context, email string) (uuid.UUID, error
 	return id, err
 }
 
-// EnsureAdmin makes email a local owner of ctx's organization, reporting whether
+// EnsureAdmin makes email a local owner of the installation, reporting whether
 // the account is new. Run again it changes nothing, or resets a changed password.
 func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string) (bool, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return false, err
-	}
 	email = NormalizeEmail(email)
 	if !strings.Contains(email, "@") {
 		return false, fmt.Errorf("%q is not an email address", email)
@@ -289,7 +249,7 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 	}
 
 	var stored *string
-	err = s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `SELECT password_hash FROM app_user WHERE email = $1`, email).Scan(&stored)
 	})
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -312,7 +272,6 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 
 	var created bool
 	_, err = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		orgID := org.ID
 		var userID uuid.UUID
 		// xmax is zero on a row this statement inserted rather than updated.
 		err := tx.QueryRow(ctx, `
@@ -323,9 +282,9 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 			return fmt.Errorf("create the administrator: %w", err)
 		}
 		_, err = tx.Exec(ctx, `
-			INSERT INTO org_member (org_id, user_id, org_role) VALUES ($1, $2, 'owner')
+			INSERT INTO org_member (user_id, org_role) VALUES ($1, 'owner')
 			ON CONFLICT (user_id) DO UPDATE SET org_role = 'owner', role_source = 'manual'
-			WHERE org_member.org_role <> 'owner'`, orgID, userID)
+			WHERE org_member.org_role <> 'owner'`, userID)
 		return err
 	})
 	return created, err
@@ -333,17 +292,17 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 
 // OpenSession creates a session row and returns its id and secret. The secret
 // exists only in this return value and the cookie; the row holds its digest.
-func OpenSession(ctx context.Context, tx db.DBTX, userID uuid.UUID, orgID *uuid.UUID, proof Proof, expiresAt time.Time, userAgent, ip string) (uuid.UUID, string, error) {
+func OpenSession(ctx context.Context, tx db.DBTX, userID uuid.UUID, proof Proof, expiresAt time.Time, userAgent, ip string) (uuid.UUID, string, error) {
 	secret, digest, err := GenerateToken()
 	if err != nil {
 		return uuid.Nil, "", err
 	}
 	var id uuid.UUID
 	err = tx.QueryRow(ctx, `
-		INSERT INTO user_session (user_id, token_hash, current_org_id, proof, user_agent, ip, expires_at)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, '')::inet, $7)
+		INSERT INTO user_session (user_id, token_hash, proof, user_agent, ip, expires_at)
+		VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, '')::inet, $6)
 		RETURNING id`,
-		userID, digest, orgID, string(proof), userAgent, ip, expiresAt,
+		userID, digest, string(proof), userAgent, ip, expiresAt,
 	).Scan(&id)
 	if err != nil {
 		return uuid.Nil, "", fmt.Errorf("create session: %w", err)

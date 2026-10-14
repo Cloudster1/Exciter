@@ -22,7 +22,7 @@ type AttributeSpec struct {
 	Options    []string
 }
 
-// Blueprint is what a template makes; LinkTypes names the organization's link types the project uses, every
+// Blueprint is what a template makes; LinkTypes names the installation's link types the project uses, every
 // one when empty.
 type Blueprint struct {
 	Template

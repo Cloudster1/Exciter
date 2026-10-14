@@ -14,14 +14,13 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 var (
 	// ErrForbidden is somebody who may view a project asking for what only its administrators see or change.
 	ErrForbidden = errors.New("only the project's administrators manage its grants")
 	ErrArchived  = errors.New("the project is archived")
-	// ErrNoAdministrator is a table of grants that leaves nobody but the organization's administrators to run the project.
+	// ErrNoAdministrator is a table of grants that leaves nobody but the installation's administrators to run the project.
 	ErrNoAdministrator = errors.New("no person or group would administer the project")
 )
 
@@ -39,7 +38,7 @@ type Service struct {
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
 
-// Mine is what a person with role may do across the organization.
+// Mine is what a person with role may do across the installation.
 func Mine(role auth.OrgRole) OrgCan {
 	return OrgCan{CreateProject: role.CanAdminister(), Administer: role.CanAdminister()}
 }
@@ -173,17 +172,13 @@ func (s *Service) ReplaceGrants(ctx context.Context, actor, project uuid.UUID, i
 				group = g.Subject.ID
 			}
 			if _, err := tx.Exec(ctx, `
-				INSERT INTO project_grant (org_id, project_id, subject_type, user_id, group_id, role)
-				VALUES (current_org_id(), $1, $2, $3, $4, $5)`, project, g.Subject.Type, user, group, g.Role); err != nil {
+				INSERT INTO project_grant (project_id, subject_type, user_id, group_id, role)
+				VALUES ($1, $2, $3, $4, $5)`, project, g.Subject.Type, user, group, g.Role); err != nil {
 				return fmt.Errorf("grant %s to %s: %w", g.Role, g.Subject.Name, err)
 			}
 		}
 		slices.SortFunc(out, compareGrants)
-		org, err := tenant.MustFromContext(ctx)
-		if err != nil {
-			return err
-		}
-		return audit.Write(ctx, tx, org.ID, audit.Entry{Action: audit.ActionProjectGrantsChanged, TargetType: "project",
+		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionProjectGrantsChanged, TargetType: "project",
 			TargetID: &project, Actor: actor, Data: map[string]any{"before": grantLog(before), "after": grantLog(out)}})
 	})
 	if err != nil {
@@ -232,7 +227,7 @@ func resolveGrants(ctx context.Context, tx db.DBTX, rows []GrantInput) ([]Grant,
 	return out, nil
 }
 
-// resolveSubject checks a subject exists in the organization and names it, with a person's organization role.
+// resolveSubject checks a subject exists in the installation and names it, with a person's role in the installation.
 func resolveSubject(ctx context.Context, tx db.DBTX, field string, ref SubjectRef) (Subject, auth.OrgRole, error) {
 	switch ref.Type {
 	case SubjectEveryone:
@@ -252,9 +247,9 @@ func resolveSubject(ctx context.Context, tx db.DBTX, field string, ref SubjectRe
 	if ref.Type == SubjectUser {
 		err = tx.QueryRow(ctx, `
 			SELECT u.name, m.org_role FROM org_member m JOIN app_user u ON u.id = m.user_id
-			WHERE m.org_id = current_org_id() AND m.user_id = $1`, *ref.ID).Scan(&name, &orgRole)
+			WHERE m.user_id = $1`, *ref.ID).Scan(&name, &orgRole)
 	} else {
-		err = tx.QueryRow(ctx, `SELECT name FROM groups WHERE org_id = current_org_id() AND id = $1`, *ref.ID).Scan(&name)
+		err = tx.QueryRow(ctx, `SELECT name FROM groups WHERE id = $1`, *ref.ID).Scan(&name)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Subject{}, "", &FieldError{field, fmt.Sprintf("There is no %s with the id %s here. Pick one from the list.", ref.Type, *ref.ID)}
@@ -278,8 +273,7 @@ func (s *Service) People(ctx context.Context, q string, limit int) ([]Person, er
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
 			SELECT u.id, u.name, u.email::text FROM org_member m JOIN app_user u ON u.id = m.user_id
-			WHERE m.org_id = current_org_id()
-			  AND (u.name ILIKE $1 OR u.name ILIKE '% ' || $1 OR u.email::text ILIKE $1)
+			WHERE (u.name ILIKE $1 OR u.name ILIKE '% ' || $1 OR u.email::text ILIKE $1)
 			ORDER BY lower(u.name), u.email LIMIT $2`, likePrefix(q), limit)
 		if err != nil {
 			return err
@@ -293,14 +287,14 @@ func (s *Service) People(ctx context.Context, q string, limit int) ([]Person, er
 	return out, err
 }
 
-// Groups are the organization's groups whose name, or a word of it, starts with q.
+// Groups are the installation's groups whose name, or a word of it, starts with q.
 func (s *Service) Groups(ctx context.Context, q string, limit int) ([]Group, error) {
 	out := []Group{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
 			SELECT g.id, g.name, (SELECT count(*)::int FROM group_member gm WHERE gm.group_id = g.id), g.source = 'oidc'
 			FROM groups g
-			WHERE g.org_id = current_org_id() AND (g.name ILIKE $1 OR g.name ILIKE '% ' || $1)
+			WHERE (g.name ILIKE $1 OR g.name ILIKE '% ' || $1)
 			ORDER BY lower(g.name), g.id LIMIT $2`, likePrefix(q), limit)
 		if err != nil {
 			return err

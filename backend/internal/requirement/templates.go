@@ -14,13 +14,13 @@ import (
 )
 
 // Seed makes what a template holds in a project just made, in the transaction that made it (#24): types,
-// attributes, the organization's link types it leaves off, and sections.
+// attributes, the installation's link types it leaves off, and sections.
 func Seed(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, b project.Blueprint) error {
 	for i, t := range b.TypeSpecs {
-		sql := `INSERT INTO requirement_type (org_id, project_id, name, icon, colour, position) VALUES (current_org_id(), $1, $2, $3, $4, $5)`
+		sql := `INSERT INTO requirement_type (project_id, name, icon, colour, position) VALUES ($1, $2, $3, $4, $5)`
 		if i == 0 {
 			// The type the project was made with is its default; renaming it keeps that.
-			sql = `UPDATE requirement_type SET name = $2, icon = $3, colour = $4 WHERE org_id = current_org_id() AND project_id = $1 AND position = $5`
+			sql = `UPDATE requirement_type SET name = $2, icon = $3, colour = $4 WHERE project_id = $1 AND position = $5`
 		}
 		if _, err := tx.Exec(ctx, sql, projectID, t.Name, t.Icon, t.Colour, i); err != nil {
 			return fmt.Errorf("make the type %s: %w", t.Name, err)
@@ -39,16 +39,16 @@ func Seed(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, b project
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO attribute_def (org_id, project_id, name, kind, options, position) VALUES (current_org_id(), $1, $2, $3, $4, $5)`,
+		if _, err := tx.Exec(ctx, `INSERT INTO attribute_def (project_id, name, kind, options, position) VALUES ($1, $2, $3, $4, $5)`,
 			projectID, a.Name, a.Kind, encoded, i); err != nil {
 			return fmt.Errorf("make the attribute %s: %w", a.Name, err)
 		}
 	}
 	if len(b.LinkTypeKeys) > 0 {
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO link_type_project (org_id, project_id, link_type_id, enabled)
-			SELECT current_org_id(), $1, lt.id, false FROM link_type lt
-			WHERE lt.org_id = current_org_id() AND lt.project_id IS NULL AND lt.key <> ALL ($2)`, projectID, b.LinkTypeKeys); err != nil {
+			INSERT INTO link_type_project (project_id, link_type_id, enabled)
+			SELECT $1, lt.id, false FROM link_type lt
+			WHERE lt.project_id IS NULL AND lt.key <> ALL ($2)`, projectID, b.LinkTypeKeys); err != nil {
 			return fmt.Errorf("leave link types off: %w", err)
 		}
 	}
@@ -70,14 +70,14 @@ func seedSection(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, ti
 	hash := content.Hash()
 	var id uuid.UUID
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO requirement (org_id, project_id, kind, title, statement, attributes, normative_hash, rank, created_by, updated_by)
-		VALUES (current_org_id(), $1, $2, $3, $4, '{}', $5, $6, $7, $7) RETURNING id`,
+		INSERT INTO requirement (project_id, kind, title, statement, attributes, normative_hash, rank, created_by, updated_by)
+		VALUES ($1, $2, $3, $4, '{}', $5, $6, $7, $7) RETURNING id`,
 		projectID, KindSection, title, document.Empty, hash, at, actor).Scan(&id); err != nil {
 		return fmt.Errorf("write the section %s: %w", title, err)
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_revision (org_id, requirement_id, number, title, statement, attributes, hash, comment, created_by)
-		VALUES (current_org_id(), $1, 1, $2, $3, '{}', $4, $5, $6)`, id, title, document.Empty, hash, comment, actor); err != nil {
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, attributes, hash, comment, created_by)
+		VALUES ($1, 1, $2, $3, '{}', $4, $5, $6)`, id, title, document.Empty, hash, comment, actor); err != nil {
 		return fmt.Errorf("write revision 1 of %s: %w", title, err)
 	}
 	return events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": projectID, "requirementId": id, "revision": 1})

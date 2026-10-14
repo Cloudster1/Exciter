@@ -2536,12 +2536,10 @@ export interface components {
             userId: string;
         };
         Membership: {
-            /** Format: uuid */
-            orgId: string;
-            orgName: string;
-            orgSlug: string;
             /** @enum {string} */
             role: "owner" | "admin" | "member" | "guest";
+            /** Format: uuid */
+            userId: string;
         };
         MetaResponse: {
             build: components["schemas"]["BuildInfo"];

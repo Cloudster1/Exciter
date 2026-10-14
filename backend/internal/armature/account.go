@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Account is the caller's own link to Armature.
@@ -64,7 +63,7 @@ func (s *Service) ownToken(ctx context.Context, tx db.DBTX) (*tokenRow, error) {
 	)
 	err := tx.QueryRow(ctx, `
 		SELECT id, token, read_only, status, armature_user_id, armature_user_name, armature_user_email, checked_at
-		FROM armature_token WHERE org_id = current_org_id() AND user_id = $1`, user,
+		FROM armature_token WHERE user_id = $1`, user,
 	).Scan(&row.ID, &row.Sealed, &row.ReadOnly, &row.Status, &armatureUser, &armatureName, &armatureAt, &row.CheckedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -79,12 +78,8 @@ func (s *Service) ownToken(ctx context.Context, tx db.DBTX) (*tokenRow, error) {
 }
 
 // Connect stores the caller's token once Armature accepts it as somebody in
-// the connected organization.
+// the connected Armature.
 func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	user, ok := db.UserFrom(ctx)
 	if !ok {
 		return nil, 0, ErrNotConnected
@@ -95,6 +90,7 @@ func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, 
 	}
 	var e *endpoint
 	if err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
+		var err error
 		e, err = s.endpoint(ctx, tx)
 		return err
 	}); err != nil {
@@ -113,7 +109,7 @@ func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, 
 	case !e.owns(me):
 		return nil, 0, &FieldError{Field: "token", Message: fmt.Sprintf("This token was made in another Armature than the one connected at %s. Make one there and paste it here.", e.BaseURL)}
 	}
-	sealed, err := s.seal(token, tokenContext(org.ID, user), "token")
+	sealed, err := s.seal(token, tokenContext(e.Installation, user), "token")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -122,12 +118,12 @@ func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, 
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		// A new row rather than an update, so the row id that keys the
 		// person's cache is new with the token.
-		if _, err := tx.Exec(ctx, `DELETE FROM armature_token WHERE org_id = current_org_id() AND user_id = $1`, user); err != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM armature_token WHERE user_id = $1`, user); err != nil {
 			return fmt.Errorf("forget the old Armature token: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO armature_token (org_id, user_id, token, armature_user_id, armature_user_name, armature_user_email, read_only, status, checked_at)
-			VALUES (current_org_id(), $1, $2, $3, $4, $5, $6, $7, now())`,
+			INSERT INTO armature_token (user_id, token, armature_user_id, armature_user_name, armature_user_email, read_only, status, checked_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, now())`,
 			user, sealed, me.User.ID, me.User.Name, me.User.Email, me.ReadOnly, StatusOK); err != nil {
 			return fmt.Errorf("store the Armature token: %w", err)
 		}
@@ -137,18 +133,15 @@ func (s *Service) Connect(ctx context.Context, token string) (*Account, db.LSN, 
 	if err != nil {
 		return nil, lsn, err
 	}
-	s.learnOrg(ctx, org.ID, e, me)
+	s.learnOrg(ctx, e, me)
 	return out, lsn, nil
 }
 
 // Check asks Armature now whether the caller's stored token still works, and
 // records what it said; ok clears a rejected mark.
 func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, 0, err
-	}
 	var (
+		err error
 		e   *endpoint
 		row *tokenRow
 	)
@@ -167,7 +160,7 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 	}
 
 	status, user, readOnly := StatusRejected, row.User, row.ReadOnly
-	token, openErr := s.open(ctx, row, org.ID)
+	token, openErr := s.open(ctx, row, e.Installation)
 	if openErr == nil {
 		me, err := s.me(ctx, e.BaseURL, token)
 		switch {
@@ -175,7 +168,7 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 			status = StatusUnreachable
 		case err == nil && e.owns(me):
 			status, user, readOnly = StatusOK, &me.User, me.ReadOnly
-			s.learnOrg(ctx, org.ID, e, me)
+			s.learnOrg(ctx, e, me)
 		}
 	}
 
@@ -206,7 +199,7 @@ func (s *Service) Disconnect(ctx context.Context) (db.LSN, error) {
 		return 0, ErrNotConnected
 	}
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `DELETE FROM armature_token WHERE org_id = current_org_id() AND user_id = $1`, user)
+		_, err := tx.Exec(ctx, `DELETE FROM armature_token WHERE user_id = $1`, user)
 		return err
 	})
 }
@@ -214,7 +207,6 @@ func (s *Service) Disconnect(ctx context.Context) (db.LSN, error) {
 // Viewer is the caller as Armature knows them. TokenID keys their entries in
 // the Cache, and Caller makes every call with their own token.
 type Viewer struct {
-	OrgID   uuid.UUID
 	UserID  uuid.UUID
 	TokenID uuid.UUID
 	Caller  *Caller
@@ -225,15 +217,12 @@ type Viewer struct {
 // Viewer returns the person ctx acts for, ready to call Armature, or the
 // status saying why not: not_configured, not_connected or rejected.
 func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
-	org, err := tenant.MustFromContext(ctx)
-	if err != nil {
-		return nil, "", err
-	}
 	user, ok := db.UserFrom(ctx)
 	if !ok {
 		return nil, StatusNotConnected, nil
 	}
 	var (
+		err error
 		e   *endpoint
 		row *tokenRow
 	)
@@ -254,11 +243,11 @@ func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
 	case row.Status == StatusRejected:
 		return nil, StatusRejected, nil
 	}
-	token, err := s.open(ctx, row, org.ID)
+	token, err := s.open(ctx, row, e.Installation)
 	if err != nil {
 		return nil, StatusRejected, nil
 	}
-	return &Viewer{OrgID: org.ID, UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token), ReadOnly: row.ReadOnly}, StatusOK, nil
+	return &Viewer{UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token), ReadOnly: row.ReadOnly}, StatusOK, nil
 }
 
 // NoteRejected marks the viewer's token rejected after Armature answered it
@@ -292,7 +281,7 @@ func (e *endpoint) owns(me *Me) bool {
 
 // learnOrg keeps the Armature organization's id from the first token that
 // checks out, while the address is still the one that was asked.
-func (s *Service) learnOrg(ctx context.Context, org uuid.UUID, e *endpoint, me *Me) {
+func (s *Service) learnOrg(ctx context.Context, e *endpoint, me *Me) {
 	if e.ArmatureOrgID != nil || me.OrgID == uuid.Nil {
 		return
 	}
@@ -300,12 +289,12 @@ func (s *Service) learnOrg(ctx context.Context, org uuid.UUID, e *endpoint, me *
 	// with raw SQL.
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		_, err := tx.Exec(ctx, `
-			UPDATE armature_connection SET armature_org_id = $2
-			WHERE org_id = $1 AND armature_org_id IS NULL AND base_url = $3`,
-			org, me.OrgID, e.BaseURL)
+			UPDATE armature_connection SET armature_org_id = $1
+			WHERE armature_org_id IS NULL AND base_url = $2`,
+			me.OrgID, e.BaseURL)
 		return err
 	})
 	if err != nil {
-		s.opts.Log.Warn("the Armature organization's id could not be kept", "org_id", org, "error", err)
+		s.opts.Log.Warn("the Armature organization's id could not be kept", "base_url", e.BaseURL, "error", err)
 	}
 }

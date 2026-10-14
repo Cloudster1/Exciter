@@ -1,4 +1,4 @@
-// Package label keeps the organization's labels on requirements (#19), as Stator keeps them on pages; a label
+// Package label keeps the installation's labels on requirements (#19), as Stator keeps them on pages; a label
 // exists while some requirement carries it. docs/api-contract-m1.md says how.
 package label
 

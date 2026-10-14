@@ -17,7 +17,6 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Link sync (#27), Stator's: the worker brings the remote links of one requirement in Armature in line with its
@@ -159,12 +158,12 @@ func NewLinkSync(svc *Service, log *slog.Logger) *LinkSync {
 // run finds every link recorded and sends nothing.
 func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 	var in LinksEvent
-	if err := json.Unmarshal(e.Payload, &in); err != nil || in.RequirementID == uuid.Nil || e.OrgID == uuid.Nil {
+	if err := json.Unmarshal(e.Payload, &in); err != nil || in.RequirementID == uuid.Nil {
 		return nil
 	}
-	org := tenant.WithOrg(db.PinPrimary(ctx), tenant.Org{ID: e.OrgID})
+	pinned := db.PinPrimary(ctx)
 	var retry error
-	_, err := l.svc.db.WriteAdmin(org, func(ctx context.Context, tx db.DBTX) error {
+	_, err := l.svc.db.WriteAdmin(pinned, func(ctx context.Context, tx db.DBTX) error {
 		// Two workers syncing one requirement at once would each put the links the other is about to record.
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('armature-links:' || $1::text, 0))`, in.RequirementID); err != nil {
 			return err
@@ -177,7 +176,7 @@ func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 		if len(steps) == 0 {
 			return nil
 		}
-		run := &linkRun{sync: l, tx: tx, requirementID: in.RequirementID, as: db.WithUser(org, in.ActorID)}
+		run := &linkRun{sync: l, tx: tx, requirementID: in.RequirementID, as: db.WithUser(pinned, in.ActorID)}
 		if run.viewer, run.status, err = l.svc.Viewer(run.as); err != nil {
 			return err
 		}
@@ -203,13 +202,13 @@ func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, RequirementState, []LinkedIssue, []LinkRecord, error) {
 	req := RequirementState{ID: id}
 	var connected bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM armature_connection WHERE org_id = current_org_id())`).Scan(&connected); err != nil || !connected {
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM armature_connection)`).Scan(&connected); err != nil || !connected {
 		return false, req, nil, nil, err
 	}
 	err := tx.QueryRow(ctx, `
 		SELECT p.key || '-R' || r.number, r.title, r.trashed_at IS NOT NULL
-		FROM requirement r JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
-		WHERE r.org_id = current_org_id() AND r.id = $1`, id).Scan(&req.Key, &req.Title, &req.Trashed)
+		FROM requirement r JOIN project p ON p.id = r.project_id
+		WHERE r.id = $1`, id).Scan(&req.Key, &req.Title, &req.Trashed)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 	case err != nil:
@@ -219,7 +218,7 @@ func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, Re
 	}
 	rows, err := tx.Query(ctx, `
 		SELECT issue_key, relation, broken_at IS NOT NULL, detached_at IS NOT NULL
-		FROM armature_issue_link WHERE org_id = current_org_id() AND requirement_id = $1`, id)
+		FROM armature_issue_link WHERE requirement_id = $1`, id)
 	if err != nil {
 		return false, req, nil, nil, err
 	}
@@ -229,7 +228,7 @@ func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, Re
 	}
 	rows, err = tx.Query(ctx, `
 		SELECT issue_key, remote_link_id, COALESCE(url, ''), COALESCE(title, ''), state
-		FROM armature_remote_link WHERE org_id = current_org_id() AND requirement_id = $1`, id)
+		FROM armature_remote_link WHERE requirement_id = $1`, id)
 	if err != nil {
 		return false, req, nil, nil, err
 	}
@@ -277,7 +276,7 @@ func (r *linkRun) apply(ctx context.Context, step LinkStep) (retry error, err er
 		}
 		if _, err := r.tx.Exec(ctx, `
 			UPDATE armature_remote_link SET remote_link_id = NULL, updated_at = now()
-			WHERE org_id = current_org_id() AND requirement_id = $1 AND issue_key = $2`, r.requirementID, step.Key); err != nil {
+			WHERE requirement_id = $1 AND issue_key = $2`, r.requirementID, step.Key); err != nil {
 			return nil, err
 		}
 	}
@@ -296,8 +295,8 @@ func (r *linkRun) apply(ctx context.Context, step LinkStep) (retry error, err er
 		return nil, r.fail(ctx, step, why)
 	}
 	_, err = r.tx.Exec(ctx, `
-		INSERT INTO armature_remote_link (org_id, requirement_id, issue_key, remote_link_id, url, title, state, error, synced_at, updated_at)
-		VALUES (current_org_id(), $1, $2, $3, $4, $5, 'synced', NULL, now(), now())
+		INSERT INTO armature_remote_link (requirement_id, issue_key, remote_link_id, url, title, state, error, synced_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, 'synced', NULL, now(), now())
 		ON CONFLICT (requirement_id, issue_key) DO UPDATE SET
 		    remote_link_id = EXCLUDED.remote_link_id, url = EXCLUDED.url, title = EXCLUDED.title,
 		    state = 'synced', error = NULL, synced_at = now(), updated_at = now()`,
@@ -370,8 +369,8 @@ func (r *linkRun) pending(ctx context.Context, steps []LinkStep) error {
 		}
 	}
 	_, err := r.tx.Exec(ctx, `
-		INSERT INTO armature_remote_link (org_id, requirement_id, issue_key, state, updated_at)
-		SELECT current_org_id(), $1, k, 'pending', now() FROM unnest($2::text[]) AS k
+		INSERT INTO armature_remote_link (requirement_id, issue_key, state, updated_at)
+		SELECT $1, k, 'pending', now() FROM unnest($2::text[]) AS k
 		ON CONFLICT (requirement_id, issue_key) DO UPDATE SET state = 'pending', error = NULL, updated_at = now()`,
 		r.requirementID, keys)
 	return err
@@ -380,15 +379,15 @@ func (r *linkRun) pending(ctx context.Context, steps []LinkStep) error {
 // fail marks a key failed with why, keeping what was recorded of its link so a later sync can still take it off.
 func (r *linkRun) fail(ctx context.Context, step LinkStep, why string) error {
 	_, err := r.tx.Exec(ctx, `
-		INSERT INTO armature_remote_link (org_id, requirement_id, issue_key, state, error, updated_at)
-		VALUES (current_org_id(), $1, $2, 'failed', $3, now())
+		INSERT INTO armature_remote_link (requirement_id, issue_key, state, error, updated_at)
+		VALUES ($1, $2, 'failed', $3, now())
 		ON CONFLICT (requirement_id, issue_key) DO UPDATE SET state = 'failed', error = EXCLUDED.error, updated_at = now()`,
 		r.requirementID, step.Key, why)
 	return err
 }
 
 func (r *linkRun) forget(ctx context.Context, key string) error {
-	_, err := r.tx.Exec(ctx, `DELETE FROM armature_remote_link WHERE org_id = current_org_id() AND requirement_id = $1 AND issue_key = $2`, r.requirementID, key)
+	_, err := r.tx.Exec(ctx, `DELETE FROM armature_remote_link WHERE requirement_id = $1 AND issue_key = $2`, r.requirementID, key)
 	return err
 }
 

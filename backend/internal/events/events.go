@@ -23,7 +23,6 @@ var Topics = []string{"project.key_changed", "project.deleted", "requirement.cre
 // Event is one committed domain event.
 type Event struct {
 	ID        uuid.UUID
-	OrgID     uuid.UUID
 	Topic     string
 	Payload   json.RawMessage
 	CreatedAt time.Time
@@ -40,8 +39,8 @@ func Emit(ctx context.Context, tx db.DBTX, topic string, payload any) error {
 		return fmt.Errorf("marshal %s payload: %w", topic, err)
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO outbox_event (org_id, topic, payload, trace_parent)
-		VALUES (current_org_id(), $1, $2, NULLIF($3, ''))`,
+		INSERT INTO outbox_event (topic, payload, trace_parent)
+		VALUES ($1, $2, NULLIF($3, ''))`,
 		topic, body, TraceParent(ctx)); err != nil {
 		return fmt.Errorf("emit %s: %w", topic, err)
 	}

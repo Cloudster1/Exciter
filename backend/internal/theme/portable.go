@@ -23,7 +23,7 @@ const PackageFormat = "armature-theme/1"
 const MaxPackageBytes = 64 * 1024 * 1024
 
 // Package is a theme as one file: its name, its spec and every file it draws
-// from, so it can be sent to another organization or kept outside.
+// from, so it can be sent to another installation or kept outside.
 type Package struct {
 	Format string          `json:"format"`
 	Name   string          `json:"name"`
@@ -51,7 +51,11 @@ func (s *Service) Export(ctx context.Context, id, reader uuid.UUID) (*Package, e
 	}
 	out := &Package{Format: PackageFormat, Name: t.Name, Spec: t.Spec, Assets: []PackagedAsset{}}
 	for _, a := range t.Assets {
-		body, err := s.store.Get(ctx, objectKey(ctx, id, a.ID))
+		key, err := s.objectKey(ctx, id, a.ID)
+		if err != nil {
+			return nil, err
+		}
+		body, err := s.store.Get(ctx, key)
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", a.Name, ErrAssetNotFound)
 		}

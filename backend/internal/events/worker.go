@@ -24,7 +24,7 @@ const (
 	// DefaultIdle is how long the worker waits when nothing is waiting.
 	DefaultIdle = time.Second
 	// MaxAttempts is how often an event is tried before it is marked done
-	// with its last error, so one bad event cannot block a tenant.
+	// with its last error, so one bad event cannot block the rest.
 	MaxAttempts = 10
 	// retryStep is how much longer each failed attempt waits than the last.
 	retryStep = 5 * time.Second
@@ -135,7 +135,7 @@ func (w *Worker) Once(ctx context.Context) (int, error) {
 }
 
 // claim leases a batch in a transaction of its own: holding the rows' locks while handlers run deadlocks unseen,
-// since a handler's write can wait on an organization's delete, which waits on those locks.
+// since a handler's write can wait on a project's delete, which waits on those locks.
 func (w *Worker) claim(ctx context.Context) ([]claim, error) {
 	var batch []claim
 	_, err := w.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -150,7 +150,7 @@ func (w *Worker) claim(ctx context.Context) ([]claim, error) {
 			    FOR UPDATE SKIP LOCKED
 			) due
 			WHERE e.id = due.id
-			RETURNING e.id, e.org_id, e.topic, e.payload, e.created_at, COALESCE(e.trace_parent, ''), e.attempts`,
+			RETURNING e.id, e.topic, e.payload, e.created_at, COALESCE(e.trace_parent, ''), e.attempts`,
 			w.batch, ClaimLease.Seconds())
 		if err != nil {
 			return err
@@ -158,7 +158,7 @@ func (w *Worker) claim(ctx context.Context) ([]claim, error) {
 		defer rows.Close()
 		for rows.Next() {
 			var c claim
-			if err := rows.Scan(&c.ID, &c.OrgID, &c.Topic, &c.Payload, &c.CreatedAt, &c.Trace, &c.attempts); err != nil {
+			if err := rows.Scan(&c.ID, &c.Topic, &c.Payload, &c.CreatedAt, &c.Trace, &c.attempts); err != nil {
 				return err
 			}
 			batch = append(batch, c)
@@ -196,8 +196,8 @@ func (w *Worker) settle(ctx context.Context, c claim, herr error) error {
 		if !giveUp {
 			return nil
 		}
-		// The organization's administrators read the audit log anyway, so it is the record of what was set aside.
-		return audit.Write(ctx, tx, c.OrgID, audit.Entry{
+		// The installation's administrators read the audit log anyway, so it is the record of what was set aside.
+		return audit.Write(ctx, tx, audit.Entry{
 			Action: audit.ActionEventDeadLettered, TargetType: "event", TargetID: &c.ID,
 			Data: map[string]any{"topic": c.Topic, "attempts": attempts, "lastError": herr.Error()},
 		})

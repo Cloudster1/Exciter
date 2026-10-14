@@ -5,10 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/cloudster1/exciter/backend/internal/db"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 const (
@@ -21,8 +18,8 @@ const (
 	RetentionInterval = 24 * time.Hour
 )
 
-// Retention deletes entries older than its window, organization by
-// organization, as exciter_admin: the app role may not delete from the log.
+// Retention deletes entries older than its window, as exciter_admin: the
+// app role may not delete from the log.
 type Retention struct {
 	db       *db.Cluster
 	keep     time.Duration
@@ -60,45 +57,15 @@ func (r *Retention) Run(ctx context.Context) {
 	}
 }
 
-// Once deletes what is past the window in every organization and says how
-// many entries went; one organization failing does not stop the others.
+// Once deletes what is past the window and says how many entries went.
 func (r *Retention) Once(ctx context.Context) (int64, error) {
 	if r.keep <= 0 {
 		return 0, nil
 	}
 	cutoff := r.now().Add(-r.keep)
-	// Finding the organizations is the one step that crosses them; each
-	// deletion happens inside its own, as Armature's sweep does.
-	var orgs []uuid.UUID
-	err := r.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, `SELECT DISTINCT org_id FROM audit_log WHERE created_at < $1`, cutoff)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var id uuid.UUID
-			if err := rows.Scan(&id); err != nil {
-				return err
-			}
-			orgs = append(orgs, id)
-		}
-		return rows.Err()
+	var n int64
+	_, err := r.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		return tx.QueryRow(ctx, `SELECT audit_log_prune($1)`, cutoff).Scan(&n)
 	})
-	if err != nil {
-		return 0, err
-	}
-	var total int64
-	var firstErr error
-	for _, org := range orgs {
-		var n int64
-		_, err := r.db.WriteAdmin(tenant.WithOrg(ctx, tenant.Org{ID: org}), func(ctx context.Context, tx db.DBTX) error {
-			return tx.QueryRow(ctx, `SELECT audit_log_prune($1)`, cutoff).Scan(&n)
-		})
-		if err != nil && firstErr == nil {
-			firstErr = err
-		}
-		total += n
-	}
-	return total, firstErr
+	return n, err
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/armature"
 )
 
-// Connecting Armature (#26): the organization's instance for its administrators, and each member's own token,
+// Connecting Armature (#26): the installation's instance for its administrators, and each member's own token,
 // as Stator's. See docs/api-contract-m2.md.
 
 var errArmatureOff = &APIError{Status: http.StatusServiceUnavailable, Code: "armature_unavailable",

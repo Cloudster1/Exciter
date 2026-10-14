@@ -16,24 +16,39 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
-// The belt as well as the braces: a query with no organization at all is
-// refused before it reaches the database.
-func TestUnscopedAccessIsRefused(t *testing.T) {
+// The code no longer refuses a transaction acting for nobody before it reaches the database (#107); the permission
+// policies do, so such a transaction reads nothing walled and changes nothing walled.
+func TestATransactionActingForNobodyReachesNothingWalled(t *testing.T) {
 	h := newHarness(t)
-
-	err := h.cluster.Read(context.Background(), func(ctx context.Context, tx db.DBTX) error {
-		var n int
-		return tx.QueryRow(ctx, `SELECT count(*) FROM org`).Scan(&n)
-	})
-	if !isNoTenant(err) {
-		t.Fatalf("a read with no organization = %v, want tenant.ErrNoTenant", err)
+	home := h.owner(t, "nobody-tx")
+	var project uuid.UUID
+	if err := h.super.QueryRow(context.Background(), `INSERT INTO project (key, name, created_by) VALUES ($1, 'Walled', $2) RETURNING id`,
+		projectKey(t, "NOTX"), home.user).Scan(&project); err != nil {
+		t.Fatal(err)
 	}
-	_, err = h.cluster.Write(context.Background(), func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `INSERT INTO org (slug, name) VALUES ('nobody', 'Nobody')`)
+	h.settle(t)
+	if n := h.count(t, home.ctx, `SELECT count(*) FROM project WHERE id = $1`, project); n != 1 {
+		t.Fatalf("the owner reads %d of the project, want it", n)
+	}
+	if n := h.count(t, context.Background(), `SELECT count(*) FROM project WHERE id = $1`, project); n != 0 {
+		t.Errorf("a transaction acting for nobody reads %d of the project, want none", n)
+	}
+	var renamed int64
+	if _, err := h.cluster.Write(context.Background(), func(ctx context.Context, tx db.DBTX) error {
+		tag, err := tx.Exec(ctx, `UPDATE project SET name = 'Taken' WHERE id = $1`, project)
+		renamed = tag.RowsAffected()
 		return err
-	})
-	if !isNoTenant(err) {
-		t.Fatalf("a write with no organization = %v, want tenant.ErrNoTenant", err)
+	}); err != nil || renamed != 0 {
+		t.Errorf("a transaction acting for nobody renamed %d projects (%v), want none", renamed, err)
+	}
+}
+
+// Nothing sets app.org_id any more, so current_org_id() answers the installation's one row until #108 drops it.
+func TestTheCurrentOrganizationIsTheInstallation(t *testing.T) {
+	h := newHarness(t)
+	var same bool
+	if err := h.appConnUnscoped(t).QueryRow(context.Background(), `SELECT current_org_id() = (SELECT id FROM org)`).Scan(&same); err != nil || !same {
+		t.Errorf("current_org_id() is the installation: %v (%v)", same, err)
 	}
 }
 

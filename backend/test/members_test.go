@@ -141,7 +141,7 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	home := h.owner(t, "members-sql")
 	memberID := h.addPerson(t, home.org, "member")
 	otherID := h.addPerson(t, home.org, "member")
-	asMember := db.WithUser(homeOrg(home), memberID)
+	asMember := db.WithUser(context.Background(), memberID)
 
 	affected := func(ctx context.Context, sql string, args ...any) (int64, error) {
 		var n int64
@@ -163,7 +163,7 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	_, err = affected(home.ctx, `DELETE FROM org_member WHERE user_id = $1`, otherID)
 	permissionDenied(t, "the owner removing somebody rather than switching them off", err)
 	newcomer := h.outsider(t, "members-sql-newcomer")
-	_, err = affected(asMember, `INSERT INTO org_member (org_id, user_id, org_role) VALUES (current_org_id(), $1, 'member')`, newcomer)
+	_, err = affected(asMember, `INSERT INTO org_member (user_id, org_role) VALUES ($1, 'member')`, newcomer)
 	permissionDenied(t, "a member letting somebody in", err)
 
 	_, err = affected(home.ctx, `UPDATE org_member SET org_role = 'owner' WHERE user_id = $1`, memberID)
@@ -171,7 +171,7 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	if n, err := affected(home.ctx, `UPDATE org_member SET org_role = 'admin' WHERE user_id = $1`, memberID); err != nil || n != 1 {
 		t.Errorf("the owner could not make a member an administrator: %d rows, %v", n, err)
 	}
-	asAdmin := db.WithUser(homeOrg(home), memberID)
+	asAdmin := db.WithUser(context.Background(), memberID)
 	_, err = affected(asAdmin, `UPDATE org_member SET org_role = 'admin' WHERE user_id = $1`, home.user)
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) || pgErr.Code != "23514" {

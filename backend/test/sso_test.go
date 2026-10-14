@@ -15,11 +15,10 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // providerGroups lists the provider groups a person is in within one organization.
-func (h *harness) providerGroups(t *testing.T, org tenant.Org, email string) []string {
+func (h *harness) providerGroups(t *testing.T, org installationRow, email string) []string {
 	t.Helper()
 	rows, err := h.super.Query(context.Background(), `
 		SELECT g.external_ref FROM group_member m
@@ -100,7 +99,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 			t.Fatal("the browser holds no session cookie")
 		}
 		var n int
-		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE token_hash = $1 AND proof = 'oidc' AND current_org_id = $2`, auth.HashToken(secret), org.ID).Scan(&n); err != nil || n != 1 {
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE token_hash = $1 AND proof = 'oidc'`, auth.HashToken(secret)).Scan(&n); err != nil || n != 1 {
 			t.Fatalf("provider sessions under the digest = %d (%v)", n, err)
 		}
 		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM user_session WHERE position(convert_to($1, 'UTF8') in token_hash) > 0`, secret).Scan(&n); err != nil || n != 0 {
@@ -208,7 +207,7 @@ func TestSignInRefusals(t *testing.T) {
 		org := h.singleSignOn(t)
 		configureProvider(t, a, org, kc.issuer(), false)
 		admin := h.addPerson(t, org.ID, "admin")
-		if _, _, err := a.sso.Save(withActor(org, admin), oidc.Provider{Issuer: kc.issuer(), ClientID: exciterClient, Enabled: false}); err != nil {
+		if _, _, err := a.sso.Save(withActor(admin), oidc.Provider{Issuer: kc.issuer(), ClientID: exciterClient, Enabled: false}); err != nil {
 			t.Fatal(err)
 		}
 		if resp := start(); resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != notConfigured {

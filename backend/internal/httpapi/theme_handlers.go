@@ -13,12 +13,12 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
-// Themes: a person's own redefinition of the interface, shared with the organization when they say so. Changing
+// Themes: a person's own redefinition of the interface, shared with the installation when they say so. Changing
 // one is the owner's, or an administrator's once shared. Adapted from Stator's, so Armature's theme files work here.
 
 type chooseThemeRequest struct {
 	ThemeID *uuid.UUID `json:"themeId"`
-	// BuiltIn with no theme keeps the built-in theme over the organization's default.
+	// BuiltIn with no theme keeps the built-in theme over the installation's default.
 	BuiltIn bool `json:"builtIn,omitempty"`
 }
 
@@ -26,7 +26,7 @@ type defaultThemeRequest struct {
 	ThemeID *uuid.UUID `json:"themeId"`
 }
 
-// administers says whether the caller may tidy what anybody in the organization shared; the database checks again.
+// administers says whether the caller may tidy what anybody in the installation shared; the database checks again.
 func administers(r *http.Request) bool {
 	p := PrincipalFrom(r.Context())
 	return p != nil && p.CanAdminister()
@@ -221,7 +221,7 @@ func (s *Server) handleUploadThemeAsset(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleExportTheme hands the theme over as one file, so it can be kept or
-// given to another organization.
+// given to another installation.
 func (s *Server) handleExportTheme(w http.ResponseWriter, r *http.Request) {
 	id, apiErr := pathUUID(r, "themeID", "theme")
 	if apiErr != nil {

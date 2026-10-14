@@ -7,14 +7,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Every operation agreed and not built yet tells a member so in the one error
 // envelope, and tells somebody who has not signed in nothing more than a built one would.
 func TestEveryPendingOperationAnswersNotImplemented(t *testing.T) {
 	s := newServer(t)
-	s.Auth = fakeAuth{"member": {UserID: uuid.New(), Org: &tenant.Org{ID: uuid.New(), Slug: "acme"}, Role: auth.RoleMember}}
+	s.Auth = fakeAuth{"member": {UserID: uuid.New(), Role: auth.RoleMember}}
 	router := s.Routes(nil)
 	pending := 0
 	for _, op := range operations {

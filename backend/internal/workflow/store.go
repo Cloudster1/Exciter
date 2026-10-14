@@ -17,7 +17,7 @@ var ErrNotFound = errors.New("status or workflow not found")
 
 const selectStatus = `
 SELECT s.id, s.name, s.category, s.description, s.position,
-       (SELECT count(*)::int FROM requirement r WHERE r.org_id = s.org_id AND r.status_id = s.id AND r.trashed_at IS NULL)
+       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL)
 FROM req_status s`
 
 func scanStatus(row pgx.CollectableRow) (Status, error) {
@@ -53,7 +53,7 @@ func Load(ctx context.Context, tx db.DBTX, id uuid.UUID) (*Workflow, error) {
 	w.ProjectDefault = projectDefault != nil && *projectDefault == id.String()
 	rows, err := tx.Query(ctx, `
 		SELECT s.id, s.name, s.category, s.description, s.position,
-		       (SELECT count(*)::int FROM requirement r WHERE r.org_id = s.org_id AND r.status_id = s.id AND r.trashed_at IS NULL),
+		       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL),
 		       st.is_initial, st.on_revision_status_id, st.layout_x, st.layout_y
 		FROM workflow_step st JOIN req_status s ON s.id = st.status_id
 		WHERE st.workflow_id = $1 ORDER BY s.position, lower(s.name)`, id)

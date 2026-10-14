@@ -62,10 +62,10 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 		sql  string
 		into map[string]named
 	}{
-		{`SELECT id, name, lower(name) FROM requirement_type WHERE org_id = current_org_id() AND project_id = $1 AND NOT retired`, w.types},
-		{`SELECT id, name, lower(name) FROM req_status WHERE org_id = current_org_id() AND project_id = $1`, w.statuses},
+		{`SELECT id, name, lower(name) FROM requirement_type WHERE project_id = $1 AND NOT retired`, w.types},
+		{`SELECT id, name, lower(name) FROM req_status WHERE project_id = $1`, w.statuses},
 		{`SELECT u.id, u.email::text, lower(u.email::text) FROM org_member m JOIN app_user u ON u.id = m.user_id
-		  WHERE m.org_id = current_org_id() AND u.is_active AND perm_project_holds($1, u.id, 'view')`, w.members},
+		  WHERE u.is_active AND perm_project_holds($1, u.id, 'view')`, w.members},
 	}
 	for _, read := range reads {
 		if err := readNamed(ctx, tx, read.sql, p.ID, read.into); err != nil {
@@ -75,7 +75,7 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 	rows, err := tx.Query(ctx, `
 		SELECT r.id, r.number, r.kind, COALESCE(st.name, ''), r.revision FROM requirement r
 		LEFT JOIN req_status st ON st.id = r.status_id
-		WHERE r.org_id = current_org_id() AND r.project_id = $1 AND r.trashed_at IS NULL`, p.ID)
+		WHERE r.project_id = $1 AND r.trashed_at IS NULL`, p.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 	keys, err := tx.Query(ctx, `
 		SELECT lt.key FROM link_type lt
 		LEFT JOIN link_type_project lp ON lp.project_id = $1 AND lp.link_type_id = lt.id
-		WHERE lt.org_id = current_org_id() AND (lt.project_id IS NULL OR lt.project_id = $1) AND NOT lt.retired
+		WHERE (lt.project_id IS NULL OR lt.project_id = $1) AND NOT lt.retired
 		  AND COALESCE(lp.enabled, true)`, p.ID)
 	if err != nil {
 		return nil, err

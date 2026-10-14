@@ -23,7 +23,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Where the suite reaches the stack's Keycloak, and as whom it administers the realm.
@@ -68,7 +67,7 @@ func (h *harness) forgetPerson(t *testing.T, email string) {
 
 // letIn makes the address a member of org with role ahead of its sign-in, the way the seed does, making the account
 // if need be; somebody the seed already let in gets the role instead.
-func (h *harness) letIn(t *testing.T, org tenant.Org, email, role string) {
+func (h *harness) letIn(t *testing.T, org installationRow, email, role string) {
 	t.Helper()
 	ctx := context.Background()
 	var id uuid.UUID
@@ -96,23 +95,23 @@ func (h *harness) userID(t *testing.T, email string) uuid.UUID {
 
 // configureProvider points an organization at the realm through the same service the settings page uses, in
 // the name of one of its administrators, since only an administrator configures a provider.
-func configureProvider(t *testing.T, a *apiServer, org tenant.Org, issuer string, createGroups bool) {
+func configureProvider(t *testing.T, a *apiServer, org installationRow, issuer string, createGroups bool) {
 	t.Helper()
 	admin := a.h.addPerson(t, org.ID, "admin")
-	ctx := withActor(org, admin)
+	ctx := withActor(admin)
 	if _, _, err := a.sso.Save(ctx, oidc.Provider{Issuer: issuer, ClientID: exciterClient, ClientSecret: exciterSecret, CreateGroups: createGroups, Enabled: true}); err != nil {
 		t.Fatalf("configure the provider: %v", err)
 	}
 	a.h.settle(t)
 }
 
-// withActor is a context acting for somebody in org, as a request of theirs would be.
-func withActor(org tenant.Org, user uuid.UUID) context.Context {
-	return db.WithUser(tenant.WithOrg(context.Background(), org), user)
+// withActor is a context acting for somebody, as a request of theirs would be.
+func withActor(user uuid.UUID) context.Context {
+	return db.WithUser(context.Background(), user)
 }
 
 // adminOf is a password session of a fresh bootstrap owner of org, and the owner's id.
-func adminOf(t *testing.T, h *harness, a *apiServer, org tenant.Org) (*client, uuid.UUID) {
+func adminOf(t *testing.T, h *harness, a *apiServer, org installationRow) (*client, uuid.UUID) {
 	t.Helper()
 	id := h.userID(t, bootstrapAdmin(t, h, a, org.ID))
 	return a.as(t, id, org.ID), id

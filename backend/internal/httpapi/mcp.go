@@ -144,7 +144,7 @@ func (s *Server) dispatchMCP(r *http.Request, req rpcRequest) (any, *rpcError) {
 	return nil, &rpcError{Code: rpcMethodNotFound, Message: "There is no method " + req.Method + "."}
 }
 
-// listTools leaves the writing tools out for a token made to read, and the organization-wide ones for a token
+// listTools leaves the writing tools out for a token made to read, and the installation-wide ones for a token
 // limited to projects, so an assistant is never offered what it would only be refused.
 func listTools(readOnly, projectsOnly bool) []map[string]any {
 	out := []map[string]any{}

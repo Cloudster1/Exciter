@@ -8,13 +8,12 @@ import (
 )
 
 type (
-	pinKey    struct{}
-	systemKey struct{}
-	userKey   struct{}
+	pinKey  struct{}
+	userKey struct{}
 )
 
 // UserVar is the setting the permission policies read through
-// current_actor_id(): whom the transaction acts for, within its organization.
+// current_actor_id(): whom the transaction acts for.
 const UserVar = "app.user_id"
 
 // TokenProjectsVar is the setting that limits the person to the projects of the
@@ -93,15 +92,4 @@ func PinLSN(ctx context.Context, lsn LSN) context.Context {
 func pinFrom(ctx context.Context) pin {
 	p, _ := ctx.Value(pinKey{}).(pin)
 	return p
-}
-
-// WithSystem marks ctx as deliberately un-tenanted, for migrations, health
-// checks and jobs that span tenants. Without it an unscoped query is refused.
-func WithSystem(ctx context.Context) context.Context {
-	return context.WithValue(ctx, systemKey{}, true)
-}
-
-func isSystem(ctx context.Context) bool {
-	v, _ := ctx.Value(systemKey{}).(bool)
-	return v
 }

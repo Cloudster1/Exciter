@@ -16,7 +16,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/seed"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // bootstrapAdminName is what the first administrator is called until they say otherwise.
@@ -59,8 +58,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	log.Info("installation ready", "name", cfg.Name, "created", res.OrgCreated)
-	ctx = tenant.WithOrg(ctx, res.Org)
+	log.Info("installation ready", "name", cfg.Name, "created", res.Created)
 
 	// Somebody has to be able to get in before any identity provider is set up, and that somebody is named by
 	// the operator rather than invented here.
@@ -77,12 +75,12 @@ func run() error {
 		}
 		ctx = db.WithUser(ctx, admin)
 	}
-	return populate(ctx, cfg, cluster, accounts, res.Org, log)
+	return populate(ctx, cfg, cluster, accounts, log)
 }
 
 // populate lets the named members in ahead of their first sign-in and points the installation at its provider,
 // configured in the bootstrap administrator's name, since only an administrator may configure one.
-func populate(ctx context.Context, cfg config.Config, cluster *db.Cluster, accounts *auth.Service, org tenant.Org, log *slog.Logger) error {
+func populate(ctx context.Context, cfg config.Config, cluster *db.Cluster, accounts *auth.Service, log *slog.Logger) error {
 	boot := cfg.Bootstrap
 	var box *secret.Box
 	if cfg.SecretKey != nil {
@@ -92,7 +90,7 @@ func populate(ctx context.Context, cfg config.Config, cluster *db.Cluster, accou
 		}
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL)
-	done, err := seed.Populate(ctx, accounts, sso, org, seed.Bootstrapped(boot))
+	done, err := seed.Populate(ctx, accounts, sso, seed.Bootstrapped(boot))
 	if err != nil {
 		return err
 	}

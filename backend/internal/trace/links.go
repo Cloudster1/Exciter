@@ -22,12 +22,12 @@ SELECT l.id, l.type_id, l.source_id = $1, o.id, op.key, o.number, o.kind, o.titl
        o.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), o.trashed_at IS NOT NULL,
        l.source_reviewed_rev, l.target_reviewed_rev, l.created_at, COALESCE(u.name, '')
 FROM trace_link l
-JOIN link_type lt ON lt.org_id = l.org_id AND lt.id = l.type_id
-JOIN requirement o ON o.org_id = l.org_id AND o.id = CASE WHEN l.source_id = $1 THEN l.target_id ELSE l.source_id END
-JOIN project op ON op.org_id = o.org_id AND op.id = o.project_id
+JOIN link_type lt ON lt.id = l.type_id
+JOIN requirement o ON o.id = CASE WHEN l.source_id = $1 THEN l.target_id ELSE l.source_id END
+JOIN project op ON op.id = o.project_id
 LEFT JOIN req_status st ON st.id = o.status_id
 LEFT JOIN app_user u ON u.id = l.created_by
-WHERE l.org_id = current_org_id() AND l.deleted_at IS NULL AND (l.source_id = $1 OR l.target_id = $1)`
+WHERE l.deleted_at IS NULL AND (l.source_id = $1 OR l.target_id = $1)`
 
 const linkOrder = ` ORDER BY lt.project_id IS NOT NULL, lt.id, l.source_id = $1 DESC, op.key, o.number`
 
@@ -167,8 +167,8 @@ func (s *Service) Link(ctx context.Context, actor uuid.UUID, key string, in Link
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by)
-			VALUES (current_org_id(), $1, $2, $3, $4) RETURNING id`, t.ID, source.ID, target.ID, actor).Scan(&id)
+			INSERT INTO trace_link (type_id, source_id, target_id, created_by)
+			VALUES ($1, $2, $3, $4) RETURNING id`, t.ID, source.ID, target.ID, actor).Scan(&id)
 		if err != nil {
 			return linkRefusal(err, here, other)
 		}
@@ -279,7 +279,7 @@ func keysOf(ctx context.Context, tx db.DBTX, ids []uuid.UUID) ([]string, error) 
 		SELECT p.key, r.number
 		FROM unnest($1::uuid[]) WITH ORDINALITY AS wanted(id, position)
 		JOIN requirement r ON r.id = wanted.id
-		JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
+		JOIN project p ON p.id = r.project_id
 		ORDER BY wanted.position`, ids)
 	if err != nil {
 		return nil, err
@@ -327,7 +327,7 @@ func (s *Service) Unlink(ctx context.Context, actor, id uuid.UUID) (db.LSN, erro
 		err := tx.QueryRow(ctx, `
 			SELECT source_id, target_id,
 			       perm_requirement_editable(source_id, $2) OR perm_requirement_editable(target_id, $2)
-			FROM trace_link WHERE org_id = current_org_id() AND id = $1 AND deleted_at IS NULL`, id, actor).Scan(&source, &target, &editable)
+			FROM trace_link WHERE id = $1 AND deleted_at IS NULL`, id, actor).Scan(&source, &target, &editable)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
 		}

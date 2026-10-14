@@ -159,10 +159,10 @@ func exportDetails(ctx context.Context, tx db.DBTX, ids []uuid.UUID) (map[uuid.U
 	rows, err := tx.Query(ctx, `
 		SELECT r.id, r.statement, r.rationale, COALESCE(pp.key || '-R' || pr.number, ''), COALESCE(o.email::text, '')
 		FROM requirement r
-		LEFT JOIN requirement pr ON pr.org_id = r.org_id AND pr.id = r.parent_id
-		LEFT JOIN project pp ON pp.org_id = pr.org_id AND pp.id = pr.project_id
+		LEFT JOIN requirement pr ON pr.id = r.parent_id
+		LEFT JOIN project pp ON pp.id = pr.project_id
 		LEFT JOIN app_user o ON o.id = r.owner_id
-		WHERE r.org_id = current_org_id() AND r.id = ANY ($1)`, ids)
+		WHERE r.id = ANY ($1)`, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -184,10 +184,10 @@ func exportDetails(ctx context.Context, tx db.DBTX, ids []uuid.UUID) (map[uuid.U
 	links, err := tx.Query(ctx, `
 		SELECT l.source_id, lt.key || ':' || op.key || '-R' || ot.number
 		FROM trace_link l
-		JOIN link_type lt ON lt.org_id = l.org_id AND lt.id = l.type_id
-		JOIN requirement ot ON ot.org_id = l.org_id AND ot.id = l.target_id
-		JOIN project op ON op.org_id = ot.org_id AND op.id = ot.project_id
-		WHERE l.org_id = current_org_id() AND l.source_id = ANY ($1) AND l.deleted_at IS NULL
+		JOIN link_type lt ON lt.id = l.type_id
+		JOIN requirement ot ON ot.id = l.target_id
+		JOIN project op ON op.id = ot.project_id
+		WHERE l.source_id = ANY ($1) AND l.deleted_at IS NULL
 		ORDER BY l.created_at, l.id`, ids)
 	if err != nil {
 		return nil, err

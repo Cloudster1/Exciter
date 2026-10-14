@@ -13,7 +13,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
@@ -31,7 +30,7 @@ type made struct {
 func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 	var claimed bool
 	if _, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		tag, err := tx.Exec(ctx, `UPDATE import_job SET state = 'running', started_at = now() WHERE org_id = current_org_id() AND id = $1 AND state = 'queued'`, id)
+		tag, err := tx.Exec(ctx, `UPDATE import_job SET state = 'running', started_at = now() WHERE id = $1 AND state = 'queued'`, id)
 		claimed = err == nil && tag.RowsAffected() == 1
 		return err
 	}); err != nil || !claimed {
@@ -235,7 +234,7 @@ func (s *Service) advance(ctx context.Context, id uuid.UUID, done int, note prog
 		var state State
 		err := tx.QueryRow(ctx, `
 			UPDATE import_job SET done = $2, imported = imported || $3::text[], updated = updated || $4::text[], refused = refused || $5::jsonb
-			WHERE org_id = current_org_id() AND id = $1 AND state = 'running' RETURNING state`,
+			WHERE id = $1 AND state = 'running' RETURNING state`,
 			id, done, nonNil(imported), nonNil(updated), refused).Scan(&state)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return errStopped
@@ -261,7 +260,7 @@ func (s *Service) end(ctx context.Context, id uuid.UUID, err error) error {
 		return s.fail(ctx, id, err)
 	}
 	_, err = s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `UPDATE import_job SET state = 'done', finished_at = now() WHERE org_id = current_org_id() AND id = $1 AND state = 'running'`, id)
+		_, err := tx.Exec(ctx, `UPDATE import_job SET state = 'done', finished_at = now() WHERE id = $1 AND state = 'running'`, id)
 		return err
 	})
 	return err
@@ -270,7 +269,7 @@ func (s *Service) end(ctx context.Context, id uuid.UUID, err error) error {
 func (s *Service) fail(ctx context.Context, id uuid.UUID, cause error) error {
 	message := "The import stopped: " + reason(cause, 0)
 	_, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `UPDATE import_job SET state = 'failed', error = $2, finished_at = now() WHERE org_id = current_org_id() AND id = $1 AND state = 'running'`,
+		_, err := tx.Exec(ctx, `UPDATE import_job SET state = 'failed', error = $2, finished_at = now() WHERE id = $1 AND state = 'running'`,
 			id, message)
 		return err
 	})
@@ -309,14 +308,14 @@ type requested struct {
 	ImportID uuid.UUID `json:"importId"`
 }
 
-// Handler runs the import an import.requested event names, in its organization and as the person who started it.
+// Handler runs the import an import.requested event names, as the person who started it.
 func Handler(s *Service) events.HandlerFunc {
 	return func(ctx context.Context, e events.Event) error {
 		var r requested
 		if err := json.Unmarshal(e.Payload, &r); err != nil {
 			return fmt.Errorf("read %s: %w", e.Topic, err)
 		}
-		ctx = db.WithUser(tenant.WithOrg(ctx, tenant.Org{ID: e.OrgID}), r.ActorID)
+		ctx = db.WithUser(ctx, r.ActorID)
 		return s.Run(ctx, r.ImportID)
 	}
 }

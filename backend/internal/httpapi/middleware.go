@@ -13,7 +13,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // maxRequestIDLength bounds a client-supplied request id, which is echoed back
@@ -144,7 +143,7 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, credential string) (*auth.Principal, error)
 }
 
-// authenticate puts the caller and their tenant scope on the context. It never
+// authenticate puts the caller and their project scope on the context. It never
 // rejects an anonymous request: requireAuth does, where it matters.
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +153,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			return
 		}
 		principal, err := s.Auth.Authenticate(r.Context(), secret)
-		if err == nil && principal.Org == nil {
+		if err == nil && principal.Role == "" {
 			// Everybody signed in belongs to the installation; somebody who no longer does is not let past here.
 			err = auth.ErrSwitchedOff
 		}
@@ -162,9 +161,9 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		case err == nil:
 			ctx := context.WithValue(r.Context(), ctxPrincipal, principal)
 			if principal.InProjectsOnly() {
-				ctx = db.WithUserInProjects(tenant.WithOrg(ctx, *principal.Org), principal.UserID, principal.TokenProjects)
+				ctx = db.WithUserInProjects(ctx, principal.UserID, principal.TokenProjects)
 			} else {
-				ctx = db.WithUser(tenant.WithOrg(ctx, *principal.Org), principal.UserID)
+				ctx = db.WithUser(ctx, principal.UserID)
 			}
 			r = r.WithContext(ctx)
 		case errors.Is(err, auth.ErrInvalidToken):

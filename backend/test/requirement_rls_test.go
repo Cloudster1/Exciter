@@ -25,9 +25,9 @@ func TestRawSQLKeepsRequirementsAndTheirHistory(t *testing.T) {
 	editorID := h.addPerson(t, a.org, "member")
 	viewerID := h.addPerson(t, a.org, "guest")
 	h.grantAs(t, a.org, project, viewerID, "viewer")
-	editor, viewer, owner := h.appConn(t, a.org, editorID), h.appConn(t, a.org, viewerID), h.appConn(t, a.org, a.user)
+	editor, viewer, owner := h.appConn(t, editorID), h.appConn(t, viewerID), h.appConn(t, a.user)
 	strangerID := h.addPerson(t, a.org, "guest")
-	stranger := h.appConn(t, a.org, strangerID)
+	stranger := h.appConn(t, strangerID)
 	insert := `INSERT INTO requirement (org_id, project_id, number, title, statement, normative_hash, created_by)
 		VALUES ($1, $2, 99, 'Walled in', '{"type":"doc"}', 'h', current_actor_id()) RETURNING id, number`
 

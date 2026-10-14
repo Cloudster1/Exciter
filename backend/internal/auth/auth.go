@@ -1,5 +1,4 @@
-// Package auth handles identity: argon2 passwords, opaque session tokens, and
-// the organization a request is acting within.
+// Package auth handles identity: argon2 passwords, opaque session tokens, and the standing a request acts with.
 package auth
 
 import (
@@ -7,8 +6,6 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
-
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // ErrInvalidToken is an unknown, expired or revoked credential. The caller is
@@ -18,17 +15,15 @@ var ErrInvalidToken = errors.New("invalid or expired credential")
 // Principal is the caller a credential resolved to.
 type Principal struct {
 	UserID uuid.UUID
-	// Org is the installation's organization, which every caller the service resolves belongs to.
-	Org *tenant.Org
 
 	Email     string
 	Name      string
 	AvatarURL string
 	// Locale is the language the person chose for the interface; empty means the browser's.
 	Locale Locale
-	// OrgName is Org's display name, the installation's.
-	OrgName string
-	// Role is the caller's standing in the installation.
+	// InstallationName is what the installation is called, which the shell shows.
+	InstallationName string
+	// Role is the caller's standing in the installation; empty for somebody who no longer belongs to it.
 	Role OrgRole
 	// SessionID names the sign-in this request rides on, and keys its
 	// read-your-writes position; nil for a caller without a session.
@@ -49,7 +44,7 @@ func (p *Principal) ReadOnly() bool {
 // InProjectsOnly reports whether the caller came with a token limited to some projects.
 func (p *Principal) InProjectsOnly() bool { return p != nil && p.Token != nil && !p.Token.AllProjects }
 
-// Guest reports whether the caller is a guest in their organization.
+// Guest reports whether the caller is a guest of the installation.
 func (p *Principal) Guest() bool { return p != nil && p.Role == RoleGuest }
 
 // CanAdminister reports whether the caller may change the installation's settings.

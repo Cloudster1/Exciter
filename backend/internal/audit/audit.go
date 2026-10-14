@@ -1,4 +1,4 @@
-// Package audit is the organization's record of who did what to it, written in
+// Package audit is the installation's record of who did what to it, written in
 // the same transaction as the act so the two cannot disagree.
 package audit
 
@@ -38,7 +38,7 @@ const (
 	ActionSSOProviderSaved = "sso.provider_saved"
 	ActionGroupRoleSet     = "sso.group_role_set"
 	ActionGroupRoleRemoved = "sso.group_role_removed"
-	// ActionThemeDefaultSet is the theme the organization shows to whoever has not chosen one, named or cleared.
+	// ActionThemeDefaultSet is the theme the installation shows to whoever has not chosen one, named or cleared.
 	ActionThemeDefaultSet = "theme.default_set"
 	// Projects (#11): made, given a new key, archived and back, and deleted for good.
 	ActionProjectCreated    = "project.created"
@@ -60,7 +60,7 @@ const (
 	// ActionArmatureConnected and ActionArmatureDisconnected keep where the members' Armature tokens went.
 	ActionArmatureConnected    = "armature.connected"
 	ActionArmatureDisconnected = "armature.disconnected"
-	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the organization's and the
+	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the installation's and the
 	// projects' link types, and how a project uses one.
 	ActionLinkTypeCreated = "link_type.created"
 	ActionLinkTypeChanged = "link_type.changed"
@@ -115,8 +115,8 @@ func ipFrom(ctx context.Context) string {
 	return ip
 }
 
-// Write records an entry for an organization inside the caller's transaction.
-func Write(ctx context.Context, tx db.DBTX, orgID uuid.UUID, e Entry) error {
+// Write records an entry inside the caller's transaction.
+func Write(ctx context.Context, tx db.DBTX, e Entry) error {
 	if strings.TrimSpace(e.Action) == "" {
 		return errors.New("an audit entry needs an action")
 	}
@@ -136,9 +136,9 @@ func Write(ctx context.Context, tx db.DBTX, orgID uuid.UUID, e Entry) error {
 		ip = ipFrom(ctx)
 	}
 	_, err := tx.Exec(ctx, `
-		INSERT INTO audit_log (org_id, actor_user_id, action, target_type, target_id, data, ip)
-		VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, '')::inet)`,
-		orgID, actor, e.Action, e.TargetType, e.TargetID, data, ip)
+		INSERT INTO audit_log (actor_user_id, action, target_type, target_id, data, ip)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, '')::inet)`,
+		actor, e.Action, e.TargetType, e.TargetID, data, ip)
 	return err
 }
 

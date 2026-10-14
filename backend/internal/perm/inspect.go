@@ -100,7 +100,7 @@ func inspect(ctx context.Context, tx db.DBTX, project, person uuid.UUID) (*Acces
 	err := tx.QueryRow(ctx, `
 		SELECT u.id, u.name, u.email::text, m.org_role, m.role_source
 		FROM org_member m JOIN app_user u ON u.id = m.user_id
-		WHERE m.org_id = current_org_id() AND m.user_id = $1`, person).Scan(
+		WHERE m.user_id = $1`, person).Scan(
 		&report.Person.ID, &report.Person.Name, &report.Person.Email, &report.Role, &report.RoleSource)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, auth.ErrNoSuchMember

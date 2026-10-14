@@ -64,7 +64,7 @@ func (s *Service) Lookup(ctx context.Context, keys []string) (Status, []LookupRe
 	var missing []string
 	for _, key := range keys {
 		var cached *Issue
-		if s.cache.Issue(ctx, v.OrgID, v.TokenID, key, &cached) {
+		if s.cache.Issue(ctx, v.TokenID, key, &cached) {
 			found[key] = cached
 			continue
 		}
@@ -77,7 +77,7 @@ func (s *Service) Lookup(ctx context.Context, keys []string) (Status, []LookupRe
 		}
 		for _, key := range missing {
 			found[key] = fetched[key]
-			s.cache.PutIssue(ctx, v.OrgID, v.TokenID, key, fetched[key])
+			s.cache.PutIssue(ctx, v.TokenID, key, fetched[key])
 		}
 		s.noteStatus(ctx, fetched)
 	}
@@ -120,7 +120,7 @@ func (s *Service) Search(ctx context.Context, query string, limit int) (Status, 
 		return status, nil, err
 	}
 	out := []Issue{}
-	if s.cache.Search(ctx, v.OrgID, v.TokenID, query, limit, 0, &out) {
+	if s.cache.Search(ctx, v.TokenID, query, limit, 0, &out) {
 		return StatusOK, out, nil
 	}
 	var answer struct {
@@ -135,7 +135,7 @@ func (s *Service) Search(ctx context.Context, query string, limit int) (Status, 
 		out = append(out, *issue)
 		fetched[issue.Key] = issue
 	}
-	s.cache.PutSearch(ctx, v.OrgID, v.TokenID, query, limit, 0, out)
+	s.cache.PutSearch(ctx, v.TokenID, query, limit, 0, out)
 	s.noteStatus(ctx, fetched)
 	return StatusOK, out, nil
 }
@@ -149,7 +149,7 @@ func (s *Service) failed(ctx context.Context, v *Viewer, err error) Status {
 			s.opts.Log.Warn("a refused Armature token could not be marked", "token_id", v.TokenID, "error", err)
 		}
 	case StatusUnreachable:
-		s.opts.Log.Info("Armature did not answer a read", "org_id", v.OrgID, "error", err)
+		s.opts.Log.Info("Armature did not answer a read", "token_id", v.TokenID, "error", err)
 	}
 	return status
 }
@@ -220,7 +220,7 @@ func (s *Service) noteStatus(ctx context.Context, fetched map[string]*Issue) {
 		_, err := tx.Exec(ctx, `
 			UPDATE armature_issue_link l SET status_category = f.category, status_stale = false
 			FROM unnest($1::text[], $2::text[]) AS f (issue_key, category)
-			WHERE l.org_id = current_org_id() AND l.issue_key = f.issue_key
+			WHERE l.issue_key = f.issue_key
 			  AND (l.status_category IS DISTINCT FROM f.category OR l.status_stale)`, keys, categories)
 		return err
 	})

@@ -74,10 +74,10 @@ func TestTheFilterIsBoundNotWritten(t *testing.T) {
 	if strings.Contains(where, "DROP") || len(args) != 6 {
 		t.Errorf("the filter wrote %q with %d arguments", where, len(args))
 	}
-	if !strings.HasPrefix(where, "a.org_id = current_org_id()") {
-		t.Errorf("the filter does not start inside the organization: %q", where)
+	if !strings.HasPrefix(where, "a.action = $1 AND ") {
+		t.Errorf("the filter does not start with the action: %q", where)
 	}
-	if where, args := (Filter{}).where(); where != "a.org_id = current_org_id()" || len(args) != 0 {
+	if where, args := (Filter{}).where(); where != "true" || len(args) != 0 {
 		t.Errorf("no filter is %q with %v", where, args)
 	}
 }

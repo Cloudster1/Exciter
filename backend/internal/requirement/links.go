@@ -75,15 +75,15 @@ func copyLinks(ctx context.Context, tx db.DBTX, actor, to uuid.UUID, copies map[
 	}
 	rows, err := tx.Query(ctx, `
 		WITH copied AS (SELECT * FROM unnest($1::uuid[], $2::uuid[]) AS c(original, copy))
-		INSERT INTO trace_link (org_id, type_id, source_id, target_id, created_by)
-		SELECT current_org_id(), l.type_id, COALESCE(sc.copy, l.source_id), COALESCE(tc.copy, l.target_id), $3
+		INSERT INTO trace_link (type_id, source_id, target_id, created_by)
+		SELECT l.type_id, COALESCE(sc.copy, l.source_id), COALESCE(tc.copy, l.target_id), $3
 		FROM trace_link l
-		JOIN link_type lt ON lt.org_id = l.org_id AND lt.id = l.type_id
-		JOIN requirement s ON s.org_id = l.org_id AND s.id = l.source_id
-		JOIN requirement t ON t.org_id = l.org_id AND t.id = l.target_id
+		JOIN link_type lt ON lt.id = l.type_id
+		JOIN requirement s ON s.id = l.source_id
+		JOIN requirement t ON t.id = l.target_id
 		LEFT JOIN copied sc ON sc.original = l.source_id
 		LEFT JOIN copied tc ON tc.original = l.target_id
-		WHERE l.org_id = current_org_id() AND l.deleted_at IS NULL AND (sc.original IS NOT NULL OR tc.original IS NOT NULL)
+		WHERE l.deleted_at IS NULL AND (sc.original IS NOT NULL OR tc.original IS NOT NULL)
 		  AND NOT lt.retired
 		  AND (lt.project_id IS NULL OR lt.project_id = CASE WHEN sc.original IS NOT NULL THEN $4 ELSE s.project_id END)
 		  AND (sc.original IS NOT NULL OR s.trashed_at IS NULL) AND (tc.original IS NOT NULL OR t.trashed_at IS NULL)

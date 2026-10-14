@@ -15,20 +15,25 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/project"
-	"github.com/cloudster1/exciter/backend/internal/tenant"
 )
 
 // Every test works in the database's one installation (#90) and keeps apart from the others by what it makes:
 // people with addresses of their own, projects under keys of its own, and names nobody else uses.
 
+// installationRow is the installation as the tests name it, until #108 renames its table.
+type installationRow struct {
+	ID   uuid.UUID
+	Slug string
+}
+
 var (
 	installationOnce sync.Once
-	theInstallation  tenant.Org
+	theInstallation  installationRow
 	installationErr  error
 )
 
 // installation is the organization the stack's seed made, under the address it always gives it.
-func (h *harness) installation(t *testing.T) tenant.Org {
+func (h *harness) installation(t *testing.T) installationRow {
 	t.Helper()
 	installationOnce.Do(func() {
 		installationErr = h.super.QueryRow(context.Background(),
@@ -170,7 +175,7 @@ func (h *harness) keepArmature(t *testing.T) {
 // singleSignOn hands the test the installation with no identity provider, group roles or waiting people, and puts
 // them back once it ends, with the standing and groups of the realm's people, which the seed lets in and a test's
 // sign-ins change.
-func (h *harness) singleSignOn(t *testing.T) tenant.Org {
+func (h *harness) singleSignOn(t *testing.T) installationRow {
 	t.Helper()
 	inst := h.installation(t)
 	ctx := context.Background()

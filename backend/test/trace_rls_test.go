@@ -33,10 +33,10 @@ func newTraceWorld(t *testing.T, slug string) *traceWorld {
 	w.viewerID = h.addPerson(t, w.a.org, "guest")
 	outsiderID := h.addPerson(t, w.a.org, "guest")
 	h.grantAs(t, w.a.org, w.here, w.viewerID, "viewer")
-	w.editor, w.viewer, w.outsider = h.appConn(t, w.a.org, w.editorID), h.appConn(t, w.a.org, w.viewerID), h.appConn(t, w.a.org, outsiderID)
+	w.editor, w.viewer, w.outsider = h.appConn(t, w.editorID), h.appConn(t, w.viewerID), h.appConn(t, outsiderID)
 	// A second guest no grant names, where another organization stood before one installation (#90).
 	w.strangerID = h.addPerson(t, w.a.org, "guest")
-	w.stranger = h.appConn(t, w.a.org, w.strangerID)
+	w.stranger = h.appConn(t, w.strangerID)
 	w.r1, w.r2, w.r3, w.r4, w.section = w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "requirement"), w.write(t, "section")
 	w.derives, w.relates = w.typeOf(t, "derives"), w.typeOf(t, "relates")
 	return w
@@ -133,7 +133,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 			VALUES ($1, $2, 'Hidden', '{"type":"doc"}', 'h', $3) RETURNING id`, a.org, hidden, a.user).Scan(&secret); err != nil {
 			t.Fatal(err)
 		}
-		owner := h.appConn(t, a.org, a.user)
+		owner := h.appConn(t, a.user)
 		mustLink(owner, derives, r3, secret)
 		mustLink(owner, derives, secret, r4)
 		if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, hidden); err != nil {
@@ -259,7 +259,7 @@ func TestRawSQLKeepsLinkTypesToTheirAdministrators(t *testing.T) {
 	if _, err := editor.Exec(ctx, add, a.org, here, "ours"); !isPolicyViolation(err) {
 		t.Errorf("an editor made a link type for the project: %v", err)
 	}
-	owner := h.appConn(t, a.org, a.user)
+	owner := h.appConn(t, a.user)
 	if _, err := owner.Exec(ctx, add, a.org, here, "derives"); !refusedBy(err, "link_type_key_taken") {
 		t.Errorf("a project's type took the key of the organization's: %v", err)
 	}

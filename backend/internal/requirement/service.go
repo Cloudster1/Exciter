@@ -90,19 +90,19 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
        r.parent_id, r.rank, cf.id, COALESCE(cp.key, ''), COALESCE(cf.number, 0), COALESCE(cf.kind, ''), COALESCE(cf.title, ''),
        COALESCE(cf.revision, 0), cf.trashed_at IS NOT NULL,
        COALESCE((SELECT array_agg(k.key ORDER BY k.created_at DESC) FROM requirement_old_key k
-                 WHERE k.org_id = r.org_id AND k.requirement_id = r.id), '{}')
+                 WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
-                 WHERE a.org_id = r.org_id AND a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.org_id = r.org_id AND lb.requirement_id = r.id ORDER BY lb.name)
+                 WHERE a.project_id = r.project_id), '{}'),
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name)
 FROM requirement r
-JOIN project p ON p.org_id = r.org_id AND p.id = r.project_id
+JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
 LEFT JOIN app_user cu ON cu.id = r.created_by
 LEFT JOIN app_user uu ON uu.id = r.updated_by
 LEFT JOIN requirement_type t ON t.id = r.type_id
 LEFT JOIN req_status st ON st.id = r.status_id
-LEFT JOIN requirement cf ON cf.org_id = r.org_id AND cf.id = r.copied_from
-LEFT JOIN project cp ON cp.org_id = cf.org_id AND cp.id = cf.project_id`
+LEFT JOIN requirement cf ON cf.id = r.copied_from
+LEFT JOIN project cp ON cp.id = cf.project_id`
 
 // typeID is the requirement's type, nil for a section or one written before types.
 func (l *loaded) typeID() *uuid.UUID {
@@ -187,21 +187,21 @@ func find(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*loade
 		return nil, ErrNotFound
 	}
 	l, err := scan(tx.QueryRow(ctx, selectRequirement+`
-		WHERE r.org_id = current_org_id() AND r.id = (SELECT k.requirement_id FROM requirement_old_key k
-		      WHERE k.org_id = current_org_id() AND k.key = $2)`, reader, Key(projectKey, number)))
+		WHERE r.id = (SELECT k.requirement_id FROM requirement_old_key k
+		      WHERE k.key = $2)`, reader, Key(projectKey, number)))
 	if !errors.Is(err, ErrNotFound) {
 		return placed(ctx, tx, l, err)
 	}
 	l, err = scan(tx.QueryRow(ctx, selectRequirement+`
-		WHERE r.org_id = current_org_id() AND r.number = $3 AND r.project_id = (
-		      SELECT x.id FROM project x WHERE x.org_id = current_org_id() AND x.key = $2
-		      UNION ALL SELECT a.project_id FROM project_key_alias a WHERE a.org_id = current_org_id() AND a.key = $2
+		WHERE r.number = $3 AND r.project_id = (
+		      SELECT x.id FROM project x WHERE x.key = $2
+		      UNION ALL SELECT a.project_id FROM project_key_alias a WHERE a.key = $2
 		      LIMIT 1)`, reader, projectKey, number))
 	return placed(ctx, tx, l, err)
 }
 
 func findByID(ctx context.Context, tx db.DBTX, reader, id uuid.UUID) (*loaded, error) {
-	l, err := scan(tx.QueryRow(ctx, selectRequirement+` WHERE r.org_id = current_org_id() AND r.id = $2`, reader, id))
+	l, err := scan(tx.QueryRow(ctx, selectRequirement+` WHERE r.id = $2`, reader, id))
 	return placed(ctx, tx, l, err)
 }
 
