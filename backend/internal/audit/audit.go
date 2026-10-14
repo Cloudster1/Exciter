@@ -60,6 +60,8 @@ const (
 	// ActionArmatureConnected and ActionArmatureDisconnected keep where the members' Armature tokens went.
 	ActionArmatureConnected    = "armature.connected"
 	ActionArmatureDisconnected = "armature.disconnected"
+	// ActionCommentDeleted keeps an administrator deleting somebody else's comment (#33).
+	ActionCommentDeleted = "comment.deleted"
 	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the installation's and the
 	// projects' link types, and how a project uses one.
 	ActionLinkTypeCreated = "link_type.created"
@@ -77,7 +79,7 @@ var Actions = []string{
 	ActionThemeDefaultSet, ActionProjectCreated, ActionProjectKeyChanged, ActionProjectArchived, ActionProjectUnarchived,
 	ActionProjectDeleted, ActionProjectGrantsChanged, ActionRequirementPurged, ActionTrashEmptied,
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
-	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed,
+	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

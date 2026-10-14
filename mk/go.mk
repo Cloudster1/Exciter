@@ -51,7 +51,7 @@ tidy: | $(GO_CACHE) ## Run go mod tidy
 # The web client's types follow once there is a web client (#6).
 .PHONY: openapi
 openapi: | $(GO_CACHE) ## Regenerate api/openapi.json from the route table, and the editor's api/document-allowlist.json
-	$(DOCKER_GO) sh -c 'go run ./cmd/openapi ../api/openapi.json && go run ./cmd/docallowlist ../api/document-allowlist.json'
+	$(DOCKER_GO) sh -c 'go run ./cmd/openapi ../api/openapi.json && go run ./cmd/docallowlist ../api/document-allowlist.json ../api/comment-allowlist.json'
 	@if [ -f $(ROOT)/web/package.json ]; then $(MAKE) --no-print-directory web-schema; fi
 
 .PHONY: openapi-check

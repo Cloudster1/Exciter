@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
-import { allowlist, problems } from "@/test/allowlist";
-import { editorExtensions } from "./extensions";
+import { allowlist, commentAllowlist, problems } from "@/test/allowlist";
+import { commentExtensions, editorExtensions } from "./extensions";
 import type { DocNode } from "./schema";
 
 let editor: Editor | undefined;
@@ -69,5 +69,16 @@ describe("the web editor against the server's allowlist", () => {
     e.commands.insertContent({ type: "paragraph", content: [{ type: "text", text: "click" }] });
     e.chain().selectAll().setLink({ href: "javascript:alert(1)" }).run();
     expect(JSON.stringify(e.getJSON())).not.toContain("javascript:");
+  });
+});
+
+describe("the comment editor against the server's comment allowlist", () => {
+  it("has exactly the nodes and marks a comment may hold", () => {
+    editor = new Editor({ element: document.createElement("div"), extensions: commentExtensions() });
+    expect(Object.keys(commentAllowlist.nodes).sort()).toEqual(Object.keys(editor.schema.nodes).sort());
+    expect(Object.keys(commentAllowlist.marks).sort()).toEqual(Object.keys(editor.schema.marks).sort());
+    for (const [name, type] of Object.entries(editor.schema.nodes)) {
+      expect(Object.keys(type.spec.attrs ?? {}).sort(), `attributes of ${name}`).toEqual(Object.keys(commentAllowlist.nodes[name]?.attrs ?? {}).sort());
+    }
   });
 });

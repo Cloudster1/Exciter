@@ -1,0 +1,35 @@
+import type { commentsEn } from "./comments.en";
+
+/** Die Texte der Diskussion einer Anforderung (#33). */
+export const commentsDe: typeof commentsEn = {
+  title: "Diskussion",
+  empty: "Zu dieser Anforderung hat noch niemand etwas gesagt.",
+  readOnly: "Sie dürfen diese Diskussion lesen, aber nicht mitreden. Bitten Sie einen Administrator des Projekts, Sie zum Prüfer oder Bearbeiter zu machen.",
+  closed: "Diese Anforderung nimmt keine Kommentare an, solange sie im Papierkorb liegt oder ihr Projekt archiviert ist.",
+  failed: "Die Diskussion konnte nicht geladen werden.",
+  add: "Kommentieren",
+  addLabel: "Ihr Kommentar",
+  post: "Kommentar senden",
+  reply: "Antworten",
+  replyLabel: (author: string) => `Ihre Antwort an ${author}`,
+  postReply: "Antwort senden",
+  edit: "Bearbeiten",
+  editLabel: "Ihr überarbeiteter Kommentar",
+  save: "Speichern",
+  cancel: "Abbrechen",
+  delete: "Löschen",
+  confirmDelete: "Ihren Kommentar löschen? Sein Platz im Gespräch bleibt.",
+  confirmDeleteOthers: (author: string) =>
+    `Den Kommentar von ${author} löschen? Sein Platz im Gespräch bleibt, und das Löschen wird im Prüfprotokoll vermerkt.`,
+  deleted: "Dieser Kommentar wurde gelöscht.",
+  edited: "bearbeitet",
+  formerMember: "Ein ehemaliges Mitglied",
+  onRevision: (revision: number) => `zu Revision ${revision}`,
+  resolve: "Erledigt",
+  reopen: "Wieder öffnen",
+  resolved: (name: string) => `Erledigt von ${name}`,
+  resolvedBySomebody: "Erledigt",
+  thread: (author: string) => `Gespräch von ${author}`,
+  replies: (count: number) => (count === 1 ? "1 Antwort" : `${count} Antworten`),
+  open: (count: number) => (count === 1 ? "1 offenes Gespräch" : `${count} offene Gespräche`),
+};

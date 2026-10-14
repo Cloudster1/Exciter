@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
@@ -162,6 +163,7 @@ func run() error {
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
 		Armature:        armatures,
+		Comments:        comment.NewService(cluster),
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),

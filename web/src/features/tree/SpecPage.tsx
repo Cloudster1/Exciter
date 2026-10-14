@@ -7,6 +7,7 @@ import { useSpec, useTree, type SpecEntry, type TreeNode } from "@/api/tree";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
+import { COMMENTS_ID } from "@/features/comments/CommentsSection";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { RequirementEdit } from "@/features/requirements/RequirementPage";
@@ -94,6 +95,18 @@ function Entry({ project, entry, selection }: { project: Project; entry: SpecEnt
         >
           {node.key}
         </Link>
+        {entry.comments.open > 0 && (
+          <Link
+            to="/p/$projectKey/r/$reqKey"
+            params={{ projectKey: project.key, reqKey: node.key }}
+            hash={COMMENTS_ID}
+            className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-accent"
+            data-spec-comments={entry.comments.open}
+          >
+            <Icon.Comment className="size-3" aria-hidden="true" />
+            {t.comments.open(entry.comments.open)}
+          </Link>
+        )}
         {entry.can.edit && !editing && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)} data-action="edit-entry">
             {t.requirements.edit}

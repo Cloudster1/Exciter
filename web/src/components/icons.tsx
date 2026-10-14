@@ -112,6 +112,7 @@ export const Icon = {
   Archive: makeIcon("archive", ["M2 3.5h12v3H2z", "M3 6.5V13h10V6.5", "M6.5 9h3"]),
   Label: makeIcon("label", ["M2.5 2.5h5.3l5.7 5.7-5.3 5.3-5.7-5.7z", "M5.5 5.5h.01"]),
   Share: makeIcon("share", ["M8 9.5V2.5", "m5 5.5 3-3 3 3", "M3.5 8v5h9V8"]),
+  Comment: makeIcon("comment", ["M2.5 3.5h11v7.5h-6l-3 2.5V11h-2z"]),
 } as const;
 
 export type IconName = keyof typeof Icon;

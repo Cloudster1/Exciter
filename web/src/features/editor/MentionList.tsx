@@ -37,7 +37,8 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(funct
       aria-label={t.editor.mentions}
       data-mention-list
       className="fixed z-40 min-w-56 rounded-overlay border border-border bg-surface-overlay p-1 shadow-2"
-      style={{ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX }}
+      // Fixed to the viewport, as the caret's rectangle is: a page scrolled down would otherwise push it out of view.
+      style={{ top: rect.bottom, left: rect.left }}
     >
       {items.map((person, i) => (
         <div

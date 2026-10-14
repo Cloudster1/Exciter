@@ -44,3 +44,26 @@ export function editorExtensions(suggestion?: Omit<SuggestionOptions<Mentionable
     FileUpload.configure({ upload }),
   ];
 }
+
+/** The comment editor's nodes and marks (#33), exactly those of api/comment-allowlist.json: text and its structure,
+ * and mentions, never rules, tables or files. */
+export function commentExtensions(suggestion?: Omit<SuggestionOptions<Mentionable>, "editor">): Extensions {
+  return [
+    StarterKit.configure({
+      heading: { levels: [...EDITOR_HEADING_LEVELS] },
+      underline: false,
+      horizontalRule: false,
+      link: {
+        openOnClick: false,
+        autolink: true,
+        isAllowedUri: (url) => safeHref(url) !== null,
+        HTMLAttributes: { target: "_blank", rel: "noopener noreferrer nofollow", class: null },
+      },
+    }),
+    Mention.configure({
+      HTMLAttributes: { class: "mention" },
+      renderText: ({ node }) => `@${String(node.attrs.label ?? "")}`,
+      ...(suggestion ? { suggestion } : {}),
+    }),
+  ];
+}

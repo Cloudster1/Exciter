@@ -178,6 +178,16 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at e26a9ac, for comments and mentions (#33):
+- backend/migrations/00500_comments.sql: 00140, 00154 and 00155, over
+  requirements, with the thread's resolution and the comment's revision
+- backend/internal/comment/service.go: internal/comment/service.go, without
+  inline threads and reactions
+- backend/internal/document mentions.go, the comment subset and
+  ParseComment: the same of internal/document
+- web/src/features/comments/CommentsSection.tsx with its test: the comments
+  section and editor of features/comments, with resolving
+
 Adapted from Stator at e26a9ac, for the review and control contract (#32):
 - backend/internal/comment, watch and notify: the shapes of internal/comment,
   internal/watch and internal/notify, over requirements, with a comment's

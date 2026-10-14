@@ -27,7 +27,7 @@ off a revision that already is.
 
 | Range | Owner | Holds |
 |---|---|---|
-| 00500 to 00509 | comments (#33) | `comment` (one row per comment: thread, requirement, revision, body, edits and deletion), its policies, write guard and events |
+| 00500 to 00509 | comments (#33) | `comment_thread` (a requirement's thread and its resolution) and `comment` (one row per comment: thread, requirement, revision, body, edits and deletion), their policies, write guards, and the outbox policy on mentions |
 | 00510 to 00519 | watching and notifications (#34) | `watch`, `watch_optout`, `notification`, `notification_preference`, `notification_digest` |
 | 00520 to 00539 | review (#35) | `approval_rule`, `approval_rule_subject`, `requirement_review`, `review_subject`, `review_decision`, the workflow condition's SQL |
 | 00540 to 00549 | suspect links (#36) | the view `trace_link_state`, `trace_link_clearance`, `armature_issue_link.reviewed_rev` |
@@ -119,6 +119,19 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
 - **Tools:** `list_comments` and `comment_on_requirement` once built.
 - **UI:** a Discussion panel on the requirement page, the mention picker in
   the comment editor, and the open count in the specification view.
+- **As built** (#33):
+  - Migration 00500. The database writes a comment's revision itself, the
+    requirement's current one read under a share lock, whatever the insert
+    names. A thread's resolution is its own columns, which only someone who
+    may comment changes, in their own name. The outbox refuses an event
+    mentioning anybody who is not a member.
+  - The comment subset is `document.CommentAllowed`, generated to
+    `api/comment-allowlist.json` by `make openapi`, and the web's comment
+    editor (`variant="comment"`) is held to it by a test.
+  - The mention picker offers only those who may read the requirement; the
+    API answers the rest with `canView: false` for a client that wants them.
+  - Deleting in an archived project is refused like any change.
+  - The tools `list_comments` and `comment_on_requirement` are built.
 
 ## #34 Watching and notifications
 

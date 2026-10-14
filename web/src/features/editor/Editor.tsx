@@ -5,7 +5,7 @@ import { Button, Dialog, Field, IconButton, cx } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 import { EDITOR_HEADING_LEVELS, NEW_TABLE_COLUMNS, NEW_TABLE_ROWS } from "@/config";
 import { t } from "@/i18n";
-import { editorExtensions } from "./extensions";
+import { commentExtensions, editorExtensions } from "./extensions";
 import { emptyDoc, safeHref, type Doc } from "./schema";
 import { mentionSuggestion, type MentionSource } from "./suggestion";
 
@@ -18,17 +18,22 @@ export interface EditorProps {
   mentions?: MentionSource;
   /** Where a pasted, dropped or picked file goes; without it the editor takes no files. */
   upload?: UploadFile;
+  /** comment holds the editor to what a comment may say (#33): no rules, tables or files. */
+  variant?: "requirement" | "comment";
   "aria-label": string;
 }
 
 /** The shared editor of statements, rationales and rich text values: Stator's, cut to what a requirement says. */
-export function Editor({ id, value, onChange, mentions, upload, "aria-label": label }: EditorProps) {
+export function Editor({ id, value, onChange, mentions, upload, variant = "requirement", "aria-label": label }: EditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const mentionsRef = useRef(mentions);
   mentionsRef.current = mentions;
   const editor = useEditor({
-    extensions: editorExtensions(mentions ? mentionSuggestion((q) => mentionsRef.current?.(q) ?? Promise.resolve([])) : undefined, upload),
+    extensions: (() => {
+      const suggestion = mentions ? mentionSuggestion((q) => mentionsRef.current?.(q) ?? Promise.resolve([])) : undefined;
+      return variant === "comment" ? commentExtensions(suggestion) : editorExtensions(suggestion, upload);
+    })(),
     content: value ?? emptyDoc,
     editorProps: {
       attributes: { id, "aria-label": label, "aria-multiline": "true", role: "textbox", class: "doc-content doc-editor px-3 py-2" },
@@ -37,7 +42,7 @@ export function Editor({ id, value, onChange, mentions, upload, "aria-label": la
   });
   return (
     <div className="rounded-control border border-border-strong bg-surface focus-within:border-focus" data-editor-frame>
-      {editor && <Toolbar editor={editor} files={Boolean(upload)} />}
+      {editor && <Toolbar editor={editor} files={variant === "requirement" && Boolean(upload)} tools={variant === "comment" ? COMMENT_TOOLS : TOOLS} />}
       <EditorContent editor={editor} />
     </div>
   );
@@ -100,14 +105,17 @@ const TOOLS: Tool[] = [
   },
 ];
 
-function Toolbar({ editor, files }: { editor: TiptapEditor; files: boolean }) {
+/** What a comment's toolbar offers: everything but rules and tables, which a comment may not hold. */
+const COMMENT_TOOLS = TOOLS.filter((tool) => tool.action !== "rule" && tool.action !== "table");
+
+function Toolbar({ editor, files, tools }: { editor: TiptapEditor; files: boolean; tools: Tool[] }) {
   const [linking, setLinking] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   // The toolbar redraws as the selection moves, so a pressed button says what the caret is in.
-  const active = useEditorState({ editor, selector: ({ editor: e }) => TOOLS.map((tool) => tool.active(e)).concat(e.isActive("link")) });
+  const active = useEditorState({ editor, selector: ({ editor: e }) => tools.map((tool) => tool.active(e)).concat(e.isActive("link")) });
   return (
     <div role="toolbar" aria-label={t.editor.toolbar} className="flex flex-wrap gap-0.5 border-b border-border p-1" data-editor-toolbar>
-      {TOOLS.map((tool, i) => {
+      {tools.map((tool, i) => {
         const Glyph = Icon[tool.icon];
         return (
           <IconButton
@@ -126,8 +134,8 @@ function Toolbar({ editor, files }: { editor: TiptapEditor; files: boolean }) {
         icon={<Icon.Link />}
         label={t.editor.link}
         size="sm"
-        aria-pressed={active[TOOLS.length]}
-        className={cx(active[TOOLS.length] && "bg-surface-raised text-ink")}
+        aria-pressed={active[tools.length]}
+        className={cx(active[tools.length] && "bg-surface-raised text-ink")}
         onClick={() => setLinking(true)}
         data-action="format-link"
       />

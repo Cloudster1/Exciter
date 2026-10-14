@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
@@ -84,6 +85,8 @@ type Server struct {
 	// Armature connects the installation to Armature and holds each member's token; nil answers its routes that
 	// it is not set up.
 	Armature *armature.Service
+	// Comments keeps the discussion on requirements (#33); nil answers its routes that it is not set up.
+	Comments *comment.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -329,6 +332,20 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireAdmin).Delete("/tokens/everyone/{tokenID}", s.handleRevokeAnybodysAPIToken)
 		})
 		r.With(requireAuth).Post("/mcp", s.handleMCP)
+
+		// Comments: read by whoever views the requirement, written by whoever may comment on it (#33).
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.commentsOn)
+			r.Get("/requirements/{reqKey}/comments", s.handleListComments)
+			r.Post("/requirements/{reqKey}/comments", s.handleCreateComment)
+			r.Get("/requirements/{reqKey}/mentionable", s.handleListMentionable)
+			r.Get("/comments/{commentID}", s.handleGetCommentThread)
+			r.Post("/comments/{commentID}/replies", s.handleReplyToComment)
+			r.Patch("/comments/{commentID}", s.handleEditComment)
+			r.Delete("/comments/{commentID}", s.handleDeleteComment)
+			r.Put("/comment-threads/{threadID}/resolution", s.handleResolveThread)
+			r.Delete("/comment-threads/{threadID}/resolution", s.handleReopenThread)
+		})
 
 		// Armature: the installation's connection for its administrators, each member's own token for them, and the
 		// issues requirements are traced to, read as the caller.

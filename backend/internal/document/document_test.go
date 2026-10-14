@@ -68,4 +68,12 @@ func TestTheCheckedInAllowlistIsCurrent(t *testing.T) {
 	if err != nil || string(got) != string(want) {
 		t.Fatalf("api/document-allowlist.json is out of date; run make openapi and commit the result (%v)", err)
 	}
+	want, err = CommentAllowed.JSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err = os.ReadFile(filepath.Join("..", "..", "..", "api", "comment-allowlist.json"))
+	if err != nil || string(got) != string(want) {
+		t.Fatalf("api/comment-allowlist.json is out of date; run make openapi and commit the result (%v)", err)
+	}
 }

@@ -24,6 +24,8 @@ interface Allowlist {
   marks: Record<string, { attrs?: Record<string, Attr> }>;
 }
 export const allowlist = JSON.parse(readFileSync(resolve(process.cwd(), "../api/document-allowlist.json"), "utf8")) as Allowlist;
+/** What a comment may hold (#33), generated the same way. */
+export const commentAllowlist = JSON.parse(readFileSync(resolve(process.cwd(), "../api/comment-allowlist.json"), "utf8")) as Allowlist;
 
 export function attrProblem(rule: Attr, value: unknown): string | null {
   if (value === null || value === undefined) return rule.nullable || rule.kind === "null" ? null : "is empty";
