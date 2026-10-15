@@ -295,6 +295,38 @@ export const ARMATURE_CREATE_MAX = 50;
 /** How long "Copied" stays after a secret is copied. */
 export const COPY_FEEDBACK_MS = 2000;
 
+/** Where an administrator keeps the installation's outbound webhooks (#48). */
+export const WEBHOOKS_PATH = "/settings/webhooks";
+/** The topic that takes every event, and the events a webhook may take, as the API lists them. */
+export const WEBHOOK_TOPIC_ANY = "*";
+export const WEBHOOK_TOPICS = [
+  "requirement.created",
+  "requirement.revised",
+  "requirement.changed",
+  "requirement.trashed",
+  "requirement.restored",
+  "requirement.moved",
+  "link.created",
+  "link.removed",
+  "link.cleared",
+  "review.requested",
+  "review.decided",
+  "review.closed",
+  "comment.created",
+  "thread.resolved",
+  "baseline.taken",
+] as const;
+/** The database's bounds on a webhook's name and address. */
+export const WEBHOOK_NAME_MAX_LENGTH = 100;
+export const WEBHOOK_URL_MAX_LENGTH = 2000;
+/** Attempts the delivery log shows, within the API's 200. */
+export const WEBHOOK_DELIVERIES_PAGE_SIZE = 50;
+/** The header each delivery's signature travels in, for the receiver to check. */
+export const WEBHOOK_SIGNATURE_HEADER = "X-Exciter-Signature-256";
+/** The header with the time a delivery was sent, and the one with its signature over that time and the body. */
+export const WEBHOOK_TIMESTAMP_HEADER = "X-Exciter-Timestamp";
+export const WEBHOOK_TIMESTAMPED_SIGNATURE_HEADER = "X-Exciter-Signature-Timestamped-256";
+
 /** How often an import the worker has is read again while a person watches it. */
 export const IMPORT_POLL_MS = 1000;
 /** The largest file an import takes, the API's csvio.MaxImportBytes. */

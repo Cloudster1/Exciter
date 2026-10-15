@@ -21,6 +21,7 @@ import { documentsDe } from "./documents.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { queryDe } from "./query.de";
+import { webhooksDe } from "./webhooks.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -55,6 +56,7 @@ export const de: Messages = {
     allTokens: "Alle Zugriffstoken",
     armature: "Armature",
     stator: "Stator",
+    webhooks: "Webhooks",
     groupRequirements: "Anforderungen",
     collapseSidebar: "Seitenleiste einklappen",
     expandSidebar: "Seitenleiste ausklappen",
@@ -290,6 +292,11 @@ export const de: Messages = {
       "armature.disconnected": "Armature getrennt",
       "stator.connected": "Stator verbunden",
       "stator.disconnected": "Stator getrennt",
+      "webhook.created": "Webhook hinzugefügt",
+      "webhook.updated": "Webhook geändert",
+      "webhook.deleted": "Webhook gelöscht",
+      "webhook.secret_rotated": "Webhook-Geheimnis erneuert",
+      "webhook.disabled": "Webhook wegen Fehlern abgeschaltet",
       "installation.renamed": "Installation umbenannt",
       "comment.deleted": "Kommentar gelöscht",
       "approval_rule.saved": "Freigaberegel gespeichert",
@@ -349,6 +356,7 @@ export const de: Messages = {
   search: searchDe,
   grid: gridDe,
   query: queryDe,
+  webhooks: webhooksDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

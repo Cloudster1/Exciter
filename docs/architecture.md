@@ -145,6 +145,12 @@ app role holds no privilege on.
   narrowed and ordered in SQL built from checked parts, never from text a
   person wrote. Saved views keep a grid's filter, columns and order, their
   owner's and shared by editors, under `saved_view`'s own policies.
+- **Outbound webhooks** (#48): Stator's `internal/webhook`. The worker queues a
+  `webhook_delivery` for every endpoint on that hears an event's topic and
+  project, ahead of the topic's other handlers, and a sender posts what is
+  due, signed with the endpoint's sealed secret, its payload read as the
+  endpoint's owner, retried with backoff and turned off after a day of
+  failing. The `event` webhook of the API document describes what is sent.
 - **Query language** (#47): Armature's NQL as `internal/rql`, compiled per
   project from a catalog of the fixed fields, the attributes by quoted name
   and a field per end of each link type, to a WHERE clause over the grid's

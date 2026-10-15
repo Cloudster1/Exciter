@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -43,9 +44,11 @@ func (d *Document) validate(s *Schema, value any, at string) error {
 	if err != nil {
 		return err
 	}
-	if len(s.OneOf) > 0 {
+	// Each alternative is tried in turn, which is anyOf's reading; the builder only writes oneOf for alternatives that
+	// cannot both match.
+	if alternatives := slices.Concat(s.OneOf, s.AnyOf); len(alternatives) > 0 {
 		var reasons []string
-		for _, option := range s.OneOf {
+		for _, option := range alternatives {
 			if err := d.validate(option, value, at); err == nil {
 				return nil
 			} else {

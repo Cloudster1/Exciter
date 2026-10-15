@@ -507,6 +507,20 @@ Adapted from Armature at e3dccd1, for the query language (#47):
   without recent queries and saved filters, a row picked only by a pointer
   that moves
 
+Adapted from Stator at e8c4f92, for outbound webhooks (#48):
+- backend/internal/webhook: Stator's sender, its signing, envelope, log,
+  leases, backoff and turning off, over requirement events, with the
+  projects an endpoint listens to and an owner switched off taken as gone
+- backend/internal/httpapi/webhook_handlers.go and webhook_document.go: the
+  same handlers and the description of what an endpoint is posted
+- backend/migrations/00750_webhooks.sql: Stator's tables, trigger, policies
+  and grants, with the projects an endpoint listens to
+- backend/cmd/armature-stub/bins.go: the stub's hook bins, which receive the
+  suites' deliveries
+- the anyOf of backend/internal/openapi: the same field and validation
+- web/src/features/webhooks/Webhooks.tsx, web/src/api/webhooks.ts and their
+  tests: the settings page, with a choice of projects
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

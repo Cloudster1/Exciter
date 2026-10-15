@@ -169,6 +169,29 @@ func (h *harness) keepArmature(t *testing.T) {
 	})
 }
 
+// keepWebhooks starts the test with no webhooks and puts back the ones there were, with their logs, once it ends: an
+// endpoint hears every project, so one left behind would be posted the events of the tests after.
+func (h *harness) keepWebhooks(t *testing.T) {
+	t.Helper()
+	var endpoints, deliveries []byte
+	if err := h.super.QueryRow(context.Background(), `
+		SELECT (SELECT coalesce(jsonb_agg(e), '[]') FROM webhook_endpoint e),
+		       (SELECT coalesce(jsonb_agg(d), '[]') FROM webhook_delivery d)`).Scan(&endpoints, &deliveries); err != nil {
+		t.Fatal(err)
+	}
+	h.cleanupExec(t, h.super, `DELETE FROM webhook_endpoint`)
+	h.settle(t)
+	t.Cleanup(func() {
+		h.cleanupExec(t, h.super, `DELETE FROM webhook_endpoint`)
+		h.cleanupExec(t, h.super, `
+			INSERT INTO webhook_endpoint SELECT * FROM jsonb_populate_recordset(NULL::webhook_endpoint, $1::jsonb) e
+			WHERE e.owner_id IS NULL OR EXISTS (SELECT 1 FROM app_user WHERE id = e.owner_id)`, endpoints)
+		h.cleanupExec(t, h.super, `
+			INSERT INTO webhook_delivery SELECT * FROM jsonb_populate_recordset(NULL::webhook_delivery, $1::jsonb) d
+			WHERE EXISTS (SELECT 1 FROM webhook_endpoint WHERE id = d.endpoint_id)`, deliveries)
+	})
+}
+
 // keepStator starts the test with the installation connected to no Stator, and puts the connection and its members'
 // tokens back once the test ends, with what the stub's /meta offers, which a test may change.
 func (h *harness) keepStator(t *testing.T) {

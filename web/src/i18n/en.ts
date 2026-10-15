@@ -23,6 +23,7 @@ import { documentsEn } from "./documents.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { queryEn } from "./query.en";
+import { webhooksEn } from "./webhooks.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -57,6 +58,7 @@ export const en = {
     allTokens: "All tokens",
     armature: "Armature",
     stator: "Stator",
+    webhooks: "Webhooks",
     groupRequirements: "Requirements",
     collapseSidebar: "Collapse the sidebar",
     expandSidebar: "Expand the sidebar",
@@ -289,6 +291,11 @@ export const en = {
       "armature.disconnected": "Armature disconnected",
       "stator.connected": "Stator connected",
       "stator.disconnected": "Stator disconnected",
+      "webhook.created": "Webhook added",
+      "webhook.updated": "Webhook changed",
+      "webhook.deleted": "Webhook deleted",
+      "webhook.secret_rotated": "Webhook secret rotated",
+      "webhook.disabled": "Webhook turned off for failing",
       "installation.renamed": "Installation renamed",
       "comment.deleted": "Comment deleted",
       "approval_rule.saved": "Approval rule saved",
@@ -348,6 +355,7 @@ export const en = {
   search: searchEn,
   grid: gridEn,
   query: queryEn,
+  webhooks: webhooksEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

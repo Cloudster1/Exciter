@@ -176,6 +176,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := searchError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := webhookError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := traceError(err); apiErr != nil {
 			return apiErr
 		}

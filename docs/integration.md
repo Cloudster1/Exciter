@@ -116,10 +116,51 @@ names its version in the body and in a header:
   describe what Exciter reads, with the version header as a parameter. A
   unit test holds each to the sender's own schema in its vendored document,
   and the stubs' contract tests hold what they post to the senders' shapes.
-- **Exciter sends in the same envelope.** Exciter sends no webhooks yet;
-  when it does, they carry this envelope at version 1 and the header
-  `X-Exciter-Webhook-Version`, and keep sending a version to the endpoints
-  registered for it for at least one Dynamo release after a new one.
+- **Exciter sends in the same envelope**, below.
+
+## Webhooks Exciter sends
+
+An installation's administrators keep endpoints under Settings, Webhooks
+(#48): an address, the events it hears, and the projects it listens to, every
+project when none are named. Each event is posted as JSON in the envelope
+above, named `exciter` as its source:
+
+```json
+{ "version": 1, "id": "...", "source": "exciter", "topic": "requirement.revised", "occurredAt": "...",
+  "payload": { "requirement": { "key": "CHK-R4", "title": "...", "revision": 3, "url": "..." }, "revision": 3, "actor": { } } }
+```
+
+| Header | What it carries |
+| --- | --- |
+| `X-Exciter-Event` | The topic, as in the body |
+| `X-Exciter-Delivery` | This attempt's id; a retry or a redelivery has its own |
+| `X-Exciter-Webhook-Version` | The envelope version, as in the body |
+| `X-Exciter-Signature-256` | `sha256=` and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret |
+| `X-Exciter-Timestamp` | When the attempt was sent, in Unix seconds |
+| `X-Exciter-Signature-Timestamped-256` | The same over the timestamp, a dot and the body, so a receiver can refuse a replay |
+
+- **The topics** are `requirement.created`, `requirement.revised`,
+  `requirement.changed`, `requirement.trashed`, `requirement.restored`,
+  `requirement.moved`, `link.created`, `link.removed`, `link.cleared`,
+  `review.requested`, `review.decided`, `review.closed`, `comment.created`,
+  `thread.resolved` and `baseline.taken`, and `ping` for a test. A receiver
+  ignores a topic or a field it does not know.
+- **The payload is read as the endpoint's owner**, the administrator who
+  saved it last, when each attempt is sent: references to the requirement
+  (key, title, revision, status, project, address), the actor, and what the
+  event says. What the owner may not view is withheld, never sent.
+- **The `id` is the event's**, the same on every attempt and redelivery, so a
+  receiver can tell a repeat.
+- **A receiver answers 2xx to take a delivery.** Anything else, or no answer
+  within 10 seconds, is tried again after 1 minute, 5 minutes, 30 minutes, 2
+  hours and 12 hours; an endpoint failing every attempt for a day is turned
+  off until an administrator turns it on.
+- **The envelope is in the API document** as the `event` webhook of
+  [`api/openapi.json`](../api/openapi.json), with every payload and header.
+  Exciter keeps sending a version to the endpoints registered for it for at
+  least one Dynamo release after a new one.
+- **Nothing is posted into the server's own network** unless
+  `EXCITER_OUTBOUND_ALLOW` names the host, checked again on every attempt.
 
 ## The rules
 

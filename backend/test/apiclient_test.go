@@ -113,6 +113,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Renderer:      h.renderer(),
 		Armature:      h.armature(t),
 		Stator:        h.stator(t),
+		Webhooks:      h.webhooks(t),
 		Comments:      comment.NewService(h.cluster),
 		Watches:       watch.NewService(h.cluster),
 		Notifications: notify.NewService(h.cluster),

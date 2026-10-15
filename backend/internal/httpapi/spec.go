@@ -25,6 +25,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -54,6 +55,12 @@ func specBuilder() *openapi.Builder {
 	b.FieldOverrides["SetGroupRoleRequest.role"] = granted
 	b.FieldOverrides["AdmitRequest.role"] = granted
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
+	b.Enums[reflect.TypeOf(webhook.DeliveryState(""))] = enumStrings(webhook.States)
+	webhookTopics := &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: webhook.Subscribable}}
+	b.FieldOverrides["Webhook.topics"] = webhookTopics
+	b.FieldOverrides["WebhookInput.topics"] = webhookTopics
+	b.FieldOverrides["Webhook.disabledReason"] = &openapi.Schema{OneOf: []*openapi.Schema{{Type: "string", Enum: webhook.DisabledReasons}, {Type: "null"}}}
+	b.FieldOverrides["WebhookDelivery.topic"] = &openapi.Schema{Type: "string", Enum: append([]string{webhook.TopicPing}, webhook.Topics...)}
 	b.Enums[reflect.TypeOf(theme.Source(""))] = enumStrings(theme.Sources)
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	coreSchemas(b)
@@ -247,6 +254,7 @@ func Spec() *openapi.Document {
 	for _, tag := range openapi.SortedKeys(tags) {
 		doc.Tags = append(doc.Tags, openapi.Tag{Name: tag})
 	}
+	doc.Webhooks = map[string]openapi.PathItem{"event": {"post": webhookDelivery(b)}}
 	doc.Components.Schemas = b.Components()
 	return doc
 }

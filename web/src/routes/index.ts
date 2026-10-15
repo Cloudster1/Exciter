@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui";
 import { LOGIN_PATH } from "@/config";
 import { appRoute } from "./app";
 import { armatureAccountRoute, armatureSettingsRoute } from "./armature";
+import { webhooksRoute } from "./webhooks";
 import { statorAccountRoute, statorSettingsRoute } from "./stator";
 import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
@@ -79,6 +80,7 @@ const routeTree = rootRoute.addChildren([
     tokensRoute,
     allTokensRoute,
     armatureSettingsRoute,
+    webhooksRoute,
     armatureAccountRoute,
     statorSettingsRoute,
     statorAccountRoute,

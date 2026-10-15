@@ -15,9 +15,10 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00720 to 00729 | Documents (#45) | `api_token.for_render` and the check `api_token_render_is_brief`, which hold a print's token to reading for minutes |
 | 00730 to 00739 | Signatures (#46) | `reauthentication` (a proof of identity given again, for one signature), `signature_failure` (wrong passwords, for the limit), `review_signature`, the purpose of an `oidc_login`, and the triggers `review_signature_guard` and `review_decision_signed` |
 | 00740 to 00749 | Query language (#47) | `requirement_key_id` (the requirement a key, or one it had, names) and `requirement_coverage` (a requirement's level in one dimension, as `trace.Judge` judges it), both read as the reader sees |
+| 00750 to 00759 | Webhooks (#48) | `webhook_endpoint` (an address, its events and projects, a sealed secret, its owner) and `webhook_delivery` (one attempt at one event), the trigger `webhook_endpoint_stamp` and their policies |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
-and `internal/auth/reauth.go` (#46); `internal/rql` (#47). Worker topic:
+and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
 `EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
 
@@ -280,4 +281,53 @@ and `internal/auth/reauth.go` (#46); `internal/rql` (#47). Worker topic:
     `requirement_coverage` run as the caller, so a key or a level of a
     requirement the reader may not see is none, which a test proves through
     SQL as `exciter_app`.
+
+## #48 Outbound webhooks
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `GET /webhooks` | an administrator | `{webhooks}`, without secrets |
+| `POST /webhooks` | an administrator | `{webhook}` with its `secret`, this once; 422 |
+| `PATCH /webhooks/{webhookID}` | an administrator | `{webhook}`; 422, 404 |
+| `DELETE /webhooks/{webhookID}` | an administrator | 204; 404 |
+| `POST /webhooks/{webhookID}/rotate-secret` | an administrator | `{webhook}` with its new `secret`, this once |
+| `POST /webhooks/{webhookID}/test` | an administrator | `{delivery}`, the ping as logged |
+| `GET /webhooks/{webhookID}/deliveries?limit=` | an administrator | `{deliveries}`, newest first; 422 on `limit` |
+| `POST /webhooks/{webhookID}/deliveries/{deliveryID}/redeliver` | an administrator | `{delivery}` |
+
+- **An endpoint** has a name, an address (http or https, no user name, no
+  `#`), the topics it hears (`*` for every one, later ones too), the projects
+  it listens to by key (none for every project, at most 100), and whether it
+  is on. Its secret, `exciter_whs_` and 43 characters, is sealed with
+  `EXCITER_SECRET_KEY`, bound to the installation and the endpoint, and
+  shown in the answer that made or rotated it alone. Every route is the
+  installation's administrators', `orgWide`, so a token held to some projects
+  is refused.
+- **The owner** is whoever saved the endpoint last; every payload is read
+  with their rights when it is sent, and one whose owner was switched off
+  sends nothing but a ping.
+- **What is sent** is in [`docs/integration.md`](integration.md), and the
+  `event` webhook of the API document.
+- **The log** keeps one row per attempt for 30 days: the state (`pending`,
+  `delivered`, `failed`, `withheld`, `cancelled`), the receiver's status and
+  a sentence, never the body, the headers or what the receiver answered. A
+  test ping and a redelivery are attempts by hand, neither retried nor
+  counted against the endpoint.
+- Audited: `webhook.created`, `webhook.updated`, `webhook.deleted`,
+  `webhook.secret_rotated`, and `webhook.disabled` by nobody when the worker
+  turns a failing endpoint off; the address is kept by its host alone.
+- UI: Settings, Webhooks: a form with the events and the projects, the secret
+  shown once with what signs a delivery, a list with each endpoint's state,
+  events, projects and owner, and per endpoint a log, a test ping, on and off,
+  rotating the secret and deleting.
+- **As built** (#48):
+  - **Queued by the worker, sent by its sender.** An event of a topic is
+    queued for every endpoint on that hears it, and listens to its project:
+    its requirement's, either end of a link's, or the one it names. The
+    sender claims due deliveries every 2 seconds, leased so several workers
+    never post one twice.
+  - **The database holds the line.** Only an administrator acting with the
+    whole installation reads or changes an endpoint or reads the log; the app
+    never reads a sealed secret, names an owner, clears the counts or writes
+    the log, and a topic nobody emits is refused.
 
