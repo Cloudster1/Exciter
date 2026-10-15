@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -41,6 +42,22 @@ func TestTheMuxRoutesByTopicAndFallsBack(t *testing.T) {
 	}
 	if err := NewMux(nil).Handle(t.Context(), Event{Topic: "anything"}); err != nil {
 		t.Errorf("a mux with no fallback refused an unrouted topic: %v", err)
+	}
+}
+
+func TestBeforeRunsAheadOfTheTopicsHandler(t *testing.T) {
+	var got []string
+	record := func(name string) Handler {
+		return HandlerFunc(func(context.Context, Event) error { got = append(got, name); return nil })
+	}
+	m := NewMux(nil).Route("link.created", record("fan out")).Before("link.created", record("forget")).Before("link.cleared", record("forget"))
+	for _, topic := range []string{"link.created", "link.cleared"} {
+		if err := m.Handle(t.Context(), Event{Topic: topic}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if strings.Join(got, ", ") != "forget, fan out, forget" {
+		t.Errorf("handled by %v, want forget and fan out, then forget alone", got)
 	}
 }
 

@@ -173,6 +173,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := traceError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := coverageError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := attachmentError(err); apiErr != nil {
 			return apiErr
 		}

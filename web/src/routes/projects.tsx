@@ -19,6 +19,7 @@ import { SuspectList } from "@/features/links/SuspectList";
 import { BaselineList } from "@/features/baselines/Baselines";
 import { BaselinePage } from "@/features/baselines/BaselinePage";
 import { BaselineCompare } from "@/features/baselines/BaselineCompare";
+import { CoveragePage } from "@/features/coverage/CoveragePage";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
 export const newProjectRoute = createRoute({ getParentRoute: () => appRoute, path: NEW_PROJECT_PATH, component: NewProjectForm });
@@ -32,7 +33,8 @@ type ProjectPath =
   | "/p/$projectKey/spec"
   | "/p/$projectKey/grid"
   | "/p/$projectKey/suspects"
-  | "/p/$projectKey/baselines";
+  | "/p/$projectKey/baselines"
+  | "/p/$projectKey/coverage";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -136,6 +138,16 @@ export const baselinesRoute = createRoute({
   component: function ProjectBaselinesPage() {
     const { projectKey } = baselinesRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/baselines" render={(project) => <BaselineList key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's coverage and traceability matrix (#38). */
+export const coverageRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/coverage",
+  component: function ProjectCoveragePage() {
+    const { projectKey } = coverageRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/coverage" render={(project) => <CoveragePage key={project.id} project={project} />} />;
   },
 });
 

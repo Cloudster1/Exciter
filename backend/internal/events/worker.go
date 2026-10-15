@@ -292,6 +292,12 @@ func (m *Mux) Route(topic string, h Handler) *Mux {
 	return m
 }
 
+// Before runs h ahead of whatever a topic is routed to, or alone; h must be one a second run leaves unchanged.
+func (m *Mux) Before(topic string, h Handler) *Mux {
+	m.routes[topic] = Chain{h, m.routes[topic]}
+	return m
+}
+
 func (m *Mux) Handle(ctx context.Context, e Event) error {
 	if h, ok := m.routes[e.Topic]; ok {
 		return h.Handle(ctx, e)

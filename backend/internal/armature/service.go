@@ -17,6 +17,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // WebhookPath is where Armature posts the installation's events, under the app's origin.
@@ -64,6 +65,8 @@ type Service struct {
 	client *Client
 	cache  *Cache
 	opts   Options
+	// coverage is cleared when an issue's status, or whether its links stand, changes; nil keeps nothing.
+	coverage *trace.CoverageCache
 }
 
 // NewService returns the service. A nil box refuses to store a token or a
@@ -73,6 +76,35 @@ func NewService(cluster *db.Cluster, box *secret.Box, client *Client, cache *Cac
 		opts.Log = slog.Default()
 	}
 	return &Service{db: cluster, box: box, client: client, cache: cache, opts: opts}
+}
+
+// WithCoverageCache clears the coverage of the projects an issue is linked from whenever Armature says it moved on.
+func (s *Service) WithCoverageCache(c *trace.CoverageCache) *Service {
+	s.coverage = c
+	return s
+}
+
+// forgetCoverage clears the coverage of every project with a requirement linked to one of the issues.
+func (s *Service) forgetCoverage(ctx context.Context, keys ...string) {
+	if s.coverage == nil || len(keys) == 0 {
+		return
+	}
+	var projects []uuid.UUID
+	err := s.db.ReadAdmin(db.PinPrimary(ctx), func(ctx context.Context, tx db.DBTX) error {
+		rows, err := tx.Query(ctx, `
+			SELECT DISTINCT r.project_id FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id
+			WHERE l.issue_key = ANY ($1)`, keys)
+		if err != nil {
+			return err
+		}
+		projects, err = pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+		return err
+	})
+	if err != nil {
+		s.opts.Log.Warn("the coverage of the projects linked to Armature issues could not be cleared", "error", err)
+		return
+	}
+	s.coverage.Forget(ctx, projects...)
 }
 
 // Cache is the per-person answer cache, nil without Valkey.

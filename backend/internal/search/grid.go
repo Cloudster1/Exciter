@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -185,4 +186,62 @@ func scanRow(projectKey string) pgx.RowToFunc[Row] {
 		r.Can = requirement.Can{Edit: edit, Transition: edit || approve, Delete: edit, Link: edit, Comment: remark}
 		return r, nil
 	}
+}
+
+// Kept is one requirement a filter keeps, as coverage and the traceability matrix (#38) list it.
+type Kept struct {
+	Ref     requirement.Ref
+	TypeID  *uuid.UUID
+	Outline string
+}
+
+// Keep answers every requirement of p out of the trash that the reader sees and f keeps, never a section, in
+// outline order; f is checked as the grid checks it.
+func Keep(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project, f Filter) ([]Kept, error) {
+	defs, err := attribute.Defs(ctx, tx, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	if f, err = check(f, Sort{}, defs); err != nil {
+		return nil, err
+	}
+	if len(f.Kinds) > 0 && !slices.Contains(f.Kinds, requirement.KindRequirement) {
+		return []Kept{}, nil
+	}
+	f.Kinds = nil
+	args := []any{p.ID, reader}
+	bind := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	where := append([]string{perm.ViewableRequirement("r", 2), `r.kind = 'requirement'`}, gridConditions(f, p, defs, bind)...)
+	rows, err := tx.Query(ctx, requirement.WalkTree+`
+		SELECT r.id, r.number, r.title, r.revision, r.type_id, w.path, r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')
+		FROM walk w JOIN requirement r ON r.id = w.id
+		LEFT JOIN req_status st ON st.id = r.status_id
+		WHERE `+strings.Join(where, ` AND `)+`
+		ORDER BY w.path`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list the requirements: %w", err)
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Kept, error) {
+		var (
+			k        Kept
+			number   int
+			path     []int32
+			statusID *uuid.UUID
+			status   requirement.StatusRef
+		)
+		if err := row.Scan(&k.Ref.ID, &number, &k.Ref.Title, &k.Ref.Revision, &k.TypeID, &path, &statusID, &status.Name, &status.Category); err != nil {
+			return k, err
+		}
+		k.Ref.ProjectKey, k.Ref.Kind = p.Key, requirement.KindRequirement
+		k.Ref.Key = requirement.Key(p.Key, number)
+		k.Outline = requirement.OutlineOf(path)
+		if statusID != nil {
+			status.ID = *statusID
+			k.Ref.Status = &status
+		}
+		return k, nil
+	})
 }

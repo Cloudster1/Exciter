@@ -76,6 +76,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Coverage and the traceability matrix (#38). A project's administrators say
+  which of decomposed, implemented and verified its requirements of each
+  type are asked for. Coverage shows each dimension's share as a bar, and
+  each requirement as full, partial, none or not asked, from its trace
+  links, its Armature links and their status; a suspect link counts as
+  partial. The matrix lays a page of requirements out against the
+  requirements or the Armature issues they link to, and downloads whole as a
+  CSV file.
 - Baselines (#37). A project's administrators take a named baseline of the
   project, or of one section and everything below it: each requirement's
   revision, place and status, and its trace and Armature links, read as one

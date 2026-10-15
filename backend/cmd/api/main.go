@@ -133,17 +133,22 @@ func run() error {
 		log.Warn("EXCITER_SECRET_KEY is not set, so an identity provider's client secret cannot be stored")
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
-	var cache *armature.Cache
+	var (
+		cache    *armature.Cache
+		coverage *trace.CoverageCache
+	)
 	if valkey != nil {
 		cache = armature.NewCache(valkey, log)
+		coverage = trace.NewCoverageCache(valkey, log)
 	} else {
 		log.Warn("EXCITER_VALKEY_URL is not set, so every view asks Armature afresh")
 	}
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
 	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), cache,
-		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
+		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}).
+		WithCoverageCache(coverage)
 	requirements := requirement.NewService(cluster)
-	links := trace.NewService(cluster)
+	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
 	server := &httpapi.Server{
 		DB:              cluster,

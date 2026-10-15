@@ -15,6 +15,7 @@ import { notificationsEn, watchEn } from "./notifications.en";
 import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
+import { coverageEn } from "./coverage.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -288,6 +289,8 @@ export const en = {
       "baseline.taken": "Baseline taken",
       "baseline.locked": "Baseline locked",
       "baseline.deleted": "Baseline deleted",
+      "coverage_rule.saved": "Coverage rule saved",
+      "coverage_rule.removed": "Coverage rule removed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -326,6 +329,7 @@ export const en = {
   review: reviewEn,
   suspect: suspectEn,
   baseline: baselineEn,
+  coverage: coverageEn,
   imports: importsEn,
   search: searchEn,
   grid: gridEn,

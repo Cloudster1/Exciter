@@ -326,6 +326,13 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/suspects", s.handleListSuspectLinks)
 			r.Post("/links/{linkID}/clear", s.handleClearLink)
 			r.Get("/links/{linkID}/clearances", s.handleListClearances)
+			// Coverage and the matrix (#38): read by a project's readers, its rules set by its administrators.
+			r.Get("/projects/{projectKey}/coverage-rules", s.handleListCoverageRules)
+			r.Put("/projects/{projectKey}/coverage-rules", s.handleSaveCoverageRule)
+			r.Delete("/coverage-rules/{ruleID}", s.handleDeleteCoverageRule)
+			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
+			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
+			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

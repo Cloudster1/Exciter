@@ -123,3 +123,82 @@ type Matrix struct {
 	Limit   int               `json:"limit"`
 	Offset  int               `json:"offset"`
 }
+
+// Asks is which dimensions a requirement's rule asks for.
+type Asks struct {
+	Decomposed, Implemented, Verified bool
+}
+
+// Counted are the links that judge one requirement: trace links where it is the target of a type counting
+// decomposition or verification, and its Armature links neither broken nor detached.
+type Counted struct {
+	Decomposing, DecomposingSuspect                              int
+	Implementing, ImplementingDone, ImplementingSuspect          int
+	VerifyingLinks, VerifyingLinksSuspect                        int
+	VerifyingIssues, VerifyingIssuesDone, VerifyingIssuesSuspect int
+}
+
+// Judge answers a requirement's level in each dimension, as the contract's table says.
+func Judge(asks Asks, c Counted) (decomposed, implemented, verified Level) {
+	decomposed, implemented, verified = LevelNA, LevelNA, LevelNA
+	if asks.Decomposed {
+		decomposed = level(c.Decomposing > 0, c.DecomposingSuspect == 0)
+	}
+	if asks.Implemented {
+		implemented = level(c.Implementing > 0, c.ImplementingDone > 0 && c.ImplementingSuspect == 0)
+	}
+	if asks.Verified {
+		verified = level(c.VerifyingLinks+c.VerifyingIssues > 0,
+			c.VerifyingLinksSuspect+c.VerifyingIssuesSuspect == 0 && c.VerifyingIssuesDone == c.VerifyingIssues)
+	}
+	return decomposed, implemented, verified
+}
+
+func level(linked, whole bool) Level {
+	switch {
+	case !linked:
+		return LevelNone
+	case whole:
+		return LevelFull
+	default:
+		return LevelPartial
+	}
+}
+
+// count adds one requirement's level to the totals of its dimension; na counts nowhere.
+func (t *Totals) count(l Level) {
+	switch l {
+	case LevelFull:
+		t.Full++
+	case LevelPartial:
+		t.Partial++
+	case LevelNone:
+		t.None++
+	default:
+		return
+	}
+	t.Total++
+}
+
+// LevelFilter keeps the coverage rows at the levels named; an empty level keeps every one.
+type LevelFilter struct {
+	Decomposed, Implemented, Verified Level
+}
+
+// Keeps says whether a row is at the levels the filter names.
+func (f LevelFilter) Keeps(r CoverageRow) bool {
+	return (f.Decomposed == "" || f.Decomposed == r.Decomposed) &&
+		(f.Implemented == "" || f.Implemented == r.Implemented) &&
+		(f.Verified == "" || f.Verified == r.Verified)
+}
+
+// Summarize totals every row in each dimension.
+func Summarize(rows []CoverageRow) CoverageSummary {
+	var s CoverageSummary
+	for _, r := range rows {
+		s.Decomposed.count(r.Decomposed)
+		s.Implemented.count(r.Implemented)
+		s.Verified.count(r.Verified)
+	}
+	return s
+}
