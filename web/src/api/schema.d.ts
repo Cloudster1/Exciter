@@ -422,6 +422,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/oidc/reauthenticate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sends a signed-in person to the identity provider to sign in again, prompt=login and max_age=0, for an electronic signature (#46); the browser comes back to next with signature, the re-authentication to sign with, or signature_error. */
+        get: operations["reauthStart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/oidc/start": {
         parameters: {
             query?: never;
@@ -3195,7 +3212,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -3211,7 +3228,7 @@ export interface components {
             targetType: string;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -3776,6 +3793,7 @@ export interface components {
             installation: components["schemas"]["Installation"];
             /** @enum {string} */
             role: "owner" | "admin" | "member" | "guest";
+            signsWith: string;
             token: components["schemas"]["CallingToken"] | null;
             user: components["schemas"]["User"];
         };
@@ -4021,6 +4039,7 @@ export interface components {
             /** Format: uuid */
             defaultTypeId: string | null;
             requireRevisionComment: boolean;
+            signedApprovals: boolean;
             /** Format: uuid */
             workflowId: string | null;
         };
@@ -4028,6 +4047,7 @@ export interface components {
             /** Format: uuid */
             defaultTypeId?: string;
             requireRevisionComment?: boolean;
+            signedApprovals?: boolean;
         };
         ProjectTemplate: {
             attributes: string[];
@@ -4295,12 +4315,16 @@ export interface components {
             finishedAt: string | null;
             /** Format: uuid */
             id: string;
+            meanings: {
+                [key: string]: string;
+            };
             /** Format: date-time */
             requestedAt: string;
             requestedByName: string;
             required: number;
             requirement: components["schemas"]["RequirementRef"];
             revision: number;
+            signed: boolean;
             /** @enum {string} */
             state: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
         };
@@ -4317,11 +4341,15 @@ export interface components {
             /** Format: uuid */
             reviewerId: string;
             reviewerName: string;
+            signature: components["schemas"]["Signature"] | null;
         };
         ReviewDecisionInput: {
             comment?: string;
             /** @enum {string} */
             decision: "approve" | "reject";
+            password?: string;
+            /** Format: uuid */
+            reauthentication?: string;
             revision: number;
         };
         ReviewRequest: {
@@ -4437,6 +4465,16 @@ export interface components {
         Shape: {
             radiusControl?: number;
             radiusOverlay?: number;
+        };
+        Signature: {
+            /** Format: date-time */
+            authenticatedAt: string;
+            contentHash: string;
+            meaning: string;
+            method: string;
+            revision: number;
+            /** Format: date-time */
+            signedAt: string;
         };
         Spec: {
             backdrop?: components["schemas"]["Backdrop"];
@@ -5789,7 +5827,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -5838,7 +5876,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -6044,6 +6082,36 @@ export interface operations {
                 state?: string;
                 code?: string;
                 error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Found: the browser is sent on. */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reauthStart: {
+        parameters: {
+            query?: {
+                /** @description Where in the web client to come back to. */
+                next?: string;
             };
             header?: never;
             path?: never;

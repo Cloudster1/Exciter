@@ -187,7 +187,7 @@ func run() error {
 		Comments:        comment.NewService(cluster),
 		Watches:         watch.NewService(cluster),
 		Notifications:   notify.NewService(cluster),
-		Reviews:         review.NewService(cluster),
+		Reviews:         review.NewService(cluster).WithPasswords(accounts),
 		Baselines:       baselines,
 		Log:             log,
 		Telemetry:       tel,

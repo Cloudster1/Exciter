@@ -1332,7 +1332,8 @@
                 "coverage_rule.removed",
                 "stator.connected",
                 "stator.disconnected",
-                "specification.exported"
+                "specification.exported",
+                "project.signatures_set"
               ]
             }
           },
@@ -1495,7 +1496,8 @@
                 "coverage_rule.removed",
                 "stator.connected",
                 "stator.disconnected",
-                "specification.exported"
+                "specification.exported",
+                "project.signatures_set"
               ]
             }
           },
@@ -1776,6 +1778,40 @@
           {
             "name": "error",
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/oidc/reauthenticate": {
+      "get": {
+        "operationId": "reauthStart",
+        "summary": "Sends a signed-in person to the identity provider to sign in again, prompt=login and max_age=0, for an electronic signature (#46); the browser comes back to next with signature, the re-authentication to sign with, or signature_error.",
+        "tags": [
+          "auth"
+        ],
+        "parameters": [
+          {
+            "name": "next",
+            "in": "query",
+            "description": "Where in the web client to come back to.",
             "schema": {
               "type": "string"
             }
@@ -15523,7 +15559,8 @@
               "coverage_rule.removed",
               "stator.connected",
               "stator.disconnected",
-              "specification.exported"
+              "specification.exported",
+              "project.signatures_set"
             ]
           },
           "actorId": {
@@ -15624,7 +15661,8 @@
                 "coverage_rule.removed",
                 "stator.connected",
                 "stator.disconnected",
-                "specification.exported"
+                "specification.exported",
+                "project.signatures_set"
               ]
             }
           },
@@ -17800,6 +17838,9 @@
               "guest"
             ]
           },
+          "signsWith": {
+            "type": "string"
+          },
           "token": {
             "oneOf": [
               {
@@ -17818,7 +17859,8 @@
           "user",
           "installation",
           "role",
-          "token"
+          "token",
+          "signsWith"
         ]
       },
       "MediaType": {
@@ -18712,6 +18754,9 @@
           "requireRevisionComment": {
             "type": "boolean"
           },
+          "signedApprovals": {
+            "type": "boolean"
+          },
           "workflowId": {
             "type": [
               "string",
@@ -18723,7 +18768,8 @@
         "required": [
           "defaultTypeId",
           "workflowId",
-          "requireRevisionComment"
+          "requireRevisionComment",
+          "signedApprovals"
         ]
       },
       "ProjectSettingsInput": {
@@ -18734,6 +18780,9 @@
             "format": "uuid"
           },
           "requireRevisionComment": {
+            "type": "boolean"
+          },
+          "signedApprovals": {
             "type": "boolean"
           }
         }
@@ -19810,6 +19859,12 @@
             "type": "string",
             "format": "uuid"
           },
+          "meanings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "requestedAt": {
             "type": "string",
             "format": "date-time"
@@ -19825,6 +19880,9 @@
           },
           "revision": {
             "type": "integer"
+          },
+          "signed": {
+            "type": "boolean"
           },
           "state": {
             "type": "string",
@@ -19851,7 +19909,9 @@
           "requestedAt",
           "finishedAt",
           "authorName",
-          "can"
+          "can",
+          "signed",
+          "meanings"
         ]
       },
       "ReviewCan": {
@@ -19892,6 +19952,16 @@
           },
           "reviewerName": {
             "type": "string"
+          },
+          "signature": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Signature"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -19899,7 +19969,8 @@
           "reviewerName",
           "decision",
           "comment",
-          "decidedAt"
+          "decidedAt",
+          "signature"
         ]
       },
       "ReviewDecisionInput": {
@@ -19914,6 +19985,13 @@
               "approve",
               "reject"
             ]
+          },
+          "password": {
+            "type": "string"
+          },
+          "reauthentication": {
+            "type": "string",
+            "format": "uuid"
           },
           "revision": {
             "type": "integer"
@@ -20362,6 +20440,39 @@
             "type": "integer"
           }
         }
+      },
+      "Signature": {
+        "type": "object",
+        "properties": {
+          "authenticatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "meaning": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "signedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "meaning",
+          "method",
+          "authenticatedAt",
+          "signedAt",
+          "revision",
+          "contentHash"
+        ]
       },
       "Spec": {
         "type": "object",

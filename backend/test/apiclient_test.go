@@ -116,7 +116,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Comments:      comment.NewService(h.cluster),
 		Watches:       watch.NewService(h.cluster),
 		Notifications: notify.NewService(h.cluster),
-		Reviews:       review.NewService(h.cluster),
+		Reviews:       review.NewService(h.cluster).WithPasswords(accounts),
 		Baselines:     baseline.NewService(h.cluster),
 		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}

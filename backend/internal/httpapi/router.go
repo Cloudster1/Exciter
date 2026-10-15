@@ -173,6 +173,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Post("/auth/login", s.handleLogin)
 		r.Get("/auth/oidc/start", s.handleOIDCStart)
 		r.Get("/auth/oidc/callback", s.handleOIDCCallback)
+		r.Get("/auth/oidc/reauthenticate", s.handleReauthStart)
 		r.With(s.armatureOn).Post("/armature/webhook", s.handleArmatureWebhook)
 		r.With(s.statorOn).Post("/stator/webhook", s.handleStatorWebhook)
 		mountPending(r, true)

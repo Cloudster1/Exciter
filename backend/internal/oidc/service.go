@@ -19,6 +19,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/secret"
@@ -214,6 +215,22 @@ func (s *Service) oauthConfig(p *Provider, discovered *coreoidc.Provider) *oauth
 
 // Start begins a sign-in and returns the URL to send the browser to.
 func (s *Service) Start(ctx context.Context, redirect string) (string, error) {
+	return s.start(ctx, redirect, nil)
+}
+
+// reauth is who a re-authentication proves again, and in which session.
+type reauth struct {
+	userID, sessionID uuid.UUID
+	email             string
+}
+
+// StartReauth begins a sign-in that proves again who a signed-in person is, for a signature (#46): the provider is
+// told to ask for their credentials whatever session it holds, and the callback opens no session.
+func (s *Service) StartReauth(ctx context.Context, userID, sessionID uuid.UUID, email, redirect string) (string, error) {
+	return s.start(ctx, redirect, &reauth{userID: userID, sessionID: sessionID, email: email})
+}
+
+func (s *Service) start(ctx context.Context, redirect string, again *reauth) (string, error) {
 	provider, err := s.signInProvider(ctx)
 	if err != nil {
 		return "", err
@@ -234,6 +251,10 @@ func (s *Service) Start(ctx context.Context, redirect string) (string, error) {
 	// the PKCE verifier proves whoever redeems the code is who asked for it.
 	verifier := oauth2.GenerateVerifier()
 
+	purpose, user, session := PurposeSignIn, (*uuid.UUID)(nil), (*uuid.UUID)(nil)
+	if again != nil {
+		purpose, user, session = PurposeReauth, &again.userID, &again.sessionID
+	}
 	if _, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		// Abandoned attempts are dead weight, and the table is small enough
 		// that tidying on write is the whole story.
@@ -241,85 +262,97 @@ func (s *Service) Start(ctx context.Context, redirect string) (string, error) {
 			return err
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO oidc_login (state, nonce, code_verifier, redirect, expires_at)
-			VALUES ($1, $2, $3, $4, $5)`,
-			state, nonce, verifier, redirect, time.Now().Add(howLongALoginMayTake))
+			INSERT INTO oidc_login (state, nonce, code_verifier, redirect, expires_at, purpose, user_id, session_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			state, nonce, verifier, redirect, time.Now().Add(howLongALoginMayTake), purpose, user, session)
 		return err
 	}); err != nil {
 		return "", fmt.Errorf("remember this sign-in: %w", err)
 	}
 
-	return authCodeURL(s.oauthConfig(provider, discovered), state, nonce, verifier), nil
+	config := s.oauthConfig(provider, discovered)
+	if again != nil {
+		return reauthURL(config, state, nonce, verifier, again.email), nil
+	}
+	return authCodeURL(config, state, nonce, verifier), nil
 }
 
 // authCodeURL carries the state, the nonce and the S256 challenge; the verifier
 // itself stays behind for the code exchange.
-func authCodeURL(config *oauth2.Config, state, nonce, verifier string) string {
-	return config.AuthCodeURL(state, coreoidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier))
+func authCodeURL(config *oauth2.Config, state, nonce, verifier string, extra ...oauth2.AuthCodeOption) string {
+	options := append([]oauth2.AuthCodeOption{coreoidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier)}, extra...)
+	return config.AuthCodeURL(state, options...)
 }
 
-// Exchange trades the code for a verified id token and returns its identity,
-// with where the browser was headed before it left.
-func (s *Service) Exchange(ctx context.Context, state, code string) (*Identity, string, error) {
+// reauthURL is a sign-in the provider must answer by asking for the person's credentials again: prompt=login and a
+// max_age of zero, so an earlier session there does not count, with the person named so they need not type it.
+func reauthURL(config *oauth2.Config, state, nonce, verifier, email string) string {
+	return authCodeURL(config, state, nonce, verifier,
+		oauth2.SetAuthURLParam("prompt", "login"), oauth2.SetAuthURLParam("max_age", "0"), oauth2.SetAuthURLParam("login_hint", email))
+}
+
+// Exchange trades the code for a verified id token and returns its identity, with the sign-in it answers: where the
+// browser was headed, and for a re-authentication whose session it proves.
+func (s *Service) Exchange(ctx context.Context, state, code string) (*Identity, *Login, error) {
 	var (
 		nonce    string
 		verifier string
-		redirect string
+		login    Login
 	)
 	// Consumed as it is read: a state is good for exactly one sign-in, so a
 	// replayed callback cannot open a second session.
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
 			DELETE FROM oidc_login WHERE state = $1 AND expires_at > now()
-			RETURNING nonce, code_verifier, redirect`, state,
-		).Scan(&nonce, &verifier, &redirect)
+			RETURNING nonce, code_verifier, redirect, purpose, user_id, session_id, requested_at`, state,
+		).Scan(&nonce, &verifier, &login.Redirect, &login.Purpose, &login.UserID, &login.SessionID, &login.RequestedAt)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrUnknownLogin
 		}
 		return err
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	provider, err := s.signInProvider(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 	discovered, err := s.discover(ctx, provider.Issuer)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	ctx = s.providerContext(ctx)
 	tokens, err := s.oauthConfig(provider, discovered).Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return nil, "", fmt.Errorf("exchange the code: %w", err)
+		return nil, nil, fmt.Errorf("exchange the code: %w", err)
 	}
 	raw, ok := tokens.Extra("id_token").(string)
 	if !ok || raw == "" {
-		return nil, "", errors.New("the identity provider returned no id token")
+		return nil, nil, errors.New("the identity provider returned no id token")
 	}
 
 	// Verified against the issuer's published keys, for this client, unexpired; the library refuses an
 	// unsigned token and one signed with a symmetric key, the two ways this check is usually skipped.
 	verified, err := discovered.Verifier(&coreoidc.Config{ClientID: provider.ClientID}).Verify(ctx, raw)
 	if err != nil {
-		return nil, "", fmt.Errorf("verify the id token: %w", err)
+		return nil, nil, fmt.Errorf("verify the id token: %w", err)
 	}
 	if subtle.ConstantTimeCompare([]byte(verified.Nonce), []byte(nonce)) != 1 {
-		return nil, "", errors.New("the id token belongs to a different sign-in")
+		return nil, nil, errors.New("the id token belongs to a different sign-in")
 	}
 
 	var claims map[string]any
 	if err := verified.Claims(&claims); err != nil {
-		return nil, "", fmt.Errorf("read the token's claims: %w", err)
+		return nil, nil, fmt.Errorf("read the token's claims: %w", err)
 	}
 	identity, err := identityFromClaims(verified.Issuer, verified.Subject, claims, provider.GroupsClaim)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	return identity, redirect, nil
+	return identity, &login, nil
 }
 
 // randomTokenBytes is what both the state and the nonce need to be unguessable.
@@ -332,4 +365,39 @@ func randomToken() (string, error) {
 		return "", fmt.Errorf("read randomness: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+// clockSkew is how far the provider's clock may be ahead of ours when it says when somebody signed in.
+const clockSkew = time.Minute
+
+// Reauthenticated records what a re-authentication proved: the person signed in again, at the provider, after it
+// was asked for. It answers the re-authentication a signature spends.
+func (s *Service) Reauthenticated(ctx context.Context, identity *Identity, login *Login) (uuid.UUID, error) {
+	if login.Purpose != PurposeReauth || login.UserID == nil || login.SessionID == nil {
+		return uuid.Nil, ErrUnknownLogin
+	}
+	if identity.AuthTime.IsZero() || identity.AuthTime.Before(login.RequestedAt.Add(-clockSkew)) {
+		return uuid.Nil, ErrNotFresh
+	}
+	var id uuid.UUID
+	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		var owner uuid.UUID
+		err := tx.QueryRow(ctx, `SELECT user_id FROM user_identity WHERE issuer = $1 AND subject = $2`, identity.Issuer, identity.Subject).Scan(&owner)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && owner != *login.UserID) {
+			return ErrNotTheSigner
+		}
+		if err != nil {
+			return err
+		}
+		// The provider's clock is not ours: a sign-in it dates a moment ahead counts as now.
+		at := identity.AuthTime
+		if now := time.Now(); at.After(now) {
+			at = now
+		}
+		return tx.QueryRow(ctx, `
+			INSERT INTO reauthentication (user_id, session_id, method, authenticated_at, expires_at)
+			VALUES ($1, $2, 'oidc', $3, now() + make_interval(secs => $4)) RETURNING id`,
+			owner, *login.SessionID, at, auth.ReauthenticationTTL.Seconds()).Scan(&id)
+	})
+	return id, err
 }

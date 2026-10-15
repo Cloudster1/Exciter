@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"github.com/google/uuid"
 	"net/http"
 
 	"github.com/cloudster1/exciter/backend/internal/review"
@@ -18,7 +19,12 @@ func (s *Server) reviewsOn(next http.Handler) http.Handler {
 			respondError(w, r, errReviewsOff)
 			return
 		}
-		next.ServeHTTP(w, r)
+		// A signature is given in a session and its meaning read in the reader's language (#46).
+		var session *uuid.UUID
+		if p := PrincipalFrom(r.Context()); p != nil {
+			session = p.SessionID
+		}
+		next.ServeHTTP(w, r.WithContext(review.WithSigner(r.Context(), session, language(r))))
 	})
 }
 
@@ -59,6 +65,15 @@ func reviewError(err error) *APIError {
 		return ErrForbidden("Only whoever asked for this review, or the project's administrators, withdraw it.")
 	case errors.Is(err, review.ErrSignedOut):
 		return ErrUnauthorized("Sign in to take part in reviews.")
+	case errors.Is(err, review.ErrSignatureNeedsSession):
+		return &APIError{Status: http.StatusForbidden, Code: "session_only",
+			Message: "In this project a decision is an electronic signature, which a token cannot give. Sign in, and decide there."}
+	case errors.Is(err, review.ErrTooManyAttempts):
+		return &APIError{Status: http.StatusTooManyRequests, Code: "too_many_attempts",
+			Message: "Too many wrong passwords were given to sign. Wait a quarter of an hour, then sign again."}
+	case errors.Is(err, review.ErrSignatureSpent):
+		return &APIError{Status: http.StatusConflict, Code: "signature_spent",
+			Message: "That sign-in has been used for a signature already, or it has expired. Sign in again at the identity provider, then decide."}
 	}
 	return nil
 }

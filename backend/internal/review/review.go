@@ -103,6 +103,11 @@ type Review struct {
 	FinishedAt  *time.Time      `json:"finishedAt"`
 	AuthorName  string          `json:"authorName"`
 	Can         Can             `json:"can"`
+	// Signed says a decision on this review is an electronic signature, as its project asks (#46).
+	Signed bool `json:"signed"`
+	// Meanings are what the caller signs with each decision, in their language, while they may decide a signed review;
+	// empty otherwise.
+	Meanings map[Decision]string `json:"meanings"`
 }
 
 // DecisionEntry is one approver's decision, the latest standing.
@@ -112,6 +117,21 @@ type DecisionEntry struct {
 	Decision     Decision  `json:"decision"`
 	Comment      string    `json:"comment"`
 	DecidedAt    time.Time `json:"decidedAt"`
+	// Signature is what the decision was signed with, null for one given without.
+	Signature *Signature `json:"signature"`
+}
+
+// Signature is an electronic signature as it was given: what it meant, what it signed, and how the signer proved
+// who they are, which never changes (#46).
+type Signature struct {
+	Meaning string `json:"meaning"`
+	// Method is password or oidc, the identity provider.
+	Method          string    `json:"method"`
+	AuthenticatedAt time.Time `json:"authenticatedAt"`
+	SignedAt        time.Time `json:"signedAt"`
+	Revision        int       `json:"revision"`
+	// ContentHash is the SHA-256 of the revision's normative content, which the signature signs.
+	ContentHash string `json:"contentHash"`
 }
 
 // Can is what the caller may do to a review.
@@ -127,10 +147,13 @@ type RequestInput struct {
 }
 
 // DecisionInput decides a review; Revision is the one the approver read, refused when it is not the one under review.
+// A signed review takes the approver's password, or the re-authentication a fresh sign-in at the provider gave.
 type DecisionInput struct {
-	Decision Decision `json:"decision"`
-	Revision int      `json:"revision"`
-	Comment  string   `json:"comment,omitempty"`
+	Decision         Decision   `json:"decision"`
+	Revision         int        `json:"revision"`
+	Comment          string     `json:"comment,omitempty"`
+	Password         string     `json:"password,omitempty"`
+	Reauthentication *uuid.UUID `json:"reauthentication,omitempty"`
 }
 
 // Approval is a requirement's standing for the workflow and the page; the requirement carries it too, so it is the
