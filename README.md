@@ -57,9 +57,11 @@ everything is.
 ## Releasing
 
 `./release.sh` works out the next version from the Conventional Commits since
-the last tag, writes `VERSION` and `CHANGELOG.md`, commits and tags.
-`./release.sh --dry-run` shows what it would do. Pushing the tag publishes the
-GitHub release.
+the last tag and opens the pull request `release/vX.Y.Z` that bumps every file
+carrying the version and the changelog; `./release.sh --dry-run` shows what it
+would do. Merging it tags the merge commit `vX.Y.Z`, and the tag publishes the
+images to `ghcr.io/cloudster1/exciter-<image>` and the GitHub release. See
+[docs/releasing.md](docs/releasing.md).
 
 ## License
 

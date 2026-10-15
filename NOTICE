@@ -178,6 +178,13 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at 94546d1, for releasing by tag (#101):
+- release.sh, scripts/version-files.sh, release-notes.sh and release-tag.sh,
+  tests/test-release.sh, tests/test-release-workflow.sh, mk/actions.mk,
+  .github/workflows/release.yml and docs/releasing.md: the release pull
+  request, the tag on its merge and what the tag publishes, renamed, with the
+  images Exciter builds and without the chart until #104 adds one
+
 Adapted from Stator at b789bb0, for the build at /meta (#99):
 - scripts/build-stamp.sh, tests/test-build-stamp.sh and
   backend/internal/version: the same, with the test's marks in plain text

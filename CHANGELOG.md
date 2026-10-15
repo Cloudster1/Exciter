@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Releases are published from a tag (#101). `./release.sh` opens the pull
+  request `release/vX.Y.Z` instead of committing and tagging on `main`;
+  merging it tags the merge commit `vX.Y.Z`, and the tag pushes the `backend`
+  and `web` images to `ghcr.io/cloudster1/exciter-<image>` (as the version and
+  the short commit), publishes the GitHub release and tells Dynamo. See
+  `docs/releasing.md`.
+
 - Exciter reads the webhook version header, `X-Armature-Webhook-Version` and
   `X-Stator-Webhook-Version`, before the body, and refuses a version it does
   not read with 422 `unknown_version`. The API document describes both

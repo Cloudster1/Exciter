@@ -3,6 +3,43 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: A release is a pull request, and its merge commit is the tag (#101)
+
+Exciter releases as Stator does since its #410, and Armature since its #240:
+`./release.sh` infers the next semver from the Conventional Commits and writes
+the notes, and a `v*` tag publishes. Main takes no direct commits, so the bump
+travels as a pull request of its own.
+
+- **The bump travels on `release/vX.Y.Z`.** `release.sh` keeps its checks (on
+  `main`, not behind `origin/main`) and adds a clean tree and an unused tag
+  and branch, then commits the version files and the changelog on that
+  branch, pushes it and opens its pull request. The branch guard accepts the
+  name without an issue: the version is its identity and the pull request its
+  record.
+- **The workflow tags the merge commit, not the script.** A tag set by
+  `release.sh` would sit on a commit main does not have, and one set by hand
+  after the merge is a step that gets forgotten. `scripts/release-tag.sh`
+  refuses a commit main lacks, version files that say another version and a
+  tag that points elsewhere; the message is the release's `CHANGELOG.md`
+  section, which the pull request showed for review.
+- **One run does the rest.** A tag pushed with the workflow's own token starts
+  no workflow, so the image and release jobs follow the tag job in the same
+  run; a tag pushed by hand and `workflow_dispatch` start them too.
+- **One list of version files.** `scripts/version-files.sh` names them for
+  `release.sh`, the workflow and the test that refuses them disagreeing:
+  `VERSION`, the chart's `version` and `appVersion` once #104 adds the chart,
+  and a `package.json` once it carries a version.
+- **Images are `ghcr.io/cloudster1/exciter-<image>`**, `backend` and `web`,
+  tagged `X.Y.Z` and with the short commit. A test keeps the list equal to the
+  images the stack builds; the chart joins the workflow with #104.
+- **Dynamo is told, not waited for.** A `repository_dispatch`
+  (`tool-released`, `{tool, version}`) goes to Dynamo when
+  `DYNAMO_DISPATCH_TOKEN` is set; without it the release still stands and the
+  run leaves a notice.
+- **A workflow that runs only on a release is checked on every push:**
+  actionlint over `.github/workflows` and the image names, in
+  `tests/test-release-workflow.sh`.
+
 ## 2026-10-15: Webhook envelopes are read by their version (#103)
 
 The three tools post webhooks in one envelope that names its version, so its

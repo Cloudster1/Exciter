@@ -1,11 +1,18 @@
-# Publishes the GitHub release for a v* tag. Every step survives a re-run of the same tag, so a release that
-# fails halfway is fixed by pressing the button again rather than by re-cutting the tag.
+# Releases a version: tags the merged release pull request, builds and pushes every image from the tag, publishes
+# the GitHub release and tells Dynamo (docs/releasing.md). Every step survives a re-run of the same version, so a
+# release that fails halfway is finished by running it again, not by re-cutting the tag.
 name: Release
 
 on:
+  # A merged release/vX.Y.Z pull request; the tag job sets vX.Y.Z on its merge commit. A tag pushed with the
+  # workflow's own token starts no workflow, so the jobs after it run in this same run.
+  pull_request:
+    types: [closed]
+    branches: [main]
+  # A tag pushed by hand.
   push:
     tags: ["v*"]
-  # For a tag whose push built nothing, or whose run was deleted: gh workflow run release.yml -f tag=v1.2.3
+  # For a tag whose run failed or was deleted: gh workflow run release.yml -f tag=v1.2.3
   workflow_dispatch:
     inputs:
       tag:
@@ -13,31 +20,193 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  # ghcr takes only lower case names; tests/test-release-workflow.sh reads this line.
+  IMAGE_PREFIX: ghcr.io/cloudster1/exciter
+  DYNAMO_REPOSITORY: praetorianer777/Dynamo
 
 jobs:
-  release:
+  tag:
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.merged
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && startsWith(github.event.pull_request.head.ref, 'release/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Tag the merge commit
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          MERGE_COMMIT: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          scripts/release-tag.sh "$BRANCH" "$MERGE_COMMIT"
+
+  resolve:
+    needs: tag
+    # After the tag job for a merged release, and on its own for a tag push or a run by hand; any other closed
+    # pull request stops here.
+    if: >-
+      !cancelled() && needs.tag.result != 'failure'
+      && (github.event_name != 'pull_request' || needs.tag.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+      commit: ${{ steps.resolve.outputs.commit }}
+    steps:
+      - name: Name the tag
+        id: name
+        env:
+          REF: ${{ inputs.tag || github.event.pull_request.head.ref || github.ref_name }}
+        run: |
+          tag="${REF#release/}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$tag is no release tag; releases are tagged vX.Y.Z."
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.name.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Check the tag against the version files
+        id: resolve
+        env:
+          TAG: ${{ steps.name.outputs.tag }}
+        run: |
+          version="${TAG#v}"
+          scripts/version-files.sh check "$version"
+          stamped=$(scripts/build-stamp.sh version)
+          if [[ "$stamped" != "$version" ]]; then
+            echo "::error::The checkout of $TAG describes itself as $stamped, not $version."
+            exit 1
+          fi
+          {
+            echo "tag=$TAG"
+            echo "version=$version"
+            echo "commit=$(scripts/build-stamp.sh commit)"
+          } >> "$GITHUB_OUTPUT"
+
+  # The default condition would skip these whenever the tag job was skipped, as it is for a tag push, because it
+  # looks at every job upstream.
+  images:
+    needs: resolve
+    if: ${{ !cancelled() && needs.resolve.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      # Every image the stack builds, one entry each; the Go services all run the backend image.
+      matrix:
+        include:
+          - image: backend
+            dockerfile: deploy/Dockerfile.backend
+            target: ""
+          - image: web
+            dockerfile: deploy/Dockerfile.web
+            target: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.resolve.outputs.tag }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          push: true
+          build-args: |
+            VERSION=${{ needs.resolve.outputs.version }}
+            COMMIT=${{ needs.resolve.outputs.commit }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ needs.resolve.outputs.version }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ needs.resolve.outputs.commit }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.resolve.outputs.version }}
+            org.opencontainers.image.revision=${{ needs.resolve.outputs.commit }}
+            org.opencontainers.image.licenses=Apache-2.0
+
+  publish:
+    needs: [resolve, images]
+    if: ${{ !cancelled() && needs.images.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+      TAG: ${{ needs.resolve.outputs.tag }}
+      VERSION: ${{ needs.resolve.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: refs/tags/${{ needs.resolve.outputs.tag }}
           fetch-depth: 0
 
-      # release-notes-*.md is git-ignored, so the annotated tag message is what release.sh leaves for this job.
-      - name: Resolve release notes
+      # A checkout of a tag can leave it lightweight, without its message, so the tag object is fetched as it is
+      # on the remote.
+      - name: Resolve the release notes
         run: |
-          if [[ -f "release-notes-${TAG}.md" ]]; then
-            cp "release-notes-${TAG}.md" notes.md
-          else
-            git tag -l --format='%(contents)' "$TAG" > notes.md
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          git tag -l --format='%(contents)' "$TAG" > notes.md
+          if [[ ! -s notes.md ]]; then
+            scripts/release-notes.sh "$VERSION" > notes.md || echo "Release $TAG" > notes.md
           fi
 
-      - name: Publish release
+      - name: Publish the GitHub release
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --title "$TAG" --notes-file notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+          fi
+          {
+            echo "### Exciter $TAG"
+            echo
+            for image in backend web; do
+              echo "- \`$IMAGE_PREFIX-$image:$VERSION\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Dynamo runs the three tools together and releases the combinations that pass. Without the secret the
+      # release still stands; Dynamo then has to be told by hand.
+      - name: Tell Dynamo
+        env:
+          DYNAMO_TOKEN: ${{ secrets.DYNAMO_DISPATCH_TOKEN }}
+        run: |
+          if [[ -z "$DYNAMO_TOKEN" ]]; then
+            echo "::notice::DYNAMO_DISPATCH_TOKEN is not set, so Dynamo was not told about Exciter $VERSION. Add the secret to send it with every release."
+            exit 0
+          fi
+          jq -n --arg version "$VERSION" \
+            '{event_type: "tool-released", client_payload: {tool: "exciter", version: $version}}' \
+            | GH_TOKEN="$DYNAMO_TOKEN" gh api "repos/$DYNAMO_REPOSITORY/dispatches" --input -
+          echo "Dynamo was told about Exciter $VERSION."
