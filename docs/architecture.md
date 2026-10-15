@@ -296,6 +296,10 @@ German.
   outside the kit, the stylesheet and `config.ts`.
 - `deploy/Dockerfile.web` builds the static files into nginx, which proxies
   `/api`, `/healthz` and `/readyz` to the api, so the browser sees one origin.
+- `GET /api/v1/meta` answers anybody with the product, the build, the API
+  version and the integration capabilities, as Stator and Armature answer
+  theirs (#99). The build is stamped from `scripts/build-stamp.sh`, which the
+  Makefile runs once and compose passes to the backend image.
 
 ## Armature and Stator integration (M2, M4)
 

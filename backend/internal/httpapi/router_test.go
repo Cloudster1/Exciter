@@ -105,17 +105,6 @@ func TestOpenAPIIsServed(t *testing.T) {
 	}
 }
 
-// Armature and Stator tell Exciter apart from any other address by this answer.
-func TestMetaNamesTheProductAndItsBuild(t *testing.T) {
-	resp, body := serve(t, newServer(t).Routes(nil), httptest.NewRequest(http.MethodGet, APIPrefix+"/meta", nil))
-	if resp.StatusCode != http.StatusOK || body["product"] != ProductName {
-		t.Fatalf("meta = %d %v", resp.StatusCode, body)
-	}
-	if build, _ := body["build"].(map[string]any); build["version"] == "" || build["version"] == nil {
-		t.Errorf("meta names no version: %v", body)
-	}
-}
-
 func TestEveryAnswerCarriesTheEdgeHeaders(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	req.Header.Set("X-Request-Id", "abc-123")

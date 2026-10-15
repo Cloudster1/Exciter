@@ -3,6 +3,24 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: Every build says what it is at GET /api/v1/meta (#99)
+
+Stator, Armature and Exciter answer the same unauthenticated `/meta`, so a
+partner, an operator or Dynamo can tell which build of which tool it talks to.
+
+- **The answer is the suite's, not Exciter's.** `product` is `exciter` in
+  lower case, as the other two name themselves; the OpenAPI document keeps the
+  title `Exciter`. `apiVersion` is the document's `info.version`, which rises
+  only for a change that breaks clients, and `capabilities` stays an empty
+  list until #100 names them.
+- **The stamp comes from the checkout, not the image.** `scripts/build-stamp.sh`
+  is Stator's: `1.2.3` on the tag `v1.2.3`, `1.2.3+4.gabc1234` past it, and
+  `VERSION+dev` with no tag in reach, with the short commit. The Makefile runs
+  it once and compose passes both to the backend image, because the build
+  context has no `.git` and a worktree has one only as a file.
+- **Anybody may read the commit.** Armature shows it only to somebody signed
+  in; Exciter answered it to anybody before, as Stator does, and keeps that.
+
 ## 2026-10-15: The Stator integration, agreed before it is built (#39)
 
 `docs/api-contract-m4.md` settles #40 to #42 as M2 settled Armature's, and

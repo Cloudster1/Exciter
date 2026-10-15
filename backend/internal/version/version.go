@@ -2,21 +2,30 @@
 // opens each process and for the API.
 package version
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+	"strings"
+)
 
-// Set by the linker from the repository's VERSION file (see mk/go.mk). A build
-// made without them falls back to what the Go toolchain recorded.
+// Set by the linker from scripts/build-stamp.sh (see mk/go.mk and
+// deploy/Dockerfile.backend). A build made without them falls back to what
+// the Go toolchain recorded.
 var (
 	Version string
 	Commit  string
 	BuiltAt string
 )
 
+// ShortCommitLength is how many characters of a hash the build reports, as git
+// abbreviates one.
+const ShortCommitLength = 7
+
 // Info is one build, as the API reports it.
 type Info struct {
-	// Version is the release, or "dev" when the linker was not told one.
+	// Version is the release as semver: "1.2.3" on a tag, "1.2.3+4.gabc1234"
+	// four commits past one, "1.2.3+dev" with no tag in reach, or "dev".
 	Version string `json:"version"`
-	// Commit is the full git hash the binary was built from, when known.
+	// Commit is the short git hash the binary was built from, when known.
 	Commit string `json:"commit,omitempty"`
 	// BuiltAt is when the binary was built, RFC 3339, when known.
 	BuiltAt string `json:"builtAt,omitempty"`
@@ -42,8 +51,14 @@ func Current() Info {
 			}
 		}
 	}
+	// Tags are written v1.2.3 and the Go toolchain reports them that way; the
+	// version itself has no prefix, as in the chart and the image tags.
+	info.Version = strings.TrimPrefix(info.Version, "v")
 	if info.Version == "" {
 		info.Version = "dev"
+	}
+	if len(info.Commit) > ShortCommitLength {
+		info.Commit = info.Commit[:ShortCommitLength]
 	}
 	return info
 }

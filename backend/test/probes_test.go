@@ -35,7 +35,7 @@ func TestProbesAndMetricsAgainstTheDatabase(t *testing.T) {
 		{api.URL + "/healthz", `"status":"ok"`},
 		{api.URL + "/readyz", `"routing"`},
 		{api.URL + httpapi.APIPrefix + "/openapi.json", `"title":"Exciter"`},
-		{api.URL + httpapi.APIPrefix + "/meta", `"product":"Exciter"`},
+		{api.URL + httpapi.APIPrefix + "/meta", `"product":"exciter"`},
 		{metrics.URL + "/metrics", `exciter_db_pool_connections{pool="primary"`},
 	} {
 		resp, err := http.Get(probe.url)
