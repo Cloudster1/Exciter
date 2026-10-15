@@ -89,6 +89,38 @@ version. Stator names no other capability yet (Stator #409), so nothing else
 is checked; once it does, the page reads, search and webhooks check theirs as
 Armature's do.
 
+## Webhooks
+
+Armature and Stator post their webhooks to Exciter in one envelope, which
+names its version in the body and in a header:
+
+```json
+{ "version": 1, "id": "...", "topic": "issue.updated", "occurredAt": "...", "payload": { } }
+```
+
+| Sender | Address | Version header |
+| --- | --- | --- |
+| Armature | `POST /armature/webhook` | `X-Armature-Webhook-Version` |
+| Stator | `POST /stator/webhook` | `X-Stator-Webhook-Version` |
+
+- **Exciter reads version 1**, and an envelope without a version from a
+  sender before versions: Armature before its #242, and Stator until its
+  #412.
+- **Any other version is refused**, from the header before the body is
+  read, and from the body as well: `422 unknown_version`, with a warning in
+  Exciter's log naming the version. The sender keeps the delivery and tries
+  again, so nothing is misread or lost while one side catches up.
+- **Unknown fields and topics are ignored**, answered 204.
+- **The envelope is in the API document.** `ArmatureWebhookEnvelope` and
+  `StatorWebhookEnvelope` in [`api/openapi.json`](../api/openapi.json)
+  describe what Exciter reads, with the version header as a parameter. A
+  unit test holds each to the sender's own schema in its vendored document,
+  and the stubs' contract tests hold what they post to the senders' shapes.
+- **Exciter sends in the same envelope.** Exciter sends no webhooks yet;
+  when it does, they carry this envelope at version 1 and the header
+  `X-Exciter-Webhook-Version`, and keep sending a version to the endpoints
+  registered for it for at least one Dynamo release after a new one.
+
 ## The rules
 
 - **A name is promised for what it lists.** The operations keep their paths,

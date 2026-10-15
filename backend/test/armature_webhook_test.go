@@ -17,6 +17,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 // Armature's webhooks (#29): a delivery the installation's secret vouches for clears what it announces and writes
@@ -35,6 +36,8 @@ type hook struct {
 	secret  string
 	// stamp is the timestamp header; signedStamp the one the timestamped signature covers.
 	stamp, signedStamp string
+	// versionHeader is the version header, absent when empty.
+	versionHeader string
 }
 
 func (k hook) body(t *testing.T) []byte {
@@ -53,6 +56,9 @@ func (a *apiServer) deliver(t *testing.T, k hook, body []byte) (int, string) {
 	req, _ := http.NewRequest(http.MethodPost, a.URL+"/api/v1/armature/webhook", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(armature.SignatureHeader, armature.Sign(body, k.secret))
+	if k.versionHeader != "" {
+		req.Header.Set(armature.VersionHeader, k.versionHeader)
+	}
 	if k.stamp != "" {
 		req.Header.Set(armature.TimestampHeader, k.stamp)
 		req.Header.Set(armature.TimestampedSignatureHeader, armature.SignTimestamped(body, k.secret, k.signedStamp))
@@ -88,7 +94,8 @@ func TestArmatureWebhooksRefreshLinkedIssues(t *testing.T) {
 	orgID := uuid.MustParse(obj(t, want(t, owner.get(t, "/api/v1/armature/connection"), http.StatusOK, "the connection"), "connection")["armatureOrgId"].(string))
 	stamp := strconv.FormatInt(time.Now().Unix(), 10)
 	event := func(topic string, payload map[string]any) hook {
-		return hook{id: uuid.New(), topic: topic, version: armature.WebhookVersion, orgID: orgID, payload: payload, secret: hookSecret, stamp: stamp, signedStamp: stamp}
+		return hook{id: uuid.New(), topic: topic, version: webhook.Version, orgID: orgID, payload: payload, secret: hookSecret, stamp: stamp, signedStamp: stamp,
+			versionHeader: strconv.Itoa(webhook.Version)}
 	}
 	send := func(k hook) (int, string) {
 		t.Helper()
@@ -143,14 +150,28 @@ func TestArmatureWebhooksRefreshLinkedIssues(t *testing.T) {
 			t.Errorf("a signed ping answered %d", status)
 		}
 		older := ping
-		older.id, older.stamp, older.version, older.orgID = uuid.New(), "", 0, uuid.Nil
+		older.id, older.stamp, older.version, older.orgID, older.versionHeader = uuid.New(), "", 0, uuid.Nil, ""
 		if status, _ := send(older); status != http.StatusNoContent {
 			t.Errorf("an older Armature's ping, without a version, a timestamp or an org, answered %d", status)
 		}
 		later := event("ping", nil)
-		later.version = 2
+		later.version, later.versionHeader = webhook.Version+1, strconv.Itoa(webhook.Version+1)
 		if status, code := send(later); status != http.StatusUnprocessableEntity || code != "unknown_version" {
 			t.Errorf("a version 2 envelope answered %d %s", status, code)
+		}
+		// The header is read before the body, so a delivery it names as unreadable is refused whatever the body says.
+		named := event(armature.TopicIssueDeleted, map[string]any{"key": "CP-4"})
+		named.versionHeader = strconv.Itoa(webhook.Version + 1)
+		if status, code := send(named); status != http.StatusUnprocessableEntity || code != "unknown_version" {
+			t.Errorf("a version 2 header on a version 1 body answered %d %s", status, code)
+		}
+		if l := linkStates(t, bob, r2)["CP-4 implements"]; l["brokenAt"] != nil {
+			t.Errorf("a refused delivery was acted on: %v", l)
+		}
+		unsaid := event("ping", nil)
+		unsaid.version = webhook.Version + 1
+		if status, code := send(unsaid); status != http.StatusUnprocessableEntity || code != "unknown_version" {
+			t.Errorf("a version 2 body under a version 1 header answered %d %s", status, code)
 		}
 		if status, _ := send(event("issue.commented.someday", map[string]any{"key": "CP-1"})); status != http.StatusNoContent {
 			t.Errorf("a topic Exciter does not know answered %d", status)

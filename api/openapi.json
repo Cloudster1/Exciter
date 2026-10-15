@@ -1071,15 +1071,26 @@
       "post": {
         "operationId": "armatureWebhook",
         "summary": "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
+        "description": "Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.",
         "tags": [
           "armature"
+        ],
+        "parameters": [
+          {
+            "name": "X-Armature-Webhook-Version",
+            "in": "header",
+            "description": "The envelope's version, the body's version as well; absent from a sender before versions.",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "description": "A JSON value."
+                "$ref": "#/components/schemas/ArmatureWebhookEnvelope"
               }
             }
           }
@@ -11820,15 +11831,26 @@
       "post": {
         "operationId": "statorWebhook",
         "summary": "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
+        "description": "Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.",
         "tags": [
           "stator"
+        ],
+        "parameters": [
+          {
+            "name": "X-Stator-Webhook-Version",
+            "in": "header",
+            "description": "The envelope's version, the body's version as well; absent from a sender before versions.",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "description": "A JSON value."
+                "$ref": "#/components/schemas/StatorWebhookEnvelope"
               }
             }
           }
@@ -14233,6 +14255,38 @@
           "id",
           "name",
           "email"
+        ]
+      },
+      "ArmatureWebhookEnvelope": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "orgId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payload": {
+            "description": "A JSON value."
+          },
+          "topic": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "occurredAt",
+          "payload"
         ]
       },
       "Asset": {
@@ -19458,6 +19512,34 @@
           "id",
           "name",
           "email"
+        ]
+      },
+      "StatorWebhookEnvelope": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "description": "A JSON value."
+          },
+          "topic": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "topic",
+          "occurredAt",
+          "payload"
         ]
       },
       "Stats": {

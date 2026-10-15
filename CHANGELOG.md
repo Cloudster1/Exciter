@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Exciter reads the webhook version header, `X-Armature-Webhook-Version` and
+  `X-Stator-Webhook-Version`, before the body, and refuses a version it does
+  not read with 422 `unknown_version`. The API document describes both
+  webhook envelopes (#103).
+
 - Connecting Armature asks its `GET /api/v1/meta` for `product: armature`
   instead of reading the title of its OpenAPI document, so it needs an
   Armature from 14 October 2026 on (#100).
