@@ -52,6 +52,12 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   database says the object exists, so a removed row leaves at worst an
   unreachable object, never a broken link. `EXCITER_UPLOAD_LIMIT` caps an
   attachment (#21), 50 MB by default.
+- PDF (#45): `internal/render` asks the render service, Stator's: a headless
+  Chromium behind `render/server.mjs` that opens the web client's print view
+  as the reader, with a read-only token made for that print, and prints it.
+  `EXCITER_RENDER_URL`, `_TIMEOUT`, `_CONCURRENCY` and `_MAX_SIZE` name and
+  bound it; without a URL a PDF download says export is off, and Word, which
+  `internal/docx` writes in the api, works either way.
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### One installation
@@ -196,6 +202,12 @@ app role holds no privilege on.
   relations, and ties every identifier in `reqif_identity`, which the export
   writes back. Rich text is XHTML converted to and from the editor's
   documents. See `docs/api-contract-backlog.md`.
+- **Documents** (#45): a project's specification, a section with what is
+  below it, or a baseline as it was taken, read by `internal/specdoc` as one
+  document: a cover, the contents, and each entry with its text, a table of
+  its fields and attributes, and its links. The print view in the web client
+  draws it and the render service prints that as PDF; `internal/docx`,
+  Stator's Word writer cut to a requirement's blocks, writes it as Word.
 - **Project templates** (#24): three built-in structures in code, shaped
   after Stator's space templates. Choosing one is part of making a project:
   in the same transaction it sets the types, attributes, link types and
@@ -420,7 +432,7 @@ else (#104, `docs/deployment.md`): Stator's chart, with the api, worker and
 web Deployments, the roles, secrets, migrate, bootstrap and seed Jobs, and
 Postgres through CloudNativePG or bundled, Valkey and SeaweedFS for a trial.
 `armature.url` and `stator.url` let the bootstrap connect the partners. A
-release builds the `backend` and `web` images from its tag and pushes them to
+release builds the `backend`, `web` and `render` images from its tag and pushes them to
 `ghcr.io/cloudster1/exciter-<image>`, and the chart to
 `oci://ghcr.io/cloudster1/charts/exciter` (`docs/releasing.md`, #101).
 
@@ -444,4 +456,6 @@ release builds the `backend` and `web` images from its tag and pushes them to
 - `migrate` applies the embedded migrations as the database owner, `seed`
   makes the installation with its owner, provider and development people, and
   `api` serves on `API_PORT` once both are done (#3). `worker` drains the outbox and prunes the audit log (#4). `web`
-  serves the client on `WEB_PORT` once the api is healthy (#6).
+  serves the client on `WEB_PORT` once the api is healthy (#6). `render`
+  prints the print view as PDF once the web is healthy (#45); it publishes no
+  port, and the api and the integration suite reach it at `render:8090`.

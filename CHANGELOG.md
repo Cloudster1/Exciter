@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Export a specification, a section or a baseline as PDF and Word (#45). The
+  document opens with a cover and contents, and each requirement shows its
+  text, a table of its type, status, owner, priority and attributes, and its
+  links; a baseline's shows each requirement as it was taken. The PDF is the
+  print view printed by a render service as the reader, as in Stator; it runs
+  in the compose stack, and in the chart behind `render.enabled`. Word is
+  written by the api and works without it. Exports are audited.
 - ReqIF import and export (#44). A project, or a section and what is below
   it, downloads as `.reqif` or as `.reqifz` with the pictures and files its
   text shows, valid against the ReqIF 1.2 schema. A ReqIF file from another

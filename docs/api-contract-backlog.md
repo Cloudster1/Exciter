@@ -13,7 +13,11 @@ rights of #12, and a project the caller may not view is 404, never 403.
 |---|---|---|
 | 00710 to 00719 | ReqIF (#44) | `reqif_identity` (what an identifier of an exchange names in a project), `reqif_import` (a file on its way in), `reqif_import_object` (the files its rich text shows, until they are attachments), their guards and policies |
 
-Package: `internal/reqifio`. Worker topic: `reqif.requested`. No settings.
+| 00720 to 00729 | Documents (#45) | `api_token.for_render` and the check `api_token_render_is_brief`, which hold a print's token to reading for minutes |
+
+Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45). Worker topic:
+`reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
+`EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
 
 ## #44 ReqIF import and export
 
@@ -119,3 +123,50 @@ Package: `internal/reqifio`. Worker topic: `reqif.requested`. No settings.
     schema: `make reqif-schema` checks the golden export and the test file,
     with the schema and the W3C modules it includes fetched once and held to
     `api/reqif/schema.sha256`.
+
+## #45 Export a specification to Word and PDF
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `GET /projects/{projectKey}/document` | view | `{document}`; 404 for a `section` the project lacks |
+| `GET /projects/{projectKey}/document.docx` | view | the Word file; 422 `docx_too_large` |
+| `GET /projects/{projectKey}/document.pdf` | view | the PDF; 503 `render_unavailable` or `render_busy`, 504 `render_timeout`, 502 `render_failed` |
+| `GET /baselines/{baselineID}/document` | view | `{document}` |
+| `GET /baselines/{baselineID}/document.docx` | view | the Word file |
+| `GET /baselines/{baselineID}/document.pdf` | view | the PDF |
+
+- **The document** is a project's specification, with `section` a
+  requirement or section and everything below it, or a baseline as it was
+  taken. Its cover says what it is of, the baseline's day, maker and lock,
+  who exported it and when, and how many entries it holds. Each entry is its
+  outline number, key, revision, title, statement and rationale, a table of
+  its type, status, owner, priority, labels and attribute values as a reader
+  reads them (options by name, people by name, rich text as a document), and
+  its links, read from it. A baseline's entries are at the revisions it holds,
+  with the links it held, and without owner, priority or labels, which a
+  baseline does not keep. At most `specdoc.MaxEntries` (1000) entries; past
+  them the document says so.
+- **Word** is written by the api: the cover, the contents linking to each
+  entry, each entry under one of Word's heading styles, its pictures inside up
+  to 50 MB (`docx_too_large` past them). Its words are the reader's language,
+  English or German.
+- **PDF** is the web client's print view, `/print/p/{projectKey}/document`
+  or `/print/baselines/{baselineID}`, printed by the render service as the
+  reader with a token made for that one print: read only, two minutes, listed
+  nowhere, deleted once the PDF is back. A token held to some projects cannot
+  print (403). Without a render service, 503 `render_unavailable` says to
+  export Word instead.
+- Every export is recorded as `specification.exported` before the file
+  leaves; one the log cannot record is refused.
+- UI: an Export menu, PDF and Word, on the specification, on every section
+  there (with ReqIF), and on a baseline.
+- **As built** (#45):
+  - **Files are named** after what they hold and the day:
+    `KEY-2026-10-15.pdf`, `KEY-R4-2026-10-15.docx` for a section,
+    `KEY-release-1-2026-10-15.docx` for a baseline.
+  - **The print reads fresh.** The print's token is noted at the position of
+    its own making in read-your-writes, so its requests through the replica
+    see what the reader wrote just before.
+  - **What the database holds.** A print's token reads only, lasts at most
+    five minutes and reaches every project its owner does, or the row is
+    refused; the app changes no token at all.
