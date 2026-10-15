@@ -23,6 +23,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The development realm is `dynamo`, the suite's, instead of `suite-dev`
+  (#102). `deploy/keycloak/realm.json` is the same file in Armature, Stator
+  and Exciter, with each tool's client and the partners' groups, and
+  `make realm-check` refuses a copy that drifts from Dynamo's. A running
+  development stack keeps the old issuer: run `make clean && make up`, or set
+  the issuer under Settings, Single sign-on to
+  `http://localhost:<keycloak port>/realms/dynamo`.
 - Releases are published from a tag (#101). `./release.sh` opens the pull
   request `release/vX.Y.Z` instead of committing and tagging on `main`;
   merging it tags the merge commit `vX.Y.Z`, and the tag pushes the `backend`
@@ -443,7 +450,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A development stack (#2). `make up` starts Postgres with a streaming
   replica, Valkey, SeaweedFS, Mailpit and Keycloak on twenty ports of the
   checkout's own between 10000 and 19999, so worktrees and a Stator checkout
-  run beside it; `make ports` says which. Keycloak's `suite-dev` realm has a
+  run beside it; `make ports` says which. Keycloak's `dynamo` realm has a
   client for Exciter, Armature and Stator, so a person is one subject in all
   three.
 - Repository tooling (#1). `./run-tests.sh` is the one gate for every layer,

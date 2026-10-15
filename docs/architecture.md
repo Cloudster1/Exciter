@@ -423,9 +423,11 @@ release builds the `backend` and `web` images from its tag and pushes them to
   `exciter_admin`, exempt by policy rather than as superuser, and the
   replication role.
 - Keycloak imports `deploy/keycloak/realm.json` on every start: realm
-  `suite-dev` with clients `exciter`, `armature` and `stator` (a `groups`
+  `dynamo` with clients `exciter`, `armature` and `stator` (a `groups`
   claim, and PKCE for the two that send it; Armature does not yet) and the
-  development people.
+  development people. The file is the suite's, the same in Armature and
+  Stator; `make realm-check`, in the shell layer, refuses one that drifts
+  from Dynamo's copy (#102).
 - The api keeps its files in SeaweedFS's bucket `exciter-files`; the
   integration suite writes to `exciter-test`, so what it leaves never shows
   among the app's files.

@@ -360,7 +360,7 @@ func TestTheBootstrapProviderNeedsAClientAKeyForItsSecretAndAnAdministrator(t *t
 	clean(t)
 	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_EMAIL", "admin@exciter.test")
 	t.Setenv("EXCITER_BOOTSTRAP_ADMIN_PASSWORD", "a long enough password")
-	t.Setenv("EXCITER_BOOTSTRAP_OIDC_ISSUER", "http://localhost:8180/realms/suite-dev")
+	t.Setenv("EXCITER_BOOTSTRAP_OIDC_ISSUER", "http://localhost:8180/realms/dynamo")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID") {
 		t.Fatalf("an issuer without a client = %v", err)
 	}

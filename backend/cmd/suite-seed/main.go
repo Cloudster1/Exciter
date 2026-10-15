@@ -75,7 +75,7 @@ func run() error {
 		return fmt.Errorf("sign in to Armature as its seed's owner: %w", err)
 	}
 	if err := armature.send(ctx, http.MethodPut, "/oidc-provider", map[string]any{
-		"issuer": keycloak + "/realms/suite-dev", "clientId": armatureClient, "clientSecret": armatureSecret,
+		"issuer": keycloak + "/realms/dynamo", "clientId": armatureClient, "clientSecret": armatureSecret,
 		"createGroups": true, "enabled": true,
 	}, nil); err != nil {
 		return fmt.Errorf("point Armature at the suite's Keycloak: %w", err)

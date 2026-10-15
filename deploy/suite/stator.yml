@@ -7,7 +7,7 @@ networks:
 
 x-suite-auth: &auth
   STATOR_OIDC_BACKCHANNEL: http://localhost:${SUITE_KEYCLOAK_PORT}=http://suite-keycloak:8080
-  STATOR_BOOTSTRAP_OIDC_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/suite-dev
+  STATOR_BOOTSTRAP_OIDC_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/dynamo
   STATOR_BOOTSTRAP_MEMBERS: alice@suite.test=admin,bob@suite.test=member
 
 x-suite-armature: &armature

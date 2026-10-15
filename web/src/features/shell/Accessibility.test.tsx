@@ -51,7 +51,7 @@ const member = {
 };
 const waiting = { userId: "0195f000-0000-7000-8000-00000000c0c0", email: "carol@suite.test", name: "Carol New", requestedAt: "2026-09-29T08:00:00Z" };
 const provider = {
-  issuer: "http://localhost:8180/realms/suite-dev",
+  issuer: "http://localhost:8180/realms/dynamo",
   clientId: "exciter",
   hasSecret: true,
   groupsClaim: "groups",

@@ -23,7 +23,7 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	h.forgetPerson(t, first)
 	h.forgetPerson(t, second)
 	people := seed.Bootstrapped(config.Bootstrap{
-		OIDCIssuer: "http://localhost:8180/realms/suite-dev", OIDCClientID: exciterClient, OIDCClientSecret: exciterSecret,
+		OIDCIssuer: "http://localhost:8180/realms/dynamo", OIDCClientID: exciterClient, OIDCClientSecret: exciterSecret,
 		Members: []config.BootstrapMember{{Email: first, Role: "admin"}, {Email: second, Role: "member"}},
 	})
 

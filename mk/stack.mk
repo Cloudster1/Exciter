@@ -32,7 +32,14 @@ VALKEY_PASSWORD    ?= exciter_valkey
 # with it too, so the stack's worker can open them.
 EXCITER_SECRET_KEY ?= ZXhjaXRlci1kZXZlbG9wbWVudC1vbmx5LXNlY3JldC0=
 
-KEYCLOAK_REALM := suite-dev
+KEYCLOAK_REALM := dynamo
+# Dynamo holds the suite's canonical realm; Armature and Stator compare theirs with the same copy.
+DYNAMO_REALM_URL ?= https://raw.githubusercontent.com/praetorianer777/Dynamo/main/deploy/keycloak/realm.json
+
+.PHONY: realm-check
+realm-check: ## Fail if deploy/keycloak/realm.json differs from Dynamo's canonical realm
+	@docker run --rm -u $(UID_GID) -v $(ROOT)/deploy/keycloak:/realm:ro $(NODE_IMAGE) \
+		node /realm/realm-check.mjs '$(DYNAMO_REALM_URL)' /realm/realm.json
 
 # The suite writes to a bucket of its own, so what it leaves behind never shows up among the running app's files.
 STACK_TEST_BUCKET := exciter-test

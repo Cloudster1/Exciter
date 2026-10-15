@@ -21,6 +21,13 @@ if config="$(docker compose -f "$COMPOSE" config --format json 2>&1)"; then
   missing="$(jq -r '.services | to_entries[] | select(.value.healthcheck == null and .key != "mailpit" and .value.restart != "no") | .key' <<< "$config")"
   [[ -z "$missing" ]] && pass "every long-running service but mailpit, whose image has one, declares a health check" \
     || fail "no health check: $missing"
+  # The bootstrap names the realm and client the stack's Keycloak imports, so a renamed realm or secret fails here.
+  bootstrap="$(jq -r '.services.seed.environment | [.EXCITER_BOOTSTRAP_OIDC_ISSUER, .EXCITER_BOOTSTRAP_OIDC_CLIENT_ID, .EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET] | @tsv' <<< "$config")"
+  IFS=$'\t' read -r issuer client secret <<< "$bootstrap"
+  realm_secret="$(jq -r --arg c "$client" '.clients[] | select(.clientId == $c) | .secret' "$REALM")"
+  [[ "${issuer##*/realms/}" == "$(jq -r .realm "$REALM")" && -n "$realm_secret" && "$secret" == "$realm_secret" ]] \
+    && pass "the bootstrap signs in through the realm's own client and secret" \
+    || fail "the bootstrap names issuer '$issuer', client '$client', which the realm does not hold with that secret"
   oneshot="$(jq -r '.services | to_entries[] | select(.value.restart == "no") | .key' <<< "$config" | sort | tr '\n' ' ')"
   waited="$(jq -r '[.services[] | (.depends_on // {}) | to_entries[] | select(.value.condition == "service_completed_successfully") | .key] | unique | join(" ")' <<< "$config")"
   [[ "${oneshot% }" == "$waited" ]] && pass "every one-shot service is waited for, so up --wait accepts it" \
@@ -39,7 +46,7 @@ for client in exciter armature stator; do
   [[ "$got" == "$want" ]] && pass "client $client carries the groups claim, with PKCE where its product sends it" \
     || fail "client $client is missing, or lacks the groups claim or the PKCE its product sends: '$got'"
 done
-[[ "$(jq -r .realm "$REALM")" == suite-dev ]] && pass "the realm is suite-dev" || fail "the realm is not suite-dev"
+[[ "$(jq -r .realm "$REALM")" == dynamo ]] && pass "the realm is dynamo" || fail "the realm is not dynamo"
 unknown="$(jq -r '[.groups[].path] as $g | .users[] | .groups[] | select(. as $x | $g | index($x) | not)' "$REALM")"
 [[ -z "$unknown" ]] && pass "every user's groups exist" || fail "users name groups that do not exist: $unknown"
 

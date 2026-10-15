@@ -44,7 +44,7 @@ suite-up: ## Start Exciter, Armature and Stator on one Keycloak and connect them
 	else echo "Armature is set up already; its seed is left out."; fi
 	$(SUITE_STATOR) up -d --build --wait --quiet-pull
 	@$(MAKE) --no-print-directory suite-seed
-	@echo "Keycloak   http://localhost:$(SUITE_KEYCLOAK_PORT) (admin / admin; realm suite-dev; alice / alice password)"
+	@echo "Keycloak   http://localhost:$(SUITE_KEYCLOAK_PORT) (admin / admin; realm dynamo; alice / alice password)"
 	@echo "Exciter    http://localhost:$(SUITE_EXCITER_WEB_PORT)"
 	@echo "Armature   http://localhost:$(SUITE_ARMATURE_WEB_PORT)"
 	@echo "Stator     http://localhost:$(SUITE_STATOR_WEB_PORT)"
