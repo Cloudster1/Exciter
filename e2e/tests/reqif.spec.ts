@@ -31,7 +31,9 @@ test.describe("ReqIF exchange", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: TARGET, name: "Imported" } }));
     const path = { params: { path: { projectKey: SOURCE } } };
     const section = must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { kind: "section", title: "Braking" } })).requirement;
-    must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Stop within 40 m", place: { parentId: section.id, afterId: null } } }));
+    must(
+      await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Stop within 40 m", place: { parentId: section.id, afterId: null } } }),
+    );
     must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Warn the driver" } }));
     must(
       await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${SOURCE}-R3` } }, body: { typeKey: "derives", otherKey: `${SOURCE}-R2` } }),
@@ -72,8 +74,6 @@ test.describe("ReqIF exchange", { tag: "@desktop" }, () => {
     await page.goto(`/p/${TARGET}/r/${TARGET}-R2`);
     const shown = "[data-statement] figure[data-image] img";
     await expect(page.locator(shown)).toBeVisible();
-    await expect
-      .poll(() => page.locator(shown).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0))
-      .toBe(true);
+    await expect.poll(() => page.locator(shown).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   });
 });

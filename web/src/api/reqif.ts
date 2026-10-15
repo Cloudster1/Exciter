@@ -26,8 +26,7 @@ export function reqifEnded(state: ReqIFState): boolean {
 export function useReqIFImport(id: string | undefined) {
   return useQuery({
     queryKey: reqifKey(id ?? ""),
-    queryFn: async (): Promise<ReqIFImport> =>
-      (await api.GET("/reqif-imports/{importID}", { params: { path: { importID: id! } } })).data!.import,
+    queryFn: async (): Promise<ReqIFImport> => (await api.GET("/reqif-imports/{importID}", { params: { path: { importID: id! } } })).data!.import,
     enabled: Boolean(id),
     refetchInterval: (query) => {
       const state = query.state.data?.state;
@@ -64,8 +63,7 @@ export function useReqIFActions(id: string) {
       onSuccess: keep,
     }),
     start: useMutation({
-      mutationFn: async (): Promise<ReqIFImport> =>
-        (await api.POST("/reqif-imports/{importID}/start", { params: { path: { importID: id } } })).data!.import,
+      mutationFn: async (): Promise<ReqIFImport> => (await api.POST("/reqif-imports/{importID}/start", { params: { path: { importID: id } } })).data!.import,
       onSuccess: keep,
       // A refused start keeps the problems it found, which the import read again shows.
       onError: () => queryClient.invalidateQueries({ queryKey: reqifKey(id) }),

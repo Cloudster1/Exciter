@@ -74,7 +74,11 @@ export function SchemaCard({
               <Td className="text-sm text-ink-muted">{t.reqif.kinds[item.kind]}</Td>
               <Td className="text-sm text-ink">{item.name}</Td>
               <Td className="text-sm text-ink-muted tabular-nums">{item.count}</Td>
-              <Td>{fixed(item) ?? <Chooser item={item} value={current(item)} options={options(item)} onPick={(value) => onChange({ ...choices, [item.identifier]: value })} />}</Td>
+              <Td>
+                {fixed(item) ?? (
+                  <Chooser item={item} value={current(item)} options={options(item)} onPick={(value) => onChange({ ...choices, [item.identifier]: value })} />
+                )}
+              </Td>
             </tr>
           ))}
         </tbody>

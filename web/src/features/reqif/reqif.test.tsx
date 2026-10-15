@@ -40,7 +40,13 @@ function anImport(overrides: Partial<ReqIFImport> = {}): ReqIFImport {
       ],
       losses: [{ kind: "formatting", where: "Warn the driver", message: "Subscript and superscript are not kept; the words are." }],
       lostCount: 1,
-      problems: [{ where: "Weight", message: "The file's Weight holds real values, and the project's Weight is a text attribute. Map it to another attribute, have the import make one, or leave it out." }],
+      problems: [
+        {
+          where: "Weight",
+          message:
+            "The file's Weight holds real values, and the project's Weight is a text attribute. Map it to another attribute, have the import make one, or leave it out.",
+        },
+      ],
     },
     done: 0,
     total: 3,
@@ -69,7 +75,15 @@ const settings = {
     },
   },
   "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [] } },
-  "GET /attribute-kinds": { status: 200, body: { kinds: [{ kind: "number", title: "Number" }, { kind: "text", title: "Text" }] } },
+  "GET /attribute-kinds": {
+    status: 200,
+    body: {
+      kinds: [
+        { kind: "number", title: "Number" },
+        { kind: "text", title: "Text" },
+      ],
+    },
+  },
 };
 
 describe("the ReqIF exports", () => {

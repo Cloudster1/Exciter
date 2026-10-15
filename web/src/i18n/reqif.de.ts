@@ -10,7 +10,8 @@ export const reqifDe: typeof reqifEn = {
   intro:
     "Mit ReqIF tauschen Anforderungswerkzeuge Spezifikationen aus. Exportieren Sie das Projekt für einen Lieferanten oder Kunden und importieren Sie, was zurückkommt: Was ein früherer Austausch angelegt hat, wird geändert, nicht neu angelegt.",
   exportTitle: "Export",
-  exportIntro: "Das ganze Projekt mit seinen Typen, Attributen, seinem Baum und seinen Verknüpfungen. Das Archiv bringt die Bilder und Dateien mit, die sein Text zeigt.",
+  exportIntro:
+    "Das ganze Projekt mit seinen Typen, Attributen, seinem Baum und seinen Verknüpfungen. Das Archiv bringt die Bilder und Dateien mit, die sein Text zeigt.",
   exportReqif: ".reqif herunterladen",
   exportReqifz: ".reqifz herunterladen",
   exportSection: "ReqIF",
