@@ -13,6 +13,9 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
 
+// Prefix keeps the api's read-your-writes keys apart from anything else in Valkey; every api process shares it.
+const Prefix = "exciter:ryw:"
+
 // storeTimeout bounds each round trip to Valkey: a slow store must cost a
 // request a few milliseconds at most, never its deadline.
 const storeTimeout = 250 * time.Millisecond

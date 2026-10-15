@@ -25,6 +25,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -576,6 +577,26 @@ var operations = []operation{
 		query:   []param{reqifSection},
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
 
+	// A specification or a baseline as a document to sign and send (#45, docs/api-contract-backlog.md).
+	{method: "GET", path: "/projects/{projectKey}/document", handler: "handleGetProjectDocument", tag: "documents",
+		summary: "A project's specification as one document, or a requirement and everything below it: a cover, then each entry with its text, its table of fields and attributes, and its links. The print view draws it.",
+		query:   []param{documentSection}, responses: map[int]any{http.StatusOK: env{"document": specdoc.Document{}}, http.StatusNotFound: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/document.docx", handler: "handleProjectDocx", tag: "documents",
+		summary: "The same document as a Word file, with the pictures its text shows.",
+		query:   []param{documentSection}, binary: true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/document.pdf", handler: "handleProjectPDF", tag: "documents",
+		summary: "The same document as a PDF, printed by the render service as the reader; 503 render_unavailable when the server has none.",
+		query:   []param{documentSection}, binary: true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusServiceUnavailable: errorEnvelope{}}},
+	{method: "GET", path: "/baselines/{baselineID}/document", handler: "handleGetBaselineDocument", tag: "documents",
+		summary:   "A baseline as one document, as it was taken: each requirement at the revision it holds, with the links it held.",
+		responses: map[int]any{http.StatusOK: env{"document": specdoc.Document{}}, http.StatusNotFound: errorEnvelope{}}},
+	{method: "GET", path: "/baselines/{baselineID}/document.docx", handler: "handleBaselineDocx", tag: "documents",
+		summary: "A baseline's document as a Word file.",
+		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/baselines/{baselineID}/document.pdf", handler: "handleBaselinePDF", tag: "documents",
+		summary: "A baseline's document as a PDF, printed by the render service as the reader.",
+		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusServiceUnavailable: errorEnvelope{}}},
+
 	// The Armature integration (M2, docs/api-contract-m2.md): the connection and each person's token (#26).
 	{method: "GET", path: "/armature/connection", handler: "handleGetArmatureConnection", orgWide: true, tag: "armature",
 		summary:   "The installation's Armature: where people open it and where its webhooks go; null when none. For administrators.",
@@ -945,6 +966,9 @@ var searchQuery = []param{
 }
 
 // gridQuery narrows and orders one project's requirements, as a view's filter does; every part is optional.
+// documentSection narrows a document to one requirement and everything below it.
+var documentSection = param{name: "section", description: "The key of a requirement or section, which the document holds with everything below it; the whole project when absent."}
+
 // reqifSection narrows a ReqIF export to one requirement and everything below it.
 var reqifSection = param{name: "section", description: "The key of a requirement or section, which is exported with everything below it; the whole project when absent."}
 

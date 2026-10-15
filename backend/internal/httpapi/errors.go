@@ -188,6 +188,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := reqifError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := documentError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := commentError(err); apiErr != nil {
 			return apiErr
 		}

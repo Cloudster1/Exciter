@@ -20,6 +20,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -125,6 +126,11 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[reqifio.Problem]():          "ReqIFProblem",
 		reflect.TypeFor[reqifio.Refusal]():          "ReqIFRefusal",
 		reflect.TypeFor[reqifio.ChoicesInput]():     "ReqIFChoices",
+		reflect.TypeFor[specdoc.Document]():         "SpecificationDocument",
+		reflect.TypeFor[specdoc.Entry]():            "DocumentEntry",
+		reflect.TypeFor[specdoc.Property]():         "DocumentProperty",
+		reflect.TypeFor[specdoc.Link]():             "DocumentLink",
+		reflect.TypeFor[specdoc.BaselineInfo]():     "DocumentBaseline",
 		reflect.TypeFor[armature.Connection]():      "ArmatureConnection",
 		reflect.TypeFor[armature.ConnectionInput](): "ArmatureConnectionInput",
 		reflect.TypeFor[armature.Account]():         "ArmatureAccount",
@@ -183,6 +189,7 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(reqifio.SchemaKind(""))] = enumStrings(reqifio.SchemaKinds)
 	b.Enums[reflect.TypeOf(reqifio.MatchBy(""))] = enumStrings(reqifio.MatchBys)
 	b.Enums[reflect.TypeOf(reqifio.LossKind(""))] = enumStrings(reqifio.LossKinds)
+	b.Enums[reflect.TypeOf(specdoc.Kind(""))] = enumStrings(specdoc.Kinds)
 	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
 	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
 	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)
