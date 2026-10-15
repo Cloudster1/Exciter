@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { ApiError } from "@/api/client";
 import { useComparison } from "@/api/history";
 import { useClearances, useClearLink, type MovedEnd } from "@/api/links";
@@ -13,9 +13,9 @@ import { localDateFormat } from "@/lib/format";
 const clearedOn = localDateFormat({ dateStyle: "medium" });
 
 /** A link waiting to be checked since an end moved on; with a count, how many of a requirement's links do. */
-export function SuspectBadge({ count }: { count?: number }) {
+export function SuspectBadge({ count, hint = t.suspect.badgeHint }: { count?: number; hint?: string }) {
   return (
-    <Tag className="border-warning bg-warning-subtle text-ink" title={t.suspect.badgeHint} data-suspect-badge={count ?? ""}>
+    <Tag className="border-warning bg-warning-subtle text-ink" title={hint} data-suspect-badge={count ?? ""}>
       {count === undefined ? t.suspect.badge : t.suspect.count(count)}
     </Tag>
   );
@@ -38,10 +38,13 @@ export function ClearDialog({
   error,
   onConfirm,
   onClose,
+  children,
 }: {
   title: string;
   intro: string;
   changes: Change[];
+  /** What else to read before confirming, such as a page in Stator. */
+  children?: ReactNode;
   /** A trace link's id, whose earlier confirmations are listed. */
   linkId?: string;
   pending: boolean;
@@ -51,7 +54,9 @@ export function ClearDialog({
 }) {
   const [comment, setComment] = useState("");
   const fields = error instanceof ApiError ? error.fields : {};
-  const refusal = error ? (fields.sourceRevision ?? fields.targetRevision ?? fields.revision ?? (fields.comment ? "" : error.message)) : "";
+  const refusal = error
+    ? (fields.sourceRevision ?? fields.targetRevision ?? fields.revision ?? fields.pageVersion ?? (fields.comment ? "" : error.message))
+    : "";
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -62,6 +67,7 @@ export function ClearDialog({
     <Dialog title={title} fill onClose={onClose} data-clear-dialog="">
       <div className="space-y-4">
         <p className="text-sm text-ink-muted">{intro}</p>
+        {children}
         {changes.map((change) => (
           <section key={change.reqKey} aria-labelledby={`moved-${change.reqKey}`} className="space-y-2" data-moved-end={change.reqKey}>
             <h3 id={`moved-${change.reqKey}`} className="text-sm font-semibold text-ink">

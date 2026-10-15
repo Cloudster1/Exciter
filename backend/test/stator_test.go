@@ -46,7 +46,7 @@ func (h *harness) stator(t *testing.T) *stator.Service {
 	}
 	allow := netguard.ParseAllow(statorAllow)
 	client := stator.NewClient(allow, map[string]string{statorURL(t): os.Getenv(envStatorStub)})
-	return stator.NewService(h.cluster, box, client,
+	return stator.NewService(h.cluster, box, client, stator.NewCache(h.valkey(t), discard()),
 		stator.Options{AppURL: "http://" + appHost, Allow: allow, Development: true, Log: discard()})
 }
 

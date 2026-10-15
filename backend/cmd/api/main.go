@@ -135,20 +135,22 @@ func run() error {
 	}
 	sso := oidc.NewService(cluster, box, cfg.Auth.OIDCRedirectURL).WithHTTPClient(oidc.Backchannel(cfg.Auth.OIDCBackchannel))
 	var (
-		cache    *armature.Cache
-		coverage *trace.CoverageCache
+		cache       *armature.Cache
+		statorCache *stator.Cache
+		coverage    *trace.CoverageCache
 	)
 	if valkey != nil {
 		cache = armature.NewCache(valkey, log)
+		statorCache = stator.NewCache(valkey, log)
 		coverage = trace.NewCoverageCache(valkey, log)
 	} else {
-		log.Warn("EXCITER_VALKEY_URL is not set, so every view asks Armature afresh")
+		log.Warn("EXCITER_VALKEY_URL is not set, so every view asks Armature and Stator afresh")
 	}
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
 	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), cache,
 		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}).
 		WithCoverageCache(coverage)
-	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel),
+	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel), statorCache,
 		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
 	requirements := requirement.NewService(cluster)
 	links := trace.NewService(cluster).WithCoverageCache(coverage)

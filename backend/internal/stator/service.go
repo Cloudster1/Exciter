@@ -62,16 +62,20 @@ type Service struct {
 	db     *db.Cluster
 	box    *secret.Box
 	client *Client
+	cache  *Cache
 	opts   Options
 }
 
-// NewService returns the service. A nil box refuses to store a token or a secret.
-func NewService(cluster *db.Cluster, box *secret.Box, client *Client, opts Options) *Service {
+// NewService returns the service. A nil box refuses to store a token or a secret; a nil cache keeps nothing.
+func NewService(cluster *db.Cluster, box *secret.Box, client *Client, cache *Cache, opts Options) *Service {
 	if opts.Log == nil {
 		opts.Log = slog.Default()
 	}
-	return &Service{db: cluster, box: box, client: client, opts: opts}
+	return &Service{db: cluster, box: box, client: client, cache: cache, opts: opts}
 }
+
+// Cache is the per-person answer cache, nil without Valkey.
+func (s *Service) Cache() *Cache { return s.cache }
 
 // Client is the one outbound client.
 func (s *Service) Client() *Client { return s.client }
@@ -305,6 +309,12 @@ func tokenContext(installation, user uuid.UUID) []byte {
 // webhookContext binds the webhook secret to its installation.
 func webhookContext(installation uuid.UUID) []byte {
 	return append([]byte("stator.webhook:"), installation[:]...)
+}
+
+// OpenWebhookSecret opens the installation's sealed webhook secret, for the receiver.
+func (s *Service) OpenWebhookSecret(installation uuid.UUID, sealed []byte) (string, error) {
+	plain, err := s.box.Open(sealed, webhookContext(installation))
+	return string(plain), err
 }
 
 func nullable(id uuid.UUID) *uuid.UUID {

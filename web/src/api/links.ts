@@ -148,7 +148,7 @@ export function useClearances(linkId: string) {
 /** Everything that shows whether a link is suspect asks again once one is cleared. */
 export function refreshSuspects(queryClient: QueryClient) {
   return Promise.all(
-    [linksQueryKey, suspectsKey, ["clearances"], ["requirements"], ["spec"], ["armature", "links"]].map((queryKey) =>
+    [linksQueryKey, suspectsKey, ["clearances"], ["requirements"], ["spec"], ["armature", "links"], ["stator", "links"]].map((queryKey) =>
       queryClient.invalidateQueries({ queryKey }),
     ),
   );

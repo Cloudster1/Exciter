@@ -54,6 +54,8 @@ var installationWide = map[string]string{
 	"TestTheConnectionKnowsWhatStatorOffers":                 statorLink,
 	"TestAStatorThatDoesNotAnswer":                           statorLink,
 	"TestRawSQLWallsStatorRows":                              statorLink,
+	"TestRequirementsAreTracedToStatorPages":                 statorLink,
+	"TestRawSQLGuardsStatorLinks":                            statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,

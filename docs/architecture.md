@@ -332,7 +332,9 @@ German.
   such read stores the status category for everyone.
 - **Trace to pages** (#41, #42): the same, against Stator pages, with the
   page's latest version stored for everyone so a link whose page moved on is
-  suspect. Exciter puts its links on pages only once Stator reports
+  suspect. `internal/stator` reads pages and Stator's quick search as the
+  viewer through the same per-token cache in Valkey, and its receiver
+  follows `page.published`, `page.moved` and `page.deleted`. Exciter puts its links on pages only once Stator reports
   `page.remote-links` on `/meta`.
 - **Stator's API** is vendored at `api/stator/openapi.json`, its commit in
   `api/stator/SOURCE`, refreshed with `make stator-openapi REF=`. The

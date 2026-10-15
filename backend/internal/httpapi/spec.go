@@ -140,6 +140,7 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[stator.TokenInput]():        "StatorTokenInput",
 		reflect.TypeFor[stator.Page]():              "StatorPage",
 		reflect.TypeFor[stator.LookupResult]():      "StatorLookup",
+		reflect.TypeFor[stator.PageHit]():           "StatorPageHit",
 		reflect.TypeFor[stator.Link]():              "StatorLink",
 		reflect.TypeFor[stator.LinkInput]():         "StatorLinkInput",
 		reflect.TypeFor[stator.ClearInput]():        "StatorClearInput",

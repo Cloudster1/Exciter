@@ -130,6 +130,16 @@ type Page struct {
 	UpdatedByName string    `json:"updatedByName"`
 }
 
+// PageHit is a page the picker found, as Stator's quick search answers it: no version, which the link reads.
+type PageHit struct {
+	ID        uuid.UUID `json:"id"`
+	Title     string    `json:"title"`
+	SpaceKey  string    `json:"spaceKey"`
+	SpaceName string    `json:"spaceName"`
+	Path      []string  `json:"path"`
+	URL       string    `json:"url"`
+}
+
 // LookupResult is one page asked for, null when the viewer may not read it or it is gone.
 type LookupResult struct {
 	ID   uuid.UUID `json:"id"`

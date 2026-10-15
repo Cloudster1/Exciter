@@ -265,6 +265,13 @@ export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
 /** How a Stator personal access token and a webhook secret begin, the API's stator.TokenPrefix and WebhookSecretPrefix. */
 export const STATOR_TOKEN_PREFIX = "stator_pat_";
 export const STATOR_WEBHOOK_SECRET_PREFIX = "stator_whs_";
+/** The most pages one lookup asks for, the API's stator.MaxLookupPages, and how many the picker shows. */
+export const STATOR_LOOKUP_MAX_PAGES = 50;
+export const STATOR_SEARCH_LIMIT = 8;
+/** How long the page picker waits after a keystroke before it asks Stator. */
+export const STATOR_SEARCH_DEBOUNCE_MS = 250;
+/** What a page can be to a requirement, read from the requirement, in the order they are offered (#41). */
+export const STATOR_RELATIONS = ["specifies", "describes", "relates"] as const;
 /** How an Armature personal access token and a webhook secret begin, the API's armature.TokenPrefix and WebhookSecretPrefix. */
 export const ARMATURE_TOKEN_PREFIX = "armature_pat_";
 export const ARMATURE_WEBHOOK_SECRET_PREFIX = "armature_whs_";
