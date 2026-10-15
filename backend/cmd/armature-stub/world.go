@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -141,9 +142,16 @@ type tenant struct {
 type world struct {
 	mu      sync.Mutex
 	tenants map[string]*tenant
+	// capabilities is what GET /meta lists, for every tenant at once; a test takes some away and puts them back.
+	capabilities []string
 }
 
-func newWorld() *world { return &world{tenants: map[string]*tenant{}} }
+// armatureCapabilities are what Armature's main lists on GET /meta, read when api/armature was last vendored.
+var armatureCapabilities = []string{"calendar@1", "issue-embed@1", "plan@1", "remote-link-relations@1", "remote-links@1", "reports@1", "theme-export@1", "webhooks@1"}
+
+func newWorld() *world {
+	return &world{tenants: map[string]*tenant{}, capabilities: slices.Clone(armatureCapabilities)}
+}
 
 // tenant returns the organization of that slug, making it on first use.
 func (w *world) tenant(slug string) *tenant {

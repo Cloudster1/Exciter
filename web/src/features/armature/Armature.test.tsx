@@ -27,12 +27,14 @@ function connection(over: Partial<ArmatureConnection> = {}): ArmatureConnection 
     webhookTopics: ["issue.created", "issue.updated", "issue.transitioned", "issue.deleted"],
     connected: 0,
     updatedAt: "2026-10-01T08:00:00Z",
+    capabilities: ["issue-embed@1", "remote-links@1", "theme-export@1", "webhooks@1"],
+    missing: [],
     ...over,
   };
 }
 
 function account(over: Partial<ArmatureAccount> = {}): ArmatureAccount {
-  return { configured: true, baseUrl: BASE, connected: false, status: "not_connected", user: null, readOnly: false, checkedAt: null, ...over };
+  return { configured: true, baseUrl: BASE, connected: false, status: "not_connected", user: null, readOnly: false, checkedAt: null, missing: [], ...over };
 }
 
 const connectedAccount = account({
@@ -128,6 +130,39 @@ describe("connecting Armature as an administrator", () => {
     stubApi({ "GET /armature/connection": { status: 403, body: { error: { code: "forbidden", message: "Only an administrator." } } } });
     await renderAt(ARMATURE_SETTINGS_PATH);
     expect(await screen.findByText("Only an administrator can connect Armature.")).toBeInTheDocument();
+  });
+});
+
+const LACKS_ISSUES =
+  "The connected Armature does not offer issue-embed@1, which Exciter needs to show and find its issues on requirements. Update Armature to a release that offers it, or ask its administrator to.";
+
+describe("an Armature that lacks what Exciter needs", () => {
+  it("says so on the settings, naming what goes and what to do", async () => {
+    stubApi({
+      "GET /armature/connection": {
+        status: 200,
+        body: { connection: connection({ capabilities: ["webhooks@1"], missing: [{ capability: "issue-embed@1", message: LACKS_ISSUES }] }) },
+      },
+    });
+    await renderAt(ARMATURE_SETTINGS_PATH);
+    const note = await screen.findByRole("note", { name: "This Armature needs an update" });
+    expect(within(note).getByRole("listitem")).toHaveTextContent(LACKS_ISSUES);
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says so on a member's account too", async () => {
+    stubApi({
+      "GET /armature/account": { status: 200, body: { account: { ...connectedAccount, missing: [{ capability: "issue-embed@1", message: LACKS_ISSUES }] } } },
+    });
+    await renderAt(ARMATURE_ACCOUNT_PATH);
+    expect(await screen.findByText(LACKS_ISSUES)).toBeInTheDocument();
+  });
+
+  it("shows nothing while Armature offers everything", async () => {
+    stubApi({ "GET /armature/account": { status: 200, body: { account: connectedAccount } } });
+    await renderAt(ARMATURE_ACCOUNT_PATH);
+    await screen.findByText("Connected as Ada (ada@acme.armature.test).");
+    expect(screen.queryByRole("note", { name: "This Armature needs an update" })).toBeNull();
   });
 });
 

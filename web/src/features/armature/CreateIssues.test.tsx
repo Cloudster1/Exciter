@@ -22,6 +22,7 @@ const account: ArmatureAccount = {
   user: { id: "0195f000-0000-7000-8000-0000000000b1", name: "Bob", email: "bob@acme.armature.test" },
   readOnly: false,
   checkedAt: "2026-10-01T09:00:00Z",
+  missing: [],
 };
 const bug = "0195f000-0000-7000-8000-0000000000c2";
 const projects = {

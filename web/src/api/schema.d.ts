@@ -2755,9 +2755,10 @@ export interface components {
             checkedAt: string | null;
             configured: boolean;
             connected: boolean;
+            missing: components["schemas"]["ArmatureMissing"][];
             readOnly: boolean;
             /** @enum {string} */
-            status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+            status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
             user: components["schemas"]["ArmatureUser"] | null;
         };
         ArmatureClearInput: {
@@ -2768,7 +2769,9 @@ export interface components {
             /** Format: uuid */
             armatureOrgId: string | null;
             baseUrl: string;
+            capabilities: string[] | null;
             connected: number;
+            missing: components["schemas"]["ArmatureMissing"][];
             /** Format: date-time */
             updatedAt: string;
             webhookSecretSet: boolean;
@@ -2801,7 +2804,7 @@ export interface components {
             error: string;
             following: boolean;
             /** @enum {string} */
-            status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+            status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
         };
         ArmatureIssue: {
             assigneeName: string;
@@ -2852,6 +2855,10 @@ export interface components {
         ArmatureLookup: {
             issue: components["schemas"]["ArmatureIssue"] | null;
             key: string;
+        };
+        ArmatureMissing: {
+            capability: string;
+            message: string;
         };
         ArmatureProject: {
             canCreate: boolean;
@@ -4977,7 +4984,7 @@ export interface operations {
                     "application/json": {
                         issueTypes: components["schemas"]["ArmatureIssueType"][];
                         /** @enum {string} */
-                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
                     };
                 };
             };
@@ -5013,7 +5020,7 @@ export interface operations {
                     "application/json": {
                         issues: components["schemas"]["ArmatureLookup"][];
                         /** @enum {string} */
-                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
                     };
                 };
             };
@@ -5057,7 +5064,7 @@ export interface operations {
                     "application/json": {
                         issue: components["schemas"]["ArmatureIssue"] | null;
                         /** @enum {string} */
-                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
                     };
                 };
             };
@@ -5090,7 +5097,7 @@ export interface operations {
                     "application/json": {
                         projects: components["schemas"]["ArmatureProject"][];
                         /** @enum {string} */
-                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
                     };
                 };
             };
@@ -5128,7 +5135,7 @@ export interface operations {
                     "application/json": {
                         issues: components["schemas"]["ArmatureIssue"][];
                         /** @enum {string} */
-                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
+                        status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
                     };
                 };
             };

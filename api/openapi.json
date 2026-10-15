@@ -642,7 +642,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -708,7 +709,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -785,7 +787,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -838,7 +841,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -909,7 +913,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -13746,6 +13751,12 @@
           "connected": {
             "type": "boolean"
           },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArmatureMissing"
+            }
+          },
           "readOnly": {
             "type": "boolean"
           },
@@ -13756,7 +13767,8 @@
               "not_configured",
               "not_connected",
               "rejected",
-              "unreachable"
+              "unreachable",
+              "outdated"
             ]
           },
           "user": {
@@ -13777,7 +13789,8 @@
           "status",
           "user",
           "readOnly",
-          "checkedAt"
+          "checkedAt",
+          "missing"
         ]
       },
       "ArmatureClearInput": {
@@ -13808,8 +13821,23 @@
           "baseUrl": {
             "type": "string"
           },
+          "capabilities": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
           "connected": {
             "type": "integer"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArmatureMissing"
+            }
           },
           "updatedAt": {
             "type": "string",
@@ -13835,7 +13863,9 @@
           "webhookUrl",
           "webhookTopics",
           "connected",
-          "updatedAt"
+          "updatedAt",
+          "capabilities",
+          "missing"
         ]
       },
       "ArmatureConnectionInput": {
@@ -13937,7 +13967,8 @@
               "not_configured",
               "not_connected",
               "rejected",
-              "unreachable"
+              "unreachable",
+              "outdated"
             ]
           }
         },
@@ -14137,6 +14168,21 @@
         "required": [
           "key",
           "issue"
+        ]
+      },
+      "ArmatureMissing": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "capability",
+          "message"
         ]
       },
       "ArmatureProject": {

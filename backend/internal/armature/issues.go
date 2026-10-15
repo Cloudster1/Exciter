@@ -60,6 +60,9 @@ func (s *Service) Lookup(ctx context.Context, keys []string) (Status, []LookupRe
 	if v == nil {
 		return status, nil, err
 	}
+	if v.Offered.Lacks(CapabilityIssues) != nil {
+		return StatusOutdated, nil, nil
+	}
 	found := make(map[string]*Issue, len(keys))
 	var missing []string
 	for _, key := range keys {
@@ -118,6 +121,9 @@ func (s *Service) Search(ctx context.Context, query string, limit int) (Status, 
 	v, status, err := s.Viewer(ctx)
 	if v == nil {
 		return status, nil, err
+	}
+	if v.Offered.Lacks(CapabilityIssues) != nil {
+		return StatusOutdated, nil, nil
 	}
 	out := []Issue{}
 	if s.cache.Search(ctx, v.TokenID, query, limit, 0, &out) {

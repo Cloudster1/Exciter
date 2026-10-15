@@ -181,6 +181,9 @@ func (s *Service) issueToLink(ctx context.Context, key string) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
+	if lacks := v.Offered.Lacks(CapabilityIssues); lacks != nil {
+		return nil, lacks
+	}
 	callCtx, cancel := context.WithTimeout(ctx, CallTimeout)
 	defer cancel()
 	issue, err := s.fetchIssue(callCtx, v, key)

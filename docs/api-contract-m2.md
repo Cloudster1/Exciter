@@ -138,9 +138,11 @@ sees whether the work is done. It is written:
   or `https`, no user, query, fragment or path; `https` outside development
   unless `EXCITER_OUTBOUND_ALLOW` names the host). An Armature installation is
   one team's tracker, so the address is what names it (#87). Saving a new or changed address fetches
-  `GET {baseUrl}/api/v1/openapi.json` through the guard and the backchannel,
-  and refuses it on `baseUrl` unless `info.title` is `Armature`. An issue opens
-  at `{baseUrl}/issues/{KEY}`.
+  `GET {baseUrl}/api/v1/meta` through the guard and the backchannel,
+  and refuses it on `baseUrl` unless `product` is `armature` (#100; before it,
+  `info.title` of the OpenAPI document). Every save and every token check
+  keeps what `/meta` lists among `capabilities`, which `docs/integration.md`
+  says each feature checks. An issue opens at `{baseUrl}/issues/{KEY}`.
 - **The webhook secret** (`armature_whs_`, shown once by Armature) is sealed
   with `EXCITER_SECRET_KEY`, bound to the organization, and never answered;
   `webhookSecretSet` says whether there is one. Absent keeps it, empty removes
@@ -452,7 +454,9 @@ builds it, and each issue after adds what it calls: as #26 left it, it serves
 forgetting a tenant.
 
 - **What it serves**, under `/api/v1`, answering exactly Armature's shapes:
-  `GET /openapi.json` (the vendored document), `GET /auth/me` (with `token`),
+  `GET /openapi.json` (the vendored document), `GET /meta` (with Armature's
+  capabilities, which `PUT /_stub/capabilities` changes for every tenant and
+  `null` puts back), `GET /auth/me` (with `token`),
   `GET /access/me`, `GET /projects`, `GET /issue-types`, `GET /issues`
   (`text`, `key in (...)` and `project =` are enough here), `GET /issues/{issueKey}`
   (with the old keys of moved issues), `POST /issues`, `GET` and

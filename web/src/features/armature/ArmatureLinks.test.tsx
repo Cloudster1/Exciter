@@ -23,6 +23,7 @@ const connected: ArmatureAccount = {
   user: { id: "0195f000-0000-7000-8000-0000000000b1", name: "Bob", email: "bob@acme.armature.test" },
   readOnly: false,
   checkedAt: "2026-10-01T09:00:00Z",
+  missing: [],
 };
 const withoutToken: ArmatureAccount = { ...connected, connected: false, status: "not_connected", user: null, checkedAt: null };
 
@@ -159,6 +160,13 @@ describe("a requirement's Armature issues", () => {
     const chip = panel.querySelector<HTMLElement>('[data-armature-issue="CP-1"]')!;
     expect(chip).toHaveTextContent("In progress");
     expect(chip).toHaveTextContent("Moved in Armature since");
+  });
+
+  it("says Armature needs an update when it no longer offers issue reads", async () => {
+    stubPage({ links: [aLink("CP-1")], more: { "GET /armature/issues": { status: 200, body: { status: "outdated", issues: [] } } } });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const panel = await screen.findByRole("region", { name: "Armature issues" });
+    await waitFor(() => expect(panel.querySelector('[data-armature-issue="CP-1"]')).toHaveTextContent("Armature needs an update to show this issue"));
   });
 
   it("is not there while Exciter has no Armature", async () => {

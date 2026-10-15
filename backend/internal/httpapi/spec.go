@@ -133,6 +133,7 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[armature.Created]():         "ArmatureCreated",
 		reflect.TypeFor[armature.CreateFailure]():   "ArmatureCreateFailure",
 		reflect.TypeFor[armature.Follow]():          "ArmatureFollow",
+		reflect.TypeFor[armature.Missing]():         "ArmatureMissing",
 		reflect.TypeFor[stator.Connection]():        "StatorConnection",
 		reflect.TypeFor[stator.ConnectionInput]():   "StatorConnectionInput",
 		reflect.TypeFor[stator.Account]():           "StatorAccount",
@@ -170,6 +171,8 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
 	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
 	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)
+	// Null until Armature is asked, which counts as offering everything.
+	b.FieldOverrides["ArmatureConnection.capabilities"] = openapi.Nullable(&openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string"}})
 	b.Enums[reflect.TypeOf(stator.Status(""))] = enumStrings(stator.Statuses)
 	b.Enums[reflect.TypeOf(stator.Relation(""))] = enumStrings(stator.Relations)
 	b.Enums[reflect.TypeOf(stator.SyncState(""))] = enumStrings(stator.SyncStates)

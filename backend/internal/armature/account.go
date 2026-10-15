@@ -30,9 +30,9 @@ func (s *Service) account(ctx context.Context, tx db.DBTX) (*Account, error) {
 		return nil, err
 	}
 	if e == nil {
-		return &Account{Status: StatusNotConfigured}, nil
+		return &Account{Status: StatusNotConfigured, Missing: []Missing{}}, nil
 	}
-	a := &Account{Configured: true, BaseURL: e.BaseURL, Status: StatusNotConnected}
+	a := &Account{Configured: true, BaseURL: e.BaseURL, Status: StatusNotConnected, Missing: e.Offered.Missing()}
 	row, err := s.ownToken(ctx, tx)
 	if err != nil || row == nil {
 		return a, err
@@ -159,6 +159,10 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 		return out, 0, err
 	}
 
+	var noted db.LSN
+	if meta, err := s.describe(ctx, e.BaseURL); err == nil {
+		noted = s.noteOffers(ctx, e.BaseURL, meta)
+	}
 	status, user, readOnly := StatusRejected, row.User, row.ReadOnly
 	token, openErr := s.open(ctx, row, e.Installation)
 	if openErr == nil {
@@ -189,7 +193,7 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 		out, err = s.account(ctx, tx)
 		return err
 	})
-	return out, lsn, err
+	return out, max(lsn, noted), err
 }
 
 // Disconnect forgets the caller's token; forgetting none is not an error.
@@ -212,6 +216,8 @@ type Viewer struct {
 	Caller  *Caller
 	// ReadOnly is a token of Armature's read scope, which Armature refuses every write.
 	ReadOnly bool
+	// Offered is what the connected Armature offers, for a feature to check before it calls.
+	Offered Offered
 }
 
 // Viewer returns the person ctx acts for, ready to call Armature, or the
@@ -247,7 +253,7 @@ func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
 	if err != nil {
 		return nil, StatusRejected, nil
 	}
-	return &Viewer{UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token), ReadOnly: row.ReadOnly}, StatusOK, nil
+	return &Viewer{UserID: user, TokenID: row.ID, Caller: s.client.As(e.BaseURL, token), ReadOnly: row.ReadOnly, Offered: e.Offered}, StatusOK, nil
 }
 
 // NoteRejected marks the viewer's token rejected after Armature answered it

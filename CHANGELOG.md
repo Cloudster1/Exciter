@@ -9,6 +9,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Connecting Armature asks its `GET /api/v1/meta` for `product: armature`
+  instead of reading the title of its OpenAPI document, so it needs an
+  Armature from 14 October 2026 on (#100).
 - `GET /api/v1/meta` names the product `exciter` in lower case, as Stator
   and Armature name themselves (#99).
 - The `armature` client of the development realm no longer requires PKCE,
@@ -78,6 +81,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `GET /api/v1/meta` lists what Exciter offers partners:
+  `requirement-embed@1`, `trace-links@1`, `specifications@1` and
+  `theme-export@1`, described in `docs/integration.md` (#100).
+- Exciter reads what the connected Armature offers from its `/meta` whenever
+  the connection is saved or a token checked. When it lacks what a feature
+  needs, the settings and account pages say which and to update Armature,
+  issue reads answer `outdated`, linking and following its theme are refused
+  with `armature_outdated`, and the link worker records why (#100).
 - `GET /api/v1/meta` also answers `apiVersion` and `capabilities`, as
   Stator and Armature do, and names the build a checkout stamped: its version
   as `0.1.0`, `0.1.0+4.gabc1234` or `0.1.0+dev`, and its short commit (#99).

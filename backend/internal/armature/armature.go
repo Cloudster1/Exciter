@@ -69,10 +69,12 @@ const (
 	StatusNotConnected  Status = "not_connected"
 	StatusRejected      Status = "rejected"
 	StatusUnreachable   Status = "unreachable"
+	// StatusOutdated is an Armature that does not offer what the read needs; the account's missing says what.
+	StatusOutdated Status = "outdated"
 )
 
 // Statuses lists every Status, for the API document.
-var Statuses = []Status{StatusOK, StatusNotConfigured, StatusNotConnected, StatusRejected, StatusUnreachable}
+var Statuses = []Status{StatusOK, StatusNotConfigured, StatusNotConnected, StatusRejected, StatusUnreachable, StatusOutdated}
 
 // Connection is the installation's Armature: its address is where people open it and which Armature it is.
 type Connection struct {
@@ -86,6 +88,10 @@ type Connection struct {
 	WebhookTopics []string  `json:"webhookTopics"`
 	Connected     int       `json:"connected"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+	// Capabilities are what Armature listed on GET /meta when last asked, null before; Missing are those Exciter
+	// needs and did not find, each with the sentence that says what goes without it.
+	Capabilities []string  `json:"capabilities"`
+	Missing      []Missing `json:"missing"`
 }
 
 // ConnectionInput sets the connection; WebhookSecret absent keeps the stored one and empty removes it.
@@ -104,6 +110,8 @@ type Account struct {
 	User      *AccountUser `json:"user"`
 	ReadOnly  bool         `json:"readOnly"`
 	CheckedAt *time.Time   `json:"checkedAt"`
+	// Missing are the capabilities Exciter needs that the connected Armature does not offer.
+	Missing []Missing `json:"missing"`
 }
 
 // AccountUser is a person in Armature.

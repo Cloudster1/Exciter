@@ -31,6 +31,10 @@ func (s *Server) followedTheme(ctx context.Context, reader uuid.UUID, fresh bool
 		follow.Status = status
 		return nil, follow, nil
 	}
+	if lacks := v.Offered.Lacks(armature.CapabilityThemes); lacks != nil {
+		follow.Status, follow.Error = armature.StatusOutdated, lacks.Message
+		return nil, follow, nil
+	}
 	// One budget for every call to Armature, so a slow one never holds the page longer than ThemeTimeout; Exciter's
 	// own writes are not bounded by it.
 	call, cancel := context.WithTimeout(ctx, armature.ThemeTimeout)
@@ -99,7 +103,7 @@ func (s *Server) handleGetArmatureTheme(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleFollowArmatureTheme(w http.ResponseWriter, r *http.Request) {
-	_, status, err := s.Armature.Viewer(r.Context())
+	v, status, err := s.Armature.Viewer(r.Context())
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -113,6 +117,10 @@ func (s *Server) handleFollowArmatureTheme(w http.ResponseWriter, r *http.Reques
 		return
 	case armature.StatusRejected:
 		respondError(w, r, armature.ErrRejected)
+		return
+	}
+	if lacks := v.Offered.Lacks(armature.CapabilityThemes); lacks != nil {
+		respondError(w, r, lacks)
 		return
 	}
 	_, follow, err := s.followedTheme(r.Context(), userFrom(r), true)

@@ -119,12 +119,13 @@ type endpoint struct {
 	Installation  uuid.UUID
 	BaseURL       string
 	ArmatureOrgID *uuid.UUID
+	Offered       Offered
 }
 
 func (s *Service) endpoint(ctx context.Context, tx db.DBTX) (*endpoint, error) {
 	var e endpoint
-	err := tx.QueryRow(ctx, `SELECT (SELECT id FROM installation), base_url, armature_org_id FROM armature_endpoint()`).
-		Scan(&e.Installation, &e.BaseURL, &e.ArmatureOrgID)
+	err := tx.QueryRow(ctx, `SELECT (SELECT id FROM installation), base_url, armature_org_id, capabilities FROM armature_endpoint()`).
+		Scan(&e.Installation, &e.BaseURL, &e.ArmatureOrgID, &e.Offered)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -149,9 +150,9 @@ func (s *Service) readConnection(ctx context.Context, tx db.DBTX) (*Connection, 
 	c := Connection{WebhookURL: s.opts.AppURL + WebhookPath, WebhookTopics: WebhookTopics}
 	var connected *int
 	err := tx.QueryRow(ctx, `
-		SELECT base_url, armature_org_id, webhook_secret IS NOT NULL, updated_at, armature_connected_count()
+		SELECT base_url, armature_org_id, webhook_secret IS NOT NULL, updated_at, armature_connected_count(), capabilities
 		FROM armature_connection`,
-	).Scan(&c.BaseURL, &c.ArmatureOrgID, &c.WebhookSecretSet, &c.UpdatedAt, &connected)
+	).Scan(&c.BaseURL, &c.ArmatureOrgID, &c.WebhookSecretSet, &c.UpdatedAt, &connected, &c.Capabilities)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -161,6 +162,7 @@ func (s *Service) readConnection(ctx context.Context, tx db.DBTX) (*Connection, 
 	if connected != nil {
 		c.Connected = *connected
 	}
+	c.Missing = Offered(c.Capabilities).Missing()
 	return &c, nil
 }
 
@@ -203,14 +205,14 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 			return nil, 0, err
 		}
 	}
+	// Asked on every save, so saving again picks up what an upgraded Armature offers; an address already saved is
+	// kept while Armature does not answer.
 	moved := before == nil || before.BaseURL != base
-	if moved {
-		if err := s.describe(ctx, base); err != nil {
-			return nil, 0, err
-		}
+	meta, err := s.describe(ctx, base)
+	if err != nil && moved {
+		return nil, 0, err
 	}
 
-	var out *Connection
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		forgotten := 0
 		if moved && before != nil {
@@ -229,19 +231,35 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 		if err != nil {
 			return fmt.Errorf("save the Armature connection: %w", err)
 		}
-		if err := audit.Write(ctx, tx, audit.Entry{
+		return audit.Write(ctx, tx, audit.Entry{
 			Action: ActionConnectionSaved, TargetType: "armature_connection", Actor: actor, IP: ip,
 			Data: map[string]any{"baseUrl": base, "webhookSecret": secretChange, "moved": moved, "tokensForgotten": forgotten},
-		}); err != nil {
-			return err
-		}
-		out, err = s.readConnection(ctx, tx)
-		return err
+		})
 	})
 	if err != nil {
 		return nil, lsn, err
 	}
-	return out, lsn, nil
+	if meta != nil {
+		lsn = max(lsn, s.noteOffers(ctx, base, meta))
+	}
+	out, err := s.Connection(db.PinPrimary(ctx))
+	return out, lsn, err
+}
+
+// noteOffers records what the Armature at base offers, as the admin role: a member's check reads it too, and
+// exciter_app may not write it, so nobody claims a capability with raw SQL.
+func (s *Service) noteOffers(ctx context.Context, base string, meta *Meta) db.LSN {
+	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE armature_connection SET capabilities = $1
+			WHERE base_url = $2 AND capabilities IS DISTINCT FROM $1`,
+			meta.Capabilities, base)
+		return err
+	})
+	if err != nil {
+		s.opts.Log.Warn("what Armature offers could not be kept", "base_url", base, "error", err)
+	}
+	return lsn
 }
 
 // RemoveConnection disconnects Armature; every stored token goes with it.
@@ -284,22 +302,22 @@ func (s *Service) normalizeBaseURL(raw string) (string, error) {
 }
 
 // describe checks that an Armature answers at base before anybody's token is
-// sent there.
-func (s *Service) describe(ctx context.Context, base string) error {
+// sent there, and reads what it offers.
+func (s *Service) describe(ctx context.Context, base string) (*Meta, error) {
 	ctx, cancel := context.WithTimeout(ctx, CallTimeout)
 	defer cancel()
-	err := s.client.Describe(ctx, base)
+	meta, err := s.client.Describe(ctx, base)
 	switch {
 	case err == nil:
-		return nil
+		return meta, nil
 	case errors.Is(err, netguard.ErrBlocked):
 		s.opts.Log.Info("the SSRF guard refused an Armature address", "base_url", base, "error", err)
-		return &FieldError{Field: "baseUrl", Message: "Exciter may not reach this address, because it is inside the server's own network. Use Armature's public address, or ask the operator to add the host to EXCITER_OUTBOUND_ALLOW."}
+		return nil, &FieldError{Field: "baseUrl", Message: "Exciter may not reach this address, because it is inside the server's own network. Use Armature's public address, or ask the operator to add the host to EXCITER_OUTBOUND_ALLOW."}
 	case errors.Is(err, ErrNotArmature):
-		return &FieldError{Field: "baseUrl", Message: "Something answers at this address, but it is not Armature. Check the address, and leave out any path such as /api/v1."}
+		return nil, &FieldError{Field: "baseUrl", Message: "Something answers at this address, but it is not Armature. Check the address, and leave out any path such as /api/v1."}
 	default:
 		s.opts.Log.Info("Armature did not answer at an address being connected", "base_url", base, "error", err)
-		return &FieldError{Field: "baseUrl", Message: "Armature did not answer at this address. Check the address, and that Armature is running, then save again."}
+		return nil, &FieldError{Field: "baseUrl", Message: "Armature did not answer at this address. Check the address, and that Armature is running, then save again."}
 	}
 }
 

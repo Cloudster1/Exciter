@@ -18,6 +18,16 @@ const WEBHOOK_SECRET = "armature_whs_abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG
 const REFUSED = "Armature did not accept this token. Make a new one under Tokens in Armature and paste it here.";
 const SCHEMES: ColourScheme[] = ["light", "dark"];
 
+/** Sets what the stub's /meta lists, for every tenant; null puts back Armature's own list. */
+async function armatureOffers(capabilities: string[] | null): Promise<void> {
+  const res = await fetch(`${armatureURL()}/_stub/capabilities`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ capabilities }),
+  });
+  expect(res.status, "the stub took what it offers").toBe(204);
+}
+
 /** Pastes a token on the Armature account page and connects it. */
 async function paste(page: Page, token: string): Promise<void> {
   await page.getByLabel(/^(Armature token|Paste a new token)$/).fill(token);
@@ -31,6 +41,7 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
   });
   test.afterEach(async ({ api }) => {
     await api.DELETE("/armature/connection");
+    await armatureOffers(null);
   });
 
   for (const scheme of SCHEMES) {
@@ -84,6 +95,22 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expect(page.getByText("Armature is disconnected.")).toBeVisible();
     });
   }
+
+  test("the settings say what an older Armature lacks, until saving again finds it updated", async ({ page }) => {
+    await armatureOffers(["webhooks@1", "theme-export@1", "remote-links@1"]);
+    await page.goto(SETTINGS_PATH);
+    await page.getByLabel("Armature address", { exact: true }).fill(armatureURL());
+    await page.locator('[data-action="save-armature"]').click();
+    const note = page.getByRole("note", { name: "This Armature needs an update" });
+    await expect(note).toContainText("does not offer issue-embed@1, which Exciter needs to show and find its issues on requirements.");
+    await expect(note.getByRole("listitem")).toHaveCount(1);
+    await expectAccessible(page);
+
+    await armatureOffers(null);
+    await page.locator('[data-action="save-armature"]').click();
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(note).toHaveCount(0);
+  });
 
   test("a member is told to ask an administrator until Armature is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");

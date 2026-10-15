@@ -5,6 +5,7 @@ package test
 import (
 	"context"
 	"crypto/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"testing"
@@ -147,7 +148,7 @@ func (h *harness) keepDefaultTheme(t *testing.T) {
 }
 
 // keepArmature starts the test with the installation connected to no Armature, as each connects it to a stub of its
-// own, and puts the connection and its members' tokens back once the test ends.
+// own, and puts the connection, its members' tokens and what the stub's /meta offers back once the test ends.
 func (h *harness) keepArmature(t *testing.T) {
 	t.Helper()
 	var connection, tokens []byte
@@ -159,6 +160,7 @@ func (h *harness) keepArmature(t *testing.T) {
 	h.cleanupExec(t, h.super, `DELETE FROM armature_connection`)
 	h.settle(t)
 	t.Cleanup(func() {
+		stubControl(t, http.MethodPut, "capabilities", map[string]any{"capabilities": nil})
 		h.cleanupExec(t, h.super, `DELETE FROM armature_connection`)
 		h.cleanupExec(t, h.super, `INSERT INTO armature_connection SELECT * FROM jsonb_populate_recordset(NULL::armature_connection, $1::jsonb)`, connection)
 		h.cleanupExec(t, h.super, `

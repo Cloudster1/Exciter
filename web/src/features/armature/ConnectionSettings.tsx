@@ -11,6 +11,7 @@ import { Button, Card, Checkbox, ErrorBanner, Field, SectionTitle, Skeleton } fr
 import { Icon } from "@/components/icons";
 import { ARMATURE_WEBHOOK_SECRET_PREFIX, COPY_FEEDBACK_MS } from "@/config";
 import { t } from "@/i18n";
+import { MissingCapabilities } from "./MissingCapabilities";
 
 /** The installation's Armature instance and its webhook, for administrators; Stator's page. */
 export function ConnectionSettings() {
@@ -105,6 +106,7 @@ function ConnectionForm({
             {t.armature.connectedCount(connection.connected)} {connection.armatureOrgId && t.armature.orgKnown}
           </p>
         )}
+        {connection && <MissingCapabilities missing={connection.missing} />}
         {connection && <p className="text-xs text-ink-muted">{t.armature.movesForget}</p>}
         {formError && <ErrorBanner>{formError}</ErrorBanner>}
         <Button type="submit" loading={save.isPending} data-action="save-armature">

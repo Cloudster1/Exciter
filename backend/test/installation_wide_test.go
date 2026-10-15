@@ -46,6 +46,7 @@ var installationWide = map[string]string{
 	"TestIssuesAreMadeFromRequirements":                        armatureLink,
 	"TestArmatureWebhooksRefreshLinkedIssues":                  armatureLink,
 	"TestAPersonFollowsTheThemeArmatureShowsThem":              armatureLink,
+	"TestWhatArmatureLacksIsSaidWhereItIsNeeded":               armatureLink,
 	"TestCoverageFollowsTheRulesAndTheLinks":                   armatureLink,
 	"TestTheMatrixLaysOutTheLinks":                             armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":             armatureLink,
