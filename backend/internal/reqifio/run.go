@@ -500,7 +500,7 @@ func reason(err error) string {
 	case errors.Is(err, requirement.ErrForbidden), errors.Is(err, ErrForbidden):
 		return "The person who started the import no longer administers the project. Ask an administrator to import the file again."
 	}
-	return fmt.Sprintf("It could not be written (%v). Import the file again; if it fails again, ask an administrator.", err)
+	return "It could not be written. Import the file again; if it fails again, ask an administrator."
 }
 
 // requested is what reqif.requested carries.

@@ -30,7 +30,7 @@ Package: `internal/reqifio`. Worker topic: `reqif.requested`. No settings.
 - **Upload** takes a ReqIF document (`.reqif`, ReqIF 1.0.1 to 1.2, which share
   one namespace) or a `.reqifz` zip holding one, UTF-8: at most
   `reqifio.MaxImportBytes` (64 MB, else 413), a document of at most 32 MB
-  unpacked, an archive of at most 256 MB unpacked, and
+  unpacked, an archive of at most 128 MB unpacked, and
   `reqifio.MaxObjects` (5000) objects, else 422 with the reason under
   `file`. Tool extensions are passed over. The files of an archive the rich
   text shows, up to 50 MB each, are kept with the import. Nothing is written
@@ -96,7 +96,7 @@ Package: `internal/reqifio`. Worker topic: `reqif.requested`. No settings.
   and the links between what it holds as relations. What an exchange tied
   keeps its identifier; the rest are `exciter-` and the row's id, which an
   import into the same project finds again. The archive packs the files the
-  text shows as `files/<attachment id>.<ext>`, up to 256 MB; past either
+  text shows as `files/<attachment id>.<ext>`, up to 128 MB; past either
   limit the answer carries `X-Export-Truncated: true`.
 - UI: a ReqIF tab in the project settings, with the exports for whoever
   views the project and the import for its administrators, and a ReqIF

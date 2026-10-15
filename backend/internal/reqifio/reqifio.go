@@ -21,7 +21,7 @@ const (
 	MaxDocumentMB    = 32
 	MaxDocumentBytes = MaxDocumentMB * megabyte
 	// MaxUnpackedMB bounds everything one archive unpacks into together, whatever its directory claims.
-	MaxUnpackedMB    = 256
+	MaxUnpackedMB    = 128
 	MaxUnpackedBytes = MaxUnpackedMB * megabyte
 	// MaxImageMB bounds one embedded image, an attachment's default limit.
 	MaxImageMB    = 50
@@ -37,7 +37,7 @@ const (
 	// MaxExportRows bounds the requirements one export carries.
 	MaxExportRows = 20000
 	// MaxExportImageMB bounds the images one .reqifz export packs; past it the rest are left out.
-	MaxExportImageMB    = 256
+	MaxExportImageMB    = 128
 	MaxExportImageBytes = MaxExportImageMB * megabyte
 )
 
