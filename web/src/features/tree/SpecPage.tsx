@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Project } from "@/api/projects";
 import { useRequirement } from "@/api/requirements";
 import { useSpec, useTree, type SpecEntry, type TreeNode } from "@/api/tree";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
+import { reqifExportHref } from "@/api/reqif";
+import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
 import { COMMENTS_ID } from "@/features/comments/CommentsSection";
@@ -109,6 +110,20 @@ function Entry({ project, entry, selection }: { project: Project; entry: SpecEnt
           </Link>
         )}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
+        {section && (
+          <ButtonLink
+            href={reqifExportHref(project.key, true, node.key)}
+            download
+            variant="ghost"
+            size="sm"
+            icon={<Icon.Download />}
+            title={t.reqif.exportSectionHint(node.title)}
+            aria-label={t.reqif.exportSectionHint(node.title)}
+            data-action="export-section-reqif"
+          >
+            {t.reqif.exportSection}
+          </ButtonLink>
+        )}
         {entry.can.edit && !editing && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)} data-action="edit-entry">
             {t.requirements.edit}

@@ -5,6 +5,7 @@ import { useTypes } from "@/api/attributes";
 import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
 import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
 import { ImportPanel } from "@/features/import/ImportPanel";
+import { ReqIFPanel } from "@/features/reqif/ReqIFPanel";
 import { ApprovalRules } from "@/features/reviews/ApprovalRules";
 import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
 import { AttributeList } from "@/features/types/AttributeList";
@@ -13,7 +14,7 @@ import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "approval", "links", "import"] as const;
+const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "approval", "links", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -44,6 +45,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "approval", label: t.review.rulesTab, attrs: { "data-tab": "approval" } },
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
               { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
+              { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
             ]}
           />
         }
@@ -69,6 +71,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "approval" && <ApprovalRules project={project} />}
         {tab === "links" && <ProjectLinkTypes project={project} />}
         {tab === "import" && <ImportPanel project={project} />}
+        {tab === "reqif" && <ReqIFPanel project={project} />}
       </TabPanel>
     </div>
   );

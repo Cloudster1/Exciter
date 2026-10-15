@@ -16,6 +16,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/attachment"
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -26,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/notify"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
@@ -86,9 +88,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	store, err := objectstore.Open(objectstore.Config{
+		Endpoint: cfg.S3.Endpoint, Bucket: cfg.S3.Bucket, AccessKey: cfg.S3.AccessKey,
+		SecretKey: cfg.S3.SecretKey, Region: cfg.S3.Region, UseSSL: cfg.S3.UseSSL,
+	})
+	if err != nil {
+		return err
+	}
 	// A topic without a handler is marked done as it arrives; each feature routes its own here.
-	imports := csvio.NewService(cluster, requirement.NewService(cluster), trace.NewService(cluster), search.NewService(cluster))
+	requirements, links := requirement.NewService(cluster), trace.NewService(cluster)
+	imports := csvio.NewService(cluster, requirements, links, search.NewService(cluster))
+	exchanges := reqifio.NewService(cluster, requirements, attribute.NewService(cluster), links,
+		attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log), store)
 	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports)).
+		Route(reqifio.TopicRequested, reqifio.Handler(exchanges)).
 		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
@@ -114,13 +127,6 @@ func run() error {
 	}
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
-	store, err := objectstore.Open(objectstore.Config{
-		Endpoint: cfg.S3.Endpoint, Bucket: cfg.S3.Bucket, AccessKey: cfg.S3.AccessKey,
-		SecretKey: cfg.S3.SecretKey, Region: cfg.S3.Region, UseSSL: cfg.S3.UseSSL,
-	})
-	if err != nil {
-		return err
-	}
 	if objectstore.IsUnavailable(store) {
 		log.Warn("files are not removed: EXCITER_S3_ENDPOINT is not set")
 	} else {

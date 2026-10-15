@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- ReqIF import and export (#44). A project, or a section and what is below
+  it, downloads as `.reqif` or as `.reqifz` with the pictures and files its
+  text shows, valid against the ReqIF 1.2 schema. A ReqIF file from another
+  tool imports from the project settings' ReqIF tab: its types, attributes,
+  enumerations, hierarchy, relations and rich text come across, what matches
+  nothing is made, and every choice and loss is shown before the worker
+  writes anything. Identifiers are kept both ways, so a file that went out and
+  comes back changes what it made as new revisions. See
+  `docs/api-contract-backlog.md`.
 - A Helm chart, `deploy/charts/exciter` (#104), with the values of Stator's:
   Postgres through CloudNativePG, one's own or bundled, Valkey, an S3 store
   with SeaweedFS for a trial, generated secrets, and the roles, migrate,

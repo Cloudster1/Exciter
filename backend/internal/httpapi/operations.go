@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -550,6 +551,31 @@ var operations = []operation{
 		query:   append(gridQuery, param{name: "column", repeated: true, description: "Columns in order, as the grid names them; the grid's default when absent."}),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
+	// ReqIF import and export (#44, docs/api-contract-backlog.md).
+	{method: "POST", path: "/projects/{projectKey}/reqif-imports", handler: "handleUploadReqIF", tag: "reqif",
+		summary:   "Upload a ReqIF document or a .reqifz archive, sent as a multipart part named file, and see what its types, attributes and link types match and what the import would make. Nothing is written yet. For the project's administrators.",
+		multipart: true, responses: map[int]any{http.StatusCreated: env{"import": reqifio.Import{}}, http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/reqif-imports/{importID}", handler: "handleGetReqIF", tag: "reqif",
+		summary:   "A ReqIF import: its schema, losses and problems before it starts, its progress while it runs, and what it did after.",
+		responses: ok(env{"import": reqifio.Import{}})},
+	{method: "PUT", path: "/reqif-imports/{importID}/choices", handler: "handleChooseReqIF", tag: "reqif",
+		summary: "Map the file's types, attributes and link types to the project's, to create or to skip, and see what that leaves.",
+		request: reqifio.ChoicesInput{}, responses: map[int]any{http.StatusOK: env{"import": reqifio.Import{}}, http.StatusConflict: errorEnvelope{}}},
+	{method: "POST", path: "/reqif-imports/{importID}/start", handler: "handleStartReqIF", tag: "reqif",
+		summary:   "Hand a ReqIF import without problems to the worker; refused as import_problems while any are left.",
+		responses: map[int]any{http.StatusAccepted: env{"import": reqifio.Import{}}, http.StatusConflict: errorEnvelope{}}},
+	{method: "DELETE", path: "/reqif-imports/{importID}", handler: "handleCancelReqIF", tag: "reqif",
+		summary:   "Discard a ReqIF import that has not started, or stop one that runs after the object it is on.",
+		responses: none()},
+	{method: "GET", path: "/projects/{projectKey}/export.reqif", handler: "handleExportReqIF", tag: "reqif",
+		summary: "A project, or one requirement and everything below it, as a ReqIF document, with the identifiers of earlier exchanges.",
+		query:   []param{reqifSection},
+		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
+	{method: "GET", path: "/projects/{projectKey}/export.reqifz", handler: "handleExportReqIFZ", tag: "reqif",
+		summary: "The same as a .reqifz archive, with the images and files its text shows.",
+		query:   []param{reqifSection},
+		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
+
 	// The Armature integration (M2, docs/api-contract-m2.md): the connection and each person's token (#26).
 	{method: "GET", path: "/armature/connection", handler: "handleGetArmatureConnection", orgWide: true, tag: "armature",
 		summary:   "The installation's Armature: where people open it and where its webhooks go; null when none. For administrators.",
@@ -919,6 +945,9 @@ var searchQuery = []param{
 }
 
 // gridQuery narrows and orders one project's requirements, as a view's filter does; every part is optional.
+// reqifSection narrows a ReqIF export to one requirement and everything below it.
+var reqifSection = param{name: "section", description: "The key of a requirement or section, which is exported with everything below it; the whole project when absent."}
+
 var gridQuery = []param{
 	{name: "q", description: "Words to find, as in search."},
 	{name: "kind", repeated: true, schema: &openapi.Schema{Type: "string", Enum: enumStrings(requirement.Kinds)}, description: "Requirements, sections or both when absent."},

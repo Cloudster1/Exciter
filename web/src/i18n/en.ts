@@ -18,6 +18,7 @@ import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
+import { reqifEn } from "./reqif.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
@@ -338,6 +339,7 @@ export const en = {
   baseline: baselineEn,
   coverage: coverageEn,
   imports: importsEn,
+  reqif: reqifEn,
   search: searchEn,
   grid: gridEn,
   themes: themesEn,

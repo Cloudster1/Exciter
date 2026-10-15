@@ -36,8 +36,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   milestone's contract divides a range of migration numbers among its issues:
   `docs/api-contract-m1.md` for the requirements core (#10),
   `docs/api-contract-m2.md` for the Armature integration (#25),
-  `docs/api-contract-m3.md` for review and control (#32), and
-  `docs/api-contract-m4.md` for the Stator integration (#39).
+  `docs/api-contract-m3.md` for review and control (#32),
+  `docs/api-contract-m4.md` for the Stator integration (#39), and
+  `docs/api-contract-backlog.md` for what came after the first release.
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -186,6 +187,15 @@ app role holds no privilege on.
   one that was shown. After `import.requested` the worker runs it as the
   person who started it, each row in its own transaction, then the tree and
   the links. Export is the grid's query written as CSV.
+- **ReqIF import and export** (#44): the exchange format of requirements
+  tools. An upload is read once into `reqif_import`, the files its rich text
+  shows beside it, and analysed against the project the way a CSV import is:
+  types, attributes and link types match by the identifier an earlier
+  exchange tied, then by name, and the rest are made. The worker makes the
+  schema, then writes each object as the person who started it, then the
+  relations, and ties every identifier in `reqif_identity`, which the export
+  writes back. Rich text is XHTML converted to and from the editor's
+  documents. See `docs/api-contract-backlog.md`.
 - **Project templates** (#24): three built-in structures in code, shaped
   after Stator's space templates. Choosing one is part of making a project:
   in the same transaction it sets the types, attributes, link types and

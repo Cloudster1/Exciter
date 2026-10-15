@@ -295,6 +295,8 @@ export const COPY_FEEDBACK_MS = 2000;
 export const IMPORT_POLL_MS = 1000;
 /** The largest file an import takes, the API's csvio.MaxImportBytes. */
 export const IMPORT_MAX_BYTES = 8 * 1024 * 1024;
+/** The largest ReqIF file or archive an import takes, the API's reqifio.MaxImportBytes. */
+export const REQIF_MAX_BYTES = 64 * 1024 * 1024;
 
 /** Where a person reads what they were told, chooses how they are told, and sees what they watch (#34). */
 export const NOTIFICATIONS_PATH = "/notifications";

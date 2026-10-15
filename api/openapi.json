@@ -67,6 +67,9 @@
       "name": "projects"
     },
     {
+      "name": "reqif"
+    },
+    {
       "name": "requirements"
     },
     {
@@ -5884,6 +5887,126 @@
         }
       }
     },
+    "/projects/{projectKey}/export.reqif": {
+      "get": {
+        "operationId": "exportReqIF",
+        "summary": "A project, or one requirement and everything below it, as a ReqIF document, with the identifiers of earlier exchanges.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "description": "The key of a requirement or section, which is exported with everything below it; the whole project when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/export.reqifz": {
+      "get": {
+        "operationId": "exportReqIFZ",
+        "summary": "The same as a .reqifz archive, with the images and files its text shows.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "description": "The key of a requirement or section, which is exported with everything below it; the whole project when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/grants": {
       "get": {
         "operationId": "listProjectGrants",
@@ -6790,6 +6913,94 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/reqif-imports": {
+      "post": {
+        "operationId": "uploadReqIF",
+        "summary": "Upload a ReqIF document or a .reqifz archive, sent as a multipart part named file, and see what its types, attributes and link types match and what the import would make. Nothing is written yet. For the project's administrators.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "import": {
+                      "$ref": "#/components/schemas/ReqIFImport"
+                    }
+                  },
+                  "required": [
+                    "import"
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -8594,6 +8805,219 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reqif-imports/{importID}": {
+      "delete": {
+        "operationId": "cancelReqIF",
+        "summary": "Discard a ReqIF import that has not started, or stop one that runs after the object it is on.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "importID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getReqIF",
+        "summary": "A ReqIF import: its schema, losses and problems before it starts, its progress while it runs, and what it did after.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "importID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "import": {
+                      "$ref": "#/components/schemas/ReqIFImport"
+                    }
+                  },
+                  "required": [
+                    "import"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reqif-imports/{importID}/choices": {
+      "put": {
+        "operationId": "chooseReqIF",
+        "summary": "Map the file's types, attributes and link types to the project's, to create or to skip, and see what that leaves.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "importID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReqIFChoices"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "import": {
+                      "$ref": "#/components/schemas/ReqIFImport"
+                    }
+                  },
+                  "required": [
+                    "import"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reqif-imports/{importID}/start": {
+      "post": {
+        "operationId": "startReqIF",
+        "summary": "Hand a ReqIF import without problems to the worker; refused as import_problems while any are left.",
+        "tags": [
+          "reqif"
+        ],
+        "parameters": [
+          {
+            "name": "importID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "import": {
+                      "$ref": "#/components/schemas/ReqIFImport"
+                    }
+                  },
+                  "required": [
+                    "import"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -17957,6 +18381,342 @@
         "required": [
           "name",
           "healthy"
+        ]
+      },
+      "ReqIFChoices": {
+        "type": "object",
+        "properties": {
+          "choices": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "choices"
+        ]
+      },
+      "ReqIFImport": {
+        "type": "object",
+        "properties": {
+          "byName": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "reqif",
+              "reqifz"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "imported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "preview": {
+            "$ref": "#/components/schemas/ReqIFPreview"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReqIFRefusal"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "uploaded",
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unchanged": {
+            "type": "integer"
+          },
+          "updated": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "fileName",
+          "format",
+          "state",
+          "choices",
+          "preview",
+          "done",
+          "total",
+          "imported",
+          "updated",
+          "unchanged",
+          "refused",
+          "error",
+          "byName",
+          "createdAt",
+          "finishedAt"
+        ]
+      },
+      "ReqIFLoss": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "formatting",
+              "image",
+              "value",
+              "relation",
+              "place",
+              "status",
+              "person"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "where",
+          "message"
+        ]
+      },
+      "ReqIFPreview": {
+        "type": "object",
+        "properties": {
+          "images": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReqIFLoss"
+            }
+          },
+          "lostCount": {
+            "type": "integer"
+          },
+          "new": {
+            "type": "integer"
+          },
+          "objects": {
+            "type": "integer"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReqIFProblem"
+            }
+          },
+          "relations": {
+            "type": "integer"
+          },
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReqIFSchemaItem"
+            }
+          },
+          "sections": {
+            "type": "integer"
+          },
+          "sourceTool": {
+            "type": "string"
+          },
+          "specifications": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "updates": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "sourceTool",
+          "specifications",
+          "objects",
+          "sections",
+          "relations",
+          "images",
+          "new",
+          "updates",
+          "schema",
+          "losses",
+          "lostCount",
+          "problems"
+        ]
+      },
+      "ReqIFProblem": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "where",
+          "message"
+        ]
+      },
+      "ReqIFRefusal": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "where",
+          "reason"
+        ]
+      },
+      "ReqIFSchemaItem": {
+        "type": "object",
+        "properties": {
+          "becomes": {
+            "type": "string",
+            "enum": [
+              "text",
+              "richText",
+              "number",
+              "select",
+              "multiSelect",
+              "date",
+              "user",
+              "boolean",
+              "url"
+            ]
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "identifier",
+              "name",
+              "choice",
+              "field",
+              "create",
+              "skip",
+              "section",
+              "none"
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "field": {
+            "type": "string"
+          },
+          "fits": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "text",
+                "richText",
+                "number",
+                "select",
+                "multiSelect",
+                "date",
+                "user",
+                "boolean",
+                "url"
+              ]
+            }
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "type",
+              "attribute",
+              "linkType"
+            ]
+          },
+          "means": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "meansName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "identifier",
+          "name",
+          "means",
+          "meansName",
+          "by",
+          "count"
         ]
       },
       "RequestBody": {

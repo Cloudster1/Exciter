@@ -469,6 +469,14 @@ Adapted from Armature at 97852cb, for the suite's realm (#102):
 - deploy/keycloak/realm-check.mjs and the realm-check target: the same
   script, run in the shell layer of ./run-tests.sh
 
+Adapted from Stator at 9aea089, for ReqIF import and export (#44):
+- backend/internal/reqifio/archive.go: openBundle, commonFolder, read and the
+  unpacked count of internal/wikiread, the files of an archive by path, held
+  to a limit whatever its directory claims
+- backend/internal/reqifio/read.go: the token by token reading of
+  internal/wikiread/xml.go, UTF-8 only, over the elements of a ReqIF
+  document rather than the objects of a wiki export
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

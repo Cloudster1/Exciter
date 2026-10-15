@@ -36,6 +36,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -105,6 +106,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
+		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Armature:      h.armature(t),
 		Stator:        h.stator(t),
 		Comments:      comment.NewService(h.cluster),

@@ -27,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -105,6 +106,8 @@ type Server struct {
 	Baselines *baseline.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
+	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
+	ReqIF *reqifio.Service
 	// handler is the router Routes built, which MCP sends each tool call through.
 	handler http.Handler
 	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
@@ -473,6 +476,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/imports/{importID}/start", s.handleStartImport)
 			r.Delete("/imports/{importID}", s.handleCancelImport)
 			r.Get("/projects/{projectKey}/export.csv", s.handleExportCSV)
+		})
+
+		// ReqIF import and export: a file from another tool into a project, run the way a CSV import is, and a
+		// project or a section out as ReqIF for whoever views it.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.reqifOn)
+			r.Post("/projects/{projectKey}/reqif-imports", s.handleUploadReqIF)
+			r.Get("/reqif-imports/{importID}", s.handleGetReqIF)
+			r.Put("/reqif-imports/{importID}/choices", s.handleChooseReqIF)
+			r.Post("/reqif-imports/{importID}/start", s.handleStartReqIF)
+			r.Delete("/reqif-imports/{importID}", s.handleCancelReqIF)
+			r.Get("/projects/{projectKey}/export.reqif", s.handleExportReqIF)
+			r.Get("/projects/{projectKey}/export.reqifz", s.handleExportReqIFZ)
 		})
 
 		// What the caller may do across the installation, and the people and groups a grant names.
