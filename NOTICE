@@ -494,6 +494,19 @@ Adapted from Stator at 9aea089, for exporting documents (#45):
   saveFile in web/src/api/documents.ts: the print view's readiness, the
   export dialog and the download, over a document rather than a page
 
+Adapted from Armature at e3dccd1, for the query language (#47):
+- backend/internal/rql lexer.go, parser.go, ast.go, errors.go, dates.go and
+  like.go: the same lexer, parser and date reading of internal/nql, with
+  limits on a query's length, depth and conditions
+- backend/internal/rql catalog.go, compile.go, compile_values.go and
+  complete.go: the catalog, the compiler and the completion of internal/nql,
+  over a project's requirements, attributes and link types rather than
+  issues, and the tests beside them
+- web/src/features/query/QueryInput.tsx and help.ts: the query box of
+  features/search, its completion at the caret and its error under the text,
+  without recent queries and saved filters, a row picked only by a pointer
+  that moves
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license
