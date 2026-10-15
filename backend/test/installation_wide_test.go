@@ -15,13 +15,14 @@ const (
 	linkTypes        = "changes the link types for all projects"
 	defaultTheme     = "names the default theme for everyone"
 	armatureLink     = "connects the installation to an Armature stub of its own"
+	statorLink       = "connects the installation to the Stator stub, and sets what it offers"
 	singleSignOn     = "sets up the one identity provider, its group roles and who waits, and moves the realm's people"
 	installationName = "renames the installation"
 )
 
 // keepers are the helpers that put such a setting back, with what each is for.
 var keepers = map[string]string{
-	"keepLinkTypes": linkTypes, "keepDefaultTheme": defaultTheme, "keepArmature": armatureLink,
+	"keepLinkTypes": linkTypes, "keepDefaultTheme": defaultTheme, "keepArmature": armatureLink, "keepStator": statorLink,
 	"singleSignOn": singleSignOn, "keepInstallationName": installationName,
 }
 
@@ -48,6 +49,11 @@ var installationWide = map[string]string{
 	"TestCoverageFollowsTheRulesAndTheLinks":                   armatureLink,
 	"TestTheMatrixLaysOutTheLinks":                             armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":             armatureLink,
+
+	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,
+	"TestTheConnectionKnowsWhatStatorOffers":                 statorLink,
+	"TestAStatorThatDoesNotAnswer":                           statorLink,
+	"TestRawSQLWallsStatorRows":                              statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,

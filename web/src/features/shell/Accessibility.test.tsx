@@ -13,6 +13,8 @@ import {
   PROJECTS_PATH,
   SIDEBAR_DRAWER_BELOW_PX,
   SSO_PATH,
+  STATOR_ACCOUNT_PATH,
+  STATOR_SETTINGS_PATH,
   THEMES_PATH,
 } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
@@ -105,6 +107,11 @@ const settingsApi = () =>
         },
       },
     },
+    "GET /stator/connection": { status: 200, body: { connection: null } },
+    "GET /stator/account": {
+      status: 200,
+      body: { account: { configured: true, baseUrl: "https://stator.example.com", connected: false, status: "not_connected", user: null, checkedAt: null } },
+    },
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
     "GET /users/requests": { status: 200, body: { requests: [waiting] } },
     "GET /oidc-provider": { status: 200, body: { provider, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" } },
@@ -184,6 +191,7 @@ describe("the account menu", () => {
     const themes = within(menu).getByRole("menuitem", { name: "Themes" });
     const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
     const armature = within(menu).getByRole("menuitem", { name: "Armature account" });
+    const stator = within(menu).getByRole("menuitem", { name: "Stator account" });
     const notifications = within(menu).getByRole("menuitem", { name: "Notification settings" });
     const watching = within(menu).getByRole("menuitem", { name: "Watching" });
     const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
@@ -191,7 +199,7 @@ describe("the account menu", () => {
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
     expect(themes).toHaveFocus();
-    for (const next of [tokens, armature, notifications, watching, browser, english, german, signOut, themes]) {
+    for (const next of [tokens, armature, stator, notifications, watching, browser, english, german, signOut, themes]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }
@@ -343,6 +351,8 @@ describe("axe", () => {
     NEW_PROJECT_PATH,
     ARMATURE_SETTINGS_PATH,
     ARMATURE_ACCOUNT_PATH,
+    STATOR_SETTINGS_PATH,
+    STATOR_ACCOUNT_PATH,
     "/p/CHK/settings",
     "/p/OLD/settings",
   ])("finds nothing on %s", async (path) => {

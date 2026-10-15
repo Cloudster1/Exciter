@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -164,4 +165,34 @@ func guardedDial(dialer *net.Dialer, allow Allow) func(context.Context, string, 
 		}
 		return nil, last
 	}
+}
+
+// Rewriting sends a request for a public origin to where this process reaches it, keeping the public Host header,
+// as oidc.Backchannel does; next still guards the address it reaches. Without rewrites it is next.
+func Rewriting(rewrites map[string]string, next http.RoundTripper) http.RoundTripper {
+	if len(rewrites) == 0 {
+		return next
+	}
+	return &rewriting{rewrites: rewrites, next: next}
+}
+
+type rewriting struct {
+	rewrites map[string]string
+	next     http.RoundTripper
+}
+
+func (r *rewriting) RoundTrip(req *http.Request) (*http.Response, error) {
+	target, ok := r.rewrites[req.URL.Scheme+"://"+req.URL.Host]
+	if !ok {
+		return r.next.RoundTrip(req)
+	}
+	reach, err := url.Parse(target)
+	if err != nil || reach.Host == "" {
+		return r.next.RoundTrip(req)
+	}
+	clone := req.Clone(req.Context())
+	clone.URL.Scheme = reach.Scheme
+	clone.URL.Host = reach.Host
+	clone.Host = req.URL.Host
+	return r.next.RoundTrip(clone)
 }

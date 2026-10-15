@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useLogout, useMe, useSetLanguage } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { ARMATURE_ACCOUNT_PATH, NOTIFICATION_SETTINGS_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
+import { ARMATURE_ACCOUNT_PATH, NOTIFICATION_SETTINGS_PATH, STATOR_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { WaitingReviewsButton } from "@/features/reviews/WaitingReviews";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
@@ -119,6 +119,12 @@ function AccountMenu() {
       icon: <Icon.Link />,
       onSelect: () => navigate({ to: ARMATURE_ACCOUNT_PATH }),
       attrs: { "data-action": "armature-account" },
+    },
+    {
+      label: t.account.stator,
+      icon: <Icon.Link />,
+      onSelect: () => navigate({ to: STATOR_ACCOUNT_PATH }),
+      attrs: { "data-action": "stator-account" },
     },
     {
       label: t.account.notifications,

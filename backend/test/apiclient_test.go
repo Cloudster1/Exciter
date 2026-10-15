@@ -106,6 +106,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		Armature:      h.armature(t),
+		Stator:        h.stator(t),
 		Comments:      comment.NewService(h.cluster),
 		Watches:       watch.NewService(h.cluster),
 		Notifications: notify.NewService(h.cluster),
