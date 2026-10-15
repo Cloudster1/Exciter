@@ -166,6 +166,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Get("/auth/oidc/start", s.handleOIDCStart)
 		r.Get("/auth/oidc/callback", s.handleOIDCCallback)
 		r.With(s.armatureOn).Post("/armature/webhook", s.handleArmatureWebhook)
+		r.With(s.statorOn).Post("/stator/webhook", s.handleStatorWebhook)
 		mountPending(r, true)
 
 		r.Group(func(r chi.Router) {
@@ -444,7 +445,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(s.themesOn).Delete("/armature/theme", s.handleUnfollowArmatureTheme)
 		})
 
-		// Stator: the installation's connection for its administrators and each member's own token for them (#40).
+		// Stator: the installation's connection for its administrators, each member's own token for them (#40), and
+		// the pages requirements are traced to, read as the caller (#41).
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.statorOn)
 			r.With(requireAdmin).Get("/stator/connection", s.handleGetStatorConnection)
@@ -454,6 +456,12 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireSession).Put("/stator/account/token", s.handleStoreStatorToken)
 			r.Post("/stator/account/check", s.handleCheckStatorAccount)
 			r.With(requireSession).Delete("/stator/account/token", s.handleRemoveStatorToken)
+			r.Get("/stator/pages", s.handleLookupStatorPages)
+			r.Get("/stator/search", s.handleSearchStatorPages)
+			r.Get("/requirements/{reqKey}/stator-links", s.handleListStatorLinks)
+			r.Post("/requirements/{reqKey}/stator-links", s.handleCreateStatorLink)
+			r.Delete("/stator-links/{linkID}", s.handleDeleteStatorLink)
+			r.Post("/stator-links/{linkID}/clear", s.handleClearStatorLink)
 		})
 
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,

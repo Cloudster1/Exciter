@@ -244,6 +244,41 @@ Armature's #26, with these differences:
 - **UI:** a "Stator pages" panel on the requirement page, beside the trace
   links and the Armature issues, with the picker, the relation and each link's
   chip, suspect badge and check.
+- **As built** (#41):
+  - Migration 00610. `stator_page_link` takes its requirement's revision as
+    `reviewed_rev` in a trigger, which also refuses a section, a trashed
+    requirement and an installation without Stator. `exciter_app` inserts
+    the requirement, relation, page, space key, URL and itself, and nothing
+    else: `page_version` and `page_version_seen` are written as the admin
+    role, from a live read (`noteVersions`, which never lowers a version and
+    gives a link that has seen none the one read) or a webhook, and the
+    version seen moves on only through `stator_page_link_clear`. Clearances
+    go into `trace_link_clearance` with `stator_link_id` and `page_version`
+    beside the requirement's revision as `source_rev`.
+  - The picker answers `StatorPageHit` (`id`, `title`, `spaceKey`,
+    `spaceName`, `path`, `url`) rather than a whole page, since Stator's
+    quick search has no versions. A link's `sync` is `none` until #42.
+  - Clearing names the page's version: newer than the stored one, or below
+    1, is 422 on `pageVersion`; older is 409 `revision_moved_on`.
+    `link.cleared` carries `statorLinkId`.
+  - `suspectLinks` (#36) counts Stator links too, so the grid's filter and
+    the specification's badges show them; as with Armature links, the
+    project's suspect list is of trace links only, and coverage counts
+    nothing from pages. A broken or detached link is not suspect.
+  - Baselines (#37) do not record Stator links yet, as they record
+    Armature links in `baseline_external_link`; that is left for its own
+    issue.
+  - Webhooks act on `page.published`, `page.moved` and `page.deleted`; a
+    page's address is built from the connection's base URL, not the one
+    Stator writes in the payload. Stator's envelope carries no `version`,
+    which reads as 1. Its document still requires `orgId` on
+    `WebhookEnvelope`, which its webhook service no longer sends, so the
+    stub sends none and its contract test checks the envelope's fields
+    itself.
+  - The stub reads pages and searches in Stator's shapes, with spaces ENG
+    (everybody) and SEC (`admin` alone), and its controls publish, move and
+    trash a page, each announced to the webhook a tenant registered, as
+    `armature-stub` does.
 
 ## #42 Show Exciter links on Stator pages
 

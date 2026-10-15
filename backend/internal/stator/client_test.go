@@ -167,6 +167,34 @@ func TestDescribeKnowsStatorFromEverythingElse(t *testing.T) {
 	}
 }
 
+// A page reads as the viewer shows it: its path from the space's home down, and its address under the connection's.
+func TestAPageReadsAsStatorAnswersIt(t *testing.T) {
+	id := uuid.New()
+	srv := stator(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/pages/"+id.String() {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"error":{"code":"not_found","message":"No."}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"page":{"id":"` + id.String() + `","title":"Brake timing","spaceKey":"ENG","version":4,
+			"updatedAt":"2026-10-01T09:00:00Z","updatedByName":"Alice","ancestors":[{"title":"Home"},{"title":"Braking"}],"body":{}},
+			"space":{"name":"Engineering"}}`))
+	})
+	s := &Service{}
+	v := &Viewer{Caller: loopback().As(srv.URL, "stator_pat_x")}
+	page, err := s.fetchPage(context.Background(), v, id)
+	if err != nil || page == nil {
+		t.Fatalf("the page is %v, %v", page, err)
+	}
+	if page.Version != 4 || page.SpaceName != "Engineering" || strings.Join(page.Path, "/") != "Home/Braking" ||
+		page.URL != srv.URL+"/s/ENG/p/"+id.String() {
+		t.Errorf("the page reads %+v", page)
+	}
+	if gone, err := s.fetchPage(context.Background(), v, uuid.New()); gone != nil || err != nil {
+		t.Errorf("a page the viewer may not read is %v, %v", gone, err)
+	}
+}
+
 // Stator names a capability with its version after an @ (Stator's #409); any version of the name counts.
 func TestACapabilityIsKnownByItsName(t *testing.T) {
 	for _, tc := range []struct {

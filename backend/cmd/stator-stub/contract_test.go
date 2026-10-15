@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/cloudster1/exciter/backend/internal/openapi"
@@ -52,9 +54,20 @@ type contract struct {
 	served map[string]bool
 }
 
+// route finds the stub's route for a concrete path; a {name} segment of the template matches any one segment.
 func (c *contract) route(method, path string) *route {
 	for i, rt := range routes {
-		if rt.Method == method && rt.Path == path {
+		want, got := strings.Split(rt.Path, "/"), strings.Split(path, "/")
+		if rt.Method != method || len(want) != len(got) {
+			continue
+		}
+		matches := true
+		for j := range want {
+			if !strings.HasPrefix(want[j], "{") && want[j] != got[j] {
+				matches = false
+			}
+		}
+		if matches {
 			return &routes[i]
 		}
 	}
@@ -88,9 +101,10 @@ func (c *contract) call(method, path, token string, body any) (int, []byte) {
 		return resp.StatusCode, raw
 	}
 
-	rt := c.route(method, path)
+	bare, _, _ := strings.Cut(path, "?")
+	rt := c.route(method, bare)
 	if rt == nil {
-		c.t.Fatalf("%s %s is no route of the stub", method, path)
+		c.t.Fatalf("%s %s is no route of the stub", method, bare)
 	}
 	op := c.doc.Paths[rt.Path][strings.ToLower(method)]
 	answer, ok := op.Responses[strconv.Itoa(resp.StatusCode)]
@@ -158,6 +172,8 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 	c.expect("GET", "/auth/me", "", nil, 401)
 	c.expect("GET", "/auth/me", "armature_pat_acme_alice", nil, 401)
 
+	pagesTenantScenario(t, c)
+
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
 	}
@@ -170,4 +186,115 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 			t.Errorf("the scenario never had %s %s answer with a success", rt.Method, rt.Path)
 		}
 	}
+}
+
+// pagesTenantScenario reads pages and searches as Exciter does (#41), and changes them as a person in Stator would,
+// each change announced to a registered webhook.
+func pagesTenantScenario(t *testing.T, c *contract) {
+	alice, admin := patFor("acme", "alice"), patFor("acme", adminName)
+	listed := map[string]map[string]any{}
+	for _, p := range c.expect("GET", stubPrefix+"/acme/pages", "", nil, 200)["pages"].([]any) {
+		page := p.(map[string]any)
+		listed[page["title"].(string)] = page
+	}
+	timing, threat := listed["Brake timing"]["id"].(string), listed["Threat model"]["id"].(string)
+
+	got := c.expect("GET", "/pages/"+timing, alice, nil, 200)
+	page := got["page"].(map[string]any)
+	if page["version"] != float64(2) || fmt.Sprint(page["ancestors"].([]any)[1].(map[string]any)["title"]) != "Braking system" ||
+		got["space"].(map[string]any)["name"] != "Engineering" {
+		t.Errorf("Brake timing reads %v", got)
+	}
+	c.expect("GET", "/pages/"+threat, alice, nil, 404)
+	c.expect("GET", "/pages/"+threat, admin, nil, 200)
+	c.expect("GET", "/pages/not-an-id", alice, nil, 404)
+
+	for _, tc := range []struct{ query, as, want string }{
+		{"q=brak", alice, "[Braking system Brake timing]"},
+		{"q=brake+tim", alice, "[Brake timing]"},
+		{"q=threat", alice, "[]"},
+		{"q=threat", admin, "[Threat model]"},
+		{"q=home&space=sec", admin, "[Security home]"},
+		{"q=brak&limit=1", alice, "[Braking system]"},
+	} {
+		var titles []string
+		for _, h := range c.expect("GET", "/search/quick?"+tc.query, tc.as, nil, 200)["pages"].([]any) {
+			titles = append(titles, h.(map[string]any)["title"].(string))
+		}
+		if fmt.Sprint(titles) != tc.want && !(tc.want == "[]" && titles == nil) {
+			t.Errorf("%s found %v, want %s", tc.query, titles, tc.want)
+		}
+	}
+
+	got2 := webhookBin(t)
+	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": got2.url + "/hook", "secret": "stator_whs_contract"}, 204)
+	if v := c.expect("POST", stubPrefix+"/acme/pages/"+timing+"/publish", "", map[string]any{"title": "Brake timing, revised"}, 200)["version"]; v != float64(3) {
+		t.Errorf("publishing made version %v", v)
+	}
+	c.expect("POST", stubPrefix+"/acme/pages/"+timing+"/move", "", map[string]any{"spaceKey": "SEC"}, 204)
+	c.expect("GET", "/pages/"+timing, alice, nil, 404)
+	c.expect("DELETE", stubPrefix+"/acme/pages/"+listed["Onboarding guide"]["id"].(string), "", nil, 204)
+	c.expect("GET", "/pages/"+listed["Onboarding guide"]["id"].(string), alice, nil, 404)
+	c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping", "payload": map[string]any{"message": "Stator can reach this address."}}, 200)
+	if topics := got2.topics(); topics != "page.published page.moved page.deleted ping" {
+		t.Errorf("the stub announced %s", topics)
+	}
+	published, moved := got2.payload(0)["page"].(map[string]any), got2.payload(1)
+	if published["version"] != float64(3) || published["title"] != "Brake timing, revised" || moved["page"].(map[string]any)["space"].(map[string]any)["key"] != "SEC" {
+		t.Errorf("the announcements read %v and %v", published, moved)
+	}
+	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": ""}, 204)
+	c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping"}, 409)
+}
+
+// bin receives the stub's webhooks, checking each is signed and shaped as Stator's webhook service sends it. Stator's
+// document still requires orgId on WebhookEnvelope, which its service no longer sends, so the shape is checked here.
+type bin struct {
+	t      *testing.T
+	url    string
+	mu     sync.Mutex
+	bodies []map[string]any
+}
+
+func webhookBin(t *testing.T) *bin {
+	b := &bin{t: t}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		if r.Header.Get(stator.SignatureHeader) != stator.Sign(raw, "stator_whs_contract") || r.Header.Get(stator.EventHeader) == "" {
+			t.Errorf("a delivery is not signed as Stator signs: %v", r.Header)
+		}
+		body := map[string]any{}
+		_ = json.Unmarshal(raw, &body)
+		for _, field := range []string{"id", "topic", "occurredAt", "payload"} {
+			if _, ok := body[field]; !ok {
+				t.Errorf("a delivery has no %s: %s", field, raw)
+			}
+		}
+		b.mu.Lock()
+		b.bodies = append(b.bodies, body)
+		b.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	b.url = server.URL
+	return b
+}
+
+func (b *bin) topics() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	var out []string
+	for _, body := range b.bodies {
+		out = append(out, body["topic"].(string))
+	}
+	return strings.Join(out, " ")
+}
+
+func (b *bin) payload(i int) map[string]any {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if i >= len(b.bodies) {
+		b.t.Fatalf("only %d deliveries came", len(b.bodies))
+	}
+	return b.bodies[i]["payload"].(map[string]any)
 }

@@ -176,12 +176,15 @@ const commentCounts = `
        (SELECT count(*)::int FROM comment_thread ct WHERE ct.requirement_id = r.id AND ct.resolved_at IS NULL
           AND EXISTS (SELECT 1 FROM comment cc WHERE cc.thread_id = ct.id AND cc.deleted_at IS NULL))`
 
-// SuspectLinks counts the suspect links of the requirement aliased r that the reader sees (#36), trace links and
-// Armature links, one column.
+// SuspectLinks counts the suspect links of the requirement aliased r that the reader sees (#36), trace links,
+// Armature links and Stator links (#41), one column; a Stator link watches its page, as stator.SuspectSQL says.
 const SuspectLinks = `
        ((SELECT count(*) FROM trace_link_state sl WHERE sl.suspect AND (sl.source_id = r.id OR sl.target_id = r.id))
         + (SELECT count(*) FROM armature_issue_link al
-           WHERE al.requirement_id = r.id AND r.trashed_at IS NULL AND r.revision > al.reviewed_rev))::int`
+           WHERE al.requirement_id = r.id AND r.trashed_at IS NULL AND r.revision > al.reviewed_rev)
+        + (SELECT count(*) FROM stator_page_link sp
+           WHERE sp.requirement_id = r.id AND r.trashed_at IS NULL AND sp.broken_at IS NULL AND sp.detached_at IS NULL
+             AND sp.page_version > sp.page_version_seen))::int`
 
 // Place is where a node goes in a tree: below a parent, after a sibling.
 type Place struct {

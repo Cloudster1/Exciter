@@ -76,6 +76,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements linked to Stator pages (#41). A requirement's editors link
+  it to the pages that specify, describe or relate to it, found by the first
+  words of their titles; each page shows its title, space, path and version
+  as the viewer may read it in Stator. A link turns suspect when Stator
+  publishes a newer version of the page, counts in the requirement's
+  suspect links, and is confirmed against the version read, with a comment.
+  Stator's webhooks for published, moved and deleted pages keep the links
+  current.
 - Connecting Stator (#40). An administrator saves the address of the
   team's Stator under Settings, Stator, which Exciter checks answers as one,
   with the secret of Stator's webhook; each person pastes their own Stator

@@ -25,6 +25,7 @@ import { TypeIcon } from "@/features/types/TypeIcon";
 import { RequirementLabels } from "@/features/labels/RequirementLabels";
 import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
 import { ArmatureLinks } from "@/features/armature/ArmatureLinks";
+import { StatorLinks } from "@/features/stator/StatorLinks";
 import { CommentsSection } from "@/features/comments/CommentsSection";
 import { ReviewPanel } from "@/features/reviews/ReviewPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
@@ -131,6 +132,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       <RequirementLabels requirement={requirement} />
       <LinksPanel requirement={requirement} />
       <ArmatureLinks requirement={requirement} />
+      <StatorLinks requirement={requirement} />
       <AttachmentPanel requirement={requirement} />
       <CommentsSection requirement={requirement} />
       {mayEdit && <TrashSection project={project} requirement={requirement} />}

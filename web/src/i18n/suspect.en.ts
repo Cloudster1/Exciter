@@ -26,4 +26,11 @@ export const suspectEn = {
   armatureIntro: "This requirement changed since its trace to the issue was last confirmed. Read what changed, then confirm the issue still covers it.",
   armatureLabel: (issue: string) => `Check the trace to ${issue}`,
   armatureCleared: (issue: string) => `The trace to ${issue} is confirmed.`,
+  statorHint: "The page has a newer version than the one this link was last confirmed against.",
+  statorTitle: (key: string, page: string) => `Check the trace of ${key} to ${page}`,
+  statorIntro: (from: number, to: number) =>
+    `The page went from version ${from} to version ${to} since its trace was last confirmed. Read it in Stator, then confirm the requirement still follows it.`,
+  statorOpen: "Open the page in Stator",
+  statorLabel: (page: string) => `Check the trace to ${page}`,
+  statorCleared: (page: string) => `The trace to ${page} is confirmed.`,
 };

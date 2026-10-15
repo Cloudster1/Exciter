@@ -30,4 +30,11 @@ export const suspectDe: typeof suspectEn = {
     "Diese Anforderung hat sich geändert, seit ihre Verfolgung zum Vorgang zuletzt bestätigt wurde. Lesen Sie die Änderung und bestätigen Sie dann, dass der Vorgang sie noch abdeckt.",
   armatureLabel: (issue) => `Die Verfolgung zu ${issue} prüfen`,
   armatureCleared: (issue) => `Die Verfolgung zu ${issue} ist bestätigt.`,
+  statorHint: "Die Seite hat eine neuere Version als die, gegen die diese Verknüpfung zuletzt bestätigt wurde.",
+  statorTitle: (key, page) => `Die Verfolgung von ${key} zu ${page} prüfen`,
+  statorIntro: (from, to) =>
+    `Die Seite ist von Version ${from} auf Version ${to} gegangen, seit ihre Verfolgung zuletzt bestätigt wurde. Lesen Sie sie in Stator und bestätigen Sie dann, dass die Anforderung ihr noch folgt.`,
+  statorOpen: "Die Seite in Stator öffnen",
+  statorLabel: (page) => `Die Verfolgung zu ${page} prüfen`,
+  statorCleared: (page) => `Die Verfolgung zu ${page} ist bestätigt.`,
 };

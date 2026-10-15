@@ -203,6 +203,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := armatureError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := statorLinkError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := statorError(err); apiErr != nil {
 			return apiErr
 		}

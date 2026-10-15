@@ -312,6 +312,9 @@ services:
   stator-stub:
     <<: *backend
     command: ["/app/stator-stub"]
+    environment:
+      # Webhooks go to the address Exciter shows, which people open; inside the stack the api answers it.
+      STATOR_STUB_BACKCHANNEL: http://localhost:${WEB_PORT:-8000}=http://api:8080
     ports:
       - "127.0.0.1:${STATOR_STUB_PORT:-8189}:8080"
     healthcheck:

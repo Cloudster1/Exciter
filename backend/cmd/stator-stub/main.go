@@ -10,14 +10,17 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
 // Settings, from the environment like everything in the stack.
 const (
-	addrEnv     = "STATOR_STUB_ADDR"
-	defaultAddr = ":8080"
+	addrEnv = "STATOR_STUB_ADDR"
+	// backchannelEnv holds public=reachable origin pairs, comma separated, for posting webhooks inside the stack.
+	backchannelEnv = "STATOR_STUB_BACKCHANNEL"
+	defaultAddr    = ":8080"
 
 	readHeaderTimeout = 10 * time.Second
 	shutdownGrace     = 5 * time.Second
@@ -42,7 +45,9 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	srv := &http.Server{Addr: addr, Handler: newStub().handler(), ReadHeaderTimeout: readHeaderTimeout}
+	stub := newStub()
+	stub.backchannel = pairs(os.Getenv(backchannelEnv))
+	srv := &http.Server{Addr: addr, Handler: stub.handler(), ReadHeaderTimeout: readHeaderTimeout}
 	served := make(chan error, 1)
 	go func() {
 		slog.Info("stator-stub listening", "addr", addr)
@@ -59,6 +64,17 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+// pairs reads "public=reachable" origins, comma separated.
+func pairs(raw string) map[string]string {
+	out := map[string]string{}
+	for _, pair := range strings.Split(raw, ",") {
+		if public, inside, ok := strings.Cut(strings.TrimSpace(pair), "="); ok && public != "" && inside != "" {
+			out[public] = inside
+		}
+	}
+	return out
 }
 
 // healthcheck lets the container check itself without curl in the image.
