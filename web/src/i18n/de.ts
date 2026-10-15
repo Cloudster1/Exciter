@@ -20,6 +20,7 @@ import { reqifDe } from "./reqif.de";
 import { documentsDe } from "./documents.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
+import { queryDe } from "./query.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -347,6 +348,7 @@ export const de: Messages = {
   documents: documentsDe,
   search: searchDe,
   grid: gridDe,
+  query: queryDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

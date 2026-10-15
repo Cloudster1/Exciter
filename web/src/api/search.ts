@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { QUICK_SEARCH_LIMIT, SEARCH_PAGE_SIZE } from "@/config";
+import { QUERY_SUGGEST_LIMIT, QUICK_SEARCH_LIMIT, SEARCH_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { components, operations } from "./schema";
 
@@ -21,6 +21,9 @@ export type Filter = Wire["ViewFilter"];
 export type Sort = Wire["ViewSort"];
 export type AttributeCondition = Wire["AttributeCondition"];
 export type Op = AttributeCondition["op"];
+/** What may come next at the caret of a grid's query (#47). */
+export type Suggestions = Wire["Suggestions"];
+export type Completion = Suggestions["completion"];
 
 export const searchQueryKey = ["search"] as const;
 const viewsKey = (projectKey: string) => ["views", projectKey.toUpperCase()] as const;
@@ -50,6 +53,21 @@ export function useGrid(projectKey: string, params: GridParams, window: { limit:
   return useQuery({
     queryKey: ["requirements", "list", projectKey.toUpperCase(), "grid", params, window],
     queryFn: async () => (await api.GET("/projects/{projectKey}/requirements", { params: { path: { projectKey }, query: { ...params, ...window } } })).data!,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** What may come next at the caret of a query being typed in a project's grid; the last answer stays until the next. */
+export function useQuerySuggestions(projectKey: string, typed: { q: string; at: number }, enabled: boolean) {
+  return useQuery({
+    queryKey: ["requirements", "suggest", projectKey.toUpperCase(), typed],
+    queryFn: async () =>
+      (
+        await api.GET("/projects/{projectKey}/requirements/suggest", {
+          params: { path: { projectKey }, query: { q: typed.q, at: typed.at, limit: QUERY_SUGGEST_LIMIT } },
+        })
+      ).data!,
+    enabled,
     placeholderData: keepPreviousData,
   });
 }

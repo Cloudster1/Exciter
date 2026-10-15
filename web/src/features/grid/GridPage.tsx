@@ -8,6 +8,7 @@ import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton } fro
 import { Icon } from "@/components/icons";
 import { GRID_PAGE_SIZE } from "@/config";
 import { SelectionBar, useMayCreateIssues, useSelection } from "@/features/armature/CreateIssues";
+import { queryFailure } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
 import { ColumnChooser } from "./ColumnChooser";
 import { DEFAULT_COLUMNS, fromAddress, gridParams, toAddress, type GridAddress } from "./filter";
@@ -61,6 +62,7 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
         types={types}
         statuses={statuses}
         attributes={attributes}
+        queryError={error}
         onFilter={(next) => onAddress(toAddress(next, sort, keep))}
       />
       <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
@@ -86,7 +88,7 @@ export function GridPage({ project, address, onAddress }: { project: Project; ad
         {notice}
       </p>
       {editError && <ErrorBanner>{editError}</ErrorBanner>}
-      {error ? (
+      {queryFailure(error) ? null : error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
       ) : isLoading || !data ? (
         <Skeleton rows={6} />
