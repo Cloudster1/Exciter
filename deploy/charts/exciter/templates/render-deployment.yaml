@@ -1,0 +1,84 @@
+{{- if .Values.render.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "exciter.fullname" . }}-render
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: render
+spec:
+  replicas: {{ .Values.render.replicas }}
+  selector:
+    matchLabels:
+      {{- include "exciter.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: render
+  template:
+    metadata:
+      labels:
+        {{- include "exciter.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: render
+      {{- with .Values.render.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "exciter.serviceAccountName" . }}
+      {{- with .Values.images.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # The Chrome image's own user, not ours: it owns the browser it ships.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: render
+          image: {{ include "exciter.image" (dict "root" $ "name" "render") }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            # Chromium writes a scratch profile under HOME. Nothing here needs
+            # to outlive the pod.
+            - name: HOME
+              value: /tmp
+            - name: RENDER_PORT
+              value: "8090"
+            - name: RENDER_CONCURRENCY
+              value: {{ .Values.render.concurrency | quote }}
+            # It prints the application's own pages, so it reaches the web pod
+            # in the cluster rather than going out through the ingress.
+            - name: RENDER_APP_URL
+              value: {{ printf "http://%s-web" (include "exciter.fullname" .) | quote }}
+          ports:
+            - name: http
+              containerPort: 8090
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.render.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.render.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.render.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.render.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

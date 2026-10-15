@@ -12,6 +12,9 @@ images:
   # under that version (tests/test-release-workflow.sh keeps the two lists equal).
   backend: { repository: ghcr.io/cloudster1/exciter-backend, tag: "" }
   web: { repository: ghcr.io/cloudster1/exciter-web, tag: "" }
+  # deploy/Dockerfile.render: the public Chrome image with the render
+  # service's script baked in, for PDF export.
+  render: { repository: ghcr.io/cloudster1/exciter-render, tag: "" }
   # The client the roles Job runs, and the server the bundled Postgres runs.
   psql: { repository: postgres, tag: 18-alpine }
   valkey: { repository: valkey/valkey, tag: 8-alpine }
@@ -153,6 +156,28 @@ attachments:
   # The largest file a requirement takes, such as 50MB or 2GB. The Ingress in
   # front must allow at least this much; an nginx Ingress reads proxy-body-size.
   uploadLimit: 50MB
+
+render:
+  # PDF export of specifications and baselines, as in Stator. Off by default:
+  # it needs a Chromium image an order of magnitude larger than everything
+  # else, and without it the only thing that fails is a PDF download, with a
+  # sentence saying so; Word export works either way.
+  enabled: false
+  replicas: 1
+  # How long one print may take, waiting for a free browser included; below
+  # the api's request timeout, so a slow document is refused in words.
+  timeout: 20s
+  # Prints one api pod runs at once; each pod of the service takes four.
+  concurrency: 4
+  # The largest PDF handed back.
+  maxSize: 50MB
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { memory: 2Gi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
 
 mail:
   # The SMTP relay the worker sends notifications through, as host:port.

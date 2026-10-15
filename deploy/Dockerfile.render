@@ -1,0 +1,10 @@
+# The PDF renderer: the public Chrome image with its puppeteer, and the server
+# script baked in. Adapted from Stator's deploy/Dockerfile.render, with the image
+# pinned. The compose stack bind mounts render/ instead, which a cluster cannot.
+FROM zenika/alpine-chrome:124-with-puppeteer
+WORKDIR /usr/src/app
+COPY render/ ./render/
+ENV HOME=/tmp
+EXPOSE 8090
+ENTRYPOINT ["node"]
+CMD ["/usr/src/app/render/server.mjs"]

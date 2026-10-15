@@ -257,6 +257,12 @@ EXCITER_DB_MAX_REPLICA_LAG: {{ .Values.database.pool.maxReplicaLag | quote }}
 EXCITER_DB_REPLICA_LAG_SAMPLES: {{ .Values.database.pool.replicaLagSamples | quote }}
 EXCITER_READ_YOUR_WRITES_TTL: {{ .Values.database.readYourWritesTTL | quote }}
 EXCITER_UPLOAD_LIMIT: {{ .Values.attachments.uploadLimit | quote }}
+{{- if .Values.render.enabled }}
+EXCITER_RENDER_URL: {{ printf "http://%s-render:8090" (include "exciter.fullname" .) | quote }}
+EXCITER_RENDER_TIMEOUT: {{ .Values.render.timeout | quote }}
+EXCITER_RENDER_CONCURRENCY: {{ .Values.render.concurrency | quote }}
+EXCITER_RENDER_MAX_SIZE: {{ .Values.render.maxSize | quote }}
+{{- end }}
 EXCITER_RETAIN_AUDIT: {{ .Values.retention.audit | quote }}
 {{- with .Values.mail.smtpAddr }}
 EXCITER_SMTP_ADDR: {{ . | quote }}

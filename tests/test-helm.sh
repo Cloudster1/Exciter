@@ -121,6 +121,12 @@ check "the audit log is kept a year, and that can be changed" \
     "$(config_value "${RENDERED}" EXCITER_RETAIN_AUDIT) $(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set retention.audit=2160h 2>&1 | grep -c 'EXCITER_RETAIN_AUDIT: "2160h"')" \
     "8760h 1"
 check "mail is off until a relay is named" "$(grep -c 'EXCITER_SMTP_ADDR' <<<"${RENDERED}")" "0"
+check "PDF export is off until the render service is enabled" "$(grep -cE 'EXCITER_RENDER_URL|component: render' <<<"${RENDERED}")" "0"
+with_render=$(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set render.enabled=true 2>&1)
+check "enabled, the render service runs beside the web and the api prints through it" \
+    "$(config_value "${with_render}" EXCITER_RENDER_URL) $(grep -c "^  name: ${RELEASE}-exciter-render\$" <<<"${with_render}") $(grep -c 'name: RENDER_APP_URL' <<<"${with_render}")" \
+    "http://${RELEASE}-exciter-render:8090 2 1"
+check "its image is the one a release pushes" "$(grep -c 'image: ghcr.io/cloudster1/exciter-render:' <<<"${with_render}")" "1"
 check "the installation keeps the name Exciter until one is given" \
     "$(grep -c 'EXCITER_NAME' <<<"${RENDERED}") $(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set installation.name=Acme 2>&1 | grep -c 'EXCITER_NAME: "Acme"')" \
     "0 1"
