@@ -52,6 +52,7 @@ export function IssuePicker({ label, onPick }: { label: string; onPick: (issue: 
   if (expanded && options.length === 0) {
     if (found.isFetching || typed !== text.trim()) status = p.looking;
     else if (found.data?.status === "unreachable" || found.isError) status = p.unreachable;
+    else if (found.data?.status === "outdated") status = p.outdated;
     else if (found.data && found.data.status !== "ok") status = p.connect;
     else status = p.noMatch;
   }

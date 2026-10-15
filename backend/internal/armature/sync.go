@@ -263,6 +263,9 @@ func (r *linkRun) apply(ctx context.Context, step LinkStep) (retry error, err er
 	if r.viewer == nil {
 		return nil, r.fail(ctx, step, r.withoutToken())
 	}
+	if lacks := r.viewer.Offered.Lacks(CapabilityRemoteLinks); lacks != nil {
+		return nil, r.fail(ctx, step, lacks.Message+again)
+	}
 	old := step.Have
 	if old != nil && old.RemoteID != nil && (step.Want == nil || old.URL != step.Want.URL) {
 		if why, retry := r.call(ctx, http.MethodDelete, linkPath(step.Key)+"/"+old.RemoteID.String(), nil, nil); retry != nil || why != "" {

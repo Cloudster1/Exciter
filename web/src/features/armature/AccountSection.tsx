@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { ARMATURE_TOKEN_PREFIX } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { MissingCapabilities } from "./MissingCapabilities";
 
 const when = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
@@ -44,6 +45,7 @@ export function AccountSection() {
       ) : (
         <Card className="space-y-4 p-4" data-armature-status={account.status}>
           {account.connected && <Connected account={account} />}
+          <MissingCapabilities missing={account.missing} />
           {account.connected && (
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={checkNow} loading={check.isPending} data-action="check-armature">

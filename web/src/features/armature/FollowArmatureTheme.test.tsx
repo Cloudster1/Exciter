@@ -25,6 +25,7 @@ const account = (over: Partial<ArmatureAccount> = {}): ArmatureAccount => ({
   },
   readOnly: false,
   checkedAt: "2026-10-01T09:00:00Z",
+  missing: [],
   ...over,
 });
 

@@ -14,6 +14,7 @@ export const armatureDe: typeof armatureEn = {
   saved: "Gespeichert.",
   connectedCount: (count: number) => (count === 1 ? "1 Mitglied hat sein Konto verbunden." : `${count} Mitglieder haben ihr Konto verbunden.`),
   orgKnown: "Armature hat über das Token eines Mitglieds bestätigt, welche Installation es ist.",
+  missingTitle: "Dieses Armature braucht ein Update",
   webhookTitle: "Webhook",
   webhookIntro: "Armature meldet Exciter, wenn sich Vorgänge ändern, damit eine Anforderung die Änderung sofort zeigt statt innerhalb einer Minute.",
   webhookSteps: [
@@ -117,6 +118,7 @@ export const armatureDe: typeof armatureEn = {
     connect: "Verbinden Sie Ihr Armature-Konto, um diesen Vorgang zu sehen",
     notAvailable: "In Armature für Sie nicht sichtbar",
     unreachable: "Armature hat nicht geantwortet",
+    outdated: "Armature braucht ein Update, um diesen Vorgang zu zeigen",
     stale: "Seitdem in Armature verschoben",
     categories: { todo: "Zu erledigen", in_progress: "In Arbeit", done: "Erledigt" },
   },
@@ -127,5 +129,6 @@ export const armatureDe: typeof armatureEn = {
     noMatch: "Kein Vorgang, den Sie sehen dürfen, passt. Versuchen Sie seinen Schlüssel oder andere Wörter.",
     connect: "Verbinden Sie Ihr Armature-Konto unter Ihr Konto, Armature-Konto, um Vorgänge zu finden.",
     unreachable: "Armature hat nicht geantwortet. Versuchen Sie es gleich noch einmal.",
+    outdated: "Das verbundene Armature ist zu alt, um Vorgänge zu finden. Aktualisieren Sie Armature, oder bitten Sie dessen Administrator darum.",
   },
 };

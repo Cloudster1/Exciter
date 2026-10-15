@@ -176,6 +176,11 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 		t.Errorf("the document served is not Armature's: %v", got["info"])
 	}
 
+	meta := c.expect("GET", "/meta", "", nil, 200)
+	if meta["product"] != armature.Product || len(meta["capabilities"].([]any)) != len(armatureCapabilities) {
+		t.Errorf("the stub's /meta is not Armature's: %v", meta)
+	}
+
 	me := c.expect("GET", "/auth/me", alice, nil, 200)
 	principal := me["principal"].(map[string]any)
 	if principal["org"].(map[string]any)["slug"] != "acme" || principal["user"].(map[string]any)["name"] != "Alice" {

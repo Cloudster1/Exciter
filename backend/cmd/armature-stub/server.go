@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ type route struct {
 // docs/api-contract-m2.md. Each issue of M2 adds what it calls.
 var routes = []route{
 	{Method: "GET", Path: "/openapi.json", Public: true, handler: (*stub).openAPI},
+	{Method: "GET", Path: "/meta", Public: true, handler: (*stub).meta},
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
 	{Method: "GET", Path: "/access/me", handler: (*stub).access},
 	{Method: "GET", Path: "/projects", handler: (*stub).projects},
@@ -83,6 +85,7 @@ func (s *stub) handler() http.Handler {
 		mux.HandleFunc(rt.Method+" "+apiPrefix+rt.Path, s.serve(rt))
 	}
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	mux.HandleFunc("PUT "+stubPrefix+"/capabilities", s.setCapabilities)
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
@@ -162,6 +165,38 @@ type apiError struct {
 
 func refuse(w http.ResponseWriter, status int, code, message string) {
 	respond(w, status, map[string]apiError{"error": {Code: code, Message: message}})
+}
+
+// meta answers what any Armature answers anybody, with the capabilities a test left; like Armature, the commit
+// and build time only for somebody signed in, which the stub never is here.
+func (s *stub) meta(c *call) {
+	s.world.mu.Lock()
+	offered := slices.Clone(s.world.capabilities)
+	s.world.mu.Unlock()
+	respond(c.w, http.StatusOK, map[string]any{
+		"product":      "armature",
+		"build":        map[string]string{"version": "stub"},
+		"apiVersion":   "1",
+		"capabilities": offered,
+	})
+}
+
+// setCapabilities sets what GET /meta lists; null puts back Armature's own list.
+func (s *stub) setCapabilities(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Capabilities []string `json:"capabilities"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		refuse(w, http.StatusUnprocessableEntity, "invalid", "Send {\"capabilities\": [...]}, or null for Armature's own.")
+		return
+	}
+	if body.Capabilities == nil {
+		body.Capabilities = slices.Clone(armatureCapabilities)
+	}
+	s.world.mu.Lock()
+	s.world.capabilities = body.Capabilities
+	s.world.mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *stub) openAPI(c *call) {

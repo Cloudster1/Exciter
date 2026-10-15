@@ -24,15 +24,11 @@ type metaResponse struct {
 	Capabilities []string `json:"capabilities"`
 }
 
-// capabilities is empty until the features are named (#100); a client reads an
-// empty list as offering none.
-var capabilities = []string{}
-
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, r, http.StatusOK, metaResponse{
 		Product:      Product,
 		Build:        version.Current(),
 		APIVersion:   APIVersion,
-		Capabilities: capabilities,
+		Capabilities: capabilities(),
 	})
 }

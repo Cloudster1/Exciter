@@ -11,6 +11,7 @@ export const armatureEn = {
   saved: "Saved.",
   connectedCount: (count: number) => (count === 1 ? "1 member has connected their account." : `${count} members have connected their accounts.`),
   orgKnown: "Armature confirmed which installation it is through a member's token.",
+  missingTitle: "This Armature needs an update",
   webhookTitle: "Webhook",
   webhookIntro: "Armature tells Exciter when issues change, so a requirement shows the change at once instead of within a minute.",
   webhookSteps: [
@@ -112,6 +113,7 @@ export const armatureEn = {
     connect: "Connect your Armature account to see this issue",
     notAvailable: "Not available to you in Armature",
     unreachable: "Armature did not answer",
+    outdated: "Armature needs an update to show this issue",
     stale: "Moved in Armature since",
     categories: { todo: "To do", in_progress: "In progress", done: "Done" } as Record<string, string | undefined>,
   },
@@ -122,5 +124,6 @@ export const armatureEn = {
     noMatch: "No issue that you may see matches. Try its key, or other words.",
     connect: "Connect your Armature account under Your account, Armature account to find issues.",
     unreachable: "Armature did not answer. Try again in a moment.",
+    outdated: "The connected Armature is too old to find issues. Update Armature, or ask its administrator to.",
   },
 };

@@ -104,6 +104,7 @@ const settingsApi = () =>
           user: null,
           readOnly: false,
           checkedAt: null,
+          missing: [],
         },
       },
     },

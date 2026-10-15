@@ -7,7 +7,13 @@ import { t } from "@/i18n";
 // everybody may know of it without a token.
 
 /** What a chip can show this viewer: the issue itself, or the key with why there is no more. */
-export type ChipState = { kind: "issue"; issue: ArmatureIssue } | { kind: "connect" } | { kind: "loading" } | { kind: "unreachable" } | { kind: "hidden" };
+export type ChipState =
+  | { kind: "issue"; issue: ArmatureIssue }
+  | { kind: "connect" }
+  | { kind: "loading" }
+  | { kind: "unreachable" }
+  | { kind: "outdated" }
+  | { kind: "hidden" };
 
 /** Decides a chip's state from what the lookup found for its key. */
 export function chipState(key: string, lookup: ArmatureIssues, connected: boolean): ChipState {
@@ -19,6 +25,8 @@ export function chipState(key: string, lookup: ArmatureIssues, connected: boolea
       return { kind: "connect" };
     case "unreachable":
       return { kind: "unreachable" };
+    case "outdated":
+      return { kind: "outdated" };
   }
   if (!lookup.issues.has(key)) return { kind: "loading" };
   const issue = lookup.issues.get(key);
@@ -99,6 +107,7 @@ export function IssueChip({
       )}
       {state.kind === "hidden" && <span className="text-xs text-ink-muted">{t.armature.chip.notAvailable}</span>}
       {state.kind === "unreachable" && <span className="text-xs text-ink-muted">{t.armature.chip.unreachable}</span>}
+      {state.kind === "outdated" && <span className="text-xs text-ink-muted">{t.armature.chip.outdated}</span>}
     </span>
   );
 }

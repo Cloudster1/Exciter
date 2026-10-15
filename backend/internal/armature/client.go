@@ -20,9 +20,9 @@ import (
 // APIPath is where an Armature serves its API under its base URL.
 const APIPath = "/api/v1"
 
-// DocumentTitle is info.title of Armature's own OpenAPI document, which tells
-// an Armature apart from anything else answering at an address.
-const DocumentTitle = "Armature"
+// Product is what Armature answers as product on GET /meta, which tells an
+// Armature apart from anything else answering at an address.
+const Product = "armature"
 
 var (
 	// ErrRejected is Armature answering 401 to the token. It is never relayed
@@ -76,23 +76,27 @@ func NewClient(allow netguard.Allow, backchannel map[string]string) *Client {
 	return &Client{http: netguard.WithTransport(CallTimeout, netguard.Rewriting(backchannel, netguard.Transport(allow)))}
 }
 
-// Describe asks baseURL for its OpenAPI document, which Armature serves to
-// anybody, and says whether it is Armature's.
-func (c *Client) Describe(ctx context.Context, baseURL string) error {
-	var doc struct {
-		Info struct {
-			Title string `json:"title"`
-		} `json:"info"`
-	}
-	err := c.do(ctx, http.MethodGet, baseURL+APIPath+"/openapi.json", "", nil, &doc)
+// Meta is what an Armature says of itself on GET /meta, which it answers anybody.
+type Meta struct {
+	Product      string   `json:"product"`
+	Capabilities []string `json:"capabilities"`
+}
+
+// Describe asks baseURL what answers there, and says ErrNotArmature unless it is an Armature.
+func (c *Client) Describe(ctx context.Context, baseURL string) (*Meta, error) {
+	var meta Meta
+	err := c.do(ctx, http.MethodGet, baseURL+APIPath+"/meta", "", nil, &meta)
 	var refused *RefusedError
 	switch {
-	case err == nil && doc.Info.Title == DocumentTitle:
-		return nil
+	case err == nil && strings.EqualFold(meta.Product, Product):
+		if meta.Capabilities == nil {
+			meta.Capabilities = []string{}
+		}
+		return &meta, nil
 	case err == nil, errors.As(err, &refused), errors.Is(err, ErrRejected), errors.Is(err, errUnreadable):
-		return ErrNotArmature
+		return nil, ErrNotArmature
 	}
-	return err
+	return nil, err
 }
 
 // As is a caller acting as the owner of token at baseURL.

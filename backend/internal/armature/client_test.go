@@ -109,10 +109,10 @@ func TestTheBackchannelRewritesThePublicOrigin(t *testing.T) {
 	var host string
 	srv := armature(t, func(w http.ResponseWriter, r *http.Request) {
 		host = r.Host
-		_, _ = w.Write([]byte(`{"info":{"title":"Armature"}}`))
+		_, _ = w.Write([]byte(`{"product":"armature","capabilities":[]}`))
 	})
 	client := NewClient(netguard.ParseAllow("127.0.0.0/8"), map[string]string{"http://armature.example:8080": srv.URL})
-	if err := client.Describe(context.Background(), "http://armature.example:8080"); err != nil {
+	if _, err := client.Describe(context.Background(), "http://armature.example:8080"); err != nil {
 		t.Fatal(err)
 	}
 	if host != "armature.example:8080" {
@@ -146,21 +146,23 @@ func TestDescribeKnowsArmatureFromEverythingElse(t *testing.T) {
 		status     int
 		want       error
 	}{
-		{"Armature", `{"openapi":"3.1.0","info":{"title":"Armature","version":"1"}}`, 200, nil},
+		{"Armature", `{"product":"armature","build":{"version":"1"},"apiVersion":"1","capabilities":["issue-embed@1"]}`, 200, nil},
+		{"Armature in capitals", `{"product":"Armature","build":{"version":"1"},"apiVersion":"1","capabilities":[]}`, 200, nil},
+		{"Stator", `{"product":"stator","build":{"version":"1"},"apiVersion":"1","capabilities":[]}`, 200, ErrNotArmature},
 		{"another API", `{"info":{"title":"Another"}}`, 200, ErrNotArmature},
 		{"a web page", `<html></html>`, 200, ErrNotArmature},
 		{"nothing there", `{"error":{"code":"not_found","message":"No."}}`, 404, ErrNotArmature},
 		{"a failing Armature", `{}`, 503, ErrUnreachable},
 	} {
 		srv := armature(t, func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != "/api/v1/openapi.json" || r.Header.Get("Authorization") != "" {
+			if r.URL.Path != "/api/v1/meta" || r.Header.Get("Authorization") != "" {
 				w.WriteHeader(http.StatusTeapot)
 				return
 			}
 			w.WriteHeader(tc.status)
 			_, _ = w.Write([]byte(tc.body))
 		})
-		err := loopback().Describe(context.Background(), srv.URL)
+		_, err := loopback().Describe(context.Background(), srv.URL)
 		if (tc.want == nil && err != nil) || (tc.want != nil && !errors.Is(err, tc.want)) {
 			t.Errorf("%s: %v, want %v", tc.name, err, tc.want)
 		}

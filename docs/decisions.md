@@ -3,6 +3,30 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: Capabilities, offered and checked by exact name (#100)
+
+Exciter lists what it offers partners under `capabilities` of `/meta`, and
+checks what Armature lists before each feature calls it.
+
+- **Names follow Armature's until Dynamo's list exists.** Exciter offers
+  `requirement-embed@1`, `trace-links@1`, `specifications@1` and
+  `theme-export@1`, the last by Armature's name because the file format is
+  theirs. Dynamo#4 is to hold the shared list; these move to it once it does.
+- **Each name rests on routes the build has.** As in Armature, the list names
+  its operations, and a unit test refuses one the table lacks or has only
+  agreed, so a renamed route fails here rather than at a partner.
+- **A partner's capability counts by its exact name.** `remote-links@2` does
+  not stand in for the `@1` a feature was built against, which is what a
+  raised number means. Stator's `page.remote-links` stays matched by its bare
+  name until Stator names its capabilities (Stator #409).
+- **Not asked counts as offering everything.** A connection saved before this
+  release has no list until it is saved again or a token checked, so
+  upgrading Exciter alone switches nothing off before Armature is asked.
+- **Each feature says so where it is used.** Reads answer `outdated`, writes
+  are refused with `armature_outdated`, the link worker records the sentence on
+  the link, and the settings and account pages list every missing name with
+  what goes without it and to update Armature.
+
 ## 2026-10-15: Every build says what it is at GET /api/v1/meta (#99)
 
 Stator, Armature and Exciter answer the same unauthenticated `/meta`, so a

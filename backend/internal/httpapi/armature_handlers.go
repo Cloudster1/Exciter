@@ -29,8 +29,11 @@ func armatureError(err error) *APIError {
 	var (
 		field   *armature.FieldError
 		refused *armature.RefusedError
+		lacks   *armature.Missing
 	)
 	switch {
+	case errors.As(err, &lacks):
+		return &APIError{Status: http.StatusConflict, Code: "armature_outdated", Message: lacks.Message, cause: err}
 	case errors.As(err, &field):
 		return ErrValidation(map[string]string{field.Field: field.Message})
 	case errors.As(err, &refused):
