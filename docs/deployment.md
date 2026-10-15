@@ -32,6 +32,12 @@ Three things come from outside the chart:
 - **An S3 bucket**, under `s3`, for attachments and theme files. Without one
   an upload is refused, saying so.
 
+PDF export needs the render service, a Chromium image an order of magnitude
+larger than the rest, so it is off until `render.enabled` is set; then the
+api prints through it at `<release>-render:8090`, bounded by
+`render.timeout`, `render.concurrency` and `render.maxSize`. Without it a PDF
+download says export is off in a sentence, and Word export works either way.
+
 Passwords and the key that seals stored secrets are made once by the secrets
 Job, in Secrets that outlive the release. `jobs.bootstrap.enabled` makes the
 installation (`installation.name`), its first administrator and, when named,

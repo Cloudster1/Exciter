@@ -50,6 +50,10 @@ const (
 	DefaultS3Region = "us-east-1"
 	// DefaultUploadLimit is attachment.DefaultMaxSize, which a test holds the two to.
 	DefaultUploadLimit int64 = 50 << 20
+	// The render service's bounds are render.Default*, which a test holds the two to.
+	DefaultRenderTimeout           = 20 * time.Second
+	DefaultRenderConcurrency       = 4
+	DefaultRenderMaxSize     int64 = 50 << 20
 )
 
 // Config is the fully resolved configuration for every binary.
@@ -78,6 +82,8 @@ type Config struct {
 	Bootstrap Bootstrap
 	S3        S3
 	Mail      Mail
+	// Render is the service that prints specifications as PDF; a blank URL turns PDF export off.
+	Render Render
 
 	// UploadLimit is the largest file a requirement takes, in bytes.
 	UploadLimit int64
@@ -168,6 +174,14 @@ type Bootstrap struct {
 type BootstrapMember struct {
 	Email string
 	Role  string
+}
+
+// Render names the render service, when there is one, and bounds its prints.
+type Render struct {
+	URL         string
+	Timeout     time.Duration
+	Concurrency int
+	MaxSize     int64
 }
 
 // S3 is the bucket uploaded files live in: theme assets and attachments. A blank endpoint leaves uploads off,
@@ -263,6 +277,12 @@ func Load() (Config, error) {
 			Region:    l.str("EXCITER_S3_REGION", DefaultS3Region),
 			UseSSL:    l.boolean("EXCITER_S3_USE_SSL", false),
 		},
+		Render: Render{
+			URL:         strings.TrimSuffix(l.str("EXCITER_RENDER_URL", ""), "/"),
+			Timeout:     l.duration("EXCITER_RENDER_TIMEOUT", DefaultRenderTimeout),
+			Concurrency: l.integer("EXCITER_RENDER_CONCURRENCY", DefaultRenderConcurrency),
+			MaxSize:     l.size("EXCITER_RENDER_MAX_SIZE", DefaultRenderMaxSize),
+		},
 		Mail: Mail{
 			SMTPAddr: l.str("EXCITER_SMTP_ADDR", ""),
 			From:     l.str("EXCITER_MAIL_FROM", ""),
@@ -333,6 +353,7 @@ func Load() (Config, error) {
 	if c.S3.Endpoint != "" && (c.S3.AccessKey == "" || c.S3.SecretKey == "") {
 		l.problem("EXCITER_S3_ENDPOINT is set, so set EXCITER_S3_ACCESS_KEY and EXCITER_S3_SECRET_KEY as well.")
 	}
+	c.checkRender(l)
 	if c.Mail.SMTPAddr != "" {
 		if _, err := mail.ParseAddress(c.Mail.From); err != nil {
 			l.problem(fmt.Sprintf("EXCITER_SMTP_ADDR is set, but EXCITER_MAIL_FROM is %q; set it to an address such as Exciter <no-reply@example.com>.", c.Mail.From))
@@ -367,3 +388,21 @@ func (c Config) checkBootstrapProvider(l *loader) {
 
 // IsProduction reports whether this is the production deployment.
 func (c Config) IsProduction() bool { return c.Env == EnvProduction }
+
+// checkRender holds the render service's settings to what a print can work with.
+func (c *Config) checkRender(l *loader) {
+	if c.Render.URL != "" {
+		if u, err := url.Parse(c.Render.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.problem(fmt.Sprintf("EXCITER_RENDER_URL is %q; set it to the render service's address, such as http://render:8090, or leave it blank to turn PDF export off.", c.Render.URL))
+		}
+	}
+	if c.Render.Timeout <= 0 || c.Render.Timeout >= c.RequestTimeout {
+		l.problem(fmt.Sprintf("EXCITER_RENDER_TIMEOUT is %s; set it above zero and below EXCITER_REQUEST_TIMEOUT (%s), so a slow print is refused in words rather than cut off.", c.Render.Timeout, c.RequestTimeout))
+	}
+	if c.Render.Concurrency < 1 {
+		l.problem(fmt.Sprintf("EXCITER_RENDER_CONCURRENCY is %d; set it to 1 or more.", c.Render.Concurrency))
+	}
+	if c.Render.MaxSize < 1 {
+		l.problem("EXCITER_RENDER_MAX_SIZE must be above zero, such as 50MB.")
+	}
+}

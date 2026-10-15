@@ -37,11 +37,13 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -60,9 +62,6 @@ const (
 	shutdownGrace     = 25 * time.Second
 	healthcheckWait   = 3 * time.Second
 )
-
-// valkeyPrefix keeps read-your-writes keys apart from anything else in Valkey.
-const valkeyPrefix = "exciter:ryw:"
 
 // devOrigins are where the web client's development server runs.
 var devOrigins = []string{"http://localhost:5173", "http://127.0.0.1:5173"}
@@ -157,6 +156,7 @@ func run() error {
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
 	attributes := attribute.NewService(cluster)
+	baselines := baseline.NewService(cluster)
 	files := attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log)
 	server := &httpapi.Server{
 		DB:              cluster,
@@ -180,13 +180,15 @@ func run() error {
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
+		Documents:       specdoc.NewService(cluster, requirements, baselines),
+		Renderer:        renderer(cfg, log),
 		Armature:        armatures,
 		Stator:          stators,
 		Comments:        comment.NewService(cluster),
 		Watches:         watch.NewService(cluster),
 		Notifications:   notify.NewService(cluster),
 		Reviews:         review.NewService(cluster),
-		Baselines:       baseline.NewService(cluster),
+		Baselines:       baselines,
 		Log:             log,
 		Telemetry:       tel,
 		Fresh:           freshnessTracker(cfg, valkey, log),
@@ -311,7 +313,7 @@ func freshnessTracker(cfg config.Config, valkey *redis.Client, log *slog.Logger)
 		}
 		return freshness.NewMemoryTracker(cfg.DB.ReadYourWritesTTL)
 	}
-	return freshness.NewValkeyTracker(valkey, cfg.DB.ReadYourWritesTTL, valkeyPrefix)
+	return freshness.NewValkeyTracker(valkey, cfg.DB.ReadYourWritesTTL, freshness.Prefix)
 }
 
 // healthcheck probes the local readiness endpoint and fails unless it is ready,
@@ -335,4 +337,13 @@ func healthcheck() error {
 		return fmt.Errorf("readiness returned %s", resp.Status)
 	}
 	return nil
+}
+
+// renderer is the render service the configuration names, or the one that says PDF export is off.
+func renderer(cfg config.Config, log *slog.Logger) render.Renderer {
+	if cfg.Render.URL == "" {
+		log.Warn("PDF export is off: EXCITER_RENDER_URL is not set")
+		return render.Unavailable{}
+	}
+	return render.New(cfg.Render.URL, render.Options{Timeout: cfg.Render.Timeout, Concurrency: cfg.Render.Concurrency, MaxSize: cfg.Render.MaxSize})
 }

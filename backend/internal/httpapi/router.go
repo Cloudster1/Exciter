@@ -27,10 +27,12 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -108,6 +110,10 @@ type Server struct {
 	Imports *csvio.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
+	// Documents reads specifications and baselines as documents to sign and send (#45).
+	Documents *specdoc.Service
+	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
+	Renderer render.Renderer
 	// handler is the router Routes built, which MCP sends each tool call through.
 	handler http.Handler
 	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
@@ -489,6 +495,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/reqif-imports/{importID}", s.handleCancelReqIF)
 			r.Get("/projects/{projectKey}/export.reqif", s.handleExportReqIF)
 			r.Get("/projects/{projectKey}/export.reqifz", s.handleExportReqIFZ)
+		})
+
+		// A specification or a baseline as a document, for whoever views the project: read for the print view,
+		// written as Word, printed as PDF.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.documentsOn)
+			r.Get("/projects/{projectKey}/document", s.handleGetProjectDocument)
+			r.Get("/projects/{projectKey}/document.docx", s.handleProjectDocx)
+			r.Get("/projects/{projectKey}/document.pdf", s.handleProjectPDF)
+			r.Get("/baselines/{baselineID}/document", s.handleGetBaselineDocument)
+			r.Get("/baselines/{baselineID}/document.docx", s.handleBaselineDocx)
+			r.Get("/baselines/{baselineID}/document.pdf", s.handleBaselinePDF)
 		})
 
 		// What the caller may do across the installation, and the people and groups a grant names.

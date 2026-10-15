@@ -17,6 +17,7 @@ import { coverageDe } from "./coverage.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
+import { documentsDe } from "./documents.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
@@ -298,6 +299,7 @@ export const de: Messages = {
       "baseline.deleted": "Baseline gelöscht",
       "coverage_rule.saved": "Abdeckungsregel gespeichert",
       "coverage_rule.removed": "Abdeckungsregel entfernt",
+      "specification.exported": "Spezifikation exportiert",
     },
     targetTypes: {
       user: "Person",
@@ -341,6 +343,7 @@ export const de: Messages = {
   coverage: coverageDe,
   imports: importsDe,
   reqif: reqifDe,
+  documents: documentsDe,
   search: searchDe,
   grid: gridDe,
   themes: themesDe,

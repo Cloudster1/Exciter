@@ -477,6 +477,23 @@ Adapted from Stator at 9aea089, for ReqIF import and export (#44):
   internal/wikiread/xml.go, UTF-8 only, over the elements of a ReqIF
   document rather than the objects of a wiki export
 
+Adapted from Stator at 9aea089, for exporting documents (#45):
+- render/server.mjs and deploy/Dockerfile.render: the same render service,
+  with the image pinned
+- backend/internal/render/render.go and render_test.go: the same client
+- backend/internal/auth/render_tokens.go and
+  backend/migrations/00720_render_tokens.sql: the one-print token and its
+  check, which here also refuses a token held to some projects
+- backend/internal/docx writer.go, blocks.go, inline.go, table.go,
+  picture.go, parts.go and words.go: the writing half of internal/docx, cut
+  to a requirement's blocks, with a specification's cover, contents and
+  entries in spec.go instead of a page
+- deploy/charts/exciter/templates/render-deployment.yaml and
+  render-service.yaml: the same templates, renamed
+- web/src/features/print/printReady.ts and FileExport.tsx, and fetchFile and
+  saveFile in web/src/api/documents.ts: the print view's readiness, the
+  export dialog and the download, over a document rather than a page
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

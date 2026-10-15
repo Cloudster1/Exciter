@@ -3,6 +3,36 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: A document is printed by the render service and written as Word by the api, as in Stator (#45)
+
+A specification or a baseline is exported to be signed and sent, so it has to
+read as the project reads, in both formats people send.
+
+- **PDF is the print view printed as its reader.** Stator's render service, a
+  headless Chromium behind `render/server.mjs`, opens the web client's
+  `/print/...` view with a read-only token made for that one print and
+  deleted once the PDF is back, the check `api_token_render_is_brief` holding
+  a raw write to the same. Rich text, tables and pictures print as the editor
+  draws them, which HTML made on the server would only imitate. A token held
+  to some projects cannot print, since the print's token reads them all.
+- **The print reads what its reader just wrote.** The print's requests go
+  through the replica as its own token, so the token's write position is
+  noted under its key: a baseline taken and printed at once is found.
+- **Word is written in the api.** Stator's `internal/docx`, the writing half,
+  cut to a requirement's blocks; no Go library writes Word well without a
+  commercial licence, and the render service makes no Word documents.
+- **One document, two formats.** `internal/specdoc` reads the cover, the
+  entries, their tables of fields and attributes, and their links once; the
+  print view draws it and the Word writer writes it, so the two say the same.
+  A baseline's document holds each requirement at the revision it holds, and
+  no owner, priority or labels, which a baseline does not keep.
+- **The renderer is in the stack and optional in the chart.** The compose
+  stack runs it, so the integration and browser suites print real PDFs. The
+  chart, which left it out (#104), now has it behind `render.enabled`, off by
+  default for its size; without it only a PDF download fails, in a sentence.
+- **Exports are audited** as `specification.exported`, since a document that
+  leaves to be signed is worth knowing about.
+
 ## 2026-10-15: A ReqIF exchange keeps the identifiers it met (#44)
 
 ReqIF is exchanged both ways: a specification goes to a supplier and comes

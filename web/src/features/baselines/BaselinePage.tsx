@@ -10,6 +10,8 @@ import { BASELINE_NAME_MAX_LENGTH, BASELINE_SPEC_PAGE_SIZE } from "@/config";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
+import { ExportMenu } from "@/features/print/ExportMenu";
+import { baselineDocumentHref } from "@/api/documents";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { keepsBaselines } from "./Baselines";
@@ -37,6 +39,9 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
         ].join(" · ")}
       />
       {baseline.description && <p className="text-sm text-ink-muted">{baseline.description}</p>}
+      <div className="flex flex-wrap items-start gap-2">
+        <ExportMenu title={baseline.name} href={(format) => baselineDocumentHref(baseline.id, format)} />
+      </div>
       <Actions project={project} baseline={baseline} />
       <ComparePicker project={project} baseline={baseline} />
       <Reading project={project} baseline={baseline} />

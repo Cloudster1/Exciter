@@ -382,6 +382,17 @@ func (h *harness) count(t *testing.T, ctx context.Context, sql string, args ...a
 // the suite's own so a test never reads the stack's positions.
 func (h *harness) freshness(t *testing.T) *freshness.ValkeyTracker {
 	t.Helper()
+	return h.freshnessUnder(t, "exciter-test:ryw:")
+}
+
+// stackFreshness is the read-your-writes store the stack's api reads, for a test whose requests the stack serves.
+func (h *harness) stackFreshness(t *testing.T) *freshness.ValkeyTracker {
+	t.Helper()
+	return h.freshnessUnder(t, freshness.Prefix)
+}
+
+func (h *harness) freshnessUnder(t *testing.T, prefix string) *freshness.ValkeyTracker {
+	t.Helper()
 	if h.cfg.Valkey.URL == "" {
 		t.Fatal("EXCITER_VALKEY_URL is not set; run the suite with make test-integration against the running stack")
 	}
@@ -391,7 +402,7 @@ func (h *harness) freshness(t *testing.T) *freshness.ValkeyTracker {
 	}
 	client := redis.NewClient(opts)
 	t.Cleanup(func() { _ = client.Close() })
-	tracker := freshness.NewValkeyTracker(client, h.cfg.DB.ReadYourWritesTTL, "exciter-test:ryw:")
+	tracker := freshness.NewValkeyTracker(client, h.cfg.DB.ReadYourWritesTTL, prefix)
 	if err := tracker.Ping(t.Context()); err != nil {
 		t.Fatalf("reach Valkey: %v", err)
 	}

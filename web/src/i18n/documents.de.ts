@@ -1,0 +1,35 @@
+import type { documentsEn } from "./documents.en";
+
+/** The German strings of exporting documents, held to the English shape. */
+export const documentsDe: typeof documentsEn = {
+  export: "Exportieren",
+  exportMenu: (title: string) => `${title} exportieren`,
+  pdf: "PDF",
+  docx: "Word",
+  reqif: "ReqIF",
+  title: (format: string, title: string) => `${format} von ${title}`,
+  making: "Das Dokument wird erstellt. Es wird gespeichert, sobald es fertig ist.",
+  note: "Das Dokument enthält, was Sie lesen dürfen, so wie es jetzt lautet oder wie die Baseline es hält.",
+  networkFailed: "Das Dokument konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+  close: "Schließen",
+  cancel: "Abbrechen",
+  ofProject: (name: string, key: string) => `Spezifikation von ${name} (${key})`,
+  ofSection: (key: string, name: string, projectKey: string) => `Abschnitt ${key} von ${name} (${projectKey})`,
+  ofBaseline: (name: string, key: string) => `Baseline von ${name} (${key})`,
+  taken: (day: string, by: string) => `Erstellt am ${day} von ${by}.`,
+  locked: (day: string) => `Gesperrt am ${day}; sie ändert sich nie.`,
+  unlocked: "Die Baseline ist nicht gesperrt; sie kann noch umbenannt oder gelöscht werden.",
+  exported: (by: string, day: string) => `Exportiert von ${by} am ${day}.`,
+  holds: (n: number) => (n === 1 ? "Es enthält 1 Anforderung oder 1 Abschnitt." : `Es enthält ${n} Anforderungen und Abschnitte.`),
+  contents: "Inhalt",
+  keyAndRevision: (key: string, revision: number) => `${key} · Revision ${revision}`,
+  rationale: "Begründung",
+  links: "Verknüpfungen",
+  fields: { type: "Typ", status: "Status", owner: "Verantwortlich", priority: "Priorität", labels: "Labels" },
+  yes: "Ja",
+  no: "Nein",
+  truncated: (n: number, total: number) =>
+    `Dieses Dokument enthält die ersten ${n} der ${total} Anforderungen. Exportieren Sie einen Abschnitt, um den Rest zu erhalten.`,
+  pages: "{page} / {pages}",
+  printFailed: "Das Dokument konnte nicht angezeigt werden.",
+};

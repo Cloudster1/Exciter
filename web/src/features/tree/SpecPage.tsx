@@ -5,7 +5,8 @@ import type { Project } from "@/api/projects";
 import { useRequirement } from "@/api/requirements";
 import { useSpec, useTree, type SpecEntry, type TreeNode } from "@/api/tree";
 import { reqifExportHref } from "@/api/reqif";
-import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
+import { projectDocumentHref } from "@/api/documents";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
 import { COMMENTS_ID } from "@/features/comments/CommentsSection";
@@ -16,6 +17,7 @@ import { t } from "@/i18n";
 import { PlaceDialog, type Placed } from "./PlaceDialog";
 import { RequirementTree } from "./RequirementTree";
 import { SuspectBadge } from "@/features/links/Suspect";
+import { ExportMenu } from "@/features/print/ExportMenu";
 
 /** A project read as one numbered document beside its tree; editors change an entry in place and move by dragging. */
 export function SpecPage({ project }: { project: Project }) {
@@ -36,11 +38,14 @@ export function SpecPage({ project }: { project: Project }) {
         title={t.tree.specTitle}
         meta={t.projects.projectAndKey(project.name, project.key)}
         actions={
-          mayWrite && (
-            <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
-              {t.requirements.create}
-            </Button>
-          )
+          <div className="flex flex-wrap gap-2">
+            <ExportMenu title={project.name} href={(format) => projectDocumentHref(project.key, format)} reqifHref={reqifExportHref(project.key, true)} />
+            {mayWrite && (
+              <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
+                {t.requirements.create}
+              </Button>
+            )}
+          </div>
         }
       />
       {(tree.error ?? spec.error) && <ErrorBanner>{(tree.error ?? spec.error)!.message}</ErrorBanner>}
@@ -111,18 +116,12 @@ function Entry({ project, entry, selection }: { project: Project; entry: SpecEnt
         )}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
         {section && (
-          <ButtonLink
-            href={reqifExportHref(project.key, true, node.key)}
-            download
-            variant="ghost"
+          <ExportMenu
             size="sm"
-            icon={<Icon.Download />}
-            title={t.reqif.exportSectionHint(node.title)}
-            aria-label={t.reqif.exportSectionHint(node.title)}
-            data-action="export-section-reqif"
-          >
-            {t.reqif.exportSection}
-          </ButtonLink>
+            title={node.title}
+            href={(format) => projectDocumentHref(project.key, format, node.key)}
+            reqifHref={reqifExportHref(project.key, true, node.key)}
+          />
         )}
         {entry.can.edit && !editing && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)} data-action="edit-entry">

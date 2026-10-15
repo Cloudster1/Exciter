@@ -72,7 +72,7 @@ func (s *Server) freshnessKey(w http.ResponseWriter, r *http.Request) string {
 	}
 	// A script with a token sends no cookie, so its writes are remembered under the token.
 	if p := PrincipalFrom(r.Context()); p != nil && p.Token != nil {
-		return "t:" + p.Token.ID.String()
+		return tokenFreshnessKey(p.Token.ID)
 	}
 	if c, err := r.Cookie(ClientCookie); err == nil && validClientID(c.Value) {
 		return "c:" + c.Value
@@ -86,6 +86,9 @@ func (s *Server) freshnessKey(w http.ResponseWriter, r *http.Request) string {
 	http.SetCookie(w, &http.Cookie{Name: ClientCookie, Value: id, Path: "/", HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
 	return "c:" + id
 }
+
+// tokenFreshnessKey is where a token's writes are remembered.
+func tokenFreshnessKey(id uuid.UUID) string { return "t:" + id.String() }
 
 // sessionFreshnessKey is where a session's writes are remembered.
 func sessionFreshnessKey(id uuid.UUID) string { return "s:" + id.String() }

@@ -256,6 +256,8 @@ services:
       # EXCITER_APP_URL, which nginx proxies. nginx names the client in X-Real-IP from inside the stack's network.
       EXCITER_OIDC_BACKCHANNEL: http://localhost:${KEYCLOAK_PORT:-8180}=http://keycloak:8080
       EXCITER_TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      # Prints a specification's print view as PDF (#45); asked only when somebody exports.
+      EXCITER_RENDER_URL: http://render:8090
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     healthcheck:
@@ -350,6 +352,31 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
+      start_interval: 1s
+
+  # Prints the web client's print view as PDF for the api (#45), as Stator's render service does: a headless
+  # Chromium behind render/server.mjs, opening only the web's own origin. It publishes no port.
+  render:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.render
+    image: ${COMPOSE_PROJECT_NAME:-exciter}-render
+    restart: on-failure
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      HOME: /tmp
+      RENDER_PORT: "8090"
+      RENDER_APP_URL: http://web
+    volumes:
+      - ../render:/usr/src/app/render:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8090/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 120s
       start_interval: 1s
 
 volumes:

@@ -36,11 +36,13 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/watch"
@@ -107,6 +109,8 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
+		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
+		Renderer:      h.renderer(),
 		Armature:      h.armature(t),
 		Stator:        h.stator(t),
 		Comments:      comment.NewService(h.cluster),
@@ -288,4 +292,12 @@ func errorCode(t *testing.T, r response) string {
 	}
 	code, _ := e["code"].(string)
 	return code
+}
+
+// renderer is the stack's render service, or none when the suite runs without one.
+func (h *harness) renderer() render.Renderer {
+	if h.cfg.Render.URL == "" {
+		return render.Unavailable{}
+	}
+	return render.New(h.cfg.Render.URL, render.Options{Timeout: h.cfg.Render.Timeout, Concurrency: h.cfg.Render.Concurrency, MaxSize: h.cfg.Render.MaxSize})
 }

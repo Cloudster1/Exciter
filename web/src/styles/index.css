@@ -479,3 +479,51 @@
     overflow: visible !important;
   }
 }
+
+/* A document's print view (#45): on paper, a cover and contents of their own, then the entries, a heading never
+   left at the foot of a page and a property table never split. */
+.print-view {
+  background: white;
+  color: var(--color-ink);
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+.print-cover {
+  display: flex;
+  min-height: 60vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  break-after: page;
+}
+.print-contents {
+  break-after: page;
+}
+.print-contents a {
+  text-decoration: none;
+}
+.print-entry {
+  margin-top: 1.5rem;
+}
+.print-entry-heading {
+  break-after: avoid;
+}
+.print-properties {
+  border-collapse: collapse;
+  break-inside: avoid;
+}
+.print-properties th,
+.print-properties td {
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.5rem;
+  vertical-align: top;
+}
+.print-properties th {
+  background: var(--color-surface-raised);
+}
+.print-view figure,
+.print-view table,
+.print-view pre {
+  break-inside: avoid;
+}

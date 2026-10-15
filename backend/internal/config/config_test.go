@@ -25,6 +25,7 @@ func clean(t *testing.T) {
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
 		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_STATOR_BACKCHANNEL", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
+		"EXCITER_RENDER_URL", "EXCITER_RENDER_TIMEOUT", "EXCITER_RENDER_CONCURRENCY", "EXCITER_RENDER_MAX_SIZE",
 	} {
 		t.Setenv(key, "")
 	}
@@ -51,6 +52,30 @@ func TestTheUploadLimitReadsSizes(t *testing.T) {
 		t.Setenv("EXCITER_UPLOAD_LIMIT", bad)
 		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_UPLOAD_LIMIT") {
 			t.Errorf("%q should be refused by name, got %v", bad, err)
+		}
+	}
+}
+
+func TestTheRenderServiceIsReadAndHeldToWhatAPrintNeeds(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_RENDER_URL", "http://render:8090/")
+	t.Setenv("EXCITER_RENDER_MAX_SIZE", "10MB")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Render.URL != "http://render:8090" || c.Render.Timeout != DefaultRenderTimeout || c.Render.Concurrency != DefaultRenderConcurrency || c.Render.MaxSize != 10*mib {
+		t.Errorf("the render service read as %+v", c.Render)
+	}
+	for key, bad := range map[string]string{
+		"EXCITER_RENDER_URL":         "render:8090",
+		"EXCITER_RENDER_TIMEOUT":     "45s",
+		"EXCITER_RENDER_CONCURRENCY": "0",
+	} {
+		clean(t)
+		t.Setenv(key, bad)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s=%q should be refused by name, got %v", key, bad, err)
 		}
 	}
 }
