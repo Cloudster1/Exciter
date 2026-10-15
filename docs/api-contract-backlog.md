@@ -14,9 +14,10 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00710 to 00719 | ReqIF (#44) | `reqif_identity` (what an identifier of an exchange names in a project), `reqif_import` (a file on its way in), `reqif_import_object` (the files its rich text shows, until they are attachments), their guards and policies |
 | 00720 to 00729 | Documents (#45) | `api_token.for_render` and the check `api_token_render_is_brief`, which hold a print's token to reading for minutes |
 | 00730 to 00739 | Signatures (#46) | `reauthentication` (a proof of identity given again, for one signature), `signature_failure` (wrong passwords, for the limit), `review_signature`, the purpose of an `oidc_login`, and the triggers `review_signature_guard` and `review_decision_signed` |
+| 00740 to 00749 | Query language (#47) | `requirement_key_id` (the requirement a key, or one it had, names) and `requirement_coverage` (a requirement's level in one dimension, as `trace.Judge` judges it), both read as the reader sees |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
-and `internal/auth/reauth.go` (#46). Worker topic:
+and `internal/auth/reauth.go` (#46); `internal/rql` (#47). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
 `EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
 
@@ -218,3 +219,65 @@ and `internal/auth/reauth.go` (#46). Worker topic:
     re-authentication, for itself; the callback records the provider's.
   - **A re-authentication lasts at most ten minutes** and was given within
     them, or the row is refused.
+
+## #47 Query language for requirements
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `GET /projects/{projectKey}/requirements?query=` | view | `{rows, total, limit, offset}`; 400 `bad_query` with `position` |
+| `GET /projects/{projectKey}/export.csv?query=`, `/coverage?query=`, `/matrix?query=`, `/matrix.csv?query=` | view | narrowed by the query; 400 `bad_query` |
+| `POST /projects/{projectKey}/views`, `PATCH /views/{viewID}` with `filter.query` | as for views | `{view}`; 400 `bad_query` |
+| `GET /projects/{projectKey}/requirements/suggest?q=&at=&limit=` | view | `{completion, words, requirements}`; 422 on `at` or `limit` |
+
+- **The language** is Armature's: `field op value`, `IN (...)`, `NOT IN`,
+  `IS [NOT] EMPTY`, `AND`, `OR`, `NOT`, brackets and a closing
+  `ORDER BY field [DESC], ...`; operators `= != < <= > >= ~ !~`; values bare,
+  quoted with `"` or `'`, numbers, days (`2026-10-15`, with `T10:30` for a
+  time), durations (`-7d`, `2w`, `36h`) and functions (`currentUser()`,
+  `now()`, `startOfDay()` to `endOfMonth()`, each taking a shift such as
+  `startOfWeek(-1w)`). Keywords and field names ignore case. At most 2000
+  characters, brackets and NOT 32 deep, 100 conditions.
+- **The fields** every project has: `key`, `title`, `text` (the words box's
+  search), `statement`, `rationale`, `kind`, `type`, `status`, `category`,
+  `owner`, `author`, `priority` (`wont` to `must`, ordered), `labels`,
+  `parent`, `revision`, `created`, `updated`, `suspect` (the count the grid
+  shows), `approval` (`approved`, `pending`, `outdated`, `none`) and
+  `decomposed`, `implemented`, `verified` (`none`, `partial`, `full`, `na`,
+  as the coverage report gives them). An attribute is named in quotes,
+  `"Risk" = High`, and compares as its kind does, options by name.
+- **Links** give each link type a field per end, named after its phrase:
+  `derivesFrom` and `derivedInto`, `verifies` and `verifiedBy`; a type that
+  reads the same both ways, such as `relatesTo`, gives one field for either
+  end. A phrase that would take a field's name falls back to the type's key,
+  and `key` + `By` for the other end. Their values are requirement keys; an
+  end in the trash links nothing.
+- **A negation keeps what has nothing there**: `owner != currentUser()`
+  keeps the requirements nobody owns, as in Armature.
+- **Together**: the query is ANDed with `q` and the other parameters, and its
+  `ORDER BY` outranks `sort`. A view keeps it in `filter.query`, refused when
+  it does not run when saved; one that later names what the project no longer
+  has is refused when it is read.
+- **A refusal** is 400 `bad_query`, a sentence saying what to write instead,
+  and `position`, the character it went wrong at, counted from 1.
+- **Completion** answers where the caret `at` is, counted in characters (the
+  end of `q` when absent): the slot (`field`, `operator`, `value`,
+  `keyword`), the characters a pick replaces, the words the language takes
+  there, the project's names for the field (statuses, types, labels, people,
+  requirement keys), and the requirements the text finds: what it keeps when
+  it is a query that runs, by key or title otherwise.
+- UI: the grid's words box has a Words and Query switch; the query box
+  completes at the caret, explains the fields in a dialog, and shows a
+  refusal under the text with a caret at the character. The other controls
+  stay and narrow with it.
+- **As built** (#47):
+  - **Compiled per project.** The catalog is the fixed fields, the project's
+    attributes and its link types; a field per link type is its, and a typo
+    is answered with the nearest name.
+  - **Coverage in SQL.** `requirement_coverage` judges a level as
+    `trace.Judge` does; an integration test holds every level to the report's
+    before and after a revision.
+  - **The database sees it as the reader.** `requirement_key_id` and
+    `requirement_coverage` run as the caller, so a key or a level of a
+    requirement the reader may not see is none, which a test proves through
+    SQL as `exciter_app`.
+

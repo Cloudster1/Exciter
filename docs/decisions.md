@@ -3,6 +3,35 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: The query language is Armature's, compiled per project (#47)
+
+A power user narrows the grid in one line rather than a row of controls, and
+someone who knows Armature's query language should not learn another.
+
+- **Armature's language, ported.** The lexer, parser and completion of
+  `internal/nql` come across as they are, so the two products read a query
+  the same way; Exciter adds limits on length, depth and conditions, which an
+  open api needs.
+- **A catalog per project.** Armature's catalog is fixed and finds custom
+  fields by name across projects in SQL. The grid is one project's, so the
+  catalog is built from its attributes and link types: a misspelt attribute
+  or an option it lacks is a refusal pointing at the character, not a query
+  that quietly finds nothing.
+- **Links read from either end, by their phrases.** `verifiedBy IS EMPTY` is
+  the question traceability asks; a field per end named after the type's
+  phrase says it as the requirement page does. A phrase that would clash
+  falls back to the type's key.
+- **Coverage judged once more, in SQL.** The coverage report judges in Go
+  from counts. A query needs the level in a WHERE clause, so
+  `requirement_coverage` judges the same way; a test holds the two to the
+  same answers rather than one replacing the other in this change.
+- **Beside the controls, not instead of them.** The grid's dropdowns,
+  attribute conditions and suspect chip stay and narrow with the query; the
+  words box switches to the query box, since both are a line of text.
+- **Completion as in Armature, one fix.** A suggestion is highlighted by a
+  pointer that moves, not by one the list opened under, which in Armature
+  lets Enter pick a stale row instead of running the query.
+
 ## 2026-10-15: An approval can be an electronic signature, proven again every time (#46)
 
 Some projects need their approvals to stand as signatures: the record has to
