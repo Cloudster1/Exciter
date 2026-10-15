@@ -17,13 +17,11 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 // Armature's webhooks (#29), Stator's receiver: a delivery the installation's secret vouches for clears what it
 // announces and writes what it says of linked issues.
-
-// WebhookVersion is the envelope version Exciter reads; Armature before #242 sent none, which reads the same.
-const WebhookVersion = 1
 
 var (
 	// ErrBadSignature is any delivery that cannot be trusted, one to an installation without a secret included.
@@ -53,11 +51,13 @@ func SignTimestamped(body []byte, secret, timestamp string) string {
 	return Sign(append([]byte(timestamp+"."), body...), secret)
 }
 
-// WebhookHeaders are a delivery's signatures as it arrived; the timestamped pair is absent from an older Armature.
+// WebhookHeaders are a delivery's signatures and version as they arrived; an older Armature sends neither the
+// timestamped pair nor the version.
 type WebhookHeaders struct {
 	Signature            string
 	Timestamp            string
 	TimestampedSignature string
+	Version              string
 }
 
 // Verify says whether the headers vouch for body under secret. Retries resend the stored body, so the timestamp
@@ -83,13 +83,13 @@ const (
 // same work as one with.
 const absentSecret = WebhookSecretPrefix + "absent"
 
-// WebhookEnvelope is Armature's EnvelopeV1.
+// WebhookEnvelope is Armature's EnvelopeV1. An Armature before #242 sends no version.
 type WebhookEnvelope struct {
-	Version int       `json:"version"`
+	Version int       `json:"version,omitempty"`
 	ID      uuid.UUID `json:"id"`
 	Topic   string    `json:"topic"`
 	// OrgID is deprecated in Armature and leaves with version 2; while it comes, it has to be the connection's.
-	OrgID      uuid.UUID       `json:"orgId"`
+	OrgID      uuid.UUID       `json:"orgId,omitempty"`
 	OccurredAt time.Time       `json:"occurredAt"`
 	Payload    json.RawMessage `json:"payload"`
 }
@@ -142,12 +142,16 @@ func (s *Service) Webhook(ctx context.Context, body []byte, headers WebhookHeade
 		return ErrBadSignature
 	}
 
+	if !webhook.ReadsHeader(headers.Version) {
+		s.opts.Log.Warn("Armature sent a webhook envelope of a version Exciter does not read", "version", headers.Version)
+		return ErrUnknownVersion
+	}
 	var env WebhookEnvelope
 	if err := json.Unmarshal(body, &env); err != nil || env.ID == uuid.Nil {
 		s.opts.Log.Info("a signed webhook delivery is not Armature's envelope; ignored", "error", err)
 		return nil
 	}
-	if env.Version != 0 && env.Version != WebhookVersion {
+	if !webhook.Reads(env.Version) {
 		s.opts.Log.Warn("Armature sent a webhook envelope of a version Exciter does not read", "version", env.Version, "event", env.ID)
 		return ErrUnknownVersion
 	}

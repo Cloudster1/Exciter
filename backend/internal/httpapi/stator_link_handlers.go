@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 // Requirements traced to Stator pages (#41): pages read as the caller, a requirement's links, and Stator's webhooks,
@@ -149,14 +150,14 @@ func (s *Server) handleStatorWebhook(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, ErrBadRequest("The delivery could not be read. Stator sends it again later."))
 		return
 	}
-	err = s.Stator.Webhook(r.Context(), body, r.Header.Get(stator.SignatureHeader))
+	err = s.Stator.Webhook(r.Context(), body, r.Header.Get(stator.SignatureHeader), r.Header.Get(stator.VersionHeader))
 	switch {
 	case errors.Is(err, stator.ErrBadSignature):
 		respondError(w, r, &APIError{Status: http.StatusUnauthorized, Code: "bad_signature",
 			Message: "The signature does not match. Paste the webhook's secret from Stator under Settings, Stator, then redeliver."})
 	case errors.Is(err, stator.ErrUnknownVersion):
 		respondError(w, r, &APIError{Status: http.StatusUnprocessableEntity, Code: "unknown_version",
-			Message: "Exciter reads webhook envelopes of version " + strconv.Itoa(stator.WebhookVersion) + ". Update Exciter to read this one."})
+			Message: "Exciter reads webhook envelopes of version " + strconv.Itoa(webhook.Version) + ". Update Exciter to read this one."})
 	case err != nil:
 		respondError(w, r, err)
 	default:

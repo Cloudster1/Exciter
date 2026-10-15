@@ -354,7 +354,8 @@ sees whether the work is done. It is written:
     `X-Armature-Webhook-Version` header). Exciter reads version 1 and an
     envelope without one, from an Armature before its #242; any other is
     422 `unknown_version`, which Armature keeps and retries, as its
-    `docs/webhooks.md` asks of a receiver. `orgId` is deprecated there and
+    `docs/webhooks.md` asks of a receiver. The header is checked before the
+    body is read (#103), and both are described in `api/openapi.json`. `orgId` is deprecated there and
     leaves with version 2, so it is compared only while it comes.
   - An event is remembered once acted on, not before: a delivery that fails
     in Exciter is answered 500 and acted on when Armature retries.

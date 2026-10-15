@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 // Requirements traced to Stator pages (#41) against the stator-stub: pages read as the caller, links made as the
@@ -60,6 +62,8 @@ type statorHook struct {
 	topic   string
 	version int
 	payload map[string]any
+	// versionHeader is the version header, which Stator sends from its #412 on; absent when empty.
+	versionHeader string
 }
 
 // deliverStator posts a hook signed with secret and answers the status and the error code.
@@ -73,6 +77,9 @@ func (a *apiServer) deliverStator(t *testing.T, k statorHook, secret string) (in
 	req, _ := http.NewRequest(http.MethodPost, a.URL+"/api/v1/stator/webhook", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(stator.SignatureHeader, stator.Sign(body, secret))
+	if k.versionHeader != "" {
+		req.Header.Set(stator.VersionHeader, k.versionHeader)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -265,6 +272,13 @@ func TestRequirementsAreTracedToStatorPages(t *testing.T) {
 		send("a topic Exciter does not read", statorHook{id: uuid.New(), topic: "comment.created", payload: pageRef(braking, 1, "ENG")}, http.StatusNoContent, "")
 		send("an envelope of another version", statorHook{id: uuid.New(), topic: stator.TopicPagePublished, version: 2, payload: pageRef(braking, 7, "ENG")},
 			http.StatusUnprocessableEntity, "unknown_version")
+		send("a version header Exciter does not read", statorHook{id: uuid.New(), topic: stator.TopicPageDeleted, payload: pageRef(braking, 7, "ENG"),
+			versionHeader: strconv.Itoa(webhook.Version + 1)}, http.StatusUnprocessableEntity, "unknown_version")
+		if l := linkTo(t, braking); l["brokenAt"] != nil {
+			t.Errorf("a refused delivery was acted on: %v", l)
+		}
+		send("a ping of a Stator that names its version", statorHook{id: uuid.New(), topic: stator.TopicPing, version: webhook.Version,
+			versionHeader: strconv.Itoa(webhook.Version)}, http.StatusNoContent, "")
 		if status, code := api.deliverStator(t, published, "stator_whs_"+strings.Repeat("x", 43)); status != http.StatusUnauthorized || code != "bad_signature" {
 			t.Errorf("a wrong secret answered %d %s", status, code)
 		}

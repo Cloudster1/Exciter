@@ -14,13 +14,11 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 // Stator's webhooks (#41), as Armature's receiver: a delivery the installation's secret vouches for clears what it
 // announces and writes what it says of linked pages.
-
-// WebhookVersion is the envelope version Exciter reads; Stator sends none yet, which reads the same.
-const WebhookVersion = 1
 
 // TopicPing is what Stator's test delivery carries.
 const TopicPing = "ping"
@@ -43,9 +41,9 @@ func Sign(body []byte, secret string) string {
 // same work as one with.
 const absentSecret = WebhookSecretPrefix + "absent"
 
-// WebhookEnvelope is Stator's webhook.Envelope, Armature's shape.
+// WebhookEnvelope is Stator's webhook.Envelope, Armature's shape; Stator sends no version until its #412.
 type WebhookEnvelope struct {
-	Version    int             `json:"version"`
+	Version    int             `json:"version,omitempty"`
 	ID         uuid.UUID       `json:"id"`
 	Topic      string          `json:"topic"`
 	OccurredAt time.Time       `json:"occurredAt"`
@@ -72,7 +70,7 @@ type webhookTarget struct {
 
 // Webhook verifies one delivery and acts on it; an event acted on before changes nothing. An error other than
 // ErrBadSignature or ErrUnknownVersion is Exciter's, and Stator tries the delivery again later.
-func (s *Service) Webhook(ctx context.Context, body []byte, signature string) error {
+func (s *Service) Webhook(ctx context.Context, body []byte, signature, version string) error {
 	var target *webhookTarget
 	// As the admin role: nobody signs in, and only the secret vouches for the body.
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -103,12 +101,16 @@ func (s *Service) Webhook(ctx context.Context, body []byte, signature string) er
 		return ErrBadSignature
 	}
 
+	if !webhook.ReadsHeader(version) {
+		s.opts.Log.Warn("Stator sent a webhook envelope of a version Exciter does not read", "version", version)
+		return ErrUnknownVersion
+	}
 	var env WebhookEnvelope
 	if err := json.Unmarshal(body, &env); err != nil || env.ID == uuid.Nil {
 		s.opts.Log.Info("a signed webhook delivery is not Stator's envelope; ignored", "error", err)
 		return nil
 	}
-	if env.Version != 0 && env.Version != WebhookVersion {
+	if !webhook.Reads(env.Version) {
 		s.opts.Log.Warn("Stator sent a webhook envelope of a version Exciter does not read", "version", env.Version, "event", env.ID)
 		return ErrUnknownVersion
 	}

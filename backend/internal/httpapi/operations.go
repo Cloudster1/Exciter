@@ -28,6 +28,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/watch"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -38,11 +39,22 @@ import (
 // in. A nil value is an untyped JSON value; a typed nil pointer is nullable.
 type env map[string]any
 
-// param is a query parameter.
+// param is a query parameter, or a request header.
 type param struct {
 	name, description string
 	schema            *openapi.Schema
 	repeated          bool
+}
+
+// envelopeVersions is what the webhook receivers say of the envelope versions they read (#103).
+var envelopeVersions = "Exciter reads envelope version " + strconv.Itoa(webhook.Version) + ", and an envelope without a version " +
+	"from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before " +
+	"the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored."
+
+// versionHeader is the header a webhook sender names the envelope's version in.
+func versionHeader(name string) param {
+	return param{name: name, description: "The envelope's version, the body's version as well; absent from a sender before versions.",
+		schema: &openapi.Schema{Type: "integer"}}
 }
 
 // operation is one row of the table.
@@ -55,6 +67,8 @@ type operation struct {
 	summary string
 	tag     string
 	query   []param
+	// headers are the request headers the handler reads, for a caller that is not a browser.
+	headers []param
 	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file.
 	request   any
 	multipart bool
@@ -600,8 +614,9 @@ var operations = []operation{
 
 	// Armature's webhooks (#29): vouched for by their signature alone.
 	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true,
-		summary: "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
-		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
+		summary:     "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
+		description: envelopeVersions, headers: []param{versionHeader(armature.VersionHeader)},
+		request: armature.WebhookEnvelope{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// The followed Armature theme (#30).
@@ -666,8 +681,9 @@ var operations = []operation{
 
 	// Stator's webhooks (#41, #42): vouched for by their signature alone.
 	{method: "POST", path: "/stator/webhook", handler: "handleStatorWebhook", tag: "stator", public: true,
-		summary: "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
-		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
+		summary:     "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
+		description: envelopeVersions, headers: []param{versionHeader(stator.VersionHeader)},
+		request: stator.WebhookEnvelope{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// Comments and mentions (#33), agreed in docs/api-contract-m3.md.

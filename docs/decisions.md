@@ -3,6 +3,28 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: Webhook envelopes are read by their version (#103)
+
+The three tools post webhooks in one envelope that names its version, so its
+format can change without a receiver misreading it.
+
+- **The header decides before the body is read.** A signed delivery whose
+  `X-Armature-Webhook-Version` or `X-Stator-Webhook-Version` names a version
+  Exciter does not read is refused with 422 `unknown_version` and a warning,
+  and so is one whose body does. The signature is checked first, so an
+  unsigned caller learns nothing from the answer.
+- **No version is version 1.** Stator sends none until its #412, and
+  Armature sent none before its #242; refusing them would cut off a partner
+  that has not upgraded.
+- **The envelope Exciter reads is in its own document.** The receivers name
+  their bodies `ArmatureWebhookEnvelope` and `StatorWebhookEnvelope` instead
+  of an untyped value, and a unit test compares each with the sender's
+  vendored schema, so a field leaving the sender fails here first.
+- **One version for the suite.** `internal/webhook` holds the version Exciter
+  reads, which is also the one it will send under `X-Exciter-Webhook-Version`
+  once it sends webhooks; nothing sends them yet, so no sender is built ahead
+  of a use.
+
 ## 2026-10-15: Capabilities, offered and checked by exact name (#100)
 
 Exciter lists what it offers partners under `capabilities` of `/meta`, and

@@ -20,6 +20,8 @@ const (
 	SignatureHeader            = "X-Armature-Signature-256"
 	TimestampHeader            = "X-Armature-Timestamp"
 	TimestampedSignatureHeader = "X-Armature-Signature-Timestamped-256"
+	// VersionHeader names the envelope's version, so a delivery Exciter cannot read is refused before parsing.
+	VersionHeader = "X-Armature-Webhook-Version"
 	// LinkSource is what Armature shows as the source of the remote links Exciter puts on issues.
 	LinkSource = "Exciter"
 	// KeyPattern is an issue key as Exciter stores it, Armature's shape in upper case.

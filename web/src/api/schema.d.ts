@@ -256,7 +256,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Where Armature sends the installation's webhooks; the body is Armature's signed envelope. */
+        /**
+         * Where Armature sends the installation's webhooks; the body is Armature's signed envelope.
+         * @description Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.
+         */
         post: operations["armatureWebhook"];
         delete?: never;
         options?: never;
@@ -2278,7 +2281,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Where Stator sends the installation's webhooks; the body is Stator's signed envelope. */
+        /**
+         * Where Stator sends the installation's webhooks; the body is Stator's signed envelope.
+         * @description Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.
+         */
         post: operations["statorWebhook"];
         delete?: never;
         options?: never;
@@ -2873,6 +2879,18 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        ArmatureWebhookEnvelope: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: uuid */
+            orgId?: string;
+            /** @description A JSON value. */
+            payload: unknown;
+            topic: string;
+            version?: number;
         };
         Asset: {
             contentType: string;
@@ -4223,6 +4241,16 @@ export interface components {
             id: string;
             name: string;
         };
+        StatorWebhookEnvelope: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** @description A JSON value. */
+            payload: unknown;
+            topic: string;
+            version?: number;
+        };
         Stats: {
             lagFallbacks: number;
             noHealthyReplicaHits: number;
@@ -5269,13 +5297,16 @@ export interface operations {
     armatureWebhook: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The envelope's version, the body's version as well; absent from a sender before versions. */
+                "X-Armature-Webhook-Version"?: number;
+            };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": unknown;
+                "application/json": components["schemas"]["ArmatureWebhookEnvelope"];
             };
         };
         responses: {
@@ -12066,13 +12097,16 @@ export interface operations {
     statorWebhook: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The envelope's version, the body's version as well; absent from a sender before versions. */
+                "X-Stator-Webhook-Version"?: number;
+            };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": unknown;
+                "application/json": components["schemas"]["StatorWebhookEnvelope"];
             };
         };
         responses: {

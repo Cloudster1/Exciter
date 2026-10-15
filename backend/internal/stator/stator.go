@@ -21,6 +21,8 @@ const (
 	// SignatureHeader carries sha256= and the hex HMAC of the raw body; EventHeader the topic.
 	SignatureHeader = "X-Stator-Signature-256"
 	EventHeader     = "X-Stator-Event"
+	// VersionHeader is where Stator names the envelope's version once its #412 sends one, Armature's header.
+	VersionHeader = "X-Stator-Webhook-Version"
 	// LinkSource is what Stator shows as the source of the remote links Exciter puts on pages.
 	LinkSource = "Exciter"
 	// MaxLookupPages bounds one batch of pages to look up.

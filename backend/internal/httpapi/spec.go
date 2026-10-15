@@ -145,6 +145,8 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[stator.Link]():              "StatorLink",
 		reflect.TypeFor[stator.LinkInput]():         "StatorLinkInput",
 		reflect.TypeFor[stator.ClearInput]():        "StatorClearInput",
+		reflect.TypeFor[armature.WebhookEnvelope](): "ArmatureWebhookEnvelope",
+		reflect.TypeFor[stator.WebhookEnvelope]():   "StatorWebhookEnvelope",
 	}
 	for t, name := range names {
 		b.Names[t] = name
@@ -252,6 +254,9 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 			schema = &openapi.Schema{Type: "array", Items: schema}
 		}
 		o.Parameters = append(o.Parameters, openapi.Parameter{Name: q.name, In: "query", Description: q.description, Schema: schema})
+	}
+	for _, h := range op.headers {
+		o.Parameters = append(o.Parameters, openapi.Parameter{Name: h.name, In: "header", Description: h.description, Schema: h.schema})
 	}
 	switch {
 	case op.multipart:
