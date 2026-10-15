@@ -3,6 +3,36 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: A ReqIF exchange keeps the identifiers it met (#44)
+
+ReqIF is exchanged both ways: a specification goes to a supplier and comes
+back changed. An import that matched by name alone would make everything
+again, or match the wrong thing.
+
+- **Identifiers have a table of their own.** `reqif_identity` ties each
+  identifier of a file to the requirement, type, attribute on a type, option,
+  link type or section it became, and an export writes those identifiers
+  back. What no exchange named is written as `exciter-` and its id, which an
+  import into the same project resolves without a tie. A column on each table
+  would have needed one per table, and a requirement can come from several
+  exchanges.
+- **What matches nothing is made, and shown first.** A supplier's types and
+  attributes rarely match a project's by name, and refusing them would make
+  every first exchange a mapping chore. The preview lists what will be made,
+  and each item can be mapped or left out before anything is written.
+- **Made things belong to the project.** Link types an import makes are the
+  project's own, never the installation's, so one project's exchange changes
+  no other project.
+- **An exchange adds, it does not remove.** Links are added and never taken
+  away, and requirements the file does not hold stay as they are; a status
+  is set only on what the import makes. A file is one party's view, and a
+  missing object is more often out of its scope than deleted.
+- **Files wait in the database.** The files an archive's text shows are kept
+  with the import, not in the bucket, until the worker makes them
+  attachments, so the API and the worker need share nothing but the
+  database. A requirement the import makes shows them from revision 2, since
+  an attachment needs its requirement first.
+
 ## 2026-10-15: The development realm is the suite's `dynamo`, the same file in every tool (#102)
 
 Stator, Armature and Exciter sign in through one Keycloak realm, so one
