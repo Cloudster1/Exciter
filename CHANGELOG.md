@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Outbound webhooks (#48), as Stator sends them: an installation's
+  administrators add an address under Settings, Webhooks, with the events and
+  projects it hears, and each requirement, link, review, comment or baseline
+  event is posted to it signed with a secret shown once, read as the
+  administrator who saved it may see it. Failed deliveries are retried and a
+  failing endpoint is turned off; a delivery log, a test ping and sending
+  again are at hand. See `docs/integration.md`.
 - A query language for the grid (#47), Armature's: one line such as
   `owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC`
   narrows and orders a project's requirements by their fields, attributes in

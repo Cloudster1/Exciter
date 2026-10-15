@@ -3,6 +3,30 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: Webhooks are Stator's, kept by the installation and filtered by project (#48)
+
+Integrators want to hear when requirements change, signed so they know it came
+from this server; Stator and Armature already send theirs the same way.
+
+- **Stator's sender, ported.** The endpoint, the log of attempts, the sealed
+  secret shown once, the owner whose rights each payload is read with, the
+  leased sender, the backoff and turning a failing endpoint off come across
+  as they are, so a receiver written for Stator or Armature serves Exciter.
+- **Kept by the installation, with a project filter.** An integration usually
+  feeds one or two projects' requirements to a test or delivery tool, so an
+  endpoint may name its projects; one naming none hears every project its
+  owner may see, as Stator's hears every space.
+- **References, read as the owner.** A payload names the requirement, the
+  actor and what changed, read when the attempt is sent; a receiver fetches
+  more through the API. A body of the whole requirement would say more than a
+  receiver usually needs, and go stale between attempts.
+- **Every topic the issue named, none more.** Edits of comments, reopened
+  threads and imports stay out until somebody asks; the database's list of
+  topics and the outbox's are held together by a test.
+- **Its tests change the installation.** An endpoint hears every project, so
+  a test that makes one puts the installation's endpoints back through the
+  keeper `keepWebhooks` and is listed in `installationWide`.
+
 ## 2026-10-15: The query language is Armature's, compiled per project (#47)
 
 A power user narrows the grid in one line rather than a row of controls, and
