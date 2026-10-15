@@ -256,6 +256,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Use(requireAuth, s.requirementsOn)
 			r.Post("/projects/{projectKey}/requirements", s.handleCreateRequirement)
 			r.Get("/projects/{projectKey}/requirements", s.handleListGrid)
+			r.Get("/projects/{projectKey}/requirements/suggest", s.handleSuggestQuery)
 			r.Get("/requirements/by-id/{requirementID}", s.handleGetRequirementByID)
 			r.Get("/requirements/{reqKey}", s.handleGetRequirement)
 			r.Patch("/requirements/{reqKey}", s.handleUpdateRequirement)

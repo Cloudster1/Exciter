@@ -93,6 +93,8 @@ type Filter struct {
 	Attributes []AttributeCondition `json:"attributes"`
 	// Suspect keeps only requirements with a suspect link (#36).
 	Suspect bool `json:"suspect"`
+	// Query is a line of the query language (#47), which narrows with the rest and may order the grid.
+	Query string `json:"query"`
 }
 
 // filled answers f with every list present, empty where it names nothing, as the API document says.

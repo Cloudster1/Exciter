@@ -9,6 +9,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
+	"github.com/cloudster1/exciter/backend/internal/rql"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 )
 
@@ -23,6 +24,8 @@ type APIError struct {
 	Message string `json:"message"`
 	// Fields carries per-field validation messages keyed by field name.
 	Fields map[string]string `json:"fields,omitempty"`
+	// Position is the 1-based character a query went wrong at, with bad_query, as Armature and Stator report it.
+	Position *int `json:"position,omitempty"`
 	// RequestID lets a user quote something we can find in the logs.
 	RequestID string `json:"requestId,omitempty"`
 
@@ -102,9 +105,12 @@ var errNotImplemented = &APIError{Status: http.StatusNotImplemented, Code: "not_
 func toAPIError(err error) *APIError {
 	var apiErr *APIError
 	var invalid *oidc.ValidationError
+	var query *rql.Error
 	switch {
 	case errors.As(err, &apiErr):
 		return apiErr
+	case errors.As(err, &query):
+		return &APIError{Status: http.StatusBadRequest, Code: "bad_query", Message: query.Msg, Position: &query.Pos}
 	case errors.As(err, &invalid):
 		return ErrValidation(map[string]string{invalid.Field: invalid.Message})
 	case errors.Is(err, auth.ErrInvalidToken):
