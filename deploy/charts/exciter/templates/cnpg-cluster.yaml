@@ -1,0 +1,64 @@
+{{- if .Values.cnpg.enabled }}
+{{- $v := .Values.database }}
+{{/*
+The user's spec with the fields that have to agree with the rest of the chart
+set over it. Built as a dict and written out whole, because a template that
+spelled out some fields and appended the user's would emit a key twice as soon
+as somebody set one of them.
+*/}}
+{{- $spec := deepCopy (.Values.cnpg.spec | default dict) }}
+
+{{- $boot := $spec.bootstrap | default dict }}
+{{- if not (or $boot.recovery $boot.pg_basebackup) }}
+{{- $initdb := $boot.initdb | default dict }}
+{{- $_ := set $initdb "database" $v.name }}
+{{- $_ := set $initdb "owner" (include "exciter.ownerRole" .) }}
+{{- $_ := set $initdb "secret" (dict "name" (include "exciter.credentialSecret" (dict "root" . "name" "dbOwner"))) }}
+{{- $_ := set $boot "initdb" $initdb }}
+{{- $_ := set $spec "bootstrap" $boot }}
+{{- end }}
+
+{{/*
+Managed by the operator rather than by the roles Job: without superuser access
+nothing else may CREATE ROLE or grant pg_read_all_stats, which the pool needs
+to read pg_stat_wal_receiver.
+*/}}
+{{- $roles := list }}
+{{- range $key, $role := dict "dbApp" $v.appRole "dbAdmin" $v.adminRole }}
+{{- $roles = append $roles (dict
+  "name" $role
+  "ensure" "present"
+  "login" true
+  "inRoles" (list "pg_read_all_stats")
+  "passwordSecret" (dict "name" (include "exciter.credentialSecret" (dict "root" $ "name" $key)))) }}
+{{- end }}
+{{- $managed := $spec.managed | default dict }}
+{{- $_ := set $managed "roles" (concat $roles ($managed.roles | default list)) }}
+{{- $_ := set $spec "managed" $managed }}
+
+{{- $postgresql := $spec.postgresql | default dict }}
+{{/* The operator accepts only strings here, and 300 in a values file is a number. */}}
+{{- $parameters := dict }}
+{{- range $key, $value := $postgresql.parameters | default dict }}
+{{- $_ := set $parameters $key (toString $value) }}
+{{- end }}
+{{/*
+Surfaces a standby's replay position on the primary, as in the compose stack.
+The pool reads it either way.
+*/}}
+{{- $_ := set $parameters "track_commit_timestamp" "on" }}
+{{- $_ := set $postgresql "parameters" $parameters }}
+{{- $_ := set $spec "postgresql" $postgresql }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "exciter.cnpgName" . }}
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+  annotations:
+    # Before the roles Job, which Argo CD holds back until this is healthy.
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  {{- toYaml $spec | nindent 2 }}
+{{- end }}

@@ -1,0 +1,47 @@
+# Everything in one command, for a look at the product rather than a
+# deployment of it. Postgres, Valkey and an S3 store (SeaweedFS) come up
+# inside the release.
+#
+#   helm install demo deploy/charts/exciter -f deploy/charts/exciter/values-demo.yaml
+#
+# Not for real work: one database pod, no backups, no TLS. NOTES.txt says how
+# to sign in.
+
+env: development
+
+ingress:
+  enabled: true
+  host: exciter.localhost
+  tls:
+    enabled: false
+
+# development is the one setting where this may be false.
+auth:
+  secureCookies: false
+
+api:
+  replicas: 1
+web:
+  replicas: 1
+
+database:
+  sslmode: disable
+  ownerRole: postgres
+
+# The installation and its administrator, with a password the secrets Job
+# makes; NOTES.txt prints how to read it.
+jobs:
+  bootstrap:
+    enabled: true
+
+# One pod and one volume each. The superuser password is the generated
+# <fullname>-db-owner Secret, which the database is told and the Jobs use.
+postgresql:
+  enabled: true
+
+valkey:
+  bundled: true
+
+# Attachments and theme files, in SeaweedFS from its own chart.
+seaweedfs:
+  enabled: true

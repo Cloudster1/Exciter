@@ -1,0 +1,387 @@
+# Exciter. The defaults describe a real deployment: your own Postgres, your own
+# Valkey, your own bucket. For a stack that comes up with none of those,
+# install with -f values-demo.yaml instead.
+
+nameOverride: ""
+fullnameOverride: ""
+
+images:
+  # deploy/Dockerfile.backend carries every Go binary; each workload runs the
+  # one it needs. deploy/Dockerfile.web is the SPA behind nginx. An empty tag
+  # means the chart's appVersion: release.yml pushes every image with one
+  # under that version (tests/test-release-workflow.sh keeps the two lists equal).
+  backend: { repository: ghcr.io/cloudster1/exciter-backend, tag: "" }
+  web: { repository: ghcr.io/cloudster1/exciter-web, tag: "" }
+  # The client the roles Job runs, and the server the bundled Postgres runs.
+  psql: { repository: postgres, tag: 18-alpine }
+  valkey: { repository: valkey/valkey, tag: 8-alpine }
+  # The secrets Job needs a shell next to kubectl, which the upstream
+  # registry.k8s.io/kubectl image does not have.
+  kubectl: { repository: alpine/kubectl, tag: 1.34.1 }
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# development, staging or production. Anything else is refused at startup, and
+# anything but development requires auth.secureCookies.
+env: production
+logLevel: info
+
+ingress:
+  enabled: true
+  className: ""
+  # The host the browser uses. The session cookie and the same-site check are
+  # derived from it, so it is not only routing.
+  host: exciter.example.com
+  tls:
+    enabled: true
+    secretName: exciter-tls
+  annotations: {}
+
+api:
+  replicas: 2
+  # The listen address and the Service target come from this one value.
+  port: 8080
+  # The api drains in-flight requests for 25 seconds after SIGTERM and then
+  # flushes traces, so anything under about 35 kills it mid-drain.
+  terminationGracePeriodSeconds: 40
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+worker:
+  replicas: 1
+  terminationGracePeriodSeconds: 20
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+web:
+  replicas: 2
+  # Stock nginx would start its master as root. It runs as the image's own
+  # nginx user instead, so it listens above 1024 and the root filesystem can
+  # stay read only.
+  runAsUser: 101
+  port: 8080
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+database:
+  # Where the workloads connect when neither cnpg nor the bundled postgresql
+  # is enabled; the chart never guesses it.
+  host: ""
+  port: 5432
+  name: exciter
+  sslmode: require
+  # Read replicas outside cnpg. With none, every read goes to the primary,
+  # which is a supported configuration and not a degraded one.
+  replicaHosts: []
+  # The migrations grant to these names and the roles Job creates them; one
+  # value each, so the two cannot disagree.
+  appRole: exciter_app
+  adminRole: exciter_admin
+  # The role the roles and migrate Jobs connect as. It owns the schema and,
+  # outside cnpg, may CREATE ROLE. Empty means exciter_owner with cnpg, which
+  # keeps postgres for its own superuser, and postgres otherwise. A CNPG
+  # cluster creates its owner once, so do not change this after the first sync.
+  ownerRole: ""
+  pool:
+    # The write pool, on the primary, and each read pool, on a replica or
+    # the -ro service. Every api and worker pod opens up to both.
+    primaryMaxConns: 20
+    replicaMaxConns: 20
+    minConns: 2
+    maxConnLifetime: 1h
+    healthInterval: 5s
+    # A replica connection further behind than this serves no read.
+    maxReplicaLag: 2s
+    # Connections of each read pool the health loop asks at once, so behind
+    # the load balanced -ro service it sees more than one replica.
+    replicaLagSamples: 3
+  # How long a caller's reads stay off replicas that have not replayed their
+  # own last write.
+  readYourWritesTTL: 30s
+
+valkey:
+  # The store behind read-your-writes, shared by every api pod, and the cache
+  # of what Armature and Stator answered. Without one each pod keeps its own
+  # read-your-writes, so the chart refuses to send reads to replicas from more
+  # than one api pod without it, and every view asks the partners afresh.
+  #
+  # A Valkey or Redis you run. Ignored when the bundled one is on.
+  host: ""
+  port: 6379
+  db: 0
+  # Whether that server wants a password, read from the Secret named by
+  # secrets.names.valkey, which you create.
+  auth: false
+  # The bundled one, a single pod for a trial.
+  bundled: false
+  storage: 1Gi
+  storageClass: ""
+  # valkey/valkey:8-alpine runs as this user.
+  runAsUser: 999
+  runAsGroup: 1000
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { memory: 256Mi }
+
+s3:
+  # Theme files and attachments in a bucket. Without it uploads are refused
+  # with a message naming the setting. Bundled SeaweedFS (seaweedfs.enabled)
+  # turns it on and fills in the endpoint, the keys and useSSL; the bucket and
+  # region below still apply, and the api makes the bucket on start.
+  enabled: false
+  endpoint: ""
+  bucket: exciter-files
+  region: us-east-1
+  useSSL: true
+
+attachments:
+  # The largest file a requirement takes, such as 50MB or 2GB. The Ingress in
+  # front must allow at least this much; an nginx Ingress reads proxy-body-size.
+  uploadLimit: 50MB
+
+mail:
+  # The SMTP relay the worker sends notifications through, as host:port.
+  # Blank turns mail off: notifications are then shown in the app only.
+  smtpAddr: ""
+  from: Exciter <no-reply@exciter.example.com>
+
+# How long the audit log is kept, as in Armature's chart. The worker prunes it
+# once a day; 0 keeps every entry.
+retention:
+  audit: 8760h
+
+auth:
+  sessionCookie: exciter_session
+  # Must be true unless env is development, on the worker too: it shares the
+  # configuration loader.
+  secureCookies: true
+  # public-origin: reachable-origin, for an identity provider this release
+  # reaches at another address than the browser does, such as
+  # {"https://sso.example.com": "http://keycloak.sso.svc:8080"}. The reachable
+  # hosts are allowed outbound on their own.
+  oidcBackchannel: {}
+
+network:
+  # CIDRs whose X-Forwarded-For is believed: your ingress controller's range.
+  trustedProxies: []
+  # Extra browser origins allowed to call the API. Same-origin needs none.
+  corsOrigins: []
+  # Host names and CIDRs inside the network that outbound calls, such as those
+  # to Armature or Stator, may reach anyway. Every other address in the
+  # cluster's and the node's networks is refused. The hosts the backchannels
+  # below reach are added on their own.
+  outboundAllow: []
+
+# The partners, so an umbrella chart can wire the suite. url is the address
+# people open, which the bootstrap or seed Job connects when nothing is
+# connected yet; an administrator changes it under Settings after, and the Job
+# leaves that alone. backchannel maps it to where this release reaches it, such
+# as {"https://armature.example.com": "http://armature-api.armature.svc:8080"}.
+armature:
+  url: ""
+  backchannel: {}
+stator:
+  url: ""
+  backchannel: {}
+
+telemetry:
+  # /metrics has no authentication. Keep it on the cluster network.
+  metricsPort: 9090
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    labels: {}
+  otel:
+    endpoint: ""
+    sampleRatio: 1
+
+secrets:
+  # Database and Valkey passwords live in basic-auth Secrets, one per role,
+  # with the keys username and password, which is the shape CNPG reads.
+  #
+  # generate: a Job creates each missing one with a random password before
+  # anything else, and never touches one that exists. They carry no Helm
+  # ownership, so an uninstall leaves them next to the volumes they unlock.
+  # An external database's owner and an external Valkey already have
+  # passwords, so those Secrets must exist.
+  generate: true
+  passwordLength: 32
+  # Blank means <fullname>-db-owner, -db-app, -db-admin, -valkey and -secret-key. A
+  # password you supply ends up inside a URL, so keep it to letters and digits.
+  names:
+    dbOwner: ""
+    dbApp: ""
+    dbAdmin: ""
+    valkey: ""
+    # EXCITER_SECRET_KEY, which seals stored secrets such as an identity
+    # provider's client secret or a webhook's: 32 random bytes in base64, in the
+    # key password.
+    secretKey: ""
+    # The bundled SeaweedFS's S3 keys, made by the secrets Job like the
+    # passwords above: the access key is in the key username and the secret key
+    # in password. Not blank, since the subchart below names them as literals
+    # (a subchart cannot template its values from here), and the chart refuses
+    # names that disagree. s3Read is the identity SeaweedFS wants besides the
+    # admin one; nothing here reads through it.
+    s3: exciter-s3
+    s3Read: exciter-s3-read
+  # The S3 keys only you can supply, for an S3 of your own. With
+  # seaweedfs.enabled the keys are made, and these are not used. create: the chart renders them into a
+  # Secret. existingSecret: you made one with the keys s3-access-key and
+  # s3-secret-key, and the chart only names it.
+  create: true
+  existingSecret: ""
+  s3AccessKey: ""
+  s3SecretKey: ""
+
+# What a first start calls the installation; an administrator renames it under
+# Settings after. Blank means Exciter.
+installation:
+  name: ""
+
+jobs:
+  roles:
+    # The roles the migrations expect. Runs before every upgrade and is safe
+    # to run again.
+    enabled: true
+  migrate:
+    enabled: true
+  seed:
+    # A development stack's installation. Refused with env production.
+    enabled: false
+  bootstrap:
+    # What a fresh install needs to be entered: the installation, its first
+    # local administrator and, when named, the identity provider, the members
+    # let in ahead of their first sign-in and the partners.
+    # Runs after every install and upgrade and changes nothing that exists,
+    # except a bootstrap password that was changed in its Secret. Allowed in
+    # production; the seed above is not.
+    enabled: false
+
+# Read by the bootstrap Job. The password and the provider's client secret are
+# never values: each is a key in a Secret, so neither lands in a values file
+# or a ConfigMap.
+bootstrap:
+  admin:
+    # Blank means admin@<ingress.host>.
+    email: ""
+    # Blank: the secrets Job makes <fullname>-bootstrap-admin with a random
+    # password the first time, and never touches it after. Read it with
+    #   kubectl get secret <fullname>-bootstrap-admin -o jsonpath='{.data.password}' | base64 -d
+    # Name a Secret of your own to choose the password; editing it changes
+    # the administrator's password on the next sync.
+    passwordSecret: { name: "", key: password }
+  # Optional. With an issuer everyone signs in through it, such as the suite's
+  # Keycloak realm dynamo, and the administrator's password is only for getting
+  # in to change that.
+  oidc:
+    issuer: ""
+    clientId: ""
+    # Needs secrets.names.secretKey to be set, since the client secret is
+    # stored sealed. Leave name blank for a public client.
+    clientSecret: { name: "", key: client-secret }
+  # [{ email: alice@example.com, role: admin }], each role owner, admin or member.
+  members: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: { type: RuntimeDefault }
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: ["ALL"] }
+
+# A PostgreSQL cluster run by the CloudNativePG operator, which must already be
+# installed: this renders a postgresql.cnpg.io/v1 Cluster, not the operator.
+# Writes, migrations and admin work go to its -rw service.
+cnpg:
+  enabled: false
+  # Send reads to the -ro service when there is more than one instance.
+  readReplicas: true
+  # The Cluster's spec, passed to the operator as written. The chart only fills
+  # in what has to agree with the rest of it: bootstrap.initdb's database,
+  # owner and secret, the app and admin roles under managed.roles (yours are
+  # kept after them), and track_commit_timestamp. A bootstrap by recovery or
+  # pg_basebackup is left alone.
+  spec:
+    instances: 3
+    # The same major version as images.psql, the client the roles Job runs.
+    imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+    enableSuperuserAccess: false
+    storage:
+      size: 10Gi
+    postgresql:
+      parameters: {}
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 1Gi }
+    monitoring:
+      enablePodMonitor: false
+    # backup, like any other field of the Cluster spec, goes here as the
+    # CNPG documentation describes it.
+
+# A trial database: one pod, one volume, no replica and no backup. Off by
+# default; see values-demo.yaml.
+postgresql:
+  enabled: false
+  storage: 8Gi
+  storageClass: ""
+  # postgres:18-alpine runs as this user, and PGDATA is where its entrypoint
+  # puts the cluster.
+  runAsUser: 70
+  runAsGroup: 70
+  dataPath: /var/lib/postgresql/18/docker
+  terminationGracePeriodSeconds: 60
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+# An S3 store for a trial: SeaweedFS from the project's own chart, installed
+# with this release. Off by default; a real deployment names its own S3 under
+# s3 above. One master, one volume server and one filer, which is not a
+# replicated store: keep the data somewhere that matters elsewhere.
+#
+# The access keys are made by the secrets Job (secrets.names.s3) and read by
+# both SeaweedFS and the api from the same Secret, so there is nothing to copy
+# between two places. Anything else under this key is the subchart's own
+# setting, passed on as written.
+seaweedfs:
+  enabled: false
+  s3:
+    enabled: true
+    enableAuth: true
+    port: 8333
+    credentials:
+      # Must name secrets.names.s3 and s3Read; the chart refuses a difference.
+      admin: { existingSecret: exciter-s3, accessKeyKey: username, secretKeyKey: password }
+      read: { existingSecret: exciter-s3-read, accessKeyKey: username, secretKeyKey: password }
+  master:
+    replicas: 1
+  volume:
+    replicas: 1
+  filer:
+    replicas: 1

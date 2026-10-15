@@ -1,0 +1,72 @@
+{{/*
+deploy/nginx.conf proxies to the compose service name api, which resolves
+nowhere else. This is that file with the real Service name, so a port-forward
+to the web pod alone gives a working application. The Ingress sends /api to
+the api Service directly, so this proxy is the fallback.
+*/}}
+{{- $csp := "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'" }}
+{{- $api := printf "%s-api:%d" (include "exciter.fullname" .) (int .Values.api.port) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "exciter.fullname" . }}-nginx
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    # Connections to the api are kept and reused: one per request runs out of
+    # local ports at a few hundred requests a second. The Service's address
+    # does not change, so it is resolved once at start.
+    upstream exciter_api {
+        server {{ $api }};
+        keepalive 64;
+    }
+
+    server {
+        listen {{ .Values.web.port }};
+        server_name _;
+        root /usr/share/nginx/html;
+
+        # A kept connection needs HTTP/1.1 and no "Connection: close".
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location /api/ {
+            # The api decides how large an upload may be.
+            client_max_body_size 0;
+            proxy_pass http://exciter_api;
+        }
+        location = /healthz {
+            proxy_pass http://exciter_api;
+        }
+        location = /readyz {
+            proxy_pass http://exciter_api;
+        }
+
+        # nginx's type table has no entry for a web app manifest, which would be
+        # served as an anonymous download. No add_header here, so the server's
+        # own headers still apply.
+        location = /site.webmanifest {
+            default_type application/manifest+json;
+        }
+        # The headers are repeated per location because an add_header inside
+        # one drops every header inherited from the server.
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header Content-Security-Policy "{{ $csp }}" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+            add_header Content-Security-Policy "{{ $csp }}" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+    }

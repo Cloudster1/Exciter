@@ -1,0 +1,100 @@
+{{- if .Values.valkey.bundled }}
+{{/*
+A trial Valkey: one pod, one volume. It holds read-your-writes positions that
+expire in seconds, so losing it costs a few reads a trip to the primary.
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "exciter.fullname" . }}-valkey
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  type: ClusterIP
+  ports:
+    - name: valkey
+      port: {{ .Values.valkey.port }}
+      targetPort: valkey
+  selector:
+    {{- include "exciter.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "exciter.fullname" . }}-valkey
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  serviceName: {{ include "exciter.fullname" . }}-valkey
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "exciter.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: valkey
+  template:
+    metadata:
+      labels:
+        {{- include "exciter.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: valkey
+    spec:
+      {{- with .Values.images.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.valkey.runAsUser }}
+        runAsGroup: {{ .Values.valkey.runAsGroup }}
+        fsGroup: {{ .Values.valkey.runAsGroup }}
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: valkey
+          image: {{ include "exciter.image" (dict "root" $ "name" "valkey") }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          command: ["valkey-server", "--appendonly", "yes", "--dir", "/data", "--requirepass", "$(VALKEY_PASSWORD)"]
+          env:
+            {{- include "exciter.passwordEnv" (dict "root" . "name" "valkey" "var" "VALKEY_PASSWORD") | nindent 12 }}
+          ports:
+            - name: valkey
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.valkey.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.valkey.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.valkey.storage }}
+{{- end }}

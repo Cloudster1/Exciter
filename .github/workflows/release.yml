@@ -1,6 +1,6 @@
-# Releases a version: tags the merged release pull request, builds and pushes every image from the tag, publishes
-# the GitHub release and tells Dynamo (docs/releasing.md). Every step survives a re-run of the same version, so a
-# release that fails halfway is finished by running it again, not by re-cutting the tag.
+# Releases a version: tags the merged release pull request, builds and pushes every image and the chart from the
+# tag, publishes the GitHub release and tells Dynamo (docs/releasing.md). Every step survives a re-run of the same
+# version, so a release that fails halfway is finished by running it again, not by re-cutting the tag.
 name: Release
 
 on:
@@ -23,8 +23,10 @@ permissions:
   contents: read
 
 env:
-  # ghcr takes only lower case names; tests/test-release-workflow.sh reads this line.
+  # ghcr takes only lower case names. The chart's values.yaml names the same repositories;
+  # tests/test-release-workflow.sh refuses the two disagreeing.
   IMAGE_PREFIX: ghcr.io/cloudster1/exciter
+  CHART_REPOSITORY: oci://ghcr.io/cloudster1/charts
   DYNAMO_REPOSITORY: praetorianer777/Dynamo
 
 jobs:
@@ -114,7 +116,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
-      # Every image the stack builds, one entry each; the Go services all run the backend image.
+      # Every image the chart runs at its appVersion, one entry each; the Go services all run the backend image.
       matrix:
         include:
           - image: backend
@@ -154,9 +156,37 @@ jobs:
             org.opencontainers.image.revision=${{ needs.resolve.outputs.commit }}
             org.opencontainers.image.licenses=Apache-2.0
 
-  publish:
+  chart:
     needs: [resolve, images]
     if: ${{ !cancelled() && needs.images.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.resolve.outputs.tag }}
+
+      - name: Package the chart
+        run: make chart-package
+
+      - name: Push the chart
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: make chart-push
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chart
+          path: dist/exciter-${{ needs.resolve.outputs.version }}.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: [resolve, images, chart]
+    if: ${{ !cancelled() && needs.chart.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -170,6 +200,11 @@ jobs:
         with:
           ref: refs/tags/${{ needs.resolve.outputs.tag }}
           fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: chart
+          path: dist
 
       # A checkout of a tag can leave it lightweight, without its message, so the tag object is fetched as it is
       # on the remote.
@@ -188,12 +223,14 @@ jobs:
           else
             gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
           fi
+          gh release upload "$TAG" "dist/exciter-$VERSION.tgz" --clobber
           {
             echo "### Exciter $TAG"
             echo
             for image in backend web; do
               echo "- \`$IMAGE_PREFIX-$image:$VERSION\`"
             done
+            echo "- chart \`${CHART_REPOSITORY}/exciter\` version \`$VERSION\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Dynamo runs the three tools together and releases the combinations that pass. Without the secret the

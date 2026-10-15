@@ -3,6 +3,40 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: Exciter installs with Stator's chart, and the bootstrap connects the partners (#104)
+
+Dynamo's umbrella chart depends on each tool's chart, so the three install
+alike.
+
+- **Stator's chart, renamed.** `deploy/charts/exciter` keeps its value names
+  wherever the meaning is the same: the database layouts (CloudNativePG, one's
+  own, or bundled for a trial), Valkey, the S3 store with SeaweedFS for a
+  trial, the secrets Job, the roles, migrate, bootstrap and seed Jobs and
+  their hook order under Helm and Argo CD. What Exciter does not have, the PDF
+  renderer, backups and the page and space settings, is left out.
+- **Partners are values.** `armature.url` and `stator.url` are the addresses
+  people open. The bootstrap Job connects each where nothing is connected, so
+  an umbrella chart wires the suite with one value per partner;
+  `ConnectFirst` saves the address before the partner answers, since the
+  three install at once, and what it offers is asked on the next save or
+  token check. An address an administrator set is never overwritten.
+  Webhook secrets stay a step in Settings: a partner makes one only when its
+  webhook is added.
+- **A backchannel lets its host through.** Every host
+  `armature.backchannel`, `stator.backchannel` or `auth.oidcBackchannel`
+  reaches is added to `EXCITER_OUTBOUND_ALLOW`, since a backchannel the guard
+  refuses is never what was meant.
+- **Sign-in through the suite's realm is bootstrap values.** The issuer, the
+  client id and a Secret holding the client secret, as Stator's chart takes
+  them; nothing here names the realm `dynamo` (#102).
+- **Two kinds of test.** `tests/test-helm.sh` renders every layout and checks
+  the values that matter by name, as Stator does, and compares two whole
+  renders with golden files, as Armature does, so an unintended change to
+  any manifest shows in review. `make test-chart-install` installs and
+  upgrades the chart in kind, in CI when what the chart installs changes.
+  There is no previous release to upgrade from yet; the upgrade is of the
+  same chart with a second api pod, as Stator's is.
+
 ## 2026-10-15: A release is a pull request, and its merge commit is the tag (#101)
 
 Exciter releases as Stator does since its #410, and Armature since its #240:
@@ -31,7 +65,8 @@ travels as a pull request of its own.
   and a `package.json` once it carries a version.
 - **Images are `ghcr.io/cloudster1/exciter-<image>`**, `backend` and `web`,
   tagged `X.Y.Z` and with the short commit. A test keeps the list equal to the
-  images the stack builds; the chart joins the workflow with #104.
+  images the stack builds and the chart runs; the chart is
+  `oci://ghcr.io/cloudster1/charts/exciter` since #104.
 - **Dynamo is told, not waited for.** A `repository_dispatch`
   (`tool-released`, `{tool, version}`) goes to Dynamo when
   `DYNAMO_DISPATCH_TOKEN` is set; without it the release still stands and the

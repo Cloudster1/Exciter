@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "exciter.fullname" . }}-env
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+  annotations:
+    # Before the Jobs of the Sync phase, which read it.
+    argocd.argoproj.io/sync-wave: "-20"
+data:
+  {{- include "exciter.env" . | nindent 2 }}

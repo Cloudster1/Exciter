@@ -7,6 +7,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A Helm chart, `deploy/charts/exciter` (#104), with the values of Stator's:
+  Postgres through CloudNativePG, one's own or bundled, Valkey, an S3 store
+  with SeaweedFS for a trial, generated secrets, and the roles, migrate,
+  bootstrap and seed Jobs. `armature.url` and `stator.url` connect the
+  partners on the first start, and their backchannels are let through the
+  outbound guard. `values-demo.yaml` installs everything in one command, and
+  a release pushes the chart to `oci://ghcr.io/cloudster1/charts/exciter`.
+  See `docs/deployment.md`.
+- `seed bootstrap` connects Armature and Stator from
+  `EXCITER_BOOTSTRAP_ARMATURE_URL` and `EXCITER_BOOTSTRAP_STATOR_URL` where
+  nothing is connected yet (#104).
+
 ### Changed
 
 - Releases are published from a tag (#101). `./release.sh` opens the pull

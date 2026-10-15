@@ -21,9 +21,9 @@ From an up-to-date `main` with a clean working tree:
    a working tree with uncommitted changes, and a version whose tag or
    release branch already exists.
 3. On a new branch `release/vX.Y.Z` it writes the version into every file
-   that carries one (`scripts/version-files.sh files`: `VERSION` today, the
-   chart's `version` and `appVersion` once #104 adds it, and a `package.json`
-   once one carries a version), turns the `Unreleased` section of
+   that carries one (`scripts/version-files.sh files`: `VERSION`, the
+   `version` and `appVersion` of `deploy/charts/exciter/Chart.yaml`, and a
+   `package.json` once one carries a version), turns the `Unreleased` section of
    `CHANGELOG.md` (or, when it is empty, the commit subjects) into the section
    `## [X.Y.Z]`, commits `release: vX.Y.Z`, pushes the branch and opens its
    pull request with `gh`.
@@ -38,17 +38,29 @@ From an up-to-date `main` with a clean working tree:
    - the images `backend` and `web` are built with `VERSION` and `COMMIT` and
      pushed to `ghcr.io/cloudster1/exciter-<image>` as `X.Y.Z` and as the
      short commit;
+   - the chart is packaged and pushed to
+     `oci://ghcr.io/cloudster1/charts/exciter` as version `X.Y.Z`;
    - the GitHub release `vX.Y.Z` is published with the tag message as its
-     notes;
+     notes and the chart attached;
    - `praetorianer777/Dynamo` gets a `repository_dispatch` of type
      `tool-released` with `{"tool": "exciter", "version": "X.Y.Z"}`.
 7. Back on `main`: `git switch main && git merge --ff-only origin/main`.
 
-The chart is packaged and published from the same tag once #104 adds it.
-
 A build that is not made from a tag says so in its version, `X.Y.Z+N.g<hash>`
 or `X.Y.Z+dev` (`scripts/build-stamp.sh`), so a development image is never
 taken for a release.
+
+## Installing a release
+
+```sh
+helm install exciter oci://ghcr.io/cloudster1/charts/exciter --version X.Y.Z \
+  --set ingress.host=requirements.example.com --set database.host=db.example.com \
+  --set jobs.bootstrap.enabled=true
+```
+
+The chart's images default to `ghcr.io/cloudster1/exciter-<image>` at the
+chart's `appVersion`. `deploy/charts/exciter/values.yaml` describes every
+setting, and `docs/deployment.md` how to install it.
 
 ## When something fails
 
@@ -64,9 +76,10 @@ or released again; fix forward with the next version.
   Contents read and write on `praetorianer777/Dynamo`, which is what a
   `repository_dispatch` needs. Without it the release still publishes and the
   run says Dynamo was not told.
-- **Package visibility.** GitHub creates the `exciter-*` image packages on the
-  first push, private. Make them public (Package settings, Change visibility)
-  for clusters to pull them without a pull secret.
+- **Package visibility.** GitHub creates the `exciter-*` image packages and
+  the `charts/exciter` package on the first push, private. Make them public
+  (Package settings, Change visibility) for clusters to pull them without a
+  pull secret, or give the cluster one through `images.pullSecrets`.
 - The workflow's own token sets the tag and pushes the packages; it asks for
   `contents: write` and `packages: write` in the jobs that need them. A
   ruleset that restricts creating `v*` tags has to let GitHub Actions

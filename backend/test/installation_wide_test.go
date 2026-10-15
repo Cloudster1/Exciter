@@ -48,6 +48,7 @@ var installationWide = map[string]string{
 	"TestAPersonFollowsTheThemeArmatureShowsThem":              armatureLink,
 	"TestWhatArmatureLacksIsSaidWhereItIsNeeded":               armatureLink,
 	"TestCoverageFollowsTheRulesAndTheLinks":                   armatureLink,
+	"TestTheBootstrapConnectsArmatureOnce":                     armatureLink,
 	"TestTheMatrixLaysOutTheLinks":                             armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":             armatureLink,
 
@@ -57,6 +58,7 @@ var installationWide = map[string]string{
 	"TestRawSQLWallsStatorRows":                              statorLink,
 	"TestRequirementsAreTracedToStatorPages":                 statorLink,
 	"TestRawSQLGuardsStatorLinks":                            statorLink,
+	"TestTheBootstrapConnectsStatorOnce":                     statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,

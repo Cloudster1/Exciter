@@ -1,5 +1,5 @@
-// Command seed makes the installation EXCITER_NAME names on its first start, with the first administrator, provider
-// and members EXCITER_BOOTSTRAP_* names. Bare it is a development stack's; `seed bootstrap` is for production.
+// Command seed makes the installation EXCITER_NAME names on its first start, with the first administrator, provider,
+// members and partners EXCITER_BOOTSTRAP_* names. Bare it is a development stack's; `seed bootstrap` is for production.
 package main
 
 import (
@@ -9,13 +9,16 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/seed"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 )
 
 // bootstrapAdminName is what the first administrator is called until they say otherwise.
@@ -102,6 +105,40 @@ func populate(ctx context.Context, cfg config.Config, cluster *db.Cluster, accou
 		log.Info("identity provider configured", "issuer", boot.OIDCIssuer)
 	case done.ProviderExisting:
 		log.Info("the installation's identity provider is already set up")
+	}
+	return connectPartners(ctx, cfg, cluster, box, log)
+}
+
+// connectPartners connects Armature and Stator where none is connected yet, so a chart can wire the suite; an
+// address an administrator set since is theirs and stays.
+func connectPartners(ctx context.Context, cfg config.Config, cluster *db.Cluster, box *secret.Box, log *slog.Logger) error {
+	boot := cfg.Bootstrap
+	if boot.ArmatureURL == "" && boot.StatorURL == "" {
+		return nil
+	}
+	if _, ok := db.UserFrom(ctx); !ok {
+		return errors.New("EXCITER_BOOTSTRAP_ARMATURE_URL and EXCITER_BOOTSTRAP_STATOR_URL need EXCITER_BOOTSTRAP_ADMIN_EMAIL: only an administrator may connect a partner")
+	}
+	allow := netguard.ParseAllow(cfg.OutboundAllow)
+	appURL, dev := cfg.AppBaseURL, cfg.Env == config.EnvDevelopment
+	partners := []struct {
+		name, url string
+		connect   func(context.Context, string, string) (bool, error)
+	}{
+		{"Armature", boot.ArmatureURL, armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
+			armature.Options{AppURL: appURL, Allow: allow, Development: dev, Log: log}).ConnectFirst},
+		{"Stator", boot.StatorURL, stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel), nil,
+			stator.Options{AppURL: appURL, Allow: allow, Development: dev, Log: log}).ConnectFirst},
+	}
+	for _, p := range partners {
+		if p.url == "" {
+			continue
+		}
+		made, err := p.connect(ctx, p.url, "")
+		if err != nil {
+			return fmt.Errorf("connect %s at %s: %w", p.name, p.url, err)
+		}
+		log.Info("partner ready", "partner", p.name, "url", p.url, "connected", made)
 	}
 	return nil
 }

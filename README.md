@@ -54,6 +54,12 @@ STATOR_DIR=<checkout>` runs Exciter, Armature and Stator side by side on that
 one realm, connected to each other; [docs/suite.md](docs/suite.md) says where
 everything is.
 
+## Installing
+
+The Helm chart `deploy/charts/exciter` installs Exciter on Kubernetes, alone
+or in the suite beside Armature and Stator; `values-demo.yaml` brings
+everything up in one command. See [docs/deployment.md](docs/deployment.md).
+
 ## Releasing
 
 `./release.sh` works out the next version from the Conventional Commits since

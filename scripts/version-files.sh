@@ -4,7 +4,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-# The chart carries the version once #104 adds it; until then there is none to keep in step.
+# The chart is versioned with the application, so chart X.Y.Z installs Exciter X.Y.Z; a checkout without it skips it.
 CHART="deploy/charts/exciter/Chart.yaml"
 # A package.json carries a version only if somebody gave it one; once it
 # does, it has to move with the others.

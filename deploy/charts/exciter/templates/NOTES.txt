@@ -1,0 +1,47 @@
+Exciter {{ .Chart.AppVersion }} is installed as {{ .Release.Name }}.
+
+  {{ include "exciter.appURL" . }}
+
+{{- if .Values.jobs.bootstrap.enabled }}
+
+Sign in as {{ include "exciter.bootstrapEmail" . }}
+{{- if .Values.bootstrap.admin.passwordSecret.name }} with the password in the Secret {{ .Values.bootstrap.admin.passwordSecret.name }}.
+{{- else }}. The password was made once by the secrets Job:
+
+  kubectl get secret {{ include "exciter.credentialSecret" (dict "root" . "name" "bootstrapAdmin") }} -n {{ .Release.Namespace }} -o jsonpath='{.data.password}' | base64 -d
+{{- end }}
+{{- with .Values.bootstrap.oidc.issuer }}
+Everyone else signs in through {{ . }}.
+{{- end }}
+{{- end }}
+
+Writes go to {{ include "exciter.dbHost" . }}.
+{{- with include "exciter.replicaHosts" . }}
+Reads go to {{ . }} when the replica a read reaches has caught up, otherwise to the primary.
+{{- else }}
+Reads go there too: no read replica is configured.
+{{- end }}
+{{ if .Values.secrets.generate }}
+Database and Valkey passwords are in Secrets generated once and kept when the
+release is removed:
+
+  kubectl get secret -l app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/part-of=exciter
+{{ end }}
+{{- if not .Values.ingress.enabled }}
+There is no Ingress. To look at it:
+
+  kubectl port-forward svc/{{ include "exciter.fullname" . }}-web 8080:80
+{{ end }}
+{{- if or .Values.armature.url .Values.stator.url }}
+Partners connected on the first start, when nothing was connected yet:
+{{- with .Values.armature.url }} Armature at {{ . }}{{ end }}
+{{- with .Values.stator.url }} Stator at {{ . }}{{ end }}.
+Their webhook secrets are pasted under Settings once each partner shows them.
+{{ end }}
+{{- if not (include "exciter.s3Enabled" .) }}
+Uploads are off: no bucket is configured, and an upload is refused saying so.
+{{ end }}
+{{- if not .Values.mail.smtpAddr }}
+Mail is off: no SMTP relay is configured, so notifications are shown in the
+app only. Set mail.smtpAddr to send them by mail too.
+{{ end }}

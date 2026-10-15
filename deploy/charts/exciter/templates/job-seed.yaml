@@ -1,0 +1,46 @@
+{{- if .Values.jobs.seed.enabled }}
+{{- if eq .Values.env "production" }}
+{{- fail "jobs.seed.enabled is true but env is production. The seed is a development stack's: turn jobs.seed.enabled off, and set jobs.bootstrap.enabled to make the installation and its administrator." }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "exciter.fullname" . }}-seed
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+  annotations:
+    # Under Argo CD on every sync, which the seed allows: it adds nothing twice.
+    {{- include "exciter.hookAnnotations" (dict "helm" "post-install" "argo" "PostSync" "weight" "10") | nindent 4 }}
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "exciter.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: seed
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "exciter.serviceAccountName" . }}
+      {{- with .Values.images.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: seed
+          image: {{ include "exciter.image" (dict "root" $ "name" "backend") }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          command: ["/app/seed"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "exciter.fullname" . }}-env
+          env:
+            {{- include "exciter.secretEnv" . | nindent 12 }}
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+{{- end }}
