@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Approvals as electronic signatures (#46). A project's administrators turn
+  them on in its settings; then approving or rejecting a revision shows what
+  the signature means, and asks for the password again, or for a fresh
+  sign-in at the identity provider, every time. The signature keeps the
+  meaning, the revision and the hash of its content, and how and when the
+  signer proved who they are; the database refuses a decision without one.
 - Export a specification, a section or a baseline as PDF and Word (#45). The
   document opens with a cover and contents, and each requirement shows its
   text, a table of its type, status, owner, priority and attributes, and its

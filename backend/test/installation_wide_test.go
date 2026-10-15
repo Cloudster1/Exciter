@@ -61,6 +61,7 @@ var installationWide = map[string]string{
 	"TestTheBootstrapConnectsStatorOnce":                     statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
+	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,
 	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":   singleSignOn,
 	"TestOnlyExistingGroupsAreJoinedWhenCreationIsOff":       singleSignOn,

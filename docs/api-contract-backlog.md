@@ -12,10 +12,11 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | Range | Owner | Holds |
 |---|---|---|
 | 00710 to 00719 | ReqIF (#44) | `reqif_identity` (what an identifier of an exchange names in a project), `reqif_import` (a file on its way in), `reqif_import_object` (the files its rich text shows, until they are attachments), their guards and policies |
-
 | 00720 to 00729 | Documents (#45) | `api_token.for_render` and the check `api_token_render_is_brief`, which hold a print's token to reading for minutes |
+| 00730 to 00739 | Signatures (#46) | `reauthentication` (a proof of identity given again, for one signature), `signature_failure` (wrong passwords, for the limit), `review_signature`, the purpose of an `oidc_login`, and the triggers `review_signature_guard` and `review_decision_signed` |
 
-Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45). Worker topic:
+Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
+and `internal/auth/reauth.go` (#46). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
 `EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
 
@@ -170,3 +171,50 @@ Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `int
   - **What the database holds.** A print's token reads only, lasts at most
     five minutes and reaches every project its owner does, or the row is
     refused; the app changes no token at all.
+
+## #46 Re-authenticate to sign an approval
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `PATCH /projects/{projectKey}` with `settings.signedApprovals` | administer | `{project}`; the change is audited as `project.signatures_set` |
+| `POST /reviews/{reviewID}/decisions` with `password` or `reauthentication` | an approver, signed in | `{review}`; 422 on `password`, 403 `session_only`, 409 `signature_spent`, 429 `too_many_attempts` |
+| `GET /auth/oidc/reauthenticate?next=` | signed in | a redirect to the identity provider, back to `next` with `signature` or `signature_error` |
+| `GET /auth/me` | signed in | `signsWith`: `password`, `provider` or empty, for a session |
+
+- **The setting** is a project's, off by default. With it on, approving and
+  rejecting a revision are both electronic signatures; asking and withdrawing
+  are not.
+- **The meaning** is a sentence the server writes for each decision, in the
+  reader's language: "I approve revision 3 of CHK-R1, Pay the basket, as one
+  of its approvers." A review carries `signed` and, for someone who may
+  decide, `meanings` by decision; the signature keeps the sentence as shown.
+- **Proving who one is.** Every signature proves it again, and nothing
+  carries over to the next. Somebody with a password types it with the
+  decision; it is checked outside the transaction, and five wrong ones within
+  fifteen minutes refuse the next until the window passes (429). Somebody who
+  signs in at the identity provider goes there with `prompt=login`,
+  `max_age=0` and their email as the hint; the callback checks the session is
+  the one that left, the provider signed in the same person, and its
+  `auth_time` is no older than the request, then records a re-authentication
+  good for five minutes and one signature, and comes back to `next` with
+  `?signature=<id>`, or `?signature_error=` `session`, `someone_else`,
+  `not_fresh` or `unavailable`. A token never signs (403 `session_only`).
+- **A signature** keeps the meaning, the decision, the revision and the hash
+  of its normative content, how and when the signer proved who they are, and
+  in which session. It never changes; a later decision of the same reviewer
+  is a new signature. Each decision of a review shows its latest as
+  `signature`.
+- UI: a checkbox in the project settings; Approve and Reject open a dialog
+  that shows the meaning, then asks for the password or sends the person to
+  the identity provider, keeping their comment for the way back.
+- **As built** (#46):
+  - **The database proves it too.** `review_signature_guard` refuses a
+    signature not given by an approver of a pending review in their own name,
+    one without a fresh, unused re-authentication of the same session and
+    method, and one whose hash is not the revision's; it spends the
+    re-authentication. `review_decision_signed` refuses a decision in a
+    signing project without a signature of the same reviewer and decision
+    made in the same transaction. The app may record only a password
+    re-authentication, for itself; the callback records the provider's.
+  - **A re-authentication lasts at most ten minutes** and was given within
+    them, or the row is refused.

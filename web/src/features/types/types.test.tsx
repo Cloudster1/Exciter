@@ -29,7 +29,7 @@ const iface: RequirementType = {
   position: 1,
   requirements: 0,
 };
-const project = aProject({ settings: { defaultTypeId: functional.id, workflowId: null, requireRevisionComment: false } });
+const project = aProject({ settings: { defaultTypeId: functional.id, workflowId: null, requireRevisionComment: false, signedApprovals: false } });
 const test = { id: "0195f000-0000-7000-8000-0000000000e1", name: "Test", retired: false };
 const analysis = { id: "0195f000-0000-7000-8000-0000000000e2", name: "Analysis", retired: false };
 const verification: Attribute = {

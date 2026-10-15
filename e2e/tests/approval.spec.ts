@@ -7,7 +7,8 @@ import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
 // Review and approval (#35): alice names bob the approver, asks for her revision to be approved, bob approves it
-// from his inbox, and alice's next revision is no longer approved.
+// from his inbox, and alice's next revision is no longer approved. In a project whose approvals are signatures (#46),
+// bob reads what he signs and types his password again.
 
 const KEY = uniqueKey("SIGN");
 const REQ_KEY = `${KEY}-R1`;
@@ -68,5 +69,50 @@ test.describe("approval", { tag: "@desktop" }, () => {
     );
     await openUntil(page, REQUIREMENT, () => expect(approval).toContainText("Revision 1 was approved; revision 2 is not yet.", ONE_LOOK));
     await expect(approval.getByRole("button", { name: "Ask for review" })).toBeVisible();
+  });
+
+  test("in a project whose approvals are signatures, bob signs his approval with his password", async ({ page, api, pageAs, people }) => {
+    const project = { params: { path: { projectKey: KEY } } };
+    must(await api.POST("/projects", { body: { key: KEY, name: "Signed off" } }));
+    must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
+    must(
+      await api.PUT("/projects/{projectKey}/approval-rules", {
+        ...project,
+        body: { required: 1, authorMayApprove: false, approvers: [{ subjectType: "user", userId: people.bob.id }] },
+      }),
+    );
+
+    await page.goto(`/p/${KEY}/settings`);
+    const signing = page.getByRole("checkbox", { name: "Approvals are electronic signatures" });
+    await signing.check();
+    const saved = page.waitForResponse((response) => response.request().method() === "PATCH" && response.url().endsWith(`/projects/${KEY}`));
+    await page.getByRole("button", { name: "Save" }).click();
+    expect(await (await saved).json()).toMatchObject({ project: { settings: { signedApprovals: true } } });
+    const asked = must(
+      await api.POST("/requirements/{reqKey}/reviews", { params: { path: { reqKey: REQ_KEY } }, body: { revision: 1, comment: "Ready to sign." } }),
+    ).review;
+
+    const bob = await pageAs("bob");
+    const bobs = bob.getByRole("region", { name: "Approval" });
+    await openUntil(bob, REQUIREMENT, () => expect(bobs.getByRole("button", { name: "Approve" })).toBeVisible(ONE_LOOK));
+    await bobs.getByLabel("Your comment").fill("Agreed.");
+    await bobs.getByRole("button", { name: "Approve" }).click();
+    const dialog = bob.getByRole("dialog", { name: "Sign: approve" });
+    await expect(dialog).toContainText(`I approve revision 1 of ${REQ_KEY}, Brakes engage within 100 ms, as one of its approvers.`);
+    await expectAccessible(bob);
+
+    await dialog.getByLabel("Your password").fill("not my password");
+    await dialog.getByRole("button", { name: "Sign and approve" }).click();
+    await expect(dialog).toContainText("That is not your password. Type it again to sign.");
+    await dialog.getByLabel("Your password").fill(people.bob.password);
+    await dialog.getByRole("button", { name: "Sign and approve" }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(bobs).toContainText("Revision 1 is approved.");
+
+    // Alice reads from a replica that may not have caught up with bob's signature yet.
+    const decisions = async () => must(await api.GET("/reviews/{reviewID}", { params: { path: { reviewID: asked.id } } })).review.decisions;
+    await expect
+      .poll(decisions)
+      .toEqual([expect.objectContaining({ decision: "approve", comment: "Agreed.", signature: expect.objectContaining({ method: "password", revision: 1 }) })]);
   });
 });

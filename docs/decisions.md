@@ -3,6 +3,34 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: An approval can be an electronic signature, proven again every time (#46)
+
+Some projects need their approvals to stand as signatures: the record has to
+show who signed, what it meant, what exactly was signed, and that it was the
+signer and not whoever sat at their screen.
+
+- **A project setting, off by default.** Most projects review without it, and
+  a signature costs the reviewer a password each time; the administrators who
+  need it turn it on, and the change is audited.
+- **Approve and reject are both signed**, since a rejection is as much a
+  decision on the record; asking and withdrawing are not decisions.
+- **The meaning is a sentence the server writes**, one per decision, naming
+  the revision, the requirement and the signer's part. A meaning typed or
+  picked by the signer would make signatures hard to compare, and the server
+  knows what the decision does.
+- **Every signature proves who one is again.** Nothing carries over, not even
+  from the signature a minute ago, so an unattended screen signs nothing. A
+  password is checked as Armature's password change checks one, with a limit
+  of five wrong ones in fifteen minutes. Somebody without a password signs in
+  again at the identity provider with `prompt=login` and `max_age=0`, and the
+  callback checks `auth_time`, the person and the session before it records a
+  proof good for one signature and five minutes.
+- **The database holds the line.** A signature spends its proof in the same
+  statement, must name the revision's content hash, and a decision in a
+  signing project without a signature from the same transaction is refused,
+  so neither a bug in the service nor a raw write makes an unsigned approval.
+- **Tokens cannot sign.** A token proves an automation, not a person present.
+
 ## 2026-10-15: A document is printed by the render service and written as Word by the api, as in Stator (#45)
 
 A specification or a baseline is exported to be signed and sent, so it has to

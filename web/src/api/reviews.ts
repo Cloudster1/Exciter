@@ -93,8 +93,17 @@ export function useRequestReview(reqKey: string) {
 export function useDecide(reqKey: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ reviewId, ...body }: { reviewId: string; decision: Decision; revision: number; comment?: string }): Promise<Review> =>
-      (await api.POST("/reviews/{reviewID}/decisions", { params: { path: { reviewID: reviewId } }, body })).data!.review,
+    mutationFn: async ({
+      reviewId,
+      ...body
+    }: {
+      reviewId: string;
+      decision: Decision;
+      revision: number;
+      comment?: string;
+      password?: string;
+      reauthentication?: string;
+    }): Promise<Review> => (await api.POST("/reviews/{reviewID}/decisions", { params: { path: { reviewID: reviewId } }, body })).data!.review,
     onSuccess: () => reviewed(queryClient, reqKey),
   });
 }

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Defaults a provider gets for what its form leaves blank.
@@ -58,7 +60,24 @@ type Identity struct {
 	// Groups are the values of the configured claim, trimmed and without
 	// repeats. They are matched against a group's external reference.
 	Groups []string
+	// AuthTime is when the person last proved who they are at the provider, zero when the token does not say.
+	AuthTime time.Time
 }
+
+// Login is a sign-in that came back: where it was headed, and for a re-authentication whose session it proves.
+type Login struct {
+	Redirect    string
+	Purpose     string
+	UserID      *uuid.UUID
+	SessionID   *uuid.UUID
+	RequestedAt time.Time
+}
+
+// The purposes of a sign-in at the provider: to open a session, or to prove again who an open session's person is.
+const (
+	PurposeSignIn = "signin"
+	PurposeReauth = "reauth"
+)
 
 // ValidationError is a provider setting that cannot be saved as given.
 type ValidationError struct {
@@ -87,6 +106,10 @@ var (
 	// ErrNotAMember is returned when somebody authenticates correctly but has
 	// not been let in. Signing in is not the same as being let in.
 	ErrNotAMember = errors.New("you are not a member here")
+	// ErrNotTheSigner is a re-authentication by somebody other than the person signed in.
+	ErrNotTheSigner = errors.New("the identity provider signed in somebody else")
+	// ErrNotFresh is a re-authentication the provider answered from an earlier sign-in, without asking again.
+	ErrNotFresh = errors.New("the identity provider did not ask you to sign in again")
 )
 
 // howLongALoginMayTake is long enough to type a password and answer a second

@@ -50,6 +50,8 @@ type Settings struct {
 	WorkflowID *uuid.UUID `json:"workflowId"`
 	// RequireRevisionComment refuses a save that writes a revision without a comment.
 	RequireRevisionComment bool `json:"requireRevisionComment"`
+	// SignedApprovals makes deciding on a revision an electronic signature, given with the reviewer's credentials (#46).
+	SignedApprovals bool `json:"signedApprovals"`
 }
 
 // SettingsInput changes settings; nil leaves one alone. The workflow is
@@ -57,6 +59,7 @@ type Settings struct {
 type SettingsInput struct {
 	DefaultTypeID          *uuid.UUID `json:"defaultTypeId,omitempty"`
 	RequireRevisionComment *bool      `json:"requireRevisionComment,omitempty"`
+	SignedApprovals        *bool      `json:"signedApprovals,omitempty"`
 }
 
 // CreateInput is a new project as the form sends it.

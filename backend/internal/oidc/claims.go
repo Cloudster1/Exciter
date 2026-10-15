@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"strings"
+	"time"
 )
 
 // identityFromClaims reads the claims Exciter cares about out of a token that
@@ -15,6 +16,9 @@ func identityFromClaims(issuer, subject string, claims map[string]any, groupsCla
 	}
 	if identity.Email == "" {
 		return nil, ErrNoEmail
+	}
+	if at, ok := claims["auth_time"].(float64); ok && at > 0 {
+		identity.AuthTime = time.Unix(int64(at), 0)
 	}
 	// An address the provider never checked is not the provider vouching for
 	// the person, and the address is what a bootstrap account is matched on.

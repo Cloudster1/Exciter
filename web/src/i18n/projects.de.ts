@@ -54,6 +54,9 @@ export const projectsDe: typeof projectsEn = {
   detailsTitle: "Details",
   requireComment: "Für jede neue Revision einen Kommentar verlangen",
   requireCommentHint: "Eine Änderung am Inhalt einer Anforderung wird ohne Kommentar abgelehnt.",
+  signedApprovals: "Genehmigungen sind elektronische Signaturen",
+  signedApprovalsHint:
+    "Wer eine Revision genehmigt oder ablehnt, gibt das Passwort ein oder meldet sich erneut beim Identitätsanbieter an; die Signatur wird mit ihrer Bedeutung gespeichert. Tokens können dann nicht entscheiden.",
   save: "Speichern",
   saved: "Gespeichert.",
   notProjectAdmin: "Die Einstellungen ändern nur die Administratoren des Projekts.",

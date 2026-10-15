@@ -7,7 +7,7 @@ export function aProject(overrides: Partial<Project> = {}): Project {
     key: "CHK",
     name: "Checkout",
     description: "Paying for the basket.",
-    settings: { defaultTypeId: null, workflowId: null, requireRevisionComment: false },
+    settings: { defaultTypeId: null, workflowId: null, requireRevisionComment: false, signedApprovals: false },
     template: "",
     formerKeys: [],
     requirements: 0,

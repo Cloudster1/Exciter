@@ -86,6 +86,8 @@ const (
 	ActionCoverageRuleRemoved = "coverage_rule.removed"
 	// ActionSpecificationExported is a specification or a baseline leaving as a document to sign and send (#45).
 	ActionSpecificationExported = "specification.exported"
+	// ActionProjectSignaturesSet is a project's approvals made electronic signatures, or no longer (#46).
+	ActionProjectSignaturesSet = "project.signatures_set"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -99,7 +101,7 @@ var Actions = []string{
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
-	ActionSpecificationExported,
+	ActionSpecificationExported, ActionProjectSignaturesSet,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

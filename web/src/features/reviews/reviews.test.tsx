@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApprovalRule, Review } from "@/api/reviews";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -10,6 +10,8 @@ import { aRequirement } from "@/test/requirements";
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  window.history.replaceState(null, "", "/");
+  sessionStorage.clear();
 });
 
 const reviewId = "0195f000-0000-7000-8000-0000000000d1";
@@ -43,6 +45,7 @@ function aReview(over: Partial<Review> = {}): Review {
         decision: "approve",
         comment: "Fine.",
         decidedAt: "2026-10-02T08:00:00Z",
+        signature: null,
       },
     ],
     comment: "Ready to sign off.",
@@ -51,6 +54,8 @@ function aReview(over: Partial<Review> = {}): Review {
     finishedAt: null,
     authorName: "Ada Lovelace",
     can: { decide: true, withdraw: false },
+    signed: false,
+    meanings: {},
     ...over,
   };
 }
@@ -220,5 +225,123 @@ describe("the reviews waiting on the reader", () => {
     await renderAt("/reviews");
     expect(await screen.findByText("Nothing waits for your decision.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /waits for you/ })).toBeNull();
+  });
+});
+
+const proof = "0195f000-0000-7000-8000-0000000000e1";
+const meanings = {
+  approve: "I approve revision 1 of CHK-R1, Pay the basket, as one of its approvers.",
+  reject: "I reject revision 1 of CHK-R1, Pay the basket, as one of its approvers.",
+};
+
+describe("a signed approval", () => {
+  it("shows what is signed and signs it with the password", async () => {
+    const sent = stubRequirement([aReview({ signed: true, meanings })], {
+      [`POST /reviews/${reviewId}/decisions`]: { status: 200, body: { review: aReview({ state: "approved", approvals: 2 }) } },
+    });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const region = await panel();
+    await userEvent.type(await within(region).findByLabelText("Your comment"), "Agreed.");
+    await userEvent.click(within(region).getByRole("button", { name: "Approve" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
+    expect(within(dialog).getByText(meanings.approve)).toBeInTheDocument();
+    expect(sent.some((each) => each.method === "POST")).toBe(false);
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.type(within(dialog).getByLabelText("Your password"), "correct horse");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign and approve" }));
+    await waitFor(() =>
+      expect(sent.find((each) => each.method === "POST")?.body).toEqual({ decision: "approve", revision: 1, comment: "Agreed.", password: "correct horse" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("says when the password is wrong, and keeps the dialog open", async () => {
+    stubRequirement([aReview({ signed: true, meanings })], {
+      [`POST /reviews/${reviewId}/decisions`]: {
+        status: 422,
+        body: {
+          error: {
+            code: "validation_failed",
+            message: "Check the highlighted fields.",
+            fields: { password: "That is not your password. Type it again to sign." },
+          },
+        },
+      },
+    });
+    await renderAt("/p/CHK/r/CHK-R1");
+    await userEvent.click(await within(await panel()).findByRole("button", { name: "Reject" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign: reject" });
+    expect(within(dialog).getByText(meanings.reject)).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText("Your password"), "wrong");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign and reject" }));
+    expect(await within(dialog).findByText("That is not your password. Type it again to sign.")).toBeInTheDocument();
+  });
+
+  it("sends somebody who signs in at the provider there, keeping their comment", async () => {
+    window.history.replaceState(null, "", "/p/CHK/r/CHK-R1");
+    stubRequirement([aReview({ signed: true, meanings })]);
+    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    const region = await panel();
+    await userEvent.type(await within(region).findByLabelText("Your comment"), "Agreed.");
+    await userEvent.click(within(region).getByRole("button", { name: "Approve" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
+    expect(within(dialog).queryByLabelText("Your password")).toBeNull();
+    const link = within(dialog).getByRole("link", { name: "Sign in again to sign" });
+    const next = new URL(link.getAttribute("href") ?? "", window.location.origin).searchParams.get("next");
+    expect(next).toBe(`/p/CHK/r/CHK-R1?sign=approve&review=${reviewId}`);
+    // jsdom cannot follow the link; what matters is what the click keeps for the way back.
+    link.addEventListener("click", (event) => event.preventDefault());
+    await userEvent.click(link);
+    expect(JSON.parse(sessionStorage.getItem("exciter.signing") ?? "null")).toEqual({ reviewId, decision: "approve", comment: "Agreed." });
+  });
+
+  it("finishes the signature with the proof the provider brought back", async () => {
+    sessionStorage.setItem("exciter.signing", JSON.stringify({ reviewId, decision: "approve", comment: "Agreed." }));
+    window.history.replaceState(null, "", `/p/CHK/r/CHK-R1?sign=approve&review=${reviewId}&signature=${proof}`);
+    const sent = stubRequirement([aReview({ signed: true, meanings })], {
+      [`POST /reviews/${reviewId}/decisions`]: { status: 200, body: { review: aReview({ state: "approved", approvals: 2 }) } },
+    });
+    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
+    expect(within(dialog).getByRole("status")).toHaveTextContent("You signed in again.");
+    expect(window.location.search).toBe("");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign and approve" }));
+    await waitFor(() =>
+      expect(sent.find((each) => each.method === "POST")?.body).toEqual({ decision: "approve", revision: 1, comment: "Agreed.", reauthentication: proof }),
+    );
+  });
+
+  it("says why the provider brought no proof back", async () => {
+    window.history.replaceState(null, "", `/p/CHK/r/CHK-R1?sign=reject&review=${reviewId}&signature_error=someone_else`);
+    stubRequirement([aReview({ signed: true, meanings })]);
+    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    const dialog = await screen.findByRole("dialog", { name: "Sign: reject" });
+    expect(within(dialog).getByText("The identity provider signed in somebody else. Sign in again as yourself.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: "Sign in again to sign" })).toBeInTheDocument();
+  });
+
+  it("tells somebody with no way to prove who they are that they cannot sign", async () => {
+    stubRequirement([aReview({ signed: true, meanings })]);
+    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "" } });
+    await userEvent.click(await within(await panel()).findByRole("button", { name: "Approve" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
+    expect(within(dialog).getByText(/so you cannot sign/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Sign and approve" })).toBeNull();
+  });
+
+  it("shows each signature under its decision", async () => {
+    const signature = {
+      meaning: meanings.approve,
+      method: "password",
+      authenticatedAt: "2026-10-02T08:00:00Z",
+      signedAt: "2026-10-02T08:00:00Z",
+      revision: 1,
+      contentHash: "abc",
+    };
+    const signedDecisions = aReview().decisions.map((each) => ({ ...each, signature }));
+    stubRequirement([aReview({ signed: true, meanings, decisions: signedDecisions })]);
+    await renderAt("/p/CHK/r/CHK-R1");
+    const decisions = await within(await panel()).findByRole("list", { name: "Decisions" });
+    expect(decisions).toHaveTextContent(`with the password: ${meanings.approve}`);
   });
 });

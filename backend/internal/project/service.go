@@ -309,6 +309,7 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			return err
 		}
 		name, description, settings := p.Name, p.Description, p.Settings
+		signing := false
 		if in.Name != nil {
 			if name, err = checkName(*in.Name); err != nil {
 				return err
@@ -334,6 +335,10 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			if in.Settings.RequireRevisionComment != nil {
 				settings.RequireRevisionComment = *in.Settings.RequireRevisionComment
 			}
+			if in.Settings.SignedApprovals != nil && *in.Settings.SignedApprovals != settings.SignedApprovals {
+				settings.SignedApprovals = *in.Settings.SignedApprovals
+				signing = true
+			}
 		}
 		raw, err := json.Marshal(settings)
 		if err != nil {
@@ -343,8 +348,14 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			p.ID, name, description, raw); err != nil {
 			return err
 		}
-		out, err = Find(ctx, tx, reader, p.Key)
-		return err
+		if out, err = Find(ctx, tx, reader, p.Key); err != nil {
+			return err
+		}
+		// Whether approvals are signatures is part of a quality system's record, so turning it either way is audited.
+		if signing {
+			return s.note(ctx, tx, reader, audit.ActionProjectSignaturesSet, out, map[string]any{"signedApprovals": settings.SignedApprovals})
+		}
+		return nil
 	})
 	return out, lsn, err
 }

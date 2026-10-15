@@ -61,15 +61,26 @@ type meResponse struct {
 	Role auth.OrgRole `json:"role"`
 	// Token is the personal access token the request rides on; null for a session.
 	Token *auth.CallingToken `json:"token"`
+	// SignsWith is how the person signs an approval (#46): password, provider, or empty when they cannot.
+	SignsWith string `json:"signsWith"`
 }
 
-func (s *Server) me(_ *http.Request, p *auth.Principal) (*meResponse, error) {
-	return &meResponse{
+func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
+	out := &meResponse{
 		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
 		Installation: installation.Installation{Name: p.InstallationName},
 		Role:         p.Role,
 		Token:        p.Token,
-	}, nil
+	}
+	// A token signs nothing, so only a session says how its person would.
+	if p.SessionID != nil && s.Accounts != nil {
+		signs, err := s.Accounts.SignsWith(r.Context(), p.UserID)
+		if err != nil {
+			return nil, err
+		}
+		out.SignsWith = signs
+	}
+	return out, nil
 }
 
 type loginRequest struct {

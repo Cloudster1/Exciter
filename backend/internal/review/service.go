@@ -62,7 +62,8 @@ func (e *FieldError) Error() string { return e.Message }
 
 // Service keeps approval rules and the reviews of requirement revisions; the database holds every promise it makes.
 type Service struct {
-	db *db.Cluster
+	db        *db.Cluster
+	passwords Passwords
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
@@ -316,7 +317,8 @@ const selectReviews = `
 SELECT v.id, r.id, p.key, r.number, r.kind, r.title, r.revision, r.trashed_at IS NOT NULL, st.id, COALESCE(st.name, ''),
        COALESCE(st.category, ''), v.revision, v.state, v.required, review_approvals(v.id), v.comment, COALESCE(q.name, ''),
        v.requested_at, v.finished_at, COALESCE(a.name, ''), review_decidable(v.id, $1::uuid),
-       v.state = 'pending' AND (v.requested_by = $1::uuid OR perm_project_holds(r.project_id, $1::uuid, 'administer'))
+       v.state = 'pending' AND (v.requested_by = $1::uuid OR perm_project_holds(r.project_id, $1::uuid, 'administer')),
+       COALESCE((p.settings ->> 'signedApprovals')::boolean, false), rv.title
 FROM requirement_review v
 JOIN requirement r ON r.id = v.requirement_id
 JOIN project p ON p.id = r.project_id
@@ -337,12 +339,21 @@ func reviews(ctx context.Context, tx db.DBTX, actor uuid.UUID, rest string, args
 			number   int
 			statusID *uuid.UUID
 			status   requirement.StatusRef
+			title    string
 		)
 		ref := &v.Requirement
 		err := row.Scan(&v.ID, &ref.ID, &ref.ProjectKey, &number, &ref.Kind, &ref.Title, &ref.Revision, &ref.Trashed, &statusID,
 			&status.Name, &status.Category, &v.Revision, &v.State, &v.Required, &v.Approvals, &v.Comment, &v.RequestedBy,
-			&v.RequestedAt, &v.FinishedAt, &v.AuthorName, &v.Can.Decide, &v.Can.Withdraw)
+			&v.RequestedAt, &v.FinishedAt, &v.AuthorName, &v.Can.Decide, &v.Can.Withdraw, &v.Signed, &title)
 		ref.Key = requirement.Key(ref.ProjectKey, number)
+		v.Meanings = map[Decision]string{}
+		if v.Signed && v.Can.Decide {
+			lang := signerOf(ctx).lang
+			v.Meanings = map[Decision]string{
+				DecisionApprove: meaning(lang, DecisionApprove, v.Revision, ref.Key, title),
+				DecisionReject:  meaning(lang, DecisionReject, v.Revision, ref.Key, title),
+			}
+		}
 		if statusID != nil {
 			status.ID = *statusID
 			ref.Status = &status
@@ -385,7 +396,37 @@ func reviews(ctx context.Context, tx db.DBTX, actor uuid.UUID, rest string, args
 		}
 		out[at[id]].Decisions = append(out[at[id]].Decisions, d)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, signatures(ctx, tx, out, ids, at)
+}
+
+// signatures puts on each decision the latest signature its reviewer gave it with, the one that stands.
+func signatures(ctx context.Context, tx db.DBTX, out []Review, ids []uuid.UUID, at map[uuid.UUID]int) error {
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT ON (review_id, signer_id) review_id, signer_id, decision, meaning, method, authenticated_at, signed_at, revision, content_hash
+		FROM review_signature WHERE review_id = ANY($1) ORDER BY review_id, signer_id, signed_at DESC, id DESC`, ids)
+	if err != nil {
+		return fmt.Errorf("read the signatures: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			id, signer uuid.UUID
+			decision   Decision
+			sig        Signature
+		)
+		if err := rows.Scan(&id, &signer, &decision, &sig.Meaning, &sig.Method, &sig.AuthenticatedAt, &sig.SignedAt, &sig.Revision, &sig.ContentHash); err != nil {
+			return err
+		}
+		for i := range out[at[id]].Decisions {
+			if d := &out[at[id]].Decisions[i]; d.ReviewerID == signer && d.Decision == decision {
+				d.Signature = &sig
+			}
+		}
+	}
+	return rows.Err()
 }
 
 func one(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*Review, error) {
@@ -602,6 +643,15 @@ func (s *Service) Decide(ctx context.Context, id uuid.UUID, in DecisionInput) (*
 	if err != nil {
 		return nil, 0, err
 	}
+	signed, err := s.signed(ctx, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	if signed {
+		if err := s.proveSigner(ctx, actor, in); err != nil {
+			return nil, 0, err
+		}
+	}
 	var out *Review
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		h, err := hold(ctx, tx, actor, id)
@@ -621,6 +671,11 @@ func (s *Service) Decide(ctx context.Context, id uuid.UUID, in DecisionInput) (*
 			return ErrNotApprover
 		case !h.authorMayApprove && h.author != nil && *h.author == actor:
 			return ErrOwnRevision
+		}
+		if signed {
+			if err := sign(ctx, tx, actor, id, h, in); err != nil {
+				return err
+			}
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO review_decision (review_id, reviewer_id, decision, comment) VALUES ($1, $2, $3, $4)
@@ -647,7 +702,7 @@ func (s *Service) Decide(ctx context.Context, id uuid.UUID, in DecisionInput) (*
 			}
 		}
 		if err := events.Emit(ctx, tx, TopicDecided, map[string]any{
-			"actorId": actor, "reviewId": id, "requirementId": h.requirement, "decision": in.Decision, "state": state,
+			"actorId": actor, "reviewId": id, "requirementId": h.requirement, "decision": in.Decision, "state": state, "signed": signed,
 		}); err != nil {
 			return err
 		}

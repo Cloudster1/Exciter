@@ -13,6 +13,7 @@ export const signedIn: Me = {
   installation: { name: "Demo" },
   role: "admin",
   token: null,
+  signsWith: "password",
 };
 
 /** The real router and the real shell, started at a path, signed in as `me`; null is nobody,

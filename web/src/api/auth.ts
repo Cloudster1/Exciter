@@ -73,6 +73,11 @@ export function ssoStartURL(next?: string): string {
   return next ? `${start}?next=${encodeURIComponent(next)}` : start;
 }
 
+/** Where a signed-in person signs in again at the identity provider, for one signature, coming back to next (#46). */
+export function reauthStartURL(next: string): string {
+  return `${API_BASE}/auth/oidc/reauthenticate?next=${encodeURIComponent(next)}`;
+}
+
 export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({

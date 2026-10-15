@@ -45,12 +45,17 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identity, redirect, err := s.OIDC.Exchange(r.Context(), query.Get("state"), query.Get("code"))
+	identity, login, err := s.OIDC.Exchange(r.Context(), query.Get("state"), query.Get("code"))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a sign-in through an identity provider failed", "error", err)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
 		return
 	}
+	if login.Purpose == oidc.PurposeReauth {
+		s.finishReauth(w, r, identity, login)
+		return
+	}
+	redirect := login.Redirect
 	session, err := s.OIDC.SignIn(r.Context(), identity, s.Accounts.SessionTTL(), r.UserAgent(), s.clientIP(r))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a verified identity could not be signed in", "error", err, "subject", identity.Subject)
@@ -225,4 +230,59 @@ func (s *Server) handleRemoveGroupRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondNoContent(w)
+}
+
+// handleReauthStart sends a signed-in person to the provider to prove again who they are, for a signature (#46);
+// the browser comes back to next with the proof to sign with, or with why there is none.
+func (s *Server) handleReauthStart(w http.ResponseWriter, r *http.Request) {
+	next := safeRedirect(r.URL.Query().Get("next"))
+	p := PrincipalFrom(r.Context())
+	if s.OIDC == nil || p == nil || p.SessionID == nil {
+		landWithSignature(w, r, s.AppBaseURL, next, "", "session")
+		return
+	}
+	target, err := s.OIDC.StartReauth(r.Context(), p.UserID, *p.SessionID, p.Email, next)
+	if err != nil {
+		loggerFrom(r.Context()).Warn("a re-authentication could not start", "error", err)
+		landWithSignature(w, r, s.AppBaseURL, next, "", "unavailable")
+		return
+	}
+	http.Redirect(w, r, target, http.StatusFound)
+}
+
+// finishReauth answers a re-authentication: in the session that asked for it, by the person signed in there, freshly.
+func (s *Server) finishReauth(w http.ResponseWriter, r *http.Request, identity *oidc.Identity, login *oidc.Login) {
+	p := PrincipalFrom(r.Context())
+	if p == nil || p.SessionID == nil || login.SessionID == nil || *p.SessionID != *login.SessionID {
+		landWithSignature(w, r, s.AppBaseURL, login.Redirect, "", "session")
+		return
+	}
+	id, err := s.OIDC.Reauthenticated(r.Context(), identity, login)
+	switch {
+	case errors.Is(err, oidc.ErrNotTheSigner):
+		landWithSignature(w, r, s.AppBaseURL, login.Redirect, "", "someone_else")
+	case errors.Is(err, oidc.ErrNotFresh):
+		landWithSignature(w, r, s.AppBaseURL, login.Redirect, "", "not_fresh")
+	case err != nil:
+		loggerFrom(r.Context()).Warn("a re-authentication could not be kept", "error", err)
+		landWithSignature(w, r, s.AppBaseURL, login.Redirect, "", "unavailable")
+	default:
+		landWithSignature(w, r, s.AppBaseURL, login.Redirect, id.String(), "")
+	}
+}
+
+// landWithSignature sends the browser back where it signs, with the proof it gained or why it gained none.
+func landWithSignature(w http.ResponseWriter, r *http.Request, base, redirect, proof, failure string) {
+	target, err := url.Parse(redirect)
+	if err != nil || redirect == "" {
+		target = &url.URL{Path: "/"}
+	}
+	query := target.Query()
+	if proof != "" {
+		query.Set("signature", proof)
+	} else {
+		query.Set("signature_error", failure)
+	}
+	target.RawQuery = query.Encode()
+	http.Redirect(w, r, base+target.String(), http.StatusFound)
 }

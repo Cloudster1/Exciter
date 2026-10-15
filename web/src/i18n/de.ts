@@ -300,6 +300,7 @@ export const de: Messages = {
       "coverage_rule.saved": "Abdeckungsregel gespeichert",
       "coverage_rule.removed": "Abdeckungsregel entfernt",
       "specification.exported": "Spezifikation exportiert",
+      "project.signatures_set": "Signierte Genehmigungen geändert",
     },
     targetTypes: {
       user: "Person",

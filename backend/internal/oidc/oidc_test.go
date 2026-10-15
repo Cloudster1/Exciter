@@ -179,6 +179,37 @@ func TestTheAuthorizationURLCarriesStateNonceAndPKCE(t *testing.T) {
 	}
 }
 
+// A re-authentication tells the provider to ask for the credentials again, whatever session it holds, and still
+// carries everything a sign-in does; a sign-in tells it nothing of the kind.
+func TestAReauthenticationAsksThePersonAgain(t *testing.T) {
+	config := &oauth2.Config{ClientID: "exciter", Endpoint: oauth2.Endpoint{AuthURL: "https://id.test/auth", TokenURL: "https://id.test/token"}}
+	again, err := url.Parse(reauthURL(config, "state", "nonce", oauth2.GenerateVerifier(), "ada@example.com"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := again.Query()
+	for key, want := range map[string]string{"prompt": "login", "max_age": "0", "login_hint": "ada@example.com", "state": "state", "nonce": "nonce", "code_challenge_method": "S256"} {
+		if got := q.Get(key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+	plain, _ := url.Parse(authCodeURL(config, "state", "nonce", oauth2.GenerateVerifier()))
+	if plain.Query().Has("prompt") || plain.Query().Has("max_age") {
+		t.Error("a plain sign-in asks the person again")
+	}
+}
+
+// The provider's word for when the person signed in is kept, so a re-authentication can be held to it.
+func TestTheAuthTimeIsRead(t *testing.T) {
+	identity, err := identityFromClaims("https://id.test", "sub", map[string]any{"email": "ada@example.com", "auth_time": float64(1_790_000_000)}, "groups")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identity.AuthTime.Unix() != 1_790_000_000 {
+		t.Errorf("the auth time read as %v", identity.AuthTime)
+	}
+}
+
 func TestRandomTokensAreLongAndFresh(t *testing.T) {
 	seen := map[string]bool{}
 	for range 50 {

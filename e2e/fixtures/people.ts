@@ -10,6 +10,8 @@ export interface Person {
   id: string;
   email: string;
   name: string;
+  /** Typed again where the person proves who they are, as to sign an approval. */
+  password: string;
   session: Exclude<Session, string>;
 }
 
@@ -49,7 +51,7 @@ async function makePerson(owner: ExciterApi, user: User, label: string, workerIn
   } finally {
     await api.dispose();
   }
-  return { id: made.userId, email, name, session };
+  return { id: made.userId, email, name, password, session };
 }
 
 interface PeoplePool {
