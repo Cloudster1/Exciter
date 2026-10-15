@@ -145,6 +145,13 @@ app role holds no privilege on.
   narrowed and ordered in SQL built from checked parts, never from text a
   person wrote. Saved views keep a grid's filter, columns and order, their
   owner's and shared by editors, under `saved_view`'s own policies.
+- **Query language** (#47): Armature's NQL as `internal/rql`, compiled per
+  project from a catalog of the fixed fields, the attributes by quoted name
+  and a field per end of each link type, to a WHERE clause over the grid's
+  requirement with every value bound. Coverage levels and keys are read by
+  `requirement_coverage` and `requirement_key_id`, as the reader sees; the
+  grid, its views, CSV export, coverage and the matrix take it through
+  `search.Filter.Query`, and `/requirements/suggest` completes it.
 - **Labels** (#19): Stator's labels on requirements. `requirement_label` holds
   a name per requirement and nothing else, so a label exists while something
   carries it and is everyone's, not a project's. Its rows follow the

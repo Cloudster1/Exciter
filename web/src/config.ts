@@ -221,6 +221,10 @@ export const GRID_PAGE_SIZE = 100;
 /** The most attribute conditions and columns a grid takes, the server's search.MaxAttributeFilters and MaxColumns. */
 export const GRID_MAX_CONDITIONS = 10;
 export const GRID_MAX_COLUMNS = 30;
+/** The longest grid query the server takes, its rql.MaxLength. */
+export const QUERY_MAX_LENGTH = 2000;
+/** How many words and requirements the query box offers, within the server's search.MaxSuggestLimit of 20. */
+export const QUERY_SUGGEST_LIMIT = 8;
 /** The longest view name the server takes, its search.MaxViewNameLength. */
 export const VIEW_NAME_MAX_LENGTH = 100;
 

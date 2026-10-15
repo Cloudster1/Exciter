@@ -145,6 +145,10 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 		if v.Name, v.Filter, err = checkView(v.Name, v.Filter, v.Columns, v.Sort, defs); err != nil {
 			return err
 		}
+		// A view keeps a query that runs now; one that later names what the project no longer has says so then.
+		if _, err := compileQuery(ctx, tx, actor, p, defs, v.Filter.Query); err != nil {
+			return err
+		}
 		filter, sort, err := encodeView(v)
 		if err != nil {
 			return err
@@ -211,6 +215,10 @@ func (s *Service) UpdateView(ctx context.Context, actor, id uuid.UUID, in ViewIn
 			return err
 		}
 		if v.Name, v.Filter, err = checkView(v.Name, v.Filter, v.Columns, v.Sort, defs); err != nil {
+			return err
+		}
+		// A view keeps a query that runs now; one that later names what the project no longer has says so then.
+		if _, err := compileQuery(ctx, tx, actor, p, defs, v.Filter.Query); err != nil {
 			return err
 		}
 		filter, sort, err := encodeView(*v)

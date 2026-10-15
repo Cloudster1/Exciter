@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A query language for the grid (#47), Armature's: one line such as
+  `owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC`
+  narrows and orders a project's requirements by their fields, attributes in
+  quotes, trace links by type from either end, approval, coverage levels and
+  suspect links. The box completes at the caret and points at the character
+  a query went wrong at. Saved views keep it, and CSV export, coverage and
+  the matrix narrow by it.
 - Approvals as electronic signatures (#46). A project's administrators turn
   them on in its settings; then approving or rejecting a revision shows what
   the signature means, and asks for the password again, or for a fresh

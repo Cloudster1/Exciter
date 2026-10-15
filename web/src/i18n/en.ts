@@ -22,6 +22,7 @@ import { reqifEn } from "./reqif.en";
 import { documentsEn } from "./documents.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
+import { queryEn } from "./query.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -346,6 +347,7 @@ export const en = {
   documents: documentsEn,
   search: searchEn,
   grid: gridEn,
+  query: queryEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

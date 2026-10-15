@@ -5,21 +5,23 @@ import type { Project } from "@/api/projects";
 import { PRIORITIES } from "@/api/requirements";
 import type { AttributeCondition, Filter, Op } from "@/api/search";
 import { STATUS_CATEGORIES, type Status } from "@/api/workflows";
-import { Button, Chip, IconButton, Input, SelectInput, Tag } from "@/components/ui";
+import { Button, Chip, IconButton, Input, Segmented, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GRID_MAX_CONDITIONS, SEARCH_QUERY_MAX_LENGTH } from "@/config";
 import { LabelCombobox } from "@/features/labels/LabelCombobox";
 import { LabelLink } from "@/features/labels/RequirementLabels";
+import { QueryInput } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
 import { emptyFilter, narrows, OPS_BY_KIND, VALUELESS } from "./filter";
 
-/** The grid's narrowing: words, a choice per field, labels and attribute conditions, each changing the address. */
+/** The grid's narrowing: words or a query (#47), a choice per field, labels and attribute conditions, each changing the address. */
 export function GridFilters({
   project,
   filter,
   types,
   statuses,
   attributes,
+  queryError,
   onFilter,
 }: {
   project: Project;
@@ -27,9 +29,24 @@ export function GridFilters({
   types: RequirementType[];
   statuses: Status[];
   attributes: Attribute[];
+  /** What the grid's request threw, which the query box shows when it refused the query. */
+  queryError?: unknown;
   onFilter: (next: Filter) => void;
 }) {
   const { data: me } = useMe();
+  const [mode, setMode] = useState<"words" | "query">(filter.query ? "query" : "words");
+  const [seenQuery, setSeenQuery] = useState(filter.query);
+  // A view or Back that brings a query brings the box to type it in.
+  if (seenQuery !== filter.query) {
+    setSeenQuery(filter.query);
+    if (filter.query) setMode("query");
+  }
+  const switchTo = (next: "words" | "query") => {
+    setMode(next);
+    // The box going away takes what it narrowed by with it, so nothing narrows unseen.
+    if (next === "query" && filter.q) onFilter({ ...filter, q: "" });
+    if (next === "words" && filter.query) onFilter({ ...filter, query: "" });
+  };
   const [words, setWords] = useState(filter.q);
   const [seenQ, setSeenQ] = useState(filter.q);
   // A view or Back changes the words under the box, and the box follows.
@@ -46,23 +63,37 @@ export function GridFilters({
 
   return (
     <section aria-label={t.grid.filters} className="mb-4 space-y-3" data-grid-filters={project.key}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Segmented
+          label={t.query.mode}
+          value={mode}
+          onChange={switchTo}
+          options={[
+            { value: "words", label: t.query.words, attrs: { "data-mode": "words" } },
+            { value: "query", label: t.query.query, attrs: { "data-mode": "query" } },
+          ]}
+        />
+        {mode === "query" && <QueryInput projectKey={project.key} value={filter.query} error={queryError} onSubmit={(query) => set({ query })} />}
+      </div>
       <div className="flex flex-wrap items-end gap-2">
-        {/* biome-ignore lint/a11y/useSemanticElements: jsdom, which the unit tests run in, does not know the search element yet */}
-        <form role="search" onSubmit={submit} className="flex items-end gap-2">
-          <Input
-            aria-label={t.grid.words}
-            type="search"
-            value={words}
-            onChange={(e) => setWords(e.target.value)}
-            placeholder={t.grid.wordsPlaceholder}
-            maxLength={SEARCH_QUERY_MAX_LENGTH}
-            className="w-56"
-            data-grid-words
-          />
-          <Button type="submit" variant="secondary" icon={<Icon.Search />} data-action="apply-words">
-            {t.grid.apply}
-          </Button>
-        </form>
+        {mode === "words" && (
+          // biome-ignore lint/a11y/useSemanticElements: jsdom, which the unit tests run in, does not know the search element yet
+          <form role="search" onSubmit={submit} className="flex items-end gap-2">
+            <Input
+              aria-label={t.grid.words}
+              type="search"
+              value={words}
+              onChange={(e) => setWords(e.target.value)}
+              placeholder={t.grid.wordsPlaceholder}
+              maxLength={SEARCH_QUERY_MAX_LENGTH}
+              className="w-56"
+              data-grid-words
+            />
+            <Button type="submit" variant="secondary" icon={<Icon.Search />} data-action="apply-words">
+              {t.grid.apply}
+            </Button>
+          </form>
+        )}
         <Choice label={t.grid.kind} value={filter.kinds[0] ?? ""} onChange={(v) => set({ kinds: one(v) })} name="kind">
           <option value="">{t.grid.anyKind}</option>
           <option value="requirement">{t.requirements.kinds.requirement}</option>

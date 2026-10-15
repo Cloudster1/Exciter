@@ -33,7 +33,8 @@ var (
 // ParseGrid reads the grid's narrowing and order from a query string, in the words the contract gives them;
 // what needs the project, such as an attribute's kind, is checked when the grid is read.
 func ParseGrid(v url.Values) (Filter, Sort, error) {
-	f := Filter{Q: strings.TrimSpace(v.Get("q")), Categories: v["category"], Labels: v["label"], Priorities: v["priority"]}
+	f := Filter{Q: strings.TrimSpace(v.Get("q")), Categories: v["category"], Labels: v["label"], Priorities: v["priority"],
+		Query: strings.TrimSpace(v.Get("query"))}
 	for _, k := range v["kind"] {
 		f.Kinds = append(f.Kinds, requirement.Kind(k))
 	}

@@ -3,6 +3,8 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"unicode/utf8"
 
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
@@ -74,6 +76,33 @@ func (s *Server) handleListGrid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"rows": rows, "total": total, "limit": limit, "offset": offset})
+}
+
+// handleSuggestQuery completes a query of the grid at the caret, which at counts in characters; the end of the text
+// when absent.
+func (s *Server) handleSuggestQuery(w http.ResponseWriter, r *http.Request) {
+	limit, apiErr := queryLimit(r, search.DefaultSuggestLimit, search.MaxSuggestLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	q := r.URL.Query()
+	text := q.Get("q")
+	at := utf8.RuneCountInString(text)
+	if raw := q.Get("at"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 0 {
+			respondError(w, r, ErrValidation(map[string]string{"at": "Say where the caret is, as a count of characters from 0."}))
+			return
+		}
+		at = n
+	}
+	found, err := s.Search.Suggest(r.Context(), userFrom(r), projectKeyParam(r), text, at, limit)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, found)
 }
 
 func (s *Server) handleListViews(w http.ResponseWriter, r *http.Request) {

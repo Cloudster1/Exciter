@@ -5531,6 +5531,14 @@
             }
           },
           {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "kind",
             "in": "query",
             "description": "Requirements, sections or both when absent.",
@@ -5755,6 +5763,16 @@
                     "summary",
                     "total"
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -6143,6 +6161,14 @@
             }
           },
           {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "kind",
             "in": "query",
             "description": "Requirements, sections or both when absent.",
@@ -6294,6 +6320,16 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -6952,6 +6988,14 @@
             }
           },
           {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "kind",
             "in": "query",
             "description": "Requirements, sections or both when absent.",
@@ -7139,6 +7183,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity",
             "content": {
@@ -7182,6 +7236,14 @@
             "name": "q",
             "in": "query",
             "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
             "schema": {
               "type": "string"
             }
@@ -7351,6 +7413,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity",
             "content": {
@@ -7482,6 +7554,14 @@
             "name": "q",
             "in": "query",
             "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
             "schema": {
               "type": "string"
             }
@@ -7669,6 +7749,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity",
             "content": {
@@ -7732,6 +7822,81 @@
                   "required": [
                     "requirement"
                   ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/requirements/suggest": {
+      "get": {
+        "operationId": "suggestQuery",
+        "summary": "What may come next at the caret of a grid's query: the fields, operators, keywords and project's names the language takes there, and the requirements the text finds.",
+        "tags": [
+          "search"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "The query typed so far.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "The caret, in characters from 0; the end of the text when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 20; 8 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Suggestions"
                 }
               }
             }
@@ -8724,6 +8889,16 @@
                   "required": [
                     "view"
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -14116,6 +14291,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -14260,6 +14445,9 @@
           },
           "message": {
             "type": "string"
+          },
+          "position": {
+            "type": "integer"
           },
           "requestId": {
             "type": "string"
@@ -16344,6 +16532,46 @@
           "statement",
           "rationale",
           "attributes"
+        ]
+      },
+      "Completion": {
+        "type": "object",
+        "properties": {
+          "custom": {
+            "type": "boolean"
+          },
+          "field": {
+            "type": "string"
+          },
+          "from": {
+            "type": "integer"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "quoted": {
+            "type": "boolean"
+          },
+          "slot": {
+            "type": "string"
+          },
+          "to": {
+            "type": "integer"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "slot",
+          "prefix",
+          "from",
+          "to",
+          "quoted",
+          "words"
         ]
       },
       "Components": {
@@ -21207,6 +21435,31 @@
           "type"
         ]
       },
+      "Suggestions": {
+        "type": "object",
+        "properties": {
+          "completion": {
+            "$ref": "#/components/schemas/Completion"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuickSearchHit"
+            }
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Word"
+            }
+          }
+        },
+        "required": [
+          "completion",
+          "words",
+          "requirements"
+        ]
+      },
       "SuspectLink": {
         "type": "object",
         "properties": {
@@ -21912,6 +22165,9 @@
           "q": {
             "type": "string"
           },
+          "query": {
+            "type": "string"
+          },
           "statuses": {
             "type": "array",
             "items": {
@@ -21940,7 +22196,8 @@
           "owners",
           "priorities",
           "attributes",
-          "suspect"
+          "suspect",
+          "query"
         ]
       },
       "ViewInput": {
@@ -22062,6 +22319,25 @@
         "required": [
           "requirement",
           "project"
+        ]
+      },
+      "Word": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "detail",
+          "label"
         ]
       },
       "Workflow": {

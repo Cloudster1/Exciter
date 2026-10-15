@@ -92,12 +92,19 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		if f, err = check(f, sort, defs); err != nil {
 			return err
 		}
+		query, err := compileQuery(ctx, tx, reader, p, defs, f.Query)
+		if err != nil {
+			return err
+		}
 		args := []any{p.ID, reader}
 		bind := func(v any) string {
 			args = append(args, v)
 			return "$" + strconv.Itoa(len(args))
 		}
 		where := append([]string{perm.ViewableRequirement("r", 2)}, gridConditions(f, p, defs, bind)...)
+		if clause := query.Place(bind); clause != "" {
+			where = append(where, clause)
+		}
 		from := `
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN app_user o ON o.id = r.owner_id
@@ -109,7 +116,18 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		}
 		// The order binds after the count, which has no use for what it binds.
 		order := `w.path`
-		if key := sortKey(sort.Column, defs, bind); key != "" {
+		if query.Sorts() {
+			// A query's ORDER BY outranks the grid's column, as Armature's outranks its list's.
+			keys := []string{}
+			for _, o := range query.PlaceOrder(bind) {
+				direction := ` ASC`
+				if o.Desc {
+					direction = ` DESC`
+				}
+				keys = append(keys, o.SQL+direction+` NULLS LAST`)
+			}
+			order = strings.Join(keys, `, `) + `, ` + order
+		} else if key := sortKey(sort.Column, defs, bind); key != "" {
 			direction := ` ASC`
 			if sort.Desc {
 				direction = ` DESC`
@@ -205,6 +223,10 @@ func Keep(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 	if f, err = check(f, Sort{}, defs); err != nil {
 		return nil, err
 	}
+	query, err := compileQuery(ctx, tx, reader, p, defs, f.Query)
+	if err != nil {
+		return nil, err
+	}
 	if len(f.Kinds) > 0 && !slices.Contains(f.Kinds, requirement.KindRequirement) {
 		return []Kept{}, nil
 	}
@@ -215,6 +237,9 @@ func Keep(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 		return "$" + strconv.Itoa(len(args))
 	}
 	where := append([]string{perm.ViewableRequirement("r", 2), `r.kind = 'requirement'`}, gridConditions(f, p, defs, bind)...)
+	if clause := query.Place(bind); clause != "" {
+		where = append(where, clause)
+	}
 	rows, err := tx.Query(ctx, requirement.WalkTree+`
 		SELECT r.id, r.number, r.title, r.revision, r.type_id, w.path, r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')
 		FROM walk w JOIN requirement r ON r.id = w.id

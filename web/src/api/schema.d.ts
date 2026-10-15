@@ -1534,6 +1534,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/requirements/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What may come next at the caret of a grid's query: the fields, operators, keywords and project's names the language takes there, and the requirements the text finds. */
+        get: operations["suggestQuery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/spec": {
         parameters: {
             query?: never;
@@ -2891,6 +2908,7 @@ export interface components {
                 [key: string]: string;
             };
             message: string;
+            position?: number;
             requestId?: string;
         };
         APIToken: {
@@ -3397,6 +3415,16 @@ export interface components {
             rationale: components["schemas"]["DiffBlock"][];
             statement: components["schemas"]["DiffBlock"][];
             to: components["schemas"]["CompareSide"];
+        };
+        Completion: {
+            custom?: boolean;
+            field?: string;
+            from: number;
+            prefix: string;
+            quoted: boolean;
+            slot: string;
+            to: number;
+            words: string[];
         };
         Components: {
             schemas: {
@@ -4673,6 +4701,11 @@ export interface components {
             /** @enum {string} */
             type: "user" | "group" | "everyone";
         };
+        Suggestions: {
+            completion: components["schemas"]["Completion"];
+            requirements: components["schemas"]["QuickSearchHit"][];
+            words: components["schemas"]["Word"][];
+        };
         SuspectLink: {
             ends: components["schemas"]["SuspectLinkEnd"][];
             /** Format: uuid */
@@ -4861,6 +4894,7 @@ export interface components {
             owners: string[];
             priorities: ("must" | "should" | "could" | "wont")[];
             q: string;
+            query: string;
             statuses: string[];
             suspect: boolean;
             types: string[];
@@ -4897,6 +4931,11 @@ export interface components {
         Watching: {
             project: boolean;
             requirement: boolean;
+        };
+        Word: {
+            detail: string;
+            label: string;
+            text: string;
         };
         Workflow: {
             description: string;
@@ -8748,6 +8787,8 @@ export interface operations {
             query?: {
                 /** @description Words to find, as in search. */
                 q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
                 /** @description Requirements, sections or both when absent. */
                 kind?: ("requirement" | "section")[];
                 /** @description Requirement types. */
@@ -8802,6 +8843,15 @@ export interface operations {
                         summary: components["schemas"]["CoverageSummary"];
                         total: number;
                     };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -9066,6 +9116,8 @@ export interface operations {
             query?: {
                 /** @description Words to find, as in search. */
                 q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
                 /** @description Requirements, sections or both when absent. */
                 kind?: ("requirement" | "section")[];
                 /** @description Requirement types. */
@@ -9106,6 +9158,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -9537,6 +9598,8 @@ export interface operations {
             query?: {
                 /** @description Words to find, as in search. */
                 q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
                 /** @description Requirements, sections or both when absent. */
                 kind?: ("requirement" | "section")[];
                 /** @description Requirement types. */
@@ -9587,6 +9650,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unprocessable Entity */
             422: {
                 headers: {
@@ -9612,6 +9684,8 @@ export interface operations {
             query?: {
                 /** @description Words to find, as in search. */
                 q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
                 /** @description Requirements, sections or both when absent. */
                 kind?: ("requirement" | "section")[];
                 /** @description Requirement types. */
@@ -9654,6 +9728,15 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -9739,6 +9822,8 @@ export interface operations {
             query?: {
                 /** @description Words to find, as in search. */
                 q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
                 /** @description Requirements, sections or both when absent. */
                 kind?: ("requirement" | "section")[];
                 /** @description Requirement types. */
@@ -9788,6 +9873,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unprocessable Entity */
             422: {
                 headers: {
@@ -9832,6 +9926,53 @@ export interface operations {
                     "application/json": {
                         requirement: components["schemas"]["Requirement"];
                     };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    suggestQuery: {
+        parameters: {
+            query?: {
+                /** @description The query typed so far. */
+                q?: string;
+                /** @description The caret, in characters from 0; the end of the text when absent. */
+                at?: number;
+                /** @description 1 to 20; 8 when absent. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestions"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -10464,6 +10605,15 @@ export interface operations {
                     "application/json": {
                         view: components["schemas"]["View"];
                     };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -14089,6 +14239,15 @@ export interface operations {
                     "application/json": {
                         view: components["schemas"]["View"];
                     };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

@@ -87,4 +87,37 @@ test.describe("search", { tag: "@desktop" }, () => {
     await expect(page).toHaveURL(/sort=title/);
     await expect(page.locator('[data-grid-column="labels"]')).toBeVisible();
   });
+
+  test("alice narrows the grid with a query, completed as she types, and sees where one went wrong", async ({ page, api }) => {
+    await makeProject(api);
+    must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-R3` } }, body: { typeKey: "derives", otherKey: `${KEY}-R1` } }));
+    await page.goto(`/p/${KEY}/grid`);
+    const rows = page.locator("[data-grid-row]");
+    await expect(rows).toHaveCount(3);
+    await page.locator('[data-mode="query"]').click();
+    const box = page.getByRole("combobox", { name: "Query" });
+    await box.pressSequentially("prio");
+    await page.locator('[data-suggestion="completion"][data-suggestion-text="priority"]').click();
+    await box.pressSequentially(">= ");
+    await page.locator('[data-suggestion="completion"][data-suggestion-text="should"]').click();
+    await expect(box).toHaveValue("priority >= should ");
+    await expectAccessible(page);
+    await box.press("Escape");
+    await box.press("Enter");
+    await expect(page).toHaveURL(/query=priority/);
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toHaveAttribute("data-grid-row", `${KEY}-R1`);
+
+    await box.fill(`derivesFrom = ${KEY}-R1 ORDER BY title`);
+    await box.press("Enter");
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toHaveAttribute("data-grid-row", `${KEY}-R3`);
+
+    await box.fill("ownr = alice");
+    await box.press("Enter");
+    const error = page.locator("[data-query-error]");
+    await expect(error).toContainText('Unknown field "ownr". Write owner if you mean that one.');
+    await expect(error.locator("[data-query-caret]")).toHaveText("^");
+    await expectAccessible(page);
+  });
 });
