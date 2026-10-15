@@ -214,6 +214,15 @@ app role holds no privilege on.
   starter sections, copied once, so a later change to a template leaves the
   projects made from it alone.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
+- **Signed approvals** (#46): in a project with `settings.signedApprovals`,
+  a decision on a review is an electronic signature. The reviewer confirms a
+  meaning the server writes and proves who they are again, with their
+  password or a fresh sign-in at the identity provider
+  (`/auth/oidc/reauthenticate`, `prompt=login`), which leaves a single-use
+  `reauthentication` of their session. `review_signature` keeps the meaning,
+  the revision and its content hash, and how the signer proved it; the
+  triggers `review_signature_guard` and `review_decision_signed` refuse a
+  signature without a fresh proof and a decision without a signature.
 
 ### Themes (#8)
 
