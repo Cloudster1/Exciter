@@ -1,0 +1,2081 @@
+---
+# Source: exciter/charts/seaweedfs/templates/shared/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: seaweedfs
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+automountServiceAccountToken: true
+---
+# Source: exciter/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: r-exciter
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+---
+# Source: exciter/charts/seaweedfs/templates/master/master-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r-seaweedfs-master-config
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+data:
+  master.toml: |-
+    
+    # Enter any extra configuration for master.toml here.
+    # It may be a multi-line string.
+---
+# Source: exciter/templates/configmap-env.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r-exciter-env
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    # Before the Jobs of the Sync phase, which read it.
+    argocd.argoproj.io/sync-wave: "-20"
+data:
+  EXCITER_ENV: "development"
+  EXCITER_LOG_LEVEL: "info"
+  EXCITER_APP_URL: "http://exciter.localhost"
+  EXCITER_HTTP_ADDR: ":8080"
+  EXCITER_METRICS_ADDR: ":9090"
+  EXCITER_SESSION_COOKIE: "exciter_session"
+  EXCITER_SECURE_COOKIES: "false"
+  
+  # The pools. The URLs carry credentials and come from the Secrets.
+  EXCITER_DB_PRIMARY_MAX_CONNS: "20"
+  EXCITER_DB_REPLICA_MAX_CONNS: "20"
+  EXCITER_DB_MIN_CONNS: "2"
+  EXCITER_DB_CONN_MAX_LIFETIME: "1h"
+  EXCITER_DB_HEALTH_INTERVAL: "5s"
+  EXCITER_DB_MAX_REPLICA_LAG: "2s"
+  EXCITER_DB_REPLICA_LAG_SAMPLES: "3"
+  EXCITER_READ_YOUR_WRITES_TTL: "30s"
+  EXCITER_UPLOAD_LIMIT: "50MB"
+  EXCITER_RETAIN_AUDIT: "8760h"
+  EXCITER_S3_ENDPOINT: "r-seaweedfs-s3:8333"
+  EXCITER_S3_BUCKET: "exciter-files"
+  EXCITER_S3_REGION: "us-east-1"
+  EXCITER_S3_USE_SSL: "false"
+---
+# Source: exciter/templates/configmap-nginx.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r-exciter-nginx
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+data:
+  default.conf: |
+    # Connections to the api are kept and reused: one per request runs out of
+    # local ports at a few hundred requests a second. The Service's address
+    # does not change, so it is resolved once at start.
+    upstream exciter_api {
+        server r-exciter-api:8080;
+        keepalive 64;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        # A kept connection needs HTTP/1.1 and no "Connection: close".
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location /api/ {
+            # The api decides how large an upload may be.
+            client_max_body_size 0;
+            proxy_pass http://exciter_api;
+        }
+        location = /healthz {
+            proxy_pass http://exciter_api;
+        }
+        location = /readyz {
+            proxy_pass http://exciter_api;
+        }
+
+        # nginx's type table has no entry for a web app manifest, which would be
+        # served as an anonymous download. No add_header here, so the server's
+        # own headers still apply.
+        location = /site.webmanifest {
+            default_type application/manifest+json;
+        }
+        # The headers are repeated per location because an add_header inside
+        # one drops every header inherited from the server.
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+            add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+    }
+---
+# Source: exciter/charts/seaweedfs/templates/shared/cluster-role.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: r-seaweedfs-rw-cr
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# Source: exciter/charts/seaweedfs/templates/shared/cluster-role.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: r-seaweedfs-rw-crb
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+subjects:
+  - kind: ServiceAccount
+    name: seaweedfs
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: r-seaweedfs-rw-cr
+---
+# Source: exciter/charts/seaweedfs/templates/filer/filer-service-client.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-seaweedfs-filer-client
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: filer
+spec:
+  clusterIP: None
+  ports:
+  - name: "swfs-filer"
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: "swfs-filer-grpc"
+    port: 18888
+    targetPort: 18888
+    protocol: TCP
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: filer
+---
+# Source: exciter/charts/seaweedfs/templates/filer/filer-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-seaweedfs-filer
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: filer
+    monitoring: "true"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: "swfs-filer"
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: "swfs-filer-grpc"
+    port: 18888
+    targetPort: 18888
+    protocol: TCP
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: filer
+---
+# Source: exciter/charts/seaweedfs/templates/master/master-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-seaweedfs-master
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/component: master
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: "swfs-master"
+    port: 9333
+    targetPort: 9333
+    protocol: TCP
+  - name: "swfs-master-grpc"
+    port: 19333
+    targetPort: 19333
+    protocol: TCP
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: master
+---
+# Source: exciter/charts/seaweedfs/templates/s3/s3-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-seaweedfs-s3
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/component: s3
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: "swfs-s3"
+    port: 8333
+    targetPort: 8333
+    protocol: TCP
+  - name: "swfs-lance"
+    port: 9101
+    targetPort: 9101
+    protocol: TCP
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: s3
+---
+# Source: exciter/charts/seaweedfs/templates/volume/volume-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-seaweedfs-volume
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: volume
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  clusterIP: None
+  internalTrafficPolicy: Cluster
+  ports:
+  - name: "swfs-volume"
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: "swfs-volume-18080"
+    port: 18080
+    targetPort: 18080
+    protocol: TCP
+  - name: "metrics"
+    port: 9327
+    targetPort: 9327
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: volume
+---
+# Source: exciter/templates/api-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-api
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    # /metrics has no authentication of its own: on the Service for a scraper
+    # inside the cluster, and nowhere in the Ingress.
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: api
+---
+# Source: exciter/templates/bundled-postgres.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-postgresql
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: postgresql
+---
+# Source: exciter/templates/bundled-valkey.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-valkey
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  type: ClusterIP
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: valkey
+---
+# Source: exciter/templates/web-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-web
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: web
+---
+# Source: exciter/charts/seaweedfs/templates/s3/s3-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-seaweedfs-s3
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: s3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: s3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: seaweedfs
+        helm.sh/chart: seaweedfs-4.46.0
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: s3
+      
+      annotations:
+      
+    spec:
+      restartPolicy: Always
+      
+      terminationGracePeriodSeconds: 10
+      enableServiceLinks: false
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.46
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SEAWEEDFS_FULLNAME
+              value: "r-seaweedfs"
+            
+            - name: SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "exciter-s3"
+                  key: "username"
+            - name: SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "exciter-s3"
+                  key: "password"
+            - name: SEAWEEDFS_S3_READ_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: "exciter-s3-read"
+                  key: "username"
+            - name: SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "exciter-s3-read"
+                  key: "password"
+
+            - name: WEED_CLUSTER_DEFAULT
+              value: "sw"
+            - name: WEED_CLUSTER_SW_FILER
+              value: "r-seaweedfs-filer-client.default:8888"
+            - name: WEED_CLUSTER_SW_MASTER
+              value: "r-seaweedfs-master.default:9333"
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              -logdir=/logs \
+              -v=1 \
+              s3 \
+              -ip.bind=0.0.0.0 \
+              -port=8333 \
+              -metricsPort 9327 \
+              -config=/etc/sw/seaweedfs_s3_config \
+              -filer=r-seaweedfs-filer-client.default:8888 \
+              -port.lance=9101 \
+          volumeMounts:
+            - name: logs
+              mountPath: "/logs/"
+            - mountPath: /etc/sw
+              name: config-users
+              readOnly: true
+            
+          ports:
+            - containerPort: 8333
+              name: swfs-s3
+            - containerPort: 9101
+              name: swfs-lance
+            - containerPort: 9327
+              name: metrics
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8333
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 100
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8333
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 20
+            timeoutSeconds: 10
+      volumes:
+        - name: config-users
+          secret:
+            defaultMode: 420
+            secretName: r-seaweedfs-s3-secret
+        - name: logs
+          hostPath:
+            path: /storage/logs/seaweedfs/s3
+            type: DirectoryOrCreate
+---
+# Source: exciter/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-api
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: api
+      annotations:
+        # Rolls the pods when the configuration changes, which an edited
+        # ConfigMap alone would not.
+        checksum/env: 5f6208741a350ee258da816d86e5c7ccd1842bd9cfc3a886d42d838b30a61bef
+    spec:
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: api
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/api"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-valkey
+                  key: password
+            - name: EXCITER_VALKEY_URL
+              value: "redis://:$(VALKEY_PASSWORD)@r-exciter-valkey:6379/0"
+            
+            - name: EXCITER_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: username
+            - name: EXCITER_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: password
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          # /healthz touches nothing downstream, so a database outage does not
+          # get every pod killed and restarted into it.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # /readyz pings the primary, so a pod that cannot reach it leaves the
+          # Service until it can.
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 3
+            failureThreshold: 30
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: exciter/templates/web-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-web
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: web
+      annotations:
+        checksum/nginx: 9f222e2eb5dd19cd3eedf0596b4387109434af00b7a0ffcc5d2d5ffa43414dd5
+    spec:
+      serviceAccountName: r-exciter
+      # Stock nginx as its own nginx user rather than root, which is why it
+      # listens above 1024 and why its writable paths are mounted below.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: ghcr.io/cloudster1/exciter-web:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /index.html, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /index.html, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 20m
+              memory: 32Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: r-exciter-nginx
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+# Source: exciter/templates/worker-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-worker
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/env: 5f6208741a350ee258da816d86e5c7ccd1842bd9cfc3a886d42d838b30a61bef
+    spec:
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: worker
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/worker"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-valkey
+                  key: password
+            - name: EXCITER_VALKEY_URL
+              value: "redis://:$(VALKEY_PASSWORD)@r-exciter-valkey:6379/0"
+            
+            - name: EXCITER_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: username
+            - name: EXCITER_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: password
+          ports:
+            - name: metrics
+              containerPort: 9090
+          # The worker serves nothing but its metrics, so they are its sign of
+          # life; there is no readiness probe rather than a dishonest one.
+          livenessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+# Source: exciter/charts/seaweedfs/templates/filer/filer-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: r-seaweedfs-filer
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: filer
+spec:
+  serviceName: r-seaweedfs-filer
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: filer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: seaweedfs
+        helm.sh/chart: seaweedfs-4.46.0
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: filer
+      annotations:
+        checksum/s3config: 3bd8ee55bedcc662fa664dadb945474b4374c896162aa48ac15fe3ab555368fe
+    spec:
+      restartPolicy: Always
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: seaweedfs
+                  app.kubernetes.io/instance: r
+                  app.kubernetes.io/component: filer
+              topologyKey: kubernetes.io/hostname
+      
+      serviceAccountName: "seaweedfs" # for deleting statefulset pods after migration
+      terminationGracePeriodSeconds: 60
+      enableServiceLinks: false
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.46
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SEAWEEDFS_FULLNAME
+              value: "r-seaweedfs"
+
+            - name: WEED_CLUSTER_DEFAULT
+              value: "sw"
+            - name: WEED_CLUSTER_SW_FILER
+              value: "r-seaweedfs-filer-client.default:8888"
+            - name: WEED_CLUSTER_SW_MASTER
+              value: "r-seaweedfs-master.default:9333"
+            - name: WEED_FILER_BUCKETS_FOLDER
+              value: "/buckets"
+            - name: WEED_FILER_OPTIONS_RECURSIVE_DELETE
+              value: "false"
+            - name: WEED_LEVELDB2_ENABLED
+              value: "true"
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              -logdir=/logs \
+              -v=1 \
+              filer \
+              -port=8888 \
+              -metricsPort=9327 \
+              -dirListLimit=100000 \
+              -defaultReplicaPlacement=000 \
+              -ip=${POD_IP} \
+              -ip.bind=0.0.0.0 \
+              -master=r-seaweedfs-master-0.r-seaweedfs-master.default:9333 \
+          volumeMounts:
+            - name: seaweedfs-filer-log-volume
+              mountPath: "/logs/"
+            - name: data-filer
+              mountPath: /data
+            
+          ports:
+            - containerPort: 8888
+              name: swfs-filer
+            - containerPort: 9327
+              name: metrics
+            - containerPort: 18888
+              #name: swfs-filer-grpc
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8888
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 100
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8888
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 5
+            timeoutSeconds: 10
+      volumes:
+        - name: seaweedfs-filer-log-volume
+          hostPath:
+            path: /storage/logs/seaweedfs/filer
+            type: DirectoryOrCreate
+        - name: data-filer
+          hostPath:
+            path: /storage/filer_store
+            type: DirectoryOrCreate
+        - name: db-schema-config-volume
+          configMap:
+            name: r-seaweedfs-db-init-config
+            optional: true
+---
+# Source: exciter/charts/seaweedfs/templates/master/master-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: r-seaweedfs-master
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: master
+spec:
+  serviceName: r-seaweedfs-master
+  podManagementPolicy: Parallel
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: seaweedfs
+        helm.sh/chart: seaweedfs-4.46.0
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: master
+      
+      annotations:
+      
+    spec:
+      restartPolicy: Always
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: seaweedfs
+                  app.kubernetes.io/instance: r
+                  app.kubernetes.io/component: master
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 60
+      enableServiceLinks: false
+      serviceAccountName: "seaweedfs" # for deleting statefulset pods after migration
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.46
+          imagePullPolicy: IfNotPresent
+          env:
+            
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SEAWEEDFS_FULLNAME
+              value: "r-seaweedfs"
+
+            - name: WEED_CLUSTER_DEFAULT
+              value: "sw"
+            - name: WEED_CLUSTER_SW_FILER
+              value: "r-seaweedfs-filer-client.default:8888"
+            - name: WEED_CLUSTER_SW_MASTER
+              value: "r-seaweedfs-master.default:9333"
+            - name: WEED_MASTER_VOLUME_GROWTH_COPY_1
+              value: "7"
+            - name: WEED_MASTER_VOLUME_GROWTH_COPY_2
+              value: "6"
+            - name: WEED_MASTER_VOLUME_GROWTH_COPY_3
+              value: "3"
+            - name: WEED_MASTER_VOLUME_GROWTH_COPY_OTHER
+              value: "1"
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+              -logdir=/logs \
+              -v=1 \
+              master \
+              -port=9333 \
+              -mdir=/data \
+              -ip.bind=0.0.0.0 \
+              -defaultReplication=000 \
+              -metricsPort=9327 \
+              -volumeSizeLimitMB=1000 \
+              -electionTimeout=10s \
+              -heartbeatInterval=300ms \
+              -ip=${POD_NAME}.r-seaweedfs-master.default \
+              -peers=r-seaweedfs-master-0.r-seaweedfs-master.default:9333 \
+          volumeMounts:
+            - name : data-default
+              mountPath: /data
+            - name: seaweedfs-master-log-volume
+              mountPath: "/logs/"
+            - name: master-config
+              readOnly: true
+              mountPath: /etc/seaweedfs/master.toml
+              subPath: master.toml
+            
+            
+          ports:
+            - containerPort: 9333
+              name: swfs-master
+            - containerPort: 19333
+              #name: swfs-master-grpc
+          readinessProbe:
+            httpGet:
+              path: /cluster/status
+              port: 9333
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 45
+            successThreshold: 2
+            failureThreshold: 100
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /cluster/status
+              port: 9333
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 4
+            timeoutSeconds: 10
+      volumes:
+        
+        - name: seaweedfs-master-log-volume
+          hostPath:
+            path: /storage/logs/seaweedfs/master
+            type: DirectoryOrCreate
+        - name: data-default
+          hostPath:
+            path: /ssd/seaweed-master/
+            type: DirectoryOrCreate
+        - name: master-config
+          configMap:
+            name: r-seaweedfs-master-config
+---
+# Source: exciter/charts/seaweedfs/templates/volume/volume-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: r-seaweedfs-volume
+  namespace: default
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: volume
+spec:
+  serviceName: r-seaweedfs-volume
+  replicas: 1
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: volume
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: seaweedfs
+        helm.sh/chart: seaweedfs-4.46.0
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: volume
+      
+      annotations:
+      
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: seaweedfs
+                  app.kubernetes.io/instance: r
+                  app.kubernetes.io/component: volume
+              topologyKey: kubernetes.io/hostname
+      restartPolicy: Always
+      
+      terminationGracePeriodSeconds: 150
+      enableServiceLinks: false
+      serviceAccountName: "seaweedfs" # for deleting statefulset pods after migration
+      containers:
+        - name: seaweedfs
+          image: chrislusf/seaweedfs:4.46
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: SEAWEEDFS_FULLNAME
+              value: "r-seaweedfs"
+
+            - name: WEED_CLUSTER_DEFAULT
+              value: "sw"
+            - name: WEED_CLUSTER_SW_FILER
+              value: "r-seaweedfs-filer-client.default:8888"
+            - name: WEED_CLUSTER_SW_MASTER
+              value: "r-seaweedfs-master.default:9333"
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - |
+              exec /usr/bin/weed \
+                -logtostderr=true \
+                -v=1 \
+                volume \
+                -port=8080 \
+                -metricsPort=9327 \
+                -dir /data1 \
+                -max 0 \
+                -ip.bind=0.0.0.0 \
+                -readMode=proxy \
+                -minFreeSpacePercent=1 \
+                -ip=${POD_NAME}.r-seaweedfs-volume.default \
+                -compactionMBps=50 \
+                -master=r-seaweedfs-master-0.r-seaweedfs-master.default:9333 \
+          volumeMounts:
+            - name: data1
+              mountPath: "/data1/"
+            
+          ports:
+            - containerPort: 8080
+              name: swfs-vol
+            - containerPort: 9327
+              name: metrics
+            - containerPort: 18080
+              name: swfs-vol-grpc
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 100
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 90
+            successThreshold: 1
+            failureThreshold: 4
+            timeoutSeconds: 30
+      volumes:
+        - name: data1
+          hostPath:
+            path: /ssd/object_store/
+            type: DirectoryOrCreate
+  volumeClaimTemplates:
+---
+# Source: exciter/templates/bundled-postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: r-exciter-postgresql
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  serviceName: r-exciter-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: postgresql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: postgresql
+    spec:
+      # The image's own user; fsGroup makes the volume writable to it.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgresql
+          image: postgres:18-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          args: ["postgres", "-c", "track_commit_timestamp=on"]
+          env:
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_DB
+              value: "exciter"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-owner
+                  key: password
+            - name: POSTGRES_INITDB_ARGS
+              value: "--auth-host=scram-sha-256"
+            - name: PGDATA
+              value: "/var/lib/postgresql/18/docker"
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "exciter"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "exciter"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            # The socket directory and the entrypoint's scratch space, which a
+            # read only root filesystem would otherwise refuse.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 8Gi
+---
+# Source: exciter/templates/bundled-valkey.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: r-exciter-valkey
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: valkey
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  serviceName: r-exciter-valkey
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: valkey
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: valkey
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: valkey
+          image: valkey/valkey:8-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["valkey-server", "--appendonly", "yes", "--dir", "/data", "--requirepass", "$(VALKEY_PASSWORD)"]
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-valkey
+                  key: password
+          ports:
+            - name: valkey
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 20m
+              memory: 32Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Source: exciter/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: r-exciter
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+spec:
+  rules:
+    - host: "exciter.localhost"
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-web
+                port:
+                  name: http
+---
+# Source: exciter/charts/seaweedfs/templates/shared/cluster-role.yaml
+#hack for delete pod master after migration
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-40"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-40"
+---
+# Source: exciter/charts/seaweedfs/templates/s3/s3-secret.yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: r-seaweedfs-s3-secret
+  namespace: default
+  annotations:
+    "helm.sh/resource-policy": keep
+    "helm.sh/hook": "pre-install,pre-upgrade"
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    helm.sh/chart: seaweedfs-4.46.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: s3
+stringData:
+  seaweedfs_s3_config: '{"identities":[{"name":"anvAdmin","credentials":[{"accessKey":"${SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID}","secretKey":"${SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY}"}],"actions":["Admin","Read","Write"]},{"name":"anvReadOnly","credentials":[{"accessKey":"${SEAWEEDFS_S3_READ_ACCESS_KEY_ID}","secretKey":"${SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY}"}],"actions":["Read"]}]}'
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-39"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-39"
+rules:
+  # Kubernetes cannot scope create to resource names, so reading is limited
+  # to these Secrets and creating is not.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - r-exciter-db-app
+      - r-exciter-db-admin
+      - r-exciter-db-owner
+      - r-exciter-secret-key
+      - r-exciter-bootstrap-admin
+      - exciter-s3
+      - exciter-s3-read
+      - r-exciter-valkey
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-38"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-38"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: r-exciter-secrets-generator
+subjects:
+  - kind: ServiceAccount
+    name: r-exciter-secrets-generator
+    namespace: default
+---
+# Source: exciter/templates/job-bootstrap.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-bootstrap
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: bootstrap
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/seed", "bootstrap"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-valkey
+                  key: password
+            - name: EXCITER_VALKEY_URL
+              value: "redis://:$(VALKEY_PASSWORD)@r-exciter-valkey:6379/0"
+            
+            - name: EXCITER_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: username
+            - name: EXCITER_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: exciter-s3
+                  key: password
+            - name: EXCITER_BOOTSTRAP_ADMIN_EMAIL
+              value: "admin@exciter.localhost"
+            - name: EXCITER_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "r-exciter-bootstrap-admin"
+                  key: "password"
+            
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# Source: exciter/templates/job-migrate.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-migrate
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "-4"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-4"
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/migrate", "up"]
+          env:
+            - name: DB_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-owner
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://postgres:$(DB_OWNER_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# Source: exciter/templates/job-roles.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-roles
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: roles
+  annotations:
+    # post-install, not pre-install: Helm runs pre-install hooks before the
+    # release's own resources exist, a bundled database included. Argo CD runs
+    # it after the database's wave is healthy and before the workloads.
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  backoffLimit: 2
+  # Covers a first CNPG cluster coming up, which takes a few minutes.
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: roles
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: roles
+          image: postgres:18-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: DB_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-owner
+                  key: password
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            # A host that drops packets would otherwise hold a connect open
+            # until the Job's deadline.
+            - name: PGCONNECT_TIMEOUT
+              value: "5"
+            - name: PGURL
+              value: "postgres://postgres:$(DB_OWNER_PASSWORD)@r-exciter-postgresql:5432/exciter?sslmode=disable"
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until psql "$PGURL" -Atc "SELECT 1" >/dev/null 2>&1; do
+                echo "waiting for the database to accept the owner role"
+                sleep 5
+              done
+              psql -v ON_ERROR_STOP=1 "$PGURL" <<'SQL'
+              -- A named tag, not $$: Kubernetes reads $$ in args as an escaped $.
+              DO $roles$
+              BEGIN
+                  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'exciter_app') THEN
+                      CREATE ROLE exciter_app LOGIN NOSUPERUSER NOBYPASSRLS;
+                  END IF;
+                  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'exciter_admin') THEN
+                      CREATE ROLE exciter_admin LOGIN NOSUPERUSER NOBYPASSRLS;
+                  END IF;
+              END;
+              $roles$;
+              SQL
+              # Outside the DO block: the passwords change between installs,
+              # and ALTER is the idempotent way to say so.
+              psql -v ON_ERROR_STOP=1 "$PGURL" \
+                -c "ALTER ROLE exciter_app WITH LOGIN PASSWORD '$APP_PASSWORD'" \
+                -c "ALTER ROLE exciter_admin WITH LOGIN PASSWORD '$ADMIN_PASSWORD'"
+              psql -v ON_ERROR_STOP=1 "$PGURL" <<'SQL'
+              -- The pool reads pg_stat_wal_receiver to tell a caught up standby
+              -- from one whose receiver has quietly dropped.
+              GRANT pg_read_all_stats TO exciter_app, exciter_admin;
+              SQL
+              psql -v ON_ERROR_STOP=1 "$PGURL" <<'SQL'
+              GRANT CONNECT ON DATABASE exciter TO exciter_app, exciter_admin;
+              SQL
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { memory: 128Mi }
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: secrets
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-30"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-30"
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: secrets
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter-secrets-generator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: secrets
+          image: alpine/kubectl:1.34.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          env:
+            # kubectl keeps its discovery cache under HOME.
+            - name: HOME
+              value: /tmp
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              ns="default"
+
+              # Any lookup failure but NotFound stops the Job: read as absent,
+              # it would try to create a Secret that may well exist.
+              exists() {
+                if out=$(kubectl get secret "$1" -n "$ns" -o name 2>&1); then return 0; fi
+                case "$out" in *NotFound*) return 1 ;; esac
+                echo "$out" >&2
+                exit 1
+              }
+
+              password() {
+                tr -dc A-Za-z0-9 </dev/urandom | head -c 32
+              }
+
+              # EXCITER_SECRET_KEY is 32 random bytes in base64, not a password.
+              key() {
+                head -c 32 /dev/urandom | base64 | tr -d '\n'
+              }
+
+              # Labelled as Exciter's without being Helm's, so an uninstall
+              # keeps it. cnpg.io/reload has the operator apply a change.
+              create() {
+                kubectl create secret generic "$1" -n "$ns" \
+                  --type=kubernetes.io/basic-auth \
+                  --from-literal=username="$2" \
+                  --from-literal=password="$3" \
+                  --dry-run=client -o yaml \
+                | kubectl label --local -f - -o yaml \
+                    app.kubernetes.io/part-of=exciter \
+                    app.kubernetes.io/instance="r" \
+                    cnpg.io/reload=true \
+                | kubectl create -f - 2>err || {
+                  grep -q AlreadyExists err && return 0
+                  cat err >&2
+                  exit 1
+                }
+                echo "created $1 with a random password"
+              }
+              cd /tmp
+              if exists "r-exciter-db-app"; then
+                echo "r-exciter-db-app exists and is left as it is"
+              else
+                create "r-exciter-db-app" "exciter_app" "$(password)"
+              fi
+              if exists "r-exciter-db-admin"; then
+                echo "r-exciter-db-admin exists and is left as it is"
+              else
+                create "r-exciter-db-admin" "exciter_admin" "$(password)"
+              fi
+              if exists "r-exciter-db-owner"; then
+                echo "r-exciter-db-owner exists and is left as it is"
+              else
+                create "r-exciter-db-owner" "postgres" "$(password)"
+              fi
+              if exists "r-exciter-secret-key"; then
+                echo "r-exciter-secret-key exists and is left as it is"
+              else
+                create "r-exciter-secret-key" "exciter" "$(key)"
+              fi
+              if exists "r-exciter-bootstrap-admin"; then
+                echo "r-exciter-bootstrap-admin exists and is left as it is"
+              else
+                create "r-exciter-bootstrap-admin" "admin@exciter.localhost" "$(password)"
+              fi
+              if exists "exciter-s3"; then
+                echo "exciter-s3 exists and is left as it is"
+              else
+                create "exciter-s3" "exciter" "$(password)"
+              fi
+              if exists "exciter-s3-read"; then
+                echo "exciter-s3-read exists and is left as it is"
+              else
+                create "exciter-s3-read" "exciter-read" "$(password)"
+              fi
+              if exists "r-exciter-valkey"; then
+                echo "r-exciter-valkey exists and is left as it is"
+              else
+                create "r-exciter-valkey" "default" "$(password)"
+              fi
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -178,6 +178,16 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at 6a69a5a, for the Helm chart (#104):
+- deploy/charts/exciter with its SeaweedFS archive, mk/helm.mk, mk/kind.mk,
+  scripts/kind, scripts/chart-install-test.sh and chart-install-values.yaml,
+  tests/test-helm.sh and .github/workflows/chart-install.yml: renamed, without
+  the renderer, backups and Stator's own settings, with the partners'
+  addresses and backchannels added, and with golden renders as Armature's
+  chart tests have them
+- the chart job of .github/workflows/release.yml and its checks in
+  tests/test-release-workflow.sh
+
 Adapted from Stator at 94546d1, for releasing by tag (#101):
 - release.sh, scripts/version-files.sh, release-notes.sh and release-tag.sh,
   tests/test-release.sh, tests/test-release-workflow.sh, mk/actions.mk,

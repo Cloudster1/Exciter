@@ -169,6 +169,22 @@ func (s *Service) readConnection(ctx context.Context, tx db.DBTX) (*Connection, 
 // SaveConnection sets the installation's Armature. A new address forgets every stored token in the same
 // transaction.
 func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip string) (*Connection, db.LSN, error) {
+	return s.saveConnection(ctx, in, ip, true)
+}
+
+// ConnectFirst connects the Armature at baseURL when none is, as seed bootstrap does; one that does not answer yet is
+// connected anyway, and what it offers is asked on the next save or token check. It reports whether it connected.
+func (s *Service) ConnectFirst(ctx context.Context, baseURL, ip string) (bool, error) {
+	before, err := s.Connection(db.PinPrimary(ctx))
+	if err != nil || before != nil {
+		return false, err
+	}
+	_, _, err = s.saveConnection(ctx, ConnectionInput{BaseURL: baseURL}, ip, false)
+	return err == nil, err
+}
+
+// saveConnection is SaveConnection; answered says a new address is refused while the Armature there does not answer.
+func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip string, answered bool) (*Connection, db.LSN, error) {
 	actor, _ := db.UserFrom(ctx)
 	base, err := s.normalizeBaseURL(in.BaseURL)
 	if err != nil {
@@ -209,7 +225,7 @@ func (s *Service) SaveConnection(ctx context.Context, in ConnectionInput, ip str
 	// kept while Armature does not answer.
 	moved := before == nil || before.BaseURL != base
 	meta, err := s.describe(ctx, base)
-	if err != nil && moved {
+	if err != nil && moved && answered {
 		return nil, 0, err
 	}
 

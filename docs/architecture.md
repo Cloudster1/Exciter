@@ -359,7 +359,7 @@ jobs cover them all.
 
 | Layer | What | Since |
 |---|---|---|
-| shell | release, release workflow, CI and branch-guard tests | #1 |
+| shell | release, release workflow, chart, CI and branch-guard tests | #1 |
 | check-format | biome over `web/` and `e2e/` | #6 |
 | check-go | gofmt, vet, Go unit tests with the race detector, OpenAPI drift | #3 |
 | check-web | lint, types, vitest, API types drift | #6 |
@@ -405,9 +405,14 @@ report.
 ## Deployment
 
 Docker Compose for development (`deploy/docker-compose.yml`, run through
-`mk/stack.mk`, #2); a Helm chart follows (#104). A release builds the
-`backend` and `web` images from its tag and pushes them to
-`ghcr.io/cloudster1/exciter-<image>` (`docs/releasing.md`, #101).
+`mk/stack.mk`, #2), and the Helm chart `deploy/charts/exciter` everywhere
+else (#104, `docs/deployment.md`): Stator's chart, with the api, worker and
+web Deployments, the roles, secrets, migrate, bootstrap and seed Jobs, and
+Postgres through CloudNativePG or bundled, Valkey and SeaweedFS for a trial.
+`armature.url` and `stator.url` let the bootstrap connect the partners. A
+release builds the `backend` and `web` images from its tag and pushes them to
+`ghcr.io/cloudster1/exciter-<image>`, and the chart to
+`oci://ghcr.io/cloudster1/charts/exciter` (`docs/releasing.md`, #101).
 
 - Every checkout gets a compose project `exciter-<hash of its path>` and a
   slot of twenty host ports from `scripts/stack-ports.sh`, all bound to

@@ -1,0 +1,48 @@
+# The values the chart install test installs with: a trial release that brings its own Postgres, Valkey and S3
+# store, with the installation, its administrator and both partners made by the bootstrap Job. The images are the
+# ones the test builds from this checkout and loads into the cluster.
+env: development
+
+ingress:
+  enabled: false
+
+# development is the one setting where this may be false, which a port-forward over plain HTTP needs.
+auth:
+  secureCookies: false
+
+api:
+  replicas: 1
+web:
+  replicas: 1
+
+database:
+  sslmode: disable
+  ownerRole: postgres
+
+postgresql:
+  enabled: true
+valkey:
+  bundled: true
+seaweedfs:
+  enabled: true
+
+installation:
+  name: Trial
+
+jobs:
+  bootstrap:
+    enabled: true
+bootstrap:
+  admin: { email: admin@chart-test.example }
+
+# Neither answers in the cluster; the bootstrap connects them anyway, as an umbrella chart installing all three at
+# once needs.
+armature:
+  url: http://armature.chart-test.example
+stator:
+  url: http://stator.chart-test.example
+
+images:
+  pullPolicy: IfNotPresent
+  backend: { repository: exciter-test/backend, tag: ci }
+  web: { repository: exciter-test/web, tag: ci }

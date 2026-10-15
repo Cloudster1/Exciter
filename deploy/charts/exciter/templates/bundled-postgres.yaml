@@ -1,0 +1,122 @@
+{{- if .Values.postgresql.enabled }}
+{{- $_ := include "exciter.dbHost" . }}
+{{/*
+A trial database, not a deployment's: one pod, one volume, no replica and no
+backup. Its superuser password is the owner's basic-auth Secret, the one the
+roles and migrate Jobs connect with, so there is no second place to keep it.
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "exciter.fullname" . }}-postgresql
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: {{ .Values.database.port }}
+      targetPort: postgres
+  selector:
+    {{- include "exciter.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "exciter.fullname" . }}-postgresql
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  serviceName: {{ include "exciter.fullname" . }}-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "exciter.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgresql
+  template:
+    metadata:
+      labels:
+        {{- include "exciter.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgresql
+    spec:
+      {{- with .Values.images.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # The image's own user; fsGroup makes the volume writable to it.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.postgresql.runAsUser }}
+        runAsGroup: {{ .Values.postgresql.runAsGroup }}
+        fsGroup: {{ .Values.postgresql.runAsGroup }}
+        seccompProfile: { type: RuntimeDefault }
+      terminationGracePeriodSeconds: {{ .Values.postgresql.terminationGracePeriodSeconds }}
+      containers:
+        - name: postgresql
+          image: {{ include "exciter.image" (dict "root" $ "name" "psql") }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          args: ["postgres", "-c", "track_commit_timestamp=on"]
+          env:
+            - name: POSTGRES_USER
+              value: {{ include "exciter.ownerRole" . | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.database.name | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "exciter.credentialSecret" (dict "root" . "name" "dbOwner") }}
+                  key: password
+            - name: POSTGRES_INITDB_ARGS
+              value: "--auth-host=scram-sha-256"
+            - name: PGDATA
+              value: {{ .Values.postgresql.dataPath | quote }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ include "exciter.ownerRole" . | quote }}, "-d", {{ .Values.database.name | quote }}]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ include "exciter.ownerRole" . | quote }}, "-d", {{ .Values.database.name | quote }}]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            # The socket directory and the entrypoint's scratch space, which a
+            # read only root filesystem would otherwise refuse.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.postgresql.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.storage }}
+{{- end }}

@@ -1,0 +1,1009 @@
+---
+# Source: exciter/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: r-exciter
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+---
+# Source: exciter/templates/configmap-env.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r-exciter-env
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    # Before the Jobs of the Sync phase, which read it.
+    argocd.argoproj.io/sync-wave: "-20"
+data:
+  EXCITER_ENV: "production"
+  EXCITER_LOG_LEVEL: "info"
+  EXCITER_APP_URL: "https://exciter.example.com"
+  EXCITER_HTTP_ADDR: ":8080"
+  EXCITER_METRICS_ADDR: ":9090"
+  EXCITER_OUTBOUND_ALLOW: "10.40.0.0/16,armature-api.armature.svc,stator-api.stator.svc,keycloak.sso.svc"
+  EXCITER_ARMATURE_BACKCHANNEL: "https://armature.example.com=http://armature-api.armature.svc:8080"
+  EXCITER_STATOR_BACKCHANNEL: "https://wiki.example.com=http://stator-api.stator.svc:8080"
+  EXCITER_OIDC_BACKCHANNEL: "https://sso.example.com=http://keycloak.sso.svc:8080"
+  EXCITER_SESSION_COOKIE: "exciter_session"
+  EXCITER_SECURE_COOKIES: "true"
+  
+  # The pools. The URLs carry credentials and come from the Secrets.
+  EXCITER_DB_PRIMARY_MAX_CONNS: "20"
+  EXCITER_DB_REPLICA_MAX_CONNS: "20"
+  EXCITER_DB_MIN_CONNS: "2"
+  EXCITER_DB_CONN_MAX_LIFETIME: "1h"
+  EXCITER_DB_HEALTH_INTERVAL: "5s"
+  EXCITER_DB_MAX_REPLICA_LAG: "2s"
+  EXCITER_DB_REPLICA_LAG_SAMPLES: "3"
+  EXCITER_READ_YOUR_WRITES_TTL: "30s"
+  EXCITER_UPLOAD_LIMIT: "50MB"
+  EXCITER_RETAIN_AUDIT: "8760h"
+---
+# Source: exciter/templates/configmap-nginx.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r-exciter-nginx
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+data:
+  default.conf: |
+    # Connections to the api are kept and reused: one per request runs out of
+    # local ports at a few hundred requests a second. The Service's address
+    # does not change, so it is resolved once at start.
+    upstream exciter_api {
+        server r-exciter-api:8080;
+        keepalive 64;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        # A kept connection needs HTTP/1.1 and no "Connection: close".
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location /api/ {
+            # The api decides how large an upload may be.
+            client_max_body_size 0;
+            proxy_pass http://exciter_api;
+        }
+        location = /healthz {
+            proxy_pass http://exciter_api;
+        }
+        location = /readyz {
+            proxy_pass http://exciter_api;
+        }
+
+        # nginx's type table has no entry for a web app manifest, which would be
+        # served as an anonymous download. No add_header here, so the server's
+        # own headers still apply.
+        location = /site.webmanifest {
+            default_type application/manifest+json;
+        }
+        # The headers are repeated per location because an add_header inside
+        # one drops every header inherited from the server.
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+            add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "DENY" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+    }
+---
+# Source: exciter/templates/api-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-api
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    # /metrics has no authentication of its own: on the Service for a scraper
+    # inside the cluster, and nowhere in the Ingress.
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: api
+---
+# Source: exciter/templates/web-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-web
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: web
+---
+# Source: exciter/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-api
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: api
+      annotations:
+        # Rolls the pods when the configuration changes, which an edited
+        # ConfigMap alone would not.
+        checksum/env: f362f087afbac0c07b322bd1f463d30c6287086d2bc1333f7fef467a0061e27f
+    spec:
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: api
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/api"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_REPLICA_URLS
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-ro:5432/exciter?sslmode=require"
+            - name: EXCITER_VALKEY_URL
+              value: "redis://valkey.example:6379/0"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          # /healthz touches nothing downstream, so a database outage does not
+          # get every pod killed and restarted into it.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # /readyz pings the primary, so a pod that cannot reach it leaves the
+          # Service until it can.
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 3
+            failureThreshold: 30
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Source: exciter/templates/web-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-web
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: web
+      annotations:
+        checksum/nginx: 9f222e2eb5dd19cd3eedf0596b4387109434af00b7a0ffcc5d2d5ffa43414dd5
+    spec:
+      serviceAccountName: r-exciter
+      # Stock nginx as its own nginx user rather than root, which is why it
+      # listens above 1024 and why its writable paths are mounted below.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: ghcr.io/cloudster1/exciter-web:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /index.html, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /index.html, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            limits:
+              memory: 128Mi
+            requests:
+              cpu: 20m
+              memory: 32Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: r-exciter-nginx
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+# Source: exciter/templates/worker-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-worker
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/env: f362f087afbac0c07b322bd1f463d30c6287086d2bc1333f7fef467a0061e27f
+    spec:
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: worker
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/worker"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_REPLICA_URLS
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-ro:5432/exciter?sslmode=require"
+            - name: EXCITER_VALKEY_URL
+              value: "redis://valkey.example:6379/0"
+          ports:
+            - name: metrics
+              containerPort: 9090
+          # The worker serves nothing but its metrics, so they are its sign of
+          # life; there is no readiness probe rather than a dishonest one.
+          livenessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+---
+# Source: exciter/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: r-exciter
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+spec:
+  tls:
+    - hosts:
+        - "exciter.example.com"
+      secretName: exciter-tls
+  rules:
+    - host: "exciter.example.com"
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-web
+                port:
+                  name: http
+---
+# Source: exciter/templates/cnpg-cluster.yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: r-exciter-postgres
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: postgresql
+  annotations:
+    # Before the roles Job, which Argo CD holds back until this is healthy.
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  bootstrap:
+    initdb:
+      database: exciter
+      owner: exciter_owner
+      secret:
+        name: r-exciter-db-owner
+  enableSuperuserAccess: false
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie
+  instances: 3
+  managed:
+    roles:
+    - ensure: present
+      inRoles:
+      - pg_read_all_stats
+      login: true
+      name: exciter_admin
+      passwordSecret:
+        name: r-exciter-db-admin
+    - ensure: present
+      inRoles:
+      - pg_read_all_stats
+      login: true
+      name: exciter_app
+      passwordSecret:
+        name: r-exciter-db-app
+  monitoring:
+    enablePodMonitor: false
+  postgresql:
+    parameters:
+      track_commit_timestamp: "on"
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  storage:
+    size: 10Gi
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-40"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-40"
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-39"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-39"
+rules:
+  # Kubernetes cannot scope create to resource names, so reading is limited
+  # to these Secrets and creating is not.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - r-exciter-db-app
+      - r-exciter-db-admin
+      - r-exciter-db-owner
+      - r-exciter-secret-key
+      - r-exciter-bootstrap-admin
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-38"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-38"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: r-exciter-secrets-generator
+subjects:
+  - kind: ServiceAccount
+    name: r-exciter-secrets-generator
+    namespace: default
+---
+# Source: exciter/templates/job-bootstrap.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-bootstrap
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: bootstrap
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/seed", "bootstrap"]
+          envFrom:
+            - configMapRef:
+                name: r-exciter-env
+          env:
+            - name: DB_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-app
+                  key: password
+            - name: DB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-admin
+                  key: password
+            - name: EXCITER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-secret-key
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_ADMIN_URL
+              value: "postgres://exciter_admin:$(DB_ADMIN_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+            - name: EXCITER_DB_REPLICA_URLS
+              value: "postgres://exciter_app:$(DB_APP_PASSWORD)@r-exciter-postgres-ro:5432/exciter?sslmode=require"
+            - name: EXCITER_VALKEY_URL
+              value: "redis://valkey.example:6379/0"
+            - name: EXCITER_BOOTSTRAP_ADMIN_EMAIL
+              value: "admin@exciter.example.com"
+            - name: EXCITER_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "r-exciter-bootstrap-admin"
+                  key: "password"
+            - name: EXCITER_BOOTSTRAP_OIDC_ISSUER
+              value: "https://sso.example.com/realms/dynamo"
+            - name: EXCITER_BOOTSTRAP_OIDC_CLIENT_ID
+              value: "exciter"
+            - name: EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "dynamo-oidc"
+                  key: "client-secret"
+            
+            - name: EXCITER_BOOTSTRAP_ARMATURE_URL
+              value: "https://armature.example.com"
+            - name: EXCITER_BOOTSTRAP_STATOR_URL
+              value: "https://wiki.example.com"
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# Source: exciter/templates/job-migrate.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-migrate
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "-4"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-4"
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          command: ["/app/migrate", "up"]
+          env:
+            - name: DB_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-owner
+                  key: password
+            - name: EXCITER_DB_PRIMARY_URL
+              value: "postgres://exciter_owner:$(DB_OWNER_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# Source: exciter/templates/job-roles.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-roles
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: roles
+  annotations:
+    # post-install, not pre-install: Helm runs pre-install hooks before the
+    # release's own resources exist, a bundled database included. Argo CD runs
+    # it after the database's wave is healthy and before the workloads.
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  backoffLimit: 2
+  # Covers a first CNPG cluster coming up, which takes a few minutes.
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: roles
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: roles
+          image: postgres:18-alpine
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: DB_OWNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: r-exciter-db-owner
+                  key: password
+            # A host that drops packets would otherwise hold a connect open
+            # until the Job's deadline.
+            - name: PGCONNECT_TIMEOUT
+              value: "5"
+            - name: PGURL
+              value: "postgres://exciter_owner:$(DB_OWNER_PASSWORD)@r-exciter-postgres-rw:5432/exciter?sslmode=require"
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until psql "$PGURL" -Atc "SELECT 1" >/dev/null 2>&1; do
+                echo "waiting for the database to accept the owner role"
+                sleep 5
+              done
+              until [ "$(psql "$PGURL" -Atc "SELECT count(*) FROM pg_roles WHERE rolname IN ('exciter_app', 'exciter_admin')")" = 2 ]; do
+                echo "waiting for the operator to create exciter_app, exciter_admin"
+                sleep 5
+              done
+              psql -v ON_ERROR_STOP=1 "$PGURL" <<'SQL'
+              GRANT CONNECT ON DATABASE exciter TO exciter_app, exciter_admin;
+              SQL
+          resources:
+            requests: { cpu: 20m, memory: 32Mi }
+            limits: { memory: 128Mi }
+---
+# Source: exciter/templates/job-secrets.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: r-exciter-secrets-generator
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: secrets
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-30"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-30"
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: secrets
+    spec:
+      restartPolicy: Never
+      serviceAccountName: r-exciter-secrets-generator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: secrets
+          image: alpine/kubectl:1.34.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          env:
+            # kubectl keeps its discovery cache under HOME.
+            - name: HOME
+              value: /tmp
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              ns="default"
+
+              # Any lookup failure but NotFound stops the Job: read as absent,
+              # it would try to create a Secret that may well exist.
+              exists() {
+                if out=$(kubectl get secret "$1" -n "$ns" -o name 2>&1); then return 0; fi
+                case "$out" in *NotFound*) return 1 ;; esac
+                echo "$out" >&2
+                exit 1
+              }
+
+              password() {
+                tr -dc A-Za-z0-9 </dev/urandom | head -c 32
+              }
+
+              # EXCITER_SECRET_KEY is 32 random bytes in base64, not a password.
+              key() {
+                head -c 32 /dev/urandom | base64 | tr -d '\n'
+              }
+
+              # Labelled as Exciter's without being Helm's, so an uninstall
+              # keeps it. cnpg.io/reload has the operator apply a change.
+              create() {
+                kubectl create secret generic "$1" -n "$ns" \
+                  --type=kubernetes.io/basic-auth \
+                  --from-literal=username="$2" \
+                  --from-literal=password="$3" \
+                  --dry-run=client -o yaml \
+                | kubectl label --local -f - -o yaml \
+                    app.kubernetes.io/part-of=exciter \
+                    app.kubernetes.io/instance="r" \
+                    cnpg.io/reload=true \
+                | kubectl create -f - 2>err || {
+                  grep -q AlreadyExists err && return 0
+                  cat err >&2
+                  exit 1
+                }
+                echo "created $1 with a random password"
+              }
+              cd /tmp
+              if exists "r-exciter-db-app"; then
+                echo "r-exciter-db-app exists and is left as it is"
+              else
+                create "r-exciter-db-app" "exciter_app" "$(password)"
+              fi
+              if exists "r-exciter-db-admin"; then
+                echo "r-exciter-db-admin exists and is left as it is"
+              else
+                create "r-exciter-db-admin" "exciter_admin" "$(password)"
+              fi
+              if exists "r-exciter-db-owner"; then
+                echo "r-exciter-db-owner exists and is left as it is"
+              else
+                create "r-exciter-db-owner" "exciter_owner" "$(password)"
+              fi
+              if exists "r-exciter-secret-key"; then
+                echo "r-exciter-secret-key exists and is left as it is"
+              else
+                create "r-exciter-secret-key" "exciter" "$(key)"
+              fi
+              if exists "r-exciter-bootstrap-admin"; then
+                echo "r-exciter-bootstrap-admin exists and is left as it is"
+              else
+                create "r-exciter-bootstrap-admin" "admin@exciter.example.com" "$(password)"
+              fi
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

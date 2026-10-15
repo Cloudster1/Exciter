@@ -32,3 +32,5 @@ release-notes-*.md
 
 # agent worktrees
 .claude/worktrees/
+# the chart make chart-package packs
+/dist/

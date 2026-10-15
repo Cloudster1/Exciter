@@ -1,0 +1,38 @@
+# Installs the Helm chart into a throwaway kind cluster and upgrades it. Apart
+# from CI because it is slow and only a change to what the chart installs can
+# break it. See scripts/chart-install-test.sh and docs/decisions.md.
+name: Chart install
+
+on:
+  pull_request:
+    paths:
+      - deploy/**
+      - backend/migrations/**
+      - backend/cmd/seed/**
+      - scripts/chart-install-*
+      - scripts/kind/**
+      - mk/helm.mk
+      - mk/kind.mk
+      - .github/workflows/chart-install.yml
+  push:
+    branches: [main]
+    paths:
+      - deploy/**
+      - backend/migrations/**
+  workflow_dispatch:
+
+concurrency:
+  group: chart-install-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: install and upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: make test-chart-install

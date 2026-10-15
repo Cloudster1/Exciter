@@ -158,6 +158,10 @@ type Bootstrap struct {
 	// Members are let into the installation ahead of their first sign-in,
 	// so a development stack needs nobody to approve them.
 	Members []BootstrapMember
+
+	// ArmatureURL and StatorURL connect the partners where none is connected yet, as people open them (#104).
+	ArmatureURL string
+	StatorURL   string
 }
 
 // BootstrapMember is one address and the standing it is given.
@@ -248,6 +252,8 @@ func Load() (Config, error) {
 			OIDCClientID:     l.str("EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", ""),
 			OIDCClientSecret: l.str("EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", ""),
 			Members:          l.members("EXCITER_BOOTSTRAP_MEMBERS"),
+			ArmatureURL:      l.str("EXCITER_BOOTSTRAP_ARMATURE_URL", ""),
+			StatorURL:        l.str("EXCITER_BOOTSTRAP_STATOR_URL", ""),
 		},
 		S3: S3{
 			Endpoint:  l.str("EXCITER_S3_ENDPOINT", ""),

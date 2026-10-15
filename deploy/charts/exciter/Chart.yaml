@@ -1,0 +1,23 @@
+apiVersion: v2
+name: exciter
+description: Requirements management that works hand in hand with Armature and Stator
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/Cloudster1/Exciter
+sources:
+  - https://github.com/Cloudster1/Exciter
+# Postgres and Valkey for a trial are two StatefulSets in templates/, on the
+# images the compose stack runs. An S3 store for a trial is SeaweedFS from the
+# project's own chart, off unless seaweedfs.enabled: a real deployment brings
+# its own database, Valkey and bucket.
+#
+# The archive in charts/ is committed, as in Stator's chart and unlike Armature's: the
+# chart tests then need no network, and a chart copied into another
+# repository (or synced by Argo CD from one) needs no access to the chart
+# repository either. `make helm-deps` refreshes it, and Chart.lock with it.
+dependencies:
+  - name: seaweedfs
+    version: 4.46.0
+    repository: https://seaweedfs.github.io/seaweedfs/helm
+    condition: seaweedfs.enabled

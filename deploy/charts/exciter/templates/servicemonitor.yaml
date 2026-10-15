@@ -1,0 +1,19 @@
+{{- if .Values.telemetry.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "exciter.fullname" . }}
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    {{- with .Values.telemetry.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "exciter.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.telemetry.serviceMonitor.interval }}
+{{- end }}

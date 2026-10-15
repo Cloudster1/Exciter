@@ -1,0 +1,93 @@
+{{- if .Values.jobs.bootstrap.enabled }}
+{{- $b := .Values.bootstrap }}
+{{- if .Values.jobs.seed.enabled }}
+{{- fail "jobs.seed.enabled and jobs.bootstrap.enabled are both true. The seed is for a development stack and the bootstrap for a real install: turn one of them off." }}
+{{- end }}
+{{- $email := required "jobs.bootstrap.enabled is true, so set bootstrap.admin.email, or ingress.host so the administrator can be admin@ that host." (include "exciter.bootstrapEmail" .) }}
+{{- if and (not $b.admin.passwordSecret.name) (not .Values.secrets.generate) }}
+{{- fail "secrets.generate is off and bootstrap.admin.passwordSecret.name is blank, so nothing can make the administrator's password. Name a Secret that holds it, or turn secrets.generate on." }}
+{{- end }}
+{{- $pwSecret := default (include "exciter.credentialSecret" (dict "root" . "name" "bootstrapAdmin")) $b.admin.passwordSecret.name }}
+{{- if $b.oidc.issuer }}
+{{- $_ := required "bootstrap.oidc.issuer is set, so set bootstrap.oidc.clientId." $b.oidc.clientId }}
+{{- end }}
+{{- if and $b.oidc.clientId (not $b.oidc.issuer) }}
+{{- fail "bootstrap.oidc.clientId is set without bootstrap.oidc.issuer. Set both, or neither." }}
+{{- end }}
+{{- if and $b.oidc.clientSecret.name (not $b.oidc.issuer) }}
+{{- fail "bootstrap.oidc.clientSecret.name is set without bootstrap.oidc.issuer. Set the issuer and client id too, or leave the client secret out." }}
+{{- end }}
+{{- $members := list }}
+{{- range $b.members }}
+{{- if not (has .role (list "owner" "admin" "member")) }}
+{{- fail (printf "bootstrap.members has %q as the role of %s; use owner, admin or member." (toString .role) .email) }}
+{{- end }}
+{{- $members = append $members (printf "%s=%s" .email .role) }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "exciter.fullname" . }}-bootstrap
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bootstrap
+  annotations:
+    {{- /* After the migrate Job, which runs pre-upgrade but post-install. */}}
+    {{- include "exciter.hookAnnotations" (dict "helm" "post-install,post-upgrade" "argo" "PostSync" "weight" "10") | nindent 4 }}
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "exciter.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: bootstrap
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "exciter.serviceAccountName" . }}
+      {{- with .Values.images.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: bootstrap
+          image: {{ include "exciter.image" (dict "root" $ "name" "backend") }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          command: ["/app/seed", "bootstrap"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "exciter.fullname" . }}-env
+          env:
+            {{- include "exciter.secretEnv" . | nindent 12 }}
+            - name: EXCITER_BOOTSTRAP_ADMIN_EMAIL
+              value: {{ $email | quote }}
+            - name: EXCITER_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $pwSecret | quote }}
+                  key: {{ default "password" $b.admin.passwordSecret.key | quote }}
+            {{- if $b.oidc.issuer }}
+            - name: EXCITER_BOOTSTRAP_OIDC_ISSUER
+              value: {{ $b.oidc.issuer | quote }}
+            - name: EXCITER_BOOTSTRAP_OIDC_CLIENT_ID
+              value: {{ $b.oidc.clientId | quote }}
+            {{- end }}
+            {{- if $b.oidc.clientSecret.name }}
+            - name: EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $b.oidc.clientSecret.name | quote }}
+                  key: {{ default "client-secret" $b.oidc.clientSecret.key | quote }}
+            {{- end }}
+            {{- if $members }}
+            - name: EXCITER_BOOTSTRAP_MEMBERS
+              value: {{ join "," $members | quote }}
+            {{- end }}
+            {{- include "exciter.partnerEnv" . | nindent 12 }}
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+{{- end }}
