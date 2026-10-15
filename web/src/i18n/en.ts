@@ -19,6 +19,7 @@ import { coverageEn } from "./coverage.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
+import { documentsEn } from "./documents.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { workflowsEn } from "./workflows.en";
@@ -297,6 +298,7 @@ export const en = {
       "baseline.deleted": "Baseline deleted",
       "coverage_rule.saved": "Coverage rule saved",
       "coverage_rule.removed": "Coverage rule removed",
+      "specification.exported": "Specification exported",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -340,6 +342,7 @@ export const en = {
   coverage: coverageEn,
   imports: importsEn,
   reqif: reqifEn,
+  documents: documentsEn,
   search: searchEn,
   grid: gridEn,
   themes: themesEn,

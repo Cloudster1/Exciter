@@ -341,3 +341,10 @@ export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;
 export const COVERAGE_PAGE_SIZE = 50;
 /** How many requirements one page of a traceability matrix holds, the API's trace.MatrixDefaultLimit. */
 export const MATRIX_PAGE_SIZE = 50;
+
+/** How long a print view stays quiet, nothing loading or drawing, before it says it is ready to print. */
+export const PRINT_SETTLE_MS = 300;
+/** What a print view waits out: a skeleton or a busy region. */
+export const PRINT_PENDING_SELECTOR = '[data-skeleton], [aria-busy="true"]';
+/** How deep a document's contents list its entries, sections and the two levels below them, as the Word file does. */
+export const DOCUMENT_CONTENTS_DEPTH = 3;

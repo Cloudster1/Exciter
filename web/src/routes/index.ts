@@ -39,10 +39,13 @@ import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
+import { printBaselineDocumentRoute, printProjectDocumentRoute } from "./print";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  printProjectDocumentRoute,
+  printBaselineDocumentRoute,
   appRoute.addChildren([
     homeRoute,
     projectsRoute,
