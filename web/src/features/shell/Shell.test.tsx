@@ -19,6 +19,7 @@ import {
   SSO_PATH,
   STATOR_ACCOUNT_PATH,
   STATOR_SETTINGS_PATH,
+  WEBHOOKS_PATH,
   THEMES_PATH,
   TOKENS_PATH,
   WATCHING_PATH,
@@ -144,6 +145,7 @@ describe("the quick switcher", () => {
       `place:${ALL_TOKENS_PATH}`,
       `place:${ARMATURE_SETTINGS_PATH}`,
       `place:${STATOR_SETTINGS_PATH}`,
+      `place:${WEBHOOKS_PATH}`,
       `place:${AUDIT_PATH}`,
       `place:${INSTALLATION_PATH}`,
       `place:${THEMES_PATH}`,
@@ -161,9 +163,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[19]).toHaveAttribute("aria-selected", "true");
+    expect(options()[20]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[19]).toHaveAttribute("aria-selected", "true");
+    expect(options()[20]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
