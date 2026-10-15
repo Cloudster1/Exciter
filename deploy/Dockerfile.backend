@@ -24,9 +24,13 @@ COPY api/armature/openapi.json /out/armature-openapi.json
 
 # goose drops the database drivers Exciter never uses under these tags.
 ARG GOOSE_TAGS="no_sqlite3 no_mysql no_clickhouse no_vertica no_ydb no_libsql no_mssql no_turso no_duckdb"
+# What GET /api/v1/meta reports, from scripts/build-stamp.sh: the build context carries no .git, which a worktree
+# has only as a file. Without them the build is VERSION+dev with no commit.
+ARG VERSION=""
 ARG COMMIT=""
 RUN PKG=github.com/cloudster1/exciter/backend/internal/version && \
-    LDFLAGS="-s -w -X $PKG.Version=$(cat /VERSION) -X $PKG.Commit=$COMMIT -X $PKG.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
+    VERSION="${VERSION:-$(cat /VERSION)+dev}" && \
+    LDFLAGS="-s -w -X $PKG.Version=$VERSION -X $PKG.Commit=$COMMIT -X $PKG.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
     go build -trimpath -ldflags="$LDFLAGS" -o /out/ ./cmd/api ./cmd/worker ./cmd/seed ./cmd/armature-stub ./cmd/stator-stub && \
     go build -trimpath -ldflags="$LDFLAGS" -tags "$GOOSE_TAGS" -o /out/migrate ./cmd/migrate
 

@@ -16853,8 +16853,17 @@
       "MetaResponse": {
         "type": "object",
         "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
           "build": {
             "$ref": "#/components/schemas/BuildInfo"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "product": {
             "type": "string"
@@ -16862,7 +16871,9 @@
         },
         "required": [
           "product",
-          "build"
+          "build",
+          "apiVersion",
+          "capabilities"
         ]
       },
       "MoveRequirement": {

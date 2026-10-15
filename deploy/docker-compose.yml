@@ -53,6 +53,12 @@ x-backend: &backend
   image: ${COMPOSE_PROJECT_NAME:-exciter}-backend
   pull_policy: never
 
+# What the images say they are; the Makefile sets both from scripts/build-stamp.sh, and a build without them
+# calls itself VERSION+dev.
+x-build-stamp: &build-stamp
+  VERSION: ${EXCITER_BUILD_VERSION:-}
+  COMMIT: ${EXCITER_BUILD_COMMIT:-}
+
 services:
   postgres-primary:
     image: postgres:18-alpine
@@ -199,6 +205,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.backend
+      args: *build-stamp
     command: ["/app/migrate", "up"]
     depends_on:
       postgres-primary:

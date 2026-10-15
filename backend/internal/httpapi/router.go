@@ -33,7 +33,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
-	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
@@ -550,10 +549,4 @@ func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, readinessResponse{Status: "ok", Routing: s.DB.Stats()})
-}
-
-// handleMeta names the product and build, which Armature and Stator read to
-// tell an Exciter apart from any other address an administrator typed.
-func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	respondJSON(w, r, http.StatusOK, metaResponse{Product: ProductName, Build: version.Current()})
 }

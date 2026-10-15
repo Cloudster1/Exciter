@@ -9,6 +9,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `GET /api/v1/meta` names the product `exciter` in lower case, as Stator
+  and Armature name themselves (#99).
 - The `armature` client of the development realm no longer requires PKCE,
   which Armature's sign-in does not send yet (#31).
 - The tables are the installation's (#108): `org` is `installation`, a
@@ -76,6 +78,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `GET /api/v1/meta` also answers `apiVersion` and `capabilities`, as
+  Stator and Armature do, and names the build a checkout stamped: its version
+  as `0.1.0`, `0.1.0+4.gabc1234` or `0.1.0+dev`, and its short commit (#99).
 - Requirements linked to Stator pages (#41). A requirement's editors link
   it to the pages that specify, describe or relate to it, found by the first
   words of their titles; each page shows its title, space, path and version

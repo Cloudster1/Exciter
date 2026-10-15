@@ -66,6 +66,9 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_TEST_SECRET_KEY='$(EXCITER_SECRET_KEY)' \
 	-e EXCITER_TEST_APP_URL=http://localhost:$(WEB_PORT) \
 	-e EXCITER_TEST_MAILPIT_URL=http://mailpit:8025 \
+	-e EXCITER_TEST_WEB_STACK_URL=http://web \
+	-e EXCITER_TEST_BUILD_VERSION='$(EXCITER_BUILD_VERSION)' \
+	-e EXCITER_TEST_BUILD_COMMIT='$(EXCITER_BUILD_COMMIT)' \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.
@@ -93,6 +96,8 @@ stack-env:
 		'EXCITER_MAILPIT_URL=http://localhost:$(MAILPIT_PORT)' \
 		'EXCITER_ARMATURE_URL=http://localhost:$(ARMATURE_STUB_PORT)' \
 		'EXCITER_STATOR_URL=http://localhost:$(STATOR_STUB_PORT)' \
+		'EXCITER_BUILD_VERSION=$(EXCITER_BUILD_VERSION)' \
+		'EXCITER_BUILD_COMMIT=$(EXCITER_BUILD_COMMIT)' \
 		'EXCITER_TEST_SUPERUSER_URL=postgres://exciter:$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/exciter?sslmode=disable' \
 		> $(STACK_ENV_FILE)
 

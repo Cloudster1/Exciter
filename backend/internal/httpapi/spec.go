@@ -26,8 +26,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
-// ProductName is what the document and /meta call this API, which Armature and
-// Stator check before they connect to it.
+// ProductName is the document's title, which Armature and Stator check before
+// they connect to it; /meta names the product as Product.
 const ProductName = "Exciter"
 
 // isErrorEnvelope marks a refusal a client has to tell apart, listed with its
@@ -194,7 +194,7 @@ func Spec() *openapi.Document {
 		OpenAPI: "3.1.0",
 		Info: openapi.Info{
 			Title:   ProductName,
-			Version: "1",
+			Version: APIVersion,
 			Description: "The requirements management HTTP API. Every endpoint answers JSON; errors share one envelope. " +
 				"Sign in with a session cookie or an API token sent as a bearer token.",
 		},

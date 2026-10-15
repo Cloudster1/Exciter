@@ -27,7 +27,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
-	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/watch"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
@@ -927,11 +926,4 @@ var auditQuery = []param{
 	{name: "target", schema: &openapi.Schema{Type: "string", Format: "uuid"}, description: "The id of the thing the entries are about."},
 	{name: "from", description: "The first day, YYYY-MM-DD in UTC, or the first instant with its zone."},
 	{name: "to", description: "The last day, YYYY-MM-DD in UTC and inclusive, or the instant the range ends before."},
-}
-
-// metaResponse names the product and its build, so a client connecting to an
-// address can tell it reached Exciter and which release.
-type metaResponse struct {
-	Product string       `json:"product"`
-	Build   version.Info `json:"build"`
 }

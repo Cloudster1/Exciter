@@ -178,6 +178,13 @@ Adapted from Armature at 73d72dd, for trace links (#18):
   links read from either end of internal/issue/links.go, over requirements,
   with the type's phrase read from the end asked about
 
+Adapted from Stator at b789bb0, for the build at /meta (#99):
+- scripts/build-stamp.sh, tests/test-build-stamp.sh and
+  backend/internal/version: the same, with the test's marks in plain text
+- backend/internal/httpapi/meta_handlers.go with its test, and the stamp's
+  path through the Makefile, compose and Dockerfile.backend: the same,
+  renamed, with the web image left on its VERSION file
+
 Adapted from Stator at e26a9ac, for comments and mentions (#33):
 - backend/migrations/00500_comments.sql: 00140, 00154 and 00155, over
   requirements, with the thread's resolution and the comment's revision

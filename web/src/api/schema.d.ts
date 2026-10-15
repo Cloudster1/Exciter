@@ -3538,7 +3538,9 @@ export interface components {
             name: string;
         };
         MetaResponse: {
+            apiVersion: string;
             build: components["schemas"]["BuildInfo"];
+            capabilities: string[];
             product: string;
         };
         MoveRequirement: {
