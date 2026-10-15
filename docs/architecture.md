@@ -34,8 +34,10 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   carries `pending: true` and answers 501 `not_implemented`.
 - Migrations: goose, embedded in the binary, applied by `cmd/migrate`. Each
   milestone's contract divides a range of migration numbers among its issues:
-  `docs/api-contract-m1.md` for the requirements core (#10), and
-  `docs/api-contract-m2.md` for the Armature integration (#25).
+  `docs/api-contract-m1.md` for the requirements core (#10),
+  `docs/api-contract-m2.md` for the Armature integration (#25),
+  `docs/api-contract-m3.md` for review and control (#32), and
+  `docs/api-contract-m4.md` for the Stator integration (#39).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -322,7 +324,13 @@ German.
   or takes off the difference as that person, so Armature names them as the
   link's creator. Chips read issues live with the viewer's token, and every
   such read stores the status category for everyone.
-- **Trace to pages** (#41, #42): the same, against Stator pages.
+- **Trace to pages** (#41, #42): the same, against Stator pages, with the
+  page's latest version stored for everyone so a link whose page moved on is
+  suspect. Exciter puts its links on pages only once Stator reports
+  `page.remote-links` on `/meta`.
+- **Stator's API** is vendored at `api/stator/openapi.json`, its commit in
+  `api/stator/SOURCE`, refreshed with `make stator-openapi REF=`, for the
+  `stator-stub`'s contract test (#39, #40).
 - **Armature's API** is vendored at `api/armature/openapi.json`, its commit in
   `api/armature/SOURCE`, refreshed with `make armature-openapi REF=`. The
   `armature-stub` answers in its shapes, and a contract test holds it to them

@@ -76,6 +76,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API of the Stator integration, agreed before it is built (#39). The
+  connection and each person's token, requirements linked to Stator pages,
+  and Stator's webhooks are in `api/openapi.json` and answer 501 until each
+  is built. `docs/api-contract-m4.md` says what each operation means, what is
+  asked of Stator for links back from its pages, and divides the migration
+  numbers among the issues. Stator's own API is vendored under
+  `api/stator/` with `make stator-openapi REF=`.
 - Coverage and the traceability matrix (#38). A project's administrators say
   which of decomposed, implemented and verified its requirements of each
   type are asked for. Coverage shows each dimension's share as a bar, and

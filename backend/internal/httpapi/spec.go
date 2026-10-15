@@ -19,6 +19,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -132,6 +133,16 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[armature.Created]():         "ArmatureCreated",
 		reflect.TypeFor[armature.CreateFailure]():   "ArmatureCreateFailure",
 		reflect.TypeFor[armature.Follow]():          "ArmatureFollow",
+		reflect.TypeFor[stator.Connection]():        "StatorConnection",
+		reflect.TypeFor[stator.ConnectionInput]():   "StatorConnectionInput",
+		reflect.TypeFor[stator.Account]():           "StatorAccount",
+		reflect.TypeFor[stator.AccountUser]():       "StatorUser",
+		reflect.TypeFor[stator.TokenInput]():        "StatorTokenInput",
+		reflect.TypeFor[stator.Page]():              "StatorPage",
+		reflect.TypeFor[stator.LookupResult]():      "StatorLookup",
+		reflect.TypeFor[stator.Link]():              "StatorLink",
+		reflect.TypeFor[stator.LinkInput]():         "StatorLinkInput",
+		reflect.TypeFor[stator.ClearInput]():        "StatorClearInput",
 	}
 	for t, name := range names {
 		b.Names[t] = name
@@ -158,6 +169,9 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
 	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
 	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)
+	b.Enums[reflect.TypeOf(stator.Status(""))] = enumStrings(stator.Statuses)
+	b.Enums[reflect.TypeOf(stator.Relation(""))] = enumStrings(stator.Relations)
+	b.Enums[reflect.TypeOf(stator.SyncState(""))] = enumStrings(stator.SyncStates)
 
 	category := &openapi.Schema{Type: "string", Enum: enumStrings(workflow.Categories)}
 	b.FieldOverrides["StatusRef.category"] = category
