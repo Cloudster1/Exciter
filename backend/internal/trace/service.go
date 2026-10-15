@@ -35,6 +35,8 @@ func (e *InUseError) Error() string { return fmt.Sprintf("the link type has %d l
 // Service keeps link types and the links between requirements.
 type Service struct {
 	db *db.Cluster
+	// coverage is nil without Valkey, which keeps nothing.
+	coverage *CoverageCache
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }

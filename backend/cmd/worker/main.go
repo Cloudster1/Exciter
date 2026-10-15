@@ -5,11 +5,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/attachment"
@@ -30,8 +33,12 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
-// flushTimeout bounds sending the traces still in hand at shutdown.
-const flushTimeout = 5 * time.Second
+const (
+	// flushTimeout bounds sending the traces still in hand at shutdown.
+	flushTimeout = 5 * time.Second
+	// valkeyWait bounds the first answer from Valkey at start.
+	valkeyWait = 5 * time.Second
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -94,6 +101,17 @@ func run() error {
 	for _, topic := range fanOut.Topics() {
 		handlers.Route(topic, fanOut)
 	}
+	valkey, err := openValkey(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	if valkey != nil {
+		defer valkey.Close()
+		forget := trace.NewCoverageForgetter(cluster, trace.NewCoverageCache(valkey, log))
+		for _, topic := range trace.CoverageTopics {
+			handlers.Before(topic, forget)
+		}
+	}
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
 	store, err := objectstore.Open(objectstore.Config{
@@ -134,4 +152,23 @@ func armatureService(cfg config.Config, cluster *db.Cluster, log *slog.Logger) (
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
 	return armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
 		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}), nil
+}
+
+// openValkey connects to EXCITER_VALKEY_URL, where the api caches coverage, or returns nil when it is blank.
+func openValkey(ctx context.Context, cfg config.Config) (*redis.Client, error) {
+	if cfg.Valkey.URL == "" {
+		return nil, nil
+	}
+	opts, err := redis.ParseURL(cfg.Valkey.URL)
+	if err != nil {
+		return nil, fmt.Errorf("EXCITER_VALKEY_URL is not a valid Valkey URL, such as redis://:password@valkey:6379/0: %w", err)
+	}
+	client := redis.NewClient(opts)
+	pingCtx, cancel := context.WithTimeout(ctx, valkeyWait)
+	defer cancel()
+	if err := client.Ping(pingCtx).Err(); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("connect to Valkey: %w", err)
+	}
+	return client, nil
 }

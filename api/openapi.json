@@ -1302,7 +1302,9 @@
                 "review.withdrawn",
                 "baseline.taken",
                 "baseline.locked",
-                "baseline.deleted"
+                "baseline.deleted",
+                "coverage_rule.saved",
+                "coverage_rule.removed"
               ]
             }
           },
@@ -1460,7 +1462,9 @@
                 "review.withdrawn",
                 "baseline.taken",
                 "baseline.locked",
-                "baseline.deleted"
+                "baseline.deleted",
+                "coverage_rule.saved",
+                "coverage_rule.removed"
               ]
             }
           },
@@ -2534,16 +2538,6 @@
           },
           "403": {
             "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5416,6 +5410,48 @@
             }
           },
           {
+            "name": "decomposed",
+            "in": "query",
+            "description": "Only the requirements decomposed this far.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "partial",
+                "full",
+                "na"
+              ]
+            }
+          },
+          {
+            "name": "implemented",
+            "in": "query",
+            "description": "Only the requirements implemented this far.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "partial",
+                "full",
+                "na"
+              ]
+            }
+          },
+          {
+            "name": "verified",
+            "in": "query",
+            "description": "Only the requirements verified this far.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "partial",
+                "full",
+                "na"
+              ]
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "1 to 500; 50 when absent.",
@@ -5480,16 +5516,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -5538,16 +5564,6 @@
                   "required": [
                     "rules"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -5621,16 +5637,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6563,16 +6569,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -6777,16 +6773,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13806,7 +13792,9 @@
               "review.withdrawn",
               "baseline.taken",
               "baseline.locked",
-              "baseline.deleted"
+              "baseline.deleted",
+              "coverage_rule.saved",
+              "coverage_rule.removed"
             ]
           },
           "actorId": {
@@ -13902,7 +13890,9 @@
                 "review.withdrawn",
                 "baseline.taken",
                 "baseline.locked",
-                "baseline.deleted"
+                "baseline.deleted",
+                "coverage_rule.saved",
+                "coverage_rule.removed"
               ]
             }
           },

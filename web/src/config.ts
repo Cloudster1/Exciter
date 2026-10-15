@@ -321,3 +321,8 @@ export const BASELINE_SPEC_PAGE_SIZE = 50;
 /** The longest name and description a baseline takes, as the API's baseline.MaxNameLength and MaxDescriptionLength. */
 export const BASELINE_NAME_MAX_LENGTH = 100;
 export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;
+
+/** How many requirements one page of a coverage report lists, the API's trace.CoverageDefaultLimit (#38). */
+export const COVERAGE_PAGE_SIZE = 50;
+/** How many requirements one page of a traceability matrix holds, the API's trace.MatrixDefaultLimit. */
+export const MATRIX_PAGE_SIZE = 50;

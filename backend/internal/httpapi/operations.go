@@ -768,29 +768,37 @@ var operations = []operation{
 		responses: map[int]any{http.StatusOK: env{"comparison": baseline.Comparison{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// Coverage and the traceability matrix (#38).
-	{method: "GET", path: "/projects/{projectKey}/coverage-rules", handler: "handleListCoverageRules", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/coverage-rules", handler: "handleListCoverageRules", tag: "coverage",
 		summary:   "Which coverage dimensions apply to the requirements of each type in a project.",
 		responses: ok(env{"rules": []trace.CoverageRule{}})},
-	{method: "PUT", path: "/projects/{projectKey}/coverage-rules", handler: "handleSaveCoverageRule", tag: "coverage", pending: true,
+	{method: "PUT", path: "/projects/{projectKey}/coverage-rules", handler: "handleSaveCoverageRule", tag: "coverage",
 		summary: "Set the coverage rule of one type, or of every type without its own; the project's administrators'.",
 		request: trace.CoverageRuleInput{}, responses: map[int]any{http.StatusOK: env{"rule": trace.CoverageRule{}}, http.StatusForbidden: errorEnvelope{},
 			http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "DELETE", path: "/coverage-rules/{ruleID}", handler: "handleDeleteCoverageRule", tag: "coverage", pending: true,
+	{method: "DELETE", path: "/coverage-rules/{ruleID}", handler: "handleDeleteCoverageRule", tag: "coverage",
 		summary:   "Remove a coverage rule; the project's administrators'.",
 		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}}},
-	{method: "GET", path: "/projects/{projectKey}/coverage", handler: "handleProjectCoverage", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/coverage", handler: "handleProjectCoverage", tag: "coverage",
 		summary: "How far a project's requirements, narrowed like the grid, are decomposed, implemented and verified: the totals, and each requirement.",
-		query:   append(append([]param{}, gridQuery...), windowQuery(trace.CoverageDefaultLimit, trace.CoverageMaxLimit)...),
+		query: append(append(append([]param{}, gridQuery...), levelQuery...),
+			windowQuery(trace.CoverageDefaultLimit, trace.CoverageMaxLimit)...),
 		responses: map[int]any{http.StatusOK: env{"summary": trace.CoverageSummary{}, "rows": []trace.CoverageRow{}, "total": 0, "limit": 0, "offset": 0},
 			http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/projects/{projectKey}/matrix", handler: "handleTraceMatrix", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/matrix", handler: "handleTraceMatrix", tag: "coverage",
 		summary:   "A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to.",
 		query:     append(append([]param{}, gridQuery...), append(matrixQuery, windowQuery(trace.MatrixDefaultLimit, trace.MatrixMaxLimit)...)...),
 		responses: map[int]any{http.StatusOK: env{"matrix": trace.Matrix{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/projects/{projectKey}/matrix.csv", handler: "handleTraceMatrixCSV", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/matrix.csv", handler: "handleTraceMatrixCSV", tag: "coverage",
 		summary: "The traceability matrix as a CSV file, every row the filter keeps.",
 		query:   append(append([]param{}, gridQuery...), matrixQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
+}
+
+// levelQuery keeps a coverage report's rows at a level in each dimension; the totals count every requirement.
+var levelQuery = []param{
+	{name: "decomposed", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.Levels)}, description: "Only the requirements decomposed this far."},
+	{name: "implemented", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.Levels)}, description: "Only the requirements implemented this far."},
+	{name: "verified", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.Levels)}, description: "Only the requirements verified this far."},
 }
 
 // matrixQuery says what a traceability matrix's columns are.

@@ -201,6 +201,9 @@ func (s *Service) act(ctx context.Context, env WebhookEnvelope) error {
 			return fmt.Errorf("act on the webhook %s: %w", env.Topic, err)
 		}
 	}
+	if write != nil {
+		s.forgetCoverage(ctx, key)
+	}
 	if env.Topic != TopicRemoteLinkRemoved {
 		s.cache.ForgetIssues(ctx, forget...)
 		s.cache.ForgetSearches(ctx)

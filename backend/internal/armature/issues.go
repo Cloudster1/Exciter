@@ -216,15 +216,19 @@ func (s *Service) noteStatus(ctx context.Context, fetched map[string]*Issue) {
 	if len(keys) == 0 {
 		return
 	}
+	changed := false
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `
+		tag, err := tx.Exec(ctx, `
 			UPDATE armature_issue_link l SET status_category = f.category, status_stale = false
 			FROM unnest($1::text[], $2::text[]) AS f (issue_key, category)
 			WHERE l.issue_key = f.issue_key
 			  AND (l.status_category IS DISTINCT FROM f.category OR l.status_stale)`, keys, categories)
+		changed = tag.RowsAffected() > 0
 		return err
 	})
 	if err != nil {
 		s.opts.Log.Warn("the status of Armature issues could not be stored", "error", err)
+	} else if changed {
+		s.forgetCoverage(ctx, keys...)
 	}
 }

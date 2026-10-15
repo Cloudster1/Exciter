@@ -78,6 +78,9 @@ const (
 	ActionBaselineTaken   = "baseline.taken"
 	ActionBaselineLocked  = "baseline.locked"
 	ActionBaselineDeleted = "baseline.deleted"
+	// ActionCoverageRuleSaved and ActionCoverageRuleRemoved keep what a project's coverage asks of each type (#38).
+	ActionCoverageRuleSaved   = "coverage_rule.saved"
+	ActionCoverageRuleRemoved = "coverage_rule.removed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -90,7 +93,7 @@ var Actions = []string{
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
-	ActionBaselineDeleted,
+	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

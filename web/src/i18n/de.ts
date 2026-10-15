@@ -13,6 +13,7 @@ import { notificationsDe, watchDe } from "./notifications.de";
 import { reviewDe } from "./reviews.de";
 import { suspectDe } from "./suspect.de";
 import { baselineDe } from "./baselines.de";
+import { coverageDe } from "./coverage.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -289,6 +290,8 @@ export const de: Messages = {
       "baseline.taken": "Baseline erstellt",
       "baseline.locked": "Baseline gesperrt",
       "baseline.deleted": "Baseline gelöscht",
+      "coverage_rule.saved": "Abdeckungsregel gespeichert",
+      "coverage_rule.removed": "Abdeckungsregel entfernt",
     },
     targetTypes: {
       user: "Person",
@@ -327,6 +330,7 @@ export const de: Messages = {
   review: reviewDe,
   suspect: suspectDe,
   baseline: baselineDe,
+  coverage: coverageDe,
   imports: importsDe,
   search: searchDe,
   grid: gridDe,

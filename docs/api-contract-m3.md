@@ -455,6 +455,31 @@ administrator), `approval_rule.saved`, `approval_rule.removed`,
   rule saved.
 - **UI:** Coverage in the project, with the three bars and a list to filter
   by level, and the matrix with its CSV download.
+- **As built** (#38):
+  - Migration 00570. A rule's type must be one of its project's, and only
+    the administrators of a project that is not archived set or remove one;
+    the database refuses both straight through SQL.
+  - The report's rows are requirements in outline order. Beyond the
+    agreement, `decomposed`, `implemented` and `verified` keep the rows at
+    one level each; the totals still count every requirement the filter
+    keeps. A link from a requirement in the trash covers nothing, and an
+    Armature status marked stale since the issue moved is not taken for
+    done.
+  - Only the report is cached: per project, reader and filter, for a
+    minute. The worker clears a project's entries on each event of a
+    requirement written, moved, trashed or restored, a link made, removed
+    or cleared, an Armature link changed and a project rekeyed, so a change
+    shows within a second or so. Saving or removing a rule, and Armature
+    reporting a status, a deleted issue or a removed remote link, clear it
+    at once. The matrix reads a page's links each time.
+  - A cell names a trace link by its type's name, whichever way it points,
+    and an Armature link by its relation. The columns are what the page's
+    rows reach, so the 500 columns are counted per page, or over every row
+    for the file. An unknown `columnProject` is 422 on that field.
+  - The file has a column for the key and the title, then one per column,
+    its cells the link names joined by `; `, a suspect one marked
+    `(suspect)`, and a last line saying so when the filter keeps more than
+    the export's 20000 rows.
 
 ## What is left for later
 
