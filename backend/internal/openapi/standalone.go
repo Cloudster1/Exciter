@@ -50,5 +50,11 @@ func (b *Builder) rewrite(s *Schema, defs map[string]*Schema) *Schema {
 			copied.OneOf[i] = b.rewrite(each, defs)
 		}
 	}
+	if len(s.AnyOf) > 0 {
+		copied.AnyOf = make([]*Schema, len(s.AnyOf))
+		for i, each := range s.AnyOf {
+			copied.AnyOf[i] = b.rewrite(each, defs)
+		}
+	}
 	return &copied
 }

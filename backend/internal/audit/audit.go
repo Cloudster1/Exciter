@@ -63,6 +63,13 @@ const (
 	// ActionStatorConnected and ActionStatorDisconnected keep where the members' Stator tokens went (#40).
 	ActionStatorConnected    = "stator.connected"
 	ActionStatorDisconnected = "stator.disconnected"
+	// ActionWebhookCreated to ActionWebhookDisabled keep the installation's outbound webhooks (#48); the worker turns
+	// a failing one off with nobody as the actor.
+	ActionWebhookCreated       = "webhook.created"
+	ActionWebhookUpdated       = "webhook.updated"
+	ActionWebhookDeleted       = "webhook.deleted"
+	ActionWebhookSecretRotated = "webhook.secret_rotated"
+	ActionWebhookDisabled      = "webhook.disabled"
 	// ActionCommentDeleted keeps an administrator deleting somebody else's comment (#33).
 	ActionCommentDeleted = "comment.deleted"
 	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the installation's and the
@@ -101,7 +108,8 @@ var Actions = []string{
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
-	ActionSpecificationExported, ActionProjectSignaturesSet,
+	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
+	ActionWebhookSecretRotated, ActionWebhookDisabled,
 }
 
 // Redacted stands in the record for a value that looked like a credential.
