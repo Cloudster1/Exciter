@@ -82,6 +82,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
   const [requireComment, setRequireComment] = useState(project.settings.requireRevisionComment);
+  const [signedApprovals, setSignedApprovals] = useState(project.settings.signedApprovals);
   const [defaultType, setDefaultType] = useState(project.settings.defaultTypeId ?? "");
   const { data: types } = useTypes(project.key);
   const [notice, setNotice] = useState("");
@@ -90,7 +91,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   function save(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment };
+    const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals };
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
     update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
   }
@@ -143,6 +144,19 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
           />
           <p id="require-comment-hint" className="mt-1 text-xs text-ink-muted">
             {t.projects.requireCommentHint}
+          </p>
+        </div>
+        <div>
+          <Checkbox
+            label={t.projects.signedApprovals}
+            checked={signedApprovals}
+            disabled={readOnly}
+            onChange={(event) => setSignedApprovals(event.target.checked)}
+            aria-describedby="signed-approvals-hint"
+            data-setting="signed-approvals"
+          />
+          <p id="signed-approvals-hint" className="mt-1 text-xs text-ink-muted">
+            {t.projects.signedApprovalsHint}
           </p>
         </div>
         {!readOnly && (

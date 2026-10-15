@@ -62,4 +62,27 @@ export const reviewDe: typeof reviewEn = {
   previous: "Zurück",
   next: "Weiter",
   range: (from, to, total) => `${from} bis ${to} von ${total}`,
+  signTitle: (decision: string) => `Signieren: ${decision}`,
+  signIntro:
+    "In diesem Projekt ist eine Entscheidung eine elektronische Signatur. Sie behält diese Bedeutung, die signierte Revision und wie Sie sich ausgewiesen haben.",
+  signMeaning: "Was Sie signieren",
+  signPassword: "Ihr Passwort",
+  signPasswordHint: "Das Passwort, mit dem Sie sich anmelden, erneut eingegeben nur für diese Signatur.",
+  signWithPassword: (decision: string) => `Signieren und ${decision}`,
+  signWithProvider: "Zum Signieren erneut anmelden",
+  signProviderHint: "Der Identitätsanbieter fragt erneut nach Ihren Zugangsdaten und bringt Sie dann zum Signieren hierher zurück.",
+  signAfterProvider: (decision: string) => `Signieren und ${decision}`,
+  signedInAgain: "Sie haben sich erneut angemeldet. Signieren Sie jetzt; die Anmeldung gilt für diese eine Signatur.",
+  cannotSign:
+    "Sie können hier weder ein Passwort eingeben noch sich bei einem Identitätsanbieter anmelden, also nicht signieren. Bitten Sie eine Administratorin oder einen Administrator um ein Passwort.",
+  signatureError: {
+    session: "Die Anmeldung kam zu einer anderen Sitzung zurück. Melden Sie sich von dieser Seite aus erneut an.",
+    someone_else: "Der Identitätsanbieter hat eine andere Person angemeldet. Melden Sie sich erneut als Sie selbst an.",
+    not_fresh: "Der Identitätsanbieter hat nicht erneut nach Ihren Zugangsdaten gefragt. Melden Sie sich erneut an und geben Sie sie ein.",
+    unavailable: "Der Identitätsanbieter war nicht erreichbar. Versuchen Sie es gleich noch einmal.",
+  },
+  cancelSign: "Abbrechen",
+  decisionVerb: { approve: "genehmigen", reject: "ablehnen" },
+  signed: (meaning: string, how: string, when: string) => `Signiert ${when} mit ${how}: ${meaning}`,
+  signedWith: { password: "dem Passwort", oidc: "einer erneuten Anmeldung" },
 };

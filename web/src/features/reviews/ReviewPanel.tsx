@@ -5,6 +5,8 @@ import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, Tag } from "@
 import { REVIEW_COMMENT_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { SignDialog } from "./SignDialog";
+import { resumeSigning, type Resumed } from "./signing";
 
 // A requirement's approval (#35): where it stands, the review now open with Approve and Reject for its approvers,
 // Ask for review for its editors, and the reviews before.
@@ -111,9 +113,20 @@ function AskForReview({ requirement }: { requirement: Requirement }) {
 function PendingReview({ requirement, review }: { requirement: Requirement; review: Review }) {
   const decide = useDecide(requirement.key);
   const withdraw = useWithdrawReview(requirement.key);
-  const [comment, setComment] = useState("");
-  const send = (decision: Decision) =>
+  // A signature the identity provider interrupted comes back here, once, to be finished (#46).
+  const [resumed] = useState(() => {
+    const back = resumeSigning();
+    return back?.reviewId === review.id ? back : undefined;
+  });
+  const [comment, setComment] = useState(resumed?.comment ?? "");
+  const [signing, setSigning] = useState<Pick<Resumed, "decision" | "proof" | "failure"> | undefined>(resumed);
+  const send = (decision: Decision) => {
+    if (review.signed) {
+      setSigning({ decision });
+      return;
+    }
     decide.mutate({ reviewId: review.id, decision, revision: review.revision, comment: comment.trim() || undefined }, { onSuccess: () => setComment("") });
+  };
   return (
     <div className="space-y-2 rounded-overlay border border-border bg-surface p-3" data-pending-review={review.id}>
       <p className="text-sm text-ink">{t.review.pending(review.revision, review.requestedByName)}</p>
@@ -131,6 +144,15 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
             <li key={d.reviewerId} data-review-decision={d.decision}>
               <span className="font-medium text-ink">{d.reviewerName || t.review.formerMember}</span> {t.review.decided[d.decision]}
               {d.comment && <span className="text-ink-muted">: {d.comment}</span>}
+              {d.signature && (
+                <p className="text-xs text-ink-muted" data-review-signature={d.signature.method}>
+                  {t.review.signed(
+                    d.signature.meaning,
+                    t.review.signedWith[d.signature.method] ?? d.signature.method,
+                    when.format(new Date(d.signature.signedAt)),
+                  )}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -161,6 +183,21 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
         </div>
       )}
       {decide.error && <ErrorBanner>{decide.error.message}</ErrorBanner>}
+      {signing && (
+        <SignDialog
+          reqKey={requirement.key}
+          review={review}
+          decision={signing.decision}
+          comment={comment}
+          proof={signing.proof}
+          failure={signing.failure}
+          onClose={() => setSigning(undefined)}
+          onSigned={() => {
+            setSigning(undefined);
+            setComment("");
+          }}
+        />
+      )}
       {review.can.withdraw && (
         <Button
           size="sm"

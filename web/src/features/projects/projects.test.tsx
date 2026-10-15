@@ -158,7 +158,25 @@ describe("a project's settings", () => {
       expect(sent.find((r) => r.method === "PATCH")?.body).toEqual({
         name: "Checkout and payment",
         description: checkout.description,
-        settings: { requireRevisionComment: true },
+        settings: { requireRevisionComment: true, signedApprovals: false },
+      }),
+    );
+  });
+
+  it("turns signed approvals on", async () => {
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: checkout } },
+      "PATCH /projects/CHK": { status: 200, body: { project: aProject({ settings: { ...checkout.settings, signedApprovals: true } }) } },
+    });
+    await renderAt("/p/CHK/settings");
+    const box = await screen.findByRole("checkbox", { name: "Approvals are electronic signatures" });
+    expect(box).not.toBeChecked();
+    await userEvent.click(box);
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect((sent.find((r) => r.method === "PATCH")?.body as { settings: object }).settings).toEqual({
+        requireRevisionComment: false,
+        signedApprovals: true,
       }),
     );
   });
