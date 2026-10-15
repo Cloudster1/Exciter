@@ -73,34 +73,7 @@ type Client struct {
 // NewClient returns the client every Armature call goes through: netguard
 // with allow, backchannel rewrites first, each call bounded by CallTimeout.
 func NewClient(allow netguard.Allow, backchannel map[string]string) *Client {
-	var transport http.RoundTripper = netguard.Transport(allow)
-	if len(backchannel) > 0 {
-		transport = &rewriting{rewrites: backchannel, next: transport}
-	}
-	return &Client{http: netguard.WithTransport(CallTimeout, transport)}
-}
-
-// rewriting sends a request for a public origin to where this process reaches
-// it, keeping the public Host header, as oidc.Backchannel does.
-type rewriting struct {
-	rewrites map[string]string
-	next     http.RoundTripper
-}
-
-func (r *rewriting) RoundTrip(req *http.Request) (*http.Response, error) {
-	target, ok := r.rewrites[req.URL.Scheme+"://"+req.URL.Host]
-	if !ok {
-		return r.next.RoundTrip(req)
-	}
-	reach, err := url.Parse(target)
-	if err != nil || reach.Host == "" {
-		return r.next.RoundTrip(req)
-	}
-	clone := req.Clone(req.Context())
-	clone.URL.Scheme = reach.Scheme
-	clone.URL.Host = reach.Host
-	clone.Host = req.URL.Host
-	return r.next.RoundTrip(clone)
+	return &Client{http: netguard.WithTransport(CallTimeout, netguard.Rewriting(backchannel, netguard.Transport(allow)))}
 }
 
 // Describe asks baseURL for its OpenAPI document, which Armature serves to

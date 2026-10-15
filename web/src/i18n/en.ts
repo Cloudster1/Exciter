@@ -16,6 +16,7 @@ import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
+import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -52,6 +53,7 @@ export const en = {
     linkTypes: "Link types",
     allTokens: "All tokens",
     armature: "Armature",
+    stator: "Stator",
     groupRequirements: "Requirements",
     collapseSidebar: "Collapse the sidebar",
     expandSidebar: "Expand the sidebar",
@@ -86,6 +88,7 @@ export const en = {
     themes: "Themes",
     tokens: "Access tokens",
     armature: "Armature account",
+    stator: "Stator account",
     notifications: "Notification settings",
     watching: "Watching",
     signOut: "Sign out",
@@ -281,6 +284,8 @@ export const en = {
       "token.revoked": "Token revoked",
       "armature.connected": "Armature connected",
       "armature.disconnected": "Armature disconnected",
+      "stator.connected": "Stator connected",
+      "stator.disconnected": "Stator disconnected",
       "installation.renamed": "Installation renamed",
       "comment.deleted": "Comment deleted",
       "approval_rule.saved": "Approval rule saved",
@@ -304,6 +309,7 @@ export const en = {
       workflow: "Workflow",
       api_token: "Access token",
       armature_connection: "Armature connection",
+      stator_connection: "Stator connection",
       installation: "Installation",
     } as Record<string, string | undefined>,
   },
@@ -323,6 +329,7 @@ export const en = {
   attachments: attachmentsEn,
   tokens: tokensEn,
   armature: armatureEn,
+  stator: statorEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

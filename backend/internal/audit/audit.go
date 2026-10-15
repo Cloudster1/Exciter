@@ -60,6 +60,9 @@ const (
 	// ActionArmatureConnected and ActionArmatureDisconnected keep where the members' Armature tokens went.
 	ActionArmatureConnected    = "armature.connected"
 	ActionArmatureDisconnected = "armature.disconnected"
+	// ActionStatorConnected and ActionStatorDisconnected keep where the members' Stator tokens went (#40).
+	ActionStatorConnected    = "stator.connected"
+	ActionStatorDisconnected = "stator.disconnected"
 	// ActionCommentDeleted keeps an administrator deleting somebody else's comment (#33).
 	ActionCommentDeleted = "comment.deleted"
 	// ActionLinkTypeCreated, ActionLinkTypeChanged and ActionLinkTypeDeleted keep the installation's and the
@@ -93,7 +96,7 @@ var Actions = []string{
 	ActionWorkflowSaved, ActionWorkflowAssigned, ActionTokenCreated, ActionTokenRevoked, ActionLinkTypeCreated, ActionLinkTypeChanged,
 	ActionLinkTypeDeleted, ActionArmatureConnected, ActionArmatureDisconnected, ActionInstallationRenamed, ActionCommentDeleted,
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
-	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved,
+	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

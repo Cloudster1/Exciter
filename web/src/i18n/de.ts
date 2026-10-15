@@ -14,6 +14,7 @@ import { reviewDe } from "./reviews.de";
 import { suspectDe } from "./suspect.de";
 import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
+import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -50,6 +51,7 @@ export const de: Messages = {
     linkTypes: "Verknüpfungsarten",
     allTokens: "Alle Zugriffstoken",
     armature: "Armature",
+    stator: "Stator",
     groupRequirements: "Anforderungen",
     collapseSidebar: "Seitenleiste einklappen",
     expandSidebar: "Seitenleiste ausklappen",
@@ -84,6 +86,7 @@ export const de: Messages = {
     themes: "Designs",
     tokens: "Zugriffstoken",
     armature: "Armature-Konto",
+    stator: "Stator-Konto",
     notifications: "Benachrichtigungseinstellungen",
     watching: "Beobachtet",
     signOut: "Abmelden",
@@ -282,6 +285,8 @@ export const de: Messages = {
       "token.revoked": "Token widerrufen",
       "armature.connected": "Armature verbunden",
       "armature.disconnected": "Armature getrennt",
+      "stator.connected": "Stator verbunden",
+      "stator.disconnected": "Stator getrennt",
       "installation.renamed": "Installation umbenannt",
       "comment.deleted": "Kommentar gelöscht",
       "approval_rule.saved": "Freigaberegel gespeichert",
@@ -305,6 +310,7 @@ export const de: Messages = {
       workflow: "Workflow",
       api_token: "Zugriffstoken",
       armature_connection: "Armature-Verbindung",
+      stator_connection: "Stator-Verbindung",
       installation: "Installation",
     },
   },
@@ -324,6 +330,7 @@ export const de: Messages = {
   attachments: attachmentsDe,
   tokens: tokensDe,
   armature: armatureDe,
+  stator: statorDe,
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,

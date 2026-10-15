@@ -41,6 +41,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -147,6 +148,8 @@ func run() error {
 	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), cache,
 		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}).
 		WithCoverageCache(coverage)
+	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel),
+		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
 	requirements := requirement.NewService(cluster)
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
@@ -172,6 +175,7 @@ func run() error {
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
 		Armature:        armatures,
+		Stator:          stators,
 		Comments:        comment.NewService(cluster),
 		Watches:         watch.NewService(cluster),
 		Notifications:   notify.NewService(cluster),

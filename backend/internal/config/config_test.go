@@ -24,7 +24,7 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
-		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
+		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_STATOR_BACKCHANNEL", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
 	} {
 		t.Setenv(key, "")
 	}
@@ -326,6 +326,10 @@ func TestBackchannelRewritesAreParsed(t *testing.T) {
 	t.Setenv("EXCITER_ARMATURE_BACKCHANNEL", "http://localhost:8190=http://armature-stub:8080")
 	if c, err := Load(); err != nil || c.ArmatureBackchannel["http://localhost:8190"] != "http://armature-stub:8080" {
 		t.Fatalf("the Armature backchannel = %v, %v", c.ArmatureBackchannel, err)
+	}
+	t.Setenv("EXCITER_STATOR_BACKCHANNEL", "http://localhost:8191=http://stator-stub:8080")
+	if c, err := Load(); err != nil || c.StatorBackchannel["http://localhost:8191"] != "http://stator-stub:8080" {
+		t.Fatalf("the Stator backchannel = %v, %v", c.StatorBackchannel, err)
 	}
 	t.Setenv("EXCITER_OIDC_BACKCHANNEL", "keycloak")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_OIDC_BACKCHANNEL") {

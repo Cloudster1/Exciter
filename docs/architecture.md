@@ -313,6 +313,12 @@ German.
   the actor's own token row and administrators alone the connection; moving
   the connection forgets every token in a trigger. `Service.Viewer` is what
   #27 to #30 call Armature through.
+- **Connecting Stator** (#40): `internal/stator` is the same again: the
+  client reaches Stator through the same guard, with
+  `EXCITER_STATOR_BACKCHANNEL` for the stack, and saving the address asks
+  Stator's `/meta` what answers and whether it takes remote links on pages,
+  which the admin role records on the connection. Tokens and the connection
+  are walled in the database as Armature's are.
 - **Trace to issues** (#27): a requirement links to issues as implements,
   verifies or relates. The worker puts a remote link with source `Exciter`
   on each issue; Armature's webhooks keep the stored status category current
@@ -329,8 +335,9 @@ German.
   suspect. Exciter puts its links on pages only once Stator reports
   `page.remote-links` on `/meta`.
 - **Stator's API** is vendored at `api/stator/openapi.json`, its commit in
-  `api/stator/SOURCE`, refreshed with `make stator-openapi REF=`, for the
-  `stator-stub`'s contract test (#39, #40).
+  `api/stator/SOURCE`, refreshed with `make stator-openapi REF=`. The
+  `stator-stub` answers in its shapes, and a contract test holds it to them
+  (#39, #40).
 - **Armature's API** is vendored at `api/armature/openapi.json`, its commit in
   `api/armature/SOURCE`, refreshed with `make armature-openapi REF=`. The
   `armature-stub` answers in its shapes, and a contract test holds it to them

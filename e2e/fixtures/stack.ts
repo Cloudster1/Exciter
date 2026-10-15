@@ -42,6 +42,11 @@ export function armatureURL(): string {
   return setting("EXCITER_ARMATURE_URL");
 }
 
+/** The stator-stub as a browser opens it, which is the address an administrator connects; read when first needed. */
+export function statorURL(): string {
+  return setting("EXCITER_STATOR_URL");
+}
+
 /** The stack's database as its superuser, for arranging what no endpoint makes; read when first needed. */
 export function superuserURL(): string {
   return setting("EXCITER_TEST_SUPERUSER_URL");

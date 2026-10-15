@@ -135,16 +135,17 @@ not the page learns no more than that a page is linked.
 Armature's #26, with these differences:
 
 - **The address** is checked with `GET {baseUrl}/api/v1/meta`, which must
-  answer `product` `Stator`; Stator's `/meta` reports the integration features
-  it offers, and `remoteLinks` records whether `page.remote-links` is among
-  them. `POST /stator/account/check` and every saved address read it again. A
+  answer `product` `stator`, in any case; Stator's `/meta` reports the
+  integration features it offers, and `remoteLinks` records whether
+  `page.remote-links` is among them. `POST /stator/account/check` and every saved address read it again. A
   page opens at `{baseUrl}/s/{spaceKey}/p/{pageID}`.
 - **No organization to learn.** Stator is one installation per team, as
   Armature and Exciter are (#82); the address alone names it, so there is no
   `statorOrgId`. A new address forgets every stored token and remote link
   record in the same transaction.
-- **A token** starts `stator_pat_` and is checked with `GET /auth/me`; Stator
-  tokens have no read-only scope, so the account has no `readOnly`. It is
+- **A token** starts `stator_pat_` and is checked with `GET /auth/me`, which
+  does not say whether the token may only read, so the account has no
+  `readOnly`. It is
   sealed bound to the installation and the person, and an Exciter personal
   access token cannot store or remove one (403 `session_only`).
 - **The webhook secret** starts `stator_whs_`: an administrator of Stator adds
@@ -159,6 +160,32 @@ Armature's #26, with these differences:
   until Stator's document has them.
 - **UI:** Settings, Stator for administrators, and Your account, Stator account
   for everybody, as Armature's pages.
+- **As built** (#40):
+  - Stator's `/meta` answers `product` `stator` in lower case, and names each
+    capability with a version after an `@`, as its #409 has it
+    (`page.remote-links@1`); `stator.Meta.Offers` matches the name under any
+    version or none. The name itself is what #419 asks for, and follows
+    Stator if it settles on another.
+  - Stator tokens do have a read-only mark, which `/auth/me` does not report;
+    the account page asks for a token without it, and a write such a token
+    cannot make fails as any refusal does (#42).
+  - Every save of the address reads `/meta` again. A new address that does
+    not answer as a Stator is refused; the address already saved is kept when
+    Stator does not answer for a moment, with what it offered last.
+  - `remote_links` is written as the admin role, after an administrator's
+    save or anybody's check, and `exciter_app` may not write it, so nobody
+    claims the capability through SQL; a new address clears it in the same
+    trigger that forgets the tokens.
+  - Removing the connection forgets the tokens; the remote link records join
+    them with #42, which makes them.
+  - The stub serves `/meta` and `/auth/me` so far; `/pages/{pageID}` and
+    `/search/quick` come with #41, and the remote links with #42, each with
+    the issue that calls them. `PUT /_stub/capabilities` sets what `/meta`
+    lists for every tenant at once, since `/meta` names none; the stub's
+    address as a browser opens it is `EXCITER_STATOR_URL` in
+    `.cache/stack.env`.
+  - The client's backchannel rewriter moved to `netguard.Rewriting`, which
+    the Armature client uses too.
 
 ## #41 Link requirements to Stator pages
 

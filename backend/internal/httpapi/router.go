@@ -30,6 +30,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -89,6 +90,9 @@ type Server struct {
 	// Armature connects the installation to Armature and holds each member's token; nil answers its routes that
 	// it is not set up.
 	Armature *armature.Service
+	// Stator connects the installation to Stator and holds each member's token; nil answers its routes that it
+	// is not set up.
+	Stator *stator.Service
 	// Comments keeps the discussion on requirements (#33); nil answers its routes that it is not set up.
 	Comments *comment.Service
 	// Watches and Notifications keep who follows what and what they were told (#34); nil answers their routes
@@ -438,6 +442,18 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(s.themesOn).Get("/armature/theme", s.handleGetArmatureTheme)
 			r.With(s.themesOn).Put("/armature/theme", s.handleFollowArmatureTheme)
 			r.With(s.themesOn).Delete("/armature/theme", s.handleUnfollowArmatureTheme)
+		})
+
+		// Stator: the installation's connection for its administrators and each member's own token for them (#40).
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.statorOn)
+			r.With(requireAdmin).Get("/stator/connection", s.handleGetStatorConnection)
+			r.With(requireAdmin).Put("/stator/connection", s.handleSaveStatorConnection)
+			r.With(requireAdmin).Delete("/stator/connection", s.handleRemoveStatorConnection)
+			r.Get("/stator/account", s.handleGetStatorAccount)
+			r.With(requireSession).Put("/stator/account/token", s.handleStoreStatorToken)
+			r.Post("/stator/account/check", s.handleCheckStatorAccount)
+			r.With(requireSession).Delete("/stator/account/token", s.handleRemoveStatorToken)
 		})
 
 		// CSV import and export: a file into a project its administrators run, mapped and started by who uploaded it,

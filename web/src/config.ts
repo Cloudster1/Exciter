@@ -259,6 +259,12 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 /** Where an administrator connects Armature, and where a person connects their own Armature account (#26). */
 export const ARMATURE_SETTINGS_PATH = "/settings/armature";
 export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
+/** Where an administrator connects Stator, and where a person connects their own Stator account (#40). */
+export const STATOR_SETTINGS_PATH = "/settings/stator";
+export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
+/** How a Stator personal access token and a webhook secret begin, the API's stator.TokenPrefix and WebhookSecretPrefix. */
+export const STATOR_TOKEN_PREFIX = "stator_pat_";
+export const STATOR_WEBHOOK_SECRET_PREFIX = "stator_whs_";
 /** How an Armature personal access token and a webhook secret begin, the API's armature.TokenPrefix and WebhookSecretPrefix. */
 export const ARMATURE_TOKEN_PREFIX = "armature_pat_";
 export const ARMATURE_WEBHOOK_SECRET_PREFIX = "armature_whs_";

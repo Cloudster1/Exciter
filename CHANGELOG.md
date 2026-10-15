@@ -76,6 +76,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Connecting Stator (#40). An administrator saves the address of the
+  team's Stator under Settings, Stator, which Exciter checks answers as one,
+  with the secret of Stator's webhook; each person pastes their own Stator
+  token under Your account, Stator account, sealed at rest and used only for
+  their own calls. Stator is reached through the same guard as Armature, and
+  `EXCITER_STATOR_BACKCHANNEL` reaches it at another address inside a
+  network. The stack runs a `stator-stub` beside the `armature-stub`.
 - The API of the Stator integration, agreed before it is built (#39). The
   connection and each person's token, requirements linked to Stator pages,
   and Stator's webhooks are in `api/openapi.json` and answer 501 until each

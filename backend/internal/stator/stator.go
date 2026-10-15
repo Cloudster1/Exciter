@@ -13,10 +13,10 @@ const (
 	// TokenPrefix starts every Stator personal access token; WebhookSecretPrefix every webhook secret.
 	TokenPrefix         = "stator_pat_"
 	WebhookSecretPrefix = "stator_whs_"
-	// Product is what Stator answers as product on GET /meta, which a new address must.
-	Product = "Stator"
+	// Product is what Stator answers as product on GET /meta, which a new address must, in any case.
+	Product = "stator"
 	// RemoteLinksCapability is what Stator lists among its capabilities on GET /meta once it takes remote links
-	// on pages (#42); until then nothing is put on a page.
+	// on pages (#42), with a version after an @ as Stator's #409 names them; until then nothing is put on a page.
 	RemoteLinksCapability = "page.remote-links"
 	// SignatureHeader carries sha256= and the hex HMAC of the raw body; EventHeader the topic.
 	SignatureHeader = "X-Stator-Signature-256"

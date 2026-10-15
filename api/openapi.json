@@ -1307,7 +1307,9 @@
                 "baseline.locked",
                 "baseline.deleted",
                 "coverage_rule.saved",
-                "coverage_rule.removed"
+                "coverage_rule.removed",
+                "stator.connected",
+                "stator.disconnected"
               ]
             }
           },
@@ -1467,7 +1469,9 @@
                 "baseline.locked",
                 "baseline.deleted",
                 "coverage_rule.saved",
-                "coverage_rule.removed"
+                "coverage_rule.removed",
+                "stator.connected",
+                "stator.disconnected"
               ]
             }
           },
@@ -11404,16 +11408,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -11453,16 +11447,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -11486,16 +11470,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -11564,16 +11538,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "502": {
             "description": "Bad Gateway",
             "content": {
@@ -11600,23 +11564,13 @@
     "/stator/connection": {
       "delete": {
         "operationId": "removeStatorConnection",
-        "summary": "Disconnect Exciter from Stator, forgetting every stored token and remote link record. For administrators.",
+        "summary": "Disconnect Exciter from Stator, forgetting every stored token. For administrators.",
         "tags": [
           "stator"
         ],
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -11658,16 +11612,6 @@
                   "required": [
                     "connection"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -11721,16 +11665,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14734,7 +14668,9 @@
               "baseline.locked",
               "baseline.deleted",
               "coverage_rule.saved",
-              "coverage_rule.removed"
+              "coverage_rule.removed",
+              "stator.connected",
+              "stator.disconnected"
             ]
           },
           "actorId": {
@@ -14832,7 +14768,9 @@
                 "baseline.locked",
                 "baseline.deleted",
                 "coverage_rule.saved",
-                "coverage_rule.removed"
+                "coverage_rule.removed",
+                "stator.connected",
+                "stator.disconnected"
               ]
             }
           },
