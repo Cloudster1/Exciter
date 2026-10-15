@@ -24,7 +24,7 @@ services:
         condition: service_completed_successfully
     environment:
       ARMATURE_SEED_GITEA_URL: ""
-      ARMATURE_KEYCLOAK_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/suite-dev
+      ARMATURE_KEYCLOAK_ISSUER: http://localhost:${SUITE_KEYCLOAK_PORT}/realms/dynamo
 
   # The callback goes to the api's own port, as Armature's does; the browser lands on the web port afterwards.
   api:

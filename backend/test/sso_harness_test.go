@@ -30,9 +30,16 @@ const (
 	envKeycloakURL               = "EXCITER_TEST_KEYCLOAK_URL"
 	envKeycloakAdminPassword     = "EXCITER_TEST_KEYCLOAK_ADMIN_PASSWORD"
 	defaultKeycloakAdminPassword = "admin"
-	realm                        = "suite-dev"
+	realm                        = "dynamo"
 	exciterClient                = "exciter"
 	exciterSecret                = "exciter-dev-secret"
+)
+
+// alice's and carol's groups in the realm, sorted; the realm serves the whole suite, so the partners' groups
+// come along.
+var (
+	aliceGroups = []string{"armature-administrators", "engineering", "exciter-administrators", "stator-administrators"}
+	carolGroups = []string{"portal-owners", "quality", "scrum-masters"}
 )
 
 // The development realm's people, as deploy/keycloak/realm.json has them.

@@ -420,7 +420,7 @@ follows Armature and Armature answered.
 
 No operations. `make suite-up ARMATURE_DIR= STATOR_DIR=` starts the three
 stacks with compose overrides kept in this repository, one Keycloak realm
-`suite-dev` serving all three, fixed ports written down in `docs/suite.md`,
+`dynamo` serving all three, fixed ports written down in `docs/suite.md`,
 Armature's webhook pointing at Exciter, and connections from Exciter and Stator
 to Armature made by seed steps. A smoke spec runs outside the gate. A change
 Armature or Stator need goes through an issue in their repository, and this

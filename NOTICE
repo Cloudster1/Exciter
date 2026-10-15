@@ -463,6 +463,12 @@ Adapted from Armature at 523dfe7:
   and its going, and an advisory lock so two administrators cannot switch
   each other off at once
 
+Adapted from Armature at 97852cb, for the suite's realm (#102):
+- deploy/keycloak/realm.json: the same file, which Armature built from
+  Exciter's realm, so all three tools hold one copy
+- deploy/keycloak/realm-check.mjs and the realm-check target: the same
+  script, run in the shell layer of ./run-tests.sh
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

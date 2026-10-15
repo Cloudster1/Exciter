@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const provider = {
   provider: {
-    issuer: "http://localhost:8180/realms/suite-dev",
+    issuer: "http://localhost:8180/realms/dynamo",
     clientId: "exciter",
     hasSecret: true,
     groupsClaim: "groups",

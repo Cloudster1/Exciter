@@ -3,6 +3,32 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: The development realm is the suite's `dynamo`, the same file in every tool (#102)
+
+Stator, Armature and Exciter sign in through one Keycloak realm, so one
+sign-in works in all three and Dynamo starts one Keycloak for its tests.
+
+- **One file.** `deploy/keycloak/realm.json` is byte for byte Armature's,
+  which Armature built from Exciter's `suite-dev`: clients `armature`,
+  `exciter` and `stator` with the secrets `<id>-dev-secret`, the `groups`
+  mapper, and alice, bob, carol and dave. Exciter uses only its own client;
+  the others are there so the same file serves the suite. The secrets are for
+  development only; Keycloak refuses unknown top-level fields, so the README
+  says so rather than the file.
+- **The partners' groups come along.** alice is also in
+  `armature-administrators` and `stator-administrators`, bob in `developers`,
+  carol in `portal-owners` and `scrum-masters`, dave in `readers`. With
+  `createGroups` Exciter makes those groups on sign-in; none is mapped to a
+  role, so they change nobody's rights.
+- **Dynamo's copy is canonical.** `make realm-check`, Armature's script, runs
+  in the shell layer and compares the file with Dynamo's after sorting keys,
+  failing with the first line that differs. While Dynamo holds no realm it
+  says so and passes. It needs the network, as Armature's does; a check that
+  passed offline would say nothing.
+- **The stack test ties the bootstrap to the realm.** `tests/test-stack.sh`
+  fails when compose's issuer, client or secret is not what the realm holds,
+  so a rename cannot leave the seed pointing at a realm that is gone.
+
 ## 2026-10-15: Exciter installs with Stator's chart, and the bootstrap connects the partners (#104)
 
 Dynamo's umbrella chart depends on each tool's chart, so the three install

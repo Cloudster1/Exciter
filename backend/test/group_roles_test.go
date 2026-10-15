@@ -221,7 +221,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 		if role, source := h.standing(t, carolEmail); role != "member" || source != "oidc" {
 			t.Fatalf("carol's membership is %s from %s", role, source)
 		}
-		if got := h.providerGroups(t, carolEmail); !slices.Equal(got, []string{"quality"}) {
+		if got := h.providerGroups(t, carolEmail); !slices.Equal(got, carolGroups) {
 			t.Fatalf("carol's groups = %q", got)
 		}
 	})

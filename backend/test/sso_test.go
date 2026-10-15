@@ -88,7 +88,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 	})
 
 	t.Run("her groups are created and joined", func(t *testing.T) {
-		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, aliceGroups) {
 			t.Fatalf("groups = %q", got)
 		}
 	})
@@ -126,7 +126,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 		t.Cleanup(func() { kc.setMembership(t, "alice", "engineering", true) })
 
 		newBrowser(t, a).signIn(t, "alice", alicePassword, "")
-		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, slices.DeleteFunc(slices.Clone(aliceGroups), func(g string) bool { return g == "engineering" })) {
 			t.Fatalf("groups after leaving engineering = %q", got)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM app_user WHERE email = $1`, aliceEmail); n != 1 {
@@ -135,7 +135,7 @@ func TestSignInThroughKeycloak(t *testing.T) {
 
 		kc.setMembership(t, "alice", "engineering", true)
 		newBrowser(t, a).signIn(t, "alice", alicePassword, "")
-		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, []string{"engineering", "exciter-administrators"}) {
+		if got := h.providerGroups(t, aliceEmail); !slices.Equal(got, aliceGroups) {
 			t.Fatalf("groups after rejoining engineering = %q", got)
 		}
 	})

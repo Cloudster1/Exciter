@@ -45,9 +45,12 @@ first start calls the installation.
 
 Every port is bound to `127.0.0.1` and derived from the checkout's path, so
 worktrees, Armature and a Stator checkout run side by side; the ports are also
-written to `.cache/stack.env`. Keycloak's realm `suite-dev` (admin console
+written to `.cache/stack.env`. Keycloak's realm `dynamo` (admin console
 `admin` / `admin`) holds alice, bob, carol and dave, each with the password
 `<name> password`, and a client for each of Exciter, Armature and Stator.
+It is the suite's realm, the same file in all three repositories; its client
+secrets (`<client>-dev-secret`) and passwords are for development only.
+`make realm-check` compares it with Dynamo's canonical copy.
 
 To try the integration end to end, `make suite-up ARMATURE_DIR=<checkout>
 STATOR_DIR=<checkout>` runs Exciter, Armature and Stator side by side on that

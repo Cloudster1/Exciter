@@ -19,7 +19,7 @@ repository changes what the suite needs. Nothing in Armature or Stator changes.
 
 | What | Address | Project |
 |---|---|---|
-| Keycloak, realm `suite-dev` | http://localhost:30000 (admin / admin) | `suite-exciter` |
+| Keycloak, realm `dynamo` | http://localhost:30000 (admin / admin) | `suite-exciter` |
 | Exciter | http://localhost:30010 | `suite-exciter` |
 | Armature | http://localhost:30020, its api on 30021 | `suite-armature` |
 | Stator | http://localhost:30040 | `suite-stator` |
@@ -31,7 +31,8 @@ projects are named `suite-*`, so a product's own stack, which another session ma
 
 ## Who signs in
 
-The realm is Exciter's, `deploy/keycloak/realm.json`, with a client for each product. Exciter's and Stator's clients
+The realm is the suite's, `deploy/keycloak/realm.json`, the same file in all three repositories, with a client for
+each product. Exciter's and Stator's clients
 require PKCE; Armature's does not, as Armature's sign-in sends no PKCE challenge yet.
 
 | Person | Password | Exciter | Armature | Stator |

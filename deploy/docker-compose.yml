@@ -33,7 +33,7 @@ x-s3-env: &s3-env
 x-bootstrap-env: &bootstrap-env
   EXCITER_BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@exciter.test}
   EXCITER_BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-exciter admin password}
-  EXCITER_BOOTSTRAP_OIDC_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/suite-dev
+  EXCITER_BOOTSTRAP_OIDC_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/dynamo
   EXCITER_BOOTSTRAP_OIDC_CLIENT_ID: exciter
   EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET: exciter-dev-secret
   EXCITER_BOOTSTRAP_MEMBERS: alice@suite.test=admin,bob@suite.test=member
