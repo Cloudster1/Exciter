@@ -60,6 +60,11 @@ gh run view --log-failed             # when CI is red
 `release.sh` is the user's job. From an agent session, read only:
 `gh release list`, `gh release view v0.1.0`.
 
+It opens a pull request from `release/vX.Y.Z`, the one branch name without an
+issue that the guard accepts; merging it makes `release.yml` tag the merge
+commit and publish. Never create a tag or a `release/` branch by hand. See
+`docs/releasing.md`.
+
 ## Pitfalls
 
 - `gh issue develop` creates the branch on the remote and checks it out; no manual

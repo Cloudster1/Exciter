@@ -359,7 +359,7 @@ jobs cover them all.
 
 | Layer | What | Since |
 |---|---|---|
-| shell | release, CI and branch-guard tests | #1 |
+| shell | release, release workflow, CI and branch-guard tests | #1 |
 | check-format | biome over `web/` and `e2e/` | #6 |
 | check-go | gofmt, vet, Go unit tests with the race detector, OpenAPI drift | #3 |
 | check-web | lint, types, vitest, API types drift | #6 |
@@ -405,7 +405,9 @@ report.
 ## Deployment
 
 Docker Compose for development (`deploy/docker-compose.yml`, run through
-`mk/stack.mk`, #2); a Helm chart follows the first release.
+`mk/stack.mk`, #2); a Helm chart follows (#104). A release builds the
+`backend` and `web` images from its tag and pushes them to
+`ghcr.io/cloudster1/exciter-<image>` (`docs/releasing.md`, #101).
 
 - Every checkout gets a compose project `exciter-<hash of its path>` and a
   slot of twenty host ports from `scripts/stack-ports.sh`, all bound to

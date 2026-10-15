@@ -4,8 +4,9 @@
 set -uo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-BRANCH_RE='^(feat|fix|chore|docs|refactor|test|perf|ci|build|revert)/[0-9]+-[a-z0-9][a-z0-9._-]*$'
-HINT="Work only on issue branches named <type>/<issue>-<slug> (e.g. fix/42-suspect-links). Find or create the GitHub issue first (see the gh skill), then: gh issue develop <N> --name <type>/<N>-<slug> --base main --checkout"
+# A release branch carries no issue: release.sh names it after the version, and its pull request is the record.
+BRANCH_RE='^((feat|fix|chore|docs|refactor|test|perf|ci|build|revert)/[0-9]+-[a-z0-9][a-z0-9._-]*|release/v[0-9]+\.[0-9]+\.[0-9]+)$'
+HINT="Work only on issue branches named <type>/<issue>-<slug> (e.g. fix/42-suspect-links), or on release/vX.Y.Z, which release.sh creates. Find or create the GitHub issue first (see the gh skill), then: gh issue develop <N> --name <type>/<N>-<slug> --base main --checkout"
 
 input="$(cat)"
 tool="$(jq -r '.tool_name // empty' <<< "$input")"
