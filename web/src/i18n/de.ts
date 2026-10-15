@@ -16,6 +16,7 @@ import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
+import { reqifDe } from "./reqif.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { workflowsDe } from "./workflows.de";
@@ -339,6 +340,7 @@ export const de: Messages = {
   baseline: baselineDe,
   coverage: coverageDe,
   imports: importsDe,
+  reqif: reqifDe,
   search: searchDe,
   grid: gridDe,
   themes: themesDe,
