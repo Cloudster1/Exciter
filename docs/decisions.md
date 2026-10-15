@@ -3,6 +3,27 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-15: The Stator integration, agreed before it is built (#39)
+
+`docs/api-contract-m4.md` settles #40 to #42 as M2 settled Armature's, and
+says what differs.
+
+- **A page link watches the page.** A page specifies or describes a
+  requirement, so the requirement answers to it: the link turns suspect when
+  the page publishes a newer version than the one last confirmed, never when
+  the requirement is revised. For that the page's latest version is stored on
+  the link for everyone, as an issue's status category is, and nothing else of
+  the page but its id, space key and URL.
+- **Pages count for nothing in coverage.** A page explains a requirement; it
+  neither decomposes, implements nor verifies it.
+- **The way back waits for Stator, and asks it.** Stator has no remote links
+  yet. Exciter asks for them in one Stator issue, and puts its links on pages
+  only once Stator lists `page.remote-links` among its capabilities on
+  `/meta`, so neither side has to ship in step with the other.
+- **Stator's own webhooks.** Stator already sends signed page events to any
+  address its administrator names; Exciter receives them like Armature's
+  rather than asking for a dedicated channel.
+
 ## 2026-10-14: Review and control, agreed before it is built (#32)
 
 `docs/api-contract-m3.md` settles #33 to #38 before any of them is built, as

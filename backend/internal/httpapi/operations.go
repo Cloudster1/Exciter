@@ -24,6 +24,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -614,6 +615,61 @@ var operations = []operation{
 	{method: "DELETE", path: "/armature/theme", handler: "handleUnfollowArmatureTheme", tag: "armature",
 		summary:   "Stop following the Armature theme and return to the default for everyone.",
 		responses: none()},
+
+	// The Stator integration (M4, docs/api-contract-m4.md): the connection and each person's token (#40).
+	{method: "GET", path: "/stator/connection", handler: "handleGetStatorConnection", orgWide: true, tag: "stator", pending: true,
+		summary:   "The installation's Stator: where people open it and where its webhooks go; null when none. For administrators.",
+		responses: ok(env{"connection": (*stator.Connection)(nil)})},
+	{method: "PUT", path: "/stator/connection", handler: "handleSaveStatorConnection", orgWide: true, tag: "stator", pending: true,
+		summary: "Connect the installation to a Stator, checked to answer as one; a new address forgets every stored token. For administrators.",
+		request: stator.ConnectionInput{}, responses: map[int]any{http.StatusOK: env{"connection": stator.Connection{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "DELETE", path: "/stator/connection", handler: "handleRemoveStatorConnection", orgWide: true, tag: "stator", pending: true,
+		summary:   "Disconnect Exciter from Stator, forgetting every stored token and remote link record. For administrators.",
+		responses: none()},
+	{method: "GET", path: "/stator/account", handler: "handleGetStatorAccount", tag: "stator", pending: true,
+		summary:   "The caller's own standing with Stator: whether Exciter is connected, and whom their token acts as.",
+		responses: ok(env{"account": stator.Account{}})},
+	{method: "PUT", path: "/stator/account/token", handler: "handleStoreStatorToken", tag: "stator", pending: true,
+		summary: "Store the caller's Stator personal access token, checked with Stator first and never answered again. Needs a session.",
+		request: stator.TokenInput{}, responses: map[int]any{http.StatusOK: env{"account": stator.Account{}}, http.StatusUnprocessableEntity: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+	{method: "POST", path: "/stator/account/check", handler: "handleCheckStatorAccount", tag: "stator", pending: true,
+		summary:   "Ask Stator now whether the caller's token still works.",
+		responses: ok(env{"account": stator.Account{}})},
+	{method: "DELETE", path: "/stator/account/token", handler: "handleRemoveStatorToken", tag: "stator", pending: true,
+		summary:   "Forget the caller's Stator token; done also when there was none.",
+		responses: none()},
+
+	// Requirements linked to Stator pages (#41), read as the viewer.
+	{method: "GET", path: "/stator/pages", handler: "handleLookupStatorPages", tag: "stator", pending: true,
+		summary:   "Pages by their ids, as the caller may read them in Stator; status says why when Stator could not be asked.",
+		query:     []param{{name: "id", repeated: true, description: "Page ids, at most 50."}},
+		responses: map[int]any{http.StatusOK: env{"status": stator.StatusOK, "pages": []stator.LookupResult{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/stator/search", handler: "handleSearchStatorPages", tag: "stator", pending: true,
+		summary: "Pages whose titles start with the words typed, as the caller may read them, for the picker.",
+		query: []param{{name: "q", description: "The words typed so far."}, {name: "space", description: "A space key to stay inside."},
+			{name: "limit", schema: intParam, description: "1 to 20; 8 when absent."}},
+		responses: map[int]any{http.StatusOK: env{"status": stator.StatusOK, "pages": []stator.Page{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "GET", path: "/requirements/{reqKey}/stator-links", handler: "handleListStatorLinks", tag: "stator", pending: true,
+		summary:   "The Stator pages a requirement is linked to, with the page's latest version stored for everyone and whether the link is suspect.",
+		responses: ok(env{"links": []stator.Link{}})},
+	{method: "POST", path: "/requirements/{reqKey}/stator-links", handler: "handleCreateStatorLink", tag: "stator", pending: true,
+		summary: "Link a requirement to a Stator page the caller may read, as specified by, described by or related to it.",
+		request: stator.LinkInput{}, responses: map[int]any{http.StatusCreated: env{"link": stator.Link{}}, http.StatusConflict: errorEnvelope{},
+			http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
+	{method: "DELETE", path: "/stator-links/{linkID}", handler: "handleDeleteStatorLink", tag: "stator", pending: true,
+		summary:   "Remove a link to a page; once Stator takes remote links, the worker takes Exciter's off the page.",
+		responses: none()},
+	{method: "POST", path: "/stator-links/{linkID}/clear", handler: "handleClearStatorLink", tag: "stator", pending: true,
+		summary: "Confirm a link to a page against the page's version as read, with a comment.",
+		request: stator.ClearInput{}, responses: map[int]any{http.StatusOK: env{"link": stator.Link{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// Stator's webhooks (#41, #42): vouched for by their signature alone.
+	{method: "POST", path: "/stator/webhook", handler: "handleStatorWebhook", tag: "stator", public: true, pending: true,
+		summary: "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
+		request: json.RawMessage{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
+			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// Comments and mentions (#33), agreed in docs/api-contract-m3.md.
 	{method: "GET", path: "/requirements/{reqKey}/comments", handler: "handleListComments", tag: "comments",
