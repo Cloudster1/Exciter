@@ -103,6 +103,9 @@
       "name": "watching"
     },
     {
+      "name": "webhooks"
+    },
+    {
       "name": "workflow"
     }
   ],
@@ -1333,7 +1336,12 @@
                 "stator.connected",
                 "stator.disconnected",
                 "specification.exported",
-                "project.signatures_set"
+                "project.signatures_set",
+                "webhook.created",
+                "webhook.updated",
+                "webhook.deleted",
+                "webhook.secret_rotated",
+                "webhook.disabled"
               ]
             }
           },
@@ -1497,7 +1505,12 @@
                 "stator.connected",
                 "stator.disconnected",
                 "specification.exported",
-                "project.signatures_set"
+                "project.signatures_set",
+                "webhook.created",
+                "webhook.updated",
+                "webhook.deleted",
+                "webhook.secret_rotated",
+                "webhook.disabled"
               ]
             }
           },
@@ -14386,6 +14399,438 @@
         }
       }
     },
+    "/webhooks": {
+      "get": {
+        "operationId": "listWebhooks",
+        "summary": "Where the installation's requirement events are posted, by name, without their secrets. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Webhook"
+                      }
+                    }
+                  },
+                  "required": [
+                    "webhooks"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createWebhook",
+        "summary": "Add a webhook; its secret is in this answer and never again. The caller becomes its owner, whose rights every payload is read with. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Webhook"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookID}": {
+      "delete": {
+        "operationId": "deleteWebhook",
+        "summary": "Remove a webhook and its log. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateWebhook",
+        "summary": "Change a webhook's name, address, events, projects or whether it is on; the caller becomes its owner, and turning it on clears its failures. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Webhook"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookID}/deliveries": {
+      "get": {
+        "operationId": "listWebhookDeliveries",
+        "summary": "A webhook's log, one row per attempt, newest first; kept for 30 days. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookDelivery"
+                      }
+                    }
+                  },
+                  "required": [
+                    "deliveries"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookID}/deliveries/{deliveryID}/redeliver": {
+      "post": {
+        "operationId": "redeliverWebhook",
+        "summary": "Send a logged delivery's event again, now, as its next attempt, with the payload read afresh as the owner. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "deliveryID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "delivery": {
+                      "$ref": "#/components/schemas/WebhookDelivery"
+                    }
+                  },
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookID}/rotate-secret": {
+      "post": {
+        "operationId": "rotateWebhookSecret",
+        "summary": "Issue a new secret, in this answer and never again; the old one stops at once. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Webhook"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{webhookID}/test": {
+      "post": {
+        "operationId": "testWebhook",
+        "summary": "Post a ping now, even while the webhook is off, and answer the attempt as logged. For administrators.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "webhookID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "delivery": {
+                      "$ref": "#/components/schemas/WebhookDelivery"
+                    }
+                  },
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/workflow-rule-types": {
       "get": {
         "operationId": "listRuleTypes",
@@ -15748,7 +16193,12 @@
               "stator.connected",
               "stator.disconnected",
               "specification.exported",
-              "project.signatures_set"
+              "project.signatures_set",
+              "webhook.created",
+              "webhook.updated",
+              "webhook.deleted",
+              "webhook.secret_rotated",
+              "webhook.disabled"
             ]
           },
           "actorId": {
@@ -15850,7 +16300,12 @@
                 "stator.connected",
                 "stator.disconnected",
                 "specification.exported",
-                "project.signatures_set"
+                "project.signatures_set",
+                "webhook.created",
+                "webhook.updated",
+                "webhook.deleted",
+                "webhook.secret_rotated",
+                "webhook.disabled"
               ]
             }
           },
@@ -16937,6 +17392,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Tag"
+            }
+          },
+          "webhooks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operation"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
             }
           }
         },
@@ -20487,6 +20958,19 @@
           "additionalProperties": {
             "$ref": "#/components/schemas/Schema"
           },
+          "anyOf": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
           "description": {
             "type": "string"
           },
@@ -22321,6 +22805,944 @@
           "project"
         ]
       },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "disabledReason": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "failing"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "failures": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookOwner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookProject"
+            }
+          },
+          "secret": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "*",
+                "requirement.created",
+                "requirement.revised",
+                "requirement.changed",
+                "requirement.trashed",
+                "requirement.restored",
+                "requirement.moved",
+                "link.created",
+                "link.removed",
+                "link.cleared",
+                "review.requested",
+                "review.decided",
+                "review.closed",
+                "comment.created",
+                "thread.resolved",
+                "baseline.taken"
+              ]
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "topics",
+          "projects",
+          "enabled",
+          "version",
+          "disabledReason",
+          "failures",
+          "owner",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WebhookBaselineRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project": {
+            "$ref": "#/components/schemas/WebhookProjectRef"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "project",
+          "url"
+        ]
+      },
+      "WebhookBaselineTaken": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/WebhookBaselineRef"
+          }
+        },
+        "required": [
+          "baseline",
+          "actor"
+        ]
+      },
+      "WebhookClearedLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "trace",
+              "armature",
+              "stator"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
+      "WebhookCommentCreated": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comment": {
+            "$ref": "#/components/schemas/WebhookCommentRef"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          }
+        },
+        "required": [
+          "comment",
+          "requirement",
+          "actor"
+        ]
+      },
+      "WebhookCommentRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reply": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "reply",
+          "text",
+          "url"
+        ]
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "type": "integer"
+          },
+          "attemptedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "manual": {
+            "type": "boolean"
+          },
+          "nextAttemptAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivered",
+              "failed",
+              "withheld",
+              "cancelled"
+            ]
+          },
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "enum": [
+              "ping",
+              "requirement.created",
+              "requirement.revised",
+              "requirement.changed",
+              "requirement.trashed",
+              "requirement.restored",
+              "requirement.moved",
+              "link.created",
+              "link.removed",
+              "link.cleared",
+              "review.requested",
+              "review.decided",
+              "review.closed",
+              "comment.created",
+              "thread.resolved",
+              "baseline.taken"
+            ]
+          },
+          "webhookId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "webhookId",
+          "eventId",
+          "topic",
+          "attempt",
+          "manual",
+          "state",
+          "status",
+          "error",
+          "nextAttemptAt",
+          "attemptedAt",
+          "deliveredAt",
+          "createdAt"
+        ]
+      },
+      "WebhookEnvelope": {
+        "type": "object",
+        "description": "What an endpoint registered for envelope version 1 is posted.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the event happened, in UTC."
+          },
+          "payload": {
+            "description": "The event's own fields, by topic, read as the endpoint's owner when the attempt is sent.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebhookRequirementEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementRevised"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementChanged"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementMoved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookLinkEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookLinkCleared"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookReviewEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookReviewDecided"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookCommentCreated"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookThreadResolved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookBaselineTaken"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookPing"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "The product that sent the delivery, always exciter.",
+            "enum": [
+              "exciter"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "description": "What happened: ping, requirement.created, requirement.revised, requirement.changed, requirement.trashed, requirement.restored, requirement.moved, link.created, link.removed, link.cleared, review.requested, review.decided, review.closed, comment.created, thread.resolved, baseline.taken. A receiver ignores a topic it does not know."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The envelope version, 1 here; the version header says the same."
+          }
+        },
+        "required": [
+          "version",
+          "id",
+          "source",
+          "topic",
+          "occurredAt",
+          "payload"
+        ]
+      },
+      "WebhookInput": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "*",
+                "requirement.created",
+                "requirement.revised",
+                "requirement.changed",
+                "requirement.trashed",
+                "requirement.restored",
+                "requirement.moved",
+                "link.created",
+                "link.removed",
+                "link.cleared",
+                "review.requested",
+                "review.decided",
+                "review.closed",
+                "comment.created",
+                "thread.resolved",
+                "baseline.taken"
+              ]
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "topics",
+          "projects"
+        ]
+      },
+      "WebhookLinkCleared": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {
+            "$ref": "#/components/schemas/WebhookClearedLink"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          }
+        },
+        "required": [
+          "requirement",
+          "link",
+          "actor"
+        ]
+      },
+      "WebhookLinkEvent": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "link": {
+            "$ref": "#/components/schemas/WebhookLinkRef"
+          }
+        },
+        "required": [
+          "link",
+          "actor"
+        ]
+      },
+      "WebhookLinkRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookRequirementRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookRequirementRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/WebhookLinkTypeRef"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "source",
+          "target"
+        ]
+      },
+      "WebhookLinkTypeRef": {
+        "type": "object",
+        "properties": {
+          "backward": {
+            "type": "string"
+          },
+          "forward": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "forward",
+          "backward"
+        ]
+      },
+      "WebhookOwner": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "WebhookPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "WebhookPing": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "WebhookProject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ]
+      },
+      "WebhookProjectRef": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ]
+      },
+      "WebhookRequirementChanged": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          }
+        },
+        "required": [
+          "requirement",
+          "field",
+          "actor"
+        ]
+      },
+      "WebhookRequirementEvent": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          }
+        },
+        "required": [
+          "requirement",
+          "actor"
+        ]
+      },
+      "WebhookRequirementMoved": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fromKey": {
+            "type": "string"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          },
+          "toKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requirement",
+          "fromKey",
+          "toKey",
+          "actor"
+        ]
+      },
+      "WebhookRequirementRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "project": {
+            "$ref": "#/components/schemas/WebhookProjectRef"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookStatusRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "kind",
+          "title",
+          "revision",
+          "status",
+          "project",
+          "url",
+          "trashed"
+        ]
+      },
+      "WebhookRequirementRevised": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "requirement",
+          "revision",
+          "actor"
+        ]
+      },
+      "WebhookReviewDecided": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision": {
+            "type": "string"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          },
+          "review": {
+            "$ref": "#/components/schemas/WebhookReviewRef"
+          },
+          "signed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "review",
+          "requirement",
+          "decision",
+          "signed",
+          "actor"
+        ]
+      },
+      "WebhookReviewEvent": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          },
+          "review": {
+            "$ref": "#/components/schemas/WebhookReviewRef"
+          }
+        },
+        "required": [
+          "review",
+          "requirement",
+          "actor"
+        ]
+      },
+      "WebhookReviewRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "state"
+        ]
+      },
+      "WebhookStatusRef": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "category"
+        ]
+      },
+      "WebhookThreadRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url"
+        ]
+      },
+      "WebhookThreadResolved": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/WebhookRequirementRef"
+          },
+          "thread": {
+            "$ref": "#/components/schemas/WebhookThreadRef"
+          }
+        },
+        "required": [
+          "thread",
+          "requirement",
+          "actor"
+        ]
+      },
       "Word": {
         "type": "object",
         "properties": {
@@ -22528,5 +23950,91 @@
     {
       "session": []
     }
-  ]
+  ],
+  "webhooks": {
+    "event": {
+      "post": {
+        "operationId": "webhookEvent",
+        "summary": "What a webhook endpoint is posted for each event it subscribes to.",
+        "description": "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "X-Exciter-Event",
+            "in": "header",
+            "required": true,
+            "description": "The topic, as in the body.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Exciter-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "This attempt's id; a retry or a redelivery has its own.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Exciter-Webhook-Version",
+            "in": "header",
+            "required": true,
+            "description": "The envelope version of the body, as in its version field.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Exciter-Signature-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Exciter-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "When this attempt was sent, in Unix seconds.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Exciter-Signature-Timestamped-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the timestamp, a dot and the body.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookEnvelope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Taken: the delivery is done."
+          },
+          "default": {
+            "description": "Not taken: the delivery is tried again later, with backoff, as is one not answered in time."
+          }
+        }
+      }
+    }
+  }
 }

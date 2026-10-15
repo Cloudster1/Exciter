@@ -49,6 +49,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/watch"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -184,6 +185,7 @@ func run() error {
 		Renderer:        renderer(cfg, log),
 		Armature:        armatures,
 		Stator:          stators,
+		Webhooks:        webhook.NewService(cluster, box, webhook.Options{AppURL: cfg.AppBaseURL, Allow: allow, Log: log}),
 		Comments:        comment.NewService(cluster),
 		Watches:         watch.NewService(cluster),
 		Notifications:   notify.NewService(cluster),

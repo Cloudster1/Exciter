@@ -53,6 +53,8 @@ type stub struct {
 	client  *http.Client
 	// backchannel maps an origin people open to the one the stub reaches it at.
 	backchannel map[string]string
+	// bins receive Exciter's own webhooks for the suites (#48).
+	bins *bins
 }
 
 // call is one request as a person of a tenant.
@@ -67,7 +69,7 @@ type call struct {
 }
 
 func newStub(openapi []byte) *stub {
-	return &stub{world: newWorld(), openapi: openapi, client: &http.Client{Timeout: webhookTimeout}}
+	return &stub{world: newWorld(), openapi: openapi, client: &http.Client{Timeout: webhookTimeout}, bins: newBins()}
 }
 
 // finish posts what a call owes, once the world is unlocked.
@@ -84,6 +86,7 @@ func (s *stub) handler() http.Handler {
 	for _, rt := range routes {
 		mux.HandleFunc(rt.Method+" "+apiPrefix+rt.Path, s.serve(rt))
 	}
+	s.bins.routes(mux)
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.HandleFunc("PUT "+stubPrefix+"/capabilities", s.setCapabilities)
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))

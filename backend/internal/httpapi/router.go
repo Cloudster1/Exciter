@@ -37,6 +37,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/watch"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -95,6 +96,8 @@ type Server struct {
 	// Stator connects the installation to Stator and holds each member's token; nil answers its routes that it
 	// is not set up.
 	Stator *stator.Service
+	// Webhooks keeps the installation's outbound webhooks (#48); nil answers their routes that they are not set up.
+	Webhooks *webhook.Service
 	// Comments keeps the discussion on requirements (#33); nil answers its routes that it is not set up.
 	Comments *comment.Service
 	// Watches and Notifications keep who follows what and what they were told (#34); nil answers their routes
@@ -427,6 +430,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/baselines/{baselineID}", s.handleDeleteBaseline)
 			r.Get("/baselines/{baselineID}/spec", s.handleBaselineSpec)
 			r.Get("/baselines/{baselineID}/compare", s.handleCompareBaseline)
+		})
+
+		// Outbound webhooks (#48): the installation's administrators', a token held to some projects refused by wholeOrg.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAdmin)
+			r.Get("/webhooks", s.handleListWebhooks)
+			r.Post("/webhooks", s.handleCreateWebhook)
+			r.Patch("/webhooks/{webhookID}", s.handleUpdateWebhook)
+			r.Delete("/webhooks/{webhookID}", s.handleDeleteWebhook)
+			r.Post("/webhooks/{webhookID}/rotate-secret", s.handleRotateWebhookSecret)
+			r.Post("/webhooks/{webhookID}/test", s.handleTestWebhook)
+			r.Get("/webhooks/{webhookID}/deliveries", s.handleListWebhookDeliveries)
+			r.Post("/webhooks/{webhookID}/deliveries/{deliveryID}/redeliver", s.handleRedeliverWebhook)
 		})
 
 		// Armature: the installation's connection for its administrators, each member's own token for them, and the

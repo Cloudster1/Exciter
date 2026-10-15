@@ -2881,6 +2881,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the installation's requirement events are posted, by name, without their secrets. For administrators. */
+        get: operations["listWebhooks"];
+        put?: never;
+        /** Add a webhook; its secret is in this answer and never again. The caller becomes its owner, whose rights every payload is read with. For administrators. */
+        post: operations["createWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a webhook and its log. For administrators. */
+        delete: operations["deleteWebhook"];
+        options?: never;
+        head?: never;
+        /** Change a webhook's name, address, events, projects or whether it is on; the caller becomes its owner, and turning it on clears its failures. For administrators. */
+        patch: operations["updateWebhook"];
+        trace?: never;
+    };
+    "/webhooks/{webhookID}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A webhook's log, one row per attempt, newest first; kept for 30 days. For administrators. */
+        get: operations["listWebhookDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookID}/deliveries/{deliveryID}/redeliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a logged delivery's event again, now, as its next attempt, with the payload read afresh as the owner. For administrators. */
+        post: operations["redeliverWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookID}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a new secret, in this answer and never again; the old one stops at once. For administrators. */
+        post: operations["rotateWebhookSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{webhookID}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post a ping now, even while the webhook is off, and answer the attempt as logged. For administrators. */
+        post: operations["testWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-rule-types": {
         parameters: {
             query?: never;
@@ -2899,7 +3003,28 @@ export interface paths {
         trace?: never;
     };
 }
-export type webhooks = Record<string, never>;
+export interface webhooks {
+    event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What a webhook endpoint is posted for each event it subscribes to.
+         * @description A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.
+         */
+        post: operations["webhookEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export interface components {
     schemas: {
         APIError: {
@@ -3230,7 +3355,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -3246,7 +3371,7 @@ export interface components {
             targetType: string;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -3524,6 +3649,11 @@ export interface components {
             }[];
             servers?: components["schemas"]["Server"][];
             tags?: components["schemas"]["Tag"][];
+            webhooks?: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["Operation"] | null;
+                };
+            };
         };
         DocumentBaseline: {
             description: string;
@@ -4447,6 +4577,7 @@ export interface components {
             };
             $ref?: string;
             additionalProperties?: components["schemas"]["Schema"];
+            anyOf?: (components["schemas"]["Schema"] | null)[];
             description?: string;
             enum?: string[];
             format?: string;
@@ -4931,6 +5062,217 @@ export interface components {
         Watching: {
             project: boolean;
             requirement: boolean;
+        };
+        Webhook: {
+            /** Format: date-time */
+            createdAt: string;
+            disabledReason: "failing" | null;
+            enabled: boolean;
+            failures: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            owner: components["schemas"]["WebhookOwner"] | null;
+            projects: components["schemas"]["WebhookProject"][];
+            secret?: string;
+            topics: ("*" | "requirement.created" | "requirement.revised" | "requirement.changed" | "requirement.trashed" | "requirement.restored" | "requirement.moved" | "link.created" | "link.removed" | "link.cleared" | "review.requested" | "review.decided" | "review.closed" | "comment.created" | "thread.resolved" | "baseline.taken")[];
+            /** Format: date-time */
+            updatedAt: string;
+            url: string;
+            version: number;
+        };
+        WebhookBaselineRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            project: components["schemas"]["WebhookProjectRef"];
+            url: string;
+        };
+        WebhookBaselineTaken: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            baseline: components["schemas"]["WebhookBaselineRef"];
+        };
+        WebhookClearedLink: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "trace" | "armature" | "stator";
+        };
+        WebhookCommentCreated: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            comment: components["schemas"]["WebhookCommentRef"];
+            requirement: components["schemas"]["WebhookRequirementRef"];
+        };
+        WebhookCommentRef: {
+            /** Format: uuid */
+            id: string;
+            reply: boolean;
+            text: string;
+            /** Format: uuid */
+            threadId: string;
+            url: string;
+        };
+        WebhookDelivery: {
+            attempt: number;
+            /** Format: date-time */
+            attemptedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deliveredAt: string | null;
+            error: string;
+            /** Format: uuid */
+            eventId: string;
+            /** Format: uuid */
+            id: string;
+            manual: boolean;
+            /** Format: date-time */
+            nextAttemptAt: string | null;
+            /** @enum {string} */
+            state: "pending" | "delivered" | "failed" | "withheld" | "cancelled";
+            status: number | null;
+            /** @enum {string} */
+            topic: "ping" | "requirement.created" | "requirement.revised" | "requirement.changed" | "requirement.trashed" | "requirement.restored" | "requirement.moved" | "link.created" | "link.removed" | "link.cleared" | "review.requested" | "review.decided" | "review.closed" | "comment.created" | "thread.resolved" | "baseline.taken";
+            /** Format: uuid */
+            webhookId: string;
+        };
+        /** @description What an endpoint registered for envelope version 1 is posted. */
+        WebhookEnvelope: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: date-time
+             * @description When the event happened, in UTC.
+             */
+            occurredAt: string;
+            /** @description The event's own fields, by topic, read as the endpoint's owner when the attempt is sent. */
+            payload: components["schemas"]["WebhookRequirementEvent"] | components["schemas"]["WebhookRequirementRevised"] | components["schemas"]["WebhookRequirementChanged"] | components["schemas"]["WebhookRequirementMoved"] | components["schemas"]["WebhookLinkEvent"] | components["schemas"]["WebhookLinkCleared"] | components["schemas"]["WebhookReviewEvent"] | components["schemas"]["WebhookReviewDecided"] | components["schemas"]["WebhookCommentCreated"] | components["schemas"]["WebhookThreadResolved"] | components["schemas"]["WebhookBaselineTaken"] | components["schemas"]["WebhookPing"];
+            /**
+             * @description The product that sent the delivery, always exciter.
+             * @enum {string}
+             */
+            source: "exciter";
+            /** @description What happened: ping, requirement.created, requirement.revised, requirement.changed, requirement.trashed, requirement.restored, requirement.moved, link.created, link.removed, link.cleared, review.requested, review.decided, review.closed, comment.created, thread.resolved, baseline.taken. A receiver ignores a topic it does not know. */
+            topic: string;
+            /** @description The envelope version, 1 here; the version header says the same. */
+            version: number;
+        };
+        WebhookInput: {
+            enabled?: boolean;
+            name: string;
+            projects: string[];
+            topics: ("*" | "requirement.created" | "requirement.revised" | "requirement.changed" | "requirement.trashed" | "requirement.restored" | "requirement.moved" | "link.created" | "link.removed" | "link.cleared" | "review.requested" | "review.decided" | "review.closed" | "comment.created" | "thread.resolved" | "baseline.taken")[];
+            url: string;
+            version?: number;
+        };
+        WebhookLinkCleared: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            link: components["schemas"]["WebhookClearedLink"];
+            requirement: components["schemas"]["WebhookRequirementRef"];
+        };
+        WebhookLinkEvent: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            link: components["schemas"]["WebhookLinkRef"];
+        };
+        WebhookLinkRef: {
+            /** Format: uuid */
+            id: string;
+            source: components["schemas"]["WebhookRequirementRef"] | null;
+            target: components["schemas"]["WebhookRequirementRef"] | null;
+            type: components["schemas"]["WebhookLinkTypeRef"];
+        };
+        WebhookLinkTypeRef: {
+            backward: string;
+            forward: string;
+            key: string;
+            name: string;
+        };
+        WebhookOwner: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        WebhookPerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        WebhookPing: {
+            message: string;
+        };
+        WebhookProject: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            name: string;
+        };
+        WebhookProjectRef: {
+            key: string;
+            name: string;
+        };
+        WebhookRequirementChanged: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            field: string;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+        };
+        WebhookRequirementEvent: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+        };
+        WebhookRequirementMoved: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            fromKey: string;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+            toKey: string;
+        };
+        WebhookRequirementRef: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            kind: string;
+            project: components["schemas"]["WebhookProjectRef"];
+            revision: number;
+            status: components["schemas"]["WebhookStatusRef"] | null;
+            title: string;
+            trashed: boolean;
+            url: string;
+        };
+        WebhookRequirementRevised: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+            revision: number;
+        };
+        WebhookReviewDecided: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            decision: string;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+            review: components["schemas"]["WebhookReviewRef"];
+            signed: boolean;
+        };
+        WebhookReviewEvent: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+            review: components["schemas"]["WebhookReviewRef"];
+        };
+        WebhookReviewRef: {
+            /** Format: uuid */
+            id: string;
+            revision: number;
+            state: string;
+        };
+        WebhookStatusRef: {
+            category: string;
+            name: string;
+        };
+        WebhookThreadRef: {
+            /** Format: uuid */
+            id: string;
+            url: string;
+        };
+        WebhookThreadResolved: {
+            actor: components["schemas"]["WebhookPerson"] | null;
+            requirement: components["schemas"]["WebhookRequirementRef"];
+            thread: components["schemas"]["WebhookThreadRef"];
         };
         Word: {
             detail: string;
@@ -5866,7 +6208,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -5915,7 +6257,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -14300,6 +14642,301 @@ export interface operations {
             };
         };
     };
+    listWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        webhooks: components["schemas"]["Webhook"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        webhook: components["schemas"]["Webhook"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        webhook: components["schemas"]["Webhook"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listWebhookDeliveries: {
+        parameters: {
+            query?: {
+                /** @description 1 to 200; 50 when absent. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                webhookID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deliveries: components["schemas"]["WebhookDelivery"][];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    redeliverWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookID: string;
+                deliveryID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        delivery: components["schemas"]["WebhookDelivery"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    rotateWebhookSecret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        webhook: components["schemas"]["Webhook"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    testWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        delivery: components["schemas"]["WebhookDelivery"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listRuleTypes: {
         parameters: {
             query?: never;
@@ -14328,6 +14965,48 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
+            };
+        };
+    };
+    webhookEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The topic, as in the body. */
+                "X-Exciter-Event": string;
+                /** @description This attempt's id; a retry or a redelivery has its own. */
+                "X-Exciter-Delivery": string;
+                /** @description The envelope version of the body, as in its version field. */
+                "X-Exciter-Webhook-Version": string;
+                /** @description sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret. */
+                "X-Exciter-Signature-256": string;
+                /** @description When this attempt was sent, in Unix seconds. */
+                "X-Exciter-Timestamp": string;
+                /** @description sha256= and the hex HMAC-SHA256 of the timestamp, a dot and the body. */
+                "X-Exciter-Signature-Timestamped-256": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookEnvelope"];
+            };
+        };
+        responses: {
+            /** @description Taken: the delivery is done. */
+            "2XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not taken: the delivery is tried again later, with backoff, as is one not answered in time. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

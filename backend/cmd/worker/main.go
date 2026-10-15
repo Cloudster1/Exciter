@@ -33,6 +33,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/webhook"
 )
 
 const (
@@ -125,6 +126,16 @@ func run() error {
 			handlers.Before(topic, forget)
 		}
 	}
+	// Webhooks queue their deliveries ahead of the rest of a topic's work, since a second run queues none again.
+	box, err := secretBox(cfg)
+	if err != nil {
+		return err
+	}
+	hooks := webhook.NewService(cluster, box, webhook.Options{AppURL: cfg.AppBaseURL, Allow: netguard.ParseAllow(cfg.OutboundAllow), Log: log})
+	for _, topic := range webhook.Topics {
+		handlers.Before(topic, hooks)
+	}
+	go webhook.NewSender(hooks, log).Run(ctx)
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
 	if objectstore.IsUnavailable(store) {
@@ -148,16 +159,21 @@ func run() error {
 // armatureService calls Armature as the person an event names, through the guard as the api does; without
 // EXCITER_SECRET_KEY no stored token opens, and every link waits for one.
 func armatureService(cfg config.Config, cluster *db.Cluster, log *slog.Logger) (*armature.Service, error) {
-	var box *secret.Box
-	if cfg.SecretKey != nil {
-		var err error
-		if box, err = secret.New(cfg.SecretKey); err != nil {
-			return nil, err
-		}
+	box, err := secretBox(cfg)
+	if err != nil {
+		return nil, err
 	}
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
 	return armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
 		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}), nil
+}
+
+// secretBox opens what is sealed with EXCITER_SECRET_KEY; nil without one, when nothing sealed opens.
+func secretBox(cfg config.Config) (*secret.Box, error) {
+	if cfg.SecretKey == nil {
+		return nil, nil
+	}
+	return secret.New(cfg.SecretKey)
 }
 
 // openValkey connects to EXCITER_VALKEY_URL, where the api caches coverage, or returns nil when it is blank.

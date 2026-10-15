@@ -18,12 +18,13 @@ const (
 	statorLink       = "connects the installation to the Stator stub, and sets what it offers"
 	singleSignOn     = "sets up the one identity provider, its group roles and who waits, and moves the realm's people"
 	installationName = "renames the installation"
+	webhookEndpoints = "keeps the installation's webhooks, which hear every project"
 )
 
 // keepers are the helpers that put such a setting back, with what each is for.
 var keepers = map[string]string{
 	"keepLinkTypes": linkTypes, "keepDefaultTheme": defaultTheme, "keepArmature": armatureLink, "keepStator": statorLink,
-	"singleSignOn": singleSignOn, "keepInstallationName": installationName,
+	"singleSignOn": singleSignOn, "keepInstallationName": installationName, "keepWebhooks": webhookEndpoints,
 }
 
 // installationWide is every test that changes a setting of the whole installation. The suite runs one test at a
@@ -49,9 +50,16 @@ var installationWide = map[string]string{
 	"TestWhatArmatureLacksIsSaidWhereItIsNeeded":               armatureLink,
 	"TestCoverageFollowsTheRulesAndTheLinks":                   armatureLink,
 	"TestAQueryFollowsLinksApprovalAndCoverage":                armatureLink,
-	"TestTheBootstrapConnectsArmatureOnce":                     armatureLink,
-	"TestTheMatrixLaysOutTheLinks":                             armatureLink,
-	"TestRawSQLKeepsCoverageRulesToAdministrators":             armatureLink,
+
+	"TestAnAdministratorKeepsWebhooksAndSeesTheSecretOnce":       webhookEndpoints,
+	"TestRequirementEventsReachTheReceiverAsTheOwnerMayReadThem": webhookEndpoints,
+	"TestAFailingReceiverIsRetriedThenTurnedOff":                 webhookEndpoints,
+	"TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent":   webhookEndpoints,
+	"TestTheServerNeverPostsWebhooksIntoItsOwnNetwork":           webhookEndpoints,
+	"TestRawSQLKeepsWebhooksToAdministrators":                    webhookEndpoints,
+	"TestTheBootstrapConnectsArmatureOnce":                       armatureLink,
+	"TestTheMatrixLaysOutTheLinks":                               armatureLink,
+	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,
 	"TestTheConnectionKnowsWhatStatorOffers":                 statorLink,
