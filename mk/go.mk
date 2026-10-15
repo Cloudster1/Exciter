@@ -64,7 +64,7 @@ fmt-check: | $(GO_CACHE) ## Fail when a Go file is not gofmt-clean
 	@$(DOCKER_GO) sh -c 'out=$$(gofmt -l .); [ -z "$$out" ] || { echo "These files need formatting; run make fmt:"; echo "$$out"; exit 1; }'
 
 .PHONY: check-go
-check-go: fmt-check vet test-go openapi-check ## The backend gate: formatting, vet, race-checked tests, OpenAPI drift
+check-go: fmt-check vet test-go openapi-check reqif-schema ## The backend gate: formatting, vet, race-checked tests, OpenAPI drift, the ReqIF schema
 
 # The suite runs against the compose stack (mk/stack.mk) rather than a database of its own.
 .PHONY: test-integration

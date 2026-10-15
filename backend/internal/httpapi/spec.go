@@ -17,6 +17,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/stator"
@@ -117,6 +118,13 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[csvio.Refusal]():            "ImportRefusal",
 		reflect.TypeFor[csvio.PersonChoice]():       "ImportPersonChoice",
 		reflect.TypeFor[csvio.MappingInput]():       "ImportMapping",
+		reflect.TypeFor[reqifio.Import]():           "ReqIFImport",
+		reflect.TypeFor[reqifio.Preview]():          "ReqIFPreview",
+		reflect.TypeFor[reqifio.SchemaItem]():       "ReqIFSchemaItem",
+		reflect.TypeFor[reqifio.Loss]():             "ReqIFLoss",
+		reflect.TypeFor[reqifio.Problem]():          "ReqIFProblem",
+		reflect.TypeFor[reqifio.Refusal]():          "ReqIFRefusal",
+		reflect.TypeFor[reqifio.ChoicesInput]():     "ReqIFChoices",
 		reflect.TypeFor[armature.Connection]():      "ArmatureConnection",
 		reflect.TypeFor[armature.ConnectionInput](): "ArmatureConnectionInput",
 		reflect.TypeFor[armature.Account]():         "ArmatureAccount",
@@ -170,6 +178,11 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(trace.Direction(""))] = enumStrings(trace.Directions)
 	b.Enums[reflect.TypeOf(search.Op(""))] = enumStrings(search.Ops)
 	b.Enums[reflect.TypeOf(csvio.State(""))] = enumStrings(csvio.States)
+	b.Enums[reflect.TypeOf(reqifio.State(""))] = enumStrings(reqifio.States)
+	b.Enums[reflect.TypeOf(reqifio.Format(""))] = enumStrings(reqifio.Formats)
+	b.Enums[reflect.TypeOf(reqifio.SchemaKind(""))] = enumStrings(reqifio.SchemaKinds)
+	b.Enums[reflect.TypeOf(reqifio.MatchBy(""))] = enumStrings(reqifio.MatchBys)
+	b.Enums[reflect.TypeOf(reqifio.LossKind(""))] = enumStrings(reqifio.LossKinds)
 	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
 	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
 	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)

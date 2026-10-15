@@ -1225,6 +1225,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/export.reqif": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A project, or one requirement and everything below it, as a ReqIF document, with the identifiers of earlier exchanges. */
+        get: operations["exportReqIF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/export.reqifz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same as a .reqifz archive, with the images and files its text shows. */
+        get: operations["exportReqIFZ"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/grants": {
         parameters: {
             query?: never;
@@ -1340,6 +1374,23 @@ export interface paths {
         get: operations["traceMatrixCSV"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/reqif-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a ReqIF document or a .reqifz archive, sent as a multipart part named file, and see what its types, attributes and link types match and what the import would make. Nothing is written yet. For the project's administrators. */
+        post: operations["uploadReqIF"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1640,6 +1691,58 @@ export interface paths {
         get: operations["readiness"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reqif-imports/{importID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A ReqIF import: its schema, losses and problems before it starts, its progress while it runs, and what it did after. */
+        get: operations["getReqIF"];
+        put?: never;
+        post?: never;
+        /** Discard a ReqIF import that has not started, or stop one that runs after the object it is on. */
+        delete: operations["cancelReqIF"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reqif-imports/{importID}/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Map the file's types, attributes and link types to the project's, to create or to skip, and see what that leaves. */
+        put: operations["chooseReqIF"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reqif-imports/{importID}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand a ReqIF import without problems to the worker; refused as import_problems while any are left. */
+        post: operations["startReqIF"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3828,6 +3931,82 @@ export interface components {
         ReplicaStatus: {
             healthy: boolean;
             lastError?: string;
+            name: string;
+        };
+        ReqIFChoices: {
+            choices: {
+                [key: string]: string;
+            };
+        };
+        ReqIFImport: {
+            byName: string;
+            choices: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            createdAt: string;
+            done: number;
+            error: string;
+            fileName: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /** @enum {string} */
+            format: "reqif" | "reqifz";
+            /** Format: uuid */
+            id: string;
+            imported: string[];
+            preview: components["schemas"]["ReqIFPreview"];
+            projectKey: string;
+            refused: components["schemas"]["ReqIFRefusal"][];
+            /** @enum {string} */
+            state: "uploaded" | "queued" | "running" | "done" | "failed" | "cancelled";
+            total: number;
+            unchanged: number;
+            updated: string[];
+        };
+        ReqIFLoss: {
+            /** @enum {string} */
+            kind: "formatting" | "image" | "value" | "relation" | "place" | "status" | "person";
+            message: string;
+            where: string;
+        };
+        ReqIFPreview: {
+            images: number;
+            losses: components["schemas"]["ReqIFLoss"][];
+            lostCount: number;
+            new: number;
+            objects: number;
+            problems: components["schemas"]["ReqIFProblem"][];
+            relations: number;
+            schema: components["schemas"]["ReqIFSchemaItem"][];
+            sections: number;
+            sourceTool: string;
+            specifications: string[];
+            title: string;
+            updates: number;
+        };
+        ReqIFProblem: {
+            message: string;
+            where: string;
+        };
+        ReqIFRefusal: {
+            reason: string;
+            where: string;
+        };
+        ReqIFSchemaItem: {
+            /** @enum {string} */
+            becomes?: "text" | "richText" | "number" | "select" | "multiSelect" | "date" | "user" | "boolean" | "url";
+            /** @enum {string} */
+            by: "identifier" | "name" | "choice" | "field" | "create" | "skip" | "section" | "none";
+            count: number;
+            field?: string;
+            fits?: ("text" | "richText" | "number" | "select" | "multiSelect" | "date" | "user" | "boolean" | "url")[];
+            identifier: string;
+            /** @enum {string} */
+            kind: "type" | "attribute" | "linkType";
+            /** Format: uuid */
+            means: string | null;
+            meansName: string;
             name: string;
         };
         RequestBody: {
@@ -8435,6 +8614,92 @@ export interface operations {
             };
         };
     };
+    exportReqIF: {
+        parameters: {
+            query?: {
+                /** @description The key of a requirement or section, which is exported with everything below it; the whole project when absent. */
+                section?: string;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    exportReqIFZ: {
+        parameters: {
+            query?: {
+                /** @description The key of a requirement or section, which is exported with everything below it; the whole project when absent. */
+                section?: string;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listProjectGrants: {
         parameters: {
             query?: never;
@@ -8875,6 +9140,64 @@ export interface operations {
                 };
                 content: {
                     "*/*": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    uploadReqIF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        import: components["schemas"]["ReqIFImport"];
+                    };
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -9990,6 +10313,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getReqIF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        import: components["schemas"]["ReqIFImport"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancelReqIF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    chooseReqIF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReqIFChoices"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        import: components["schemas"]["ReqIFImport"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    startReqIF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        import: components["schemas"]["ReqIFImport"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

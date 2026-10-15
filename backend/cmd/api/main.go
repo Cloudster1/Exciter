@@ -37,6 +37,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -155,6 +156,8 @@ func run() error {
 	requirements := requirement.NewService(cluster)
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
+	attributes := attribute.NewService(cluster)
+	files := attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log)
 	server := &httpapi.Server{
 		DB:              cluster,
 		Auth:            accounts,
@@ -170,12 +173,13 @@ func run() error {
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirements,
 		Search:          finder,
-		Attributes:      attribute.NewService(cluster),
+		Attributes:      attributes,
 		Workflows:       workflow.NewService(cluster),
 		Labels:          label.NewService(cluster),
 		Trace:           links,
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
-		Attachments:     attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log),
+		Attachments:     files,
+		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Armature:        armatures,
 		Stator:          stators,
 		Comments:        comment.NewService(cluster),
