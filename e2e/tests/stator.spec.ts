@@ -45,7 +45,7 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
       await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(/\/api\/v1\/stator\/webhook$/);
       await expect(page.getByLabel("Webhook secret", { exact: true })).toHaveValue("");
-      await expect(page.locator("[data-stator-connected]")).toContainText("does not show linked requirements on its pages yet");
+      await expect(page.locator("[data-stator-connected]")).toContainText("Stator shows the requirements linked to each page.");
       await expect(page.locator("body")).not.toContainText(WEBHOOK_SECRET);
       // The disconnect button is the danger variant, so axe judges its colours too.
       await expect(page.locator('[data-action="disconnect-stator"]')).toBeVisible();

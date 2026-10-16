@@ -81,4 +81,33 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     await panel.getByRole("button", { name: "Remove Brake timing, Specified by the page" }).click();
     await expect(panel.getByText(/No page yet/)).toBeVisible();
   });
+
+  // The way back (#42): the worker puts the requirement on the page as alice, and a person taking it off in Stator
+  // is told to Exciter through the stub's webhook.
+  test("a page alice links shows the requirement in Stator, and a link taken off there stays off", async ({ page, api }) => {
+    const requirement = must(await api.GET("/requirements/{reqKey}", { params: { path: { reqKey: `${KEY}-R1` } } })).requirement;
+    const timing = await pageId("Brake timing");
+    must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "describes" } }));
+    const remote = async () => {
+      const { remoteLinks } = (await (await stub("/remote-links")).json()) as { remoteLinks: { pageId: string; url: string; title: string }[] };
+      return remoteLinks.find((l) => l.pageId === timing && l.url.endsWith(`/r/${requirement.id}`));
+    };
+    await expect.poll(async () => (await remote())?.title, { timeout: 30_000 }).toBe(`${KEY}-R1 Brakes engage within 100 ms (describes)`);
+
+    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    const link = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${timing}"]`);
+    await expect(link).toHaveAttribute("data-sync", "synced");
+    await expect(link.getByText("Waiting for Stator")).toBeHidden();
+
+    const url = (await remote())!.url;
+    await stub(`/pages/${timing}/remote-links?url=${encodeURIComponent(url)}`, { method: "DELETE" });
+    await expect
+      .poll(async () => {
+        await page.reload();
+        await link.waitFor();
+        return link.getByText("Removed in Stator").isVisible();
+      })
+      .toBe(true);
+    await expectAccessible(page);
+  });
 });

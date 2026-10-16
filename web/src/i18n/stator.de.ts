@@ -61,6 +61,7 @@ export const statorDe: typeof statorEn = {
     none: "Noch keine Seite. Verknüpfen Sie diese Anforderung mit den Seiten, die sie festlegen oder beschreiben.",
     headings: { specifies: "Festgelegt durch", describes: "Beschrieben durch", relates: "Verwandt mit" },
     relations: { specifies: "Durch die Seite festgelegt", describes: "Durch die Seite beschrieben", relates: "Mit der Seite verwandt" },
+    states: { synced: "Auf der Seite", pending: "Wartet auf Stator", failed: "Nicht auf der Seite" },
     broken: "In Stator gelöscht",
     detached: "In Stator entfernt",
     add: "Mit einer Stator-Seite verknüpfen",

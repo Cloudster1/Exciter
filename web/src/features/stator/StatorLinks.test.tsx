@@ -17,6 +17,7 @@ afterEach(() => {
 const BASE = "https://stator.example.com";
 const TIMING = "0195f000-0000-7000-8000-00000000a001";
 const ONBOARDING = "0195f000-0000-7000-8000-00000000a002";
+const THREAT = "0195f000-0000-7000-8000-00000000a003";
 const project = aProject();
 
 const connected: StatorAccount = {
@@ -105,6 +106,23 @@ describe("a requirement's Stator pages", () => {
     const gone = panel.querySelector(`[data-stator-link="${ONBOARDING}"]`)!;
     expect(gone).toHaveTextContent("Deleted in Stator");
     expect(gone.querySelector("[data-state]")).toHaveAttribute("data-state", "hidden");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says how far each page has come in showing the requirement, and why Stator refused one", async () => {
+    stubPage({
+      links: [
+        aLink(TIMING, { sync: "synced" }),
+        aLink(ONBOARDING, { relation: "describes", sync: "failed", error: "Stator did not let Bob put requirements on this page." }),
+        aLink(THREAT, { relation: "relates", sync: "pending" }),
+      ],
+    });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const panel = await screen.findByRole("region", { name: "Stator pages" });
+    await waitFor(() => expect(panel.querySelector(`[data-stator-link="${ONBOARDING}"]`)).toHaveTextContent("Not on the page"));
+    expect(panel.querySelector(`[data-stator-link="${ONBOARDING}"]`)).toHaveTextContent("Stator did not let Bob put requirements on this page.");
+    expect(panel.querySelector(`[data-stator-link="${THREAT}"]`)).toHaveTextContent("Waiting for Stator");
+    expect(panel.querySelector(`[data-stator-link="${TIMING}"]`)).not.toHaveTextContent("On the page");
     expect(await axeViolations()).toEqual([]);
   });
 
