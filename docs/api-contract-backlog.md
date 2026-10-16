@@ -331,3 +331,61 @@ and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `intern
     never reads a sealed secret, names an owner, clears the counts or writes
     the log, and a topic nobody emits is refused.
 
+
+## #43 Exciter requirements in Stator pages
+
+No operations of Exciter's own: Stator builds the chips and blocks on what
+Exciter already serves, checked by name at `/meta` (#140). This section is
+the agreement with Stator, filed there for its side; #43 stays `blocked`
+until Stator ships it.
+
+| Capability | Operations | Stator uses it for |
+|---|---|---|
+| `requirement-embed@1` | `GET /requirements/{reqKey}`, `GET /search`, `GET /search/quick` | a chip and a requirement block, read by key; the picker |
+| `requirement-list@1` | `GET /projects/{projectKey}/requirements`, `.../requirements/suggest` | a list block, a query in the query language; completing it in the block's editor |
+| `specifications@1` | `GET /projects` | the projects the list block's editor offers |
+| `webhooks@1` | `/webhooks` and its deliveries | knowing it may ask an Exciter administrator to point a webhook at Stator |
+
+- **Connecting** is Stator's mirror of Exciter's #40: an administrator of
+  Stator saves Exciter's origin, which answers `product` `exciter` at
+  `GET /meta`, and each member stores their own Exciter personal access token
+  (`exciter_pat_`, made under Your account, Access tokens; a read-only one
+  serves). Every read is made with the viewer's token, so a page never shows
+  a requirement its reader may not view in Exciter; a reader without a token
+  sees the key as a link and how to connect. Exciter answers a requirement it
+  will not show as 404, never 403.
+- **A chip** stands for a key such as `CHK-R42` (`requirement.KeyPattern`,
+  `^([A-Z][A-Z0-9]{1,9})-R([1-9][0-9]*)$`) written or picked on a page, and
+  shows the title, the status and the revision, linking to
+  `{exciter}/p/{projectKey}/r/{key}`. A key the requirement had before a move
+  or a new project key still reads, and the answer's `key` is the current
+  one, which Stator shows. A requirement in Exciter's trash carries
+  `trashedAt` for a reader who may still find it there and is 404 to the
+  rest; Stator shows it as trashed or as not found.
+- **A requirement block** shows one requirement: the chip's fields with its
+  statement and rationale, which are ProseMirror documents in Exciter's
+  schema (headings, lists, tables, code, links, images by attachment URL);
+  Stator renders what it knows and shows the rest as text.
+- **A list block** names a project and a query, such as
+  `status = Approved AND owner = currentUser() ORDER BY key`, and shows its
+  rows as a table of key, title, status and revision, a window at a time
+  (`limit` up to 500, `total` for paging). `currentUser()` is the viewer, so
+  the same block reads differently to different readers. A query that does
+  not read is `400 bad_query` with `position`, the character it went wrong
+  at, which the editor shows under the text. The editor completes at the
+  caret from `.../requirements/suggest` (`q`, and `at` for the caret).
+- **The cache**, per viewer as Stator keeps Armature's issues: a chip or
+  block is served from it for at most 60 seconds, and Exciter's webhooks end
+  an entry sooner.
+- **Webhooks.** An Exciter administrator adds a webhook (#48) for Stator's
+  receiver, with the topics `requirement.created`, `requirement.revised`,
+  `requirement.changed`, `requirement.trashed`, `requirement.restored`,
+  `requirement.moved` and `review.decided`, and pastes the secret
+  (`exciter_whs_`) into Stator's connection. Deliveries come in envelope
+  version 1 with `source` `exciter`, signed in `X-Exciter-Signature-256`, and
+  name the requirement by `id` and `key`. Stator uses them only to forget
+  what it cached; the payload is read as the webhook's owner, so it never
+  shows a reader what its own token would not.
+- **Not in this contract:** writing to Exciter from a page, and an embed
+  format such as oEmbed. Pages traced to requirements (#41, #42) stay as they
+  are; a chip does not make a page link.

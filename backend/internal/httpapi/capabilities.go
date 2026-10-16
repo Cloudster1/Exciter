@@ -22,6 +22,14 @@ var integrationCapabilities = []capability{
 		},
 	},
 	{
+		name:    "requirement-list@1",
+		promise: "A project's requirements narrowed and ordered by a query in the query language, a window at a time, and what may come next at the caret of such a query.",
+		operations: []string{
+			"GET /projects/{projectKey}/requirements",
+			"GET /projects/{projectKey}/requirements/suggest",
+		},
+	},
+	{
 		name:    "trace-links@1",
 		promise: "The trace links between requirements: listed from either end, made with a link type, and taken off.",
 		operations: []string{
@@ -38,6 +46,21 @@ var integrationCapabilities = []capability{
 			"GET /projects",
 			"GET /projects/{projectKey}",
 			"GET /projects/{projectKey}/tree",
+		},
+	},
+	{
+		// Stator's name and operations for the same feature, which Exciter's webhooks were adapted from (#48).
+		name:    "webhooks@1",
+		promise: "Endpoints subscribed to topics, their deliveries, a redelivery, a test delivery and a new secret, each delivery a signed envelope.",
+		operations: []string{
+			"GET /webhooks",
+			"POST /webhooks",
+			"PATCH /webhooks/{webhookID}",
+			"DELETE /webhooks/{webhookID}",
+			"GET /webhooks/{webhookID}/deliveries",
+			"POST /webhooks/{webhookID}/deliveries/{deliveryID}/redeliver",
+			"POST /webhooks/{webhookID}/test",
+			"POST /webhooks/{webhookID}/rotate-secret",
 		},
 	},
 	{

@@ -11,7 +11,7 @@ before it has an account; the names promise features, not data.
   "product": "exciter",
   "build": { "version": "0.1.0", "commit": "abc1234", "builtAt": "2026-10-15T09:00:00Z" },
   "apiVersion": "1",
-  "capabilities": ["requirement-embed@1", "specifications@1", "theme-export@1", "trace-links@1"]
+  "capabilities": ["requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1"]
 }
 ```
 
@@ -29,6 +29,19 @@ first letters of their titles, with a session or a token.
 - `GET /requirements/{reqKey}`
 - `GET /search`
 - `GET /search/quick`
+
+### `requirement-list@1`
+
+A project's requirements narrowed and ordered by a query in the query language
+(#47), a window at a time, and what may come next at the caret of such a query.
+A block on a partner's page that lists, say, `status = Approved ORDER BY key`
+reads it here as the viewer, and its editor completes the query as the grid
+does.
+
+- `GET /projects/{projectKey}/requirements`, with `query`, `limit` and
+  `offset`; a query that does not read is `400 bad_query` with the position
+  of the character it went wrong at
+- `GET /projects/{projectKey}/requirements/suggest`
 
 ### `trace-links@1`
 
@@ -57,6 +70,22 @@ format are Armature's, so a theme travels between the three tools.
 
 - `GET /themes/{themeID}/export`
 - `POST /themes/import`
+
+### `webhooks@1`
+
+Endpoints subscribed to topics, their deliveries, a redelivery, a test
+delivery and a new secret, each delivery a signed envelope. The name and the
+operations are Stator's, whose webhooks Exciter's were adapted from (#48);
+[Webhooks Exciter sends](#webhooks-exciter-sends) says what is posted.
+
+- `GET /webhooks`
+- `POST /webhooks`
+- `PATCH /webhooks/{webhookID}`
+- `DELETE /webhooks/{webhookID}`
+- `GET /webhooks/{webhookID}/deliveries`
+- `POST /webhooks/{webhookID}/deliveries/{deliveryID}/redeliver`
+- `POST /webhooks/{webhookID}/test`
+- `POST /webhooks/{webhookID}/rotate-secret`
 
 ## What Exciter checks of its partners
 
