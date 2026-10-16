@@ -3,6 +3,23 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Traceability is a milestone of its own, agreed first (#146)
+
+- **The matrix grows, coverage stays.** #38's coverage rules and dimensions
+  are left alone; M5 adds to the matrix's parameters and fields, so a client
+  that sends none of the new ones gets #38's matrix.
+- **A trace model per project, within the project.** Chains follow levels an
+  administrator sets, each a set of the project's own types, so the guard
+  checks one project and nothing is installation-wide. A step names a link
+  type with a direction, read as the link's phrase, so a symmetric or
+  reversed link never makes a path nobody meant.
+- **Baselines record more from now on.** Older baselines say "not recorded"
+  rather than guess at suspect state or status they never kept; new ones
+  leave out broken and detached links, which trace nothing at that moment,
+  as the matrix does.
+- **Excel without a dependency.** A workbook is a zip of a few XML parts, as
+  a Word file is, and `internal/docx` already writes those by hand.
+
 ## 2026-10-16: Webhook envelope version 2 is a CloudEvent beside version 1 (#133)
 
 - **A second row, not a new sender.** Version 2 is one more entry in the

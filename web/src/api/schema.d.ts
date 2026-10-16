@@ -543,6 +543,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/baselines/{baselineID}/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of a baseline's requirements against what they linked to when it was taken, marked against another baseline or now when compared. */
+        get: operations["baselineMatrix"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/baselines/{baselineID}/matrix.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A baseline's traceability matrix as a CSV file, every requirement it holds. */
+        get: operations["baselineMatrixCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/baselines/{baselineID}/matrix.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A baseline's traceability matrix as an Excel workbook, every requirement it holds, its changes coloured when compared. */
+        get: operations["baselineMatrixXLSX"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/baselines/{baselineID}/spec": {
         parameters: {
             query?: never;
@@ -1499,6 +1550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/matrix.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The traceability matrix as an Excel workbook, every row the filter keeps, its cells coloured. */
+        get: operations["traceMatrixXLSX"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/reqif-imports": {
         parameters: {
             query?: never;
@@ -1614,6 +1682,75 @@ export interface paths {
         /** The suspect links touching a project's requirements, longest waiting first. */
         get: operations["listSuspectLinks"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/trace-chains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of the trace model's first level, narrowed like the grid, with every path down the levels and where it breaks. */
+        get: operations["traceChains"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/trace-chains.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The chain report as a CSV file, every root the filter keeps. */
+        get: operations["traceChainsCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/trace-chains.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The chain report as an Excel workbook, every root the filter keeps, its breaks coloured. */
+        get: operations["traceChainsXLSX"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/trace-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A project's trace levels, first to last, and the links that lead from each to the next; empty until set. */
+        get: operations["getTraceModel"];
+        /** Replace a project's trace model; no levels clears it. The project's administrators'. */
+        put: operations["saveTraceModel"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3501,6 +3638,32 @@ export interface components {
             targetKey: string;
             typeName: string;
         };
+        BaselineMatrix: {
+            cells: components["schemas"]["BaselineMatrixCell"][];
+            columns: components["schemas"]["MatrixColumn"][];
+            detail: number;
+            limit: number;
+            offset: number;
+            rows: components["schemas"]["RequirementRef"][];
+            total: number;
+            with: components["schemas"]["BaselineSide"] | null;
+        };
+        BaselineMatrixCell: {
+            column: number;
+            links: components["schemas"]["BaselineMatrixLink"][];
+            row: number;
+        };
+        BaselineMatrixLink: {
+            /** @enum {string} */
+            change?: "added" | "removed" | "changed";
+            direction?: string;
+            /** @enum {string} */
+            kind: "trace" | "armature" | "stator";
+            name: string;
+            status: ("todo" | "in_progress" | "done") | null;
+            suspect: boolean | null;
+            typeKey?: string;
+        };
         BaselineSide: {
             /** Format: date-time */
             at: string;
@@ -3997,6 +4160,13 @@ export interface components {
         MatrixLink: {
             name: string;
             suspect: boolean;
+        };
+        MatrixPage: {
+            /** Format: uuid */
+            id: string;
+            spaceKey: string;
+            title?: string;
+            url: string;
         };
         MeResponse: {
             installation: components["schemas"]["Installation"];
@@ -4960,6 +5130,27 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        TraceChainLine: {
+            broken: boolean;
+            nodes: components["schemas"]["TraceChainNode"][];
+            root: number;
+        };
+        TraceChainNode: {
+            issueKey?: string;
+            page: components["schemas"]["MatrixPage"] | null;
+            requirement: components["schemas"]["RequirementRef"] | null;
+            suspect: boolean;
+            via?: string;
+        };
+        TraceChains: {
+            broken: number;
+            levels: components["schemas"]["TraceModelLevel"][];
+            limit: number;
+            lines: components["schemas"]["TraceChainLine"][];
+            offset: number;
+            roots: components["schemas"]["RequirementRef"][];
+            total: number;
+        };
         TraceLink: {
             /** Format: date-time */
             createdAt: string;
@@ -4990,6 +5181,42 @@ export interface components {
             offset: number;
             rows: components["schemas"]["RequirementRef"][];
             total: number;
+        };
+        TraceModel: {
+            can: components["schemas"]["TraceModelCan"];
+            levels: components["schemas"]["TraceModelLevel"][];
+            /** Format: date-time */
+            updatedAt: string | null;
+            updatedBy: components["schemas"]["PersonRef"] | null;
+        };
+        TraceModelCan: {
+            edit: boolean;
+        };
+        TraceModelInput: {
+            levels: components["schemas"]["TraceModelLevelInput"][];
+        };
+        TraceModelLevel: {
+            /** @enum {string} */
+            kind: "requirements" | "issues" | "pages";
+            name: string;
+            steps: components["schemas"]["TraceModelStep"][];
+            types: components["schemas"]["RequirementTypeRef"][];
+        };
+        TraceModelLevelInput: {
+            /** @enum {string} */
+            kind: "requirements" | "issues" | "pages";
+            name: string;
+            steps?: components["schemas"]["TraceModelStep"][];
+            typeIds?: string[];
+        };
+        TraceModelStep: {
+            /** @enum {string} */
+            direction?: "outgoing" | "incoming";
+            /** @enum {string} */
+            relation?: "describes" | "implements" | "relates" | "specifies" | "verifies";
+            /** Format: uuid */
+            typeId?: string;
+            typeName?: string;
         };
         Transition: {
             description: string;
@@ -6974,6 +7201,186 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    baselineMatrix: {
+        parameters: {
+            query?: {
+                /** @description requirements, the default, issues or pages. */
+                columns?: "requirements" | "issues" | "pages";
+                /** @description Keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
+                direction?: "outgoing" | "incoming" | "both";
+                /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
+                with?: string;
+                /** @description 1 to 200; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                baselineID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matrix: components["schemas"]["BaselineMatrix"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    baselineMatrixCSV: {
+        parameters: {
+            query?: {
+                /** @description requirements, the default, issues or pages. */
+                columns?: "requirements" | "issues" | "pages";
+                /** @description Keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
+                direction?: "outgoing" | "incoming" | "both";
+                /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
+                with?: string;
+            };
+            header?: never;
+            path: {
+                baselineID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    baselineMatrixXLSX: {
+        parameters: {
+            query?: {
+                /** @description requirements, the default, issues or pages. */
+                columns?: "requirements" | "issues" | "pages";
+                /** @description Keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
+                direction?: "outgoing" | "incoming" | "both";
+                /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
+                with?: string;
+            };
+            header?: never;
+            path: {
+                baselineID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10216,6 +10623,95 @@ export interface operations {
             };
         };
     };
+    traceMatrixXLSX: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description requirements, the default, or issues. */
+                columns?: "requirements" | "issues";
+                /** @description For requirement columns, the project they come from; the same project when absent. */
+                columnProject?: string;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     uploadReqIF: {
         parameters: {
             query?: never;
@@ -10677,6 +11173,394 @@ export interface operations {
                         offset: number;
                         total: number;
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceChains: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description true to keep only the lines that break before the last level shown. */
+                onlyBroken?: boolean;
+                /** @description Positions of the levels to show, from 0; every level when absent. The first level shown is the roots. */
+                level?: number[];
+                /** @description 1 to 200; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        chains: components["schemas"]["TraceChains"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceChainsCSV: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description true to keep only the lines that break before the last level shown. */
+                onlyBroken?: boolean;
+                /** @description Positions of the levels to show, from 0; every level when absent. The first level shown is the roots. */
+                level?: number[];
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceChainsXLSX: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description true to keep only the lines that break before the last level shown. */
+                onlyBroken?: boolean;
+                /** @description Positions of the levels to show, from 0; every level when absent. The first level shown is the roots. */
+                level?: number[];
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTraceModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        model: components["schemas"]["TraceModel"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveTraceModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TraceModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        model: components["schemas"]["TraceModel"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

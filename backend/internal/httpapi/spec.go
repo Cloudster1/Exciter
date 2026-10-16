@@ -77,6 +77,7 @@ func specBuilder() *openapi.Builder {
 	b.FieldOverrides["AuditFacets.actions"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: audit.Actions}}
 	coreSchemas(b)
 	reviewSchemas(b)
+	traceabilitySchemas(b)
 	return b
 }
 

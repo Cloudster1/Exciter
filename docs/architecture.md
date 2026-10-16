@@ -37,8 +37,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m1.md` for the requirements core (#10),
   `docs/api-contract-m2.md` for the Armature integration (#25),
   `docs/api-contract-m3.md` for review and control (#32),
-  `docs/api-contract-m4.md` for the Stator integration (#39), and
-  `docs/api-contract-backlog.md` for what came after the first release.
+  `docs/api-contract-m4.md` for the Stator integration (#39),
+  `docs/api-contract-backlog.md` for what came after the first release, and
+  `docs/api-contract-m5.md` for traceability (#146).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
