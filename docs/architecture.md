@@ -235,6 +235,11 @@ app role holds no privilege on.
   starter sections, copied once, so a later change to a template leaves the
   projects made from it alone.
 - **Review and approval** (#35), **baselines** (#37), **coverage** (#38).
+- **Traceability** (M5, `docs/api-contract-m5.md`): the matrix of #38 in
+  `internal/trace/matrix.go`, its rows those `search.Keep` keeps in the
+  grid's order, its columns the requirements or Armature issues they reach
+  through the link types, direction and relations asked for. Its web page,
+  `/p/$projectKey/matrix`, keeps the whole layout in its address.
 - **Signed approvals** (#46): in a project with `settings.signedApprovals`,
   a decision on a review is an electronic signature. The reviewer confirms a
   meaning the server writes and proves who they are again, with their

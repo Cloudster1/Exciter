@@ -3,15 +3,18 @@ package httpapi
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 
+	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
-// Coverage and the traceability matrix (#38). See docs/api-contract-m3.md.
+// Coverage and the traceability matrix (#38, #147). See docs/api-contract-m3.md and docs/api-contract-m5.md.
 
 // coverageError maps coverage's refusals; nil when err is none of theirs.
 func coverageError(err error) *APIError {
@@ -92,12 +95,22 @@ func (s *Server) handleProjectCoverage(w http.ResponseWriter, r *http.Request) {
 
 // matrix reads the matrix a request asks for, a window of it or, for a file, up to an export's rows.
 func (s *Server) matrix(r *http.Request, limit, offset int) (*trace.Matrix, error) {
-	filter, _, err := search.ParseGrid(r.URL.Query())
+	filter, sort, err := search.ParseGrid(r.URL.Query())
 	if err != nil {
 		return nil, err
 	}
 	q := r.URL.Query()
-	return s.Trace.Matrix(r.Context(), userFrom(r), projectKeyParam(r), filter, trace.MatrixColumns(q.Get("columns")), q.Get("columnProject"), limit, offset)
+	relations := q["relation"]
+	for _, rel := range relations {
+		if !slices.Contains(armature.Relations, armature.Relation(rel)) {
+			return nil, &trace.FieldError{Field: "relation", Message: fmt.Sprintf("There is no relation %q. Pick implements, verifies or relates.", rel)}
+		}
+	}
+	return s.Trace.Matrix(r.Context(), userFrom(r), projectKeyParam(r), trace.MatrixQuery{
+		Filter: filter, Sort: sort, Columns: trace.MatrixColumns(q.Get("columns")), ColumnProject: q.Get("columnProject"),
+		LinkTypes: q["linkType"], Direction: trace.MatrixDirection(q.Get("direction")), Relations: relations,
+		Limit: limit, Offset: offset,
+	})
 }
 
 func (s *Server) handleTraceMatrix(w http.ResponseWriter, r *http.Request) {

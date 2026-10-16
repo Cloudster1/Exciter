@@ -70,3 +70,15 @@ export function createApi(baseUrl: string = defaultBase()) {
 
 /** The one client the application shares. */
 export const api = createApi();
+
+/** A query string of params, a list repeating its name, what is unset left out; empty or starting with ?. */
+export function queryString(params: Record<string, unknown>): string {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(params)) {
+    for (const each of Array.isArray(value) ? value : [value]) {
+      if (each !== undefined && each !== null) query.append(name, String(each));
+    }
+  }
+  const rest = query.toString();
+  return rest ? `?${rest}` : "";
+}

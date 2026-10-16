@@ -50,7 +50,7 @@ test.describe("coverage", { tag: "@desktop" }, () => {
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list.locator(`[data-coverage-row="${KEY}-R2"]`)).toBeVisible();
 
-    await page.getByRole("button", { name: "Matrix" }).click();
+    await page.getByRole("link", { name: "Open the matrix" }).click();
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.locator(`[data-cell="${KEY}-R1:${KEY}-R2"]`)).toHaveAttribute("title", `${KEY}-R1 to ${KEY}-R2: Derives`);
     await expectAccessible(page);

@@ -16,6 +16,7 @@ import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
+import { matrixEn } from "./matrix.en";
 import { reuseEn } from "./reuse.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
@@ -352,6 +353,7 @@ export const en = {
   suspect: suspectEn,
   baseline: baselineEn,
   coverage: coverageEn,
+  matrix: matrixEn,
   imports: importsEn,
   reqif: reqifEn,
   documents: documentsEn,

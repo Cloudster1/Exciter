@@ -3,6 +3,18 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: The matrix narrows only by what fits its columns (#147)
+
+- **A filter that cannot apply is refused, not ignored.** Link types with
+  issue columns, or relations with requirement columns, are 422 on the
+  field. Ignoring them would show a matrix that looks narrowed and is not.
+- **Any link type that exists, enabled or not.** A type turned off for a
+  project keeps its links, and the matrix shows them; refusing its key would
+  hide links that are there.
+- **Rows in the grid's order.** The matrix shares the grid's `orderBy`, so a
+  query's `ORDER BY` or a sort column means the same in both; the coverage
+  report keeps outline order, as #38 agreed.
+
 ## 2026-10-16: Traceability is a milestone of its own, agreed first (#146)
 
 - **The matrix grows, coverage stays.** #38's coverage rules and dimensions

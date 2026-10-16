@@ -3,70 +3,44 @@ import { Link } from "@tanstack/react-router";
 import {
   DIMENSIONS,
   LEVELS,
-  matrixHref,
   useCoverage,
   useCoverageRuleActions,
   useCoverageRules,
-  useMatrix,
   type CoverageRule,
   type CoverageTotals,
   type Dimension,
   type Level,
   type LevelFilter,
-  type Matrix,
-  type MatrixColumns,
 } from "@/api/coverage";
 import { useTypes } from "@/api/attributes";
 import type { Project } from "@/api/projects";
-import {
-  Button,
-  ButtonLink,
-  Card,
-  Checkbox,
-  EmptyState,
-  ErrorBanner,
-  IconButton,
-  PageHeader,
-  SectionTitle,
-  Segmented,
-  Select,
-  Skeleton,
-  Tag,
-} from "@/components/ui";
+import { Button, Card, Checkbox, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { COVERAGE_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
+import { COVERAGE_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
+import { Pages } from "./Pages";
 
-type View = "report" | "matrix";
-
-/** A project's coverage: the report with its rules, or the traceability matrix. */
+/** A project's coverage: the report and its rules, and the way to its traceability matrix. */
 export function CoveragePage({ project }: { project: Project }) {
-  const [view, setView] = useState<View>("report");
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-coverage={project.key}>
       <PageHeader
         title={t.coverage.title}
         meta={t.coverage.intro}
         actions={
-          <Segmented
-            label={t.coverage.view}
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "report", label: t.coverage.report },
-              { value: "matrix", label: t.coverage.matrix },
-            ]}
-          />
+          <Link
+            to="/p/$projectKey/matrix"
+            params={{ projectKey: project.key }}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+            data-action="open-matrix"
+          >
+            <Icon.Table className="size-4" />
+            {t.matrix.open}
+          </Link>
         }
       />
-      {view === "report" ? (
-        <>
-          <Report project={project} />
-          <Rules project={project} />
-        </>
-      ) : (
-        <MatrixView project={project} />
-      )}
+      <Report project={project} />
+      <Rules project={project} />
     </div>
   );
 }
@@ -160,35 +134,6 @@ function Report({ project }: { project: Project }) {
   );
 }
 
-function Pages({
-  offset,
-  shown,
-  total,
-  size,
-  label,
-  onOffset,
-}: {
-  offset: number;
-  shown: number;
-  total: number;
-  size: number;
-  label: string;
-  onOffset: (n: number) => void;
-}) {
-  if (total <= size) return null;
-  return (
-    <nav aria-label={label} className="flex items-center justify-between gap-2">
-      <Button variant="secondary" size="sm" disabled={offset === 0} onClick={() => onOffset(Math.max(0, offset - size))}>
-        {t.coverage.previous}
-      </Button>
-      <span className="text-sm text-ink-subtle tabular-nums">{t.coverage.range(offset + 1, offset + shown, total)}</span>
-      <Button variant="secondary" size="sm" disabled={offset + size >= total} onClick={() => onOffset(offset + size)}>
-        {t.coverage.next}
-      </Button>
-    </nav>
-  );
-}
-
 /** What coverage asks of each type; its administrators tick and untick it in place. */
 function Rules({ project }: { project: Project }) {
   const { data: rules, error, refetch } = useCoverageRules(project.key);
@@ -265,105 +210,5 @@ function Rules({ project }: { project: Project }) {
         </form>
       )}
     </Card>
-  );
-}
-
-function columnName(column: Matrix["columns"][number]): string {
-  return column.requirement ? column.requirement.key : column.issueKey;
-}
-
-/** A page of requirements against what they link to, with the whole matrix as a file. */
-function MatrixView({ project }: { project: Project }) {
-  const [columns, setColumns] = useState<MatrixColumns>("requirements");
-  const [offset, setOffset] = useState(0);
-  const { data, error, refetch } = useMatrix(project.key, columns, offset);
-  const pick = (next: MatrixColumns) => {
-    setColumns(next);
-    setOffset(0);
-  };
-  return (
-    <Card className="space-y-3 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Segmented
-          label={t.coverage.columns}
-          value={columns}
-          onChange={pick}
-          size="sm"
-          options={[
-            { value: "requirements", label: t.coverage.columnRequirements },
-            { value: "issues", label: t.coverage.columnIssues },
-          ]}
-        />
-        <ButtonLink href={matrixHref(project.key, columns)} download variant="secondary" size="sm" icon={<Icon.Download />} title={t.coverage.downloadHint}>
-          {t.coverage.download}
-        </ButtonLink>
-      </div>
-      {error ? (
-        <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
-      ) : !data ? (
-        <Skeleton />
-      ) : data.columns.length === 0 ? (
-        <EmptyState icon={<Icon.Link />} title={t.coverage.noLinks} />
-      ) : (
-        <MatrixTable project={project} matrix={data} />
-      )}
-      {data && <Pages offset={offset} shown={data.rows.length} total={data.total} size={MATRIX_PAGE_SIZE} label={t.coverage.matrix} onOffset={setOffset} />}
-    </Card>
-  );
-}
-
-function MatrixTable({ project, matrix }: { project: Project; matrix: Matrix }) {
-  const cells = new Map(matrix.cells.map((cell) => [`${cell.row}:${cell.column}`, cell.links]));
-  return (
-    <div className="overflow-x-auto">
-      <table className="border-collapse text-xs" aria-label={t.coverage.matrix} data-matrix="">
-        <thead>
-          <tr>
-            <th scope="col" className="sticky left-0 bg-surface py-1 pr-2 text-left font-medium text-ink-muted">
-              {t.coverage.requirements}
-            </th>
-            {matrix.columns.map((column) => (
-              <th key={columnName(column)} scope="col" className="px-1 py-1 font-mono font-medium text-ink-muted [writing-mode:vertical-rl]">
-                {columnName(column)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {matrix.rows.map((row, r) => (
-            <tr key={row.id} className="border-t border-border">
-              <th scope="row" className="sticky left-0 max-w-64 truncate bg-surface py-1 pr-2 text-left font-normal">
-                <Link
-                  to="/p/$projectKey/r/$reqKey"
-                  params={{ projectKey: project.key, reqKey: row.key }}
-                  className="text-ink hover:text-accent hover:underline"
-                >
-                  <span className="font-mono text-ink-muted">{row.key}</span> {row.title}
-                </Link>
-              </th>
-              {matrix.columns.map((column, c) => {
-                const links = cells.get(`${r}:${c}`);
-                const names = (links ?? []).map((l) => (l.suspect ? `${l.name} (${t.coverage.suspect})` : l.name)).join(", ");
-                return (
-                  <td
-                    key={columnName(column)}
-                    className="border-l border-border px-1 text-center"
-                    data-cell={`${row.key}:${columnName(column)}`}
-                    title={links ? t.coverage.cell(row.key, columnName(column), names) : undefined}
-                  >
-                    {links &&
-                      (links.some((l) => l.suspect) ? (
-                        <Icon.Warning className="mx-auto size-3.5 text-warning" label={t.coverage.cell(row.key, columnName(column), names)} />
-                      ) : (
-                        <Icon.Check className="mx-auto size-3.5 text-success" label={t.coverage.cell(row.key, columnName(column), names)} />
-                      ))}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }

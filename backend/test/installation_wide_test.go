@@ -59,6 +59,7 @@ var installationWide = map[string]string{
 	"TestRawSQLKeepsWebhooksToAdministrators":                    webhookEndpoints,
 	"TestTheBootstrapConnectsArmatureOnce":                       armatureLink,
 	"TestTheMatrixLaysOutTheLinks":                               armatureLink,
+	"TestTheMatrixTakesItsAxesLinkTypesAndDirection":             armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,

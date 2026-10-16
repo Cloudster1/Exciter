@@ -1,14 +1,11 @@
 package trace
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"net/url"
 	"slices"
-	"strconv"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,7 +13,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
-	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
 
@@ -266,7 +262,7 @@ func (s *Service) Coverage(ctx context.Context, reader uuid.UUID, projectKey str
 		if all, cached = s.coverage.Get(ctx, p.ID, reader, f); cached {
 			return nil
 		}
-		kept, err := search.Keep(ctx, tx, reader, p, f)
+		kept, err := search.Keep(ctx, tx, reader, p, f, search.Sort{})
 		if err != nil {
 			return err
 		}
@@ -293,190 +289,4 @@ func window[T any](all []T, limit, offset int) []T {
 		return []T{}
 	}
 	return all[offset:min(len(all), offset+limit)]
-}
-
-// TooWideError refuses a matrix with more columns than MatrixMaxColumns.
-type TooWideError struct{ Columns int }
-
-func (e *TooWideError) Error() string {
-	return fmt.Sprintf("These requirements reach %d columns, more than the %d a matrix shows. Narrow the filter, or page fewer rows.",
-		e.Columns, MatrixMaxColumns)
-}
-
-// Matrix answers a window of the requirements of a project f keeps, in outline order, against the requirements
-// of columnProject, the same project when empty, or the Armature issues they link to.
-func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey string, f search.Filter, columns MatrixColumns, columnProject string, limit, offset int) (*Matrix, error) {
-	if columns == "" {
-		columns = ColumnsRequirements
-	}
-	if !slices.Contains(MatrixColumnKinds, columns) {
-		return nil, &FieldError{Field: "columns", Message: "Show requirements or issues as the columns."}
-	}
-	out := &Matrix{Rows: []requirement.Ref{}, Columns: []MatrixColumn{}, Cells: []MatrixCell{}, Limit: limit, Offset: offset}
-	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		p, err := project.Find(ctx, tx, reader, projectKey)
-		if err != nil {
-			return err
-		}
-		other := p
-		if columns == ColumnsRequirements && columnProject != "" && !strings.EqualFold(columnProject, p.Key) {
-			if other, err = project.Find(ctx, tx, reader, columnProject); errors.Is(err, project.ErrNotFound) {
-				return &FieldError{Field: "columnProject", Message: "There is no such project you can see. Pick the columns' project from the list."}
-			} else if err != nil {
-				return err
-			}
-		}
-		kept, err := search.Keep(ctx, tx, reader, p, f)
-		if err != nil {
-			return err
-		}
-		out.Total = len(kept)
-		page := window(kept, limit, offset)
-		at := map[uuid.UUID]int{}
-		for i, k := range page {
-			out.Rows = append(out.Rows, k.Ref)
-			at[k.Ref.ID] = i
-		}
-		if len(page) == 0 {
-			return nil
-		}
-		if columns == ColumnsIssues {
-			return issueColumns(ctx, tx, out, at)
-		}
-		return requirementColumns(ctx, tx, reader, other, out, at)
-	})
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// cellsOf gathers the links found into cells, each once per row and column, in the columns' order.
-type cellsOf map[[2]int][]MatrixLink
-
-func (c cellsOf) add(row, column int, l MatrixLink) {
-	c[[2]int{row, column}] = append(c[[2]int{row, column}], l)
-}
-
-func (c cellsOf) into(m *Matrix) {
-	for at, links := range c {
-		m.Cells = append(m.Cells, MatrixCell{Row: at[0], Column: at[1], Links: links})
-	}
-	slices.SortFunc(m.Cells, func(a, b MatrixCell) int { return cmp.Or(cmp.Compare(a.Row, b.Row), cmp.Compare(a.Column, b.Column)) })
-}
-
-// requirementColumns adds the requirements of the column project the rows link to, either way, in outline order.
-func requirementColumns(ctx context.Context, tx db.DBTX, reader uuid.UUID, other *project.Project, m *Matrix, at map[uuid.UUID]int) error {
-	ids := make([]uuid.UUID, 0, len(at))
-	for id := range at {
-		ids = append(ids, id)
-	}
-	rows, err := tx.Query(ctx, requirement.WalkTree+`
-		SELECT row_end.id, c.id, c.number, c.title, c.revision, c.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
-		       lt.name, v.suspect
-		FROM trace_link_state v
-		JOIN link_type lt ON lt.id = v.type_id
-		CROSS JOIN LATERAL (VALUES (v.source_id, v.target_id), (v.target_id, v.source_id)) AS row_end (id, other_id)
-		JOIN walk w ON w.id = row_end.other_id
-		JOIN requirement c ON c.id = w.id
-		LEFT JOIN req_status st ON st.id = c.status_id
-		WHERE row_end.id = ANY ($2) AND perm_requirement_viewable(c.id, $3)
-		ORDER BY w.path, lt.name, v.id`, other.ID, ids, reader)
-	if err != nil {
-		return fmt.Errorf("read the matrix's links: %w", err)
-	}
-	defer rows.Close()
-	columnAt := map[uuid.UUID]int{}
-	cells := cellsOf{}
-	for rows.Next() {
-		var (
-			rowID    uuid.UUID
-			statusID *uuid.UUID
-			ref      requirement.Ref
-			number   int
-			status   requirement.StatusRef
-			link     MatrixLink
-		)
-		if err := rows.Scan(&rowID, &ref.ID, &number, &ref.Title, &ref.Revision, &statusID, &status.Name, &status.Category,
-			&link.Name, &link.Suspect); err != nil {
-			return err
-		}
-		column, seen := columnAt[ref.ID]
-		if !seen {
-			ref.ProjectKey, ref.Kind, ref.Key = other.Key, requirement.KindRequirement, requirement.Key(other.Key, number)
-			if statusID != nil {
-				status.ID = *statusID
-				ref.Status = &status
-			}
-			column = len(m.Columns)
-			columnAt[ref.ID] = column
-			m.Columns = append(m.Columns, MatrixColumn{Requirement: &ref})
-		}
-		cells.add(at[rowID], column, link)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if len(m.Columns) > MatrixMaxColumns {
-		return &TooWideError{Columns: len(m.Columns)}
-	}
-	cells.into(m)
-	return nil
-}
-
-// issueColumns adds the Armature issues the rows are traced to, neither broken nor detached, by project and number.
-func issueColumns(ctx context.Context, tx db.DBTX, m *Matrix, at map[uuid.UUID]int) error {
-	ids := make([]uuid.UUID, 0, len(at))
-	for id := range at {
-		ids = append(ids, id)
-	}
-	rows, err := tx.Query(ctx, `
-		SELECT l.requirement_id, l.issue_key, l.relation, r.revision > l.reviewed_rev
-		FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id
-		WHERE l.requirement_id = ANY ($1) AND l.broken_at IS NULL AND l.detached_at IS NULL
-		ORDER BY l.relation, l.id`, ids)
-	if err != nil {
-		return fmt.Errorf("read the matrix's Armature links: %w", err)
-	}
-	type found struct {
-		row  uuid.UUID
-		key  string
-		link MatrixLink
-	}
-	all, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (found, error) {
-		var f found
-		err := row.Scan(&f.row, &f.key, &f.link.Name, &f.link.Suspect)
-		return f, err
-	})
-	if err != nil {
-		return err
-	}
-	var keys []string
-	for _, f := range all {
-		if !slices.Contains(keys, f.key) {
-			keys = append(keys, f.key)
-		}
-	}
-	if len(keys) > MatrixMaxColumns {
-		return &TooWideError{Columns: len(keys)}
-	}
-	slices.SortFunc(keys, compareIssueKeys)
-	cells := cellsOf{}
-	for _, f := range all {
-		cells.add(at[f.row], slices.Index(keys, f.key), f.link)
-	}
-	for _, k := range keys {
-		m.Columns = append(m.Columns, MatrixColumn{IssueKey: k})
-	}
-	cells.into(m)
-	return nil
-}
-
-// compareIssueKeys orders issue keys by their project, then by number, so ABC-9 comes before ABC-10.
-func compareIssueKeys(a, b string) int {
-	ap, an, _ := strings.Cut(a, "-")
-	bp, bn, _ := strings.Cut(b, "-")
-	x, _ := strconv.ParseUint(an, 10, 64)
-	y, _ := strconv.ParseUint(bn, 10, 64)
-	return cmp.Or(cmp.Compare(ap, bp), cmp.Compare(x, y))
 }

@@ -1523,7 +1523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to. */
+        /** A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to. */
         get: operations["traceMatrix"];
         put?: never;
         post?: never;
@@ -4158,8 +4158,15 @@ export interface components {
             requirement: components["schemas"]["RequirementRef"] | null;
         };
         MatrixLink: {
+            /** @enum {string} */
+            direction: "outgoing" | "incoming";
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "trace" | "armature" | "stator";
             name: string;
             suspect: boolean;
+            typeKey?: string;
         };
         MatrixPage: {
             /** Format: uuid */
@@ -4167,6 +4174,19 @@ export interface components {
             spaceKey: string;
             title?: string;
             url: string;
+        };
+        MatrixRow: {
+            canLink: boolean;
+            /** Format: uuid */
+            id: string;
+            key: string;
+            /** @enum {string} */
+            kind: "requirement" | "section";
+            projectKey: string;
+            revision: number;
+            status: components["schemas"]["StatusRef"] | null;
+            title: string;
+            trashed: boolean;
         };
         MeResponse: {
             installation: components["schemas"]["Installation"];
@@ -5179,7 +5199,7 @@ export interface components {
             columns: components["schemas"]["MatrixColumn"][];
             limit: number;
             offset: number;
-            rows: components["schemas"]["RequirementRef"][];
+            rows: components["schemas"]["MatrixRow"][];
             total: number;
         };
         TraceModel: {
@@ -10490,6 +10510,12 @@ export interface operations {
                 columns?: "requirements" | "issues";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the relations to count; every one when absent. */
+                relation?: ("implements" | "verifies" | "relates")[];
                 /** @description 1 to 200; 50 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */
@@ -10576,6 +10602,12 @@ export interface operations {
                 columns?: "requirements" | "issues";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the relations to count; every one when absent. */
+                relation?: ("implements" | "verifies" | "relates")[];
             };
             header?: never;
             path: {
@@ -10656,6 +10688,12 @@ export interface operations {
                 columns?: "requirements" | "issues";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the relations to count; every one when absent. */
+                relation?: ("implements" | "verifies" | "relates")[];
             };
             header?: never;
             path: {

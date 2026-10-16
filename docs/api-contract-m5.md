@@ -72,6 +72,21 @@ the new parameters gets #38's matrix, with more fields in it.
   relations. The whole setup is the page's address, so a link shares it and a
   reload keeps it, and the download carries it.
 
+- **As built** (#147):
+  - The matrix moved to `internal/trace/matrix.go` and takes a
+    `trace.MatrixQuery`. `search.Keep` takes the grid's order, sharing
+    `orderBy` with the grid, and reads whether the reader edits each row.
+  - A link type is any key the installation or either axis's project has,
+    turned off for the project or not: links of a type turned off stay, and
+    the matrix still shows them. Link types with issue columns, and
+    relations with requirement columns, are 422 on their field rather than
+    ignored, so a setup never narrows by something it cannot.
+  - Relations are checked against Armature's in the handler, since
+    `internal/trace` sits below `internal/armature`.
+  - The web page's address holds the grid's narrowing and order, `columns`
+    only when it is `issues`, and only what fits those columns; the link
+    types and relations are pressed chips, none pressed counting all.
+
 ## #148 Gaps
 
 | Operation | Needs | Answers |

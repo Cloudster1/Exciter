@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, IMPORT_POLL_MS } from "@/config";
-import { api } from "./client";
+import { api, queryString } from "./client";
 import type { components } from "./schema";
 import type { GridParams } from "./search";
 
@@ -78,13 +78,5 @@ export function useImportActions(id: string) {
 
 /** Where a project's grid downloads as CSV, narrowed and ordered as shown, with the columns asked for. */
 export function exportHref(projectKey: string, params: GridParams, columns: string[]): string {
-  const query = new URLSearchParams();
-  for (const [name, value] of Object.entries(params)) {
-    for (const each of Array.isArray(value) ? value : [value]) {
-      if (each !== undefined && each !== null) query.append(name, String(each));
-    }
-  }
-  for (const column of columns) query.append("column", column);
-  const rest = query.toString();
-  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/export.csv${rest ? `?${rest}` : ""}`;
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/export.csv${queryString({ ...params, column: columns })}`;
 }
