@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // TopicTaken is a baseline taken of a project.
@@ -68,7 +69,7 @@ func checkDescription(description string) (string, error) {
 const selectBaseline = `
 SELECT b.id, p.key, b.name, b.description, b.root_id, b.root_number, COALESCE(r.kind, 'section'), COALESCE(r.title, ''),
        COALESCE(r.revision, 0), r.trashed_at IS NOT NULL, (SELECT count(*)::int FROM baseline_item i WHERE i.baseline_id = b.id),
-       b.locked_at, COALESCE(u.name, ''), b.created_at, b.project_id
+       b.locked_at, COALESCE(u.name, ''), b.created_at, b.detail, b.project_id
 FROM baseline b
 JOIN project p ON p.id = b.project_id
 LEFT JOIN requirement r ON r.id = b.root_id
@@ -88,7 +89,7 @@ func scanBaseline(row pgx.CollectableRow) (found, error) {
 		root       requirement.Ref
 	)
 	err := row.Scan(&f.ID, &f.ProjectKey, &f.Name, &f.Description, &rootID, &rootNumber, &root.Kind, &root.Title, &root.Revision,
-		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.projectID)
+		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.Detail, &f.projectID)
 	if rootID != nil && rootNumber != nil {
 		root.ID, root.ProjectKey, root.Key = *rootID, f.ProjectKey, requirement.Key(f.ProjectKey, *rootNumber)
 		f.Root = &root
@@ -187,26 +188,32 @@ const takeItems = requirement.WalkTree + `, scope AS (
 	SELECT c.id FROM requirement c JOIN scope s ON c.parent_id = s.id WHERE c.trashed_at IS NULL
 )
 INSERT INTO baseline_item (baseline_id, requirement_id, number, kind, revision, parent_id, rank, path, status_id, status_name,
-                           status_category)
-SELECT $2, r.id, r.number, r.kind, r.revision, r.parent_id, r.rank, w.path, r.status_id, st.name, st.category
+                           status_category, type_id)
+SELECT $2, r.id, r.number, r.kind, r.revision, r.parent_id, r.rank, w.path, r.status_id, st.name, st.category, r.type_id
 FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id
 WHERE $3::uuid IS NULL OR w.id IN (SELECT id FROM scope)`
 
-// takeLinks records the live trace links between two of the baseline's items, and takeExternal the Armature links
-// of its items.
+// takeLinks records the trace links between the baseline's items, takeExternal and takePages their Armature and
+// Stator links neither broken nor detached, each with its suspect state and, since #153, its status and type's key.
 const (
 	takeLinks = `
-INSERT INTO baseline_link (baseline_id, link_id, type_id, type_name, source_id, target_id)
-SELECT $1, l.id, l.type_id, lt.name, l.source_id, l.target_id
-FROM trace_link l JOIN link_type lt ON lt.id = l.type_id
-WHERE l.deleted_at IS NULL
-  AND l.source_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)
+INSERT INTO baseline_link (baseline_id, link_id, type_id, type_name, source_id, target_id, type_key, suspect)
+SELECT $1, l.id, l.type_id, lt.name, l.source_id, l.target_id, lt.key, l.suspect
+FROM trace_link_state l JOIN link_type lt ON lt.id = l.type_id
+WHERE l.source_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)
   AND l.target_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)`
 	takeExternal = `
-INSERT INTO baseline_external_link (baseline_id, link_id, requirement_id, issue_key, relation)
-SELECT $1, a.id, a.requirement_id, a.issue_key, a.relation
-FROM armature_issue_link a
-WHERE a.requirement_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)`
+INSERT INTO baseline_external_link (baseline_id, link_id, requirement_id, issue_key, relation, status_category, suspect)
+SELECT $1, a.id, a.requirement_id, a.issue_key, a.relation, a.status_category, r.revision > a.reviewed_rev
+FROM armature_issue_link a JOIN requirement r ON r.id = a.requirement_id
+WHERE a.requirement_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)
+  AND a.broken_at IS NULL AND a.detached_at IS NULL`
+	takePages = `
+INSERT INTO baseline_page_link (baseline_id, link_id, requirement_id, relation, page_id, space_key, url, suspect)
+SELECT $1, l.id, l.requirement_id, l.relation, l.page_id, l.space_key, l.url, ` + trace.StatorSuspectSQL + `
+FROM stator_page_link l JOIN requirement r ON r.id = l.requirement_id
+WHERE l.requirement_id IN (SELECT requirement_id FROM baseline_item WHERE baseline_id = $1)
+  AND l.broken_at IS NULL AND l.detached_at IS NULL`
 )
 
 // Take records a baseline of the project, or of one section's subtree, in one transaction that reads the database as
@@ -232,16 +239,16 @@ func (s *Service) Take(ctx context.Context, actor uuid.UUID, projectKey string, 
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO baseline (project_id, name, description, root_id, root_number, created_by)
-			VALUES ($1, $2, $3, $4, (SELECT number FROM requirement WHERE id = $4), $5) RETURNING id`,
-			p.ID, name, description, root, actor).Scan(&id)
+			INSERT INTO baseline (project_id, name, description, root_id, root_number, created_by, detail)
+			VALUES ($1, $2, $3, $4, (SELECT number FROM requirement WHERE id = $4), $5, $6) RETURNING id`,
+			p.ID, name, description, root, actor, DetailFull).Scan(&id)
 		if err != nil {
 			return nameRefusal(err)
 		}
 		for _, step := range []struct {
 			sql  string
 			args []any
-		}{{takeItems, []any{p.ID, id, root}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}} {
+		}{{takeItems, []any{p.ID, id, root}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}}} {
 			if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 				return fmt.Errorf("take the baseline: %w", err)
 			}

@@ -39,11 +39,11 @@ var traceabilityOperations = []operation{
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
 	// A baseline's traceability matrix (#153), agreed in docs/api-contract-m5.md.
-	{method: "GET", path: "/baselines/{baselineID}/matrix", handler: "handleBaselineMatrix", tag: "baselines", pending: true,
+	{method: "GET", path: "/baselines/{baselineID}/matrix", handler: "handleBaselineMatrix", tag: "baselines",
 		summary:   "A page of a baseline's requirements against what they linked to when it was taken, marked against another baseline or now when compared.",
 		query:     append(append([]param{}, baselineMatrixQuery...), windowQuery(trace.MatrixDefaultLimit, trace.MatrixMaxLimit)...),
 		responses: map[int]any{http.StatusOK: env{"matrix": baseline.Matrix{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/baselines/{baselineID}/matrix.csv", handler: "handleBaselineMatrixCSV", tag: "baselines", pending: true,
+	{method: "GET", path: "/baselines/{baselineID}/matrix.csv", handler: "handleBaselineMatrixCSV", tag: "baselines",
 		summary: "A baseline's traceability matrix as a CSV file, every requirement it holds.",
 		query:   baselineMatrixQuery,
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
@@ -61,8 +61,8 @@ var chainQuery = []param{
 
 // baselineMatrixQuery says what a baseline's matrix is laid out against, and what it is compared with.
 var baselineMatrixQuery = []param{
-	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.LevelKinds)}, description: "requirements, the default, issues or pages."},
+	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, issues or pages."},
 	{name: "linkType", repeated: true, description: "Keys of the link types to count; every type when absent."},
-	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: []string{string(trace.Outgoing), string(trace.Incoming), "both"}}, description: "Which way a link must point from its row: outgoing, incoming, or both, the default."},
+	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixDirections)}, description: "Which way a link must point from its row: outgoing, incoming, or both, the default."},
 	{name: "with", description: "Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent."},
 }

@@ -247,7 +247,7 @@ func step(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 			add(from, n)
 		}
 		for from := range found {
-			slices.SortFunc(found[from], func(a, b ChainNode) int { return compareIssueKeys(a.IssueKey, b.IssueKey) })
+			slices.SortFunc(found[from], func(a, b ChainNode) int { return CompareIssueKeys(a.IssueKey, b.IssueKey) })
 		}
 		return found, rows.Err()
 	default:

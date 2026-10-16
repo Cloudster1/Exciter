@@ -119,7 +119,7 @@ func issueLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, relations []s
 			keys = append(keys, x.key)
 		}
 	}
-	slices.SortFunc(keys, compareIssueKeys)
+	slices.SortFunc(keys, CompareIssueKeys)
 	for _, k := range keys {
 		l.columns = append(l.columns, MatrixColumn{IssueKey: k})
 	}

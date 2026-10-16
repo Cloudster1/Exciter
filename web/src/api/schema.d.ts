@@ -3581,6 +3581,7 @@ export interface components {
             createdAt: string;
             createdByName: string;
             description: string;
+            detail: number;
             /** Format: uuid */
             id: string;
             items: number;
@@ -3656,7 +3657,7 @@ export interface components {
         BaselineMatrixLink: {
             /** @enum {string} */
             change?: "added" | "removed" | "changed";
-            direction?: string;
+            direction: string;
             /** @enum {string} */
             kind: "trace" | "armature" | "stator";
             name: string;
@@ -7272,7 +7273,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
                 /** @description 1 to 200; 50 when absent. */
@@ -7308,15 +7309,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -7336,7 +7328,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
             };
@@ -7366,15 +7358,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -7394,7 +7377,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
             };

@@ -3,6 +3,17 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Baselines record more from now on, and null means not recorded (#153)
+
+- **No backfill.** An older baseline's suspect state or status at the time
+  it was taken cannot be known now, so its columns stay null and the page
+  says "not recorded" rather than guess.
+- **Broken and detached links are not recorded.** They trace nothing at the
+  moment a baseline is taken, as the matrix leaves them out; comparisons
+  read now the same way, so both sides agree on what a link is.
+- **Links compare by id.** A link removed and made again is a new link, so
+  a comparison shows one removed and one added, which is what happened.
+
 ## 2026-10-16: Chains follow levels of their own types, shown as a range (#151)
 
 - **A type sits in one level.** The levels then hold different

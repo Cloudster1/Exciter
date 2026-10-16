@@ -438,6 +438,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/baselines/{baselineID}", s.handleDeleteBaseline)
 			r.Get("/baselines/{baselineID}/spec", s.handleBaselineSpec)
 			r.Get("/baselines/{baselineID}/compare", s.handleCompareBaseline)
+			r.Get("/baselines/{baselineID}/matrix", s.handleBaselineMatrix)
+			r.Get("/baselines/{baselineID}/matrix.csv", s.handleBaselineMatrixCSV)
 		})
 
 		// Outbound webhooks (#48): the installation's administrators', a token held to some projects refused by wholeOrg.
