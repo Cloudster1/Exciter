@@ -3,6 +3,31 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Themes are proven to travel with the partners' own files (#59)
+
+- **Real exports, not examples.** A theme was made with a file in a running
+  Armature and in a running Stator, and their exports are vendored byte for
+  byte with the build they came from. Examples written by hand could carry
+  what no export does, such as a trailing newline in the CSS, which all
+  three trim as they save; the comparison trims it the same way.
+- **The round trip compares what a theme says.** An import gives files new
+  ids, so files are compared by order, name, type and bytes, and the spec
+  with each id replaced by its file's place.
+- **Exciter's file is a golden export.** It is made through the API from a
+  fixed theme and compared with the committed copy on every run; rewriting
+  it is a switch, so a change to the export is a decision, after which
+  Armature and Stator vendor it again (Cloudster1/Armature#295,
+  praetorianer777/Stator#443).
+- **No tokens of Exciter's own yet.** All three name the same 44 tokens. A
+  token a later version adds travels through the others because each keeps
+  any well-formed name and draws only what its stylesheet has; the tests
+  prove that path now, so the first token one product adds does not need
+  the others to move first.
+- **The lists are vendored, not fetched.** A test that fetched the partners'
+  files would fail whenever they change and need the network; vendoring with
+  the commit makes following them a deliberate step, as `make
+  stator-openapi` is.
+
 ## 2026-10-16: Reuse is a locked copy that follows its library source (#49)
 
 - **A copy, not a pointer.** A reuse keeps its own words, written by a take,

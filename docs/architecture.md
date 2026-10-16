@@ -255,6 +255,14 @@ app role holds no privilege on.
   rewrites the spec and the CSS to name them. The examples and Armature's
   own theme files (`internal/theme/testdata`, byte for byte) are tested to
   validate.
+- **One family** (#59): `internal/theme/testdata` also holds a theme exported
+  from a running Armature and one from a running Stator, each pinned by its
+  hash and its commit, and Exciter's own export, which
+  `TestExcitersExportIsTheCommittedFixture` keeps current
+  (`EXCITER_UPDATE_FIXTURES=1`). Each imports and exports again the same.
+  `make theme-tokens` vendors the token names of the other two to
+  `api/{armature,stator}/theme-tokens.json`, and a vitest test holds
+  Exciter's list to both.
 - `theme` is its maker's: through the app role a person sees their own
   themes and the shared ones, changes their own or, as an administrator, a
   shared one, and never takes one over. `user_theme` is each person's
