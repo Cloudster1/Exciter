@@ -380,6 +380,8 @@ export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;
 export const COVERAGE_PAGE_SIZE = 50;
 /** How many requirements one page of a traceability matrix holds, the API's trace.MatrixDefaultLimit. */
 export const MATRIX_PAGE_SIZE = 50;
+/** How many columns a page of the matrix shows (#148), within the server's 500. */
+export const MATRIX_COLUMN_PAGE_SIZE = 100;
 
 /** How long a print view stays quiet, nothing loading or drawing, before it says it is ready to print. */
 export const PRINT_SETTLE_MS = 300;

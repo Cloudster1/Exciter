@@ -14,8 +14,9 @@ const (
 	CoverageMaxLimit     = 500
 	MatrixDefaultLimit   = 50
 	MatrixMaxLimit       = 200
-	// MatrixMaxColumns bounds the columns one matrix answers; the rows are paged.
-	MatrixMaxColumns = 500
+	// MatrixMaxColumns bounds the columns of one page, and of a file, which holds every column.
+	MatrixMaxColumns         = 500
+	MatrixColumnDefaultLimit = 100
 )
 
 // Dimension is one way a requirement is covered.

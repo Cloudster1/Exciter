@@ -117,6 +117,21 @@ the new parameters gets #38's matrix, with more fields in it.
 - **UI.** A column filter beside the rows', the counts at the end of each row
   and the foot of each column, empty ones marked, and an "only gaps" choice.
 
+- **As built** (#148):
+  - The matrix reads every link between the rows kept and the columns it
+    may show in one query, `internal/trace/matrix_layout.go`, and pages
+    both after counting, so the counts and gaps cover the whole matrix.
+    Without a column filter the columns may be any requirement of the
+    column project, shown when the page's rows reach them.
+  - A refused column query is 400 `bad_query` with its position and
+    `fields.columnQuery`, so the page shows it under the column filter's
+    box. A refused `columnType` is 422 on `columnType`.
+  - The file holds every column, refusing more than 500 with 422 asking for
+    a narrower filter, and its second line and third column are the counts.
+  - On the page, the column query offers words of the column project, the
+    column types are chips, and "Only gaps" offers columns and both only
+    once a column filter is set; the address drops them otherwise.
+
 ## #149 Links made, removed and cleared in a cell
 
 No new operations: a cell is a place to call the ones a requirement page

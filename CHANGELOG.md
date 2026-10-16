@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The matrix shows its gaps (#148). A column filter, a query and types
+  over the column project, makes the columns what it keeps, linked or not;
+  columns are paged as rows are; every row and column shows its count of
+  links, a gap marked; and "Only gaps" keeps the rows, the columns, or
+  both, without a link. The CSV carries the counts as its second line and
+  third column.
 - The traceability matrix has its own page (#147), `/p/<KEY>/matrix`,
   reached from Coverage. Its rows are narrowed and ordered as in the grid,
   and it counts only the link types, the direction and, for Armature issue

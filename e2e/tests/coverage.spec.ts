@@ -57,6 +57,6 @@ test.describe("coverage", { tag: "@desktop" }, () => {
     const download = page.waitForEvent("download");
     await page.getByRole("link", { name: "Download CSV" }).click();
     const file = await readFile((await (await download).path()) ?? "", "utf8");
-    expect(file).toContain(`${KEY}-R2,Brake pedal reads within 10 ms,Derives`);
+    expect(file).toContain(`${KEY}-R2,Brake pedal reads within 10 ms,1,Derives`);
   });
 });

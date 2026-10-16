@@ -7555,6 +7555,39 @@
             }
           },
           {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "1 to 200; 50 when absent.",
@@ -7564,6 +7597,22 @@
           },
           {
             "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "columnLimit",
+            "in": "query",
+            "description": "1 to 500; 100 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "columnOffset",
             "in": "query",
             "description": "0 or later; 0 when absent.",
             "schema": {
@@ -7626,7 +7675,7 @@
     "/projects/{projectKey}/matrix.csv": {
       "get": {
         "operationId": "traceMatrixCSV",
-        "summary": "The traceability matrix as a CSV file, every row the filter keeps.",
+        "summary": "The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links.",
         "tags": [
           "coverage"
         ],
@@ -7845,6 +7894,39 @@
                   "relates"
                 ]
               }
+            }
+          },
+          {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
             }
           }
         ],
@@ -8115,6 +8197,39 @@
                   "relates"
                 ]
               }
+            }
+          },
+          {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
             }
           }
         ],
@@ -24504,6 +24619,21 @@
               "$ref": "#/components/schemas/MatrixCell"
             }
           },
+          "columnLimit": {
+            "type": "integer"
+          },
+          "columnLinks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "columnOffset": {
+            "type": "integer"
+          },
+          "columnTotal": {
+            "type": "integer"
+          },
           "columns": {
             "type": "array",
             "items": {
@@ -24515,6 +24645,12 @@
           },
           "offset": {
             "type": "integer"
+          },
+          "rowLinks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
           },
           "rows": {
             "type": "array",
@@ -24530,9 +24666,14 @@
           "rows",
           "columns",
           "cells",
+          "rowLinks",
+          "columnLinks",
           "total",
           "limit",
-          "offset"
+          "offset",
+          "columnTotal",
+          "columnLimit",
+          "columnOffset"
         ]
       },
       "TraceModel": {

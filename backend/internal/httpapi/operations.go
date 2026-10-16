@@ -956,11 +956,12 @@ var operations = []operation{
 		responses: map[int]any{http.StatusOK: env{"summary": trace.CoverageSummary{}, "rows": []trace.CoverageRow{}, "total": 0, "limit": 0, "offset": 0},
 			http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/projects/{projectKey}/matrix", handler: "handleTraceMatrix", tag: "coverage",
-		summary:   "A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to.",
-		query:     append(append([]param{}, gridQuery...), append(matrixQuery, windowQuery(trace.MatrixDefaultLimit, trace.MatrixMaxLimit)...)...),
+		summary: "A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to.",
+		query: append(append(append([]param{}, gridQuery...), matrixQuery...),
+			append(windowQuery(trace.MatrixDefaultLimit, trace.MatrixMaxLimit), matrixColumnWindow...)...),
 		responses: map[int]any{http.StatusOK: env{"matrix": trace.Matrix{}}, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/projects/{projectKey}/matrix.csv", handler: "handleTraceMatrixCSV", tag: "coverage",
-		summary: "The traceability matrix as a CSV file, every row the filter keeps.",
+		summary: "The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links.",
 		query:   append(append([]param{}, gridQuery...), matrixQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 }
@@ -980,6 +981,16 @@ var matrixQuery = []param{
 	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixDirections)},
 		description: "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either."},
 	{name: "relation", repeated: true, schema: &openapi.Schema{Type: "string", Enum: enumStrings(armature.Relations)}, description: "For issue columns, the relations to count; every one when absent."},
+	{name: "columnQuery", description: "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery."},
+	{name: "columnType", repeated: true, schema: uuidParam, description: "For requirement columns, requirement types of the column project the columns are kept to, linked or not."},
+	{name: "gaps", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.GapKinds)},
+		description: "Keep only the rows, the columns, or both, without a link; columns and both need a column filter."},
+}
+
+// matrixColumnWindow pages a matrix's columns as limit and offset page its rows.
+var matrixColumnWindow = []param{
+	{name: "columnLimit", schema: intParam, description: "1 to " + strconv.Itoa(trace.MatrixMaxColumns) + "; " + strconv.Itoa(trace.MatrixColumnDefaultLimit) + " when absent."},
+	{name: "columnOffset", schema: intParam, description: "0 or later; 0 when absent."},
 }
 
 var intParam = &openapi.Schema{Type: "integer"}
