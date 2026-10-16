@@ -17,6 +17,7 @@ import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
 import { matrixEn } from "./matrix.en";
+import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
@@ -311,6 +312,7 @@ export const en = {
       "specification.exported": "Specification exported",
       "project.signatures_set": "Signed approvals changed",
       "project.library_set": "Library changed",
+      "trace_model.saved": "Trace model saved",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -354,6 +356,7 @@ export const en = {
   baseline: baselineEn,
   coverage: coverageEn,
   matrix: matrixEn,
+  chains: chainsEn,
   imports: importsEn,
   reqif: reqifEn,
   documents: documentsEn,

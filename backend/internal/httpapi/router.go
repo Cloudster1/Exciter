@@ -354,6 +354,11 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
 			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
 			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)
+			// The trace model and its chains (#151): read by a project's readers, set by its administrators.
+			r.Get("/projects/{projectKey}/trace-model", s.handleGetTraceModel)
+			r.Put("/projects/{projectKey}/trace-model", s.handleSaveTraceModel)
+			r.Get("/projects/{projectKey}/trace-chains", s.handleTraceChains)
+			r.Get("/projects/{projectKey}/trace-chains.csv", s.handleTraceChainsCSV)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

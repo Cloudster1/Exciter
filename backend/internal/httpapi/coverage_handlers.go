@@ -182,8 +182,7 @@ func (s *Server) handleTraceMatrixCSV(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(buf.Bytes())
 }
 
-// titlePages names a matrix's page columns as the reader sees them in Stator, for a file nobody reads beside the
-// web client's lookup; a page Stator does not show them keeps no title, and the file names it by space and id.
+// titlePages names a matrix's page columns as the reader sees them in Stator, for a file.
 func (s *Server) titlePages(r *http.Request, m *trace.Matrix) {
 	var ids []uuid.UUID
 	for _, c := range m.Columns {
@@ -191,14 +190,31 @@ func (s *Server) titlePages(r *http.Request, m *trace.Matrix) {
 			ids = append(ids, c.Page.ID)
 		}
 	}
-	if s.Stator == nil {
-		return
+	titles := s.pageTitles(r, ids)
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			c.Page.Title = titles[c.Page.ID]
+		}
 	}
+}
+
+// pageTitles looks pages up in Stator as the reader, for a file nobody reads beside the web client's lookup; a page
+// Stator does not show them has no title, and the file names it by space and id.
+func (s *Server) pageTitles(r *http.Request, ids []uuid.UUID) map[uuid.UUID]string {
 	titles := map[uuid.UUID]string{}
-	for batch := range slices.Chunk(ids, stator.MaxLookupPages) {
+	if s.Stator == nil || len(ids) == 0 {
+		return titles
+	}
+	var distinct []uuid.UUID
+	for _, id := range ids {
+		if !slices.Contains(distinct, id) {
+			distinct = append(distinct, id)
+		}
+	}
+	for batch := range slices.Chunk(distinct, stator.MaxLookupPages) {
 		status, found, err := s.Stator.Lookup(r.Context(), batch)
 		if err != nil || status != stator.StatusOK {
-			return
+			return titles
 		}
 		for _, each := range found {
 			if each.Page != nil {
@@ -206,9 +222,5 @@ func (s *Server) titlePages(r *http.Request, m *trace.Matrix) {
 			}
 		}
 	}
-	for _, c := range m.Columns {
-		if c.Page != nil {
-			c.Page.Title = titles[c.Page.ID]
-		}
-	}
+	return titles
 }

@@ -15,6 +15,7 @@ import { suspectDe } from "./suspect.de";
 import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
 import { matrixDe } from "./matrix.de";
+import { chainsDe } from "./chains.de";
 import { reuseDe } from "./reuse.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
@@ -312,6 +313,7 @@ export const de: Messages = {
       "specification.exported": "Spezifikation exportiert",
       "project.signatures_set": "Signierte Genehmigungen geändert",
       "project.library_set": "Bibliothek geändert",
+      "trace_model.saved": "Verfolgungsmodell gespeichert",
     },
     targetTypes: {
       user: "Person",
@@ -355,6 +357,7 @@ export const de: Messages = {
   baseline: baselineDe,
   coverage: coverageDe,
   matrix: matrixDe,
+  chains: chainsDe,
   imports: importsDe,
   reqif: reqifDe,
   documents: documentsDe,
