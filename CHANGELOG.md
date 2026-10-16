@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The traceability matrix has its own page (#147), `/p/<KEY>/matrix`,
+  reached from Coverage. Its rows are narrowed and ordered as in the grid,
+  and it counts only the link types, the direction and, for Armature issue
+  columns, the relations you pick. The whole layout is in the page's
+  address and in its CSV download. Each cell's links now say their id,
+  kind, type and direction, and each row whether you may link it.
 - The API contract for M5, Traceability (#146): `docs/api-contract-m5.md`
   agrees how the matrix gains chosen axes and link types, gaps, links made
   in its cells and Stator page columns, a project's trace model and its

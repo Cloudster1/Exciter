@@ -14,6 +14,7 @@ import { reviewDe } from "./reviews.de";
 import { suspectDe } from "./suspect.de";
 import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
+import { matrixDe } from "./matrix.de";
 import { reuseDe } from "./reuse.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
@@ -353,6 +354,7 @@ export const de: Messages = {
   suspect: suspectDe,
   baseline: baselineDe,
   coverage: coverageDe,
+  matrix: matrixDe,
   imports: importsDe,
   reqif: reqifDe,
   documents: documentsDe,

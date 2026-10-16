@@ -10,7 +10,7 @@ import (
 
 func TestAMatrixFileNamesTheLinksOfEachCell(t *testing.T) {
 	m := &trace.Matrix{
-		Rows:    []requirement.Ref{{Key: "CHK-R1", Title: "=Brakes"}, {Key: "CHK-R2", Title: "Lights"}},
+		Rows:    []trace.MatrixRow{{Ref: requirement.Ref{Key: "CHK-R1", Title: "=Brakes"}}, {Ref: requirement.Ref{Key: "CHK-R2", Title: "Lights"}}},
 		Columns: []trace.MatrixColumn{{IssueKey: "WEB-1"}, {IssueKey: "WEB-2"}},
 		Cells: []trace.MatrixCell{
 			{Row: 0, Column: 1, Links: []trace.MatrixLink{{Name: "implements"}, {Name: "verifies", Suspect: true}}},

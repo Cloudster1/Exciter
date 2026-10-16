@@ -84,58 +84,6 @@ type CoverageRow struct {
 	Verified    Level           `json:"verified"`
 }
 
-// MatrixColumns says what a matrix's columns are.
-type MatrixColumns string
-
-const (
-	ColumnsRequirements MatrixColumns = "requirements"
-	ColumnsIssues       MatrixColumns = "issues"
-)
-
-// MatrixColumnKinds lists every MatrixColumns, for the API document.
-var MatrixColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues}
-
-// LinkKind says what a link of a matrix's cell is: a trace link, or a link to an Armature issue or a Stator page.
-type LinkKind string
-
-const (
-	KindTrace    LinkKind = "trace"
-	KindArmature LinkKind = "armature"
-	KindStator   LinkKind = "stator"
-)
-
-// LinkKinds lists every LinkKind, for the API document.
-var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator}
-
-// MatrixColumn is a requirement, or an Armature issue by its key.
-type MatrixColumn struct {
-	Requirement *requirement.Ref `json:"requirement"`
-	IssueKey    string           `json:"issueKey"`
-}
-
-// MatrixCell is every link between one row and one column, by their places in the answer.
-type MatrixCell struct {
-	Row    int          `json:"row"`
-	Column int          `json:"column"`
-	Links  []MatrixLink `json:"links"`
-}
-
-// MatrixLink is one link of a cell: a trace link's type, or an Armature link's relation.
-type MatrixLink struct {
-	Name    string `json:"name"`
-	Suspect bool   `json:"suspect"`
-}
-
-// Matrix is a page of requirements against every column any of them reaches.
-type Matrix struct {
-	Rows    []requirement.Ref `json:"rows"`
-	Columns []MatrixColumn    `json:"columns"`
-	Cells   []MatrixCell      `json:"cells"`
-	Total   int               `json:"total"`
-	Limit   int               `json:"limit"`
-	Offset  int               `json:"offset"`
-}
-
 // Asks is which dimensions a requirement's rule asks for.
 type Asks struct {
 	Decomposed, Implemented, Verified bool

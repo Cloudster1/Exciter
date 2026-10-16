@@ -34,6 +34,7 @@ func traceabilitySchemas(b *openapi.Builder) {
 	}
 	b.Enums[reflect.TypeOf(trace.LevelKind(""))] = enumStrings(trace.LevelKinds)
 	b.Enums[reflect.TypeOf(trace.LinkKind(""))] = enumStrings(trace.LinkKinds)
+	b.Enums[reflect.TypeOf(trace.MatrixDirection(""))] = enumStrings(trace.MatrixDirections)
 	relations := append(enumStrings(armature.Relations), enumStrings(stator.Relations)...)
 	b.FieldOverrides["TraceModelStep.relation"] = &openapi.Schema{Type: "string", Enum: slices.Compact(slices.Sorted(slices.Values(relations)))}
 	b.FieldOverrides["BaselineMatrixLink.status"] = openapi.Nullable(&openapi.Schema{Type: "string", Enum: armature.StatusCategories})

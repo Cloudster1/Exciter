@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { CoverageRow, CoverageRule, Matrix } from "@/api/coverage";
+import type { CoverageRow, CoverageRule } from "@/api/coverage";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -99,38 +99,14 @@ describe("a project's coverage", () => {
     expect(screen.queryByLabelText("Add a rule for")).toBeNull();
   });
 
-  it("lays the links out as a matrix, a suspect one marked, with the whole of it to download", async () => {
-    const matrix: Matrix = {
-      rows: [ref(1, "Brakes engage within 100 ms"), ref(2, "Brake lights follow the pedal")],
-      columns: [{ requirement: null, issueKey: "WEB-1" }],
-      cells: [
-        { row: 0, column: 0, links: [{ name: "implements", suspect: false }] },
-        { row: 1, column: 0, links: [{ name: "verifies", suspect: true }] },
-      ],
-      total: 2,
-      limit: 50,
-      offset: 0,
-    };
-    const asked: URLSearchParams[] = [];
+  it("leads to the traceability matrix", async () => {
     stubApi({
       "GET /projects/CHK": { status: 200, body: { project: aProject() } },
       "GET /projects/CHK/coverage": { status: 200, body: { summary, rows, total: 2, limit: 50, offset: 0 } },
       "GET /projects/CHK/coverage-rules": { status: 200, body: { rules: [every] } },
       "GET /projects/CHK/types": { status: 200, body: { types: [] } },
-      "GET /projects/CHK/matrix": (request) => {
-        asked.push(new URL(request.url).searchParams);
-        return { status: 200, body: { matrix } };
-      },
     });
     await renderAt("/p/CHK/coverage");
-    await userEvent.click(await screen.findByRole("button", { name: "Matrix" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Armature issues" }));
-    const table = await screen.findByRole("table", { name: "Matrix" });
-    expect(asked.at(-1)?.get("columns")).toBe("issues");
-    expect(within(table).getByRole("columnheader", { name: "WEB-1" })).toBeInTheDocument();
-    expect(table.querySelector('[data-cell="CHK-R1:WEB-1"]')).toHaveAttribute("title", "CHK-R1 to WEB-1: implements");
-    expect(table.querySelector('[data-cell="CHK-R2:WEB-1"]')).toHaveAttribute("title", "CHK-R2 to WEB-1: verifies (suspect)");
-    expect(screen.getByRole("link", { name: "Download CSV" })).toHaveAttribute("href", expect.stringContaining("/projects/CHK/matrix.csv?columns=issues"));
-    expect(await axeViolations()).toEqual([]);
+    expect(await screen.findByRole("link", { name: "Open the matrix" })).toHaveAttribute("href", "/p/CHK/matrix");
   });
 });

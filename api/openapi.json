@@ -7333,7 +7333,7 @@
     "/projects/{projectKey}/matrix": {
       "get": {
         "operationId": "traceMatrix",
-        "summary": "A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to.",
+        "summary": "A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to.",
         "tags": [
           "coverage"
         ],
@@ -7512,6 +7512,46 @@
             "description": "For requirement columns, the project they come from; the same project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the relations to count; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "implements",
+                  "verifies",
+                  "relates"
+                ]
+              }
             }
           },
           {
@@ -7766,6 +7806,46 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the relations to count; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "implements",
+                  "verifies",
+                  "relates"
+                ]
+              }
+            }
           }
         ],
         "responses": {
@@ -7995,6 +8075,46 @@
             "description": "For requirement columns, the project they come from; the same project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the relations to count; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "implements",
+                  "verifies",
+                  "relates"
+                ]
+              }
             }
           }
         ],
@@ -20372,15 +20492,40 @@
       "MatrixLink": {
         "type": "object",
         "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "trace",
+              "armature",
+              "stator"
+            ]
+          },
           "name": {
             "type": "string"
           },
           "suspect": {
             "type": "boolean"
+          },
+          "typeKey": {
+            "type": "string"
           }
         },
         "required": [
+          "id",
+          "kind",
           "name",
+          "direction",
           "suspect"
         ]
       },
@@ -20405,6 +20550,61 @@
           "id",
           "spaceKey",
           "url"
+        ]
+      },
+      "MatrixRow": {
+        "type": "object",
+        "properties": {
+          "canLink": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "section"
+            ]
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "projectKey",
+          "kind",
+          "title",
+          "revision",
+          "status",
+          "trashed",
+          "canLink"
         ]
       },
       "MeResponse": {
@@ -24319,7 +24519,7 @@
           "rows": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RequirementRef"
+              "$ref": "#/components/schemas/MatrixRow"
             }
           },
           "total": {
