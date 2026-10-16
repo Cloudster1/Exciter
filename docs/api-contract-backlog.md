@@ -333,6 +333,32 @@ and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `intern
     the log, and a topic nobody emits is refused.
 
 
+## #133 Webhook envelope version 2
+
+No new operations: the `version` of `POST /webhooks` and
+`PATCH /webhooks/{webhookID}` takes 2 as well as 1, and the receivers at
+`POST /armature/webhook` and `POST /stator/webhook` take a version 2 body.
+
+- **Sent**: an endpoint on version 2 is posted `application/cloudevents+json;
+  charset=utf-8` with `specversion` `1.0`, `id` (the event's), `source`
+  (`EXCITER_APP_URL`), `type` (`dev.exciter.` and the topic), `time`,
+  `datacontenttype` `application/json`, `dataversion` 1 and `data`, version
+  1's payload. The headers and signatures are version 1's, the version
+  header saying 2.
+- **Chosen** when the endpoint is made, 1 when left out; saving without
+  `version` keeps it; any other number is 422 on `version`, naming 1 or 2.
+- **Received**: `type` after `dev.armature.` or `dev.stator.` is the topic,
+  `data` the payload, `time` when it happened. 422 `unknown_version` for a
+  version header other than 1 or 2, a `specversion` other than `1.0`, a
+  `dataversion` other than 1 (absent is 1, a number or a string), or a header
+  and a body naming different versions.
+- `/meta` lists `webhooks@2` beside `webhooks@1`.
+- UI: Settings, Webhooks: an Envelope choice in the form, each endpoint's
+  version in the list, and a menu entry to switch it.
+- **As built** (#133): one decoder in `internal/webhook` reads either
+  version for both receivers; the stubs take `version` on
+  `PUT /_stub/{tenant}/webhook` and post version 2 for every event after.
+
 ## #49 Requirement reuse and variants
 
 | Operation | Needs | Answers |

@@ -31,6 +31,8 @@ async function lastDelivery(): Promise<{ topic: string; status: number }> {
 }
 
 test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
+  let webhookUrl = "";
+
   test.beforeEach(async ({ api }) => {
     await fetch(`${armatureURL()}/_stub/${TENANT}`, { method: "DELETE" });
     const connection = must(await api.PUT("/armature/connection", { body: { baseUrl: armatureURL(), webhookSecret: SECRET } })).connection;
@@ -43,7 +45,8 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
         body: { issueKey: "CP-4", relation: "implements" },
       }),
     );
-    await stub("PUT", "/webhook", { url: connection.webhookUrl, secret: SECRET });
+    webhookUrl = connection.webhookUrl;
+    await stub("PUT", "/webhook", { url: webhookUrl, secret: SECRET });
   });
 
   test.afterEach(async ({ api }) => {
@@ -68,6 +71,15 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
     expect(await lastDelivery()).toMatchObject({ topic: "issue.transitioned", status: 204 });
     await page.reload();
     await expect(link.locator('[data-status-category="in_progress"]')).toBeVisible();
+
+    // The same once Armature posts the CloudEvents envelope it agreed to (#133).
+    await stub("PUT", "/webhook", { url: webhookUrl, secret: SECRET, version: 2 });
+    await stub("PATCH", "/issues/CP-4", { statusCategory: "done" });
+    expect(await lastDelivery()).toMatchObject({ topic: "issue.transitioned", status: 204 });
+    await expect(async () => {
+      await page.reload();
+      await expect(link.locator('[data-status-category="done"]')).toBeVisible({ timeout: REPLAY_WAIT_MS });
+    }).toPass();
 
     const url = new URL(page.url());
     const held = (await (await stub("GET", "/remote-links")).json()) as { remoteLinks: { issueKey: string; url: string }[] };

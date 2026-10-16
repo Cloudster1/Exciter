@@ -7,7 +7,7 @@ import { en } from "@/i18n/en";
 import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
-import { deliveryDetail, topicName } from "./Webhooks";
+import { deliveryDetail, topicName, versionName } from "./Webhooks";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -107,10 +107,48 @@ describe("the webhooks page", () => {
       url: "https://hooks.example.com/exciter",
       topics: ["requirement.revised", "comment.created"],
       projects: ["CHK"],
+      version: 1,
     });
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.queryByLabelText("Secret for Team chat")).toBeNull();
+  });
+
+  it("lets a webhook be posted as a CloudEvent, chosen when it is added or switched later, and shows each one's envelope", async () => {
+    const cloud = hook({ id: "0199a000-0000-7000-8000-0000000000e3", name: "Broker", version: 2, secret: "exciter_whs_once" });
+    const sent = webhooks([hook()], {
+      "POST /webhooks": { status: 201, body: { webhook: cloud } },
+      "PATCH /webhooks/0199a000-0000-7000-8000-0000000000e1": { status: 200, body: { webhook: hook({ version: 2 }) } },
+    });
+    await renderAt(WEBHOOKS_PATH);
+    const table = await screen.findByRole("table");
+    expect(within(table).getAllByRole("row")[1]).toHaveTextContent("Version 1");
+
+    const choice = screen.getByLabelText(en.webhooks.version);
+    expect(choice).toHaveValue("1");
+    expect(choice).toHaveAccessibleDescription(en.webhooks.versionHint);
+    await userEvent.type(screen.getByLabelText("Name"), "Broker");
+    await userEvent.type(screen.getByLabelText(/^Address/), "https://broker.example.com/events");
+    await userEvent.selectOptions(choice, "Version 2, CloudEvents");
+    await userEvent.click(screen.getByRole("button", { name: "Add webhook" }));
+    await screen.findByLabelText("Secret for Broker");
+    expect(sent.find((s) => s.method === "POST")?.body).toMatchObject({ name: "Broker", version: 2 });
+    expect(screen.getByLabelText(en.webhooks.version)).toHaveValue("1");
+
+    await userEvent.click(screen.getByRole("button", { name: "Actions for Team chat" }));
+    expect(screen.queryByRole("menuitem", { name: "Send in Version 1" })).toBeNull();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Send in Version 2, CloudEvents" }));
+    await waitFor(() =>
+      expect(sent.find((s) => s.method === "PATCH")?.body).toEqual({
+        name: "Team chat",
+        url: "https://hooks.example.com/exciter",
+        topics: ["requirement.revised", "comment.created"],
+        projects: ["CHK"],
+        version: 2,
+      }),
+    );
+    expect(await screen.findByText("Team chat is sent in Version 2, CloudEvents from the next delivery on.")).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
   });
 
   it("says what is missing before asking, and shows what the server refused beside its field", async () => {
@@ -231,6 +269,11 @@ describe("topicName and deliveryDetail", () => {
     expect(topicName("*")).toBe("Everything");
     expect(topicName("ping")).toBe("Test ping");
     expect(topicName("project.created")).toBe("project.created");
+  });
+
+  it("names an envelope version this client does not know by its number", () => {
+    expect(versionName(1)).toBe("Version 1");
+    expect(versionName(3)).toBe("3");
   });
 
   it("says what an attempt came to", () => {

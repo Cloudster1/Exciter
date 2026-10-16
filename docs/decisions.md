@@ -3,6 +3,31 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Webhook envelope version 2 is a CloudEvent beside version 1 (#133)
+
+- **A second row, not a new sender.** Version 2 is one more entry in the
+  sender's table of envelopes, so retries, redeliveries, signatures, the
+  owner's rights and the log are version 1's; only the body and its content
+  type differ. `webhook_endpoint.version` already held any version, so no
+  migration was needed.
+- **The data is version 1's payload unchanged.** A receiver moving to
+  version 2 rewrites its envelope handling, never its payload handling, and
+  `dataversion` versions the payload apart from the envelope.
+- **`source` is the installation's address.** CloudEvents makes source and
+  id the event's identity; a fixed `/exciter` would make two installations'
+  events indistinguishable to a relay that hears both.
+- **Signatures stay in headers.** CloudEvents leaves authentication to the
+  transport, and keeping version 1's headers lets one receiver check both
+  versions with the same code.
+- **Exciter reads version 2 before the partners send it.** The shape is the
+  one Armature #286 and Stator #434 agreed, so the receivers are ready when
+  either ships, and the stubs post it for the tests. One decoder serves both
+  receivers, and a header and a body that disagree are refused like an
+  unknown version, since guessing would act on what the sender did not mean.
+- **The shared list of event types is still to come.** Dynamo#4 is not
+  written; until it is, the types are in the API document, with every
+  payload.
+
 ## 2026-10-16: Themes are proven to travel with the partners' own files (#59)
 
 - **Real exports, not examples.** A theme was made with a file in a running

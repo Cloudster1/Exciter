@@ -36,7 +36,7 @@ func (s *Server) handleArmatureWebhook(w http.ResponseWriter, r *http.Request) {
 			Message: "The signature does not match. Paste the endpoint's secret from Armature under Settings, Armature, then redeliver."})
 	case errors.Is(err, armature.ErrUnknownVersion):
 		respondError(w, r, &APIError{Status: http.StatusUnprocessableEntity, Code: "unknown_version",
-			Message: "Exciter reads webhook envelopes of version " + strconv.Itoa(webhook.Version) + ". Register the endpoint in Armature for that version."})
+			Message: "Exciter reads webhook envelopes of version " + webhook.VersionList() + ". Register the endpoint in Armature for one of them."})
 	case err != nil:
 		respondError(w, r, err)
 	default:

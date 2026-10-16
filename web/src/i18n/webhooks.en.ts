@@ -1,7 +1,8 @@
 import type { DeliveryState } from "@/api/webhooks";
-import type { WEBHOOK_TOPICS } from "@/config";
+import type { WEBHOOK_TOPICS, WEBHOOK_VERSIONS } from "@/config";
 
 type Topic = (typeof WEBHOOK_TOPICS)[number];
+type Version = (typeof WEBHOOK_VERSIONS)[number];
 
 export const webhooksEn = {
   title: "Webhooks",
@@ -35,6 +36,12 @@ export const webhooksEn = {
     "thread.resolved": "A discussion is resolved",
     "baseline.taken": "A baseline is taken",
   } satisfies Record<Topic, string>,
+  version: "Envelope",
+  versionHint:
+    "Version 2 is a CloudEvent 1.0, for a broker or any receiver that reads CloudEvents. Version 1 is the envelope Armature and Stator send. Both are signed alike.",
+  versionNames: { 1: "Version 1", 2: "Version 2, CloudEvents" } satisfies Record<Version, string>,
+  switchVersion: (to: string) => `Send in ${to}`,
+  versionSwitched: (name: string, to: string) => `${name} is sent in ${to} from the next delivery on.`,
   projects: "Projects",
   projectsHint: "None chosen hears every project the webhook's owner may see.",
   everyProject: "Every project",

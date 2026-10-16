@@ -11,7 +11,7 @@ before it has an account; the names promise features, not data.
   "product": "exciter",
   "build": { "version": "0.1.0", "commit": "abc1234", "builtAt": "2026-10-15T09:00:00Z" },
   "apiVersion": "1",
-  "capabilities": ["requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1"]
+  "capabilities": ["requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"]
 }
 ```
 
@@ -87,6 +87,23 @@ operations are Stator's, whose webhooks Exciter's were adapted from (#48);
 - `POST /webhooks/{webhookID}/test`
 - `POST /webhooks/{webhookID}/rotate-secret`
 
+### `webhooks@2`
+
+What `webhooks@1` promises, and an endpoint registered for envelope version 2
+is posted a CloudEvent 1.0 in structured mode (#133), as
+[Webhooks Exciter sends](#webhooks-exciter-sends) says. The operations are
+the same; `webhooks@1` stays listed beside it, since an endpoint on version 1
+keeps getting version 1.
+
+- `GET /webhooks`
+- `POST /webhooks`
+- `PATCH /webhooks/{webhookID}`
+- `DELETE /webhooks/{webhookID}`
+- `GET /webhooks/{webhookID}/deliveries`
+- `POST /webhooks/{webhookID}/deliveries/{deliveryID}/redeliver`
+- `POST /webhooks/{webhookID}/test`
+- `POST /webhooks/{webhookID}/rotate-secret`
+
 ## What Exciter checks of its partners
 
 ### Armature
@@ -122,49 +139,89 @@ checked yet; the page reads, search and webhooks are what every Stator has.
 ## Webhooks
 
 Armature and Stator post their webhooks to Exciter in one envelope, which
-names its version in the body and in a header:
+names its version in the body and in a header. Version 1:
 
 ```json
 { "version": 1, "id": "...", "topic": "issue.updated", "occurredAt": "...", "payload": { } }
 ```
 
-| Sender | Address | Version header |
-| --- | --- | --- |
-| Armature | `POST /armature/webhook` | `X-Armature-Webhook-Version` |
-| Stator | `POST /stator/webhook` | `X-Stator-Webhook-Version` |
+Version 2 is a CloudEvent 1.0 in structured mode, posted as
+`application/cloudevents+json`, as agreed in Armature #286 and Stator #434
+(#133). Its data is version 1's payload:
 
-- **Exciter reads version 1**, and an envelope without a version from a
-  sender before versions: Armature before its #242, and Stator until its
-  #412.
-- **Any other version is refused**, from the header before the body is
-  read, and from the body as well: `422 unknown_version`, with a warning in
-  Exciter's log naming the version. The sender keeps the delivery and tries
-  again, so nothing is misread or lost while one side catches up.
-- **Unknown fields and topics are ignored**, answered 204.
+```json
+{ "specversion": "1.0", "id": "...", "source": "https://armature.example.com", "type": "dev.armature.issue.updated",
+  "time": "...", "datacontenttype": "application/json", "dataversion": 1, "data": { } }
+```
+
+| Sender | Address | Version header | Type prefix |
+| --- | --- | --- | --- |
+| Armature | `POST /armature/webhook` | `X-Armature-Webhook-Version` | `dev.armature.` |
+| Stator | `POST /stator/webhook` | `X-Stator-Webhook-Version` | `dev.stator.` |
+
+- **Exciter reads versions 1 and 2**, and an envelope without a version from
+  a sender before versions: Armature before its #242, and Stator until its
+  #412. Version 2's topic is its type after the sender's prefix, its payload
+  its data, and its time when the event happened. Neither partner sends
+  version 2 yet; Exciter reads it as agreed, and the stubs post it when a
+  test registers for it.
+- **The signatures are version 1's** in either version, over the body as
+  sent, since CloudEvents leaves authentication to the transport.
+- **Any other version is refused**: a version header, a body's version, a
+  `specversion` other than `1.0` or a `dataversion` other than 1, and a
+  header and a body that name different versions. Exciter answers
+  `422 unknown_version` with a warning in its log naming the version. The
+  sender keeps the delivery and tries again, so nothing is misread or lost
+  while one side catches up.
+- **Unknown fields, topics and types are ignored**, answered 204; a type
+  with another product's prefix is no topic of the sender's.
 - **The envelope is in the API document.** `ArmatureWebhookEnvelope` and
   `StatorWebhookEnvelope` in [`api/openapi.json`](../api/openapi.json)
-  describe what Exciter reads, with the version header as a parameter. A
-  unit test holds each to the sender's own schema in its vendored document,
-  and the stubs' contract tests hold what they post to the senders' shapes.
-- **Exciter sends in the same envelope**, below.
+  describe version 1, held by a unit test to the sender's own schema in its
+  vendored document, and `PartnerCloudEvent`, under
+  `application/cloudevents+json`, version 2, which neither partner's
+  document holds yet. The stubs' contract tests hold what they post in
+  version 1 to the senders' shapes.
+- **Exciter sends in the same envelopes**, below.
 
 ## Webhooks Exciter sends
 
 An installation's administrators keep endpoints under Settings, Webhooks
-(#48): an address, the events it hears, and the projects it listens to, every
-project when none are named. Each event is posted as JSON in the envelope
-above, named `exciter` as its source:
+(#48): an address, the events it hears, the projects it listens to, every
+project when none are named, and the envelope version it is posted in. Each
+event is posted in version 1, as `application/json`, named `exciter` as its
+source:
 
 ```json
 { "version": 1, "id": "...", "source": "exciter", "topic": "requirement.revised", "occurredAt": "...",
   "payload": { "requirement": { "key": "CHK-R4", "title": "...", "revision": 3, "url": "..." }, "revision": 3, "actor": { } } }
 ```
 
+or, for an endpoint that chose version 2 (#133), as a CloudEvent 1.0 in
+structured mode, `application/cloudevents+json; charset=utf-8`, its data
+version 1's payload unchanged:
+
+```json
+{ "specversion": "1.0", "id": "...", "source": "https://exciter.example.com", "type": "dev.exciter.requirement.revised",
+  "time": "...", "datacontenttype": "application/json", "dataversion": 1,
+  "data": { "requirement": { "key": "CHK-R4", "title": "...", "revision": 3, "url": "..." }, "revision": 3, "actor": { } } }
+```
+
+- **`source` is the installation's address**, `EXCITER_APP_URL`, so a relay
+  or a broker hearing several installations tells them apart; `type` is
+  `dev.exciter.` and the topic; `dataversion` is the payload's own version,
+  which rises only for a change that breaks a receiver of the data.
+- **Version 1 is the default.** A new endpoint is on version 1 unless it
+  names 2, in the form or through `version` on `POST /webhooks`; saving one
+  without `version` keeps the one it has; the list shows each, and its menu
+  switches it. Version 1 keeps being sent for at least one Dynamo release
+  after version 2 ships, as the rules below say.
+
 | Header | What it carries |
 | --- | --- |
 | `X-Exciter-Event` | The topic, as in the body |
 | `X-Exciter-Delivery` | This attempt's id; a retry or a redelivery has its own |
-| `X-Exciter-Webhook-Version` | The envelope version, as in the body |
+| `X-Exciter-Webhook-Version` | The envelope version: 1, as in the body, or 2 for a CloudEvent |
 | `X-Exciter-Signature-256` | `sha256=` and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret |
 | `X-Exciter-Timestamp` | When the attempt was sent, in Unix seconds |
 | `X-Exciter-Signature-Timestamped-256` | The same over the timestamp, a dot and the body, so a receiver can refuse a replay |
@@ -186,7 +243,9 @@ above, named `exciter` as its source:
   hours and 12 hours; an endpoint failing every attempt for a day is turned
   off until an administrator turns it on.
 - **The envelope is in the API document** as the `event` webhook of
-  [`api/openapi.json`](../api/openapi.json), with every payload and header.
+  [`api/openapi.json`](../api/openapi.json), with every payload and header:
+  `WebhookEnvelope` under `application/json`, and `WebhookCloudEvent`, with
+  every type, under `application/cloudevents+json`.
   Exciter keeps sending a version to the endpoints registered for it for at
   least one Dynamo release after a new one.
 - **Nothing is posted into the server's own network** unless

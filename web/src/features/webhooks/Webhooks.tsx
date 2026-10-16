@@ -14,7 +14,7 @@ import {
   type WebhookTopic,
 } from "@/api/webhooks";
 import { useProjects } from "@/api/projects";
-import { Button, Card, Checkbox, Dialog, EmptyState, ErrorBanner, Field, IconButton, Menu, PageHeader, Table, Tag, Td, Th, cx } from "@/components/ui";
+import { Button, Card, Checkbox, Dialog, EmptyState, ErrorBanner, Field, IconButton, Menu, PageHeader, Select, Table, Tag, Td, Th, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import {
   COPY_FEEDBACK_MS,
@@ -22,9 +22,11 @@ import {
   WEBHOOK_SIGNATURE_HEADER,
   WEBHOOK_TIMESTAMP_HEADER,
   WEBHOOK_TIMESTAMPED_SIGNATURE_HEADER,
+  WEBHOOK_DEFAULT_VERSION,
   WEBHOOK_TOPIC_ANY,
   WEBHOOK_TOPICS,
   WEBHOOK_URL_MAX_LENGTH,
+  WEBHOOK_VERSIONS,
 } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -39,6 +41,13 @@ export function topicName(topic: string): string {
   if (topic === WEBHOOK_TOPIC_ANY) return t.webhooks.everything;
   if (topic === "ping") return t.webhooks.ping;
   return (t.webhooks.topicNames as Record<string, string>)[topic] ?? topic;
+}
+
+type Version = (typeof WEBHOOK_VERSIONS)[number];
+
+/** An envelope version in the reader's words; one newer than this client by its number. */
+export function versionName(version: number): string {
+  return (t.webhooks.versionNames as Record<number, string>)[version] ?? String(version);
 }
 
 /** What one attempt came to, in a sentence for its row. */
@@ -65,6 +74,14 @@ export function Webhooks() {
     update.mutate(
       { id: hook.id, name: hook.name, url: hook.url, topics: hook.topics, projects: hook.projects.map((p) => p.key), enabled: !hook.enabled },
       { onSuccess: (saved) => setNotice(saved.enabled ? t.webhooks.turnedOn(saved.name) : t.webhooks.turnedOff(saved.name)) },
+    );
+  }
+
+  // The version is the one thing an administrator changes on a saved webhook besides turning it off; the rest stays.
+  function switchVersion(hook: Webhook, version: Version) {
+    update.mutate(
+      { id: hook.id, name: hook.name, url: hook.url, topics: hook.topics, projects: hook.projects.map((p) => p.key), version },
+      { onSuccess: (saved) => setNotice(t.webhooks.versionSwitched(saved.name, versionName(saved.version))) },
     );
   }
 
@@ -133,6 +150,7 @@ export function Webhooks() {
                       <Tag className={cx(!hook.enabled && "text-danger")} data-webhook-state>
                         {hook.enabled ? t.webhooks.on : hook.disabledReason === "failing" ? t.webhooks.offFailing : t.webhooks.off}
                       </Tag>
+                      <Tag data-webhook-version={hook.version}>{versionName(hook.version)}</Tag>
                     </div>
                     <div className="truncate font-mono text-xs text-ink-muted" title={hook.url}>
                       {hook.url}
@@ -176,6 +194,12 @@ export function Webhooks() {
                           onSelect: () => toggle(hook),
                           attrs: { "data-action": "webhook-toggle" },
                         },
+                        ...WEBHOOK_VERSIONS.filter((v) => v !== hook.version).map((v) => ({
+                          label: t.webhooks.switchVersion(versionName(v)),
+                          icon: <Icon.Share />,
+                          onSelect: () => switchVersion(hook, v),
+                          attrs: { "data-action": "webhook-version", "data-version": String(v) },
+                        })),
                         { label: t.webhooks.rotate, icon: <Icon.Key />, onSelect: () => rotateSecret(hook), attrs: { "data-action": "webhook-rotate" } },
                         {
                           label: t.webhooks.delete,
@@ -204,6 +228,7 @@ function CreateWebhookForm({ onCreated }: { onCreated: (hook: Webhook) => void }
   const [url, setUrl] = useState("");
   const [topics, setTopics] = useState<WebhookTopic[]>([WEBHOOK_TOPIC_ANY]);
   const [projects, setProjects] = useState<string[]>([]);
+  const [version, setVersion] = useState<Version>(WEBHOOK_DEFAULT_VERSION);
   const { data: known = [] } = useProjects();
   const [missing, setMissing] = useState<{ name?: boolean; url?: boolean; topics?: boolean }>({});
   const fields = create.error instanceof ApiError ? create.error.fields : {};
@@ -223,13 +248,14 @@ function CreateWebhookForm({ onCreated }: { onCreated: (hook: Webhook) => void }
       return;
     }
     create.mutate(
-      { name: name.trim(), url: url.trim(), topics, projects },
+      { name: name.trim(), url: url.trim(), topics, projects, version },
       {
         onSuccess: (hook) => {
           setName("");
           setUrl("");
           setTopics([WEBHOOK_TOPIC_ANY]);
           setProjects([]);
+          setVersion(WEBHOOK_DEFAULT_VERSION);
           onCreated(hook);
         },
       },
@@ -309,6 +335,20 @@ function CreateWebhookForm({ onCreated }: { onCreated: (hook: Webhook) => void }
             {fields.projects && <p className="text-xs text-danger">{fields.projects}</p>}
           </fieldset>
         )}
+        <Select
+          label={t.webhooks.version}
+          hint={t.webhooks.versionHint}
+          value={version}
+          error={fields.version}
+          onChange={(event) => setVersion(Number(event.target.value) as Version)}
+          data-webhook-version-choice
+        >
+          {WEBHOOK_VERSIONS.map((v) => (
+            <option key={v} value={v}>
+              {versionName(v)}
+            </option>
+          ))}
+        </Select>
         <p className="text-xs text-ink-muted">{t.webhooks.ownerNote}</p>
         <Button type="submit" icon={<Icon.Plus />} loading={create.isPending} data-action="create-webhook">
           {t.webhooks.create}
