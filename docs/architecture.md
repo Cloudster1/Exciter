@@ -124,6 +124,13 @@ app role holds no privilege on.
   loop or a parent of another project, and another renumbers a requirement
   moved to another project and keeps its old key, so a move holds whoever
   makes it.
+- **Reuse** (#49): a library project's requirement copied into another
+  project follows its source. `requirement.reuse_source`, `reuse_revision`
+  and `reuse_state` say what it follows, from which revision, and whether
+  its words are the source's or a variant's own; `requirement_reuse_guard`
+  holds a following copy's words to the source's at its latest revision, so
+  a take is the only way they change. The copy keeps its words locally, so
+  search, baselines, export and coverage read it as any requirement.
 - **Workflow** (#17): `req_status`, `workflow`, its steps, transitions and
   rules belong to a project, which follows one workflow while a type may
   follow another. `internal/workflow` decides what a reader is offered and

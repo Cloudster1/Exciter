@@ -3,6 +3,32 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Reuse is a locked copy that follows its library source (#49)
+
+- **A copy, not a pointer.** A reuse keeps its own words, written by a take,
+  so search, baselines, export, coverage, reviews and webhooks read it as any
+  requirement; a live reference would have each of them read through it.
+  What makes it "written once" is the lock: while it follows, only a take
+  changes its words, and the database holds it to that.
+- **Only libraries are sources.** A project's administrators mark it, and
+  marking is audited, so reuse is deliberate and a reader knows where the
+  shared requirements live.
+- **Words follow, the rest is the target's.** Title, statement and rationale
+  follow; type, values, status, owner, priority, labels, links and reviews
+  stay the target's, as they mean something in that project only.
+- **The guard compares words.** A take copies the files its words show, with
+  ids of their own, so the documents differ by those ids while what they say
+  is the source's. The guard compares the title and the plain text of the
+  statement and the rationale; the service, stricter, refuses any change to
+  the documents of a following copy.
+- **A variant still sees its source.** It keeps the revision it branched
+  from, so a newer source revision shows as behind, and a take has it follow
+  again; there is no way to forget the source short of purging it.
+- **Watchers hear of the source,** about the reuse they watch, and only if
+  they may read the source, so nobody learns of a library they cannot open.
+- **No MCP tool yet.** The tools are an agreed list; reuse joins it with its
+  own agreement.
+
 ## 2026-10-16: Stator's requirement blocks read what Exciter already serves (#43, #140)
 
 #43 is Stator's to build. Exciter's part is to name what the chips and blocks
