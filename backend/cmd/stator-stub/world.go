@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,9 @@ const (
 	tokenPrefix  = "stator_pat_"
 	// adminName is the person who reads the SEC space; everybody reads ENG.
 	adminName = "admin"
+	// readerName may read ENG but edit nothing, and readOnlyName holds a token of the read scope.
+	readerName   = "reader"
+	readOnlyName = "readonly"
 
 	spaceOpen   = "ENG"
 	spaceSecret = "SEC"
@@ -37,6 +41,8 @@ type person struct {
 	Name    string
 	Display string
 	Email   string
+	// ReadOnly is a token of the read scope, refused every write.
+	ReadOnly bool
 }
 
 type space struct {
@@ -71,16 +77,26 @@ type tenant struct {
 	// webhook is the endpoint its changes are posted to, and deliveries what became of the latest.
 	webhook    *webhook
 	deliveries []delivery
+	// links are the remote links other tools put on its pages (#42).
+	links []*remoteLink
+	// outage is how many remote link calls still answer outageStatus, so a test can watch a sync be tried again.
+	outage       int
+	outageStatus int
 }
 
 type world struct {
 	mu      sync.Mutex
 	tenants map[string]*tenant
-	// capabilities is what GET /meta lists; Stator lists none today.
+	// capabilities is what GET /meta lists, for every tenant at once; a test takes them away and puts them back.
 	capabilities []string
 }
 
-func newWorld() *world { return &world{tenants: map[string]*tenant{}, capabilities: []string{}} }
+// statorCapabilities are what Stator's main lists on GET /meta, read when api/stator was last vendored.
+var statorCapabilities = []string{"page-links@1", "page-remote-links@1", "webhook-receiver@1", "webhooks@1", "theme-export@1"}
+
+func newWorld() *world {
+	return &world{tenants: map[string]*tenant{}, capabilities: slices.Clone(statorCapabilities)}
+}
 
 // tenant returns the tenant of that slug, making it on first use.
 func (w *world) tenant(slug string) *tenant {
@@ -114,6 +130,8 @@ func (t *tenant) person(name string) *person {
 		Name:    name,
 		Display: strings.ToUpper(name[:1]) + name[1:],
 		Email:   name + "@" + t.Slug + ".stator.test",
+		// A read token is refused every write, as Stator refuses it.
+		ReadOnly: name == readOnlyName,
 	}
 	t.people[name] = p
 	return p
@@ -156,6 +174,9 @@ func (t *tenant) space(key string) *space {
 }
 
 func (p *person) reads(sp *space) bool { return sp != nil && (!sp.AdminOnly || p.Name == adminName) }
+
+// edits says the person may change pages of the space, which a reader may only read.
+func (p *person) edits(sp *space) bool { return p.reads(sp) && p.Name != readerName }
 
 // page finds a page out of the trash by its id, whoever asks; readable is the same for a person.
 func (t *tenant) page(id uuid.UUID) *page {

@@ -91,6 +91,9 @@
       "name": "reactions"
     },
     {
+      "name": "remote-links"
+    },
+    {
       "name": "reviews"
     },
     {
@@ -378,7 +381,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -498,7 +502,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -676,7 +681,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -742,7 +748,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -900,7 +907,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -963,7 +971,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -1050,7 +1059,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     }
                   },
@@ -1145,7 +1155,8 @@
                         "not_configured",
                         "not_connected",
                         "rejected",
-                        "unreachable"
+                        "unreachable",
+                        "outdated"
                       ]
                     },
                     "total": {
@@ -1311,7 +1322,7 @@
     "/armature/webhook": {
       "post": {
         "operationId": "armatureWebhook",
-        "summary": "Where Armature posts issue events, signed with the organization's webhook secret; clears the cached issues they name.",
+        "summary": "Where Armature posts issue events, signed with the organization's webhook secret, and when it signs the time too, within 5 minutes of Stator's clock; envelope version 1 only. Clears the cached issues they name and ignores fields and topics it does not know.",
         "tags": [
           "armature"
         ],
@@ -1341,6 +1352,16 @@
           },
           "413": {
             "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -1405,6 +1426,16 @@
           },
           "413": {
             "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -7606,6 +7637,189 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{pageID}/remote-links": {
+      "get": {
+        "operationId": "listPageRemoteLinks",
+        "summary": "The links other tools put on a page, by source and then in the order they were put. For anybody who may view the page.",
+        "tags": [
+          "remote-links"
+        ],
+        "parameters": [
+          {
+            "name": "pageID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "remoteLinks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PageRemoteLink"
+                      }
+                    }
+                  },
+                  "required": [
+                    "remoteLinks"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "putPageRemoteLink",
+        "summary": "Put a link to another tool's object on a page, or replace the one with the same url, which keeps its id and who first put it: 201 when new, 200 when replaced. For people who may edit the page.",
+        "tags": [
+          "remote-links"
+        ],
+        "parameters": [
+          {
+            "name": "pageID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRemoteLinkInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "remoteLink": {
+                      "$ref": "#/components/schemas/PageRemoteLink"
+                    }
+                  },
+                  "required": [
+                    "remoteLink"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "remoteLink": {
+                      "$ref": "#/components/schemas/PageRemoteLink"
+                    }
+                  },
+                  "required": [
+                    "remoteLink"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{pageID}/remote-links/{linkID}": {
+      "delete": {
+        "operationId": "removePageRemoteLink",
+        "summary": "Take a link off a page and tell webhooks with page.remote_link.removed, whoever took it off. For people who may edit the page.",
+        "tags": [
+          "remote-links"
+        ],
+        "parameters": [
+          {
+            "name": "pageID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -17832,6 +18046,92 @@
       }
     }
   },
+  "webhooks": {
+    "event": {
+      "post": {
+        "operationId": "webhookEvent",
+        "summary": "What a webhook endpoint is posted for each event it subscribes to.",
+        "description": "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "X-Stator-Event",
+            "in": "header",
+            "required": true,
+            "description": "The topic, as in the body.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Stator-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "This attempt's id; a retry or a redelivery has its own.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Stator-Webhook-Version",
+            "in": "header",
+            "required": true,
+            "description": "The envelope version of the body, as in its version field.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Stator-Signature-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Stator-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "When this attempt was sent, in Unix seconds.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Stator-Signature-Timestamped-256",
+            "in": "header",
+            "required": true,
+            "description": "sha256= and the hex HMAC-SHA256 of the timestamp, a dot and the body.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvelopeV1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Taken: the delivery is done."
+          },
+          "default": {
+            "description": "Not taken: the delivery is tried again later, with backoff, as is one not answered in time."
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {
       "APIError": {
@@ -18101,6 +18401,12 @@
           "connected": {
             "type": "boolean"
           },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissingFeature"
+            }
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -18108,7 +18414,8 @@
               "not_configured",
               "not_connected",
               "rejected",
-              "unreachable"
+              "unreachable",
+              "outdated"
             ]
           },
           "user": {
@@ -18128,7 +18435,8 @@
           "connected",
           "status",
           "user",
-          "checkedAt"
+          "checkedAt",
+          "missing"
         ]
       },
       "AccountUser": {
@@ -19412,8 +19720,21 @@
           "connected": {
             "type": "integer"
           },
+          "lastDelivery": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "orgSlug": {
             "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/Partner"
           },
           "updatedAt": {
             "type": "string",
@@ -19439,8 +19760,10 @@
           "webhookSecretSet",
           "webhookUrl",
           "webhookTopics",
+          "lastDelivery",
           "connected",
-          "updatedAt"
+          "updatedAt",
+          "partner"
         ]
       },
       "ConnectionInput": {
@@ -20065,6 +20388,22 @@
             "items": {
               "$ref": "#/components/schemas/Tag"
             }
+          },
+          "webhooks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Operation"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
           }
         },
         "required": [
@@ -20192,6 +20531,67 @@
           "editedAt",
           "draft",
           "unpublished"
+        ]
+      },
+      "EnvelopeV1": {
+        "type": "object",
+        "description": "What an endpoint registered for envelope version 1 is posted.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the event happened, in UTC."
+          },
+          "payload": {
+            "description": "The event's own fields, by topic, read as the endpoint's owner when the attempt is sent.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPagePublished"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookPageMoved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookPageDeleted"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookCommentCreated"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRemoteLinkRemoved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookPing"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "The product that sent the delivery, always stator. Added to version 1 without raising it, as a receiver ignores a field it does not know.",
+            "enum": [
+              "stator"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "description": "What happened: ping, page.published, page.moved, page.deleted, comment.created, page.remote_link.removed. A receiver ignores a topic it does not know."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The envelope version, 1 here; the version header says the same."
+          }
+        },
+        "required": [
+          "version",
+          "id",
+          "source",
+          "topic",
+          "occurredAt",
+          "payload"
         ]
       },
       "ErrorEnvelope": {
@@ -21682,6 +22082,31 @@
           "capabilities"
         ]
       },
+      "MissingFeature": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "feature": {
+            "type": "string",
+            "enum": [
+              "issues",
+              "create",
+              "charts",
+              "roadmap",
+              "calendar",
+              "links",
+              "theme",
+              "webhooks"
+            ]
+          }
+        },
+        "required": [
+          "feature",
+          "capability"
+        ]
+      },
       "MissingPerson": {
         "type": "object",
         "properties": {
@@ -22507,6 +22932,81 @@
           "spaceName"
         ]
       },
+      "PageRemoteLink": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "title",
+          "source",
+          "iconUrl",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PageRemoteLinkInput": {
+        "type": "object",
+        "properties": {
+          "iconUrl": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "title",
+          "source"
+        ]
+      },
       "PageResponse": {
         "type": "object",
         "properties": {
@@ -22889,6 +23389,50 @@
           "name",
           "in",
           "schema"
+        ]
+      },
+      "Partner": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "meta": {
+            "type": "boolean"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissingFeature"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "not_configured",
+              "not_connected",
+              "rejected",
+              "unreachable",
+              "outdated"
+            ]
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "meta",
+          "version",
+          "capabilities",
+          "missing"
         ]
       },
       "PermissionCopyInput": {
@@ -24350,6 +24894,19 @@
           },
           "additionalProperties": {
             "$ref": "#/components/schemas/Schema"
+          },
+          "anyOf": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
           },
           "description": {
             "type": "string"
@@ -26404,7 +26961,8 @@
               "not_configured",
               "not_connected",
               "rejected",
-              "unreachable"
+              "unreachable",
+              "outdated"
             ]
           }
         },
@@ -27331,7 +27889,8 @@
                 "page.published",
                 "page.moved",
                 "page.deleted",
-                "comment.created"
+                "comment.created",
+                "page.remote_link.removed"
               ]
             }
           },
@@ -27341,6 +27900,9 @@
           },
           "url": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         },
         "required": [
@@ -27349,11 +27911,67 @@
           "url",
           "topics",
           "enabled",
+          "version",
           "disabledReason",
           "failures",
           "owner",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "WebhookCommentCreated": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comment": {
+            "$ref": "#/components/schemas/WebhookCommentRef"
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebhookPageRef"
+          }
+        },
+        "required": [
+          "comment",
+          "page",
+          "actor"
+        ]
+      },
+      "WebhookCommentRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reply": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "reply",
+          "text",
+          "url"
         ]
       },
       "WebhookDelivery": {
@@ -27424,7 +28042,8 @@
               "page.published",
               "page.moved",
               "page.deleted",
-              "comment.created"
+              "comment.created",
+              "page.remote_link.removed"
             ]
           },
           "webhookId": {
@@ -27468,9 +28087,13 @@
           },
           "topic": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         },
         "required": [
+          "version",
           "id",
           "topic",
           "orgId",
@@ -27496,12 +28119,16 @@
                 "page.published",
                 "page.moved",
                 "page.deleted",
-                "comment.created"
+                "comment.created",
+                "page.remote_link.removed"
               ]
             }
           },
           "url": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer"
           }
         },
         "required": [
@@ -27523,6 +28150,257 @@
         },
         "required": [
           "id",
+          "name"
+        ]
+      },
+      "WebhookPageDeleted": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebhookPageRef"
+          }
+        },
+        "required": [
+          "page",
+          "actor"
+        ]
+      },
+      "WebhookPageMoved": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from": {
+            "$ref": "#/components/schemas/WebhookPlace"
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebhookPageRef"
+          },
+          "to": {
+            "$ref": "#/components/schemas/WebhookPlace"
+          }
+        },
+        "required": [
+          "page",
+          "from",
+          "to",
+          "actor"
+        ]
+      },
+      "WebhookPagePublished": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebhookPageRef"
+          }
+        },
+        "required": [
+          "page",
+          "actor"
+        ]
+      },
+      "WebhookPageRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "space": {
+            "$ref": "#/components/schemas/WebhookSpaceRef"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "version",
+          "url",
+          "space",
+          "kind"
+        ]
+      },
+      "WebhookPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "WebhookPing": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "WebhookPlace": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "space": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookSpaceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "space",
+          "parentId"
+        ]
+      },
+      "WebhookReceipt": {
+        "type": "object",
+        "properties": {
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timestamped": {
+            "type": "boolean"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "receivedAt",
+          "topic",
+          "version",
+          "timestamped"
+        ]
+      },
+      "WebhookRemoteLinkRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "title",
+          "source"
+        ]
+      },
+      "WebhookRemoteLinkRemoved": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookPerson"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebhookPageRef"
+          },
+          "remoteLink": {
+            "$ref": "#/components/schemas/WebhookRemoteLinkRef"
+          }
+        },
+        "required": [
+          "page",
+          "remoteLink",
+          "actor"
+        ]
+      },
+      "WebhookSpaceRef": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
           "name"
         ]
       },
