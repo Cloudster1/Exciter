@@ -318,6 +318,19 @@ var operations = []operation{
 		summary: "Copy a requirement, and what is below it when asked, as new requirements at their current revision.",
 		request: requirement.CopyInput{}, responses: map[int]any{http.StatusCreated: env{"requirement": requirement.Requirement{}, "copied": 0}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
+	// Reuse and variants (#49).
+	{method: "POST", path: "/requirements/{reqKey}/reuse", handler: "handleReuseRequirement", tag: "tree",
+		summary: "Reuse a library requirement, and what is below it when asked, in another project, where each copy follows its source's words.",
+		request: requirement.ReuseInput{}, responses: map[int]any{http.StatusCreated: env{"requirement": requirement.Requirement{}, "copied": 0},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "POST", path: "/requirements/{reqKey}/reuse/take", handler: "handleTakeSource", tag: "tree",
+		summary: "Give a reused requirement its source's words at the source's latest revision, as its next revision; a variant follows again.",
+		request: requirement.TakeInput{}, responses: map[int]any{http.StatusOK: env{"requirement": requirement.Requirement{}}, http.StatusForbidden: errorEnvelope{},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "POST", path: "/requirements/{reqKey}/reuse/variant", handler: "handleMakeVariant", tag: "tree",
+		summary:   "Let a reused requirement have words of its own; it keeps its source and the revision it branched from.",
+		responses: map[int]any{http.StatusOK: env{"requirement": requirement.Requirement{}}, http.StatusConflict: errorEnvelope{}}},
+
 	// Types and attributes (#14).
 	{method: "GET", path: "/attribute-kinds", handler: "handleListAttributeKinds", tag: "types",
 		summary:   "What an attribute can be, for the form that defines one.",

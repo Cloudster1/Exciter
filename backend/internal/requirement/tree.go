@@ -114,8 +114,8 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`
-			FROM walk w JOIN requirement r ON r.id = w.id
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+reuseSQL+`
+			FROM walk w JOIN requirement r ON r.id = w.id`+reuseJoins+`
 			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
 		if err != nil {
 			return fmt.Errorf("read the specification: %w", err)
@@ -126,13 +126,15 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				number int
 				path   []int32
 				attrs  []byte
+				reused scannedReuse
 			)
 			n := &e.Node
-			err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
-				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks)
+			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
+				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks}, reused.targets()...)...)
 			if err != nil {
 				return e, err
 			}
+			e.Reuse = reused.reuse()
 			n.Key = Key(p.Key, number)
 			n.Outline = outlineOf(path)
 			if len(e.Rationale) == 0 || string(e.Rationale) == "null" {

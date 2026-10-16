@@ -308,6 +308,7 @@ export const en = {
       "coverage_rule.removed": "Coverage rule removed",
       "specification.exported": "Specification exported",
       "project.signatures_set": "Signed approvals changed",
+      "project.library_set": "Library changed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",

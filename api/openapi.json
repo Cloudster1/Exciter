@@ -1341,7 +1341,8 @@
                 "webhook.updated",
                 "webhook.deleted",
                 "webhook.secret_rotated",
-                "webhook.disabled"
+                "webhook.disabled",
+                "project.library_set"
               ]
             }
           },
@@ -1510,7 +1511,8 @@
                 "webhook.updated",
                 "webhook.deleted",
                 "webhook.secret_rotated",
-                "webhook.disabled"
+                "webhook.disabled",
+                "project.library_set"
               ]
             }
           },
@@ -10943,6 +10945,237 @@
         }
       }
     },
+    "/requirements/{reqKey}/reuse": {
+      "post": {
+        "operationId": "reuseRequirement",
+        "summary": "Reuse a library requirement, and what is below it when asked, in another project, where each copy follows its source's words.",
+        "tags": [
+          "tree"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReuseInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "copied": {
+                      "type": "integer"
+                    },
+                    "requirement": {
+                      "$ref": "#/components/schemas/Requirement"
+                    }
+                  },
+                  "required": [
+                    "copied",
+                    "requirement"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requirements/{reqKey}/reuse/take": {
+      "post": {
+        "operationId": "takeSource",
+        "summary": "Give a reused requirement its source's words at the source's latest revision, as its next revision; a variant follows again.",
+        "tags": [
+          "tree"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TakeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirement": {
+                      "$ref": "#/components/schemas/Requirement"
+                    }
+                  },
+                  "required": [
+                    "requirement"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requirements/{reqKey}/reuse/variant": {
+      "post": {
+        "operationId": "makeVariant",
+        "summary": "Let a reused requirement have words of its own; it keeps its source and the revision it branched from.",
+        "tags": [
+          "tree"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirement": {
+                      "$ref": "#/components/schemas/Requirement"
+                    }
+                  },
+                  "required": [
+                    "requirement"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/requirements/{reqKey}/reviews": {
       "get": {
         "operationId": "listReviews",
@@ -16198,7 +16431,8 @@
               "webhook.updated",
               "webhook.deleted",
               "webhook.secret_rotated",
-              "webhook.disabled"
+              "webhook.disabled",
+              "project.library_set"
             ]
           },
           "actorId": {
@@ -16305,7 +16539,8 @@
                 "webhook.updated",
                 "webhook.deleted",
                 "webhook.secret_rotated",
-                "webhook.disabled"
+                "webhook.disabled",
+                "project.library_set"
               ]
             }
           },
@@ -18868,6 +19103,7 @@
               "review_requested",
               "reviewed",
               "suspect",
+              "source_revised",
               "replied",
               "commented",
               "resolved",
@@ -19450,6 +19686,9 @@
             ],
             "format": "uuid"
           },
+          "library": {
+            "type": "boolean"
+          },
           "requireRevisionComment": {
             "type": "boolean"
           },
@@ -19468,7 +19707,8 @@
           "defaultTypeId",
           "workflowId",
           "requireRevisionComment",
-          "signedApprovals"
+          "signedApprovals",
+          "library"
         ]
       },
       "ProjectSettingsInput": {
@@ -19477,6 +19717,9 @@
           "defaultTypeId": {
             "type": "string",
             "format": "uuid"
+          },
+          "library": {
+            "type": "boolean"
           },
           "requireRevisionComment": {
             "type": "boolean"
@@ -20141,6 +20384,16 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "reuse": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Reuse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "revision": {
             "type": "integer"
           },
@@ -20208,6 +20461,7 @@
           "outline",
           "formerKeys",
           "copiedFrom",
+          "reuse",
           "createdAt",
           "createdByName",
           "updatedAt",
@@ -20260,7 +20514,8 @@
               "key",
               "link",
               "attachment",
-              "trash"
+              "trash",
+              "reuse"
             ]
           },
           "from": {
@@ -20518,6 +20773,55 @@
         },
         "required": [
           "baseRevision"
+        ]
+      },
+      "Reuse": {
+        "type": "object",
+        "properties": {
+          "behind": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "revision",
+          "source",
+          "behind"
+        ]
+      },
+      "ReuseInput": {
+        "type": "object",
+        "properties": {
+          "children": {
+            "type": "boolean"
+          },
+          "place": {
+            "$ref": "#/components/schemas/Place"
+          },
+          "projectKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectKey",
+          "place",
+          "children"
         ]
       },
       "Review": {
@@ -21263,6 +21567,16 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "reuse": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Reuse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statement": {
             "description": "A JSON value."
           },
@@ -21278,7 +21592,8 @@
           "labels",
           "can",
           "comments",
-          "suspectLinks"
+          "suspectLinks",
+          "reuse"
         ]
       },
       "SpecificationDocument": {
@@ -22015,6 +22330,20 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "TakeInput": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision"
         ]
       },
       "Theme": {

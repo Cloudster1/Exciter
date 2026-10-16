@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -170,7 +171,7 @@ func requirementError(err error) *APIError {
 		return &APIError{Status: http.StatusConflict, Code: "requirement_trashed",
 			Message: "This requirement is in the trash. Restore it from the project's trash to change it."}
 	}
-	return nil
+	return reuseError(err)
 }
 
 func (s *Server) handleGetTree(w http.ResponseWriter, r *http.Request) {
@@ -327,4 +328,65 @@ func (s *Server) handleListActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "next": next})
+}
+
+func (s *Server) handleReuseRequirement(w http.ResponseWriter, r *http.Request) {
+	var req requirement.ReuseInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	made, copied, lsn, err := s.Requirements.Reuse(r.Context(), userFrom(r), reqKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusCreated, map[string]any{"requirement": made, "copied": copied})
+}
+
+func (s *Server) handleTakeSource(w http.ResponseWriter, r *http.Request) {
+	var req requirement.TakeInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	got, lsn, err := s.Requirements.TakeSource(r.Context(), userFrom(r), reqKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
+}
+
+func (s *Server) handleMakeVariant(w http.ResponseWriter, r *http.Request) {
+	got, lsn, err := s.Requirements.MakeVariant(r.Context(), userFrom(r), reqKeyParam(r))
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
+}
+
+// reuseError maps the refusals of reuse (#49); nil when err is none of them.
+func reuseError(err error) *APIError {
+	var moved *requirement.SourceMovedError
+	switch {
+	case errors.As(err, &moved):
+		return &APIError{Status: http.StatusConflict, Code: "source_moved_on",
+			Message: fmt.Sprintf("%s has revision %d now. Look at what changed in it, then take that one.", moved.Key, moved.Revision)}
+	case errors.Is(err, requirement.ErrNotLibrary):
+		return &APIError{Status: http.StatusConflict, Code: "not_a_library",
+			Message: "Only a library's requirements are reused. Ask an administrator of this project to mark it a library, or copy the requirement instead."}
+	case errors.Is(err, requirement.ErrNotReused):
+		return &APIError{Status: http.StatusConflict, Code: "not_reused", Message: "This requirement follows no source. Edit it as it is."}
+	case errors.Is(err, requirement.ErrFollowsSource):
+		return &APIError{Status: http.StatusConflict, Code: "follows_source",
+			Message: "This requirement takes its title, statement and rationale from its library source. Change them there, or make it a variant to change them here."}
+	case errors.Is(err, requirement.ErrSourceHidden):
+		return ErrForbidden("You may not read this requirement's source, so you cannot take its words. Ask the library's administrators to let you read it.")
+	}
+	return nil
 }

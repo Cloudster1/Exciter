@@ -65,6 +65,8 @@ export const notificationsEn = {
         return `${who} decided the review of ${key}`;
       case "suspect":
         return `A link of ${key} needs checking after ${who} revised its other end`;
+      case "source_revised":
+        return `The library source of ${key} has a new revision from ${who}`;
       case "replied":
         return `${who} replied in a thread on ${key}`;
       case "commented":
@@ -88,6 +90,7 @@ export const notificationsEn = {
     review_requested: "Somebody asks you to review a revision",
     reviewed: "A review you asked for, or of your revision, is decided",
     suspect: "A link of a requirement you own or watch needs checking",
+    source_revised: "The library source of a requirement you watch gets a new revision",
     replied: "Somebody replies in a thread you wrote in",
     commented: "Somebody comments on a requirement you watch",
     resolved: "A thread you wrote in is resolved or reopened",

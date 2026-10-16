@@ -93,7 +93,7 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
                  WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + `
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + `
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -102,7 +102,7 @@ LEFT JOIN app_user uu ON uu.id = r.updated_by
 LEFT JOIN requirement_type t ON t.id = r.type_id
 LEFT JOIN req_status st ON st.id = r.status_id
 LEFT JOIN requirement cf ON cf.id = r.copied_from
-LEFT JOIN project cp ON cp.id = cf.project_id`
+LEFT JOIN project cp ON cp.id = cf.project_id` + reuseJoins
 
 // typeID is the requirement's type, nil for a section or one written before types.
 func (l *loaded) typeID() *uuid.UUID {
@@ -129,14 +129,15 @@ func scan(row pgx.Row) (*loaded, error) {
 		status               StatusRef
 		copied               Ref
 		copiedNumber         int
+		reused               scannedReuse
 	)
 	r := &l.Requirement
-	err := row.Scan(&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
+	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
 		&ownerID, &ownerName, &priority, &r.CreatedAt, &r.CreatedByName, &r.UpdatedAt, &r.UpdatedByName,
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
-		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision)
+		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, reused.targets()...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -168,6 +169,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		copied.Key = Key(copied.ProjectKey, copiedNumber)
 		r.CopiedFrom = &copied
 	}
+	r.Reuse = reused.reuse()
 	if priority != nil {
 		p := Priority(*priority)
 		r.Priority = &p

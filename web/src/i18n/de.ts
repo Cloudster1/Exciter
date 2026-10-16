@@ -309,6 +309,7 @@ export const de: Messages = {
       "coverage_rule.removed": "Abdeckungsregel entfernt",
       "specification.exported": "Spezifikation exportiert",
       "project.signatures_set": "Signierte Genehmigungen geändert",
+      "project.library_set": "Bibliothek geändert",
     },
     targetTypes: {
       user: "Person",

@@ -124,7 +124,9 @@ type Requirement struct {
 	// FormerKeys are keys it had before a move or a key change, which still resolve.
 	FormerKeys []string `json:"formerKeys"`
 	// CopiedFrom is the requirement this one was copied from, while it exists.
-	CopiedFrom    *Ref       `json:"copiedFrom"`
+	CopiedFrom *Ref `json:"copiedFrom"`
+	// Reuse is the library requirement this one follows or branched from (#49), null for one of its own.
+	Reuse         *Reuse     `json:"reuse"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	CreatedByName string     `json:"createdByName"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
@@ -278,6 +280,8 @@ type SpecEntry struct {
 	Comments   CommentCounts              `json:"comments"`
 	// SuspectLinks counts its links waiting to be checked since an end moved on.
 	SuspectLinks int `json:"suspectLinks"`
+	// Reuse is what the entry follows or branched from (#49), null for one of its own.
+	Reuse *Reuse `json:"reuse"`
 }
 
 // RevisionEntry is one revision as the history lists it.
@@ -388,10 +392,12 @@ const (
 	ChangeLink       ChangeField = "link"
 	ChangeAttachment ChangeField = "attachment"
 	ChangeTrash      ChangeField = "trash"
+	// ChangeReuse is a reused requirement made a variant, or following its source again (#49).
+	ChangeReuse ChangeField = "reuse"
 )
 
 // ChangeFields lists every ChangeField, for the API document.
-var ChangeFields = []ChangeField{ChangeStatus, ChangeOwner, ChangePriority, ChangeLabels, ChangePlace, ChangeKey, ChangeLink, ChangeAttachment, ChangeTrash}
+var ChangeFields = []ChangeField{ChangeStatus, ChangeOwner, ChangePriority, ChangeLabels, ChangePlace, ChangeKey, ChangeLink, ChangeAttachment, ChangeTrash, ChangeReuse}
 
 // Change is one logged change: the field, and what it was and became as a reader sees them.
 type Change struct {

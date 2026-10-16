@@ -34,11 +34,13 @@ const (
 	KindResolved        Kind = "resolved"
 	KindRevised         Kind = "revised"
 	KindTransitioned    Kind = "transitioned"
+	// KindSourceRevised is a reused requirement's library source revised (#49), told about the reuse.
+	KindSourceRevised Kind = "source_revised"
 )
 
 // Kinds lists every Kind, the order deciding which one a person named twice by one event gets.
-var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindReplied, KindCommented, KindResolved,
-	KindRevised, KindTransitioned}
+var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindSourceRevised, KindReplied, KindCommented,
+	KindResolved, KindRevised, KindTransitioned}
 
 // Digest is how mail is sent: each notification at once, or gathered every hour or day.
 type Digest string

@@ -71,6 +71,16 @@ const approvalState = `(CASE
   WHEN EXISTS (SELECT 1 FROM requirement_review v WHERE v.requirement_id = r.id AND v.state = 'approved') THEN 'outdated'
   ELSE 'none' END)`
 
+// Reuse states (#49): a copy that follows its library source, one whose source has moved on, a variant with words
+// of its own, or none. A reader who may not read the source never sees it move on.
+var reuseStates = []string{"following", "behind", "variant", "none"}
+
+const reuseState = `(CASE
+  WHEN r.reuse_source IS NULL THEN 'none'
+  WHEN r.reuse_state = 'variant' THEN 'variant'
+  WHEN COALESCE((SELECT s.revision FROM requirement s WHERE s.id = r.reuse_source), r.reuse_revision) > r.reuse_revision THEN 'behind'
+  ELSE 'following' END)`
+
 // coverageLevels are the levels of trace.Level, repeated because trace imports search, which imports this.
 var coverageLevels = []string{"none", "partial", "full", "na"}
 
@@ -101,6 +111,7 @@ var fixed = []fieldDef{
 	{name: "updated", kind: fkTimestamp, column: "r.updated_at", order: "r.updated_at"},
 	{name: "suspect", kind: fkNumber, column: requirement.SuspectLinks, order: requirement.SuspectLinks},
 	{name: "approval", kind: fkEnum, column: approvalState, enum: approvalStates},
+	{name: "reuse", kind: fkEnum, column: reuseState, enum: reuseStates},
 	{name: "decomposed", kind: fkEnum, column: "requirement_coverage(r.id, 'decomposed')", enum: coverageLevels},
 	{name: "implemented", kind: fkEnum, column: "requirement_coverage(r.id, 'implemented')", enum: coverageLevels},
 	{name: "verified", kind: fkEnum, column: "requirement_coverage(r.id, 'verified')", enum: coverageLevels},

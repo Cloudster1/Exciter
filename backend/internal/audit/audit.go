@@ -95,6 +95,8 @@ const (
 	ActionSpecificationExported = "specification.exported"
 	// ActionProjectSignaturesSet is a project's approvals made electronic signatures, or no longer (#46).
 	ActionProjectSignaturesSet = "project.signatures_set"
+	// ActionProjectLibrarySet is a project marked a library whose requirements other projects reuse, or no longer (#49).
+	ActionProjectLibrarySet = "project.library_set"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -109,7 +111,7 @@ var Actions = []string{
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
-	ActionWebhookSecretRotated, ActionWebhookDisabled,
+	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

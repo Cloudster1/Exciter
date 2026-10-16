@@ -309,7 +309,7 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			return err
 		}
 		name, description, settings := p.Name, p.Description, p.Settings
-		signing := false
+		signing, shelving := false, false
 		if in.Name != nil {
 			if name, err = checkName(*in.Name); err != nil {
 				return err
@@ -339,6 +339,10 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 				settings.SignedApprovals = *in.Settings.SignedApprovals
 				signing = true
 			}
+			if in.Settings.Library != nil && *in.Settings.Library != settings.Library {
+				settings.Library = *in.Settings.Library
+				shelving = true
+			}
 		}
 		raw, err := json.Marshal(settings)
 		if err != nil {
@@ -353,7 +357,13 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 		}
 		// Whether approvals are signatures is part of a quality system's record, so turning it either way is audited.
 		if signing {
-			return s.note(ctx, tx, reader, audit.ActionProjectSignaturesSet, out, map[string]any{"signedApprovals": settings.SignedApprovals})
+			if err := s.note(ctx, tx, reader, audit.ActionProjectSignaturesSet, out, map[string]any{"signedApprovals": settings.SignedApprovals}); err != nil {
+				return err
+			}
+		}
+		// What other projects may follow is everybody's concern, so marking a library either way is audited.
+		if shelving {
+			return s.note(ctx, tx, reader, audit.ActionProjectLibrarySet, out, map[string]any{"library": settings.Library})
 		}
 		return nil
 	})
