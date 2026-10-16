@@ -1,9 +1,9 @@
-import type { Filter, Sort } from "@/api/search";
+import type { Filter, Sort, View, ViewSettings } from "@/api/search";
 import type { ChainParams } from "@/api/trace";
 import { fromAddress, gridParams, readAddress, toAddress, type GridAddress } from "@/features/grid/filter";
 
 /** A chain report as its address holds it (#151): the grid's narrowing of the roots, the levels shown and the breaks. */
-export interface ChainsAddress extends Omit<GridAddress, "columns" | "view"> {
+export interface ChainsAddress extends Omit<GridAddress, "columns"> {
   level?: string[];
   onlyBroken?: boolean;
 }
@@ -18,7 +18,7 @@ export interface ChainsSetup {
 
 /** Reads a chain report's address, leaving out what is not there; the server judges the rest. */
 export function readChainsAddress(search: Record<string, unknown>): ChainsAddress {
-  const { columns: _columns, view: _view, ...grid } = readAddress(search);
+  const { columns: _columns, ...grid } = readAddress(search);
   const address: ChainsAddress = grid;
   const levels = (Array.isArray(search.level) ? search.level : [search.level]).map(String).filter((each) => /^\d+$/.test(each));
   if (levels.length) address.level = levels;
@@ -31,12 +31,25 @@ export function fromChainsAddress(address: ChainsAddress): ChainsSetup {
   return { filter, sort, levels: (address.level ?? []).map(Number), onlyBroken: address.onlyBroken === true };
 }
 
-export function toChainsAddress(setup: ChainsSetup): ChainsAddress {
+export function toChainsAddress(setup: ChainsSetup, view?: string): ChainsAddress {
   const { columns: _columns, view: _view, ...grid } = toAddress(setup.filter, setup.sort);
-  const address: ChainsAddress = grid;
+  const address: ChainsAddress = view ? { ...grid, view } : grid;
   if (setup.levels.length) address.level = setup.levels.map(String);
   if (setup.onlyBroken) address.onlyBroken = true;
   return address;
+}
+
+/** What a chain view (#152) keeps of a setup beside its roots' filter and order. */
+export function chainSettings(setup: ChainsSetup): ViewSettings {
+  return { levels: setup.levels.length ? setup.levels : undefined, onlyBroken: setup.onlyBroken || undefined };
+}
+
+/** The address a chain view opens at. */
+export function fromChainView(view: View): ChainsAddress {
+  return toChainsAddress(
+    { ...fromAddress(toAddress(view.filter, view.sort)), levels: view.settings.levels ?? [], onlyBroken: view.settings.onlyBroken === true },
+    view.id,
+  );
 }
 
 /** A setup as the chain report's query string takes it. */

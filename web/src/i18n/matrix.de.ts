@@ -36,4 +36,8 @@ export const matrixDe: typeof matrixEn = {
   unlinked: (column) => `Die Verknüpfung mit ${column} ist entfernt.`,
   close: "Schließen",
   columnPagesKind: "Stator-Seiten",
+  dropped: (n) =>
+    n === 1
+      ? "Diese Ansicht nannte etwas, das das Projekt nicht mehr hat; es bleibt weg."
+      : `Diese Ansicht nannte ${n} Dinge, die das Projekt nicht mehr hat; sie bleiben weg.`,
 };

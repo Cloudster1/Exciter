@@ -139,7 +139,34 @@ type Row struct {
 	SuspectLinks int `json:"suspectLinks"`
 }
 
-// View is a saved grid: a filter, columns and an order.
+// ViewKind says what a view is of: the grid, the traceability matrix or the chain report (#152).
+type ViewKind string
+
+const (
+	ViewGrid   ViewKind = "grid"
+	ViewMatrix ViewKind = "matrix"
+	ViewChain  ViewKind = "chain"
+)
+
+// ViewKinds lists every ViewKind, for the API document.
+var ViewKinds = []ViewKind{ViewGrid, ViewMatrix, ViewChain}
+
+// ViewSettings is what a matrix or chain view keeps beside its rows' filter and order, in the words of their
+// parameters; a grid view keeps none.
+type ViewSettings struct {
+	Columns       string      `json:"columns,omitempty"`
+	ColumnProject string      `json:"columnProject,omitempty"`
+	LinkTypes     []string    `json:"linkTypes,omitempty"`
+	Direction     string      `json:"direction,omitempty"`
+	Relations     []string    `json:"relations,omitempty"`
+	ColumnQuery   string      `json:"columnQuery,omitempty"`
+	ColumnTypes   []uuid.UUID `json:"columnTypes,omitempty"`
+	Gaps          string      `json:"gaps,omitempty"`
+	Levels        []int       `json:"levels,omitempty"`
+	OnlyBroken    bool        `json:"onlyBroken,omitempty"`
+}
+
+// View is a saved grid, matrix or chain report: a filter, columns or settings, and an order.
 type View struct {
 	ID         uuid.UUID `json:"id"`
 	ProjectKey string    `json:"projectKey"`
@@ -147,21 +174,27 @@ type View struct {
 	OwnerID    uuid.UUID `json:"ownerId"`
 	OwnerName  string    `json:"ownerName"`
 	// Shared views are offered to everybody who may view the project.
-	Shared  bool     `json:"shared"`
-	Filter  Filter   `json:"filter"`
-	Columns []string `json:"columns"`
-	Sort    Sort     `json:"sort"`
+	Shared   bool         `json:"shared"`
+	Kind     ViewKind     `json:"kind"`
+	Filter   Filter       `json:"filter"`
+	Columns  []string     `json:"columns"`
+	Settings ViewSettings `json:"settings"`
+	Sort     Sort         `json:"sort"`
+	// Dropped names what the view's settings named that the project no longer has, left out as it is read.
+	Dropped []string `json:"dropped"`
 	// CanEdit is the owner's, and a project administrator's for a shared view.
 	CanEdit   bool      `json:"canEdit"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-// ViewInput makes a view, or changes one where nil leaves a field alone.
+// ViewInput makes a view, or changes one where nil leaves a field alone; a view keeps the kind it was made with.
 type ViewInput struct {
-	Name    *string   `json:"name,omitempty"`
-	Shared  *bool     `json:"shared,omitempty"`
-	Filter  *Filter   `json:"filter,omitempty"`
-	Columns *[]string `json:"columns,omitempty"`
-	Sort    *Sort     `json:"sort,omitempty"`
+	Name     *string       `json:"name,omitempty"`
+	Shared   *bool         `json:"shared,omitempty"`
+	Kind     *ViewKind     `json:"kind,omitempty"`
+	Filter   *Filter       `json:"filter,omitempty"`
+	Columns  *[]string     `json:"columns,omitempty"`
+	Settings *ViewSettings `json:"settings,omitempty"`
+	Sort     *Sort         `json:"sort,omitempty"`
 }

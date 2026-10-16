@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Matrix and chain views (#152). The matrix and the chain report save
+  their setup under a name, personal or shared, as the grid's views do,
+  each kind listed only where it belongs; a view naming what the project
+  has since lost opens without it and says so.
 - A project's trace model and its chain report (#151). An administrator
   sets the levels a project's requirements trace through, such as need,
   system, test and Armature issue, under Settings, Trace model, with the

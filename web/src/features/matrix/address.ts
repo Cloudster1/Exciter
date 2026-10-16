@@ -1,5 +1,5 @@
 import type { Matrix, MatrixColumns, MatrixParams } from "@/api/coverage";
-import type { Filter, Sort } from "@/api/search";
+import type { Filter, Sort, View, ViewSettings } from "@/api/search";
 import { fromAddress, gridParams, readAddress, toAddress, type GridAddress } from "@/features/grid/filter";
 
 /** Which way a link must point from its row to be counted. */
@@ -16,7 +16,7 @@ export const ISSUE_RELATIONS = ["implements", "verifies", "relates"] as const;
 export const PAGE_RELATIONS = ["specifies", "describes", "relates"] as const;
 
 /** A matrix as its address holds it: the grid's narrowing and order for the rows, then what the columns are. */
-export interface MatrixAddress extends Omit<GridAddress, "columns" | "view"> {
+export interface MatrixAddress extends Omit<GridAddress, "columns"> {
   columns?: MatrixColumns;
   columnProject?: string;
   linkType?: string[];
@@ -51,7 +51,7 @@ const list = (value: unknown): string[] | undefined => {
 
 /** Reads a matrix's address, leaving out what is not there; the server judges the rest. */
 export function readMatrixAddress(search: Record<string, unknown>): MatrixAddress {
-  const { columns: _gridColumns, view: _view, ...grid } = readAddress(search);
+  const { columns: _gridColumns, ...grid } = readAddress(search);
   const address: MatrixAddress = grid;
   if (search.columns === "issues" || search.columns === "pages") address.columns = search.columns;
   if (typeof search.columnProject === "string" && search.columnProject) address.columnProject = search.columnProject;
@@ -69,7 +69,7 @@ export function readMatrixAddress(search: Record<string, unknown>): MatrixAddres
 
 /** The setup an address holds, with its defaults filled in. */
 export function fromMatrixAddress(address: MatrixAddress): MatrixSetup {
-  const { columns: _columns, ...grid } = address;
+  const { columns: _columns, view: _view, ...grid } = address;
   const { filter, sort } = fromAddress(grid);
   return {
     filter,
@@ -85,10 +85,10 @@ export function fromMatrixAddress(address: MatrixAddress): MatrixSetup {
   };
 }
 
-/** The address of a setup; the defaults and what does not fit the columns are left out. */
-export function toMatrixAddress(setup: MatrixSetup): MatrixAddress {
+/** The address of a setup, with the view open kept; the defaults and what does not fit the columns are left out. */
+export function toMatrixAddress(setup: MatrixSetup, view?: string): MatrixAddress {
   const { columns: _gridColumns, view: _view, ...grid } = toAddress(setup.filter, setup.sort);
-  const address: MatrixAddress = grid;
+  const address: MatrixAddress = view ? { ...grid, view } : grid;
   if (setup.columns !== "requirements") {
     address.columns = setup.columns;
     if (setup.relations.length) address.relation = setup.relations;
@@ -109,6 +109,38 @@ export function toMatrixAddress(setup: MatrixSetup): MatrixAddress {
 /** Whether the columns are a column filter's rather than what the rows reach. */
 export function hasColumnFilter(setup: MatrixSetup): boolean {
   return setup.columns === "requirements" && (setup.columnQuery.trim() !== "" || setup.columnTypes.length > 0);
+}
+
+/** What a matrix view (#152) keeps of a setup beside its rows' filter and order. */
+export function matrixSettings(setup: MatrixSetup): ViewSettings {
+  const a = toMatrixAddress(setup);
+  return {
+    columns: a.columns,
+    columnProject: a.columnProject,
+    linkTypes: a.linkType,
+    direction: a.direction,
+    relations: a.relation,
+    columnQuery: a.columnQuery,
+    columnTypes: a.columnType,
+    gaps: a.gaps,
+  };
+}
+
+/** The address a matrix view opens at. */
+export function fromMatrixView(view: View): MatrixAddress {
+  const s = view.settings;
+  return readMatrixAddress({
+    ...toAddress(view.filter, view.sort),
+    view: view.id,
+    columns: s.columns,
+    columnProject: s.columnProject,
+    linkType: s.linkTypes,
+    direction: s.direction,
+    relation: s.relations,
+    columnQuery: s.columnQuery,
+    columnType: s.columnTypes,
+    gaps: s.gaps,
+  });
 }
 
 /** A setup as the matrix's query string takes it. */

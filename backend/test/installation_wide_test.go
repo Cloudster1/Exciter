@@ -65,6 +65,7 @@ var installationWide = map[string]string{
 	"TestTheMatrixLaysOutStatorPages":                            statorLink,
 	"TestATraceModelIsSetAndItsChainsFollowed":                   armatureLink,
 	"TestRawSQLKeepsTraceModelsToAdministrators":                 armatureLink,
+	"TestMatrixAndChainViewsAreKeptApart":                        armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,

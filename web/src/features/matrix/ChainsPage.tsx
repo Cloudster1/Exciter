@@ -12,7 +12,8 @@ import { Pages } from "@/features/coverage/Pages";
 import { GridFilters } from "@/features/grid/GridFilters";
 import { queryFailure } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
-import { chainParams, fromChainsAddress, levelRange, toChainsAddress, type ChainsAddress } from "./chainsAddress";
+import { GridViews } from "@/features/grid/GridViews";
+import { chainParams, chainSettings, fromChainView, fromChainsAddress, levelRange, toChainsAddress, type ChainsAddress } from "./chainsAddress";
 
 /** A project's chains (#151): every path from the trace model's first level shown down to its last, a page of roots
  * at a time, each line marked where it breaks. */
@@ -34,7 +35,8 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
   const levels = model?.levels ?? [];
   const from = setup.levels.length ? Math.min(...setup.levels) : 0;
   const to = setup.levels.length ? Math.max(...setup.levels) : levels.length - 1;
-  const set = (patch: Partial<typeof setup>) => onAddress(toChainsAddress({ ...setup, ...patch }));
+  const set = (patch: Partial<typeof setup>) => onAddress(toChainsAddress({ ...setup, ...patch }, address.view));
+  const [notice, setNotice] = useState("");
   return (
     <div className="space-y-4" data-chains={project.key}>
       <PageHeader
@@ -56,6 +58,23 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
           </div>
         }
       />
+      <div className="flex flex-wrap items-center gap-3">
+        <GridViews
+          project={project}
+          kind="chain"
+          viewId={address.view}
+          state={{ filter: setup.filter, sort: setup.sort, settings: chainSettings(setup) }}
+          onOpen={(view) => {
+            onAddress(view ? fromChainView(view) : {});
+            // Saving says so before it opens the view saved, which has lost nothing to say.
+            if (view?.dropped.length) setNotice(t.matrix.dropped(view.dropped.length));
+          }}
+          onNotice={setNotice}
+        />
+        <p role="status" className="text-sm text-ink-muted empty:hidden" data-chains-notice>
+          {notice}
+        </p>
+      </div>
       <GridFilters
         project={project}
         filter={setup.filter}

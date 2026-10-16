@@ -1,33 +1,44 @@
 import { useState, type FormEvent } from "react";
 import type { Project } from "@/api/projects";
-import { useViewActions, useViews, type Filter, type Sort, type View } from "@/api/search";
+import { useViewActions, useViews, type Filter, type Sort, type View, type ViewInput, type ViewKind, type ViewSettings } from "@/api/search";
 import { Button, Checkbox, Dialog, ErrorBanner, Field, SelectInput } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { VIEW_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
-/** The grid as it stands, which a view saves. */
+/** The grid, matrix or chain report as it stands, which a view saves: a grid's columns, or the others' settings. */
 export interface GridState {
   filter: Filter;
   sort: Sort;
-  columns: string[];
+  columns?: string[];
+  settings?: ViewSettings;
 }
 
-/** The views of a project's grid: one to open, the grid saved as a new one, and the open one saved or deleted. */
+/** What a view of a kind keeps of a state. */
+function body(kind: ViewKind, state: GridState): ViewInput {
+  return kind === "grid"
+    ? { filter: state.filter, sort: state.sort, columns: state.columns ?? [] }
+    : { filter: state.filter, sort: state.sort, settings: state.settings ?? {} };
+}
+
+/** The views of a project's grid, matrix or chain report (#152): one to open, the page saved as a new one, and the
+ * open one saved or deleted. */
 export function GridViews({
   project,
+  kind = "grid",
   viewId,
   state,
   onOpen,
   onNotice,
 }: {
   project: Project;
+  kind?: ViewKind;
   viewId?: string;
   state: GridState;
   onOpen: (view: View | undefined) => void;
   onNotice: (message: string) => void;
 }) {
-  const { data: views } = useViews(project.key);
+  const { data: views } = useViews(project.key, kind);
   const actions = useViewActions(project.key);
   const [saving, setSaving] = useState(false);
   const open = views?.find((each) => each.id === viewId);
@@ -41,7 +52,7 @@ export function GridViews({
         className="w-auto"
         data-view-select
       >
-        <option value="">{t.grid.allRequirements}</option>
+        <option value="">{kind === "grid" ? t.grid.allRequirements : t.grid.noView}</option>
         {(views ?? []).map((view) => (
           <option key={view.id} value={view.id}>
             {view.shared ? `${view.name} (${t.grid.sharedTag})` : view.name}
@@ -57,12 +68,7 @@ export function GridViews({
             variant="secondary"
             size="sm"
             loading={actions.update.isPending}
-            onClick={() =>
-              actions.update.mutate(
-                { id: open.id, body: { filter: state.filter, sort: state.sort, columns: state.columns } },
-                { onSuccess: (view) => onNotice(t.grid.viewSaved(view.name)) },
-              )
-            }
+            onClick={() => actions.update.mutate({ id: open.id, body: body(kind, state) }, { onSuccess: (view) => onNotice(t.grid.viewSaved(view.name)) })}
             data-action="update-view"
           >
             {t.grid.saveChanges}
@@ -90,6 +96,7 @@ export function GridViews({
       {saving && (
         <SaveDialog
           project={project}
+          kind={kind}
           state={state}
           onClose={() => setSaving(false)}
           onSaved={(view) => {
@@ -103,13 +110,25 @@ export function GridViews({
   );
 }
 
-function SaveDialog({ project, state, onClose, onSaved }: { project: Project; state: GridState; onClose: () => void; onSaved: (view: View) => void }) {
+function SaveDialog({
+  project,
+  kind,
+  state,
+  onClose,
+  onSaved,
+}: {
+  project: Project;
+  kind: ViewKind;
+  state: GridState;
+  onClose: () => void;
+  onSaved: (view: View) => void;
+}) {
   const { create } = useViewActions(project.key);
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    create.mutate({ name, shared, filter: state.filter, sort: state.sort, columns: state.columns }, { onSuccess: onSaved });
+    create.mutate({ name, shared, kind, ...body(kind, state) }, { onSuccess: onSaved });
   };
   return (
     <Dialog title={t.grid.saveAs} onClose={onClose} data-save-view-dialog="">

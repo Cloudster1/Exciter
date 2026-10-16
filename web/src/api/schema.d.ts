@@ -1870,7 +1870,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's own views of a project's grid, then the shared ones. */
+        /** The caller's own views of a project's grid, matrix or chains, then the shared ones, with what each names that the project lost left out. */
         get: operations["listViews"];
         put?: never;
         /** Save a view of a project's grid; sharing it is for its editors. */
@@ -5342,14 +5342,18 @@ export interface components {
             columns: string[];
             /** Format: date-time */
             createdAt: string;
+            dropped: string[];
             filter: components["schemas"]["ViewFilter"];
             /** Format: uuid */
             id: string;
+            /** @enum {string} */
+            kind: "grid" | "matrix" | "chain";
             name: string;
             /** Format: uuid */
             ownerId: string;
             ownerName: string;
             projectKey: string;
+            settings: components["schemas"]["ViewSettings"];
             shared: boolean;
             sort: components["schemas"]["ViewSort"];
             /** Format: date-time */
@@ -5371,9 +5375,24 @@ export interface components {
         ViewInput: {
             columns?: string[];
             filter?: components["schemas"]["ViewFilter"];
+            /** @enum {string} */
+            kind?: "grid" | "matrix" | "chain";
             name?: string;
+            settings?: components["schemas"]["ViewSettings"];
             shared?: boolean;
             sort?: components["schemas"]["ViewSort"];
+        };
+        ViewSettings: {
+            columnProject?: string;
+            columnQuery?: string;
+            columnTypes?: string[];
+            columns?: string;
+            direction?: string;
+            gaps?: string;
+            levels?: number[];
+            linkTypes?: string[];
+            onlyBroken?: boolean;
+            relations?: string[];
         };
         ViewSort: {
             column: string;
@@ -11921,7 +11940,10 @@ export interface operations {
     };
     listViews: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description grid, the default, matrix or chain (#152). */
+                kind?: "grid" | "matrix" | "chain";
+            };
             header?: never;
             path: {
                 projectKey: string;

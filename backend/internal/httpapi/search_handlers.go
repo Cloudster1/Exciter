@@ -106,7 +106,7 @@ func (s *Server) handleSuggestQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListViews(w http.ResponseWriter, r *http.Request) {
-	views, err := s.Search.Views(r.Context(), userFrom(r), projectKeyParam(r))
+	views, err := s.Search.Views(r.Context(), userFrom(r), projectKeyParam(r), search.ViewKind(r.URL.Query().Get("kind")))
 	if err != nil {
 		respondError(w, r, err)
 		return

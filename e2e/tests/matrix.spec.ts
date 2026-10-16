@@ -8,12 +8,13 @@ import { expectAccessible } from "../fixtures/shell";
 
 // The matrix's axes (#147): alice counts only the verifying links, only those pointing at each row, and finds the
 // same matrix after a reload and in its file. Its gaps (#148): what nothing links to, as rows and as columns. Its
-// cells (#149): a gap closed and opened again where it shows.
+// cells (#149): a gap closed and opened again where it shows. Its views (#152): saved, shared and opened by bob.
 
 const KEY = uniqueKey("MTRX");
 // Tests run side by side, so each makes its own project.
 const GAP_KEY = uniqueKey("MGAP");
 const CELL_KEY = uniqueKey("MCEL");
+const VIEW_KEY = uniqueKey("MVEW");
 
 async function removeProject(api: ExciterApi, projectKey: string) {
   const path = { params: { path: { projectKey } } };
@@ -28,6 +29,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
     await removeProject(api, KEY);
     await removeProject(api, GAP_KEY);
     await removeProject(api, CELL_KEY);
+    await removeProject(api, VIEW_KEY);
   });
 
   test("alice picks the link types and the direction that count, and the address and the file keep them", async ({ page, api }) => {
@@ -118,5 +120,37 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
     await expect(panel).toHaveCount(0);
     await expect(page.locator(`[data-cell="${CELL_KEY}-R2:${CELL_KEY}-R1"] [data-gap]`)).toHaveCount(0);
     await expect(page.getByRole("button", { name: `Links between ${CELL_KEY}-R2 and ${CELL_KEY}-R1` })).toBeVisible();
+  });
+
+  test("alice shares the matrix as she set it, and bob opens it so", async ({ page, api, pageAs }) => {
+    const projectKey = { params: { path: { projectKey: VIEW_KEY } } };
+    must(await api.POST("/projects", { body: { key: VIEW_KEY, name: "Views" } }));
+    for (const title of ["Brakes engage within 100 ms", "Brake bench run"]) {
+      must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title } }));
+    }
+    must(
+      await api.POST("/requirements/{reqKey}/links", {
+        params: { path: { reqKey: `${VIEW_KEY}-R2` } },
+        body: { typeKey: "verifies", otherKey: `${VIEW_KEY}-R1` },
+      }),
+    );
+
+    await page.goto(`/p/${VIEW_KEY}/matrix`);
+    await page.getByRole("group", { name: "Link types" }).getByRole("button", { name: "Verifies" }).click();
+    await page.getByRole("button", { name: "Incoming" }).click();
+    await page.getByRole("button", { name: "Save as a view" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Name").fill("Verified");
+    await dialog.getByLabel("Share with everybody in the project").check();
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Saved the view Verified." })).toBeVisible();
+
+    const bob = await pageAs("bob");
+    await bob.goto(`/p/${VIEW_KEY}/matrix`);
+    await bob.getByLabel("Views").selectOption({ label: "Verified (Shared)" });
+    await expect(bob.getByRole("group", { name: "Link types" }).getByRole("button", { name: "Verifies" })).toHaveAttribute("aria-pressed", "true");
+    await expect(bob.getByRole("button", { name: "Incoming" })).toHaveAttribute("aria-pressed", "true");
+    await expect(bob.locator(`[data-cell="${VIEW_KEY}-R1:${VIEW_KEY}-R2"]`)).toHaveAttribute("title", `${VIEW_KEY}-R1 to ${VIEW_KEY}-R2: Verifies`);
+    await expectAccessible(bob);
   });
 });
