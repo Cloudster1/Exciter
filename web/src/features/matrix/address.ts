@@ -12,6 +12,8 @@ export type MatrixGaps = "" | "rows" | "columns" | "both";
 export const MATRIX_GAPS: MatrixGaps[] = ["", "rows", "columns", "both"];
 /** The relations an Armature link has, in the order the picker offers them. */
 export const ISSUE_RELATIONS = ["implements", "verifies", "relates"] as const;
+/** The relations a Stator page link has (#150), in the order the picker offers them. */
+export const PAGE_RELATIONS = ["specifies", "describes", "relates"] as const;
 
 /** A matrix as its address holds it: the grid's narrowing and order for the rows, then what the columns are. */
 export interface MatrixAddress extends Omit<GridAddress, "columns" | "view"> {
@@ -51,7 +53,7 @@ const list = (value: unknown): string[] | undefined => {
 export function readMatrixAddress(search: Record<string, unknown>): MatrixAddress {
   const { columns: _gridColumns, view: _view, ...grid } = readAddress(search);
   const address: MatrixAddress = grid;
-  if (search.columns === "issues") address.columns = "issues";
+  if (search.columns === "issues" || search.columns === "pages") address.columns = search.columns;
   if (typeof search.columnProject === "string" && search.columnProject) address.columnProject = search.columnProject;
   const linkType = list(search.linkType);
   if (linkType) address.linkType = linkType;
@@ -87,8 +89,8 @@ export function fromMatrixAddress(address: MatrixAddress): MatrixSetup {
 export function toMatrixAddress(setup: MatrixSetup): MatrixAddress {
   const { columns: _gridColumns, view: _view, ...grid } = toAddress(setup.filter, setup.sort);
   const address: MatrixAddress = grid;
-  if (setup.columns === "issues") {
-    address.columns = "issues";
+  if (setup.columns !== "requirements") {
+    address.columns = setup.columns;
     if (setup.relations.length) address.relation = setup.relations;
     if (setup.gaps === "rows") address.gaps = "rows";
     return address;
@@ -128,7 +130,15 @@ function pick({ columns, columnProject, linkType, direction, relation, columnQue
   return params;
 }
 
-/** A column's name: the requirement's key, or the issue's. */
-export function columnName(column: Matrix["columns"][number]): string {
-  return column.requirement ? column.requirement.key : column.issueKey;
+/** A column's name: the requirement's key, the issue's, or a page's title as Stator told the reader, its space and id
+ * where it told none. */
+export function columnName(column: Matrix["columns"][number], titles?: ReadonlyMap<string, string>): string {
+  if (column.requirement) return column.requirement.key;
+  if (column.page) return titles?.get(column.page.id) ?? `${column.page.spaceKey}/${column.page.id}`;
+  return column.issueKey;
+}
+
+/** A column's identity, unique on a page, whatever it is called. */
+export function columnKey(column: Matrix["columns"][number]): string {
+  return column.requirement?.id ?? column.page?.id ?? column.issueKey;
 }

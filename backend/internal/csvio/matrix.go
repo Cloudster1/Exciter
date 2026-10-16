@@ -19,6 +19,20 @@ const (
 	matrixLead = 3
 )
 
+// columnHeading names a column: a requirement by its key, an issue by its, a page by its title, or its space and id
+// where Stator told the reader none.
+func columnHeading(c trace.MatrixColumn) string {
+	switch {
+	case c.Requirement != nil:
+		return c.Requirement.Key
+	case c.Page != nil && c.Page.Title != "":
+		return c.Page.Title
+	case c.Page != nil:
+		return c.Page.SpaceKey + "/" + c.Page.ID.String()
+	}
+	return c.IssueKey
+}
+
 // countAt is the count of the i-th row or column, blank where the matrix gave none.
 func countAt(counts []int, i int) string {
 	if i >= len(counts) {
@@ -34,11 +48,7 @@ func WriteMatrix(w io.Writer, m *trace.Matrix) error {
 	header := []string{"Key", "Title", linksHeading}
 	counts := []string{"", linksHeading, ""}
 	for i, c := range m.Columns {
-		if c.Requirement != nil {
-			header = append(header, Cell(c.Requirement.Key))
-		} else {
-			header = append(header, Cell(c.IssueKey))
-		}
+		header = append(header, Cell(columnHeading(c)))
 		counts = append(counts, countAt(m.ColumnLinks, i))
 	}
 	if err := out.Write(header); err != nil {

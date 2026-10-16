@@ -2,11 +2,12 @@ import { useCallback, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Matrix } from "@/api/coverage";
 import type { Project } from "@/api/projects";
+import { useStatorPages } from "@/api/stator";
 import { Button } from "@/components/ui";
 import { useAnchored } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
-import { columnName } from "./address";
+import { columnKey, columnName } from "./address";
 import { CellPanel } from "./CellPanel";
 
 /** A row's or column's count of links, marked as a gap (#148) when it has none. */
@@ -31,6 +32,11 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
   const panelRef = useRef<HTMLDivElement | null>(null);
   const place = useAnchored(open !== null, anchor, panelRef);
   const close = useCallback(() => setOpen(null), []);
+  // Pages are named as Stator shows the reader them, each batch looked up once and kept (#150).
+  const pageIds = matrix.columns.flatMap((column) => (column.page ? [column.page.id] : []));
+  const lookup = useStatorPages(pageIds, pageIds.length > 0);
+  const titles = new Map([...lookup.pages].flatMap(([id, page]) => (page ? [[id, page.title] as const] : [])));
+  const nameOf = (column: Matrix["columns"][number]) => columnName(column, titles);
   const openRow = open ? matrix.rows[open.row] : undefined;
   const openColumn = open ? matrix.columns[open.column] : undefined;
   return (
@@ -45,8 +51,8 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
               {t.matrix.links}
             </th>
             {matrix.columns.map((column) => (
-              <th key={columnName(column)} scope="col" className="px-1 py-1 font-mono font-medium text-ink-muted [writing-mode:vertical-rl]">
-                {columnName(column)}
+              <th key={columnKey(column)} scope="col" className="px-1 py-1 font-mono font-medium text-ink-muted [writing-mode:vertical-rl]">
+                {nameOf(column)}
               </th>
             ))}
           </tr>
@@ -67,10 +73,10 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
               {matrix.columns.map((column, c) => {
                 const links = cells.get(`${r}:${c}`);
                 const names = (links ?? []).map((l) => (l.suspect ? `${l.name} (${t.coverage.suspect})` : l.name)).join(", ");
-                const label = links ? t.coverage.cell(row.key, columnName(column), names) : t.matrix.openCell(row.key, columnName(column));
+                const label = links ? t.coverage.cell(row.key, nameOf(column), names) : t.matrix.openCell(row.key, nameOf(column));
                 const opened = open?.row === r && open.column === c;
                 return (
-                  <td key={columnName(column)} className="border-l border-border p-0 text-center" data-cell={`${row.key}:${columnName(column)}`} title={label}>
+                  <td key={columnKey(column)} className="border-l border-border p-0 text-center" data-cell={`${row.key}:${nameOf(column)}`} title={label}>
                     {(links || row.canLink) && (
                       <Button
                         variant="link"
@@ -102,7 +108,7 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
             </th>
             <td />
             {matrix.columns.map((column, c) => (
-              <Count key={columnName(column)} n={matrix.columnLinks[c]} />
+              <Count key={columnKey(column)} n={matrix.columnLinks[c]} />
             ))}
           </tr>
         </tfoot>
@@ -113,6 +119,7 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
           projectKey={project.key}
           row={openRow}
           column={openColumn}
+          columnName={nameOf(openColumn)}
           linkIds={(cells.get(`${open.row}:${open.column}`) ?? []).map((link) => link.id)}
           anchor={anchor}
           place={place}

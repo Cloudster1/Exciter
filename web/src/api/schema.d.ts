@@ -4155,6 +4155,7 @@ export interface components {
         };
         MatrixColumn: {
             issueKey: string;
+            page: components["schemas"]["MatrixPage"] | null;
             requirement: components["schemas"]["RequirementRef"] | null;
         };
         MatrixLink: {
@@ -10511,16 +10512,16 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
                 /** @description For requirement columns, keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
                 direction?: "both" | "outgoing" | "incoming";
-                /** @description For issue columns, the relations to count; every one when absent. */
-                relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
                 /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
                 columnQuery?: string;
                 /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
@@ -10613,16 +10614,16 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
                 /** @description For requirement columns, keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
                 direction?: "both" | "outgoing" | "incoming";
-                /** @description For issue columns, the relations to count; every one when absent. */
-                relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
                 /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
                 columnQuery?: string;
                 /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
@@ -10705,16 +10706,16 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
                 /** @description For requirement columns, keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
                 direction?: "both" | "outgoing" | "incoming";
-                /** @description For issue columns, the relations to count; every one when absent. */
-                relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
                 /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
                 columnQuery?: string;
                 /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */

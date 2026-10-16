@@ -32,8 +32,8 @@ function aMatrix(canLink: boolean, over: Partial<Matrix> = {}): Matrix {
   return {
     rows: [{ ...ref(1, "Brakes engage within 100 ms"), canLink }],
     columns: [
-      { requirement: ref(2, "Brake lights follow the pedal"), issueKey: "" },
-      { requirement: ref(3, "Horn sounds"), issueKey: "" },
+      { requirement: ref(2, "Brake lights follow the pedal"), issueKey: "", page: null },
+      { requirement: ref(3, "Horn sounds"), issueKey: "", page: null },
     ],
     cells: [{ row: 0, column: 0, links: [{ id: suspectLink.id, kind: "trace", name: "Derives", typeKey: "derives", direction: "outgoing", suspect: true }] }],
     rowLinks: [1],
@@ -123,8 +123,8 @@ describe("a matrix cell", () => {
     const sent = stubCells(
       aMatrix(true, {
         columns: [
-          { requirement: null, issueKey: "WEB-1" },
-          { requirement: null, issueKey: "WEB-2" },
+          { requirement: null, issueKey: "WEB-1", page: null },
+          { requirement: null, issueKey: "WEB-2", page: null },
         ],
         cells: [{ row: 0, column: 0, links: [{ id: trace.id, kind: "armature", name: "implements", direction: "outgoing", suspect: false }] }],
       }),

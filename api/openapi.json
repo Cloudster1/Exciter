@@ -7497,12 +7497,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -7541,15 +7542,17 @@
           {
             "name": "relation",
             "in": "query",
-            "description": "For issue columns, the relations to count; every one when absent.",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
+                  "describes",
                   "implements",
-                  "verifies",
-                  "relates"
+                  "relates",
+                  "specifies",
+                  "verifies"
                 ]
               }
             }
@@ -7839,12 +7842,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -7883,15 +7887,17 @@
           {
             "name": "relation",
             "in": "query",
-            "description": "For issue columns, the relations to count; every one when absent.",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
+                  "describes",
                   "implements",
-                  "verifies",
-                  "relates"
+                  "relates",
+                  "specifies",
+                  "verifies"
                 ]
               }
             }
@@ -8142,12 +8148,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -8186,15 +8193,17 @@
           {
             "name": "relation",
             "in": "query",
-            "description": "For issue columns, the relations to count; every one when absent.",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
             "schema": {
               "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
+                  "describes",
                   "implements",
-                  "verifies",
-                  "relates"
+                  "relates",
+                  "specifies",
+                  "verifies"
                 ]
               }
             }
@@ -20588,6 +20597,16 @@
           "issueKey": {
             "type": "string"
           },
+          "page": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MatrixPage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "requirement": {
             "oneOf": [
               {
@@ -20601,7 +20620,8 @@
         },
         "required": [
           "requirement",
-          "issueKey"
+          "issueKey",
+          "page"
         ]
       },
       "MatrixLink": {

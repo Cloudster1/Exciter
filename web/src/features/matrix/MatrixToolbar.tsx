@@ -7,7 +7,7 @@ import { Card, Chip, Segmented, Select } from "@/components/ui";
 import { GridFilters } from "@/features/grid/GridFilters";
 import { QueryInput } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
-import { hasColumnFilter, ISSUE_RELATIONS, MATRIX_DIRECTIONS, MATRIX_GAPS, type MatrixGaps, type MatrixSetup } from "./address";
+import { hasColumnFilter, ISSUE_RELATIONS, MATRIX_DIRECTIONS, MATRIX_GAPS, PAGE_RELATIONS, type MatrixGaps, type MatrixSetup } from "./address";
 
 /** What a matrix lays out: the grid's narrowing for its rows, then its columns and the links that count. */
 export function MatrixToolbar({
@@ -53,11 +53,12 @@ export function MatrixToolbar({
         <Segmented<MatrixColumns>
           label={t.coverage.columns}
           value={setup.columns}
-          onChange={(columns) => set({ columns })}
+          onChange={(columns) => set({ columns, relations: [] })}
           size="sm"
           options={[
             { value: "requirements", label: t.coverage.columnRequirements, attrs: { "data-columns": "requirements" } },
             { value: "issues", label: t.coverage.columnIssues, attrs: { "data-columns": "issues" } },
+            { value: "pages", label: t.matrix.columnPagesKind, attrs: { "data-columns": "pages" } },
           ]}
         />
         {setup.columns === "requirements" ? (
@@ -101,7 +102,11 @@ export function MatrixToolbar({
             label={t.matrix.relations}
             hint={t.matrix.everyRelation}
             name="relation"
-            options={ISSUE_RELATIONS.map((r) => ({ value: r, label: t.matrix.relationNames[r] }))}
+            options={
+              setup.columns === "pages"
+                ? PAGE_RELATIONS.map((r) => ({ value: r, label: t.stator.links.headings[r] }))
+                : ISSUE_RELATIONS.map((r) => ({ value: r, label: t.matrix.relationNames[r] }))
+            }
             chosen={setup.relations}
             onChange={(relations) => set({ relations })}
           />

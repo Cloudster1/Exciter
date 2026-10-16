@@ -1,4 +1,4 @@
-/** The strings of the traceability matrix's own page (#147, #148, #149). */
+/** The strings of the traceability matrix's own page (#147 to #150). */
 export const matrixEn = {
   title: "Traceability matrix",
   intro: "Requirements against what they link to, counting the links you pick.",
@@ -33,4 +33,5 @@ export const matrixEn = {
   linked: (column: string) => `Linked to ${column}.`,
   unlinked: (column: string) => `The link to ${column} is removed.`,
   close: "Close",
+  columnPagesKind: "Stator pages",
 };

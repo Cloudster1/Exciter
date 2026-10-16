@@ -1,6 +1,6 @@
 import type { matrixEn } from "./matrix.en";
 
-/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147, #148, #149). */
+/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147 to #150). */
 export const matrixDe: typeof matrixEn = {
   title: "Verfolgbarkeitsmatrix",
   intro: "Anforderungen gegen das, womit sie verknüpft sind, gezählt nach den Verknüpfungen, die Sie wählen.",
@@ -35,4 +35,5 @@ export const matrixDe: typeof matrixEn = {
   linked: (column) => `Mit ${column} verknüpft.`,
   unlinked: (column) => `Die Verknüpfung mit ${column} ist entfernt.`,
   close: "Schließen",
+  columnPagesKind: "Stator-Seiten",
 };

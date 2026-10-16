@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Stator pages as matrix columns (#150). The matrix lays requirements out
+  against the Stator pages they are traced to, each link named by its
+  relation and marked when its page moved on, titled as the reader sees
+  them in Stator, in the page, its cells and its CSV.
 - Links are made, removed and confirmed from a matrix cell (#149). A cell
   opens a panel beside it with its links; whoever may link its row adds
   one of a chosen type and direction, or relation for an Armature issue,
