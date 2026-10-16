@@ -83,6 +83,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [description, setDescription] = useState(project.description);
   const [requireComment, setRequireComment] = useState(project.settings.requireRevisionComment);
   const [signedApprovals, setSignedApprovals] = useState(project.settings.signedApprovals);
+  const [library, setLibrary] = useState(project.settings.library);
   const [defaultType, setDefaultType] = useState(project.settings.defaultTypeId ?? "");
   const { data: types } = useTypes(project.key);
   const [notice, setNotice] = useState("");
@@ -91,7 +92,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   function save(event: FormEvent) {
     event.preventDefault();
     setNotice("");
-    const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals };
+    const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals, library };
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
     update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
   }
@@ -157,6 +158,19 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
           />
           <p id="signed-approvals-hint" className="mt-1 text-xs text-ink-muted">
             {t.projects.signedApprovalsHint}
+          </p>
+        </div>
+        <div>
+          <Checkbox
+            label={t.projects.library}
+            checked={library}
+            disabled={readOnly}
+            onChange={(event) => setLibrary(event.target.checked)}
+            aria-describedby="library-hint"
+            data-setting="library"
+          />
+          <p id="library-hint" className="mt-1 text-xs text-ink-muted">
+            {t.projects.libraryHint}
           </p>
         </div>
         {!readOnly && (

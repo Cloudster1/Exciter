@@ -54,6 +54,9 @@ export const projectsDe: typeof projectsEn = {
   detailsTitle: "Details",
   requireComment: "Für jede neue Revision einen Kommentar verlangen",
   requireCommentHint: "Eine Änderung am Inhalt einer Anforderung wird ohne Kommentar abgelehnt.",
+  library: "Dieses Projekt ist eine Bibliothek",
+  libraryHint:
+    "Andere Projekte dürfen seine Anforderungen wiederverwenden. Eine Wiederverwendung folgt Titel, Aussage und Begründung ihrer Quelle, bis sie zur Variante gemacht wird.",
   signedApprovals: "Genehmigungen sind elektronische Signaturen",
   signedApprovalsHint:
     "Wer eine Revision genehmigt oder ablehnt, gibt das Passwort ein oder meldet sich erneut beim Identitätsanbieter an; die Signatur wird mit ihrer Bedeutung gespeichert. Tokens können dann nicht entscheiden.",

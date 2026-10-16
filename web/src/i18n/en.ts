@@ -16,6 +16,7 @@ import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
+import { reuseEn } from "./reuse.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
@@ -343,6 +344,7 @@ export const en = {
   tokens: tokensEn,
   armature: armatureEn,
   stator: statorEn,
+  reuse: reuseEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

@@ -22,6 +22,7 @@ export const QUERY_FIELDS: Array<{ name: string; example: string }> = [
   { name: "updated", example: "updated >= startOfWeek()" },
   { name: "suspect", example: "suspect > 0" },
   { name: "approval", example: "approval = outdated" },
+  { name: "reuse", example: "reuse = behind" },
   { name: "decomposed", example: "decomposed = none" },
   { name: "implemented", example: "implemented != full" },
   { name: "verified", example: "verified IN (none, partial)" },
