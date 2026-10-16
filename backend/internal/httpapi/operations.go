@@ -749,7 +749,7 @@ var operations = []operation{
 			{name: "limit", schema: intParam, description: "1 to 20; 8 when absent."}},
 		responses: map[int]any{http.StatusOK: env{"status": stator.StatusOK, "pages": []stator.PageHit{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/requirements/{reqKey}/stator-links", handler: "handleListStatorLinks", tag: "stator",
-		summary:   "The Stator pages a requirement is linked to, with the page's latest version stored for everyone and whether the link is suspect.",
+		summary:   "The Stator pages a requirement is linked to, with the page's latest version stored for everyone, whether the link is suspect and whether the page shows the requirement yet.",
 		responses: ok(env{"links": []stator.Link{}})},
 	{method: "POST", path: "/requirements/{reqKey}/stator-links", handler: "handleCreateStatorLink", tag: "stator",
 		summary: "Link a requirement to a Stator page the caller may read, as specified by, described by or related to it.",

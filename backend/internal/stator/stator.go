@@ -58,7 +58,7 @@ const (
 	TopicRemoteLinkRemoved = "page.remote_link.removed"
 )
 
-// WebhookTopics are the topics the admin screen asks for; Stator offers the last only once it ships #42's API.
+// WebhookTopics are the topics the admin screen asks Stator's webhook for.
 var WebhookTopics = []string{TopicPagePublished, TopicPageMoved, TopicPageDeleted, TopicRemoteLinkRemoved}
 
 // Status says why a read could not ask Stator, or ok when it did.
@@ -188,13 +188,14 @@ type Link struct {
 	PageVersionSeen int  `json:"pageVersionSeen"`
 	Suspect         bool `json:"suspect"`
 	// ReviewedRevision is the requirement's revision the link was made or last confirmed against.
-	ReviewedRevision int        `json:"reviewedRevision"`
-	Sync             SyncState  `json:"sync"`
-	Error            string     `json:"error"`
-	BrokenAt         *time.Time `json:"brokenAt"`
-	DetachedAt       *time.Time `json:"detachedAt"`
-	CreatedByName    string     `json:"createdByName"`
-	CreatedAt        time.Time  `json:"createdAt"`
+	ReviewedRevision int `json:"reviewedRevision"`
+	// Sync is how far Exciter's remote link on the page has come, and Error why it failed, empty otherwise.
+	Sync          SyncState  `json:"sync"`
+	Error         string     `json:"error"`
+	BrokenAt      *time.Time `json:"brokenAt"`
+	DetachedAt    *time.Time `json:"detachedAt"`
+	CreatedByName string     `json:"createdByName"`
+	CreatedAt     time.Time  `json:"createdAt"`
 }
 
 // LinkInput traces a requirement to a page by its id.

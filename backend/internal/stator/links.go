@@ -33,13 +33,16 @@ var (
 // version than the one confirmed, and neither is gone.
 const SuspectSQL = `COALESCE(r.trashed_at IS NULL AND l.broken_at IS NULL AND l.detached_at IS NULL AND l.page_version > l.page_version_seen, false)`
 
-// selectLinks reads requirement $1's page links; their remote links on the pages come with #42.
+// selectLinks reads requirement $1's page links with how far each one's remote link on the page has come: none
+// while Stator takes no remote links, and waiting for the worker while it has no record yet.
 const selectLinks = `
 SELECT l.id, l.relation, l.page_id, l.space_key, l.url, COALESCE(l.page_version, 0),
        COALESCE(l.page_version_seen, l.page_version, 0), ` + SuspectSQL + `, l.reviewed_rev,
-       l.broken_at, l.detached_at, COALESCE(u.name, ''), l.created_at
+       CASE WHEN COALESCE((SELECT e.remote_links FROM stator_endpoint() e), false) THEN COALESCE(rl.state, 'pending') ELSE 'none' END,
+       COALESCE(rl.error, ''), l.broken_at, l.detached_at, COALESCE(u.name, ''), l.created_at
 FROM stator_page_link l
 JOIN requirement r ON r.id = l.requirement_id
+LEFT JOIN stator_remote_link rl ON rl.requirement_id = l.requirement_id AND rl.page_id = l.page_id
 LEFT JOIN app_user u ON u.id = l.created_by
 WHERE l.requirement_id = $1`
 
@@ -55,9 +58,9 @@ func readLinks(ctx context.Context, tx db.DBTX, requirementID uuid.UUID, only *u
 		return nil, fmt.Errorf("read the Stator links: %w", err)
 	}
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Link, error) {
-		l := Link{Sync: SyncNone}
+		var l Link
 		err := row.Scan(&l.ID, &l.Relation, &l.PageID, &l.SpaceKey, &l.URL, &l.PageVersion, &l.PageVersionSeen, &l.Suspect,
-			&l.ReviewedRevision, &l.BrokenAt, &l.DetachedAt, &l.CreatedByName, &l.CreatedAt)
+			&l.ReviewedRevision, &l.Sync, &l.Error, &l.BrokenAt, &l.DetachedAt, &l.CreatedByName, &l.CreatedAt)
 		return l, err
 	})
 }
