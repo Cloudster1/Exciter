@@ -76,6 +76,18 @@ describe("compiling a theme", () => {
 
   // The file Armature exports and the Themes page imports: a theme drawn in
   // square blocks and hard shadows, with every colour one this stylesheet has.
+  // A theme names some tokens; the rest stay the stylesheet's, so a file from a product that names fewer, or more,
+  // still draws every colour here (#59).
+  it.each(["harbour", "meadow", "exciter"])("compiles %s's exported file and leaves the tokens it does not name to the stylesheet", (name) => {
+    const path = join(__dirname, "..", "..", "..", "backend", "internal", "theme", "testdata", `${name}.armature-theme.json`);
+    const pkg = JSON.parse(readFileSync(path, "utf8")) as { spec: ThemeSpec };
+    const css = compileTheme({ id, spec: { ...emptySpec(), ...pkg.spec }, assets: [] });
+    expect(css).toContain(`--color-primary: ${pkg.spec.colors.light.primary};`);
+    expect(css).toContain(`--color-primary: ${pkg.spec.colors.dark.primary};`);
+    const named = new Set([...Object.keys(pkg.spec.colors.light), ...Object.keys(pkg.spec.colors.dark)]);
+    for (const token of TOKEN_NAMES.filter((t) => !named.has(t))) expect(css).not.toContain(`--color-${token}:`);
+  });
+
   it("compiles Armature's Minecraft theme file as it came", () => {
     const path = join(__dirname, "..", "..", "..", "backend", "internal", "theme", "testdata", "minecraft.armature-theme.json");
     const pkg = JSON.parse(readFileSync(path, "utf8")) as { format: string; name: string; spec: ThemeSpec };

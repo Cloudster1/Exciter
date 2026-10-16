@@ -77,6 +77,7 @@ DOCKER_GO_STACK = $(call go_run,--network $(STACK_NET) \
 	-e EXCITER_RENDER_URL=http://render:8090 \
 	-e EXCITER_TEST_BUILD_VERSION='$(EXCITER_BUILD_VERSION)' \
 	-e EXCITER_TEST_BUILD_COMMIT='$(EXCITER_BUILD_COMMIT)' \
+	-e EXCITER_UPDATE_FIXTURES \
 	$(1))
 
 # What the stack publishes, for the test suites and for people: a shell can source it, and so can a Playwright config.
