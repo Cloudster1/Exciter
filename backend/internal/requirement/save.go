@@ -254,6 +254,9 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 				return err
 			}
 		}
+		if err := following(cur, next); err != nil {
+			return err
+		}
 		if hash := next.Hash(); hash != cur.hash {
 			if cur.Kind == KindRequirement {
 				if defs == nil {
@@ -312,6 +315,15 @@ func (s *Service) revise(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *
 		UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8
 		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, actor); err != nil {
 		return fmt.Errorf("change %s: %w", cur.Key, err)
+	}
+	return s.recordRevision(ctx, tx, actor, cur, next, hash, comment)
+}
+
+// recordRevision writes the next revision of cur, whose row holds next already, and tells who needs to know.
+func (s *Service) recordRevision(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *loaded, next Normative, hash, comment string) error {
+	attrs, err := json.Marshal(next.Attributes)
+	if err != nil {
+		return err
 	}
 	number := cur.Revision + 1
 	if _, err := tx.Exec(ctx, `

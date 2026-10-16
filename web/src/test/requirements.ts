@@ -25,6 +25,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     outline: "",
     formerKeys: [],
     copiedFrom: null,
+    reuse: null,
     createdAt: "2026-10-01T08:00:00Z",
     createdByName: "Ada Lovelace",
     updatedAt: "2026-10-01T08:00:00Z",

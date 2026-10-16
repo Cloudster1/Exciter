@@ -40,6 +40,7 @@ export const queryEn = {
     updated: "a date, a duration or a date function",
     suspect: "how many links wait to be checked",
     approval: "approved, pending, outdated or none",
+    reuse: "following (its library source), behind (it), variant or none",
     decomposed: "none, partial, full or na",
     implemented: "none, partial, full or na",
     verified: "none, partial, full or na",

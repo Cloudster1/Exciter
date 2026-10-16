@@ -29,6 +29,7 @@ import { StatorLinks } from "@/features/stator/StatorLinks";
 import { CommentsSection } from "@/features/comments/CommentsSection";
 import { ReviewPanel } from "@/features/reviews/ReviewPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
+import { ReuseBanner } from "@/features/reuse/ReuseBanner";
 import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
@@ -105,6 +106,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           </Link>
         </p>
       )}
+      <ReuseBanner requirement={requirement} onNotice={setNotice} />
       {requirement.formerKeys.length > 0 && (
         <p className="text-sm text-ink-muted" data-former-keys>
           {t.requirements.formerKeys(requirement.formerKeys.join(", "))}
@@ -135,6 +137,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       <StatorLinks requirement={requirement} />
       <AttachmentPanel requirement={requirement} />
       <CommentsSection requirement={requirement} />
+      {project.settings.library && !requirement.trashedAt && <ReuseAction project={project} requirement={requirement} />}
       {mayEdit && <TrashSection project={project} requirement={requirement} />}
     </div>
   );
@@ -186,6 +189,8 @@ export function RequirementEdit({
   const [rationale, setRationale] = useState<Doc | null>((requirement.rationale as Doc | null) ?? null);
   const [comment, setComment] = useState("");
   const conflict = update.error instanceof ApiError && update.error.code === "revision_conflict";
+  // A reuse that follows its library source takes its words from there, so only the rest is edited here (#49).
+  const locked = requirement.reuse?.state === "following";
   const fields = update.error instanceof ApiError ? update.error.fields : {};
   const general = update.error && Object.keys(fields).length === 0;
 
@@ -195,9 +200,9 @@ export function RequirementEdit({
   function save(event?: FormEvent, over = base) {
     event?.preventDefault();
     setBase(over);
-    const changes: RequirementChanges = { title, statement, baseRevision: over, comment };
+    const changes: RequirementChanges = locked ? { baseRevision: over, comment } : { title, statement, baseRevision: over, comment };
     if (requirement.kind === "requirement") {
-      changes.rationale = rationale && !isEmptyDoc(rationale) ? rationale : null;
+      if (!locked) changes.rationale = rationale && !isEmptyDoc(rationale) ? rationale : null;
       if (typeId && typeId !== requirement.type?.id) changes.typeId = typeId;
       // Only what changed is sent, so a value cleared is sent as null and the rest stay as they are.
       const before = (requirement.attributes as Values) ?? {};
@@ -228,24 +233,37 @@ export function RequirementEdit({
             </Button>
           </div>
         )}
+        {locked && (
+          <p className="text-sm text-ink-muted" data-reuse-locked>
+            {t.reuse.locked}
+          </p>
+        )}
         <Field
           label={t.requirements.name}
           value={title}
           maxLength={REQUIREMENT_TITLE_MAX_LENGTH}
           onChange={(event) => setTitle(event.target.value)}
           error={fields.title}
+          readOnly={locked}
           required
         />
-        <Labelled id="edit-statement" label={t.requirements.statement} error={fields.statement}>
-          <Editor
-            id="edit-statement"
-            value={statement}
-            onChange={setStatement}
-            mentions={findPeople}
-            upload={files.upload}
-            aria-label={t.requirements.statement}
-          />
-        </Labelled>
+        {locked ? (
+          <section aria-labelledby="locked-statement-title" className="space-y-2">
+            <SectionTitle id="locked-statement-title">{t.requirements.statement}</SectionTitle>
+            <DocView doc={statement} data-statement="" />
+          </section>
+        ) : (
+          <Labelled id="edit-statement" label={t.requirements.statement} error={fields.statement}>
+            <Editor
+              id="edit-statement"
+              value={statement}
+              onChange={setStatement}
+              mentions={findPeople}
+              upload={files.upload}
+              aria-label={t.requirements.statement}
+            />
+          </Labelled>
+        )}
         {requirement.kind === "requirement" && (
           <Select
             label={t.types.type}
@@ -267,7 +285,7 @@ export function RequirementEdit({
               ))}
           </Select>
         )}
-        {requirement.kind === "requirement" && (
+        {requirement.kind === "requirement" && !locked && (
           <Labelled id="edit-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
             <Editor
               id="edit-rationale"
@@ -390,6 +408,31 @@ function TrashSection({ project, requirement }: { project: Project; requirement:
         {t.requirements.trash}
       </Button>
       {trash.error && <ErrorBanner>{trash.error.message}</ErrorBanner>}
+    </div>
+  );
+}
+
+/** Offers a library requirement to the other projects the reader edits (#49). */
+function ReuseAction({ project, requirement }: { project: Project; requirement: Requirement }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const placed = { id: requirement.id, key: requirement.key, title: requirement.title, projectKey: project.key };
+  return (
+    <div>
+      <Button variant="secondary" onClick={() => setOpen(true)} data-action="reuse-requirement">
+        {t.reuse.reuse}
+      </Button>
+      {open && (
+        <PlaceDialog
+          placed={placed}
+          mode="reuse"
+          onClose={() => setOpen(false)}
+          onDone={(r) => {
+            setOpen(false);
+            void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
+          }}
+        />
+      )}
     </div>
   );
 }

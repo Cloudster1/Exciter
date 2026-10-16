@@ -42,6 +42,7 @@ export const queryDe: typeof queryEn = {
     updated: "ein Datum, eine Dauer oder eine Datumsfunktion",
     suspect: "wie viele Verknüpfungen auf Prüfung warten",
     approval: "approved, pending, outdated oder none",
+    reuse: "following (folgt der Bibliotheksquelle), behind (liegt dahinter), variant oder none",
     decomposed: "none, partial, full oder na",
     implemented: "none, partial, full oder na",
     verified: "none, partial, full oder na",

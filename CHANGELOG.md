@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirement reuse and variants (#49). A project's administrators mark it a
+  library; its requirements, or a section with what is below it, are reused
+  in other projects as copies that follow the source's title, statement and
+  rationale. When the source moves on, the copy says so, shows what
+  changed, and takes the new revision on request; "Make a variant" gives it
+  words of its own while it still sees its source. The query language finds
+  them with `reuse`, and watchers hear when a source is revised.
 - `GET /api/v1/meta` lists `requirement-list@1`, a project's requirements read
   by a query in the query language with its completion, and `webhooks@1`,
   Exciter's outbound webhooks under Stator's name, for the requirement chips

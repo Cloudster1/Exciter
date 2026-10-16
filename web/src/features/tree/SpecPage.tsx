@@ -6,7 +6,7 @@ import { useRequirement } from "@/api/requirements";
 import { useSpec, useTree, type SpecEntry, type TreeNode } from "@/api/tree";
 import { reqifExportHref } from "@/api/reqif";
 import { projectDocumentHref } from "@/api/documents";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, cx } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Tag, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
 import { COMMENTS_ID } from "@/features/comments/CommentsSection";
@@ -115,6 +115,11 @@ function Entry({ project, entry, selection }: { project: Project; entry: SpecEnt
           </Link>
         )}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
+        {entry.reuse && (
+          <Tag data-spec-reuse={entry.reuse.behind ? "behind" : entry.reuse.state}>
+            {entry.reuse.behind ? t.reuse.badgeBehind : entry.reuse.state === "variant" ? t.reuse.badgeVariant : t.reuse.badgeFollowing}
+          </Tag>
+        )}
         {section && (
           <ExportMenu
             size="sm"

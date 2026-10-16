@@ -169,7 +169,43 @@ func planRevised(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error)
 	if err := tellSuspect(ctx, tx, plan, in); err != nil {
 		return nil, err
 	}
+	if err := tellReuses(ctx, tx, plan, in.RequirementID); err != nil {
+		return nil, err
+	}
 	return plan, nil
+}
+
+// tellReuses tells the watchers of each requirement that follows or branched from this one (#49), about that one,
+// if they may read the source as well; a reuse in the trash tells nobody.
+func tellReuses(ctx context.Context, tx db.DBTX, plan *Plan, source uuid.UUID) error {
+	rows, err := tx.Query(ctx, `SELECT id, revision FROM requirement WHERE reuse_source = $1 AND trashed_at IS NULL ORDER BY id`, source)
+	if err != nil {
+		return err
+	}
+	var reuses []Subject
+	for rows.Next() {
+		s := Subject{Excerpt: plan.Subject.Excerpt}
+		if err := rows.Scan(&s.RequirementID, &s.Revision); err != nil {
+			rows.Close()
+			return err
+		}
+		reuses = append(reuses, s)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, s := range reuses {
+		told, err := people(ctx, tx, `
+			SELECT w.user_id FROM requirement_watch_coverage($1) w WHERE perm_requirement_viewable($2, w.user_id)`,
+			s.RequirementID, source)
+		if err != nil {
+			return err
+		}
+		for _, id := range told {
+			plan.Tells = append(plan.Tells, Tell{UserID: id, Kind: KindSourceRevised, About: &s})
+		}
+	}
+	return nil
 }
 
 // tellSuspect tells the owner and watchers of the far end of each link this revision turned (#36), about that end,

@@ -14,6 +14,7 @@ import { reviewDe } from "./reviews.de";
 import { suspectDe } from "./suspect.de";
 import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
+import { reuseDe } from "./reuse.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
@@ -309,6 +310,7 @@ export const de: Messages = {
       "coverage_rule.removed": "Abdeckungsregel entfernt",
       "specification.exported": "Spezifikation exportiert",
       "project.signatures_set": "Signierte Genehmigungen geändert",
+      "project.library_set": "Bibliothek geändert",
     },
     targetTypes: {
       user: "Person",
@@ -343,6 +345,7 @@ export const de: Messages = {
   tokens: tokensDe,
   armature: armatureDe,
   stator: statorDe,
+  reuse: reuseDe,
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,

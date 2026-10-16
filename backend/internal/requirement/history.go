@@ -360,6 +360,9 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 			return err
 		}
 		content := Normative{Title: old.Title, Statement: old.Statement, Rationale: old.Rationale, Attributes: old.Attributes}
+		if err := following(cur, content); err != nil {
+			return err
+		}
 		if old.Type != nil {
 			content.TypeID = &old.Type.ID
 		}

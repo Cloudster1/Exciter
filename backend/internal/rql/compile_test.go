@@ -42,6 +42,7 @@ func TestCompileBindsEveryValue(t *testing.T) {
 		{`created > 2026-09-01T08:30`, `(r.created_at > $3::timestamptz)`, []any{time.Date(2026, 9, 1, 8, 30, 0, 0, time.UTC)}},
 		{`created >= startOfWeek(-1w)`, `(r.created_at >= $3::timestamptz)`, []any{day(2026, 8, 24)}},
 		{`approval = outdated`, `(` + approvalState + ` = ANY($3::text[]))`, []any{[]string{"outdated"}}},
+		{`reuse IN (behind, variant)`, `(` + reuseState + ` = ANY($3::text[]))`, []any{[]string{"behind", "variant"}}},
 		{`verified IN (none, partial)`, `(requirement_coverage(r.id, 'verified') = ANY($3::text[]))`, []any{[]string{"none", "partial"}}},
 		{`derivesFrom = CHK-R4`,
 			`EXISTS (SELECT 1 FROM trace_link tl JOIN requirement other ON tl.source_id = r.id AND other.id = tl.target_id AND other.trashed_at IS NULL WHERE tl.type_id = $5::uuid AND tl.deleted_at IS NULL AND other.id IN (requirement_key_id($3::text, $4::int)))`,

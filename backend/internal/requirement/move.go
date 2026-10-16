@@ -3,13 +3,11 @@ package requirement
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
@@ -350,142 +348,4 @@ func revisionOf(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, number int
 		return fmt.Errorf("write revision %d: %w", number, err)
 	}
 	return nil
-}
-
-// Copy makes new requirements of a requirement, and of what is below it when asked, at their current content
-// as revision 1, in its project or another; it answers the copy and how many it made.
-func (s *Service) Copy(ctx context.Context, actor uuid.UUID, key string, in CopyInput) (*Requirement, int, db.LSN, error) {
-	var (
-		out    *Requirement
-		copied int
-	)
-	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		src, err := find(ctx, tx, actor, key)
-		if err != nil {
-			return err
-		}
-		if src.TrashedAt != nil {
-			return ErrTrashed
-		}
-		here, err := project.Find(ctx, tx, actor, src.ProjectKey)
-		if err != nil {
-			return err
-		}
-		to, err := destination(ctx, tx, actor, in.ProjectKey, here)
-		if err != nil {
-			return err
-		}
-		nodes := []uuid.UUID{src.ID}
-		if in.Children {
-			if nodes, err = subtree(ctx, tx, src.projectID, src.ID); err != nil {
-				return err
-			}
-		}
-		if len(nodes) > MaxCopy {
-			return &FieldError{"children", fmt.Sprintf("A copy makes at most %d requirements, and this one would make %d. Copy a part of the tree.", MaxCopy, len(nodes))}
-		}
-		at, err := rankAt(ctx, tx, to.ID, in.Place, nil)
-		if err != nil {
-			return err
-		}
-		var match *matcher
-		if to.ID != here.ID {
-			if match, err = newMatcher(ctx, tx, here.ID, to); err != nil {
-				return err
-			}
-		}
-		copies := map[uuid.UUID]uuid.UUID{}
-		for i, id := range nodes {
-			l, err := findByID(ctx, tx, actor, id)
-			if err != nil {
-				return err
-			}
-			var files map[uuid.UUID]uuid.UUID
-			if s.files != nil {
-				if files, err = s.files.PlanCopy(ctx, tx, id); err != nil {
-					return err
-				}
-			}
-			made, err := copyOne(ctx, tx, actor, l, to, match, i == 0, in.Place.ParentID, at, copies, files)
-			if err != nil {
-				return err
-			}
-			if len(files) > 0 {
-				if err := s.files.CopyFiles(ctx, tx, actor, made, files); err != nil {
-					return err
-				}
-			}
-			copies[id] = made
-		}
-		copied = len(nodes)
-		if in.Links {
-			if err := copyLinks(ctx, tx, actor, to.ID, copies); err != nil {
-				return err
-			}
-		}
-		l, err := findByID(ctx, tx, actor, copies[src.ID])
-		if err == nil {
-			out = &l.Requirement
-		}
-		return err
-	})
-	return out, copied, lsn, err
-}
-
-// copyOne writes one copy: the root of a copy at the place asked for, the rest below the copies of their parents.
-// Its content shows the files named in files by their copies' ids.
-func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *project.Project, match *matcher, root bool, place *uuid.UUID, at string,
-	copies, files map[uuid.UUID]uuid.UUID) (uuid.UUID, error) {
-	typeID, values, owner := l.typeID(), l.Attributes, (*uuid.UUID)(nil)
-	if l.Owner != nil {
-		owner = &l.Owner.ID
-	}
-	if match != nil {
-		var err error
-		if typeID, values, err = match.carry(l); err != nil {
-			return uuid.Nil, err
-		}
-		if owner != nil {
-			views, err := match.viewer(*owner)
-			if err != nil {
-				return uuid.Nil, err
-			}
-			if !views {
-				owner = nil
-			}
-		}
-	}
-	parent, rank := place, at
-	if !root {
-		mapped := copies[*l.ParentID]
-		parent, rank = &mapped, l.rank
-	}
-	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values}
-	if err := pointAtFiles(&content, files); err != nil {
-		return uuid.Nil, err
-	}
-	hash := content.Hash()
-	attrs, err := json.Marshal(content.Attributes)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	var id uuid.UUID
-	err = tx.QueryRow(ctx, `
-		INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
-		                         parent_id, rank, copied_from, created_by, updated_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14) RETURNING id`,
-		to.ID, l.Kind, l.Title, content.Statement, content.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor).Scan(&id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, ErrNotFound
-	}
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("copy %s: %w", l.Key, treeRefusal(err))
-	}
-	if err := revisionOf(ctx, tx, actor, id, 1, content, hash, "Copied from "+l.Key, nil); err != nil {
-		return uuid.Nil, err
-	}
-	if err := copyLabels(ctx, tx, actor, l, id); err != nil {
-		return uuid.Nil, err
-	}
-	return id, events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": to.ID, "requirementId": id, "revision": 1})
 }

@@ -16,6 +16,7 @@ import { reviewEn } from "./reviews.en";
 import { suspectEn } from "./suspect.en";
 import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
+import { reuseEn } from "./reuse.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
@@ -308,6 +309,7 @@ export const en = {
       "coverage_rule.removed": "Coverage rule removed",
       "specification.exported": "Specification exported",
       "project.signatures_set": "Signed approvals changed",
+      "project.library_set": "Library changed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -342,6 +344,7 @@ export const en = {
   tokens: tokensEn,
   armature: armatureEn,
   stator: statorEn,
+  reuse: reuseEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

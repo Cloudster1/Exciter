@@ -158,7 +158,7 @@ describe("a project's settings", () => {
       expect(sent.find((r) => r.method === "PATCH")?.body).toEqual({
         name: "Checkout and payment",
         description: checkout.description,
-        settings: { requireRevisionComment: true, signedApprovals: false },
+        settings: { requireRevisionComment: true, signedApprovals: false, library: false },
       }),
     );
   });
@@ -177,8 +177,20 @@ describe("a project's settings", () => {
       expect((sent.find((r) => r.method === "PATCH")?.body as { settings: object }).settings).toEqual({
         requireRevisionComment: false,
         signedApprovals: true,
+        library: false,
       }),
     );
+  });
+
+  it("marks the project a library", async () => {
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: checkout } },
+      "PATCH /projects/CHK": { status: 200, body: { project: aProject({ settings: { ...checkout.settings, library: true } }) } },
+    });
+    await renderAt("/p/CHK/settings");
+    await userEvent.click(await screen.findByRole("checkbox", { name: "This project is a library" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect((sent.find((r) => r.method === "PATCH")?.body as { settings: { library: boolean } }).settings.library).toBe(true));
   });
 
   it("shows a member the settings without a way to change them", async () => {

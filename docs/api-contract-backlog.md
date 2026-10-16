@@ -16,9 +16,10 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00730 to 00739 | Signatures (#46) | `reauthentication` (a proof of identity given again, for one signature), `signature_failure` (wrong passwords, for the limit), `review_signature`, the purpose of an `oidc_login`, and the triggers `review_signature_guard` and `review_decision_signed` |
 | 00740 to 00749 | Query language (#47) | `requirement_key_id` (the requirement a key, or one it had, names) and `requirement_coverage` (a requirement's level in one dimension, as `trace.Judge` judges it), both read as the reader sees |
 | 00750 to 00759 | Webhooks (#48) | `webhook_endpoint` (an address, its events and projects, a sealed secret, its owner) and `webhook_delivery` (one attempt at one event), the trigger `webhook_endpoint_stamp` and their policies |
+| 00760 to 00769 | Reuse (#49) | `requirement.reuse_source`, `reuse_revision` and `reuse_state`, the guard `requirement_reuse_guard`, the change field `reuse` and the notification kind `source_revised` |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
-and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48). Worker topic:
+and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
 `EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
 
@@ -331,6 +332,47 @@ and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `intern
     never reads a sealed secret, names an owner, clears the counts or writes
     the log, and a topic nobody emits is refused.
 
+
+## #49 Requirement reuse and variants
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `PATCH /projects/{projectKey}` with `settings.library` | administer | `{project}`; audited as `project.library_set` |
+| `POST /requirements/{reqKey}/reuse` | view of the library, edit of the target | 201 `{requirement, copied}`; 409 `not_a_library`; 422 on `projectKey` |
+| `POST /requirements/{reqKey}/reuse/take` | edit, and view of the source | `{requirement}`; 403 without the source; 409 `source_moved_on`, `not_reused` |
+| `POST /requirements/{reqKey}/reuse/variant` | edit | `{requirement}`; 409 `not_reused` |
+
+- **A library** is a project its administrators mark as one. Only a
+  library's requirements are reused, and only into another project, where a
+  copy within the library would serve. Unmarking a library refuses new
+  reuse and leaves what follows it alone.
+- **A reuse** is a copy, made as copy makes one (#15), with what is below it
+  when `children` is set, each copy following its own original. It records
+  `reuse.source`, the source's `revision` it shows, and its `state`,
+  `following` or `variant`. Links are not copied, and type, values, status,
+  owner, priority, labels, links and reviews stay the target's.
+- **While it follows**, a save, a restore or raw SQL that changes its title,
+  statement or rationale is refused (409 `follows_source`). A take writes
+  its next revision with the source's words at the source's latest revision,
+  named as `revision` so a newer one is not taken unseen, and copies the
+  files those words show; the comment says what was taken.
+- **A variant** has words of its own, keeps the revision it branched from,
+  and still reports `behind`; taking the source makes it follow again. Both
+  turns are logged as the change field `reuse`.
+- **Reading**: `reuse` on a requirement and a specification entry, with the
+  source as the reader may read it, null to anybody else, and `behind` when
+  the source has a newer revision the reader can see. The query field
+  `reuse` is `following`, `behind`, `variant` or `none`.
+- **Telling**: a new revision of a source tells the watchers of each live
+  reuse who may read the source, as `source_revised`, about the reuse.
+- **A purged source** leaves its reuses as requirements of their own.
+- **The guard**: `requirement_reuse_guard` holds a reuse to a library
+  requirement of another project, out of the trash, that the writer may
+  read, at its revision now and with its words; refuses another source on a
+  requirement; and holds a following copy's words and revision to the
+  source's at its latest. Words are the title and the plain text of
+  statement and rationale, so a copy's images, with ids of their own, still
+  count as the source's.
 
 ## #43 Exciter requirements in Stator pages
 

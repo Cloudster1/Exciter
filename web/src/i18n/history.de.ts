@@ -64,6 +64,7 @@ export const historyDe: typeof historyEn = {
     link: "eine Verknüpfung",
     attachment: "eine Datei",
     trash: "den Papierkorb",
+    reuse: "wie sie ihrer Bibliotheksquelle folgt",
   },
   because: (reason: string) => `Weil: ${reason}`,
 };

@@ -50,6 +50,8 @@ export const projectsEn = {
   detailsTitle: "Details",
   requireComment: "Ask for a comment on every new revision",
   requireCommentHint: "A save that changes what a requirement says is refused without a comment.",
+  library: "This project is a library",
+  libraryHint: "Other projects may reuse its requirements. A reuse follows its source's title, statement and rationale until it is made a variant.",
   signedApprovals: "Approvals are electronic signatures",
   signedApprovalsHint:
     "Approving or rejecting a revision asks the reviewer for their password, or to sign in again at the identity provider, and keeps the signature with what it meant. Tokens cannot decide then.",

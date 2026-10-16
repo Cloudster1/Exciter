@@ -52,6 +52,8 @@ type Settings struct {
 	RequireRevisionComment bool `json:"requireRevisionComment"`
 	// SignedApprovals makes deciding on a revision an electronic signature, given with the reviewer's credentials (#46).
 	SignedApprovals bool `json:"signedApprovals"`
+	// Library offers the project's requirements for reuse in other projects (#49).
+	Library bool `json:"library"`
 }
 
 // SettingsInput changes settings; nil leaves one alone. The workflow is
@@ -60,6 +62,7 @@ type SettingsInput struct {
 	DefaultTypeID          *uuid.UUID `json:"defaultTypeId,omitempty"`
 	RequireRevisionComment *bool      `json:"requireRevisionComment,omitempty"`
 	SignedApprovals        *bool      `json:"signedApprovals,omitempty"`
+	Library                *bool      `json:"library,omitempty"`
 }
 
 // CreateInput is a new project as the form sends it.

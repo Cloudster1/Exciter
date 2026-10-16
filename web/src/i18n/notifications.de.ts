@@ -64,6 +64,8 @@ export const notificationsDe: typeof notificationsEn = {
         return `${who} hat über die Prüfung von ${key} entschieden`;
       case "suspect":
         return `Eine Verknüpfung von ${key} muss geprüft werden, weil ${who} ihr anderes Ende überarbeitet hat`;
+      case "source_revised":
+        return `Die Bibliotheksquelle von ${key} hat eine neue Revision von ${who}`;
       case "replied":
         return `${who} hat in einer Diskussion zu ${key} geantwortet`;
       case "commented":
@@ -87,6 +89,7 @@ export const notificationsDe: typeof notificationsEn = {
     review_requested: "Jemand bittet Sie, eine Revision zu prüfen",
     reviewed: "Über eine Prüfung, um die Sie gebeten haben oder die Ihre Revision betrifft, ist entschieden",
     suspect: "Eine Verknüpfung einer Anforderung, die Ihnen gehört oder die Sie beobachten, muss geprüft werden",
+    source_revised: "Die Bibliotheksquelle einer Anforderung, die Sie beobachten, bekommt eine neue Revision",
     replied: "Jemand antwortet in einer Diskussion, in der Sie geschrieben haben",
     commented: "Jemand kommentiert eine Anforderung, die Sie beobachten",
     resolved: "Eine Diskussion, in der Sie geschrieben haben, wird erledigt oder wieder geöffnet",
