@@ -157,7 +157,7 @@ func (s *Server) handleStatorWebhook(w http.ResponseWriter, r *http.Request) {
 			Message: "The signature does not match. Paste the webhook's secret from Stator under Settings, Stator, then redeliver."})
 	case errors.Is(err, stator.ErrUnknownVersion):
 		respondError(w, r, &APIError{Status: http.StatusUnprocessableEntity, Code: "unknown_version",
-			Message: "Exciter reads webhook envelopes of version " + strconv.Itoa(webhook.Version) + ". Update Exciter to read this one."})
+			Message: "Exciter reads webhook envelopes of version " + webhook.VersionList() + ". Update Exciter to read this one."})
 	case err != nil:
 		respondError(w, r, err)
 	default:

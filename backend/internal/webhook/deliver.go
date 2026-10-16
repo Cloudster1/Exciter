@@ -315,7 +315,7 @@ func (s *Service) send(ctx context.Context, id uuid.UUID, c claimed) outcome {
 	// retried nor counted against the endpoint.
 	if errors.Is(err, ErrUnknownVersion) {
 		s.opts.Log.Warn("a webhook delivery is in an envelope version this release does not send", "delivery", id, "version", c.version)
-		return outcome{state: StateFailed, why: fmt.Sprintf(whyVersion, c.version, versionList())}
+		return outcome{state: StateFailed, why: fmt.Sprintf(whyVersion, c.version, VersionList())}
 	}
 	if err != nil {
 		s.opts.Log.Warn("a webhook payload could not be read", "delivery", id, "error", err)
@@ -456,7 +456,7 @@ func (s *Service) post(ctx context.Context, address, secret, topic string, versi
 	if err != nil {
 		return 0, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType(version))
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set(EventHeader, topic)
 	req.Header.Set(DeliveryHeader, deliveryID.String())

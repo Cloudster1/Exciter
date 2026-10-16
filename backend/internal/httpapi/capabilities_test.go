@@ -13,7 +13,7 @@ var capabilityName = regexp.MustCompile(`^[a-z][a-z-]*@[1-9][0-9]*$`)
 // A partner offers a feature on seeing its name at /meta, so the list is the one docs/integration.md describes,
 // sorted, and nothing else.
 func TestMetaReportsTheIntegrationCapabilities(t *testing.T) {
-	want := []string{"requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1"}
+	want := []string{"requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"}
 	if got := capabilities(); !slices.Equal(got, want) {
 		t.Errorf("capabilities() = %v, want %v", got, want)
 	}

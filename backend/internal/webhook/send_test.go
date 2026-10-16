@@ -253,8 +253,8 @@ func TestATimestampedSignatureRefusesAReplay(t *testing.T) {
 	}
 }
 
-// An endpoint keeps the version it was registered for, so a body is built in that one, and a version this release does
-// not send is refused, never guessed.
+// An endpoint keeps the version it chose, so a body is built in that one, and a version this release does not send is
+// refused, never guessed.
 func TestAnEnvelopeIsBuiltInTheEndpointsVersion(t *testing.T) {
 	raw, err := envelopeFor(Version, event{id: uuid.New(), topic: TopicPing, occurred: time.Now().UTC(), payload: Ping{Message: pingMessage}})
 	if err != nil {
@@ -263,22 +263,63 @@ func TestAnEnvelopeIsBuiltInTheEndpointsVersion(t *testing.T) {
 	if !strings.HasPrefix(string(raw), `{"version":1,"id":`) {
 		t.Errorf("the body does not lead with its version: %s", raw)
 	}
-	if _, err := envelopeFor(Version+1, event{}); !errors.Is(err, ErrUnknownVersion) {
+	unknown := Versions[len(Versions)-1] + 1
+	if _, err := envelopeFor(unknown, event{}); !errors.Is(err, ErrUnknownVersion) {
 		t.Errorf("a version this release does not send was built: %v", err)
 	}
 	s := &Service{}
-	if _, err := s.body(t.Context(), claimed{eventID: uuid.New(), topic: TopicPing, version: Version + 1}); !errors.Is(err, ErrUnknownVersion) {
+	if _, err := s.body(t.Context(), claimed{eventID: uuid.New(), topic: TopicPing, version: unknown}); !errors.Is(err, ErrUnknownVersion) {
 		t.Errorf("a delivery queued in an unknown version was built: %v", err)
 	}
-	for _, v := range []int{0, Version + 1} {
+	for _, v := range []int{0, unknown} {
 		_, err := s.clean(WebhookInput{Name: "A", URL: "https://x.example", Topics: []string{TopicAny}, Version: &v})
 		var field *FieldError
-		if !errors.As(err, &field) || field.Field != "version" || !strings.Contains(field.Message, strconv.Itoa(Version)) {
+		if !errors.As(err, &field) || field.Field != "version" || !strings.Contains(field.Message, VersionList()) {
 			t.Errorf("version %d: %v, want a refusal naming the versions sent", v, err)
 		}
 	}
-	current := Version
-	if _, err := s.clean(WebhookInput{Name: "A", URL: "https://x.example", Topics: []string{TopicAny}, Version: &current}); err != nil {
-		t.Errorf("the current version is refused: %v", err)
+	for _, v := range Versions {
+		if _, err := s.clean(WebhookInput{Name: "A", URL: "https://x.example", Topics: []string{TopicAny}, Version: &v}); err != nil {
+			t.Errorf("version %d is refused: %v", v, err)
+		}
+		if contentType(v) == "" {
+			t.Errorf("version %d names no content type", v)
+		}
+	}
+}
+
+// Version 2 is a CloudEvent in structured mode: the attributes the specification requires, its source the installation,
+// and version 1's payload as its data, so a receiver of either reads the same event.
+func TestAVersion2EnvelopeIsACloudEvent(t *testing.T) {
+	s := &Service{opts: Options{AppURL: "https://exciter.example.com"}}
+	id := uuid.New()
+	at := time.Date(2026, 10, 16, 10, 0, 0, 0, time.FixedZone("CEST", 2*60*60))
+	raw, err := s.body(t.Context(), claimed{eventID: id, installationID: uuid.New(), topic: TopicPing, occurred: at, version: VersionCloudEvents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"specversion": "1.0", "id": id.String(), "source": "https://exciter.example.com", "type": "dev.exciter.ping",
+		"time": "2026-10-16T08:00:00Z", "datacontenttype": "application/json", "dataversion": float64(1)}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s = %v, want %v", k, got[k], v)
+		}
+	}
+	if len(got) != len(want)+1 || got["data"].(map[string]any)["message"] != pingMessage {
+		t.Errorf("the envelope carries more or other than the attributes and the data: %s", raw)
+	}
+	if contentType(VersionCloudEvents) != "application/cloudevents+json; charset=utf-8" || contentType(Version) != "application/json" {
+		t.Error("the content types are not each version's")
+	}
+	if (&Service{}).source() != "/exciter" {
+		t.Error("an installation without an address names no source")
+	}
+	back, err := Decode(raw, "2", TypePrefix)
+	if err != nil || back.ID != id || back.Topic != TopicPing {
+		t.Errorf("Exciter does not read its own version 2 as a partner's: %+v, %v", back, err)
 	}
 }

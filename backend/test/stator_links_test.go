@@ -69,13 +69,17 @@ type statorHook struct {
 // deliverStator posts a hook signed with secret and answers the status and the error code.
 func (a *apiServer) deliverStator(t *testing.T, k statorHook, secret string) (int, string) {
 	t.Helper()
-	envelope := map[string]any{"id": k.id, "topic": k.topic, "occurredAt": time.Now().UTC(), "payload": k.payload}
-	if k.version != 0 {
+	envelope, contentType := map[string]any{"id": k.id, "topic": k.topic, "occurredAt": time.Now().UTC(), "payload": k.payload}, webhook.ContentTypeJSON
+	if k.version == webhook.VersionCloudEvents {
+		envelope, contentType = map[string]any{"specversion": webhook.SpecVersion, "id": k.id, "source": "https://stator.example",
+			"type": stator.WebhookTypePrefix + k.topic, "time": time.Now().UTC(), "datacontenttype": webhook.ContentTypeJSON, "dataversion": 1,
+			"data": k.payload}, webhook.ContentTypeCloudEvents
+	} else if k.version != 0 {
 		envelope["version"] = k.version
 	}
 	body, _ := json.Marshal(envelope)
 	req, _ := http.NewRequest(http.MethodPost, a.URL+"/api/v1/stator/webhook", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set(stator.SignatureHeader, stator.Sign(body, secret))
 	if k.versionHeader != "" {
 		req.Header.Set(stator.VersionHeader, k.versionHeader)
@@ -266,16 +270,24 @@ func TestRequirementsAreTracedToStatorPages(t *testing.T) {
 		if l := linkTo(t, timing); l["spaceKey"] != "SEC" || l["url"] != base+"/s/SEC/p/"+timing {
 			t.Errorf("after page.moved the link reads %v", l)
 		}
+		send("a move in the CloudEvents envelope", statorHook{id: uuid.New(), topic: stator.TopicPageMoved, version: webhook.VersionCloudEvents,
+			versionHeader: strconv.Itoa(webhook.VersionCloudEvents), payload: pageRef(timing, 4, "OPS")}, http.StatusNoContent, "")
+		if l := linkTo(t, timing); l["spaceKey"] != "OPS" {
+			t.Errorf("after page.moved in version 2 the link reads %v", l)
+		}
 		send("a deletion", statorHook{id: uuid.New(), topic: stator.TopicPageDeleted, payload: pageRef(timing, 4, "SEC")}, http.StatusNoContent, "")
 		if l := linkTo(t, timing); l["brokenAt"] == nil || l["suspect"] != false {
 			t.Errorf("after page.deleted the link reads %v", l)
 		}
 		send("a ping", statorHook{id: uuid.New(), topic: stator.TopicPing, payload: map[string]any{"message": "Stator can reach this address."}}, http.StatusNoContent, "")
 		send("a topic Exciter does not read", statorHook{id: uuid.New(), topic: "comment.created", payload: pageRef(braking, 1, "ENG")}, http.StatusNoContent, "")
-		send("an envelope of another version", statorHook{id: uuid.New(), topic: stator.TopicPagePublished, version: 2, payload: pageRef(braking, 7, "ENG")},
+		unknown := webhook.Versions[len(webhook.Versions)-1] + 1
+		send("an envelope of another version", statorHook{id: uuid.New(), topic: stator.TopicPagePublished, version: unknown, payload: pageRef(braking, 7, "ENG")},
 			http.StatusUnprocessableEntity, "unknown_version")
 		send("a version header Exciter does not read", statorHook{id: uuid.New(), topic: stator.TopicPageDeleted, payload: pageRef(braking, 7, "ENG"),
-			versionHeader: strconv.Itoa(webhook.Version + 1)}, http.StatusUnprocessableEntity, "unknown_version")
+			versionHeader: strconv.Itoa(unknown)}, http.StatusUnprocessableEntity, "unknown_version")
+		send("a CloudEvent under a version 1 header", statorHook{id: uuid.New(), topic: stator.TopicPageDeleted, version: webhook.VersionCloudEvents,
+			versionHeader: strconv.Itoa(webhook.Version), payload: pageRef(braking, 7, "ENG")}, http.StatusUnprocessableEntity, "unknown_version")
 		if l := linkTo(t, braking); l["brokenAt"] != nil {
 			t.Errorf("a refused delivery was acted on: %v", l)
 		}

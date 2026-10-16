@@ -33,6 +33,9 @@ import (
 // they connect to it; /meta names the product as Product.
 const ProductName = "Exciter"
 
+// cloudEventsMediaType is the content type of a version 2 webhook envelope, CloudEvents' structured mode.
+const cloudEventsMediaType = "application/cloudevents+json"
+
 // isErrorEnvelope marks a refusal a client has to tell apart, listed with its
 // status next to the successes.
 func isErrorEnvelope(body any) bool {
@@ -59,6 +62,15 @@ func specBuilder() *openapi.Builder {
 	webhookTopics := &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: webhook.Subscribable}}
 	b.FieldOverrides["Webhook.topics"] = webhookTopics
 	b.FieldOverrides["WebhookInput.topics"] = webhookTopics
+	b.FieldOverrides["WebhookInput.version"] = &openapi.Schema{Type: "integer",
+		Description: "The envelope version the endpoint is posted in: " + webhook.VersionList() + ", 2 a CloudEvent. Left out, 1 for a new endpoint and unchanged for one saved before."}
+	b.FieldOverrides["PartnerCloudEvent.specversion"] = &openapi.Schema{Type: "string", Enum: []string{webhook.SpecVersion}}
+	b.FieldOverrides["PartnerCloudEvent.type"] = &openapi.Schema{Type: "string",
+		Description: "The sender's prefix, dev.armature. or dev.stator., and the topic it names in version 1."}
+	b.FieldOverrides["PartnerCloudEvent.time"] = &openapi.Schema{Type: "string", Format: "date-time"}
+	b.FieldOverrides["PartnerCloudEvent.dataversion"] = &openapi.Schema{OneOf: []*openapi.Schema{{Type: "integer"}, {Type: "string"}},
+		Description: "The version of the payload in data; Exciter reads 1, and its absence as 1."}
+	b.FieldOverrides["PartnerCloudEvent.data"] = &openapi.Schema{Type: "object", Description: "The payload version 1 carries as its payload."}
 	b.FieldOverrides["Webhook.disabledReason"] = &openapi.Schema{OneOf: []*openapi.Schema{{Type: "string", Enum: webhook.DisabledReasons}, {Type: "null"}}}
 	b.FieldOverrides["WebhookDelivery.topic"] = &openapi.Schema{Type: "string", Enum: append([]string{webhook.TopicPing}, webhook.Topics...)}
 	b.Enums[reflect.TypeOf(theme.Source(""))] = enumStrings(theme.Sources)
@@ -168,6 +180,7 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[stator.ClearInput]():        "StatorClearInput",
 		reflect.TypeFor[armature.WebhookEnvelope](): "ArmatureWebhookEnvelope",
 		reflect.TypeFor[stator.WebhookEnvelope]():   "StatorWebhookEnvelope",
+		reflect.TypeFor[webhook.CloudEvent]():       "PartnerCloudEvent",
 	}
 	for t, name := range names {
 		b.Names[t] = name
@@ -296,6 +309,9 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
 			"application/json": {Schema: b.SchemaOf(op.request)},
 		}}
+	}
+	if op.cloudEvent && o.RequestBody != nil {
+		o.RequestBody.Content[cloudEventsMediaType] = openapi.MediaType{Schema: b.SchemaOf(webhook.CloudEvent{})}
 	}
 	for status, body := range op.responses {
 		r := &openapi.Response{Description: http.StatusText(status)}

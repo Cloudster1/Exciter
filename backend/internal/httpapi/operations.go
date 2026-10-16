@@ -49,13 +49,14 @@ type param struct {
 }
 
 // envelopeVersions is what the webhook receivers say of the envelope versions they read (#103).
-var envelopeVersions = "Exciter reads envelope version " + strconv.Itoa(webhook.Version) + ", and an envelope without a version " +
-	"from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before " +
-	"the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored."
+var envelopeVersions = "Exciter reads envelope version " + webhook.VersionList() + ", version 2 a CloudEvent 1.0 in structured mode whose " +
+	"type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the " +
+	"header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. " +
+	"Unknown fields and topics are ignored."
 
 // versionHeader is the header a webhook sender names the envelope's version in.
 func versionHeader(name string) param {
-	return param{name: name, description: "The envelope's version, the body's version as well; absent from a sender before versions.",
+	return param{name: name, description: "The envelope's version, which the body names as well; absent from a sender before versions.",
 		schema: &openapi.Schema{Type: "integer"}}
 }
 
@@ -74,6 +75,8 @@ type operation struct {
 	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file.
 	request   any
 	multipart bool
+	// cloudEvent says the operation also takes a partner's version 2 envelope, as application/cloudevents+json (#133).
+	cloudEvent bool
 	// responses maps a status to its envelope or bare type; nil is no body.
 	responses map[int]any
 	// public routes need no session; binary ones answer with a file, and
@@ -712,7 +715,7 @@ var operations = []operation{
 	// Armature's webhooks (#29): vouched for by their signature alone.
 	{method: "POST", path: "/armature/webhook", handler: "handleArmatureWebhook", tag: "armature", public: true,
 		summary:     "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
-		description: envelopeVersions, headers: []param{versionHeader(armature.VersionHeader)},
+		description: envelopeVersions, headers: []param{versionHeader(armature.VersionHeader)}, cloudEvent: true,
 		request: armature.WebhookEnvelope{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 
@@ -779,7 +782,7 @@ var operations = []operation{
 	// Stator's webhooks (#41, #42): vouched for by their signature alone.
 	{method: "POST", path: "/stator/webhook", handler: "handleStatorWebhook", tag: "stator", public: true,
 		summary:     "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
-		description: envelopeVersions, headers: []param{versionHeader(stator.VersionHeader)},
+		description: envelopeVersions, headers: []param{versionHeader(stator.VersionHeader)}, cloudEvent: true,
 		request: stator.WebhookEnvelope{}, responses: map[int]any{http.StatusNoContent: nil, http.StatusUnauthorized: errorEnvelope{},
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 

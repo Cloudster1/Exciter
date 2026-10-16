@@ -40,10 +40,15 @@ type hook struct {
 	versionHeader string
 }
 
+// body is the hook's envelope: version 2 a CloudEvent as agreed in Armature #286, any other Armature's EnvelopeV1.
 func (k hook) body(t *testing.T) []byte {
 	t.Helper()
-	raw, err := json.Marshal(map[string]any{"version": k.version, "id": k.id, "topic": k.topic, "orgId": k.orgID,
-		"occurredAt": time.Now().UTC(), "payload": k.payload})
+	envelope := map[string]any{"version": k.version, "id": k.id, "topic": k.topic, "orgId": k.orgID, "occurredAt": time.Now().UTC(), "payload": k.payload}
+	if k.version == webhook.VersionCloudEvents {
+		envelope = map[string]any{"specversion": webhook.SpecVersion, "id": k.id, "source": "https://armature.example", "type": armature.WebhookTypePrefix + k.topic,
+			"time": time.Now().UTC(), "datacontenttype": webhook.ContentTypeJSON, "dataversion": 1, "data": k.payload}
+	}
+	raw, err := json.Marshal(envelope)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +59,10 @@ func (k hook) body(t *testing.T) []byte {
 func (a *apiServer) deliver(t *testing.T, k hook, body []byte) (int, string) {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodPost, a.URL+"/api/v1/armature/webhook", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", webhook.ContentTypeJSON)
+	if k.version == webhook.VersionCloudEvents {
+		req.Header.Set("Content-Type", webhook.ContentTypeCloudEvents)
+	}
 	req.Header.Set(armature.SignatureHeader, armature.Sign(body, k.secret))
 	if k.versionHeader != "" {
 		req.Header.Set(armature.VersionHeader, k.versionHeader)
@@ -154,24 +162,35 @@ func TestArmatureWebhooksRefreshLinkedIssues(t *testing.T) {
 		if status, _ := send(older); status != http.StatusNoContent {
 			t.Errorf("an older Armature's ping, without a version, a timestamp or an org, answered %d", status)
 		}
+		cloud := event("ping", map[string]any{"message": "Armature can reach this address."})
+		cloud.version, cloud.versionHeader = webhook.VersionCloudEvents, strconv.Itoa(webhook.VersionCloudEvents)
+		if status, code := send(cloud); status != http.StatusNoContent {
+			t.Errorf("a CloudEvents ping answered %d %s", status, code)
+		}
+		unknown := webhook.Versions[len(webhook.Versions)-1] + 1
 		later := event("ping", nil)
-		later.version, later.versionHeader = webhook.Version+1, strconv.Itoa(webhook.Version+1)
+		later.version, later.versionHeader = unknown, strconv.Itoa(unknown)
 		if status, code := send(later); status != http.StatusUnprocessableEntity || code != "unknown_version" {
-			t.Errorf("a version 2 envelope answered %d %s", status, code)
+			t.Errorf("a version %d envelope answered %d %s", unknown, status, code)
 		}
 		// The header is read before the body, so a delivery it names as unreadable is refused whatever the body says.
 		named := event(armature.TopicIssueDeleted, map[string]any{"key": "CP-4"})
-		named.versionHeader = strconv.Itoa(webhook.Version + 1)
+		named.versionHeader = strconv.Itoa(unknown)
 		if status, code := send(named); status != http.StatusUnprocessableEntity || code != "unknown_version" {
-			t.Errorf("a version 2 header on a version 1 body answered %d %s", status, code)
+			t.Errorf("a version %d header on a version 1 body answered %d %s", unknown, status, code)
+		}
+		mixed := event(armature.TopicIssueDeleted, map[string]any{"key": "CP-4"})
+		mixed.versionHeader = strconv.Itoa(webhook.VersionCloudEvents)
+		if status, code := send(mixed); status != http.StatusUnprocessableEntity || code != "unknown_version" {
+			t.Errorf("a version 1 body under a version 2 header answered %d %s", status, code)
 		}
 		if l := linkStates(t, bob, r2)["CP-4 implements"]; l["brokenAt"] != nil {
 			t.Errorf("a refused delivery was acted on: %v", l)
 		}
 		unsaid := event("ping", nil)
-		unsaid.version = webhook.Version + 1
+		unsaid.version = unknown
 		if status, code := send(unsaid); status != http.StatusUnprocessableEntity || code != "unknown_version" {
-			t.Errorf("a version 2 body under a version 1 header answered %d %s", status, code)
+			t.Errorf("a version %d body under a version 1 header answered %d %s", unknown, status, code)
 		}
 		if status, _ := send(event("issue.commented.someday", map[string]any{"key": "CP-1"})); status != http.StatusNoContent {
 			t.Errorf("a topic Exciter does not know answered %d", status)
@@ -192,7 +211,9 @@ func TestArmatureWebhooksRefreshLinkedIssues(t *testing.T) {
 		if l := linkStates(t, bob, r1)["CP-1 implements"]; l["statusCategory"] != "in_progress" || l["statusStale"] != true {
 			t.Errorf("a transition Armature did not name reads %v", l)
 		}
-		acted("the move to done", event(armature.TopicIssueTransitioned, map[string]any{"key": "CP-1", "toStatusCategory": "done"}))
+		later := event(armature.TopicIssueTransitioned, map[string]any{"key": "CP-1", "toStatusCategory": "done"})
+		later.version, later.versionHeader = webhook.VersionCloudEvents, strconv.Itoa(webhook.VersionCloudEvents)
+		acted("the move to done, in the CloudEvents envelope", later)
 		acted("the first delivery again", done)
 		if l := linkStates(t, bob, r1)["CP-1 implements"]; l["statusCategory"] != "done" || l["statusStale"] != false {
 			t.Errorf("a replayed transition changed CP-1 to %v", l)

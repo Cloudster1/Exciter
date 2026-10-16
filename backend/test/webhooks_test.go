@@ -170,25 +170,31 @@ func asNumber(v any) int {
 	return int(n)
 }
 
-// asDocumented holds a delivery to what api/openapi.json promises a receiver: the body fits the envelope, every header
-// is there, the version header is the body's, and the timestamped signature verifies under secret, now.
+// asDocumented holds a delivery to what api/openapi.json promises a receiver: the body fits the envelope of its content
+// type, every header is there, the version header is the body's, and the timestamped signature verifies under secret, now.
 func asDocumented(t *testing.T, d received, secret string) {
 	t.Helper()
 	doc := httpapi.Spec()
 	delivery := doc.Webhooks["event"]["post"]
-	if err := doc.ValidateJSON(delivery.RequestBody.Content["application/json"].Schema, []byte(d.Body)); err != nil {
-		t.Errorf("the body does not fit the documented envelope: %v\n%s", err, d.Body)
-	}
-	if d.env["source"] != webhook.Source {
+	media, version := "application/json", strconv.Itoa(asNumber(d.env["version"]))
+	if d.Headers["Content-Type"] == webhook.ContentTypeCloudEvents {
+		media, version = "application/cloudevents+json", strconv.Itoa(webhook.VersionCloudEvents)
+		if d.env["specversion"] != webhook.SpecVersion || d.env["source"] != "http://"+appHost {
+			t.Errorf("the CloudEvent names specversion %v and source %v", d.env["specversion"], d.env["source"])
+		}
+	} else if d.env["source"] != webhook.Source {
 		t.Errorf("the envelope names its source %v, want %s", d.env["source"], webhook.Source)
+	}
+	if err := doc.ValidateJSON(delivery.RequestBody.Content[media].Schema, []byte(d.Body)); err != nil {
+		t.Errorf("the body does not fit the documented %s envelope: %v\n%s", media, err, d.Body)
 	}
 	for _, p := range delivery.Parameters {
 		if p.In == "header" && p.Required && d.Headers[p.Name] == "" {
 			t.Errorf("the delivery lacks the documented header %s: %v", p.Name, d.Headers)
 		}
 	}
-	if version := d.Headers[webhook.VersionHeader]; version != strconv.Itoa(asNumber(d.env["version"])) || version != strconv.Itoa(webhook.Version) {
-		t.Errorf("the version header says %q and the body %v, want both %d", version, d.env["version"], webhook.Version)
+	if d.Headers[webhook.VersionHeader] != version {
+		t.Errorf("the version header says %q and the body %s", d.Headers[webhook.VersionHeader], version)
 	}
 	if !webhook.VerifyTimestamped([]byte(d.Body), secret, d.Headers[webhook.TimestampHeader], d.Headers[webhook.TimestampedSignatureHeader], signedWithin, d.At) {
 		t.Errorf("the timestamp %q and its signature %q do not verify", d.Headers[webhook.TimestampHeader], d.Headers[webhook.TimestampedSignatureHeader])
@@ -266,6 +272,33 @@ func TestAnAdministratorKeepsWebhooksAndSeesTheSecretOnce(t *testing.T) {
 		fieldError(t, w.owner.get(t, path+"/deliveries?limit=0"), "limit")
 	})
 
+	t.Run("an endpoint that chooses version 2 is posted a CloudEvent, signed as before", func(t *testing.T) {
+		chosen := obj(t, want(t, w.owner.patch(t, path, map[string]any{"name": "Chat", "url": address, "topics": []string{webhook.TopicRequirementRevised},
+			"projects": []string{w.key}, "version": webhook.VersionCloudEvents}), http.StatusOK, "choose version 2"), "webhook")
+		if asNumber(chosen["version"]) != webhook.VersionCloudEvents {
+			t.Fatalf("the webhook reads %v", chosen)
+		}
+		sent := obj(t, want(t, w.owner.post(t, path+"/test", nil), http.StatusOK, "send a ping"), "delivery")
+		got := binDeliveries(t, bin)
+		d := got[len(got)-1]
+		if sent["state"] != "delivered" || d.Headers["Content-Type"] != webhook.ContentTypeCloudEvents || d.env["type"] != webhook.TypePrefix+webhook.TopicPing ||
+			d.env["id"] != sent["eventId"] || d.env["data"].(map[string]any)["message"] == nil {
+			t.Errorf("the ping reads %v with headers %v", d.env, d.Headers)
+		}
+		asDocumented(t, d, plain)
+		kept := obj(t, want(t, w.owner.patch(t, path, map[string]any{"name": "Chat", "url": address, "topics": []string{webhook.TopicRequirementRevised},
+			"projects": []string{w.key}}), http.StatusOK, "save without naming the version"), "webhook")
+		if asNumber(kept["version"]) != webhook.VersionCloudEvents {
+			t.Errorf("saving without the version changed it: %v", kept)
+		}
+		made := obj(t, want(t, w.owner.post(t, "/api/v1/webhooks", map[string]any{"name": "Broker", "url": address, "topics": []string{"*"},
+			"version": webhook.VersionCloudEvents}), http.StatusCreated, "make one on version 2"), "webhook")
+		if asNumber(made["version"]) != webhook.VersionCloudEvents {
+			t.Errorf("a webhook made on version 2 reads %v", made)
+		}
+		want(t, w.owner.delete(t, "/api/v1/webhooks/"+made["id"].(string)), http.StatusNoContent, "remove it")
+	})
+
 	t.Run("a rotated secret signs from then on, and another administrator becomes the owner by saving", func(t *testing.T) {
 		rotated := obj(t, want(t, w.owner.post(t, path+"/rotate-secret", nil), http.StatusOK, "rotate"), "webhook")
 		fresh, _ := rotated["secret"].(string)
@@ -290,7 +323,7 @@ func TestAnAdministratorKeepsWebhooksAndSeesTheSecretOnce(t *testing.T) {
 			"topics":   {"name": "Lapse", "url": address, "topics": []string{"armature.links"}},
 			"name":     {"name": "chat ROOM", "url": address, "topics": []string{"*"}},
 			"projects": {"name": "Gone", "url": address, "topics": []string{"*"}, "projects": []string{"NOPE" + strings.ToUpper(uuid.NewString()[:4])}},
-			"version":  {"name": "Next", "url": address, "topics": []string{"*"}, "version": webhook.Version + 1},
+			"version":  {"name": "Next", "url": address, "topics": []string{"*"}, "version": webhook.Versions[len(webhook.Versions)-1] + 1},
 		} {
 			if msg := fieldError(t, w.owner.post(t, "/api/v1/webhooks", body), name); msg == "" {
 				t.Errorf("no sentence for %s", name)

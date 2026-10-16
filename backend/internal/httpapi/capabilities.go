@@ -64,6 +64,21 @@ var integrationCapabilities = []capability{
 		},
 	},
 	{
+		// The same operations, an endpoint free to choose the CloudEvents envelope (#133); webhooks@1 stays beside it.
+		name:    "webhooks@2",
+		promise: "What webhooks@1 promises, and an endpoint registered for envelope version 2 is posted a CloudEvent 1.0 in structured mode, its data version 1's payload.",
+		operations: []string{
+			"GET /webhooks",
+			"POST /webhooks",
+			"PATCH /webhooks/{webhookID}",
+			"DELETE /webhooks/{webhookID}",
+			"GET /webhooks/{webhookID}/deliveries",
+			"POST /webhooks/{webhookID}/deliveries/{deliveryID}/redeliver",
+			"POST /webhooks/{webhookID}/test",
+			"POST /webhooks/{webhookID}/rotate-secret",
+		},
+	},
+	{
 		name:    "theme-export@1",
 		promise: "A theme exported as one armature-theme/1 file with its pictures and fonts, and such a file imported as a theme of the caller's own.",
 		operations: []string{

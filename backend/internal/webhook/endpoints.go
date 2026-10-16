@@ -7,7 +7,6 @@ import (
 	"net/netip"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -114,8 +113,8 @@ func (s *Service) clean(in WebhookInput) (WebhookInput, error) {
 		return in, &FieldError{Field: "projects", Message: fmt.Sprintf("A webhook listens to at most %d projects. Leave the list empty to hear every project.", MaxProjects)}
 	}
 	in.Projects = keys
-	if in.Version != nil && *in.Version != Version {
-		return in, &FieldError{Field: "version", Message: fmt.Sprintf("Exciter sends webhook envelope version %d. Register the webhook for that version.", Version)}
+	if in.Version != nil && !slices.Contains(Versions, *in.Version) {
+		return in, &FieldError{Field: "version", Message: fmt.Sprintf("Exciter sends webhook envelope version %s. Register the webhook for one of them.", VersionList())}
 	}
 	return in, nil
 }
@@ -216,6 +215,10 @@ func (s *Service) Create(ctx context.Context, in WebhookInput) (*Webhook, db.LSN
 		return nil, 0, err
 	}
 	enabled := in.Enabled == nil || *in.Enabled
+	version := Version
+	if in.Version != nil {
+		version = *in.Version
+	}
 	var out *Webhook
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		projects, err := projectIDs(ctx, tx, in.Projects)
@@ -224,7 +227,7 @@ func (s *Service) Create(ctx context.Context, in WebhookInput) (*Webhook, db.LSN
 		}
 		_, err = tx.Exec(ctx, `
 			INSERT INTO webhook_endpoint (id, name, url, secret_sealed, topics, project_ids, enabled, version)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, in.Name, in.URL, sealed, in.Topics, projects, enabled, Version)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, in.Name, in.URL, sealed, in.Topics, projects, enabled, version)
 		if isUniqueName(err) {
 			return errNameTaken
 		}
@@ -236,7 +239,7 @@ func (s *Service) Create(ctx context.Context, in WebhookInput) (*Webhook, db.LSN
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionWebhookCreated, TargetType: "webhook", TargetID: &id, Actor: actorOf(ctx),
 			Data: map[string]any{"name": in.Name, "host": hostOf(in.URL), "topics": in.Topics, "projects": in.Projects, "enabled": enabled,
-				"version": Version, "secret": "set"}})
+				"version": version, "secret": "set"}})
 	})
 	if err != nil {
 		return nil, lsn, err
@@ -365,6 +368,3 @@ func (s *Service) Deliveries(ctx context.Context, id uuid.UUID, limit int) ([]We
 	})
 	return out, err
 }
-
-// versionList names the versions this release sends, for a sentence.
-func versionList() string { return strconv.Itoa(Version) }

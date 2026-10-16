@@ -83,7 +83,11 @@ const (
 // same work as one with.
 const absentSecret = WebhookSecretPrefix + "absent"
 
-// WebhookEnvelope is Armature's EnvelopeV1. An Armature before #242 sends no version.
+// WebhookTypePrefix leads the type of Armature's version 2 envelope, the topic after it (Armature #286).
+const WebhookTypePrefix = "dev.armature."
+
+// WebhookEnvelope is Armature's EnvelopeV1, for the API document; webhook.Decode reads it. An Armature before #242
+// sends no version.
 type WebhookEnvelope struct {
 	Version int       `json:"version,omitempty"`
 	ID      uuid.UUID `json:"id"`
@@ -142,18 +146,14 @@ func (s *Service) Webhook(ctx context.Context, body []byte, headers WebhookHeade
 		return ErrBadSignature
 	}
 
-	if !webhook.ReadsHeader(headers.Version) {
-		s.opts.Log.Warn("Armature sent a webhook envelope of a version Exciter does not read", "version", headers.Version)
+	env, err := webhook.Decode(body, headers.Version, WebhookTypePrefix)
+	if errors.Is(err, webhook.ErrUnknownVersion) {
+		s.opts.Log.Warn("Armature sent a webhook envelope of a version Exciter does not read", "error", err)
 		return ErrUnknownVersion
 	}
-	var env WebhookEnvelope
-	if err := json.Unmarshal(body, &env); err != nil || env.ID == uuid.Nil {
+	if err != nil {
 		s.opts.Log.Info("a signed webhook delivery is not Armature's envelope; ignored", "error", err)
 		return nil
-	}
-	if !webhook.Reads(env.Version) {
-		s.opts.Log.Warn("Armature sent a webhook envelope of a version Exciter does not read", "version", env.Version, "event", env.ID)
-		return ErrUnknownVersion
 	}
 	if env.OrgID != uuid.Nil && target.ArmatureOrgID != nil && env.OrgID != *target.ArmatureOrgID {
 		return ErrBadSignature
@@ -169,7 +169,7 @@ func (s *Service) Webhook(ctx context.Context, body []byte, headers WebhookHeade
 }
 
 // act does what one topic says; a topic Exciter does not act on, ping among them, does nothing.
-func (s *Service) act(ctx context.Context, env WebhookEnvelope) error {
+func (s *Service) act(ctx context.Context, env *webhook.Inbound) error {
 	var p webhookPayload
 	if len(env.Payload) > 0 {
 		if err := json.Unmarshal(env.Payload, &p); err != nil {

@@ -47,7 +47,7 @@ func TestTheStackReportsTheBuildItWasStamped(t *testing.T) {
 		t.Errorf("GET /api/v1/meta = %s", body)
 	}
 	// What a Stator page's requirement blocks check for (#140): the stack serves the build's own list.
-	for _, name := range []string{"requirement-embed@1", "requirement-list@1", "webhooks@1"} {
+	for _, name := range []string{"requirement-embed@1", "requirement-list@1", "webhooks@1", "webhooks@2"} {
 		if !slices.Contains(meta.Capabilities, name) {
 			t.Errorf("GET /api/v1/meta lists %v, without %s", meta.Capabilities, name)
 		}

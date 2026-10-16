@@ -32,6 +32,12 @@ export const webhooksDe: typeof webhooksEn = {
     "thread.resolved": "Eine Diskussion wird erledigt",
     "baseline.taken": "Eine Baseline wird gezogen",
   },
+  version: "Umschlag",
+  versionHint:
+    "Version 2 ist ein CloudEvent 1.0, für einen Broker oder jeden Empfänger, der CloudEvents liest. Version 1 ist der Umschlag, den Armature und Stator senden. Beide sind gleich signiert.",
+  versionNames: { 1: "Version 1", 2: "Version 2, CloudEvents" },
+  switchVersion: (to: string) => `In ${to} senden`,
+  versionSwitched: (name: string, to: string) => `${name} wird ab der nächsten Zustellung in ${to} gesendet.`,
   projects: "Projekte",
   projectsHint: "Ohne Auswahl hört der Webhook jedes Projekt, das seine Besitzerin oder sein Besitzer sehen darf.",
   everyProject: "Jedes Projekt",

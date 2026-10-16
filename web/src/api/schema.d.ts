@@ -258,7 +258,7 @@ export interface paths {
         put?: never;
         /**
          * Where Armature sends the installation's webhooks; the body is Armature's signed envelope.
-         * @description Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.
+         * @description Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.
          */
         post: operations["armatureWebhook"];
         delete?: never;
@@ -2573,7 +2573,7 @@ export interface paths {
         put?: never;
         /**
          * Where Stator sends the installation's webhooks; the body is Stator's signed envelope.
-         * @description Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.
+         * @description Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.
          */
         post: operations["statorWebhook"];
         delete?: never;
@@ -3066,7 +3066,7 @@ export interface webhooks {
         put?: never;
         /**
          * What a webhook endpoint is posted for each event it subscribes to.
-         * @description A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.
+         * @description A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for: 1 is posted as application/json, 2 as application/cloudevents+json, both signed alike.
          */
         post: operations["webhookEvent"];
         delete?: never;
@@ -4173,6 +4173,21 @@ export interface components {
             required?: boolean;
             schema: components["schemas"]["Schema"] | null;
         };
+        PartnerCloudEvent: {
+            /** @description The payload version 1 carries as its payload. */
+            data: Record<string, never>;
+            datacontenttype?: string;
+            /** @description The version of the payload in data; Exciter reads 1, and its absence as 1. */
+            dataversion?: number | string;
+            id: string;
+            source: string;
+            /** @enum {string} */
+            specversion: "1.0";
+            /** Format: date-time */
+            time: string;
+            /** @description The sender's prefix, dev.armature. or dev.stator., and the topic it names in version 1. */
+            type: string;
+        };
         Person: {
             email: string;
             /** Format: uuid */
@@ -5168,6 +5183,34 @@ export interface components {
             /** @enum {string} */
             kind: "trace" | "armature" | "stator";
         };
+        /** @description What an endpoint registered for envelope version 2 is posted: a CloudEvent 1.0 in structured mode. */
+        WebhookCloudEvent: {
+            /** @description The payload version 1 carries, by type, read as the endpoint's owner when the attempt is sent. */
+            data: components["schemas"]["WebhookRequirementEvent"] | components["schemas"]["WebhookRequirementRevised"] | components["schemas"]["WebhookRequirementChanged"] | components["schemas"]["WebhookRequirementMoved"] | components["schemas"]["WebhookLinkEvent"] | components["schemas"]["WebhookLinkCleared"] | components["schemas"]["WebhookReviewEvent"] | components["schemas"]["WebhookReviewDecided"] | components["schemas"]["WebhookCommentCreated"] | components["schemas"]["WebhookThreadResolved"] | components["schemas"]["WebhookBaselineTaken"] | components["schemas"]["WebhookPing"];
+            /** @enum {string} */
+            datacontenttype: "application/json";
+            /** @description The version of the payload in data, 1 here; it rises only for a change that breaks a receiver. */
+            dataversion: number;
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uri-reference
+             * @description The installation that sent the delivery, its address as EXCITER_APP_URL names it.
+             */
+            source: string;
+            /** @enum {string} */
+            specversion: "1.0";
+            /**
+             * Format: date-time
+             * @description When the event happened, in UTC.
+             */
+            time: string;
+            /**
+             * @description dev.exciter. and the topic version 1 names. A receiver ignores a type it does not know.
+             * @enum {string}
+             */
+            type: "dev.exciter.ping" | "dev.exciter.requirement.created" | "dev.exciter.requirement.revised" | "dev.exciter.requirement.changed" | "dev.exciter.requirement.trashed" | "dev.exciter.requirement.restored" | "dev.exciter.requirement.moved" | "dev.exciter.link.created" | "dev.exciter.link.removed" | "dev.exciter.link.cleared" | "dev.exciter.review.requested" | "dev.exciter.review.decided" | "dev.exciter.review.closed" | "dev.exciter.comment.created" | "dev.exciter.thread.resolved" | "dev.exciter.baseline.taken";
+        };
         WebhookCommentCreated: {
             actor: components["schemas"]["WebhookPerson"] | null;
             comment: components["schemas"]["WebhookCommentRef"];
@@ -5233,6 +5276,7 @@ export interface components {
             projects: string[];
             topics: ("*" | "requirement.created" | "requirement.revised" | "requirement.changed" | "requirement.trashed" | "requirement.restored" | "requirement.moved" | "link.created" | "link.removed" | "link.cleared" | "review.requested" | "review.decided" | "review.closed" | "comment.created" | "thread.resolved" | "baseline.taken")[];
             url: string;
+            /** @description The envelope version the endpoint is posted in: 1 or 2, 2 a CloudEvent. Left out, 1 for a new endpoint and unchanged for one saved before. */
             version?: number;
         };
         WebhookLinkCleared: {
@@ -6123,7 +6167,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description The envelope's version, the body's version as well; absent from a sender before versions. */
+                /** @description The envelope's version, which the body names as well; absent from a sender before versions. */
                 "X-Armature-Webhook-Version"?: number;
             };
             path?: never;
@@ -6131,6 +6175,7 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "application/cloudevents+json": components["schemas"]["PartnerCloudEvent"];
                 "application/json": components["schemas"]["ArmatureWebhookEnvelope"];
             };
         };
@@ -13809,7 +13854,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description The envelope's version, the body's version as well; absent from a sender before versions. */
+                /** @description The envelope's version, which the body names as well; absent from a sender before versions. */
                 "X-Stator-Webhook-Version"?: number;
             };
             path?: never;
@@ -13817,6 +13862,7 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "application/cloudevents+json": components["schemas"]["PartnerCloudEvent"];
                 "application/json": components["schemas"]["StatorWebhookEnvelope"];
             };
         };
@@ -15208,7 +15254,7 @@ export interface operations {
                 "X-Exciter-Event": string;
                 /** @description This attempt's id; a retry or a redelivery has its own. */
                 "X-Exciter-Delivery": string;
-                /** @description The envelope version of the body, as in its version field. */
+                /** @description The envelope version of the body: 1, as in its version field, or 2 for a CloudEvent. */
                 "X-Exciter-Webhook-Version": string;
                 /** @description sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret. */
                 "X-Exciter-Signature-256": string;
@@ -15222,6 +15268,7 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "application/cloudevents+json": components["schemas"]["WebhookCloudEvent"];
                 "application/json": components["schemas"]["WebhookEnvelope"];
             };
         };

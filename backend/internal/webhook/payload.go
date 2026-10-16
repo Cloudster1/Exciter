@@ -24,28 +24,70 @@ type EnvelopeV1 struct {
 	Payload    any       `json:"payload"`
 }
 
-// event is what every version's envelope is built from.
+// EnvelopeV2 is what an endpoint on version 2 receives: a CloudEvent 1.0 in structured mode, its data version 1's
+// payload and its id the event's, as in version 1.
+type EnvelopeV2 struct {
+	SpecVersion     string    `json:"specversion"`
+	ID              uuid.UUID `json:"id"`
+	Source          string    `json:"source"`
+	Type            string    `json:"type"`
+	Time            time.Time `json:"time"`
+	DataContentType string    `json:"datacontenttype"`
+	DataVersion     int       `json:"dataversion"`
+	Data            any       `json:"data"`
+}
+
+// event is what every version's envelope is built from; source is the installation's address, version 2's source.
 type event struct {
 	id       uuid.UUID
 	topic    string
 	occurred time.Time
 	payload  any
+	source   string
 }
 
-// envelopes builds each version's body. A later version is a row beside 1, and an endpoint on 1 keeps getting 1.
-var envelopes = map[int]func(e event) any{
-	1: func(e event) any {
-		return EnvelopeV1{Version: 1, ID: e.id, Source: Source, Topic: e.topic, OccurredAt: e.occurred, Payload: e.payload}
-	},
+// envelope builds one version's body and names its content type.
+type envelope struct {
+	build       func(e event) any
+	contentType string
+}
+
+// envelopes are the versions an endpoint may be on. A later version is a row beside these, and an endpoint keeps
+// getting the one it chose.
+var envelopes = map[int]envelope{
+	Version: {contentType: ContentTypeJSON, build: func(e event) any {
+		return EnvelopeV1{Version: Version, ID: e.id, Source: Source, Topic: e.topic, OccurredAt: e.occurred, Payload: e.payload}
+	}},
+	VersionCloudEvents: {contentType: ContentTypeCloudEvents, build: func(e event) any {
+		return EnvelopeV2{SpecVersion: SpecVersion, ID: e.id, Source: e.source, Type: TypePrefix + e.topic, Time: e.occurred,
+			DataContentType: ContentTypeJSON, DataVersion: DataVersion, Data: e.payload}
+	}},
 }
 
 // envelopeFor is the body an endpoint on the version is posted for the event.
 func envelopeFor(version int, e event) ([]byte, error) {
-	build, ok := envelopes[version]
+	env, ok := envelopes[version]
 	if !ok {
 		return nil, fmt.Errorf("%w: %d", ErrUnknownVersion, version)
 	}
-	return json.Marshal(build(e))
+	return json.Marshal(env.build(e))
+}
+
+// contentType is what a body of the version is posted as.
+func contentType(version int) string {
+	if env, ok := envelopes[version]; ok {
+		return env.contentType
+	}
+	return ContentTypeJSON
+}
+
+// source is what a version 2 envelope names as its sender: the installation's address, so a receiver hearing several
+// tells them apart, and a path naming the product where no address is set.
+func (s *Service) source() string {
+	if s.opts.AppURL != "" {
+		return s.opts.AppURL
+	}
+	return "/" + Source
 }
 
 // emitted is every field the outbox payloads of the topics carry, ids and what the event says, as their packages emit them.
@@ -267,7 +309,7 @@ func (s *Service) body(ctx context.Context, c claimed) ([]byte, error) {
 	if _, ok := envelopes[c.version]; !ok {
 		return nil, fmt.Errorf("%w: %d", ErrUnknownVersion, c.version)
 	}
-	env := event{id: c.eventID, topic: c.topic, occurred: c.occurred.UTC()}
+	env := event{id: c.eventID, topic: c.topic, occurred: c.occurred.UTC(), source: s.source()}
 	if c.topic == TopicPing {
 		env.payload = Ping{Message: pingMessage}
 		return envelopeFor(c.version, env)

@@ -42,7 +42,11 @@ func Sign(body []byte, secret string) string {
 // same work as one with.
 const absentSecret = WebhookSecretPrefix + "absent"
 
-// WebhookEnvelope is Stator's webhook.Envelope, Armature's shape; Stator sends no version until its #412.
+// WebhookTypePrefix leads the type of Stator's version 2 envelope, the topic after it (Stator #434).
+const WebhookTypePrefix = "dev.stator."
+
+// WebhookEnvelope is Stator's webhook.Envelope, Armature's shape, for the API document; webhook.Decode reads it.
+// Stator sends no version until its #412.
 type WebhookEnvelope struct {
 	Version    int             `json:"version,omitempty"`
 	ID         uuid.UUID       `json:"id"`
@@ -102,18 +106,14 @@ func (s *Service) Webhook(ctx context.Context, body []byte, signature, version s
 		return ErrBadSignature
 	}
 
-	if !webhook.ReadsHeader(version) {
-		s.opts.Log.Warn("Stator sent a webhook envelope of a version Exciter does not read", "version", version)
+	env, err := webhook.Decode(body, version, WebhookTypePrefix)
+	if errors.Is(err, webhook.ErrUnknownVersion) {
+		s.opts.Log.Warn("Stator sent a webhook envelope of a version Exciter does not read", "error", err)
 		return ErrUnknownVersion
 	}
-	var env WebhookEnvelope
-	if err := json.Unmarshal(body, &env); err != nil || env.ID == uuid.Nil {
+	if err != nil {
 		s.opts.Log.Info("a signed webhook delivery is not Stator's envelope; ignored", "error", err)
 		return nil
-	}
-	if !webhook.Reads(env.Version) {
-		s.opts.Log.Warn("Stator sent a webhook envelope of a version Exciter does not read", "version", env.Version, "event", env.ID)
-		return ErrUnknownVersion
 	}
 	if s.cache.Delivered(ctx, env.ID) {
 		return nil
@@ -126,7 +126,7 @@ func (s *Service) Webhook(ctx context.Context, body []byte, signature, version s
 }
 
 // act does what one topic says; a topic Exciter does not act on, ping among them, does nothing.
-func (s *Service) act(ctx context.Context, baseURL string, env WebhookEnvelope) error {
+func (s *Service) act(ctx context.Context, baseURL string, env *webhook.Inbound) error {
 	var p struct {
 		Page       WebhookPage `json:"page"`
 		RemoteLink struct {

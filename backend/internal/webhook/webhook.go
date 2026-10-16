@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,16 +22,33 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/secret"
 )
 
-// Version is the envelope version Exciter reads, and the one a new endpoint is registered for. It rises only for a
-// change that breaks a receiver, as docs/integration.md says.
+// Version is the envelope version a new endpoint is registered for. It stays 1 for at least one Dynamo release after
+// VersionCloudEvents, as docs/integration.md says.
 const Version = 1
 
-// Reads says whether Exciter reads an envelope that names version v; 0 is a sender from before versions.
-func Reads(v int) bool { return v == 0 || v == Version }
+// VersionCloudEvents is the envelope in the CloudEvents 1.0 shape (#133), chosen per endpoint.
+const VersionCloudEvents = 2
 
-// ReadsHeader is Reads for the version header, which a receiver checks before parsing the body; an absent header is
-// a sender from before versions.
-func ReadsHeader(h string) bool { return h == "" || h == strconv.Itoa(Version) }
+// Versions are the envelope versions Exciter sends and reads, oldest first.
+var Versions = []int{Version, VersionCloudEvents}
+
+// ReadsHeader says whether Exciter reads the version a header names, which a receiver checks before parsing the body;
+// an absent header is a sender from before versions.
+func ReadsHeader(h string) bool {
+	return h == "" || slices.ContainsFunc(Versions, func(v int) bool { return h == strconv.Itoa(v) })
+}
+
+// VersionList names the versions Exciter sends and reads, for a sentence.
+func VersionList() string {
+	names := make([]string, len(Versions))
+	for i, v := range Versions {
+		names[i] = strconv.Itoa(v)
+	}
+	if len(names) == 1 {
+		return names[0]
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
+}
 
 const (
 	// MaxAttempts is how many times one event is tried before it is given up.
@@ -61,8 +79,17 @@ const (
 	DeliveryHeader             = "X-Exciter-Delivery"
 	VersionHeader              = "X-Exciter-Webhook-Version"
 	userAgent                  = "Exciter-Webhook"
-	// Source is what every envelope names as its sender.
+	// Source is what every version 1 envelope names as its sender.
 	Source = "exciter"
+	// TypePrefix leads a version 2 envelope's type, the topic after it, as Armature's and Stator's lead theirs.
+	TypePrefix = "dev.exciter."
+	// SpecVersion is the CloudEvents version a version 2 envelope follows.
+	SpecVersion = "1.0"
+	// DataVersion is the version of the payload a version 2 envelope carries as its data, version 1's payload.
+	DataVersion = 1
+	// Content types of the two envelopes; version 2 is CloudEvents' structured mode.
+	ContentTypeJSON        = "application/json"
+	ContentTypeCloudEvents = "application/cloudevents+json; charset=utf-8"
 )
 
 // Backoff is the wait before each retry, by attempt number; a sixth failure is the last.
@@ -142,7 +169,7 @@ type Webhook struct {
 	// Projects are the projects it listens to; empty is every project its owner may see.
 	Projects []WebhookProject `json:"projects"`
 	Enabled  bool             `json:"enabled"`
-	// Version is the envelope version the endpoint was registered for.
+	// Version is the envelope version the endpoint is posted in: 1, or 2 for CloudEvents.
 	Version int `json:"version"`
 	// DisabledReason says the worker turned it off, and why; null when a person did or it is on.
 	DisabledReason *string `json:"disabledReason"`
@@ -193,7 +220,7 @@ type WebhookDelivery struct {
 }
 
 // WebhookInput makes or changes an endpoint; enabled left out keeps it as it is, and a new endpoint starts on.
-// Version left out is the current one for a new endpoint, and keeps the one a changed endpoint has.
+// Version left out is 1 for a new endpoint, and keeps the one a changed endpoint has.
 type WebhookInput struct {
 	Name   string   `json:"name"`
 	URL    string   `json:"url"`

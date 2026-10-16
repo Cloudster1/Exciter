@@ -1080,7 +1080,7 @@
       "post": {
         "operationId": "armatureWebhook",
         "summary": "Where Armature sends the installation's webhooks; the body is Armature's signed envelope.",
-        "description": "Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.",
+        "description": "Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.",
         "tags": [
           "armature"
         ],
@@ -1088,7 +1088,7 @@
           {
             "name": "X-Armature-Webhook-Version",
             "in": "header",
-            "description": "The envelope's version, the body's version as well; absent from a sender before versions.",
+            "description": "The envelope's version, which the body names as well; absent from a sender before versions.",
             "schema": {
               "type": "integer"
             }
@@ -1097,6 +1097,11 @@
         "requestBody": {
           "required": true,
           "content": {
+            "application/cloudevents+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerCloudEvent"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ArmatureWebhookEnvelope"
@@ -13110,7 +13115,7 @@
       "post": {
         "operationId": "statorWebhook",
         "summary": "Where Stator sends the installation's webhooks; the body is Stator's signed envelope.",
-        "description": "Exciter reads envelope version 1, and an envelope without a version from a sender before versions; any other, in the header or the body, is refused with 422 unknown_version before the body is read, and the sender keeps the delivery. Unknown fields and topics are ignored.",
+        "description": "Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.",
         "tags": [
           "stator"
         ],
@@ -13118,7 +13123,7 @@
           {
             "name": "X-Stator-Webhook-Version",
             "in": "header",
-            "description": "The envelope's version, the body's version as well; absent from a sender before versions.",
+            "description": "The envelope's version, which the body names as well; absent from a sender before versions.",
             "schema": {
               "type": "integer"
             }
@@ -13127,6 +13132,11 @@
         "requestBody": {
           "required": true,
           "content": {
+            "application/cloudevents+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerCloudEvent"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StatorWebhookEnvelope"
@@ -19405,6 +19415,57 @@
           "schema"
         ]
       },
+      "PartnerCloudEvent": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The payload version 1 carries as its payload."
+          },
+          "datacontenttype": {
+            "type": "string"
+          },
+          "dataversion": {
+            "description": "The version of the payload in data; Exciter reads 1, and its absence as 1.",
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "specversion": {
+            "type": "string",
+            "enum": [
+              "1.0"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "description": "The sender's prefix, dev.armature. or dev.stator., and the topic it names in version 1."
+          }
+        },
+        "required": [
+          "specversion",
+          "id",
+          "source",
+          "type",
+          "time",
+          "data"
+        ]
+      },
       "Person": {
         "type": "object",
         "properties": {
@@ -23303,6 +23364,115 @@
           "id"
         ]
       },
+      "WebhookCloudEvent": {
+        "type": "object",
+        "description": "What an endpoint registered for envelope version 2 is posted: a CloudEvent 1.0 in structured mode.",
+        "properties": {
+          "data": {
+            "description": "The payload version 1 carries, by type, read as the endpoint's owner when the attempt is sent.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WebhookRequirementEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementRevised"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementChanged"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookRequirementMoved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookLinkEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookLinkCleared"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookReviewEvent"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookReviewDecided"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookCommentCreated"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookThreadResolved"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookBaselineTaken"
+              },
+              {
+                "$ref": "#/components/schemas/WebhookPing"
+              }
+            ]
+          },
+          "datacontenttype": {
+            "type": "string",
+            "enum": [
+              "application/json"
+            ]
+          },
+          "dataversion": {
+            "type": "integer",
+            "description": "The version of the payload in data, 1 here; it rises only for a change that breaks a receiver."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "format": "uri-reference",
+            "description": "The installation that sent the delivery, its address as EXCITER_APP_URL names it."
+          },
+          "specversion": {
+            "type": "string",
+            "enum": [
+              "1.0"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the event happened, in UTC."
+          },
+          "type": {
+            "type": "string",
+            "description": "dev.exciter. and the topic version 1 names. A receiver ignores a type it does not know.",
+            "enum": [
+              "dev.exciter.ping",
+              "dev.exciter.requirement.created",
+              "dev.exciter.requirement.revised",
+              "dev.exciter.requirement.changed",
+              "dev.exciter.requirement.trashed",
+              "dev.exciter.requirement.restored",
+              "dev.exciter.requirement.moved",
+              "dev.exciter.link.created",
+              "dev.exciter.link.removed",
+              "dev.exciter.link.cleared",
+              "dev.exciter.review.requested",
+              "dev.exciter.review.decided",
+              "dev.exciter.review.closed",
+              "dev.exciter.comment.created",
+              "dev.exciter.thread.resolved",
+              "dev.exciter.baseline.taken"
+            ]
+          }
+        },
+        "required": [
+          "specversion",
+          "id",
+          "source",
+          "type",
+          "time",
+          "datacontenttype",
+          "dataversion",
+          "data"
+        ]
+      },
       "WebhookCommentCreated": {
         "type": "object",
         "properties": {
@@ -23583,7 +23753,8 @@
             "type": "string"
           },
           "version": {
-            "type": "integer"
+            "type": "integer",
+            "description": "The envelope version the endpoint is posted in: 1 or 2, 2 a CloudEvent. Left out, 1 for a new endpoint and unchanged for one saved before."
           }
         },
         "required": [
@@ -24285,7 +24456,7 @@
       "post": {
         "operationId": "webhookEvent",
         "summary": "What a webhook endpoint is posted for each event it subscribes to.",
-        "description": "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.",
+        "description": "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for: 1 is posted as application/json, 2 as application/cloudevents+json, both signed alike.",
         "tags": [
           "webhooks"
         ],
@@ -24312,7 +24483,7 @@
             "name": "X-Exciter-Webhook-Version",
             "in": "header",
             "required": true,
-            "description": "The envelope version of the body, as in its version field.",
+            "description": "The envelope version of the body: 1, as in its version field, or 2 for a CloudEvent.",
             "schema": {
               "type": "string"
             }
@@ -24348,6 +24519,11 @@
         "requestBody": {
           "required": true,
           "content": {
+            "application/cloudevents+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookCloudEvent"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/WebhookEnvelope"

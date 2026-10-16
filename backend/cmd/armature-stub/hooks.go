@@ -20,18 +20,22 @@ import (
 // made through the API or the /_stub/ controls, is posted there as Armature's webhook service posts it.
 
 const (
-	// webhookVersion is the envelope version the stub sends, Armature's current one.
+	// webhookVersion is the envelope version the stub sends unless the endpoint chose another, Armature's current one.
 	webhookVersion = 1
+	// cloudEventsVersion is the CloudEvents envelope agreed in Armature #286, which Armature's document does not hold
+	// yet, so the contract test checks version 1 alone.
+	cloudEventsVersion = 2
 	// webhookTimeout is how long Armature waits for an endpoint's answer.
 	webhookTimeout = 10 * time.Second
 	// keptDeliveries bounds what a tenant remembers of its deliveries.
 	keptDeliveries = 100
 )
 
-// webhook is a tenant's registered endpoint.
+// webhook is a tenant's registered endpoint; Version 0 is webhookVersion.
 type webhook struct {
-	URL    string
-	Secret string
+	URL     string
+	Secret  string
+	Version int
 }
 
 // event is one delivery the stub owes, built while the world is locked and posted once it is not.
@@ -57,7 +61,11 @@ func (c *call) emit(topic string, payload map[string]any) {
 	if c.tenant.webhook == nil {
 		return
 	}
-	c.events = append(c.events, event{to: *c.tenant.webhook, tenant: c.tenant, id: uuid.New(), topic: topic, version: webhookVersion, payload: payload})
+	version := c.tenant.webhook.Version
+	if version == 0 {
+		version = webhookVersion
+	}
+	c.events = append(c.events, event{to: *c.tenant.webhook, tenant: c.tenant, id: uuid.New(), topic: topic, version: version, payload: payload})
 }
 
 // sign is Armature's webhook.Sign: sha256= and the hex HMAC of the body.
@@ -95,10 +103,19 @@ func (s *stub) deliver(ctx context.Context, events []event) []delivery {
 	return out
 }
 
+// envelope is the body of an event in its version, and the content type it is posted as.
+func envelope(e event) (map[string]any, string) {
+	if e.version == cloudEventsVersion {
+		return map[string]any{"specversion": "1.0", "id": e.id, "source": "/armature", "type": "dev.armature." + e.topic, "time": time.Now().UTC(),
+			"datacontenttype": "application/json", "dataversion": 1, "data": e.payload}, "application/cloudevents+json; charset=utf-8"
+	}
+	return map[string]any{"version": e.version, "id": e.id, "topic": e.topic, "orgId": e.tenant.OrgID, "occurredAt": time.Now().UTC(),
+		"payload": e.payload}, "application/json"
+}
+
 func (s *stub) post(ctx context.Context, e event) (int, string) {
-	body, err := json.Marshal(map[string]any{
-		"version": e.version, "id": e.id, "topic": e.topic, "orgId": e.tenant.OrgID, "occurredAt": time.Now().UTC(), "payload": e.payload,
-	})
+	env, contentType := envelope(e)
+	body, err := json.Marshal(env)
 	if err != nil {
 		return 0, err.Error()
 	}
@@ -109,7 +126,7 @@ func (s *stub) post(ctx context.Context, e event) (int, string) {
 		return 0, err.Error()
 	}
 	sent := strconv.FormatInt(time.Now().Unix(), 10)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("User-Agent", "Armature-Webhook")
 	req.Header.Set("X-Armature-Event", e.topic)
 	req.Header.Set("X-Armature-Delivery", uuid.NewString())
@@ -130,16 +147,17 @@ func (s *stub) post(ctx context.Context, e event) (int, string) {
 
 func (s *stub) setWebhook(c *call) {
 	var req struct {
-		// URL is where to post, empty to stop; Secret signs every delivery.
-		URL    string `json:"url"`
-		Secret string `json:"secret"`
+		// URL is where to post, empty to stop; Secret signs every delivery, posted in Version.
+		URL     string `json:"url"`
+		Secret  string `json:"secret"`
+		Version int    `json:"version,omitempty"`
 	}
 	if !decode(c, &req) {
 		return
 	}
 	c.tenant.webhook = nil
 	if req.URL != "" {
-		c.tenant.webhook = &webhook{URL: req.URL, Secret: req.Secret}
+		c.tenant.webhook = &webhook{URL: req.URL, Secret: req.Secret, Version: req.Version}
 	}
 	c.w.WriteHeader(http.StatusNoContent)
 }

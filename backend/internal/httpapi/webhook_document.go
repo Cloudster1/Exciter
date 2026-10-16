@@ -39,6 +39,24 @@ func webhookDelivery(b *openapi.Builder) *openapi.Operation {
 	}
 	b.FieldOverrides["WebhookEnvelope.payload"] = &openapi.Schema{AnyOf: payloads,
 		Description: "The event's own fields, by topic, read as the endpoint's owner when the attempt is sent."}
+	cloudEvent := reflect.TypeOf(webhook.EnvelopeV2{})
+	b.Names[cloudEvent] = "WebhookCloudEvent"
+	b.Descriptions[cloudEvent] = "What an endpoint registered for envelope version 2 is posted: a CloudEvent 1.0 in structured mode."
+	types := []string{}
+	for _, topic := range append([]string{webhook.TopicPing}, webhook.Topics...) {
+		types = append(types, webhook.TypePrefix+topic)
+	}
+	b.FieldOverrides["WebhookCloudEvent.specversion"] = &openapi.Schema{Type: "string", Enum: []string{webhook.SpecVersion}}
+	b.FieldOverrides["WebhookCloudEvent.source"] = &openapi.Schema{Type: "string", Format: "uri-reference",
+		Description: "The installation that sent the delivery, its address as EXCITER_APP_URL names it."}
+	b.FieldOverrides["WebhookCloudEvent.type"] = &openapi.Schema{Type: "string", Enum: types,
+		Description: webhook.TypePrefix + " and the topic version 1 names. A receiver ignores a type it does not know."}
+	b.FieldOverrides["WebhookCloudEvent.time"] = &openapi.Schema{Type: "string", Format: "date-time", Description: "When the event happened, in UTC."}
+	b.FieldOverrides["WebhookCloudEvent.datacontenttype"] = &openapi.Schema{Type: "string", Enum: []string{webhook.ContentTypeJSON}}
+	b.FieldOverrides["WebhookCloudEvent.dataversion"] = &openapi.Schema{Type: "integer",
+		Description: "The version of the payload in data, 1 here; it rises only for a change that breaks a receiver."}
+	b.FieldOverrides["WebhookCloudEvent.data"] = &openapi.Schema{AnyOf: payloads,
+		Description: "The payload version 1 carries, by type, read as the endpoint's owner when the attempt is sent."}
 	header := func(name, description string) openapi.Parameter {
 		return openapi.Parameter{Name: name, In: "header", Required: true, Description: description, Schema: &openapi.Schema{Type: "string"}}
 	}
@@ -46,18 +64,20 @@ func webhookDelivery(b *openapi.Builder) *openapi.Operation {
 		OperationID: "webhookEvent",
 		Summary:     "What a webhook endpoint is posted for each event it subscribes to.",
 		Description: "A receiver ignores fields and topics it does not know, and refuses an envelope version it does not know. " +
-			"The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for.",
+			"The version rises only for a change that breaks a receiver, and an endpoint keeps the version it was registered for: " +
+			"1 is posted as application/json, 2 as application/cloudevents+json, both signed alike.",
 		Tags: []string{"webhooks"},
 		Parameters: []openapi.Parameter{
 			header(webhook.EventHeader, "The topic, as in the body."),
 			header(webhook.DeliveryHeader, "This attempt's id; a retry or a redelivery has its own."),
-			header(webhook.VersionHeader, "The envelope version of the body, as in its version field."),
+			header(webhook.VersionHeader, "The envelope version of the body: 1, as in its version field, or 2 for a CloudEvent."),
 			header(webhook.SignatureHeader, "sha256= and the hex HMAC-SHA256 of the body, keyed with the endpoint's secret."),
 			header(webhook.TimestampHeader, "When this attempt was sent, in Unix seconds."),
 			header(webhook.TimestampedSignatureHeader, "sha256= and the hex HMAC-SHA256 of the timestamp, a dot and the body."),
 		},
 		RequestBody: &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
-			"application/json": {Schema: b.SchemaOf(webhook.EnvelopeV1{})},
+			"application/json":   {Schema: b.SchemaOf(webhook.EnvelopeV1{})},
+			cloudEventsMediaType: {Schema: b.SchemaOf(webhook.EnvelopeV2{})},
 		}},
 		Responses: map[string]*openapi.Response{
 			"2XX":     {Description: "Taken: the delivery is done."},

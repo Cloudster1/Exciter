@@ -316,6 +316,9 @@ export const WEBHOOK_TOPICS = [
   "thread.resolved",
   "baseline.taken",
 ] as const;
+/** The envelope versions a webhook may be posted in, 2 the CloudEvents shape (#133), and the one a new webhook starts on. */
+export const WEBHOOK_VERSIONS = [1, 2] as const;
+export const WEBHOOK_DEFAULT_VERSION = 1;
 /** The database's bounds on a webhook's name and address. */
 export const WEBHOOK_NAME_MAX_LENGTH = 100;
 export const WEBHOOK_URL_MAX_LENGTH = 2000;

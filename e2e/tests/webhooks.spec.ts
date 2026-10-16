@@ -20,6 +20,11 @@ const STUB_FROM_STACK = "http://armature-stub:8080";
 
 const KEY = uniqueKey("HOOK");
 const REQ_KEY = `${KEY}-R1`;
+// The CloudEvents test's own project, since the tests of a file run side by side.
+const CE_KEY = uniqueKey("HOOKC");
+// The CloudEvents envelope's content type and type prefix (#133), backend/internal/webhook.
+const CLOUDEVENTS = "application/cloudevents+json; charset=utf-8";
+const TYPE_PREFIX = "dev.exciter.";
 
 type Received = { headers: Record<string, string>; body: string };
 
@@ -43,12 +48,12 @@ function signedWith(secret: string, delivery: Received): boolean {
   return got.length === expected.length && timingSafeEqual(got, expected);
 }
 
-async function cleanUp(api: ExciterApi) {
+async function cleanUp(api: ExciterApi, key: string) {
   const listed = await api.GET("/webhooks");
   for (const hook of listed.data?.webhooks ?? []) {
-    if (hook.projects.some((p) => p.key === KEY)) await api.DELETE("/webhooks/{webhookID}", { params: { path: { webhookID: hook.id } } });
+    if (hook.projects.some((p) => p.key === key)) await api.DELETE("/webhooks/{webhookID}", { params: { path: { webhookID: hook.id } } });
   }
-  const path = { params: { path: { projectKey: KEY } } };
+  const path = { params: { path: { projectKey: key } } };
   const found = await api.GET("/projects/{projectKey}", path);
   if (!found.data) return;
   if (!found.data.project.archivedAt) await api.PUT("/projects/{projectKey}/archive", path);
@@ -56,7 +61,10 @@ async function cleanUp(api: ExciterApi) {
 }
 
 test.describe("outbound webhooks", { tag: "@desktop" }, () => {
-  test.afterEach(async ({ api }) => cleanUp(api));
+  test.afterEach(async ({ api }) => {
+    await cleanUp(api, KEY);
+    await cleanUp(api, CE_KEY);
+  });
 
   test("alice adds a webhook for her project, copies its secret once, and a revision reaches the receiver signed", async ({ page, api, request }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Hooked" } }));
@@ -110,5 +118,52 @@ test.describe("outbound webhooks", { tag: "@desktop" }, () => {
     await page.getByRole("menuitem", { name: "Turn off" }).click();
     await expect(row).toHaveAttribute("data-webhook-enabled", "false");
     await expect(page.locator("[data-webhooks-notice]")).toHaveText("Test bench is off. Nothing is sent until it is turned on again.");
+  });
+
+  test("alice adds a webhook in the CloudEvents envelope, and a revision reaches the receiver as a CloudEvent, signed as before", async ({
+    page,
+    api,
+    request,
+  }) => {
+    must(await api.POST("/projects", { body: { key: CE_KEY, name: "Brokered" } }));
+    must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: CE_KEY } }, body: { title: "Log every login" } }));
+    const receiver = bin();
+
+    await page.goto(WEBHOOKS_PATH);
+    await page.getByLabel("Name", { exact: true }).fill("Broker");
+    await page.getByLabel("Address", { exact: true }).fill(receiver.address);
+    await page.getByLabel("Everything, events added later too").uncheck();
+    await page.getByLabel("A requirement gets a new revision").check();
+    await page.locator(`[data-project="${CE_KEY}"]`).check();
+    await page.getByLabel("Envelope", { exact: true }).selectOption({ label: "Version 2, CloudEvents" });
+    await expectAccessible(page);
+    await page.locator('[data-action="create-webhook"]').click();
+    const secret = await page.getByLabel("Secret for Broker", { exact: true }).inputValue();
+    await page.locator('[data-action="webhook-secret-done"]').click();
+    const row = page.locator('[data-webhook="Broker"]');
+    await expect(row.locator("[data-webhook-version]")).toHaveText("Version 2, CloudEvents");
+
+    must(
+      await api.PATCH("/requirements/{reqKey}", {
+        params: { path: { reqKey: `${CE_KEY}-R1` } },
+        body: { title: "Log every login and logout", baseRevision: 1 },
+      }),
+    );
+    await expect.poll(async () => (await receiver.read(request)).length, { timeout: 30_000 }).toBe(1);
+    const [revision] = await receiver.read(request);
+    expect(signedWith(secret, revision!)).toBe(true);
+    expect(revision!.headers["Content-Type"]).toBe(CLOUDEVENTS);
+    expect(JSON.parse(revision!.body)).toMatchObject({
+      specversion: "1.0",
+      type: `${TYPE_PREFIX}requirement.revised`,
+      datacontenttype: "application/json",
+      dataversion: 1,
+      data: { requirement: { key: `${CE_KEY}-R1`, title: "Log every login and logout" }, revision: 2 },
+    });
+
+    await row.getByRole("button", { name: "Actions for Broker" }).click();
+    await page.getByRole("menuitem", { name: "Send in Version 1" }).click();
+    await expect(row.locator("[data-webhook-version]")).toHaveText("Version 1");
+    await expect(page.locator("[data-webhooks-notice]")).toHaveText("Broker is sent in Version 1 from the next delivery on.");
   });
 });
