@@ -100,3 +100,59 @@ func TestRawSQLGuardsStatorLinks(t *testing.T) {
 		}
 	})
 }
+
+// Straight through SQL as exciter_app: the link sync's records are read by the requirement's viewers and written by
+// the worker alone, and a stator.links event names a requirement in the writer's own name and nothing else.
+func TestRawSQLGuardsStatorRemoteLinks(t *testing.T) {
+	srwKey := projectKey(t, "SRW")
+	h := newHarness(t)
+	h.keepStator(t)
+	api := newAPIServer(t, h)
+	home := h.owner(t, "stator-remote-wall")
+	owner := api.as(t, home.user)
+	editorID := h.addPerson(t, "member")
+	guestID := h.addPerson(t, "guest")
+	want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t)}), http.StatusOK, "connect Stator")
+	project := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": srwKey, "name": "Walled sync"}), http.StatusCreated, "make a project"), "project")
+	live := obj(t, want(t, owner.post(t, "/api/v1/projects/"+srwKey+"/requirements", map[string]any{"title": "Live"}), http.StatusCreated, "write a requirement"), "requirement")
+	ctx := context.Background()
+	page := uuid.New()
+	if _, err := h.super.Exec(ctx, `
+		INSERT INTO stator_remote_link (requirement_id, page_id, remote_link_id, url, title, state, synced_at)
+		VALUES ($1, $2, $3, 'https://exciter.example/r/x', 'SRW-R1 Live (specifies)', 'synced', now())`, live["id"], page, uuid.New()); err != nil {
+		t.Fatal(err)
+	}
+	h.settle(t)
+	editor := h.appConn(t, editorID)
+	record := `SELECT count(*) FROM stator_remote_link WHERE requirement_id = '` + live["id"].(string) + `'`
+
+	t.Run("only the worker writes the sync records", func(t *testing.T) {
+		if n := seesRows(t, editor, record); n != 1 {
+			t.Errorf("an editor reads %d sync records, want 1", n)
+		}
+		refusedOutright(t, editor, "a record of their own", `INSERT INTO stator_remote_link (requirement_id, page_id, state) VALUES ($1, $2, 'synced')`, live["id"], uuid.New())
+		refusedOutright(t, editor, "marking a record synced", `UPDATE stator_remote_link SET state = 'failed', error = 'No.' WHERE page_id = $1`, page)
+		refusedOutright(t, editor, "forgetting a record", `DELETE FROM stator_remote_link WHERE page_id = $1`, page)
+	})
+
+	t.Run("a guest without the project reads no record, and a viewer reads it", func(t *testing.T) {
+		guest := h.appConn(t, guestID)
+		if n := seesRows(t, guest, record); n != 0 {
+			t.Errorf("a guest reads %d sync records", n)
+		}
+		h.grantAs(t, uuid.MustParse(project["id"].(string)), guestID, "viewer")
+		if n := seesRows(t, guest, record); n != 1 {
+			t.Errorf("a viewer reads %d sync records, want 1", n)
+		}
+	})
+
+	t.Run("a stator.links event names a requirement in the writer's own name, and nothing else", func(t *testing.T) {
+		insert := `INSERT INTO outbox_event (topic, payload) VALUES ('stator.links', $1::jsonb)`
+		refusedOutright(t, editor, "an event in the owner's name", insert, `{"requirementId": "`+live["id"].(string)+`", "actorId": "`+home.user.String()+`"}`)
+		refusedOutright(t, editor, "an event that says more", insert, `{"requirementId": "`+live["id"].(string)+`", "actorId": "`+editorID.String()+`", "pageId": "`+page.String()+`"}`)
+		refusedOutright(t, editor, "an event naming no requirement", insert, `{"requirementId": "SRW-R1", "actorId": "`+editorID.String()+`"}`)
+		if _, err := editor.Exec(ctx, insert, `{"requirementId": "`+live["id"].(string)+`", "actorId": "`+editorID.String()+`"}`); err != nil {
+			t.Errorf("an event in the editor's own name is refused: %v", err)
+		}
+	})
+}

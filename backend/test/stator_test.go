@@ -52,13 +52,24 @@ func (h *harness) stator(t *testing.T) *stator.Service {
 
 func statorPat(tenant, person string) string { return stator.TokenPrefix + tenant + "_" + person }
 
-// statorOffers sets what the stub's /meta lists, for every tenant at once.
+// statorOffers sets what the stub's /meta lists, for every tenant at once; none when no capability is named.
 func statorOffers(t *testing.T, capabilities ...string) {
 	t.Helper()
 	body := `{"capabilities":["` + strings.Join(capabilities, `","`) + `"]}`
 	if len(capabilities) == 0 {
 		body = `{"capabilities":[]}`
 	}
+	setStatorOffers(t, body)
+}
+
+// statorOffersItsOwn puts back what Stator itself lists, page-remote-links@1 among it.
+func statorOffersItsOwn(t *testing.T) {
+	t.Helper()
+	setStatorOffers(t, `{"capabilities":null}`)
+}
+
+func setStatorOffers(t *testing.T, body string) {
+	t.Helper()
 	req, _ := http.NewRequest(http.MethodPut, os.Getenv(envStatorStub)+"/_stub/capabilities", strings.NewReader(body))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -116,7 +127,8 @@ func TestAnAdministratorConnectsStatorAndMembersTheirTokens(t *testing.T) {
 
 	saved := want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": base + "/", "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
 	conn := obj(t, saved, "connection")
-	if conn["baseUrl"] != base || conn["webhookSecretSet"] != true || conn["remoteLinks"] != false || conn["connected"] != float64(0) {
+	// The stub offers what Stator does, remote links on pages among it.
+	if conn["baseUrl"] != base || conn["webhookSecretSet"] != true || conn["remoteLinks"] != true || conn["connected"] != float64(0) {
 		t.Errorf("the connection is %v", conn)
 	}
 	if conn["webhookUrl"] != "http://"+appHost+stator.WebhookPath || len(conn["webhookTopics"].([]any)) != len(stator.WebhookTopics) {

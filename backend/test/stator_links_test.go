@@ -113,6 +113,8 @@ func TestRequirementsAreTracedToStatorPages(t *testing.T) {
 	bob := api.as(t, h.addPerson(t, "member"))
 	carol := api.as(t, h.addPerson(t, "member"))
 
+	// Remote links on the pages are TestRequirementsShowOnTheStatorPagesTheyAreLinkedTo's; here they stay off.
+	statorOffers(t)
 	want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t), "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
 	want(t, owner.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "admin")}), http.StatusOK, "the owner connects as the stub's admin")
 	want(t, bob.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "bob")}), http.StatusOK, "bob connects")
