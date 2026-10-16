@@ -1,0 +1,46 @@
+{
+  "format": "armature-theme/1",
+  "name": "Workshop, from Exciter",
+  "spec": {
+    "colors": {
+      "light": {
+        "canvas": "#fbf8f3",
+        "primary": "#b45309",
+        "primary-hover": "#92400e",
+        "status-done": "#4d7c0f"
+      },
+      "dark": {
+        "canvas": "#17120c",
+        "primary": "#f59e0b",
+        "primary-hover": "#fbbf24",
+        "status-done": "#84cc16"
+      }
+    },
+    "fonts": {},
+    "shape": {
+      "radiusControl": 4,
+      "radiusOverlay": 8
+    },
+    "shadows": {
+      "3": "0 12px 32px rgba(69, 26, 3, 0.3)"
+    },
+    "cursors": {
+      "grab": {
+        "assetId": "01a143e9-e7b5-79ec-9e1e-0987fd7bfc5c",
+        "hotspotX": 12,
+        "hotspotY": 8
+      }
+    },
+    "icons": {},
+    "effect": "constellation",
+    "css": ""
+  },
+  "assets": [
+    {
+      "id": "01a143e9-e7b5-79ec-9e1e-0987fd7bfc5c",
+      "name": "grab.svg",
+      "contentType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNNiA0aDEybDggOHYxNkg2eiIgZmlsbD0iI2I0NTMwOSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4="
+    }
+  ]
+}

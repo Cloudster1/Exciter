@@ -1,0 +1,46 @@
+{
+  "format": "armature-theme/1",
+  "name": "Meadow, from Stator",
+  "spec": {
+    "colors": {
+      "light": {
+        "canvas": "#f6faf5",
+        "primary": "#15803d",
+        "primary-hover": "#166534",
+        "success": "#16a34a"
+      },
+      "dark": {
+        "canvas": "#0c1410",
+        "primary": "#4ade80",
+        "primary-hover": "#86efac",
+        "success": "#22c55e"
+      }
+    },
+    "fonts": {},
+    "shape": {
+      "radiusControl": 10,
+      "radiusOverlay": 16
+    },
+    "shadows": {
+      "2": "0 4px 12px rgba(20, 83, 45, 0.2)"
+    },
+    "cursors": {
+      "pointer": {
+        "assetId": "01a143e7-1801-7f3b-ac27-89aa988cba0b",
+        "hotspotX": 16,
+        "hotspotY": 16
+      }
+    },
+    "icons": {},
+    "effect": "confetti",
+    "css": ""
+  },
+  "assets": [
+    {
+      "id": "01a143e7-1801-7f3b-ac27-89aa988cba0b",
+      "name": "pointer.svg",
+      "contentType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI5IiBmaWxsPSIjMTU4MDNkIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMyIvPjwvc3ZnPgo="
+    }
+  ]
+}

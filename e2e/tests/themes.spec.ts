@@ -11,6 +11,9 @@ import { openAccountMenu } from "../fixtures/shell";
 // Armature's own theme file, kept byte for byte beside the backend's theme tests.
 const MINECRAFT = resolve(dirname(fileURLToPath(import.meta.url)), "../../backend/internal/theme/testdata/minecraft.armature-theme.json");
 const MINECRAFT_NAME = JSON.parse(readFileSync(MINECRAFT, "utf8")).name as string;
+// A theme exported from a running Stator (#59), kept the same way.
+const MEADOW = resolve(dirname(fileURLToPath(import.meta.url)), "../../backend/internal/theme/testdata/meadow.armature-theme.json");
+const MEADOW_SPEC = JSON.parse(readFileSync(MEADOW, "utf8")).spec as { colors: { light: Record<string, string> } };
 
 const THEMES_PATH = "/settings/themes";
 const DEFAULT_THEME_PATH = "/settings/default-theme";
@@ -102,6 +105,38 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await openAccountMenu(page);
     const shadow = await page.getByRole("menu").evaluate((el) => getComputedStyle(el).boxShadow);
     expect(shadow).toMatch(/\b6px 6px 0px\b/);
+  });
+
+  // The three products share one file format (#59): what Exciter exports comes back the same, and Stator's file draws here.
+  test("a theme exported from Exciter imports again and draws the same, and so does one exported from Stator", async ({ page, api }, testInfo) => {
+    const name = uniqueName(testInfo, "export");
+    await createTheme(
+      api,
+      name,
+      themeSpec({ colors: { light: { canvas: "#fbf8f3", primary: "#b45309" }, dark: { canvas: "#17120c" } }, shape: { radiusControl: 3 } }),
+    );
+    await page.goto(THEMES_PATH);
+    const download = page.waitForEvent("download");
+    await rowAction(page, name, "export-theme");
+    const file = await (await download).path();
+
+    await page.locator("[data-theme-file]").setInputFiles({ name: `${name}.armature-theme.json`, mimeType: "application/json", buffer: readFileSync(file) });
+    await expect(notice(page)).toHaveText(`Imported ${name} (2).`);
+    await rowAction(page, `${name} (2)`, "use-theme");
+    await pickScheme(page, "light");
+    await page.goto("/");
+    await expect(customStyle(page)).toBeAttached();
+    expect(await rootVar(page, "--color-canvas")).toBe("#fbf8f3");
+    expect(await rootVar(page, "--color-primary")).toBe("#b45309");
+    await expect(page.locator('[data-action="switcher"]')).toHaveCSS("border-radius", "3px");
+
+    await page.goto(THEMES_PATH);
+    await page.locator("[data-theme-file]").setInputFiles(MEADOW);
+    await expect(notice(page)).toContainText("Imported Meadow, from Stator");
+    const meadow = (await notice(page).textContent())!.replace(/^Imported /, "").replace(/\.$/, "");
+    await rowAction(page, meadow, "use-theme");
+    await page.goto("/");
+    expect(await rootVar(page, "--color-primary")).toBe(MEADOW_SPEC.colors.light.primary);
   });
 
   test("the default, named under Settings, reaches a member who has not chosen", async ({ page, api, apiAs, pageAs }, testInfo) => {

@@ -1,0 +1,46 @@
+{
+  "format": "armature-theme/1",
+  "name": "Harbour, from Armature",
+  "spec": {
+    "colors": {
+      "light": {
+        "accent": "#0e7490",
+        "canvas": "#f4f7fb",
+        "primary": "#1d4ed8",
+        "primary-hover": "#1e40af"
+      },
+      "dark": {
+        "accent": "#22d3ee",
+        "canvas": "#0b1220",
+        "primary": "#60a5fa",
+        "primary-hover": "#93c5fd"
+      }
+    },
+    "fonts": {},
+    "shape": {
+      "radiusControl": 2,
+      "radiusOverlay": 6
+    },
+    "shadows": {
+      "1": "0 1px 2px rgba(15, 23, 42, 0.25)"
+    },
+    "cursors": {
+      "default": {
+        "assetId": "01a143e3-eba0-7e54-be69-324845b82c60",
+        "hotspotX": 4,
+        "hotspotY": 2
+      }
+    },
+    "icons": {},
+    "effect": "constellation",
+    "css": ""
+  },
+  "assets": [
+    {
+      "id": "01a143e3-eba0-7e54-be69-324845b82c60",
+      "name": "cursor.svg",
+      "contentType": "image/svg+xml",
+      "data": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNNCAyIEw0IDI2IEwxMCAyMCBMMTUgMzAgTDE5IDI4IEwxNCAxOCBMMjIgMTggWiIgZmlsbD0iIzFkNGVkOCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4K"
+    }
+  ]
+}

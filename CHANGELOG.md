@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Themes are proven to travel between Exciter, Armature and Stator (#59):
+  themes exported from running Armature and Stator installations import
+  here and export again unchanged, Exciter's own export is a committed file
+  the other two are asked to import, a token one product adds later travels
+  through the others, and the shared token names are checked against both.
 - Requirement reuse and variants (#49). A project's administrators mark it a
   library; its requirements, or a section with what is below it, are reused
   in other projects as copies that follow the source's title, statement and

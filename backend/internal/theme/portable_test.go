@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// The fixtures are theme files exported from Armature. Each has to read as a
-// package this version knows and a spec the editor would save, unchanged.
+// The fixtures are theme files exported from Armature, from Stator and from Exciter. Each has to read as a package
+// this version knows and a spec the editor would save, unchanged.
 func TestArmatureThemeFilesReadUnchanged(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "*.armature-theme.json"))
 	if err != nil || len(files) == 0 {
@@ -177,5 +177,40 @@ func TestTheLimitsAreArmatures(t *testing.T) {
 	}
 	if err := Validate(nil, uuid.Nil, nil); err == nil {
 		t.Error("no spec at all was accepted")
+	}
+}
+
+// A token a later version of any of the three products adds travels through this one (#59): it validates as any
+// well-formed name does and stays in the spec, and the tokens a file leaves out are simply not in it.
+func TestATokenNoProductKnowsYetTravels(t *testing.T) {
+	body, err := os.ReadFile(filepath.Join("testdata", "meadow.armature-theme.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pkg Package
+	if err := json.Unmarshal(body, &pkg); err != nil {
+		t.Fatal(err)
+	}
+	pkg.Spec.Colors.Light["coverage-full"] = "#15803d"
+	assets := map[uuid.UUID]bool{}
+	for _, a := range pkg.Assets {
+		assets[a.ID] = true
+	}
+	if err := Validate(&pkg.Spec, uuid.Nil, assets); err != nil {
+		t.Fatalf("a token Exciter does not know is refused: %v", err)
+	}
+	again, err := json.Marshal(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back Package
+	if err := json.Unmarshal(again, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Spec.Colors.Light["coverage-full"] != "#15803d" {
+		t.Errorf("the unknown token was lost: %v", back.Spec.Colors.Light)
+	}
+	if _, named := back.Spec.Colors.Light["chart-1"]; named {
+		t.Error("a token the file leaves out came back with a value")
 	}
 }
