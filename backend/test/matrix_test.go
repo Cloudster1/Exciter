@@ -266,6 +266,8 @@ func TestTheMatrixLaysOutStatorPages(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Written straight through SQL, so no read of the API's waits for it on a replica unless told to.
+	s.h.settle(t)
 	matrix := "/api/v1/projects/" + s.key + "/matrix?columns=pages"
 	t.Run("the pages the rows reach are the columns, a broken link left out", func(t *testing.T) {
 		m := obj(t, want(t, s.bob.get(t, matrix), http.StatusOK, "the page matrix"), "matrix")

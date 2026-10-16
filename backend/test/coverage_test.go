@@ -54,6 +54,8 @@ func newCoverageScene(t *testing.T, prefix string) *coverageScene {
 			t.Fatal(err)
 		}
 	}
+	// The rows written straight through SQL reach the replicas before any read of the API looks for them.
+	s.h.settle(t)
 	return s
 }
 

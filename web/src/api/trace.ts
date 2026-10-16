@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, CHAIN_PAGE_SIZE } from "@/config";
 import { api, queryString } from "./client";
+import type { ExportFormat } from "./coverage";
 import type { components, operations } from "./schema";
 
 // A project's trace model and the chains that follow it (#151).
@@ -57,7 +58,7 @@ export function useChains(projectKey: string, params: ChainParams, offset: numbe
   });
 }
 
-/** Where every chain the params keep downloads as a CSV file. */
-export function chainsHref(projectKey: string, params: ChainParams): string {
-  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/trace-chains.csv${queryString(params)}`;
+/** Where every chain the params keep downloads as a CSV file or an Excel workbook. */
+export function chainsHref(projectKey: string, params: ChainParams, format: ExportFormat = "csv"): string {
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/trace-chains.${format}${queryString(params)}`;
 }

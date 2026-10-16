@@ -8,7 +8,8 @@ import { expectAccessible } from "../fixtures/shell";
 
 // The matrix's axes (#147): alice counts only the verifying links, only those pointing at each row, and finds the
 // same matrix after a reload and in its file. Its gaps (#148): what nothing links to, as rows and as columns. Its
-// cells (#149): a gap closed and opened again where it shows. Its views (#152): saved, shared and opened by bob.
+// cells (#149): a gap closed and opened again where it shows. Its views (#152): saved, shared and opened by bob. Its
+// workbook (#154).
 
 const KEY = uniqueKey("MTRX");
 // Tests run side by side, so each makes its own project.
@@ -66,6 +67,14 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
     const file = await readFile((await (await download).path()) ?? "", "utf8");
     expect(file).toContain(`Key,Title,Links,${KEY}-R3`);
     expect(file).not.toContain(`,${KEY}-R2`);
+
+    // The same matrix as an Excel workbook (#154), a zip of its parts.
+    const workbook = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download Excel" }).click();
+    const saved = await workbook;
+    expect(saved.suggestedFilename()).toBe(`${KEY}-matrix.xlsx`);
+    const bytes = await readFile((await saved.path()) ?? "");
+    expect(bytes.subarray(0, 2).toString()).toBe("PK");
   });
 
   test("alice finds what nothing links to, in the rows and in the columns of a column filter", async ({ page, api }) => {

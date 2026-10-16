@@ -195,18 +195,7 @@ func (s *Server) handleBaselineMatrixCSV(w http.ResponseWriter, r *http.Request)
 		respondError(w, r, err)
 		return
 	}
-	var ids []uuid.UUID
-	for _, c := range m.Columns {
-		if c.Page != nil {
-			ids = append(ids, c.Page.ID)
-		}
-	}
-	titles := s.pageTitles(r, ids)
-	for _, c := range m.Columns {
-		if c.Page != nil {
-			c.Page.Title = titles[c.Page.ID]
-		}
-	}
+	s.titleBaselinePages(r, m)
 	var buf bytes.Buffer
 	buf.Write(utf8Mark)
 	if err := csvio.WriteBaselineMatrix(&buf, m); err != nil {
@@ -219,4 +208,20 @@ func (s *Server) handleBaselineMatrixCSV(w http.ResponseWriter, r *http.Request)
 	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(buf.Bytes())
+}
+
+// titleBaselinePages names a baseline matrix's page columns as the reader sees them in Stator, for a file.
+func (s *Server) titleBaselinePages(r *http.Request, m *baseline.Matrix) {
+	var ids []uuid.UUID
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			ids = append(ids, c.Page.ID)
+		}
+	}
+	titles := s.pageTitles(r, ids)
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			c.Page.Title = titles[c.Page.ID]
+		}
+	}
 }

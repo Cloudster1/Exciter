@@ -29,6 +29,8 @@ export const coverageEn = {
   columnIssues: "Armature issues",
   download: "Download CSV",
   downloadHint: "The whole matrix as a file, one row per requirement.",
+  downloadExcel: "Download Excel",
+  downloadExcelHint: "The whole matrix as a workbook, coloured, one row per requirement.",
   noLinks: "None of these requirements is linked yet.",
   suspect: "suspect",
   cell: (row: string, column: string, links: string) => `${row} to ${column}: ${links}`,

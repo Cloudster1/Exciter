@@ -55,6 +55,16 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
             <ButtonLink href={chainsHref(project.key, params)} download variant="secondary" size="sm" icon={<Icon.Download />} data-action="chains-csv">
               {t.coverage.download}
             </ButtonLink>
+            <ButtonLink
+              href={chainsHref(project.key, params, "xlsx")}
+              download
+              variant="secondary"
+              size="sm"
+              icon={<Icon.Download />}
+              data-action="chains-xlsx"
+            >
+              {t.coverage.downloadExcel}
+            </ButtonLink>
           </div>
         }
       />

@@ -62,6 +62,17 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
             >
               {t.coverage.download}
             </ButtonLink>
+            <ButtonLink
+              href={matrixHref(project.key, params, "xlsx")}
+              download
+              variant="secondary"
+              size="sm"
+              icon={<Icon.Download />}
+              title={t.coverage.downloadExcelHint}
+              data-action="matrix-xlsx"
+            >
+              {t.coverage.downloadExcel}
+            </ButtonLink>
           </div>
         }
       />

@@ -12,7 +12,7 @@ import (
 func init() { operations = append(operations, traceabilityOperations...) }
 
 var traceabilityOperations = []operation{
-	{method: "GET", path: "/projects/{projectKey}/matrix.xlsx", handler: "handleTraceMatrixXLSX", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/matrix.xlsx", handler: "handleTraceMatrixXLSX", tag: "coverage",
 		summary: "The traceability matrix as an Excel workbook, every row the filter keeps, its cells coloured.",
 		query:   append(append([]param{}, gridQuery...), matrixQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
@@ -33,7 +33,7 @@ var traceabilityOperations = []operation{
 		summary: "The chain report as a CSV file, every root the filter keeps.",
 		query:   append(append([]param{}, gridQuery...), chainQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/projects/{projectKey}/trace-chains.xlsx", handler: "handleTraceChainsXLSX", tag: "coverage", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/trace-chains.xlsx", handler: "handleTraceChainsXLSX", tag: "coverage",
 		summary: "The chain report as an Excel workbook, every root the filter keeps, its breaks coloured.",
 		query:   append(append([]param{}, gridQuery...), chainQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
@@ -47,7 +47,7 @@ var traceabilityOperations = []operation{
 		summary: "A baseline's traceability matrix as a CSV file, every requirement it holds.",
 		query:   baselineMatrixQuery,
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/baselines/{baselineID}/matrix.xlsx", handler: "handleBaselineMatrixXLSX", tag: "baselines", pending: true,
+	{method: "GET", path: "/baselines/{baselineID}/matrix.xlsx", handler: "handleBaselineMatrixXLSX", tag: "baselines",
 		summary: "A baseline's traceability matrix as an Excel workbook, every requirement it holds, its changes coloured when compared.",
 		query:   baselineMatrixQuery,
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusUnprocessableEntity: errorEnvelope{}}},

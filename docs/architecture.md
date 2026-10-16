@@ -243,6 +243,8 @@ app role holds no privilege on.
   project's trace model (`trace_level` and its types and steps, replaced
   whole) names the levels its chain report (`internal/trace/chain_report.go`)
   follows from each root, one query per level for the whole page.
+  `internal/xlsx` writes the matrix, the chains and a baseline's matrix as
+  a workbook by hand, as `internal/docx` writes Word.
 - **Signed approvals** (#46): in a project with `settings.signedApprovals`,
   a decision on a review is an electronic signature. The reviewer confirms a
   meaning the server writes and proves who they are again, with their

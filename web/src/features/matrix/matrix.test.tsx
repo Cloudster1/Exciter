@@ -68,6 +68,7 @@ describe("the traceability matrix", () => {
     expect(table.querySelector('[data-cell="CHK-R1:WEB-1"]')).toHaveAttribute("title", "CHK-R1 to WEB-1: implements");
     expect(table.querySelector('[data-cell="CHK-R2:WEB-1"]')).toHaveAttribute("title", "CHK-R2 to WEB-1: verifies (suspect)");
     expect(screen.getByRole("link", { name: "Download CSV" })).toHaveAttribute("href", expect.stringContaining("/projects/CHK/matrix.csv?columns=issues"));
+    expect(screen.getByRole("link", { name: "Download Excel" })).toHaveAttribute("href", expect.stringContaining("/projects/CHK/matrix.xlsx?columns=issues"));
     expect(await axeViolations()).toEqual([]);
   });
 

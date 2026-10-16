@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The matrix, the chain report and a baseline's matrix download as Excel
+  workbooks beside their CSV files (#154): a frozen header and key column,
+  linked cells green, suspect ones amber, gaps and breaks red, a baseline's
+  changes in their own colours, counts as numbers, and an autofilter;
+  written without a new dependency.
 - A baseline's matrix (#153). Baselines taken from now on also record
   each item's type, whether each link was suspect, each Armature link's
   status, and the Stator page links; broken and detached links are left

@@ -160,6 +160,9 @@ describe("the chains", () => {
     expect(asked.at(-1)?.getAll("level")).toEqual(["0", "1"]);
     expect(asked.at(-1)?.get("onlyBroken")).toBe("true");
     expect(screen.getByRole("link", { name: "Download CSV" }).getAttribute("href")).toContain("/projects/CHK/trace-chains.csv?level=0&level=1&onlyBroken=true");
+    expect(screen.getByRole("link", { name: "Download Excel" }).getAttribute("href")).toContain(
+      "/projects/CHK/trace-chains.xlsx?level=0&level=1&onlyBroken=true",
+    );
   });
 
   it("send an administrator to set a model when there is none", async () => {
