@@ -3,6 +3,17 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: A matrix cell edits through the requirement's own links (#149)
+
+- **No new operations.** A cell's panel calls what the requirement page
+  calls, with the same rights, so a link made in the matrix is the same
+  link with the same history, notifications and guards.
+- **Revisions come from the row's links.** Confirming a link needs both
+  ends' revisions, which the matrix does not carry; the panel reads the
+  row's links when it opens rather than widening every cell of every page.
+- **Panels place themselves again as they grow,** in `useAnchored` for
+  every popover, since one that loads its content was measured empty.
+
 ## 2026-10-16: Gaps count over the whole matrix, then page (#148)
 
 - **Read once, page after.** Every link between the rows kept and the

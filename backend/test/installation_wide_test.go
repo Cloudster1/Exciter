@@ -61,6 +61,7 @@ var installationWide = map[string]string{
 	"TestTheMatrixLaysOutTheLinks":                               armatureLink,
 	"TestTheMatrixTakesItsAxesLinkTypesAndDirection":             armatureLink,
 	"TestTheMatrixShowsItsGaps":                                  armatureLink,
+	"TestTheMatrixFollowsLinksMadeFromItsCells":                  armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,

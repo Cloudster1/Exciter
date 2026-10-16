@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Links are made, removed and confirmed from a matrix cell (#149). A cell
+  opens a panel beside it with its links; whoever may link its row adds
+  one of a chosen type and direction, or relation for an Armature issue,
+  removes one, or confirms a suspect one. Anybody else reads them. The
+  matrix and coverage follow at once.
 - The matrix shows its gaps (#148). A column filter, a query and types
   over the column project, makes the columns what it keeps, linked or not;
   columns are paged as rows are; every row and column shows its count of

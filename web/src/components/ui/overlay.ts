@@ -129,10 +129,14 @@ export function useAnchored(
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
+    // A panel that loads what it shows grows after it was placed, and may need the other side then.
+    const grows = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(place);
+    if (panelRef.current) grows?.observe(panelRef.current);
     return () => {
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
+      grows?.disconnect();
     };
-  }, [open, place]);
+  }, [open, place, panelRef]);
   return style;
 }

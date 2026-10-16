@@ -172,7 +172,7 @@ function Choices({
 }) {
   const toggle = (value: string) => onChange(chosen.includes(value) ? chosen.filter((each) => each !== value) : [...chosen, value]);
   return (
-    <div role="group" aria-label={label} className="min-w-0 flex-1 space-y-1">
+    <div role="group" aria-label={label} className="min-w-64 flex-1 space-y-1">
       <span className="block text-xs font-medium text-ink-muted">{label}</span>
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => (
