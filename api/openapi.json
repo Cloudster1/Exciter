@@ -2333,6 +2333,353 @@
         }
       }
     },
+    "/baselines/{baselineID}/matrix": {
+      "get": {
+        "operationId": "baselineMatrix",
+        "summary": "A page of a baseline's requirements against what they linked to when it was taken, marked against another baseline or now when compared.",
+        "tags": [
+          "baselines"
+        ],
+        "parameters": [
+          {
+            "name": "baselineID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "description": "requirements, the default, issues or pages.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requirements",
+                "issues",
+                "pages"
+              ]
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "Keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Which way a link must point from its row: outgoing, incoming, or both, the default.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming",
+                "both"
+              ]
+            }
+          },
+          {
+            "name": "with",
+            "in": "query",
+            "description": "Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matrix": {
+                      "$ref": "#/components/schemas/BaselineMatrix"
+                    }
+                  },
+                  "required": [
+                    "matrix"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/baselines/{baselineID}/matrix.csv": {
+      "get": {
+        "operationId": "baselineMatrixCSV",
+        "summary": "A baseline's traceability matrix as a CSV file, every requirement it holds.",
+        "tags": [
+          "baselines"
+        ],
+        "parameters": [
+          {
+            "name": "baselineID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "description": "requirements, the default, issues or pages.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requirements",
+                "issues",
+                "pages"
+              ]
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "Keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Which way a link must point from its row: outgoing, incoming, or both, the default.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming",
+                "both"
+              ]
+            }
+          },
+          {
+            "name": "with",
+            "in": "query",
+            "description": "Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/baselines/{baselineID}/matrix.xlsx": {
+      "get": {
+        "operationId": "baselineMatrixXLSX",
+        "summary": "A baseline's traceability matrix as an Excel workbook, every requirement it holds, its changes coloured when compared.",
+        "tags": [
+          "baselines"
+        ],
+        "parameters": [
+          {
+            "name": "baselineID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "description": "requirements, the default, issues or pages.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requirements",
+                "issues",
+                "pages"
+              ]
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "Keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Which way a link must point from its row: outgoing, incoming, or both, the default.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming",
+                "both"
+              ]
+            }
+          },
+          {
+            "name": "with",
+            "in": "query",
+            "description": "Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/baselines/{baselineID}/spec": {
       "get": {
         "operationId": "baselineSpec",
@@ -7466,6 +7813,246 @@
         }
       }
     },
+    "/projects/{projectKey}/matrix.xlsx": {
+      "get": {
+        "operationId": "traceMatrixXLSX",
+        "summary": "The traceability matrix as an Excel workbook, every row the filter keeps, its cells coloured.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "columns",
+            "in": "query",
+            "description": "requirements, the default, or issues.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "requirements",
+                "issues"
+              ]
+            }
+          },
+          {
+            "name": "columnProject",
+            "in": "query",
+            "description": "For requirement columns, the project they come from; the same project when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/reqif-imports": {
       "post": {
         "operationId": "uploadReqIF",
@@ -8325,6 +8912,902 @@
                     "offset",
                     "total"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/trace-chains": {
+      "get": {
+        "operationId": "traceChains",
+        "summary": "A page of the trace model's first level, narrowed like the grid, with every path down the levels and where it breaks.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "onlyBroken",
+            "in": "query",
+            "description": "true to keep only the lines that break before the last level shown.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Positions of the levels to show, from 0; every level when absent. The first level shown is the roots.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chains": {
+                      "$ref": "#/components/schemas/TraceChains"
+                    }
+                  },
+                  "required": [
+                    "chains"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/trace-chains.csv": {
+      "get": {
+        "operationId": "traceChainsCSV",
+        "summary": "The chain report as a CSV file, every root the filter keeps.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "onlyBroken",
+            "in": "query",
+            "description": "true to keep only the lines that break before the last level shown.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Positions of the levels to show, from 0; every level when absent. The first level shown is the roots.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/trace-chains.xlsx": {
+      "get": {
+        "operationId": "traceChainsXLSX",
+        "summary": "The chain report as an Excel workbook, every root the filter keeps, its breaks coloured.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "onlyBroken",
+            "in": "query",
+            "description": "true to keep only the lines that break before the last level shown.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Positions of the levels to show, from 0; every level when absent. The first level shown is the roots.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/trace-model": {
+      "get": {
+        "operationId": "getTraceModel",
+        "summary": "A project's trace levels, first to last, and the links that lead from each to the next; empty until set.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "$ref": "#/components/schemas/TraceModel"
+                    }
+                  },
+                  "required": [
+                    "model"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveTraceModel",
+        "summary": "Replace a project's trace model; no levels clears it. The project's administrators'.",
+        "tags": [
+          "coverage"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TraceModelInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model": {
+                      "$ref": "#/components/schemas/TraceModel"
+                    }
+                  },
+                  "required": [
+                    "model"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -16891,6 +18374,140 @@
           "targetKey"
         ]
       },
+      "BaselineMatrix": {
+        "type": "object",
+        "properties": {
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaselineMatrixCell"
+            }
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatrixColumn"
+            }
+          },
+          "detail": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequirementRef"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "with": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BaselineSide"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "detail",
+          "with",
+          "rows",
+          "columns",
+          "cells",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
+      "BaselineMatrixCell": {
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "integer"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaselineMatrixLink"
+            }
+          },
+          "row": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "row",
+          "column",
+          "links"
+        ]
+      },
+      "BaselineMatrixLink": {
+        "type": "object",
+        "properties": {
+          "change": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "changed"
+            ]
+          },
+          "direction": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "trace",
+              "armature",
+              "stator"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "todo",
+                  "in_progress",
+                  "done"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suspect": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "typeKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "suspect",
+          "status"
+        ]
+      },
       "BaselineSide": {
         "type": "object",
         "properties": {
@@ -18765,6 +20382,29 @@
         "required": [
           "name",
           "suspect"
+        ]
+      },
+      "MatrixPage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "spaceKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "spaceKey",
+          "url"
         ]
       },
       "MeResponse": {
@@ -22469,6 +24109,111 @@
           "updatedAt"
         ]
       },
+      "TraceChainLine": {
+        "type": "object",
+        "properties": {
+          "broken": {
+            "type": "boolean"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceChainNode"
+            }
+          },
+          "root": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "root",
+          "nodes",
+          "broken"
+        ]
+      },
+      "TraceChainNode": {
+        "type": "object",
+        "properties": {
+          "issueKey": {
+            "type": "string"
+          },
+          "page": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MatrixPage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requirement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suspect": {
+            "type": "boolean"
+          },
+          "via": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requirement",
+          "page",
+          "suspect"
+        ]
+      },
+      "TraceChains": {
+        "type": "object",
+        "properties": {
+          "broken": {
+            "type": "integer"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceModelLevel"
+            }
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceChainLine"
+            }
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequirementRef"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "levels",
+          "roots",
+          "lines",
+          "broken",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "TraceLink": {
         "type": "object",
         "properties": {
@@ -22589,6 +24334,164 @@
           "limit",
           "offset"
         ]
+      },
+      "TraceModel": {
+        "type": "object",
+        "properties": {
+          "can": {
+            "$ref": "#/components/schemas/TraceModelCan"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceModelLevel"
+            }
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "levels",
+          "updatedAt",
+          "updatedBy",
+          "can"
+        ]
+      },
+      "TraceModelCan": {
+        "type": "object",
+        "properties": {
+          "edit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "edit"
+        ]
+      },
+      "TraceModelInput": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceModelLevelInput"
+            }
+          }
+        },
+        "required": [
+          "levels"
+        ]
+      },
+      "TraceModelLevel": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "requirements",
+              "issues",
+              "pages"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceModelStep"
+            }
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequirementTypeRef"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "types",
+          "steps"
+        ]
+      },
+      "TraceModelLevelInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "requirements",
+              "issues",
+              "pages"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceModelStep"
+            }
+          },
+          "typeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ]
+      },
+      "TraceModelStep": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "describes",
+              "implements",
+              "relates",
+              "specifies",
+              "verifies"
+            ]
+          },
+          "typeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "typeName": {
+            "type": "string"
+          }
+        }
       },
       "Transition": {
         "type": "object",

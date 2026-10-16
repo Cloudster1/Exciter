@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M5, Traceability (#146): `docs/api-contract-m5.md`
+  agrees how the matrix gains chosen axes and link types, gaps, links made
+  in its cells and Stator page columns, a project's trace model and its
+  chain report, matrix and chain views, a baseline's matrix, and Excel
+  files. The operations it adds answer 501 until they are built.
 - Webhook envelope version 2 in the CloudEvents 1.0 shape (#133). An
   administrator chooses it per endpoint under Settings, Webhooks; such an
   endpoint is posted `application/cloudevents+json` with Exciter's

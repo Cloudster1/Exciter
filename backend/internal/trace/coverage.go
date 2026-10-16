@@ -95,6 +95,18 @@ const (
 // MatrixColumnKinds lists every MatrixColumns, for the API document.
 var MatrixColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues}
 
+// LinkKind says what a link of a matrix's cell is: a trace link, or a link to an Armature issue or a Stator page.
+type LinkKind string
+
+const (
+	KindTrace    LinkKind = "trace"
+	KindArmature LinkKind = "armature"
+	KindStator   LinkKind = "stator"
+)
+
+// LinkKinds lists every LinkKind, for the API document.
+var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator}
+
 // MatrixColumn is a requirement, or an Armature issue by its key.
 type MatrixColumn struct {
 	Requirement *requirement.Ref `json:"requirement"`
