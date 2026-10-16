@@ -1,6 +1,6 @@
 import type { matrixEn } from "./matrix.en";
 
-/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147). */
+/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147, #148). */
 export const matrixDe: typeof matrixEn = {
   title: "Verfolgbarkeitsmatrix",
   intro: "Anforderungen gegen das, womit sie verknüpft sind, gezählt nach den Verknüpfungen, die Sie wählen.",
@@ -15,4 +15,15 @@ export const matrixDe: typeof matrixEn = {
   relations: "Beziehungen",
   everyRelation: "Solange keine gewählt ist, zählt jede Beziehung.",
   relationNames: { implements: "Umgesetzt durch", verifies: "Geprüft durch", relates: "Verwandt mit" },
+  columnFilter: "Spaltenfilter",
+  columnQuery: "Spaltenabfrage",
+  columnTypes: "Spaltentypen",
+  noColumnFilter: "Ohne Spaltenfilter sind die Spalten das, womit die Zeilen verknüpft sind.",
+  gaps: "Nur Lücken",
+  gapNames: { "": "Alles zeigen", rows: "Zeilen ohne Verknüpfung", columns: "Spalten ohne Verknüpfung", both: "Zeilen und Spalten ohne Verknüpfung" },
+  gapsNeedFilter: "Spalten ohne Verknüpfung brauchen einen Spaltenfilter.",
+  links: "Verknüpfungen",
+  noLink: "Keine Verknüpfung",
+  columnPages: "Spalten",
+  noRows: "Keine Anforderung bleibt zu zeigen.",
 };

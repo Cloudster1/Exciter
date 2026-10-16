@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -18,10 +20,17 @@ import (
 
 // coverageError maps coverage's refusals; nil when err is none of theirs.
 func coverageError(err error) *APIError {
-	var wide *trace.TooWideError
+	var (
+		wide   *trace.TooWideError
+		column *trace.ColumnQueryError
+	)
 	switch {
 	case errors.As(err, &wide):
 		return &APIError{Status: http.StatusUnprocessableEntity, Code: "validation_failed", Message: wide.Error()}
+	case errors.As(err, &column):
+		// fields names the column filter's box, so the page shows the refusal there and not under the rows' query.
+		return &APIError{Status: http.StatusBadRequest, Code: "bad_query", Message: column.Msg, Position: &column.Pos,
+			Fields: map[string]string{"columnQuery": column.Msg}}
 	case errors.Is(err, trace.ErrCoverageRuleNotFound):
 		return ErrNotFound("That coverage rule was not found. Reload the project's coverage to see its rules.")
 	case errors.Is(err, trace.ErrNotCoverageKeeper):
@@ -93,8 +102,9 @@ func (s *Server) handleProjectCoverage(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, r, http.StatusOK, map[string]any{"summary": summary, "rows": rows, "total": total, "limit": limit, "offset": offset})
 }
 
-// matrix reads the matrix a request asks for, a window of it or, for a file, up to an export's rows.
-func (s *Server) matrix(r *http.Request, limit, offset int) (*trace.Matrix, error) {
+// matrix reads the matrix a request asks for: a window of its rows and columns, or for a file every column and up to
+// an export's rows, when columnLimit is 0.
+func (s *Server) matrix(r *http.Request, limit, offset, columnLimit, columnOffset int) (*trace.Matrix, error) {
 	filter, sort, err := search.ParseGrid(r.URL.Query())
 	if err != nil {
 		return nil, err
@@ -106,10 +116,21 @@ func (s *Server) matrix(r *http.Request, limit, offset int) (*trace.Matrix, erro
 			return nil, &trace.FieldError{Field: "relation", Message: fmt.Sprintf("There is no relation %q. Pick implements, verifies or relates.", rel)}
 		}
 	}
+	var columnFilter *search.Filter
+	if strings.TrimSpace(q.Get("columnQuery")) != "" || len(q["columnType"]) > 0 {
+		f, _, err := search.ParseGrid(url.Values{"query": {q.Get("columnQuery")}, "type": q["columnType"]})
+		var field *search.FieldError
+		if errors.As(err, &field) {
+			return nil, &trace.FieldError{Field: "columnType", Message: field.Message}
+		} else if err != nil {
+			return nil, err
+		}
+		columnFilter = &f
+	}
 	return s.Trace.Matrix(r.Context(), userFrom(r), projectKeyParam(r), trace.MatrixQuery{
 		Filter: filter, Sort: sort, Columns: trace.MatrixColumns(q.Get("columns")), ColumnProject: q.Get("columnProject"),
-		LinkTypes: q["linkType"], Direction: trace.MatrixDirection(q.Get("direction")), Relations: relations,
-		Limit: limit, Offset: offset,
+		ColumnFilter: columnFilter, LinkTypes: q["linkType"], Direction: trace.MatrixDirection(q.Get("direction")), Relations: relations,
+		Gaps: trace.Gaps(q.Get("gaps")), Limit: limit, Offset: offset, ColumnLimit: columnLimit, ColumnOffset: columnOffset,
 	})
 }
 
@@ -119,7 +140,12 @@ func (s *Server) handleTraceMatrix(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, apiErr)
 		return
 	}
-	m, err := s.matrix(r, limit, offset)
+	columnLimit, columnOffset, apiErr := namedWindow(r, "columnLimit", "columnOffset", trace.MatrixColumnDefaultLimit, trace.MatrixMaxColumns)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	m, err := s.matrix(r, limit, offset, columnLimit, columnOffset)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -129,7 +155,7 @@ func (s *Server) handleTraceMatrix(w http.ResponseWriter, r *http.Request) {
 
 // handleTraceMatrixCSV writes the file whole before answering, so a refusal is still the error envelope.
 func (s *Server) handleTraceMatrixCSV(w http.ResponseWriter, r *http.Request) {
-	m, err := s.matrix(r, csvio.MaxExportRows, 0)
+	m, err := s.matrix(r, csvio.MaxExportRows, 0, 0, 0)
 	if err != nil {
 		respondError(w, r, err)
 		return

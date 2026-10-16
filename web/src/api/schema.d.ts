@@ -1540,7 +1540,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The traceability matrix as a CSV file, every row the filter keeps. */
+        /** The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links. */
         get: operations["traceMatrixCSV"];
         put?: never;
         post?: never;
@@ -5196,9 +5196,14 @@ export interface components {
         };
         TraceMatrix: {
             cells: components["schemas"]["MatrixCell"][];
+            columnLimit: number;
+            columnLinks: number[];
+            columnOffset: number;
+            columnTotal: number;
             columns: components["schemas"]["MatrixColumn"][];
             limit: number;
             offset: number;
+            rowLinks: number[];
             rows: components["schemas"]["MatrixRow"][];
             total: number;
         };
@@ -10516,10 +10521,20 @@ export interface operations {
                 direction?: "both" | "outgoing" | "incoming";
                 /** @description For issue columns, the relations to count; every one when absent. */
                 relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
                 /** @description 1 to 200; 50 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */
                 offset?: number;
+                /** @description 1 to 500; 100 when absent. */
+                columnLimit?: number;
+                /** @description 0 or later; 0 when absent. */
+                columnOffset?: number;
             };
             header?: never;
             path: {
@@ -10608,6 +10623,12 @@ export interface operations {
                 direction?: "both" | "outgoing" | "incoming";
                 /** @description For issue columns, the relations to count; every one when absent. */
                 relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
             };
             header?: never;
             path: {
@@ -10694,6 +10715,12 @@ export interface operations {
                 direction?: "both" | "outgoing" | "incoming";
                 /** @description For issue columns, the relations to count; every one when absent. */
                 relation?: ("implements" | "verifies" | "relates")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
             };
             header?: never;
             path: {

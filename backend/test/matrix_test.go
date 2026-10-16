@@ -5,7 +5,9 @@ package test
 import (
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -106,8 +108,100 @@ func TestTheMatrixTakesItsAxesLinkTypesAndDirection(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Join(records[0], ",") != "Key,Title,"+s.req("1")+","+s.req("3") {
+		if strings.Join(records[0], ",") != "Key,Title,Links,"+s.req("1")+","+s.req("3") {
 			t.Errorf("the file's header reads %v", records[0])
+		}
+	})
+}
+
+// matrixKeys reads the keys of a matrix's rows or columns, in order.
+func matrixKeys(t *testing.T, m map[string]any, of string) []string {
+	t.Helper()
+	var out []string
+	for _, each := range m[of].([]any) {
+		item := each.(map[string]any)
+		if req, ok := item["requirement"].(map[string]any); ok {
+			item = req
+		}
+		out = append(out, item["key"].(string))
+	}
+	return out
+}
+
+// matrixCounts reads a matrix's counts of links per row or column.
+func matrixCounts(m map[string]any, of string) []int {
+	var out []int
+	for _, n := range m[of].([]any) {
+		out = append(out, int(n.(float64)))
+	}
+	return out
+}
+
+func TestTheMatrixShowsItsGaps(t *testing.T) {
+	s := newCoverageScene(t, "MXG")
+	matrix := "/api/v1/projects/" + s.key + "/matrix"
+	read := func(query string) map[string]any {
+		t.Helper()
+		return obj(t, want(t, s.carol.get(t, matrix+query), http.StatusOK, "the matrix "+query), "matrix")
+	}
+	every := "?columnQuery=" + url.QueryEscape("kind = requirement")
+	t.Run("every row and column says how many links it has", func(t *testing.T) {
+		m := read("")
+		if fmt.Sprint(matrixCounts(m, "rowLinks")) != "[2 1 1 0]" || fmt.Sprint(matrixCounts(m, "columnLinks")) != "[2 1 1]" {
+			t.Errorf("the counts read rows %v, columns %v", m["rowLinks"], m["columnLinks"])
+		}
+	})
+	t.Run("a column filter makes the columns what it keeps, linked or not", func(t *testing.T) {
+		m := read("?columnType=" + s.noteType)
+		if fmt.Sprint(matrixKeys(t, m, "columns")) != "["+s.req("4")+"]" || fmt.Sprint(matrixCounts(m, "columnLinks")) != "[0]" ||
+			fmt.Sprint(matrixCounts(m, "rowLinks")) != "[0 0 0 0]" || len(m["cells"].([]any)) != 0 {
+			t.Errorf("the notes as columns read %v", m)
+		}
+		m = read(every)
+		if m["columnTotal"] != float64(4) || fmt.Sprint(matrixCounts(m, "columnLinks")) != "[2 1 1 0]" {
+			t.Errorf("every requirement as a column reads %v", m)
+		}
+	})
+	t.Run("columns are paged as rows are", func(t *testing.T) {
+		m := read(every + "&columnLimit=2&columnOffset=2")
+		if fmt.Sprint(matrixKeys(t, m, "columns")) != "["+s.req("3")+" "+s.req("4")+"]" || m["columnTotal"] != float64(4) || m["columnOffset"] != float64(2) {
+			t.Errorf("the second page of columns reads %v", m)
+		}
+	})
+	t.Run("only gaps keeps what has no link", func(t *testing.T) {
+		m := read("?gaps=rows")
+		if fmt.Sprint(matrixKeys(t, m, "rows")) != "["+s.req("4")+"]" || m["total"] != float64(1) || len(m["columns"].([]any)) != 0 {
+			t.Errorf("the rows without a link read %v", m)
+		}
+		m = read(every + "&gaps=columns")
+		if fmt.Sprint(matrixKeys(t, m, "columns")) != "["+s.req("4")+"]" || m["total"] != float64(4) {
+			t.Errorf("the columns without a link read %v", m)
+		}
+		m = read("?columnType=" + s.noteType + "&gaps=both")
+		if len(m["rows"].([]any)) != 4 || fmt.Sprint(matrixKeys(t, m, "columns")) != "["+s.req("4")+"]" {
+			t.Errorf("both gaps read %v", m)
+		}
+	})
+	t.Run("what gaps cannot mean is refused", func(t *testing.T) {
+		fieldError(t, s.carol.get(t, matrix+"?gaps=columns"), "gaps")
+		fieldError(t, s.carol.get(t, matrix+"?gaps=sideways"), "gaps")
+		fieldError(t, s.carol.get(t, matrix+"?columns=issues&columnType="+s.noteType), "columnQuery")
+		fieldError(t, s.carol.get(t, matrix+"?columnLimit=0"), "columnLimit")
+		fieldError(t, s.carol.get(t, matrix+"?columnLimit=501"), "columnLimit")
+		bad := s.carol.get(t, matrix+"?columnQuery="+url.QueryEscape("nonsense ="))
+		refuse(t, "a column query that does not parse", bad, http.StatusBadRequest, "bad_query")
+		if fields, _ := bad.Body["error"].(map[string]any)["fields"].(map[string]any); fields["columnQuery"] == nil {
+			t.Errorf("the refusal does not name the column query: %v", bad.Body)
+		}
+	})
+	t.Run("the file carries the counts", func(t *testing.T) {
+		file := want(t, s.carol.get(t, matrix+".csv"+every), http.StatusOK, "the file with a column filter")
+		records, err := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(file.Raw, []byte{0xEF, 0xBB, 0xBF}))).ReadAll()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Join(records[1], ",") != ",Links,,2,1,1,0" || records[2][2] != "2" || records[5][2] != "0" {
+			t.Errorf("the file reads %v", records)
 		}
 	})
 }

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { API_BASE, COVERAGE_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
+import { API_BASE, COVERAGE_PAGE_SIZE, MATRIX_COLUMN_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
 import { api, queryString } from "./client";
 import type { components, operations } from "./schema";
 
@@ -16,7 +16,7 @@ export type CoverageTotals = Wire["CoverageTotals"];
 export type Matrix = Wire["TraceMatrix"];
 export type MatrixLink = Wire["MatrixLink"];
 /** What a matrix lays out, as its query string takes it: the grid's narrowing and order, the columns and the links counted. */
-export type MatrixParams = Omit<NonNullable<operations["traceMatrix"]["parameters"]["query"]>, "limit" | "offset">;
+export type MatrixParams = Omit<NonNullable<operations["traceMatrix"]["parameters"]["query"]>, "limit" | "offset" | "columnLimit" | "columnOffset">;
 export type Level = CoverageRow["decomposed"];
 export type Dimension = "decomposed" | "implemented" | "verified";
 export type MatrixColumns = "requirements" | "issues";
@@ -49,13 +49,16 @@ export function useCoverage(projectKey: string, only: LevelFilter, offset: numbe
   });
 }
 
-/** A window of a project's traceability matrix. */
-export function useMatrix(projectKey: string, params: MatrixParams, offset: number) {
+/** A window of a project's traceability matrix, of its rows and of its columns. */
+export function useMatrix(projectKey: string, params: MatrixParams, offset: number, columnOffset = 0) {
   return useQuery({
-    queryKey: [...coverageKey(projectKey), "matrix", params, offset],
+    queryKey: [...coverageKey(projectKey), "matrix", params, offset, columnOffset],
     queryFn: async (): Promise<Matrix> =>
-      (await api.GET("/projects/{projectKey}/matrix", { params: { path: { projectKey }, query: { ...params, limit: MATRIX_PAGE_SIZE, offset } } })).data!
-        .matrix,
+      (
+        await api.GET("/projects/{projectKey}/matrix", {
+          params: { path: { projectKey }, query: { ...params, limit: MATRIX_PAGE_SIZE, offset, columnLimit: MATRIX_COLUMN_PAGE_SIZE, columnOffset } },
+        })
+      ).data!.matrix,
     placeholderData: keepPreviousData,
   });
 }

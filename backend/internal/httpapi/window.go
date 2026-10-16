@@ -23,28 +23,37 @@ func keysetWindow(r *http.Request, defaultLimit, maxLimit int) (int, *keyset.Cur
 
 // queryLimit reads how many a list answers: defaultLimit when absent, and refused outside 1 to maxLimit.
 func queryLimit(r *http.Request, defaultLimit, maxLimit int) (int, *APIError) {
-	raw := r.URL.Query().Get("limit")
+	return namedLimit(r, "limit", defaultLimit, maxLimit)
+}
+
+func namedLimit(r *http.Request, name string, defaultLimit, maxLimit int) (int, *APIError) {
+	raw := r.URL.Query().Get(name)
 	if raw == "" {
 		return defaultLimit, nil
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil || n < 1 || n > maxLimit {
-		return 0, ErrValidation(map[string]string{"limit": "Ask for 1 to " + strconv.Itoa(maxLimit) + " at a time."})
+		return 0, ErrValidation(map[string]string{name: "Ask for 1 to " + strconv.Itoa(maxLimit) + " at a time."})
 	}
 	return n, nil
 }
 
 // offsetWindow reads a list's window by count: how many, up to maxLimit, and how many to pass over first.
 func offsetWindow(r *http.Request, defaultLimit, maxLimit int) (int, int, *APIError) {
-	limit, apiErr := queryLimit(r, defaultLimit, maxLimit)
+	return namedWindow(r, "limit", "offset", defaultLimit, maxLimit)
+}
+
+// namedWindow is offsetWindow under other names, for a second window in one request such as a matrix's columns.
+func namedWindow(r *http.Request, limitName, offsetName string, defaultLimit, maxLimit int) (int, int, *APIError) {
+	limit, apiErr := namedLimit(r, limitName, defaultLimit, maxLimit)
 	if apiErr != nil {
 		return 0, 0, apiErr
 	}
 	offset := 0
-	if raw := r.URL.Query().Get("offset"); raw != "" {
+	if raw := r.URL.Query().Get(offsetName); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil || n < 0 {
-			return 0, 0, ErrValidation(map[string]string{"offset": "Start at 0 or later."})
+			return 0, 0, ErrValidation(map[string]string{offsetName: "Start at 0 or later."})
 		}
 		offset = n
 	}

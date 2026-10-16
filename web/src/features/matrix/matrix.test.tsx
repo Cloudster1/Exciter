@@ -13,7 +13,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const row = (n: number, title: string) => ({
+const ref = (n: number, title: string) => ({
   id: `0195f000-0000-7000-8000-00000000000${n}`,
   key: `CHK-R${n}`,
   projectKey: "CHK",
@@ -22,8 +22,8 @@ const row = (n: number, title: string) => ({
   revision: 1,
   status: null,
   trashed: false,
-  canLink: true,
 });
+const row = (n: number, title: string) => ({ ...ref(n, title), canLink: true });
 
 const issues: Matrix = {
   rows: [row(1, "Brakes engage within 100 ms"), row(2, "Brake lights follow the pedal")],
@@ -32,9 +32,14 @@ const issues: Matrix = {
     { row: 0, column: 0, links: [{ id: "0195f000-0000-7000-8000-0000000000e1", kind: "armature", name: "implements", direction: "outgoing", suspect: false }] },
     { row: 1, column: 0, links: [{ id: "0195f000-0000-7000-8000-0000000000e2", kind: "armature", name: "verifies", direction: "outgoing", suspect: true }] },
   ],
+  rowLinks: [1, 1],
+  columnLinks: [2],
   total: 2,
   limit: 50,
   offset: 0,
+  columnTotal: 1,
+  columnLimit: 100,
+  columnOffset: 0,
 };
 
 function stubMatrix(matrix: Matrix = issues) {
@@ -67,7 +72,7 @@ describe("the traceability matrix", () => {
   });
 
   it("counts the link types and the direction picked, and keeps them in the address and the download", async () => {
-    const asked = stubMatrix({ ...issues, columns: [], cells: [] });
+    const asked = stubMatrix({ ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 });
     const router = await renderAt("/p/CHK/matrix");
     const types = await screen.findByRole("group", { name: "Link types" });
     expect(screen.getByText("Every link type counts while none is picked.")).toBeInTheDocument();
@@ -93,7 +98,7 @@ describe("the traceability matrix", () => {
   });
 
   it("starts from what the address holds", async () => {
-    const asked = stubMatrix({ ...issues, columns: [], cells: [] });
+    const asked = stubMatrix({ ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 });
     await renderAt("/p/CHK/matrix?linkType=derives&direction=outgoing&columnProject=SYS&sort=key&desc=true");
     await waitFor(() => expect(asked.length).toBeGreaterThan(0));
     const first = asked[0]!;
@@ -105,14 +110,77 @@ describe("the traceability matrix", () => {
   });
 });
 
+describe("the matrix's gaps", () => {
+  const notes: Matrix = {
+    ...issues,
+    columns: [{ requirement: ref(4, "Brakes were discussed"), issueKey: "" }],
+    cells: [],
+    rowLinks: [0, 2],
+    columnLinks: [0],
+  };
+
+  it("counts every row's and column's links and marks the ones without", async () => {
+    stubMatrix(notes);
+    await renderAt("/p/CHK/matrix?columnQuery=type%20%3D%20Note");
+    const table = await screen.findByRole("table", { name: "Matrix" });
+    const gaps = table.querySelectorAll("[data-gap]");
+    expect(gaps).toHaveLength(2);
+    expect(within(table).getAllByRole("rowheader", { name: "Links" })).toHaveLength(1);
+    expect(table.querySelector("[data-column-links]")).toHaveTextContent("0");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("keeps the column filter apart from the rows' and offers gaps in columns only with it", async () => {
+    const asked = stubMatrix(notes);
+    const router = await renderAt("/p/CHK/matrix");
+    const gaps = await screen.findByLabelText("Only gaps");
+    expect(within(gaps).getByRole("option", { name: "Columns without a link" })).toBeDisabled();
+    expect(screen.getByText("Columns without a link need a column filter.")).toBeInTheDocument();
+    const columnQuery = screen.getByRole("combobox", { name: "Column query" });
+    await userEvent.type(columnQuery, "type = Note{Enter}");
+    await waitFor(() => expect(asked.at(-1)?.get("columnQuery")).toBe("type = Note"));
+    expect(within(gaps).getByRole("option", { name: "Columns without a link" })).toBeEnabled();
+    await userEvent.selectOptions(gaps, "columns");
+    await waitFor(() => expect(router.state.location.search).toEqual({ columnQuery: "type = Note", gaps: "columns" }));
+    expect(asked.at(-1)?.get("gaps")).toBe("columns");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says a refused column query under the column filter, not under the rows' query", async () => {
+    stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [] } },
+      "GET /projects/CHK/statuses": { status: 200, body: { statuses: [] } },
+      "GET /projects/CHK/attributes": { status: 200, body: { attributes: [] } },
+      "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [] } },
+      "GET /projects/CHK/matrix": {
+        status: 400,
+        body: { error: { code: "bad_query", message: "There is no field nonsense.", position: 1, fields: { columnQuery: "There is no field nonsense." } } },
+      },
+    });
+    await renderAt("/p/CHK/matrix?columnQuery=nonsense");
+    const filter = await screen.findByRole("search", { name: "Column filter" });
+    expect(await within(filter).findByText("There is no field nonsense.")).toBeInTheDocument();
+    expect(screen.getAllByText("There is no field nonsense.")).toHaveLength(1);
+  });
+});
+
 describe("a matrix's address", () => {
   it("drops what does not fit the columns, and the defaults", () => {
-    const setup = fromMatrixAddress(readMatrixAddress({ columns: "issues", linkType: ["derives"], relation: "verifies", direction: "both" }));
+    const setup = fromMatrixAddress(
+      readMatrixAddress({ columns: "issues", linkType: ["derives"], relation: "verifies", direction: "both", columnQuery: "kind = requirement", gaps: "both" }),
+    );
     expect(toMatrixAddress(setup)).toEqual({ columns: "issues", relation: ["verifies"] });
     expect(matrixParams(setup)).toEqual({ columns: "issues", relation: ["verifies"] });
   });
 
-  it("ignores a direction or columns it does not know", () => {
-    expect(readMatrixAddress({ columns: "pages", direction: "sideways" })).toEqual({});
+  it("ignores a direction, columns or gaps it does not know", () => {
+    expect(readMatrixAddress({ columns: "pages", direction: "sideways", gaps: "everywhere" })).toEqual({});
+  });
+
+  it("keeps gaps in columns only with a column filter", () => {
+    expect(toMatrixAddress(fromMatrixAddress({ gaps: "columns" }))).toEqual({});
+    expect(toMatrixAddress(fromMatrixAddress({ gaps: "both", columnType: ["t1"] }))).toEqual({ gaps: "both", columnType: ["t1"] });
+    expect(toMatrixAddress(fromMatrixAddress({ gaps: "rows" }))).toEqual({ gaps: "rows" });
   });
 });

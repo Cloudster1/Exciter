@@ -1,4 +1,4 @@
-/** The strings of the traceability matrix's own page (#147). */
+/** The strings of the traceability matrix's own page (#147, #148). */
 export const matrixEn = {
   title: "Traceability matrix",
   intro: "Requirements against what they link to, counting the links you pick.",
@@ -13,4 +13,15 @@ export const matrixEn = {
   relations: "Relations",
   everyRelation: "Every relation counts while none is picked.",
   relationNames: { implements: "Implemented by", verifies: "Verified by", relates: "Related to" },
+  columnFilter: "Column filter",
+  columnQuery: "Column query",
+  columnTypes: "Column types",
+  noColumnFilter: "Without a column filter, the columns are what the rows link to.",
+  gaps: "Only gaps",
+  gapNames: { "": "Show everything", rows: "Rows without a link", columns: "Columns without a link", both: "Rows and columns without a link" },
+  gapsNeedFilter: "Columns without a link need a column filter.",
+  links: "Links",
+  noLink: "No link",
+  columnPages: "Columns",
+  noRows: "No requirement is left to show.",
 };

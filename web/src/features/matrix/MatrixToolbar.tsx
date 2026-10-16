@@ -1,12 +1,13 @@
-import type { Attribute, RequirementType } from "@/api/attributes";
+import { useTypes, type Attribute, type RequirementType } from "@/api/attributes";
 import type { MatrixColumns } from "@/api/coverage";
 import { useProjectLinkTypes } from "@/api/links";
 import { useProjects, type Project } from "@/api/projects";
 import type { Status } from "@/api/workflows";
 import { Card, Chip, Segmented, Select } from "@/components/ui";
 import { GridFilters } from "@/features/grid/GridFilters";
+import { QueryInput } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
-import { ISSUE_RELATIONS, MATRIX_DIRECTIONS, type MatrixSetup } from "./address";
+import { hasColumnFilter, ISSUE_RELATIONS, MATRIX_DIRECTIONS, MATRIX_GAPS, type MatrixGaps, type MatrixSetup } from "./address";
 
 /** What a matrix lays out: the grid's narrowing for its rows, then its columns and the links that count. */
 export function MatrixToolbar({
@@ -16,6 +17,7 @@ export function MatrixToolbar({
   statuses,
   attributes,
   queryError,
+  columnQueryError,
   onSetup,
 }: {
   project: Project;
@@ -24,9 +26,14 @@ export function MatrixToolbar({
   statuses: Status[];
   attributes: Attribute[];
   queryError?: unknown;
+  /** A refusal of the column filter's query, shown under it rather than under the rows'. */
+  columnQueryError?: unknown;
   onSetup: (next: MatrixSetup) => void;
 }) {
   const { data: linkTypes = [] } = useProjectLinkTypes(project.key);
+  const columnProject = setup.columnProject || project.key;
+  const { data: columnTypes = [] } = useTypes(columnProject);
+  const filtered = hasColumnFilter(setup);
   const { data: projects = [] } = useProjects();
   const set = (patch: Partial<MatrixSetup>) => onSetup({ ...setup, ...patch });
   return (
@@ -99,7 +106,47 @@ export function MatrixToolbar({
             onChange={(relations) => set({ relations })}
           />
         )}
+        <div className="min-w-52">
+          <Select
+            label={t.matrix.gaps}
+            value={setup.gaps}
+            onChange={(event) => set({ gaps: event.target.value as MatrixGaps })}
+            hint={filtered ? undefined : t.matrix.gapsNeedFilter}
+            controlSize="sm"
+            data-matrix-gaps
+          >
+            {MATRIX_GAPS.map((gaps) => (
+              <option key={gaps} value={gaps} disabled={(gaps === "columns" || gaps === "both") && !filtered}>
+                {t.matrix.gapNames[gaps]}
+              </option>
+            ))}
+          </Select>
+        </div>
       </Card>
+      {setup.columns === "requirements" && (
+        <Card className="space-y-2 p-3" data-matrix-column-filter>
+          <h2 className="text-xs font-medium text-ink-muted">{t.matrix.columnFilter}</h2>
+          <QueryInput
+            key={columnProject}
+            projectKey={columnProject}
+            value={setup.columnQuery}
+            error={columnQueryError}
+            name="matrix-columns"
+            label={t.matrix.columnQuery}
+            region={t.matrix.columnFilter}
+            onSubmit={(columnQuery) => set({ columnQuery })}
+          />
+          <Choices
+            label={t.matrix.columnTypes}
+            hint={t.matrix.noColumnFilter}
+            name="column-type"
+            options={columnTypes.filter((type) => !type.retired).map((type) => ({ value: type.id, label: type.name }))}
+            chosen={setup.columnTypes}
+            onChange={(chosen) => set({ columnTypes: chosen })}
+            quiet={filtered}
+          />
+        </Card>
+      )}
     </div>
   );
 }
@@ -112,6 +159,7 @@ function Choices({
   options,
   chosen,
   onChange,
+  quiet = false,
 }: {
   label: string;
   hint: string;
@@ -119,6 +167,8 @@ function Choices({
   options: Array<{ value: string; label: string }>;
   chosen: string[];
   onChange: (next: string[]) => void;
+  /** Keeps the hint back while something else already says what counts. */
+  quiet?: boolean;
 }) {
   const toggle = (value: string) => onChange(chosen.includes(value) ? chosen.filter((each) => each !== value) : [...chosen, value]);
   return (
@@ -131,7 +181,7 @@ function Choices({
           </Chip>
         ))}
       </div>
-      {chosen.length === 0 && <p className="text-xs text-ink-subtle">{hint}</p>}
+      {chosen.length === 0 && !quiet && <p className="text-xs text-ink-subtle">{hint}</p>}
     </div>
   );
 }

@@ -3,6 +3,19 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Gaps count over the whole matrix, then page (#148)
+
+- **Read once, page after.** Every link between the rows kept and the
+  columns possible is read in one query and counted before either axis is
+  paged, so a row's count and "only gaps" mean the whole matrix, not the
+  page in view; a matrix is bounded by the export's rows and a project's
+  requirements, so the links fit in memory.
+- **Column gaps need a column filter.** Without one the columns are what
+  the rows reach and never empty; asking for their gaps is refused rather
+  than answering an empty list that looks like full coverage.
+- **The file's counts are a line and a column of their own,** so a
+  spreadsheet sums and sorts them without parsing the cells.
+
 ## 2026-10-16: The matrix narrows only by what fits its columns (#147)
 
 - **A filter that cannot apply is refused, not ignored.** Link types with
