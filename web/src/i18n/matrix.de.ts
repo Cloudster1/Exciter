@@ -1,6 +1,6 @@
 import type { matrixEn } from "./matrix.en";
 
-/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147, #148). */
+/** Die Texte der eigenen Seite der Verfolgbarkeitsmatrix (#147, #148, #149). */
 export const matrixDe: typeof matrixEn = {
   title: "Verfolgbarkeitsmatrix",
   intro: "Anforderungen gegen das, womit sie verknüpft sind, gezählt nach den Verknüpfungen, die Sie wählen.",
@@ -26,4 +26,13 @@ export const matrixDe: typeof matrixEn = {
   noLink: "Keine Verknüpfung",
   columnPages: "Spalten",
   noRows: "Keine Anforderung bleibt zu zeigen.",
+  cellTitle: (row, column) => `${row} und ${column}`,
+  openCell: (row, column) => `Verknüpfungen zwischen ${row} und ${column}`,
+  noLinkHere: "Noch keine Verknüpfung zwischen diesen.",
+  readOnly: "Sie dürfen diese Verknüpfungen lesen, aber nicht ändern.",
+  relation: "Beziehung",
+  linkThem: "Verknüpfen",
+  linked: (column) => `Mit ${column} verknüpft.`,
+  unlinked: (column) => `Die Verknüpfung mit ${column} ist entfernt.`,
+  close: "Schließen",
 };

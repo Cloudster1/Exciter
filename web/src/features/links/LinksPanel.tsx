@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
-import { groupLinks, symmetric, useLinkActions, useLinks, useProjectLinkTypes, type Direction, type TraceLink } from "@/api/links";
+import { groupLinks, linkWays, useLinkActions, useLinks, useProjectLinkTypes, type Direction, type TraceLink } from "@/api/links";
 import type { Requirement } from "@/api/requirements";
 import type { QuickHit } from "@/api/search";
 import type { StatusCategory } from "@/api/workflows";
@@ -10,13 +10,12 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { t } from "@/i18n";
 import { RequirementPicker } from "./RequirementPicker";
-import { ClearLinkDialog, SuspectBadge, type CheckedLink } from "./Suspect";
+import { ClearLinkDialog, SuspectBadge, type CheckedLink, type LinkEnd } from "./Suspect";
 
 const capitalized = (phrase: string) => phrase.charAt(0).toUpperCase() + phrase.slice(1);
 
 /** A link as the requirement it was read from holds it, both ends put in their places. */
-function checked(link: TraceLink, requirement: Requirement): CheckedLink {
-  const here = { key: requirement.key, revision: requirement.revision };
+export function checked(link: TraceLink, here: LinkEnd): CheckedLink {
   const other = { key: link.other.key, revision: link.other.revision };
   const outgoing = link.direction === "outgoing";
   return { id: link.id, forward: link.type.forward, source: outgoing ? here : other, target: outgoing ? other : here, ends: link.suspect };
@@ -98,7 +97,7 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
         </p>
         {checking && (
           <ClearLinkDialog
-            link={checked(checking, requirement)}
+            link={checked(checking, { key: requirement.key, revision: requirement.revision })}
             onCleared={() => setNotice(t.suspect.cleared(checking.other.key))}
             onClose={() => setChecking(null)}
           />
@@ -114,12 +113,7 @@ function AddLink({ requirement, onLinked }: { requirement: Requirement; onLinked
   const { create } = useLinkActions(requirement.key);
   const [choice, setChoice] = useState("");
   const [other, setOther] = useState<QuickHit | null>(null);
-  const usable = (types ?? []).filter((type) => type.enabled && !type.retired);
-  const ways = usable.flatMap((type) => {
-    const out = [{ value: `${type.id}:outgoing`, label: t.links.reads(type.forward) }];
-    if (!symmetric(type)) out.push({ value: `${type.id}:incoming`, label: t.links.reads(type.backward) });
-    return out;
-  });
+  const ways = linkWays(types ?? [], t.links.reads);
   const picked = choice || ways[0]?.value || "";
   const fields = create.error instanceof ApiError ? create.error.fields : {};
   const refusal = create.error ? (fields.otherKey ?? fields.typeId ?? fields.direction ?? create.error.message) : "";

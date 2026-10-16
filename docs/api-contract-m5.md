@@ -157,6 +157,18 @@ calls, with the same rights.
   forgets on the events a link makes, removes or clears; the web client also
   drops its own copy of the project's coverage.
 
+- **As built** (#149):
+  - Each cell is a button wherever it has a link, or its row may be linked;
+    an empty cell of a row the reader may not link is no button.
+  - The panel is `features/matrix/CellPanel.tsx`, on the overlay hooks the
+    bell uses. It shows the cell's links as the matrix counted them, read
+    from the row's own links for their revisions and suspect ends, and adds,
+    removes and clears through the requirement page's hooks.
+  - `useAnchored` now places a panel again whenever it resizes, so one that
+    loads what it shows turns to the side with room once it has.
+  - The link and Armature link hooks, and clearing, also drop the cached
+    coverage and matrix, so the cell shows a change at once.
+
 ## #150 Stator pages as columns
 
 | Operation | Needs | Answers |

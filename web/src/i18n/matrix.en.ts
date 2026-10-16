@@ -1,4 +1,4 @@
-/** The strings of the traceability matrix's own page (#147, #148). */
+/** The strings of the traceability matrix's own page (#147, #148, #149). */
 export const matrixEn = {
   title: "Traceability matrix",
   intro: "Requirements against what they link to, counting the links you pick.",
@@ -24,4 +24,13 @@ export const matrixEn = {
   noLink: "No link",
   columnPages: "Columns",
   noRows: "No requirement is left to show.",
+  cellTitle: (row: string, column: string) => `${row} and ${column}`,
+  openCell: (row: string, column: string) => `Links between ${row} and ${column}`,
+  noLinkHere: "No link between these yet.",
+  readOnly: "You may read these links but not change them.",
+  relation: "Relation",
+  linkThem: "Link them",
+  linked: (column: string) => `Linked to ${column}.`,
+  unlinked: (column: string) => `The link to ${column} is removed.`,
+  close: "Close",
 };

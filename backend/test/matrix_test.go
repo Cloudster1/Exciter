@@ -205,3 +205,36 @@ func TestTheMatrixShowsItsGaps(t *testing.T) {
 		}
 	})
 }
+
+// A link made or removed from a matrix cell (#149) goes through the requirement's own operations, so the matrix
+// follows it at once, coverage once the worker has cleared its cache, and a reader is refused as anywhere.
+func TestTheMatrixFollowsLinksMadeFromItsCells(t *testing.T) {
+	s := newCoverageScene(t, "MXC")
+	matrix := "/api/v1/projects/" + s.key + "/matrix"
+	want(t, s.owner.put(t, "/api/v1/projects/"+s.key+"/coverage-rules", map[string]any{"decomposed": true}), http.StatusOK, "ask every type to be decomposed")
+	if _, rows, _ := s.coverage(t, s.carol, ""); rows[s.req("4")] != "none na na" {
+		t.Fatalf("R4 before it is linked reads %q", rows[s.req("4")])
+	}
+	cell := s.req("4") + ":" + s.req("2")
+	refuse(t, "carol, a reader", s.carol.post(t, "/api/v1/requirements/"+s.req("4")+"/links", map[string]any{"typeKey": "derives", "otherKey": s.req("2"), "direction": "incoming"}),
+		http.StatusForbidden, "forbidden")
+	link := obj(t, want(t, s.bob.post(t, "/api/v1/requirements/"+s.req("4")+"/links", map[string]any{"typeKey": "derives", "otherKey": s.req("2"), "direction": "incoming"}),
+		http.StatusCreated, "bob links R2 to R4 from R4's row"), "link")
+	m := obj(t, want(t, s.carol.get(t, matrix), http.StatusOK, "the matrix"), "matrix")
+	if got := matrixCells(t, m)[cell]; got != "Derives/incoming" {
+		t.Errorf("the cell %s reads %q right after the link", cell, got)
+	}
+	s.h.drained(t)
+	if _, rows, _ := s.coverage(t, s.carol, ""); rows[s.req("4")] != "full na na" {
+		t.Errorf("R4 once linked reads %q", rows[s.req("4")])
+	}
+	want(t, s.bob.delete(t, "/api/v1/links/"+link["id"].(string)), http.StatusNoContent, "bob removes the link")
+	m = obj(t, want(t, s.carol.get(t, matrix), http.StatusOK, "the matrix"), "matrix")
+	if got := matrixCells(t, m)[cell]; got != "" {
+		t.Errorf("the cell %s still reads %q after the link went", cell, got)
+	}
+	s.h.drained(t)
+	if _, rows, _ := s.coverage(t, s.carol, ""); rows[s.req("4")] != "none na na" {
+		t.Errorf("R4 unlinked again reads %q", rows[s.req("4")])
+	}
+}

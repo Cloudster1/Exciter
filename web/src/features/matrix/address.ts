@@ -1,4 +1,4 @@
-import type { MatrixColumns, MatrixParams } from "@/api/coverage";
+import type { Matrix, MatrixColumns, MatrixParams } from "@/api/coverage";
 import type { Filter, Sort } from "@/api/search";
 import { fromAddress, gridParams, readAddress, toAddress, type GridAddress } from "@/features/grid/filter";
 
@@ -126,4 +126,9 @@ function pick({ columns, columnProject, linkType, direction, relation, columnQue
   if (columnType) params.columnType = columnType;
   if (gaps) params.gaps = gaps;
   return params;
+}
+
+/** A column's name: the requirement's key, or the issue's. */
+export function columnName(column: Matrix["columns"][number]): string {
+  return column.requirement ? column.requirement.key : column.issueKey;
 }
