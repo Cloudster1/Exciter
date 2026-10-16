@@ -63,9 +63,12 @@ export function useMatrix(projectKey: string, params: MatrixParams, offset: numb
   });
 }
 
-/** Where the whole matrix, laid out as params says, downloads as a CSV file. */
-export function matrixHref(projectKey: string, params: MatrixParams): string {
-  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/matrix.csv${queryString(params)}`;
+/** A file a matrix or a chain report downloads as: CSV, or an Excel workbook (#154). */
+export type ExportFormat = "csv" | "xlsx";
+
+/** Where the whole matrix, laid out as params says, downloads as a file. */
+export function matrixHref(projectKey: string, params: MatrixParams, format: ExportFormat = "csv"): string {
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/matrix.${format}${queryString(params)}`;
 }
 
 /** Sets and removes a project's coverage rules; its coverage asks again. */

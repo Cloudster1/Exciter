@@ -78,16 +78,28 @@ export function BaselineMatrixView({ project, baseline }: { project: Project; ba
             </Select>
           </div>
         </div>
-        <ButtonLink
-          href={baselineMatrixHref(baseline.id, params)}
-          download
-          variant="secondary"
-          size="sm"
-          icon={<Icon.Download />}
-          data-action="baseline-matrix-csv"
-        >
-          {t.coverage.download}
-        </ButtonLink>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink
+            href={baselineMatrixHref(baseline.id, params)}
+            download
+            variant="secondary"
+            size="sm"
+            icon={<Icon.Download />}
+            data-action="baseline-matrix-csv"
+          >
+            {t.coverage.download}
+          </ButtonLink>
+          <ButtonLink
+            href={baselineMatrixHref(baseline.id, params, "xlsx")}
+            download
+            variant="secondary"
+            size="sm"
+            icon={<Icon.Download />}
+            data-action="baseline-matrix-xlsx"
+          >
+            {t.coverage.downloadExcel}
+          </ButtonLink>
+        </div>
       </div>
       {baseline.detail < 2 && <p className="text-sm text-ink-muted">{t.baseline.notRecorded}</p>}
       {error ? (

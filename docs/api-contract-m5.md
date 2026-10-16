@@ -391,3 +391,15 @@ calls, with the same rights.
 - **Built in memory** before the first byte is written, so a refusal is
   still the JSON error. Written without a new dependency.
 - **UI.** An Excel download beside each CSV one.
+- **As built** (#154):
+  - `internal/xlsx` writes one sheet with shared strings, a style table of
+    ten formats (plain, bold header, fills for linked, suspect, gap, break,
+    added, removed and changed, and an italic note), frozen panes, column
+    widths from 8 to 60 characters and an autofilter over the first row.
+    Counts are numbers, so a spreadsheet sums and sorts them.
+  - `csvio.MatrixSheet`, `ChainsSheet` and `BaselineMatrixSheet` lay out
+    what their CSV files hold; the handlers write the workbook into a buffer
+    and keep `X-Export-Truncated`. A workbook read back by openpyxl keeps its
+    frozen panes, filter, fills and numbers.
+  - The integration suite now waits for the replicas after a scene writes
+    rows straight through SQL, which a page column test showed it must.

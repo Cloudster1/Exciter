@@ -175,6 +175,7 @@ describe("a baseline", () => {
     await waitFor(() => expect(table.querySelector('[data-cell="CHK-R3:CHK-R2"]')).toHaveAttribute("title", "CHK-R3 to CHK-R2: Verifies (added)"));
     expect(table.querySelector('[data-cell="CHK-R1:CHK-R2"] [data-change="changed"]')).not.toBeNull();
     expect(screen.getByRole("link", { name: "Download CSV" })).toHaveAttribute("href", expect.stringContaining(`/baselines/${id}/matrix.csv?with=now`));
+    expect(screen.getByRole("link", { name: "Download Excel" })).toHaveAttribute("href", expect.stringContaining(`/baselines/${id}/matrix.xlsx?with=now`));
     expect(await axeViolations()).toEqual([]);
   });
 

@@ -67,6 +67,7 @@ var installationWide = map[string]string{
 	"TestRawSQLKeepsTraceModelsToAdministrators":                 armatureLink,
 	"TestMatrixAndChainViewsAreKeptApart":                        armatureLink,
 	"TestABaselineKeepsItsMatrix":                                armatureLink,
+	"TestTheMatrixAndItsChainsDownloadAsWorkbooks":               armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,

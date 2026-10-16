@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, BASELINE_SPEC_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
 import { api, queryString } from "./client";
+import type { ExportFormat } from "./coverage";
 import type { components, operations } from "./schema";
 
 // Baselines (#37): named snapshots of a project or a section, read as a specification and compared.
@@ -70,9 +71,9 @@ export function useBaselineMatrix(id: string, params: BaselineMatrixParams, offs
   });
 }
 
-/** Where a baseline's whole matrix downloads as a CSV file. */
-export function baselineMatrixHref(id: string, params: BaselineMatrixParams): string {
-  return `${API_BASE}/baselines/${encodeURIComponent(id)}/matrix.csv${queryString(params)}`;
+/** Where a baseline's whole matrix downloads as a CSV file or an Excel workbook. */
+export function baselineMatrixHref(id: string, params: BaselineMatrixParams, format: ExportFormat = "csv"): string {
+  return `${API_BASE}/baselines/${encodeURIComponent(id)}/matrix.${format}${queryString(params)}`;
 }
 
 /** Takes, renames, locks and deletes a project's baselines; every list of them asks again. */
