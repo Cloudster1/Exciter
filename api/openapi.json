@@ -2383,9 +2383,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -2435,16 +2435,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2514,9 +2504,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -2543,16 +2533,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2622,9 +2602,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -18334,6 +18314,9 @@
           "description": {
             "type": "string"
           },
+          "detail": {
+            "type": "integer"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -18378,7 +18361,8 @@
           "locked",
           "lockedAt",
           "createdByName",
-          "createdAt"
+          "createdAt",
+          "detail"
         ]
       },
       "BaselineComparison": {
@@ -18725,6 +18709,7 @@
         "required": [
           "kind",
           "name",
+          "direction",
           "suspect",
           "status"
         ]

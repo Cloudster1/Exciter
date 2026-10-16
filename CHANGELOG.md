@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A baseline's matrix (#153). Baselines taken from now on also record
+  each item's type, whether each link was suspect, each Armature link's
+  status, and the Stator page links; broken and detached links are left
+  out. A baseline's page shows its matrix against requirements, issues or
+  pages, compared with now or another baseline with each link marked
+  added, removed or changed, and downloads it as CSV. A baseline taken
+  before says what it did not record.
 - Matrix and chain views (#152). The matrix and the chain report save
   their setup under a name, personal or shared, as the grid's views do,
   each kind listed only where it belongs; a view naming what the project

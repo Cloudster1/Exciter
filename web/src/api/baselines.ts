@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BASELINE_SPEC_PAGE_SIZE } from "@/config";
-import { api } from "./client";
-import type { components } from "./schema";
+import { API_BASE, BASELINE_SPEC_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
+import { api, queryString } from "./client";
+import type { components, operations } from "./schema";
 
 // Baselines (#37): named snapshots of a project or a section, read as a specification and compared.
 
@@ -13,6 +13,10 @@ export type BaselineUpdate = Wire["BaselineUpdate"];
 export type BaselineEntry = Wire["BaselineEntry"];
 export type BaselineComparison = Wire["BaselineComparison"];
 export type ItemChange = Wire["BaselineItemChange"];
+export type BaselineMatrix = Wire["BaselineMatrix"];
+export type BaselineMatrixLink = Wire["BaselineMatrixLink"];
+/** What a baseline's matrix lays out (#153), as its query string takes it. */
+export type BaselineMatrixParams = Omit<NonNullable<operations["baselineMatrix"]["parameters"]["query"]>, "limit" | "offset">;
 
 /** The other side of a comparison when it is no baseline. */
 export const NOW = "now";
@@ -53,6 +57,22 @@ export function useBaselineComparison(id: string, other: string) {
     queryFn: async (): Promise<BaselineComparison> =>
       (await api.GET("/baselines/{baselineID}/compare", { params: { path: { baselineID: id }, query: { with: other } } })).data!.comparison,
   });
+}
+
+/** A window of a baseline's matrix, compared with another side when params say. */
+export function useBaselineMatrix(id: string, params: BaselineMatrixParams, offset: number) {
+  return useQuery({
+    queryKey: [...baselineKey(id), "matrix", params, offset],
+    queryFn: async (): Promise<BaselineMatrix> =>
+      (await api.GET("/baselines/{baselineID}/matrix", { params: { path: { baselineID: id }, query: { ...params, limit: MATRIX_PAGE_SIZE, offset } } })).data!
+        .matrix,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Where a baseline's whole matrix downloads as a CSV file. */
+export function baselineMatrixHref(id: string, params: BaselineMatrixParams): string {
+  return `${API_BASE}/baselines/${encodeURIComponent(id)}/matrix.csv${queryString(params)}`;
 }
 
 /** Takes, renames, locks and deletes a project's baselines; every list of them asks again. */

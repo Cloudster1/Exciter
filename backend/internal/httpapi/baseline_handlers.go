@@ -1,12 +1,15 @@
 package httpapi
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // Baselines (#37): named snapshots of a project, read as a specification and compared. See docs/api-contract-m3.md.
@@ -152,4 +155,68 @@ func (s *Server) handleCompareBaseline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"comparison": c})
+}
+
+// baselineMatrix reads the matrix of a baseline a request asks for, a window of it or, for a file, every requirement.
+func (s *Server) baselineMatrix(r *http.Request, id uuid.UUID, limit, offset int) (*baseline.Matrix, error) {
+	q := r.URL.Query()
+	return s.Baselines.Matrix(r.Context(), userFrom(r), id, baseline.MatrixQuery{
+		Columns: trace.MatrixColumns(q.Get("columns")), LinkTypes: q["linkType"], Direction: trace.MatrixDirection(q.Get("direction")),
+		With: q.Get("with"), Limit: limit, Offset: offset,
+	})
+}
+
+func (s *Server) handleBaselineMatrix(w http.ResponseWriter, r *http.Request) {
+	id, ok := baselineID(w, r)
+	if !ok {
+		return
+	}
+	limit, offset, apiErr := offsetWindow(r, trace.MatrixDefaultLimit, trace.MatrixMaxLimit)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	m, err := s.baselineMatrix(r, id, limit, offset)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"matrix": m})
+}
+
+// handleBaselineMatrixCSV writes the file whole before answering, so a refusal is still the error envelope.
+func (s *Server) handleBaselineMatrixCSV(w http.ResponseWriter, r *http.Request) {
+	id, ok := baselineID(w, r)
+	if !ok {
+		return
+	}
+	m, err := s.baselineMatrix(r, id, csvio.MaxExportRows, 0)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	var ids []uuid.UUID
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			ids = append(ids, c.Page.ID)
+		}
+	}
+	titles := s.pageTitles(r, ids)
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			c.Page.Title = titles[c.Page.ID]
+		}
+	}
+	var buf bytes.Buffer
+	buf.Write(utf8Mark)
+	if err := csvio.WriteBaselineMatrix(&buf, m); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	download(w, "text/csv; charset=utf-8", "baseline-matrix.csv")
+	if len(m.Rows) < m.Total {
+		w.Header().Set("X-Export-Truncated", "true")
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
 }

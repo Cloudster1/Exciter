@@ -56,7 +56,7 @@ func TestTheTotalsCountOnlyWhereARuleAsks(t *testing.T) {
 
 func TestIssueColumnsGoByProjectThenNumber(t *testing.T) {
 	keys := []string{"WEB-10", "API-2", "WEB-9", "API-10"}
-	slices.SortFunc(keys, compareIssueKeys)
+	slices.SortFunc(keys, CompareIssueKeys)
 	if want := []string{"API-2", "API-10", "WEB-9", "WEB-10"}; !slices.Equal(keys, want) {
 		t.Errorf("ordered %v, want %v", keys, want)
 	}

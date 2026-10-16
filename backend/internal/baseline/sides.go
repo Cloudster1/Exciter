@@ -98,7 +98,9 @@ func nowSide(ctx context.Context, tx db.DBTX, of *found) (*side, error) {
 	if s.links, err = pgx.CollectRows(rows, pgx.RowToStructByPos[heldLink]); err != nil {
 		return nil, err
 	}
-	rows, err = tx.Query(ctx, `SELECT requirement_id, issue_key, relation FROM armature_issue_link WHERE requirement_id = ANY($1)`, ids)
+	// Neither broken nor detached, as a baseline taken now would record them (#153).
+	rows, err = tx.Query(ctx, `SELECT requirement_id, issue_key, relation FROM armature_issue_link
+		WHERE requirement_id = ANY($1) AND broken_at IS NULL AND detached_at IS NULL`, ids)
 	if err != nil {
 		return nil, fmt.Errorf("read the Armature links now: %w", err)
 	}

@@ -19,7 +19,7 @@ type MatrixLink struct {
 	Kind      trace.LinkKind `json:"kind"`
 	Name      string         `json:"name"`
 	TypeKey   string         `json:"typeKey,omitempty"`
-	Direction string         `json:"direction,omitempty"`
+	Direction string         `json:"direction"`
 	Suspect   *bool          `json:"suspect"`
 	Status    *string        `json:"status"`
 	// Change is set only when compared: what the other side has instead.

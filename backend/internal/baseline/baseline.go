@@ -31,6 +31,8 @@ type Baseline struct {
 	LockedAt      *time.Time `json:"lockedAt"`
 	CreatedByName string     `json:"createdByName"`
 	CreatedAt     time.Time  `json:"createdAt"`
+	// Detail is how much it recorded: DetailLinks before #153, DetailFull since.
+	Detail int `json:"detail"`
 }
 
 // Input takes a baseline of the project, or of the section RootKey names and everything below it.

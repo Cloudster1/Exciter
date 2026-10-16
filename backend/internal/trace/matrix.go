@@ -254,8 +254,9 @@ func knownLinkTypes(ctx context.Context, tx db.DBTX, keys []string, projects ...
 	return nil
 }
 
-// compareIssueKeys orders issue keys by their project, then by number, so ABC-9 comes before ABC-10.
-func compareIssueKeys(a, b string) int {
+// CompareIssueKeys orders issue keys by their project, then by number, so ABC-9 comes before ABC-10; a baseline
+// orders its matrix's issues the same way.
+func CompareIssueKeys(a, b string) int {
 	ap, an, _ := strings.Cut(a, "-")
 	bp, bn, _ := strings.Cut(b, "-")
 	x, _ := strconv.ParseUint(an, 10, 64)

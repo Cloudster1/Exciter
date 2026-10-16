@@ -50,4 +50,15 @@ export const baselineDe: typeof baselineEn = {
   next: "Weiter",
   range: (first, last, total) => `${first} bis ${last} von ${total}`,
   back: "Alle Baselines",
+  readingTab: "Spezifikation",
+  matrixTab: "Matrix",
+  pageTabs: "Was lesen",
+  matrixCompare: "Matrix vergleichen mit",
+  matrixAsTaken: "Wie aufgenommen",
+  notRecorded:
+    "Diese Baseline wurde aufgenommen, bevor Verdachtsstatus, Armature-Status und Stator-Seiten festgehalten wurden; sie erscheinen als nicht festgehalten.",
+  notRecordedMark: "nicht festgehalten",
+  changeMarks: { added: "hinzugekommen", removed: "entfernt", changed: "geändert" },
+  matrixCell: (row, column, links) => `${row} zu ${column}: ${links}`,
+  noMatrixLinks: "Keine Anforderung dieser Baseline war so verknüpft.",
 };

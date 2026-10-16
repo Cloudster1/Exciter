@@ -354,6 +354,25 @@ calls, with the same rights.
   choice, cells coloured by their change, and "not recorded" where the
   baseline did not record what the page shows.
 
+- **As built** (#153):
+  - Migration 00790: `baseline.detail` (1 before, 2 since), the columns of
+    the contract, null meaning not recorded, and `baseline_page_link`
+    frozen and guarded as the other rows a baseline holds. The app role
+    changes none of it: its column grants on `baseline` stay name,
+    description and lock.
+  - A detail 2 baseline records trace links from `trace_link_state`, with
+    their type's key and suspect state, and Armature and Stator links
+    neither broken nor detached. Comparisons read now the same way, so an
+    older baseline compared with now shows a broken link it kept as
+    removed.
+  - Both sides of a matrix share one shape (`internal/baseline/matrix_side.go`)
+    and compare by link id, row and direction; a changed link shows the
+    later side's state. Rows are the baseline's then the other side's
+    new ones; columns are what the page's rows reach on either side.
+  - Web: a Specification and Matrix choice on the baseline's page, the
+    matrix's own "compare the matrix with", cells coloured by their change,
+    and a sentence on a detail 1 baseline.
+
 ## #154 Excel
 
 | Operation | Needs | Answers |
