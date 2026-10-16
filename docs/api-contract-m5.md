@@ -309,6 +309,21 @@ calls, with the same rights.
 - **UI.** The grid's views control, given a kind, on the matrix and the chain
   report; `?view=` opens one.
 
+- **As built** (#152):
+  - Migration 00780: `saved_view.kind`, fixed once saved (the app role may
+    not update it), and `saved_view.settings`; the name is unique per owner,
+    project and kind.
+  - `internal/search` sits below `internal/trace`, so it checks settings
+    against the words of trace's parameters itself, and a test keeps its
+    level bound equal to `trace.MaxLevels`; trace checks them again as the
+    view opens.
+  - A view read leaves out a column project the reader may no longer see,
+    link types and column types the project no longer has, and levels past
+    its trace model's last, and lists each in `dropped` as `kind:value`;
+    the page says how many in a sentence.
+  - The grid's views control takes a kind, and the matrix and the chain
+    report keep the open view in their addresses as the grid does.
+
 ## #153 A baseline's matrix
 
 | Operation | Needs | Answers |

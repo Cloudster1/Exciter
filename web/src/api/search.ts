@@ -17,6 +17,8 @@ export type SearchRequest = NonNullable<operations["search"]["parameters"]["quer
 export type GridParams = NonNullable<operations["listGrid"]["parameters"]["query"]>;
 export type View = Wire["View"];
 export type ViewInput = Wire["ViewInput"];
+export type ViewKind = View["kind"];
+export type ViewSettings = Wire["ViewSettings"];
 export type Filter = Wire["ViewFilter"];
 export type Sort = Wire["ViewSort"];
 export type AttributeCondition = Wire["AttributeCondition"];
@@ -72,11 +74,11 @@ export function useQuerySuggestions(projectKey: string, typed: { q: string; at: 
   });
 }
 
-/** The reader's views of a project's grid, then the shared ones. */
-export function useViews(projectKey: string) {
+/** The reader's views of one kind of a project's, the grid's unless asked (#152), then the shared ones. */
+export function useViews(projectKey: string, kind: ViewKind = "grid") {
   return useQuery({
-    queryKey: viewsKey(projectKey),
-    queryFn: async (): Promise<View[]> => (await api.GET("/projects/{projectKey}/views", { params: { path: { projectKey } } })).data!.views,
+    queryKey: [...viewsKey(projectKey), kind],
+    queryFn: async (): Promise<View[]> => (await api.GET("/projects/{projectKey}/views", { params: { path: { projectKey }, query: { kind } } })).data!.views,
   });
 }
 

@@ -109,6 +109,7 @@ export const gridDe: typeof gridEn = {
   none: "Keine",
   views: "Ansichten",
   allRequirements: "Alle Anforderungen",
+  noView: "Keine gespeicherte Ansicht",
   saveAs: "Als Ansicht speichern",
   saveChanges: "Änderungen an dieser Ansicht speichern",
   viewName: "Name",

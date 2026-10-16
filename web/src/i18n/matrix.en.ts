@@ -34,4 +34,8 @@ export const matrixEn = {
   unlinked: (column: string) => `The link to ${column} is removed.`,
   close: "Close",
   columnPagesKind: "Stator pages",
+  dropped: (n: number) =>
+    n === 1
+      ? "This view named one thing the project no longer has, which is left out."
+      : `This view named ${n} things the project no longer has, which are left out.`,
 };

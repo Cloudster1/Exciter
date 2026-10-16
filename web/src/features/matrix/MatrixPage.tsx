@@ -11,7 +11,8 @@ import { MATRIX_COLUMN_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
 import { Pages } from "@/features/coverage/Pages";
 import { queryFailure } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
-import { fromMatrixAddress, matrixParams, toMatrixAddress, type MatrixAddress } from "./address";
+import { GridViews } from "@/features/grid/GridViews";
+import { fromMatrixAddress, fromMatrixView, matrixParams, matrixSettings, toMatrixAddress, type MatrixAddress } from "./address";
 import { MatrixTable } from "./MatrixTable";
 import { MatrixToolbar } from "./MatrixToolbar";
 
@@ -34,6 +35,7 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
   const { data: types = [] } = useTypes(project.key);
   const { data: statuses = [] } = useStatuses(project.key);
   const { data: attributes = [] } = useAttributes(project.key);
+  const [notice, setNotice] = useState("");
   return (
     <div className="space-y-4" data-matrix={project.key}>
       <PageHeader
@@ -63,6 +65,23 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
           </div>
         }
       />
+      <div className="flex flex-wrap items-center gap-3">
+        <GridViews
+          project={project}
+          kind="matrix"
+          viewId={address.view}
+          state={{ filter: setup.filter, sort: setup.sort, settings: matrixSettings(setup) }}
+          onOpen={(view) => {
+            onAddress(view ? fromMatrixView(view) : {});
+            // Saving says so before it opens the view saved, which has lost nothing to say.
+            if (view?.dropped.length) setNotice(t.matrix.dropped(view.dropped.length));
+          }}
+          onNotice={setNotice}
+        />
+        <p role="status" className="text-sm text-ink-muted empty:hidden" data-matrix-notice>
+          {notice}
+        </p>
+      </div>
       <MatrixToolbar
         project={project}
         setup={setup}
@@ -71,7 +90,7 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
         attributes={attributes}
         queryError={columnRefused ? undefined : error}
         columnQueryError={columnRefused ? error : undefined}
-        onSetup={(next) => onAddress(toMatrixAddress(next))}
+        onSetup={(next) => onAddress(toMatrixAddress(next, address.view))}
       />
       <Card className="space-y-3 p-4">
         {queryFailure(error) ? null : error ? (

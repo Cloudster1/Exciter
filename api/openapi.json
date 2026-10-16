@@ -10509,7 +10509,7 @@
     "/projects/{projectKey}/views": {
       "get": {
         "operationId": "listViews",
-        "summary": "The caller's own views of a project's grid, then the shared ones.",
+        "summary": "The caller's own views of a project's grid, matrix or chains, then the shared ones, with what each names that the project lost left out.",
         "tags": [
           "search"
         ],
@@ -10520,6 +10520,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "grid, the default, matrix or chain (#152).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "grid",
+                "matrix",
+                "chain"
+              ]
             }
           }
         ],
@@ -25161,12 +25174,26 @@
             "type": "string",
             "format": "date-time"
           },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "filter": {
             "$ref": "#/components/schemas/ViewFilter"
           },
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grid",
+              "matrix",
+              "chain"
+            ]
           },
           "name": {
             "type": "string"
@@ -25180,6 +25207,9 @@
           },
           "projectKey": {
             "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ViewSettings"
           },
           "shared": {
             "type": "boolean"
@@ -25199,9 +25229,12 @@
           "ownerId",
           "ownerName",
           "shared",
+          "kind",
           "filter",
           "columns",
+          "settings",
           "sort",
+          "dropped",
           "canEdit",
           "createdAt",
           "updatedAt"
@@ -25314,14 +25347,73 @@
           "filter": {
             "$ref": "#/components/schemas/ViewFilter"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grid",
+              "matrix",
+              "chain"
+            ]
+          },
           "name": {
             "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ViewSettings"
           },
           "shared": {
             "type": "boolean"
           },
           "sort": {
             "$ref": "#/components/schemas/ViewSort"
+          }
+        }
+      },
+      "ViewSettings": {
+        "type": "object",
+        "properties": {
+          "columnProject": {
+            "type": "string"
+          },
+          "columnQuery": {
+            "type": "string"
+          },
+          "columnTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "columns": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "gaps": {
+            "type": "string"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onlyBroken": {
+            "type": "boolean"
+          },
+          "relations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

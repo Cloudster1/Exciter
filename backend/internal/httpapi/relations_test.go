@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
+	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
@@ -17,5 +18,12 @@ func TestTheTraceModelKnowsThePartnersRelations(t *testing.T) {
 	}
 	if !slices.Equal(trace.PageRelations, enumStrings(stator.Relations)) {
 		t.Errorf("the trace model's page relations are %v, Stator's %v", trace.PageRelations, stator.Relations)
+	}
+}
+
+// A chain view (#152) names the levels a trace model can have.
+func TestAChainViewNamesTheLevelsAModelHas(t *testing.T) {
+	if search.MaxViewLevels != trace.MaxLevels {
+		t.Errorf("a chain view names %d levels, a trace model has up to %d", search.MaxViewLevels, trace.MaxLevels)
 	}
 }

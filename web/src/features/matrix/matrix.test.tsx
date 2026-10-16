@@ -221,6 +221,59 @@ describe("the matrix's gaps", () => {
   });
 });
 
+describe("matrix views", () => {
+  it("open where they were saved, say what they lost, and save the matrix as it stands", async () => {
+    const view = {
+      id: "0195f000-0000-7000-8000-000000000f11",
+      projectKey: "CHK",
+      name: "Verified",
+      ownerId: "0195f000-0000-7000-8000-00000000000a",
+      ownerName: "Ada Lovelace",
+      shared: false,
+      kind: "matrix" as const,
+      filter: { q: "", kinds: [], types: [], statuses: [], categories: [], labels: [], owners: [], priorities: [], attributes: [], suspect: false, query: "" },
+      columns: [],
+      settings: { linkTypes: ["verifies"], direction: "incoming", gaps: "rows" },
+      dropped: ["linkType:blocks"],
+      sort: { column: "", desc: false },
+      canEdit: true,
+      createdAt: "2026-10-16T08:00:00Z",
+      updatedAt: "2026-10-16T08:00:00Z",
+    };
+    const asked: string[] = [];
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [] } },
+      "GET /projects/CHK/statuses": { status: 200, body: { statuses: [] } },
+      "GET /projects/CHK/attributes": { status: 200, body: { attributes: [] } },
+      "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [derives, verifies] } },
+      "GET /projects/CHK/views": (request) => {
+        asked.push(new URL(request.url).searchParams.get("kind") ?? "");
+        return { status: 200, body: { views: [view] } };
+      },
+      "POST /projects/CHK/views": { status: 201, body: { view: { ...view, id: "0195f000-0000-7000-8000-000000000f12", name: "Mine" } } },
+      "GET /projects/CHK/matrix": { status: 200, body: { matrix: { ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 } } },
+    });
+    const router = await renderAt("/p/CHK/matrix");
+    await screen.findByRole("option", { name: "Verified" });
+    await userEvent.selectOptions(screen.getByLabelText("Views"), "Verified");
+    await waitFor(() => expect(router.state.location.search).toEqual({ view: view.id, linkType: ["verifies"], direction: "incoming", gaps: "rows" }));
+    expect(asked).toContain("matrix");
+    expect(screen.getByText("This view named one thing the project no longer has, which is left out.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Save as a view" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText("Name"), "Mine");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(sent.find((r) => r.method === "POST")?.body).toMatchObject({
+        name: "Mine",
+        kind: "matrix",
+        settings: { linkTypes: ["verifies"], direction: "incoming", gaps: "rows" },
+      }),
+    );
+  });
+});
+
 describe("a matrix's address", () => {
   it("drops what does not fit the columns, and the defaults", () => {
     const setup = fromMatrixAddress(
