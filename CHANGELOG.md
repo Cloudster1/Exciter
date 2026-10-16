@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Webhook envelope version 2 in the CloudEvents 1.0 shape (#133). An
+  administrator chooses it per endpoint under Settings, Webhooks; such an
+  endpoint is posted `application/cloudevents+json` with Exciter's
+  address as its source, `dev.exciter.` types and version 1's payload as
+  its data, signed as before. Version 1 stays the default. Exciter also
+  reads version 2 from Armature and Stator, as they agreed to send it, and
+  `/api/v1/meta` lists `webhooks@2`.
 - Themes are proven to travel between Exciter, Armature and Stator (#59):
   themes exported from running Armature and Stator installations import
   here and export again unchanged, Exciter's own export is a committed file
