@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
@@ -44,6 +45,12 @@ func TestTheStackReportsTheBuildItWasStamped(t *testing.T) {
 	}
 	if meta.Product != httpapi.Product || meta.APIVersion != httpapi.Spec().Info.Version || meta.Capabilities == nil || meta.Build.BuiltAt == "" {
 		t.Errorf("GET /api/v1/meta = %s", body)
+	}
+	// What a Stator page's requirement blocks check for (#140): the stack serves the build's own list.
+	for _, name := range []string{"requirement-embed@1", "requirement-list@1", "webhooks@1"} {
+		if !slices.Contains(meta.Capabilities, name) {
+			t.Errorf("GET /api/v1/meta lists %v, without %s", meta.Capabilities, name)
+		}
 	}
 	for _, stamp := range []struct{ env, got string }{
 		{envBuildVersion, meta.Build.Version},

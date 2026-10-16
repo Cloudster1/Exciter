@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `GET /api/v1/meta` lists `requirement-list@1`, a project's requirements read
+  by a query in the query language with its completion, and `webhooks@1`,
+  Exciter's outbound webhooks under Stator's name, for the requirement chips
+  and blocks Stator is to show on its pages (#140, #43).
 - Stator pages show the requirements linked to them (#42). Once Stator offers
   remote links on pages, the worker puts each requirement on the pages it is
   linked to as the person whose change it was, keeps the title in step with

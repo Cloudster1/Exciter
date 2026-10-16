@@ -32,7 +32,7 @@ func TestMetaReportsTheBuildStamp(t *testing.T) {
 		"product":      "exciter",
 		"build":        map[string]any{"version": "0.1.0+4.gabc1234", "commit": "abc1234", "builtAt": "2026-10-14T09:00:00Z"},
 		"apiVersion":   Spec().Info.Version,
-		"capabilities": []any{"requirement-embed@1", "specifications@1", "theme-export@1", "trace-links@1"},
+		"capabilities": []any{"requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("meta =\n%s\nwant %v", raw, want)

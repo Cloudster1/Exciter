@@ -3,6 +3,24 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Stator's requirement blocks read what Exciter already serves (#43, #140)
+
+#43 is Stator's to build. Exciter's part is to name what the chips and blocks
+read, agree how, and file the rest in Stator.
+
+- **A list is a capability of its own.** `requirement-list@1` promises the
+  grid's query read and its completion, so `requirement-embed@1` keeps the
+  promise a partner may already have checked; a partner that wants both asks
+  for both.
+- **Webhooks under Stator's name.** Exciter's outbound webhooks are Stator's
+  with the same eight operations, so they are listed as `webhooks@1`, which
+  lets Stator know before it asks an administrator for one.
+- **JSON only.** Stator draws chips and blocks from the API as the viewer, as
+  it does Armature's issues; no oEmbed and no page made for framing, which
+  would need their own rules on who sees what.
+- **Webhooks only clear Stator's cache.** A payload is read as the webhook's
+  owner, so Stator re-reads with the viewer's token rather than showing it.
+
 ## 2026-10-16: Requirements show on the Stator pages they trace to, as on Armature's issues (#42)
 
 Stator shipped remote links on pages (Stator#419, its pull request #437), so
