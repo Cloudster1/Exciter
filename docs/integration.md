@@ -83,11 +83,12 @@ everything, so upgrading Exciter alone switches nothing off. Creating issues
 
 ### Stator
 
-Exciter reads Stator's `/meta` the same way, and takes remote links on pages
-(#42) only once Stator lists `page.remote-links` (Stator #419), under any
-version. Stator names no other capability yet (Stator #409), so nothing else
-is checked; once it does, the page reads, search and webhooks check theirs as
-Armature's do.
+Exciter reads Stator's `/meta` the same way, and puts remote links on pages
+(#42) only once Stator lists `page-remote-links@1` (Stator #419, since its
+4afe5a1), under any version. The first check that finds it, a connection
+saved or an account checked, puts every live page link on its page, each
+requirement's as the maker of its newest link. Nothing else Stator lists is
+checked yet; the page reads, search and webhooks are what every Stator has.
 
 ## Webhooks
 

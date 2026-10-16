@@ -3,6 +3,34 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Requirements show on the Stator pages they trace to, as on Armature's issues (#42)
+
+Stator shipped remote links on pages (Stator#419, its pull request #437), so
+the way back of `docs/api-contract-m4.md` is built as Armature's link sync of
+#27, pointed at pages.
+
+- **The capability is Stator's spelling.** Stator names every capability
+  `name@version` with a test that forbids a dot, so it lists
+  `page-remote-links@1` rather than the `page.remote-links` the contract
+  asked for. `RemoteLinksCapability` follows it, and nothing else changes.
+- **The catch-up is each link's maker's.** Once Stator first lists the
+  capability, the connection's trigger queues every requirement with live
+  page links as the maker of its newest one, so a page shows only what
+  somebody who picked it would have put there, and nobody's token reaches a
+  page they never chose. A requirement whose live links all lost their maker
+  waits for its next change.
+- **Nothing is queued while Stator cannot take it.** `stator_links_emit`
+  writes no event while the connection's `remote_links` is false, and the
+  links read `sync` `none` then, rather than `pending` forever.
+- **A failure waits for the next change,** as on Armature: the sentence says
+  so, and no button tries again, since the next try would meet the same
+  refusal until the person or the page changes.
+- **A page Stator deleted forgets its records.** Its remote links go to the
+  trash with it, so the sync has nothing left to take off there.
+- **The stub offers what Stator offers.** Its `/meta` lists Stator's own
+  capabilities unless a test sets others, and `keepStator` puts them back,
+  as the Armature stub does.
+
 ## 2026-10-15: Webhooks are Stator's, kept by the installation and filtered by project (#48)
 
 Integrators want to hear when requirements change, signed so they know it came
@@ -278,8 +306,8 @@ checks what Armature lists before each feature calls it.
   agreed, so a renamed route fails here rather than at a partner.
 - **A partner's capability counts by its exact name.** `remote-links@2` does
   not stand in for the `@1` a feature was built against, which is what a
-  raised number means. Stator's `page.remote-links` stays matched by its bare
-  name until Stator names its capabilities (Stator #409).
+  raised number means. Stator's `page-remote-links` is matched by its bare
+  name under any version, as #42 agreed before Stator named it.
 - **Not asked counts as offering everything.** A connection saved before this
   release has no list until it is saved again or a token checked, so
   upgrading Exciter alone switches nothing off before Armature is asked.
@@ -321,7 +349,8 @@ says what differs.
   neither decomposes, implements nor verifies it.
 - **The way back waits for Stator, and asks it.** Stator has no remote links
   yet. Exciter asks for them in one Stator issue, and puts its links on pages
-  only once Stator lists `page.remote-links` among its capabilities on
+  only once Stator lists `page-remote-links` (first asked as
+  `page.remote-links`) among its capabilities on
   `/meta`, so neither side has to ship in step with the other.
 - **Stator's own webhooks.** Stator already sends signed page events to any
   address its administrator names; Exciter receives them like Armature's

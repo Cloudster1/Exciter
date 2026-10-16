@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -127,7 +128,11 @@ func (s *Service) Webhook(ctx context.Context, body []byte, signature, version s
 // act does what one topic says; a topic Exciter does not act on, ping among them, does nothing.
 func (s *Service) act(ctx context.Context, baseURL string, env WebhookEnvelope) error {
 	var p struct {
-		Page WebhookPage `json:"page"`
+		Page       WebhookPage `json:"page"`
+		RemoteLink struct {
+			ID  uuid.UUID `json:"id"`
+			URL string    `json:"url"`
+		} `json:"remoteLink"`
 	}
 	if len(env.Payload) > 0 {
 		if err := json.Unmarshal(env.Payload, &p); err != nil {
@@ -144,8 +149,20 @@ func (s *Service) act(ctx context.Context, baseURL string, env WebhookEnvelope) 
 		write = func(ctx context.Context, tx db.DBTX) error { return noteMoved(ctx, tx, baseURL, page) }
 	case TopicPageDeleted:
 		write = func(ctx context.Context, tx db.DBTX) error { return breakLinks(ctx, tx, page.ID) }
+	case TopicRemoteLinkRemoved:
+		requirementID, ours := s.requirementOf(p.RemoteLink.URL)
+		if !ours || page.ID == uuid.Nil {
+			return nil
+		}
+		removed := p.RemoteLink.ID
+		// The page itself did not change, so what is cached of it stands.
+		if _, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+			return detachLinks(ctx, tx, requirementID, page.ID, removed)
+		}); err != nil {
+			return fmt.Errorf("act on the webhook %s: %w", env.Topic, err)
+		}
+		return nil
 	default:
-		// The remote links' removal is #42's, which puts them there.
 		return nil
 	}
 	if page.ID == uuid.Nil {
@@ -181,8 +198,41 @@ func noteMoved(ctx context.Context, tx db.DBTX, baseURL string, page WebhookPage
 	return err
 }
 
-// breakLinks marks the links to a page Stator deleted; they stay until somebody removes them.
+// breakLinks marks the links to a page Stator deleted; they stay until somebody removes them. The remote links on it
+// go to its trash with it, so there is nothing left for a sync to take off.
 func breakLinks(ctx context.Context, tx db.DBTX, pageID uuid.UUID) error {
-	_, err := tx.Exec(ctx, `UPDATE stator_page_link SET broken_at = now() WHERE page_id = $1 AND broken_at IS NULL`, pageID)
+	if _, err := tx.Exec(ctx, `UPDATE stator_page_link SET broken_at = now() WHERE page_id = $1 AND broken_at IS NULL`, pageID); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM stator_remote_link WHERE page_id = $1`, pageID)
+	return err
+}
+
+// requirementOf reads a remote link's address as one of this installation's requirements.
+func (s *Service) requirementOf(raw string) (uuid.UUID, bool) {
+	rest, ok := strings.CutPrefix(raw, strings.TrimSuffix(s.opts.AppURL, "/")+RequirementPath)
+	if !ok {
+		return uuid.Nil, false
+	}
+	id, err := uuid.Parse(rest)
+	return id, err == nil
+}
+
+// detachLinks marks a requirement's links to a page once somebody took Exciter's link off it, so Stator's removal
+// wins. The worker takes off only links it no longer wants, so a removal of a wanted one is a person's.
+func detachLinks(ctx context.Context, tx db.DBTX, requirementID, pageID, remoteID uuid.UUID) error {
+	tag, err := tx.Exec(ctx, `
+		DELETE FROM stator_remote_link rl
+		WHERE rl.requirement_id = $1 AND rl.page_id = $2 AND rl.remote_link_id = $3
+		  AND EXISTS (SELECT 1 FROM stator_page_link l JOIN requirement r ON r.id = l.requirement_id
+		              WHERE l.requirement_id = $1 AND l.page_id = $2 AND r.trashed_at IS NULL
+		                AND l.broken_at IS NULL AND l.detached_at IS NULL)`,
+		requirementID, pageID, remoteID)
+	if err != nil || tag.RowsAffected() == 0 {
+		return err
+	}
+	_, err = tx.Exec(ctx, `
+		UPDATE stator_page_link SET detached_at = now()
+		WHERE requirement_id = $1 AND page_id = $2 AND detached_at IS NULL`, requirementID, pageID)
 	return err
 }

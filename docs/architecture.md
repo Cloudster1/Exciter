@@ -384,8 +384,12 @@ German.
   page's latest version stored for everyone so a link whose page moved on is
   suspect. `internal/stator` reads pages and Stator's quick search as the
   viewer through the same per-token cache in Valkey, and its receiver
-  follows `page.published`, `page.moved` and `page.deleted`. Exciter puts its links on pages only once Stator reports
-  `page.remote-links` on `/meta`.
+  follows `page.published`, `page.moved` and `page.deleted`. The way back is
+  Armature's link sync: `stator.links`, written by triggers, has the worker
+  put one remote link per requirement and page as the person whose change
+  it was, recorded in `stator_remote_link`, once Stator reports
+  `page-remote-links@1` on `/meta`; `page.remote_link.removed` leaves a link
+  a person took off detached.
 - **Stator's API** is vendored at `api/stator/openapi.json`, its commit in
   `api/stator/SOURCE`, refreshed with `make stator-openapi REF=`. The
   `stator-stub` answers in its shapes, and a contract test holds it to them

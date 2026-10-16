@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/stator"
@@ -148,15 +151,17 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 
 	// What connecting reads (#40): which product answers, what it offers, and whom a token acts as.
 	meta := c.expect("GET", "/meta", "", nil, 200)
-	if meta["product"] != stator.Product || len(meta["capabilities"].([]any)) != 0 {
+	if meta["product"] != stator.Product || !slices.Contains(meta["capabilities"].([]any), any(stator.RemoteLinksCapability+"@1")) {
 		t.Errorf("the stub describes itself as %v", meta)
 	}
-	c.expect("PUT", stubPrefix+"/capabilities", "", map[string]any{"capabilities": []string{stator.RemoteLinksCapability + "@1"}}, 204)
-	offered := c.expect("GET", "/meta", "", nil, 200)["capabilities"].([]any)
-	if len(offered) != 1 || offered[0] != stator.RemoteLinksCapability+"@1" {
-		t.Errorf("the stub offers %v after it was told", offered)
+	c.expect("PUT", stubPrefix+"/capabilities", "", map[string]any{"capabilities": []string{}}, 204)
+	if offered := c.expect("GET", "/meta", "", nil, 200)["capabilities"].([]any); len(offered) != 0 {
+		t.Errorf("the stub offers %v after it was told none", offered)
 	}
 	c.expect("PUT", stubPrefix+"/capabilities", "", map[string]any{"capabilities": nil}, 204)
+	if offered := c.expect("GET", "/meta", "", nil, 200)["capabilities"].([]any); len(offered) != len(statorCapabilities) {
+		t.Errorf("null did not put Stator's own back: %v", offered)
+	}
 
 	me := c.expect("GET", "/auth/me", alice, nil, 200)["user"].(map[string]any)
 	if me["name"] != "Alice" || me["email"] != "alice@acme.stator.test" {
@@ -173,6 +178,7 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 	c.expect("GET", "/auth/me", "armature_pat_acme_alice", nil, 401)
 
 	pagesTenantScenario(t, c)
+	remoteLinksScenario(t, c)
 
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
@@ -245,6 +251,56 @@ func pagesTenantScenario(t *testing.T, c *contract) {
 	}
 	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": ""}, 204)
 	c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping"}, 409)
+}
+
+// remoteLinksScenario puts, replaces and takes off links as Exciter's link sync does (#42), and as a person in Stator.
+func remoteLinksScenario(t *testing.T, c *contract) {
+	alice, admin := patFor("links", "alice"), patFor("links", adminName)
+	listed := map[string]string{}
+	for _, p := range c.expect("GET", stubPrefix+"/links/pages", "", nil, 200)["pages"].([]any) {
+		page := p.(map[string]any)
+		listed[page["title"].(string)] = page["id"].(string)
+	}
+	timing, threat := "/pages/"+listed["Brake timing"]+"/remote-links", "/pages/"+listed["Threat model"]+"/remote-links"
+	sent := map[string]any{"url": "http://exciter.test/r/one", "title": "CHK-R1 Brakes (specifies)", "source": stator.LinkSource,
+		"iconUrl": "http://exciter.test/favicon-32.png"}
+
+	got2 := webhookBin(t)
+	c.expect("PUT", stubPrefix+"/links/webhook", "", map[string]any{"url": got2.url + "/hook", "secret": "stator_whs_contract"}, 204)
+	put := c.expect("POST", timing, alice, sent, 201)["remoteLink"].(map[string]any)
+	if put["createdByName"] != "Alice" || put["source"] != stator.LinkSource {
+		t.Errorf("a put link reads %v", put)
+	}
+	sent["title"] = "CHK-R1 Brakes, renamed (specifies)"
+	if again := c.expect("POST", timing, admin, sent, 200)["remoteLink"].(map[string]any); again["id"] != put["id"] || again["createdByName"] != "Alice" {
+		t.Errorf("the same url again did not replace the link and keep its maker: %v", again)
+	}
+	if links := c.expect("GET", timing, alice, nil, 200)["remoteLinks"].([]any); len(links) != 1 {
+		t.Errorf("the page has %d links", len(links))
+	}
+	c.expect("POST", timing, patFor("links", readerName), sent, 403)
+	c.expect("POST", timing, patFor("links", readOnlyName), sent, 403)
+	c.expect("POST", threat, alice, sent, 404)
+	c.expect("POST", timing, alice, map[string]any{"url": "ftp://x", "title": "x", "source": "x"}, 422)
+	c.expect("DELETE", timing+"/"+uuid.NewString(), alice, nil, 404)
+
+	c.expect("PUT", stubPrefix+"/links/remote-links/outage", "", map[string]any{"status": 503, "count": 1}, 204)
+	c.expect("GET", timing, alice, nil, 503)
+	c.expect("DELETE", timing+"/"+put["id"].(string), alice, nil, 204)
+	c.expect("POST", timing, alice, sent, 201)
+	c.expect("DELETE", stubPrefix+"/links/pages/"+listed["Brake timing"]+"/remote-links?url="+sent["url"].(string), "", nil, 204)
+	if all := c.expect("GET", stubPrefix+"/links/remote-links", "", nil, 200)["remoteLinks"].([]any); len(all) != 0 {
+		t.Errorf("links are left after both were taken off: %v", all)
+	}
+	if topics := got2.topics(); topics != "page.remote_link.removed page.remote_link.removed" {
+		t.Errorf("the stub announced %s", topics)
+	}
+	removed := got2.payload(1)
+	if removed["remoteLink"].(map[string]any)["url"] != sent["url"] || removed["actor"].(map[string]any)["name"] != "Admin" ||
+		removed["page"].(map[string]any)["id"] != listed["Brake timing"] {
+		t.Errorf("a removal reads %v", removed)
+	}
+	c.expect("DELETE", stubPrefix+"/links", "", nil, 204)
 }
 
 // bin receives the stub's webhooks, checking each is signed and shaped as Stator's webhook service sends it. Stator's

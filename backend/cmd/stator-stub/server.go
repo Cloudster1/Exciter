@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -35,6 +36,9 @@ var routes = []route{
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
 	{Method: "GET", Path: "/pages/{pageID}", handler: (*stub).getPage},
 	{Method: "GET", Path: "/search/quick", handler: (*stub).quickSearch},
+	{Method: "GET", Path: "/pages/{pageID}/remote-links", handler: (*stub).listLinks},
+	{Method: "POST", Path: "/pages/{pageID}/remote-links", handler: (*stub).putLink},
+	{Method: "DELETE", Path: "/pages/{pageID}/remote-links/{linkID}", handler: (*stub).deleteLink},
 }
 
 type stub struct {
@@ -77,6 +81,9 @@ func (s *stub) handler() http.Handler {
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/pages/{pageID}/publish", s.control((*stub).publishPage))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/pages/{pageID}/move", s.control((*stub).movePage))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/pages/{pageID}", s.control((*stub).trashPage))
+	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/pages/{pageID}/remote-links", s.control((*stub).takeOffLink))
+	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/webhook", s.control((*stub).setWebhook))
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/deliveries", s.control((*stub).listDeliveries))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/webhooks", s.control((*stub).sendEvent))
@@ -96,19 +103,23 @@ func (s *stub) serve(rt route) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := &call{w: w, r: r}
 		s.world.mu.Lock()
-		defer s.world.mu.Unlock()
 		if rt.Public {
 			rt.handler(s, c)
+			s.world.mu.Unlock()
 			return
 		}
 		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		t, p, ok := s.world.caller(strings.TrimSpace(token))
 		if !found || !ok {
+			s.world.mu.Unlock()
 			refuse(w, http.StatusUnauthorized, "unauthorized", "Sign in to continue.")
 			return
 		}
 		c.tenant, c.person = t, p
 		rt.handler(s, c)
+		s.world.mu.Unlock()
+		// A removal is announced after its answer, as Stator's outbox sends it once the change is committed.
+		s.finish(c)
 	}
 }
 
@@ -174,18 +185,18 @@ func (s *stub) me(c *call) {
 	})
 }
 
-// setCapabilities sets what GET /meta lists, for every tenant at once since /meta names none; a test that changes
-// it puts it back.
+// setCapabilities sets what GET /meta lists, for every tenant at once since /meta names none, null for Stator's own;
+// a test that changes it puts it back.
 func (s *stub) setCapabilities(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Capabilities []string `json:"capabilities"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		refuse(w, http.StatusUnprocessableEntity, "invalid", "Send {\"capabilities\": [...]}.")
+		refuse(w, http.StatusUnprocessableEntity, "invalid", "Send {\"capabilities\": [...]}, or null for Stator's own.")
 		return
 	}
 	if body.Capabilities == nil {
-		body.Capabilities = []string{}
+		body.Capabilities = slices.Clone(statorCapabilities)
 	}
 	s.world.mu.Lock()
 	s.world.capabilities = body.Capabilities

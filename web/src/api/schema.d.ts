@@ -2206,7 +2206,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The Stator pages a requirement is linked to, with the page's latest version stored for everyone and whether the link is suspect. */
+        /** The Stator pages a requirement is linked to, with the page's latest version stored for everyone, whether the link is suspect and whether the page shows the requirement yet. */
         get: operations["listStatorLinks"];
         put?: never;
         /** Link a requirement to a Stator page the caller may read, as specified by, described by or related to it. */

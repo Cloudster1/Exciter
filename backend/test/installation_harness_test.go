@@ -192,25 +192,27 @@ func (h *harness) keepWebhooks(t *testing.T) {
 	})
 }
 
-// keepStator starts the test with the installation connected to no Stator, and puts the connection and its members'
-// tokens back once the test ends, with what the stub's /meta offers, which a test may change.
+// keepStator starts the test with the installation connected to no Stator, and puts the connection, its members'
+// tokens and the link sync's records back once the test ends, with Stator's own offers on the stub's /meta.
 func (h *harness) keepStator(t *testing.T) {
 	t.Helper()
-	var connection, tokens []byte
+	var connection, tokens, synced []byte
 	if err := h.super.QueryRow(context.Background(), `
 		SELECT (SELECT coalesce(jsonb_agg(c), '[]') FROM stator_connection c),
-		       (SELECT coalesce(jsonb_agg(k), '[]') FROM stator_token k)`).Scan(&connection, &tokens); err != nil {
+		       (SELECT coalesce(jsonb_agg(k), '[]') FROM stator_token k),
+		       (SELECT coalesce(jsonb_agg(s), '[]') FROM stator_remote_link s)`).Scan(&connection, &tokens, &synced); err != nil {
 		t.Fatal(err)
 	}
 	h.cleanupExec(t, h.super, `DELETE FROM stator_connection`)
 	h.settle(t)
 	t.Cleanup(func() {
-		statorOffers(t)
+		statorOffersItsOwn(t)
 		h.cleanupExec(t, h.super, `DELETE FROM stator_connection`)
 		h.cleanupExec(t, h.super, `INSERT INTO stator_connection SELECT * FROM jsonb_populate_recordset(NULL::stator_connection, $1::jsonb)`, connection)
 		h.cleanupExec(t, h.super, `
 			INSERT INTO stator_token SELECT * FROM jsonb_populate_recordset(NULL::stator_token, $1::jsonb) k
 			WHERE EXISTS (SELECT 1 FROM app_user WHERE id = k.user_id)`, tokens)
+		h.cleanupExec(t, h.super, `INSERT INTO stator_remote_link SELECT * FROM jsonb_populate_recordset(NULL::stator_remote_link, $1::jsonb)`, synced)
 	})
 }
 

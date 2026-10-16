@@ -64,39 +64,43 @@ export function StatorLinks({ requirement }: { requirement: Requirement }) {
                 <h3 className="text-sm font-medium text-ink">{l.headings[relation]}</h3>
                 <ul className="space-y-2">
                   {group.map((link) => (
-                    <li key={link.id} className="flex flex-wrap items-center gap-2 text-sm" data-stator-link={link.pageId}>
-                      <PageChip
-                        pageId={link.pageId}
-                        href={link.url}
-                        spaceKey={link.spaceKey}
-                        version={link.pageVersion}
-                        state={pageChipState(link.pageId, lookup, connected)}
-                      />
-                      {link.brokenAt && <Tag>{l.broken}</Tag>}
-                      {link.detachedAt && <Tag>{l.detached}</Tag>}
-                      {link.suspect && <SuspectBadge hint={t.suspect.statorHint} />}
-                      {link.suspect && mayLink && (
-                        <Button
-                          variant="link"
-                          onClick={() => {
-                            clear.reset();
-                            setChecking(link);
-                          }}
-                          aria-label={t.suspect.statorLabel(pageName(link, lookup))}
-                          data-action="check-stator-link"
-                        >
-                          {t.suspect.check}
-                        </Button>
-                      )}
-                      {mayLink && (
-                        <IconButton
-                          icon={<Icon.X className="size-3" />}
-                          label={l.remove(pageName(link, lookup), l.relations[link.relation])}
-                          size="xs"
-                          onClick={() => unlink(link)}
-                          data-action="remove-stator-link"
+                    <li key={link.id} className="space-y-0.5 text-sm" data-stator-link={link.pageId} data-sync={link.sync}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <PageChip
+                          pageId={link.pageId}
+                          href={link.url}
+                          spaceKey={link.spaceKey}
+                          version={link.pageVersion}
+                          state={pageChipState(link.pageId, lookup, connected)}
                         />
-                      )}
+                        {link.brokenAt && <Tag>{l.broken}</Tag>}
+                        {link.detachedAt && <Tag>{l.detached}</Tag>}
+                        {!link.brokenAt && !link.detachedAt && link.sync !== "synced" && link.sync !== "none" && <Tag>{l.states[link.sync]}</Tag>}
+                        {link.suspect && <SuspectBadge hint={t.suspect.statorHint} />}
+                        {link.suspect && mayLink && (
+                          <Button
+                            variant="link"
+                            onClick={() => {
+                              clear.reset();
+                              setChecking(link);
+                            }}
+                            aria-label={t.suspect.statorLabel(pageName(link, lookup))}
+                            data-action="check-stator-link"
+                          >
+                            {t.suspect.check}
+                          </Button>
+                        )}
+                        {mayLink && (
+                          <IconButton
+                            icon={<Icon.X className="size-3" />}
+                            label={l.remove(pageName(link, lookup), l.relations[link.relation])}
+                            size="xs"
+                            onClick={() => unlink(link)}
+                            data-action="remove-stator-link"
+                          />
+                        )}
+                      </div>
+                      {link.sync === "failed" && link.error && <p className="text-xs text-ink-muted">{link.error}</p>}
                     </li>
                   ))}
                 </ul>

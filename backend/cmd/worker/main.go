@@ -31,6 +31,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/webhook"
@@ -85,7 +86,7 @@ func run() error {
 		return err
 	}
 
-	armatures, err := armatureService(cfg, cluster, log)
+	armatures, stators, err := partnerServices(cfg, cluster, log)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,8 @@ func run() error {
 		attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log), store)
 	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports)).
 		Route(reqifio.TopicRequested, reqifio.Handler(exchanges)).
-		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log))
+		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log)).
+		Route(stator.TopicLinks, stator.NewLinkSync(stators, log))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
 		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")
@@ -158,14 +160,19 @@ func run() error {
 
 // armatureService calls Armature as the person an event names, through the guard as the api does; without
 // EXCITER_SECRET_KEY no stored token opens, and every link waits for one.
-func armatureService(cfg config.Config, cluster *db.Cluster, log *slog.Logger) (*armature.Service, error) {
+// partnerServices reach Armature and Stator as the person whose change link sync works on; the worker caches nothing.
+func partnerServices(cfg config.Config, cluster *db.Cluster, log *slog.Logger) (*armature.Service, *stator.Service, error) {
 	box, err := secretBox(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
-	return armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
-		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}), nil
+	development := cfg.Env == config.EnvDevelopment
+	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), nil,
+		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: development, Log: log})
+	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel), nil,
+		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: development, Log: log})
+	return armatures, stators, nil
 }
 
 // secretBox opens what is sealed with EXCITER_SECRET_KEY; nil without one, when nothing sealed opens.

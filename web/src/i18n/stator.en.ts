@@ -61,6 +61,7 @@ export const statorEn = {
       "specifies" | "describes" | "relates",
       string
     >,
+    states: { synced: "On the page", pending: "Waiting for Stator", failed: "Not on the page" } as Record<"synced" | "pending" | "failed", string>,
     broken: "Deleted in Stator",
     detached: "Removed in Stator",
     add: "Link a Stator page",

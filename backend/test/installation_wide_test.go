@@ -68,6 +68,8 @@ var installationWide = map[string]string{
 	"TestRequirementsAreTracedToStatorPages":                 statorLink,
 	"TestRawSQLGuardsStatorLinks":                            statorLink,
 	"TestTheBootstrapConnectsStatorOnce":                     statorLink,
+	"TestRequirementsShowOnTheStatorPagesTheyAreLinkedTo":    statorLink,
+	"TestRawSQLGuardsStatorRemoteLinks":                      statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
