@@ -21,6 +21,8 @@ import { BaselinePage } from "@/features/baselines/BaselinePage";
 import { BaselineCompare } from "@/features/baselines/BaselineCompare";
 import { CoveragePage } from "@/features/coverage/CoveragePage";
 import { readMatrixAddress } from "@/features/matrix/address";
+import { readChainsAddress } from "@/features/matrix/chainsAddress";
+import { ChainsPage } from "@/features/matrix/ChainsPage";
 import { MatrixPage } from "@/features/matrix/MatrixPage";
 
 export const projectsRoute = createRoute({ getParentRoute: () => appRoute, path: PROJECTS_PATH, component: ProjectDirectory });
@@ -37,7 +39,8 @@ type ProjectPath =
   | "/p/$projectKey/suspects"
   | "/p/$projectKey/baselines"
   | "/p/$projectKey/coverage"
-  | "/p/$projectKey/matrix";
+  | "/p/$projectKey/matrix"
+  | "/p/$projectKey/chains";
 
 /** Reads the project a page is about; a key it had moves the address to the key it has now. */
 export function ProjectPage({ projectKey, to, render }: { projectKey: string; to: ProjectPath; render: (project: Project) => ReactNode }) {
@@ -173,6 +176,32 @@ export const matrixRoute = createRoute({
             project={project}
             address={address}
             onAddress={(next) => void navigate({ to: "/p/$projectKey/matrix", params: { projectKey: project.key }, search: next, replace: true })}
+          />
+        )}
+      />
+    );
+  },
+});
+
+/** A project's chains (#151), whose roots, levels and breaks the address holds. */
+export const chainsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/chains",
+  validateSearch: readChainsAddress,
+  component: function ProjectChainsPage() {
+    const { projectKey } = chainsRoute.useParams();
+    const address = chainsRoute.useSearch();
+    const navigate = useNavigate();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/chains"
+        render={(project) => (
+          <ChainsPage
+            key={project.id}
+            project={project}
+            address={address}
+            onAddress={(next) => void navigate({ to: "/p/$projectKey/chains", params: { projectKey: project.key }, search: next, replace: true })}
           />
         )}
       />

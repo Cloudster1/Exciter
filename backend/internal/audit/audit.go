@@ -91,6 +91,8 @@ const (
 	// ActionCoverageRuleSaved and ActionCoverageRuleRemoved keep what a project's coverage asks of each type (#38).
 	ActionCoverageRuleSaved   = "coverage_rule.saved"
 	ActionCoverageRuleRemoved = "coverage_rule.removed"
+	// ActionTraceModelSaved is a project's trace levels set or cleared (#151).
+	ActionTraceModelSaved = "trace_model.saved"
 	// ActionSpecificationExported is a specification or a baseline leaving as a document to sign and send (#45).
 	ActionSpecificationExported = "specification.exported"
 	// ActionProjectSignaturesSet is a project's approvals made electronic signatures, or no longer (#46).
@@ -111,7 +113,7 @@ var Actions = []string{
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
-	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet,
+	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

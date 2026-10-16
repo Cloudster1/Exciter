@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A project's trace model and its chain report (#151). An administrator
+  sets the levels a project's requirements trace through, such as need,
+  system, test and Armature issue, under Settings, Trace model, with the
+  link types or relations that lead from each to the next. The chain
+  report shows every path from the first level down, marks where one
+  breaks, keeps only the broken ones when asked, shows a range of the
+  levels, and downloads as CSV.
 - Stator pages as matrix columns (#150). The matrix lays requirements out
   against the Stator pages they are traced to, each link named by its
   relation and marked when its page moved on, titled as the reader sees

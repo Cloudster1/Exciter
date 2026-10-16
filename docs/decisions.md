@@ -3,6 +3,21 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Chains follow levels of their own types, shown as a range (#151)
+
+- **A type sits in one level.** The levels then hold different
+  requirements, so a path only ever moves down and cannot loop, and a
+  report needs no cycle guard.
+- **Levels shown are a range.** Showing level 0 and 2 without 1 would
+  either hide how a line got from one to the other or need paths to skip
+  levels; a From and a To keep every line readable from cell to cell.
+- **One query per level, for the whole page.** The walk asks for every
+  requirement of a level's frontier at once, so a page costs as many
+  queries as the model has levels, whatever its fan-out.
+- **A model is replaced whole.** The app role may insert and delete levels
+  but change none, so no half-edited model is ever read, and the audit log
+  keeps one entry per save.
+
 ## 2026-10-16: A matrix cell edits through the requirement's own links (#149)
 
 - **No new operations.** A cell's panel calls what the requirement page

@@ -260,6 +260,30 @@ calls, with the same rights.
   administer the project; and a Chains view beside the matrix, its levels,
   filters and "only broken" in the page's address.
 
+- **As built** (#151):
+  - Migration 00770: `trace_level`, `trace_level_type` and
+    `trace_level_step`, the children carrying the project with a foreign
+    key to their level's, so their policies read it directly. The app role
+    inserts and deletes and updates nothing: a model is replaced whole.
+    The database refuses a level of somebody who does not administer the
+    project or of an archived one, a type of another project, and a link
+    type of another project, straight through SQL.
+  - A type sits in one level only, so the levels hold different
+    requirements and no path can loop.
+  - `level` shows levels that follow one another, the first a level of
+    requirements; others are 422. Paths still pass through every level
+    between the first and the last shown.
+  - The report reads each step for the whole frontier in one query: a link
+    type in its direction (a symmetric one either way), onto the next
+    level's types in the project, out of the trash and as the reader sees
+    it; then Armature or Stator links, neither broken nor detached.
+  - The file holds every root up to the export's 20000 lines and is cut
+    there, saying so on its last line and with `X-Export-Truncated`.
+  - Web: a Trace model tab in the project's settings
+    (`features/matrix/TraceModelCard.tsx`) and the report at
+    `/p/$projectKey/chains`, linked from the matrix and back, its roots'
+    filter, levels as From and To, and "only broken" in its address.
+
 ## #152 Matrix and chain views
 
 | Operation | Needs | Answers |

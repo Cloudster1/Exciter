@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useAttributes, useTypes } from "@/api/attributes";
 import { matrixHref, useMatrix } from "@/api/coverage";
 import type { Project } from "@/api/projects";
@@ -39,17 +40,27 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
         title={t.matrix.title}
         meta={t.matrix.intro}
         actions={
-          <ButtonLink
-            href={matrixHref(project.key, params)}
-            download
-            variant="secondary"
-            size="sm"
-            icon={<Icon.Download />}
-            title={t.coverage.downloadHint}
-            data-action="matrix-csv"
-          >
-            {t.coverage.download}
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/p/$projectKey/chains"
+              params={{ projectKey: project.key }}
+              className="text-sm font-medium text-accent hover:underline"
+              data-action="open-chains"
+            >
+              {t.chains.openChains}
+            </Link>
+            <ButtonLink
+              href={matrixHref(project.key, params)}
+              download
+              variant="secondary"
+              size="sm"
+              icon={<Icon.Download />}
+              title={t.coverage.downloadHint}
+              data-action="matrix-csv"
+            >
+              {t.coverage.download}
+            </ButtonLink>
+          </div>
         }
       />
       <MatrixToolbar

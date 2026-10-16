@@ -1,6 +1,7 @@
 package trace
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,16 @@ const (
 
 // LevelKinds lists every LevelKind, for the API document.
 var LevelKinds = []LevelKind{LevelRequirements, LevelIssues, LevelPages}
+
+// IssueRelations and PageRelations are Armature's and Stator's relations, which internal/trace sits below; a test of
+// the API's keeps them equal to armature.Relations and stator.Relations.
+var (
+	IssueRelations = []string{"implements", "verifies", "relates"}
+	PageRelations  = []string{"specifies", "describes", "relates"}
+)
+
+// ErrNotModelKeeper refuses changing a project's trace model to anybody who does not administer it.
+var ErrNotModelKeeper = errors.New("only the project's administrators set its trace model")
 
 // ModelStep is one way down from the level before: a link type read in a direction, or an Armature or Stator relation.
 type ModelStep struct {
@@ -97,9 +108,11 @@ type Chains struct {
 	Roots  []requirement.Ref `json:"roots"`
 	Lines  []ChainLine       `json:"lines"`
 	Broken int               `json:"broken"`
-	Total  int               `json:"total"`
-	Limit  int               `json:"limit"`
-	Offset int               `json:"offset"`
+	// Truncated says a file was cut at the export's lines; a page refuses instead.
+	Truncated bool `json:"-"`
+	Total     int  `json:"total"`
+	Limit     int  `json:"limit"`
+	Offset    int  `json:"offset"`
 }
 
 // MatrixPage is a Stator page as a column or a chain's node: its id, space and address, its title being Stator's to tell.

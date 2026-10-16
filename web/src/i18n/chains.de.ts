@@ -1,0 +1,36 @@
+import type { chainsEn } from "./chains.en";
+
+/** Die Texte des Verfolgungsmodells eines Projekts und seines Kettenberichts (#151). */
+export const chainsDe: typeof chainsEn = {
+  tab: "Verfolgungsmodell",
+  modelTitle: "Verfolgungsmodell",
+  modelIntro:
+    "Die Ebenen, durch die sich die Anforderungen eines Projekts verfolgen lassen, von der ersten zur letzten, und die Verknüpfungen von jeder zur nächsten.",
+  noModel: "Noch kein Verfolgungsmodell. Legen Sie die erste Ebene an, etwa Stakeholder.",
+  readOnly: "Nur die Administratoren des Projekts legen sein Verfolgungsmodell fest.",
+  level: (n) => `Ebene ${n}`,
+  name: "Name",
+  kind: "Enthält",
+  kinds: { requirements: "Anforderungen", issues: "Armature-Issues", pages: "Stator-Seiten" },
+  types: "Typen",
+  steps: "Erreicht von der Ebene davor über",
+  addLevel: "Ebene hinzufügen",
+  moveUp: (name) => `${name} nach oben`,
+  moveDown: (name) => `${name} nach unten`,
+  remove: (name) => `${name} entfernen`,
+  save: "Modell speichern",
+  saved: "Das Verfolgungsmodell ist gespeichert.",
+  title: "Ketten",
+  intro: "Jeder Pfad von der ersten Ebene durch das Verfolgungsmodell, und wo er abbricht.",
+  openChains: "Ketten",
+  openMatrix: "Matrix",
+  from: "Von Ebene",
+  to: "Bis Ebene",
+  onlyBroken: "Nur abgebrochene Ketten",
+  breaks: "Bricht hier ab",
+  setModel: "Verfolgungsmodell festlegen",
+  noModelReport: "Dieses Projekt hat kein Verfolgungsmodell, also gibt es keine Ketten zu verfolgen.",
+  noLines: "Keine Kette bleibt zu zeigen.",
+  roots: "Ketten",
+  counts: (lines, broken) => `${lines} Ketten auf dieser Seite, ${broken} abgebrochen`,
+};
