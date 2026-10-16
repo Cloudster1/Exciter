@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Stator pages show the requirements linked to them (#42). Once Stator offers
+  remote links on pages, the worker puts each requirement on the pages it is
+  linked to as the person whose change it was, keeps the title in step with
+  revisions and new keys, takes it off when the link goes or the requirement
+  is trashed, and leaves off a link somebody took off in Stator. The Stator
+  pages panel says when a page does not show the requirement yet, and why.
 - Outbound webhooks (#48), as Stator sends them: an installation's
   administrators add an address under Settings, Webhooks, with the events and
   projects it hears, and each requirement, link, review, comment or baseline

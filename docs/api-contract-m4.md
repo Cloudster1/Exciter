@@ -31,8 +31,9 @@ topics `page.published`, `page.moved` and `page.deleted`, signed with
 `X-Stator-Signature-256` under a `stator_whs_` secret, in Armature's envelope.
 Their payload names the page with its id, title, version, space and URL.
 
-What it lacks is the way back, for #42. It is filed in Stator as its #419 (the
-text is at the end), and #42 stays `blocked` until it ships:
+What it lacked was the way back, for #42. It was filed in Stator as its #419
+(the text is at the end) and shipped in Stator's 4afe5a1 (its pull request
+#437), with the capability named `page-remote-links@1`:
 
 - `GET`, `POST` and `DELETE /pages/{pageID}/remote-links`: links another
   product puts on a page (`url`, `title`, `source`, `iconUrl`), a `POST` with a
@@ -41,8 +42,9 @@ text is at the end), and #42 stays `blocked` until it ships:
 - A panel on the page listing them, by source, for whoever may read the page.
 - The webhook topic `page.remote_link.removed`, with the page and the removed
   link's `id` and `url`, so a link a person took off stays off.
-- `page.remote-links` among the capabilities `GET /meta` answers, so Exciter
-  knows when to start (`stator.RemoteLinksCapability`).
+- `page-remote-links@1` among the capabilities `GET /meta` answers, so Exciter
+  knows when to start (`stator.RemoteLinksCapability`; asked for as
+  `page.remote-links`, which Stator's `name@version` scheme does not allow).
 
 ## Migrations, packages and settings
 
@@ -137,7 +139,7 @@ Armature's #26, with these differences:
 - **The address** is checked with `GET {baseUrl}/api/v1/meta`, which must
   answer `product` `stator`, in any case; Stator's `/meta` reports the
   integration features it offers, and `remoteLinks` records whether
-  `page.remote-links` is among them. `POST /stator/account/check` and every saved address read it again. A
+  `page-remote-links` is among them. `POST /stator/account/check` and every saved address read it again. A
   page opens at `{baseUrl}/s/{spaceKey}/p/{pageID}`.
 - **No organization to learn.** Stator is one installation per team, as
   Armature and Exciter are (#82); the address alone names it, so there is no
@@ -151,13 +153,12 @@ Armature's #26, with these differences:
 - **The webhook secret** starts `stator_whs_`: an administrator of Stator adds
   a webhook under its Webhooks settings with `webhookUrl`,
   `{EXCITER_APP_URL}/api/v1/stator/webhook`, and the topics in `webhookTopics`,
-  and pastes the secret Stator shows once. The last topic is offered once
-  Stator ships it.
+  and pastes the secret Stator shows once.
 - **The stub.** `cmd/stator-stub` serves `/meta`, `/auth/me`,
   `/pages/{pageID}`, `/search/quick` and, ahead of Stator, the remote links,
   with the same tenants picked by the token as `armature-stub`; a contract test
-  holds what it serves to `api/stator/openapi.json`, the remote links excepted
-  until Stator's document has them.
+  holds what it serves to `api/stator/openapi.json`, vendored again at
+  4afe5a1 for the remote links.
 - **UI:** Settings, Stator for administrators, and Your account, Stator account
   for everybody, as Armature's pages.
 - **As built** (#40):
@@ -283,8 +284,7 @@ Armature's #26, with these differences:
 ## #42 Show Exciter links on Stator pages
 
 No operations of its own; `GET /requirements/{reqKey}/stator-links` gains each
-link's `sync` and `error`. Blocked until Stator ships what is asked of it
-above.
+link's `sync` and `error`.
 
 - **Link sync** as Armature's #27: every change that can change what a page
   should show writes `stator.links` `{requirementId, actorId}` in its own
@@ -305,6 +305,29 @@ above.
 - **Failures and removal** as #27: an unreachable Stator retries through the
   outbox, a refusal another try would meet again marks the link `failed` with
   a sentence, and a link a person took off in Stator stays off.
+- **As built** (#42):
+  - Migration 00620: `stator_remote_link` (one record per requirement and
+    page, with no foreign key to the requirement so a purge still finds what
+    to take off), read by the requirement's viewers and written by the
+    worker alone; the outbox policy that holds a `stator.links` event to
+    `requirementId` and `actorId`; and the triggers on `stator_page_link`,
+    `requirement` and `project`.
+  - `stator_links_emit` writes nothing while `remote_links` is false. The
+    first check that finds the capability queues every requirement with
+    live links as the maker of its newest live link; a new address or no
+    connection drops the records.
+  - `page.remote_link.removed` reads the link's `id` and `url` under
+    `remoteLink`. A removal of a link the worker still wants is a person's
+    and detaches the page link; one the worker made, after the link went or
+    the requirement was trashed, finds nothing wanted and changes nothing.
+    `page.deleted` drops the records of the page as well.
+  - A link Stator refused, or whose maker has no token that Stator accepts,
+    is `failed` with a sentence ending "The next change to the requirement
+    tries again.". A 404 on a `DELETE` counts as done.
+  - The stub serves the three operations in Stator's shapes, with `reader`,
+    who may read ENG but edit nothing, `readonly`, a token of the read scope,
+    an outage, and a control that takes a link off as a person, announced to
+    the tenant's webhook. Its `/meta` lists Stator's own capabilities.
 
 ## Stator issue
 

@@ -521,6 +521,12 @@ Adapted from Stator at e8c4f92, for outbound webhooks (#48):
 - web/src/features/webhooks/Webhooks.tsx, web/src/api/webhooks.ts and their
   tests: the settings page, with a choice of projects
 
+Following Stator at 4afe5a1, for its remote links on pages (#42):
+- backend/cmd/stator-stub/links.go: the rules of Stator's
+  internal/remotelink, a put with the same url replacing the link and
+  keeping its maker, page.remote_link.removed sent whoever takes one off,
+  and its sentences
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license
