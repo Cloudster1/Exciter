@@ -1,6 +1,7 @@
 import { useRef, useState, type CSSProperties, type FormEvent, type RefObject } from "react";
 import { useArmatureLinkActions, useArmatureLinks, type ArmatureLink, type ArmatureRelation } from "@/api/armature";
 import type { Matrix } from "@/api/coverage";
+import { useStatorLinkActions, useStatorLinks, type StatorLink } from "@/api/stator";
 import { linkWays, useLinkActions, useLinks, useProjectLinkTypes, type Direction, type TraceLink } from "@/api/links";
 import { Button, ErrorBanner, IconButton, Select, Skeleton } from "@/components/ui";
 import { useEscape, useFocusReturn, useOutsidePress } from "@/components/ui/overlay";
@@ -8,7 +9,7 @@ import { Icon } from "@/components/icons";
 import { checked } from "@/features/links/LinksPanel";
 import { ClearDialog, ClearLinkDialog, SuspectBadge } from "@/features/links/Suspect";
 import { t } from "@/i18n";
-import { columnName, ISSUE_RELATIONS } from "./address";
+import { ISSUE_RELATIONS, PAGE_RELATIONS } from "./address";
 
 type Row = Matrix["rows"][number];
 type Column = Matrix["columns"][number];
@@ -21,6 +22,7 @@ export function CellPanel({
   projectKey,
   row,
   column,
+  columnName: name,
   linkIds,
   anchor,
   place,
@@ -30,6 +32,8 @@ export function CellPanel({
   projectKey: string;
   row: Row;
   column: Column;
+  /** What the column is called to the reader, a page's title when Stator told them. */
+  columnName: string;
   linkIds: string[];
   anchor: RefObject<HTMLElement | null>;
   place: CSSProperties;
@@ -43,7 +47,6 @@ export function CellPanel({
   useOutsidePress(!dialog, outside.current, onClose);
   useFocusReturn(true, panelRef, false);
   const [notice, setNotice] = useState("");
-  const name = columnName(column);
   return (
     <div
       ref={panelRef}
@@ -59,6 +62,8 @@ export function CellPanel({
       </div>
       {column.requirement ? (
         <RequirementCell projectKey={projectKey} row={row} otherKey={column.requirement.key} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
+      ) : column.page ? (
+        <PageCell row={row} pageId={column.page.id} pageName={name} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
       ) : (
         <IssueCell row={row} issueKey={column.issueKey} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
       )}
@@ -202,6 +207,79 @@ function IssueCell({ row, issueKey, linkIds, onDialog, onNotice }: CellProps & {
               {
                 onSuccess: () => {
                   onNotice(t.suspect.armatureCleared(checking.issueKey));
+                  check(null);
+                },
+              },
+            )
+          }
+        />
+      )}
+    </>
+  );
+}
+
+/** The traces between a row and a Stator page column (#150). */
+function PageCell({ row, pageId, pageName, linkIds, onDialog, onNotice }: CellProps & { pageId: string; pageName: string }) {
+  const { data: all, error } = useStatorLinks(row.key, true);
+  const { create, remove, clear } = useStatorLinkActions(row.key);
+  const [checking, setChecking] = useState<StatorLink | null>(null);
+  const [relation, setRelation] = useState<StatorLink["relation"]>("specifies");
+  const links = (all ?? []).filter((link) => linkIds.includes(link.id));
+  const check = (link: StatorLink | null) => {
+    setChecking(link);
+    onDialog(link !== null);
+  };
+  function add(event: FormEvent) {
+    event.preventDefault();
+    create.mutate({ pageId, relation }, { onSuccess: () => onNotice(t.matrix.linked(pageName)) });
+  }
+  if (error) return <ErrorBanner>{error.message}</ErrorBanner>;
+  if (!all) return <Skeleton />;
+  return (
+    <>
+      <LinkList
+        items={links.map((link) => ({
+          id: link.id,
+          label: `${t.stator.links.headings[link.relation]} ${pageName}`,
+          suspect: link.suspect,
+          removeLabel: t.stator.links.remove(pageName, t.stator.links.relations[link.relation]),
+          checkLabel: t.suspect.checkLabel(pageName),
+          onCheck: () => check(link),
+          onRemove: () => remove.mutate(link, { onSuccess: () => onNotice(t.matrix.unlinked(pageName)) }),
+        }))}
+        mayChange={row.canLink}
+      />
+      {(create.error ?? remove.error) && <ErrorBanner>{(create.error ?? remove.error)?.message}</ErrorBanner>}
+      {row.canLink && (
+        <form onSubmit={add} className="flex flex-wrap items-end gap-2 border-t border-border pt-3" aria-label={t.matrix.linkThem} data-cell-add>
+          <div className="min-w-0 flex-1">
+            <Select label={t.matrix.relation} value={relation} onChange={(event) => setRelation(event.target.value as StatorLink["relation"])} controlSize="sm">
+              {PAGE_RELATIONS.map((each) => (
+                <option key={each} value={each}>
+                  {t.stator.links.headings[each]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button type="submit" variant="secondary" size="sm" icon={<Icon.Link />} loading={create.isPending} data-action="cell-link">
+            {t.matrix.linkThem}
+          </Button>
+        </form>
+      )}
+      {checking && (
+        <ClearDialog
+          title={t.suspect.statorTitle(row.key, pageName)}
+          intro={t.suspect.statorIntro(checking.pageVersionSeen, checking.pageVersion)}
+          changes={[]}
+          pending={clear.isPending}
+          error={clear.error}
+          onClose={() => check(null)}
+          onConfirm={(comment) =>
+            clear.mutate(
+              { id: checking.id, pageVersion: checking.pageVersion, comment },
+              {
+                onSuccess: () => {
+                  onNotice(t.suspect.statorCleared(pageName));
                   check(null);
                 },
               },

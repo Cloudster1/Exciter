@@ -25,6 +25,9 @@ func matrixCells(t *testing.T, m map[string]any) map[string]string {
 		if req, ok := column["requirement"].(map[string]any); ok {
 			name = req["key"].(string)
 		}
+		if page, ok := column["page"].(map[string]any); ok {
+			name = page["id"].(string)
+		}
 		var links []string
 		for _, l := range cell["links"].([]any) {
 			link := l.(map[string]any)
@@ -237,4 +240,75 @@ func TestTheMatrixFollowsLinksMadeFromItsCells(t *testing.T) {
 	if _, rows, _ := s.coverage(t, s.carol, ""); rows[s.req("4")] != "none na na" {
 		t.Errorf("R4 unlinked again reads %q", rows[s.req("4")])
 	}
+}
+
+// Stator pages as columns (#150): the pages the rows are linked to, broken ones left out, each link named by its
+// relation and suspect as the requirement page shows it, and titled in the file as the reader sees them.
+func TestTheMatrixLaysOutStatorPages(t *testing.T) {
+	s := newCoverageScene(t, "MXP")
+	s.h.keepStator(t)
+	tenant := stubTenant(t)
+	statorOffers(t)
+	want(t, s.owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t), "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
+	want(t, s.bob.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "bob")}), http.StatusOK, "bob connects")
+	pages := statorPages(t, tenant)
+	timing, braking, threat := pages["Brake timing"], pages["Braking system"], pages["Threat model"]
+	for _, l := range []struct {
+		req, relation, page string
+		version, seen       int
+		broken              bool
+	}{
+		{"1", "specifies", timing, 2, 2, false}, {"2", "describes", timing, 2, 2, false}, {"1", "relates", braking, 3, 2, false},
+		{"3", "specifies", threat, 1, 1, false}, {"4", "specifies", braking, 3, 3, true},
+	} {
+		if _, err := s.h.super.Exec(t.Context(), `INSERT INTO stator_page_link (requirement_id, relation, page_id, space_key, url, page_version, page_version_seen, reviewed_rev, broken_at)
+			VALUES ($1, $2, $3, 'ENG', $4, $5, $6, 1, CASE WHEN $7 THEN now() END)`, s.reqIDs[l.req], l.relation, l.page, statorURL(t)+"/s/ENG/p/"+l.page, l.version, l.seen, l.broken); err != nil {
+			t.Fatal(err)
+		}
+	}
+	matrix := "/api/v1/projects/" + s.key + "/matrix?columns=pages"
+	t.Run("the pages the rows reach are the columns, a broken link left out", func(t *testing.T) {
+		m := obj(t, want(t, s.bob.get(t, matrix), http.StatusOK, "the page matrix"), "matrix")
+		got := matrixCells(t, m)
+		wantCells := map[string]string{
+			s.req("1") + ":" + timing: "specifies/outgoing", s.req("2") + ":" + timing: "describes/outgoing",
+			s.req("1") + ":" + braking: "relates/outgoing", s.req("3") + ":" + threat: "specifies/outgoing",
+		}
+		if fmt.Sprint(got) != fmt.Sprint(wantCells) || len(m["columns"].([]any)) != 3 {
+			t.Errorf("the page matrix reads %v", got)
+		}
+		for _, c := range m["cells"].([]any) {
+			cell := c.(map[string]any)
+			link := cell["links"].([]any)[0].(map[string]any)
+			if link["kind"] != "stator" || (link["name"] == "relates") != (link["suspect"] == true) {
+				t.Errorf("a page link reads %v; only the one whose page moved on is suspect", link)
+			}
+		}
+	})
+	t.Run("relations narrow the page links", func(t *testing.T) {
+		m := obj(t, want(t, s.bob.get(t, matrix+"&relation=describes"), http.StatusOK, "the describing pages"), "matrix")
+		if got := matrixCells(t, m); len(got) != 1 || got[s.req("2")+":"+timing] != "describes/outgoing" {
+			t.Errorf("the describing pages read %v", got)
+		}
+		fieldError(t, s.bob.get(t, matrix+"&relation=implements"), "relation")
+		fieldError(t, s.bob.get(t, matrix+"&linkType=derives"), "linkType")
+		fieldError(t, s.bob.get(t, matrix+"&columnType="+s.noteType), "columnQuery")
+	})
+	t.Run("the file titles the pages as the reader sees them", func(t *testing.T) {
+		header := func(c *client) string {
+			file := want(t, c.get(t, "/api/v1/projects/"+s.key+"/matrix.csv?columns=pages"), http.StatusOK, "the page file")
+			records, err := csv.NewReader(bytes.NewReader(bytes.TrimPrefix(file.Raw, []byte{0xEF, 0xBB, 0xBF}))).ReadAll()
+			if err != nil {
+				t.Fatal(err)
+			}
+			return strings.Join(records[0], ",")
+		}
+		bobs := header(s.bob)
+		if !strings.Contains(bobs, "Brake timing") || !strings.Contains(bobs, "Braking system") || !strings.Contains(bobs, "ENG/"+threat) {
+			t.Errorf("bob's file is headed %q; the Threat model is the admin's to read", bobs)
+		}
+		if carols := header(s.carol); !strings.Contains(carols, "ENG/"+timing) || strings.Contains(carols, "Brake timing") {
+			t.Errorf("carol, without a Stator token, has a file headed %q", carols)
+		}
+	})
 }

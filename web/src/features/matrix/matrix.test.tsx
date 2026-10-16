@@ -27,7 +27,7 @@ const row = (n: number, title: string) => ({ ...ref(n, title), canLink: true });
 
 const issues: Matrix = {
   rows: [row(1, "Brakes engage within 100 ms"), row(2, "Brake lights follow the pedal")],
-  columns: [{ requirement: null, issueKey: "WEB-1" }],
+  columns: [{ requirement: null, issueKey: "WEB-1", page: null }],
   cells: [
     { row: 0, column: 0, links: [{ id: "0195f000-0000-7000-8000-0000000000e1", kind: "armature", name: "implements", direction: "outgoing", suspect: false }] },
     { row: 1, column: 0, links: [{ id: "0195f000-0000-7000-8000-0000000000e2", kind: "armature", name: "verifies", direction: "outgoing", suspect: true }] },
@@ -110,10 +110,66 @@ describe("the traceability matrix", () => {
   });
 });
 
+describe("the matrix's page columns", () => {
+  const TIMING = "0195f000-0000-7000-8000-00000000b001";
+  const THREAT = "0195f000-0000-7000-8000-00000000b002";
+  const pages: Matrix = {
+    ...issues,
+    columns: [
+      { requirement: null, issueKey: "", page: { id: TIMING, spaceKey: "ENG", url: `https://stator.example.com/s/ENG/p/${TIMING}` } },
+      { requirement: null, issueKey: "", page: { id: THREAT, spaceKey: "ENG", url: `https://stator.example.com/s/ENG/p/${THREAT}` } },
+    ],
+    cells: [
+      { row: 0, column: 0, links: [{ id: "0195f000-0000-7000-8000-0000000000e3", kind: "stator", name: "specifies", direction: "outgoing", suspect: false }] },
+    ],
+    columnLinks: [1, 0],
+    columnTotal: 2,
+  };
+
+  it("names each page as Stator shows the reader, and one it does not by its space and id", async () => {
+    const asked: URLSearchParams[] = [];
+    stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [] } },
+      "GET /projects/CHK/statuses": { status: 200, body: { statuses: [] } },
+      "GET /projects/CHK/attributes": { status: 200, body: { attributes: [] } },
+      "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [] } },
+      "GET /projects/CHK/matrix": (request) => {
+        asked.push(new URL(request.url).searchParams);
+        return { status: 200, body: { matrix: pages } };
+      },
+      "GET /stator/pages": (request) => {
+        const ids = new URL(request.url).searchParams.getAll("id");
+        const timing = {
+          id: TIMING,
+          title: "Brake timing",
+          spaceKey: "ENG",
+          spaceName: "Engineering",
+          path: [],
+          version: 2,
+          url: `https://stator.example.com/s/ENG/p/${TIMING}`,
+          updatedAt: "2026-10-01T09:00:00Z",
+          updatedByName: "Alice",
+        };
+        return { status: 200, body: { status: "ok", pages: ids.map((id) => ({ id, page: id === TIMING ? timing : null })) } };
+      },
+    });
+    await renderAt("/p/CHK/matrix?columns=pages");
+    const table = await screen.findByRole("table", { name: "Matrix" });
+    expect(await within(table).findByRole("columnheader", { name: "Brake timing" })).toBeInTheDocument();
+    expect(within(table).getByRole("columnheader", { name: `ENG/${THREAT}` })).toBeInTheDocument();
+    const relations = screen.getByRole("group", { name: "Relations" });
+    await userEvent.click(within(relations).getByRole("button", { name: "Described by" }));
+    await waitFor(() => expect(asked.at(-1)?.getAll("relation")).toEqual(["describes"]));
+    expect(asked.at(-1)?.get("columns")).toBe("pages");
+    expect(await axeViolations()).toEqual([]);
+  });
+});
+
 describe("the matrix's gaps", () => {
   const notes: Matrix = {
     ...issues,
-    columns: [{ requirement: ref(4, "Brakes were discussed"), issueKey: "" }],
+    columns: [{ requirement: ref(4, "Brakes were discussed"), issueKey: "", page: null }],
     cells: [],
     rowLinks: [0, 2],
     columnLinks: [0],
@@ -175,7 +231,7 @@ describe("a matrix's address", () => {
   });
 
   it("ignores a direction, columns or gaps it does not know", () => {
-    expect(readMatrixAddress({ columns: "pages", direction: "sideways", gaps: "everywhere" })).toEqual({});
+    expect(readMatrixAddress({ columns: "everything", direction: "sideways", gaps: "everywhere" })).toEqual({});
   });
 
   it("keeps gaps in columns only with a column filter", () => {

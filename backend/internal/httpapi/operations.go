@@ -6,6 +6,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -975,17 +976,21 @@ var levelQuery = []param{
 
 // matrixQuery says what a traceability matrix's columns are.
 var matrixQuery = []param{
-	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, or issues."},
+	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, issues, or Stator pages."},
 	{name: "columnProject", description: "For requirement columns, the project they come from; the same project when absent."},
 	{name: "linkType", repeated: true, description: "For requirement columns, keys of the link types to count; every type when absent."},
 	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixDirections)},
 		description: "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either."},
-	{name: "relation", repeated: true, schema: &openapi.Schema{Type: "string", Enum: enumStrings(armature.Relations)}, description: "For issue columns, the relations to count; every one when absent."},
+	{name: "relation", repeated: true, schema: &openapi.Schema{Type: "string", Enum: matrixRelations},
+		description: "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent."},
 	{name: "columnQuery", description: "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery."},
 	{name: "columnType", repeated: true, schema: uuidParam, description: "For requirement columns, requirement types of the column project the columns are kept to, linked or not."},
 	{name: "gaps", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.GapKinds)},
 		description: "Keep only the rows, the columns, or both, without a link; columns and both need a column filter."},
 }
+
+// matrixRelations are every relation a matrix narrows by, Armature's and Stator's, each once.
+var matrixRelations = slices.Compact(slices.Sorted(slices.Values(append(enumStrings(armature.Relations), enumStrings(stator.Relations)...))))
 
 // matrixColumnWindow pages a matrix's columns as limit and offset page its rows.
 var matrixColumnWindow = []param{

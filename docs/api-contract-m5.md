@@ -188,6 +188,21 @@ calls, with the same rights.
   way. A page the reader cannot read there is named by its space and id.
 - Coverage does not count pages.
 
+- **As built** (#150):
+  - Exciter keeps no page's title, so columns are ordered by space, then
+    page id, not by title.
+  - A page link is suspect by the rule the requirement page shows: its page
+    has a version past the one confirmed. That rule,
+    `trace.StatorSuspectSQL`, now lives below `internal/stator`, which
+    names it `stator.SuspectSQL`, so the two never drift.
+  - Relations are checked against Stator's for page columns, and
+    Armature's for issue columns; link types and a column filter are 422
+    with any columns but requirements.
+  - The file names a page by the title `GET /stator/pages` gives the reader,
+    or by `SPACE/id` where Stator gives none; the web client asks the same
+    lookup and caches it per batch. A page cell's panel traces and confirms
+    through the Stator link hooks.
+
 ## #151 The trace model and the chain report
 
 | Operation | Needs | Answers |

@@ -9,10 +9,13 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
+	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
@@ -111,9 +114,13 @@ func (s *Server) matrix(r *http.Request, limit, offset, columnLimit, columnOffse
 	}
 	q := r.URL.Query()
 	relations := q["relation"]
+	known, names := enumStrings(armature.Relations), "implements, verifies or relates"
+	if trace.MatrixColumns(q.Get("columns")) == trace.ColumnsPages {
+		known, names = enumStrings(stator.Relations), "specifies, describes or relates"
+	}
 	for _, rel := range relations {
-		if !slices.Contains(armature.Relations, armature.Relation(rel)) {
-			return nil, &trace.FieldError{Field: "relation", Message: fmt.Sprintf("There is no relation %q. Pick implements, verifies or relates.", rel)}
+		if !slices.Contains(known, rel) {
+			return nil, &trace.FieldError{Field: "relation", Message: fmt.Sprintf("There is no relation %q here. Pick %s.", rel, names)}
 		}
 	}
 	var columnFilter *search.Filter
@@ -160,6 +167,7 @@ func (s *Server) handleTraceMatrixCSV(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
+	s.titlePages(r, m)
 	var buf bytes.Buffer
 	buf.Write(utf8Mark)
 	if err := csvio.WriteMatrix(&buf, m); err != nil {
@@ -172,4 +180,35 @@ func (s *Server) handleTraceMatrixCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(buf.Bytes())
+}
+
+// titlePages names a matrix's page columns as the reader sees them in Stator, for a file nobody reads beside the
+// web client's lookup; a page Stator does not show them keeps no title, and the file names it by space and id.
+func (s *Server) titlePages(r *http.Request, m *trace.Matrix) {
+	var ids []uuid.UUID
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			ids = append(ids, c.Page.ID)
+		}
+	}
+	if s.Stator == nil {
+		return
+	}
+	titles := map[uuid.UUID]string{}
+	for batch := range slices.Chunk(ids, stator.MaxLookupPages) {
+		status, found, err := s.Stator.Lookup(r.Context(), batch)
+		if err != nil || status != stator.StatusOK {
+			return
+		}
+		for _, each := range found {
+			if each.Page != nil {
+				titles[each.ID] = each.Page.Title
+			}
+		}
+	}
+	for _, c := range m.Columns {
+		if c.Page != nil {
+			c.Page.Title = titles[c.Page.ID]
+		}
+	}
 }

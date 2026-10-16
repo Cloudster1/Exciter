@@ -16,6 +16,10 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
 
+// StatorSuspectSQL says whether the page link aliased l of the requirement aliased r is suspect: its page has a newer
+// version than the one confirmed, and neither is gone. It lives here, below internal/stator, for the matrix (#150).
+const StatorSuspectSQL = `COALESCE(r.trashed_at IS NULL AND l.broken_at IS NULL AND l.detached_at IS NULL AND l.page_version > l.page_version_seen, false)`
+
 // laid is every link between the rows a matrix keeps and the columns it may show, before either is paged, so
 // counts and gaps (#148) cover the whole matrix and not a page of it.
 type laid struct {
@@ -124,6 +128,44 @@ func issueLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, relations []s
 		l.links = append(l.links, x.laidLink)
 	}
 	return l, nil
+}
+
+// pageLinks reads the Stator page links of the rows, neither broken nor detached, of the relations given or every
+// one, suspect as the requirement page judges them; the pages they reach are the columns, by space, then id.
+func pageLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, relations []string) (*laid, error) {
+	l := &laid{}
+	if len(rows) == 0 {
+		return l, nil
+	}
+	found, err := tx.Query(ctx, `
+		SELECT l.requirement_id, l.page_id, l.space_key, l.url, l.id, l.relation, `+StatorSuspectSQL+`
+		FROM stator_page_link l JOIN requirement r ON r.id = l.requirement_id
+		WHERE l.requirement_id = ANY ($1) AND l.broken_at IS NULL AND l.detached_at IS NULL
+		  AND (COALESCE(cardinality($2::text[]), 0) = 0 OR l.relation = ANY ($2))
+		ORDER BY l.space_key, l.page_id, array_position(ARRAY['specifies', 'describes', 'relates'], l.relation), l.id`, rows, relations)
+	if err != nil {
+		return nil, fmt.Errorf("read the matrix's Stator links: %w", err)
+	}
+	at := map[uuid.UUID]int{}
+	for found.Next() {
+		var (
+			x    = laidLink{link: MatrixLink{Kind: KindStator, Direction: Outgoing}}
+			page MatrixPage
+		)
+		if err := found.Scan(&x.row, &page.ID, &page.SpaceKey, &page.URL, &x.link.ID, &x.link.Name, &x.link.Suspect); err != nil {
+			found.Close()
+			return nil, err
+		}
+		column, seen := at[page.ID]
+		if !seen {
+			column = len(l.columns)
+			at[page.ID] = column
+			l.columns = append(l.columns, MatrixColumn{Page: &page})
+		}
+		x.column = column
+		l.links = append(l.links, x)
+	}
+	return l, found.Err()
 }
 
 // into lays a page of the rows q keeps against a page of the columns, with every one's count of links. Without a

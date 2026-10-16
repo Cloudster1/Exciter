@@ -17,7 +17,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
 
-// The traceability matrix (#38), its axes, link types and direction chosen (#147); docs/api-contract-m5.md.
+// The traceability matrix (#38), its axes, link types and direction chosen (#147), Stator pages as its columns
+// (#150); docs/api-contract-m5.md.
 
 // MatrixColumns says what a matrix's columns are.
 type MatrixColumns string
@@ -25,10 +26,12 @@ type MatrixColumns string
 const (
 	ColumnsRequirements MatrixColumns = "requirements"
 	ColumnsIssues       MatrixColumns = "issues"
+	// ColumnsPages are the Stator pages the rows are linked to (#150).
+	ColumnsPages MatrixColumns = "pages"
 )
 
 // MatrixColumnKinds lists every MatrixColumns, for the API document.
-var MatrixColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues}
+var MatrixColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages}
 
 // MatrixDirection says which way a link must point from its row to be counted.
 type MatrixDirection string
@@ -91,10 +94,11 @@ type MatrixRow struct {
 	CanLink bool `json:"canLink"`
 }
 
-// MatrixColumn is a requirement, or an Armature issue by its key.
+// MatrixColumn is a requirement, an Armature issue by its key, or a Stator page.
 type MatrixColumn struct {
 	Requirement *requirement.Ref `json:"requirement"`
 	IssueKey    string           `json:"issueKey"`
+	Page        *MatrixPage      `json:"page"`
 }
 
 // MatrixCell is every link between one row and one column, by their places in the answer.
@@ -152,7 +156,7 @@ func checkMatrix(q *MatrixQuery) error {
 		q.Columns = ColumnsRequirements
 	}
 	if !slices.Contains(MatrixColumnKinds, q.Columns) {
-		return &FieldError{Field: "columns", Message: "Show requirements or issues as the columns."}
+		return &FieldError{Field: "columns", Message: "Show requirements, issues or pages as the columns."}
 	}
 	if q.Direction == "" {
 		q.Direction = DirectionBoth
@@ -163,10 +167,10 @@ func checkMatrix(q *MatrixQuery) error {
 	if q.Columns == ColumnsRequirements && len(q.Relations) > 0 {
 		return &FieldError{Field: "relation", Message: "Relations narrow issue columns. Show issues as the columns, or leave the relations out."}
 	}
-	if q.Columns == ColumnsIssues && len(q.LinkTypes) > 0 {
+	if q.Columns != ColumnsRequirements && len(q.LinkTypes) > 0 {
 		return &FieldError{Field: "linkType", Message: "Link types narrow requirement columns. Show requirements as the columns, or leave the link types out."}
 	}
-	if q.Columns == ColumnsIssues && q.ColumnFilter != nil {
+	if q.Columns != ColumnsRequirements && q.ColumnFilter != nil {
 		return &FieldError{Field: "columnQuery", Message: "A column filter keeps requirement columns. Show requirements as the columns, or leave the column filter out."}
 	}
 	if q.Gaps != "" && !slices.Contains(GapKinds, q.Gaps) {
@@ -211,9 +215,12 @@ func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey strin
 			ids[i] = k.Ref.ID
 		}
 		var l *laid
-		if q.Columns == ColumnsIssues {
+		switch q.Columns {
+		case ColumnsIssues:
 			l, err = issueLinks(ctx, tx, ids, q.Relations)
-		} else {
+		case ColumnsPages:
+			l, err = pageLinks(ctx, tx, ids, q.Relations)
+		default:
 			l, err = requirementLinks(ctx, tx, reader, other, ids, q)
 		}
 		if err != nil {
