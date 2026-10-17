@@ -320,8 +320,10 @@ SELECT ` + via.Column("v") + `, v.id, r.id, p.key, r.number, r.kind, r.title, r.
        COALESCE(st.category, ''), v.revision, v.state, v.required, review_approvals(v.id), v.comment, COALESCE(q.name, ''),
        v.requested_at, v.finished_at, COALESCE(a.name, ''), review_decidable(v.id, $1::uuid),
        v.state = 'pending' AND (v.requested_by = $1::uuid OR perm_project_holds(r.project_id, $1::uuid, 'administer')),
-       COALESCE((p.settings ->> 'signedApprovals')::boolean, false), rv.title
+       COALESCE((p.settings ->> 'signedApprovals')::boolean, false), rv.title,
+       v.session_id, COALESCE(rs.title, ''), COALESCE((SELECT max(i.round) FROM review_session_item i WHERE i.review_id = v.id), 0)
 FROM requirement_review v
+LEFT JOIN review_session rs ON rs.id = v.session_id
 JOIN requirement r ON r.id = v.requirement_id
 JOIN project p ON p.id = r.project_id
 JOIN requirement_revision rv ON rv.requirement_id = v.requirement_id AND rv.number = v.revision
@@ -342,11 +344,18 @@ func reviews(ctx context.Context, tx db.DBTX, actor uuid.UUID, rest string, args
 			statusID *uuid.UUID
 			status   requirement.StatusRef
 			title    string
+			session  SessionRef
+			inside   *uuid.UUID
 		)
 		ref := &v.Requirement
 		err := row.Scan(&v.Via, &v.ID, &ref.ID, &ref.ProjectKey, &number, &ref.Kind, &ref.Title, &ref.Revision, &ref.Trashed, &statusID,
 			&status.Name, &status.Category, &v.Revision, &v.State, &v.Required, &v.Approvals, &v.Comment, &v.RequestedBy,
-			&v.RequestedAt, &v.FinishedAt, &v.AuthorName, &v.Can.Decide, &v.Can.Withdraw, &v.Signed, &title)
+			&v.RequestedAt, &v.FinishedAt, &v.AuthorName, &v.Can.Decide, &v.Can.Withdraw, &v.Signed, &title,
+			&inside, &session.Title, &session.Round)
+		if inside != nil {
+			session.ID = *inside
+			v.Session = &session
+		}
 		ref.Key = requirement.Key(ref.ProjectKey, number)
 		v.Meanings = map[Decision]string{}
 		if v.Signed && v.Can.Decide {

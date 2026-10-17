@@ -38,7 +38,7 @@ export function progressOf(entries: SpecEntry[]): { decided: number; total: numb
 
 /** Starts and ends review mode: what waits for the reader, compared with its last approval. */
 export function ReviewModeButton({ address, onChange }: { address: SpecAddress; onChange: (next: SpecAddress) => void }) {
-  return address.waiting ? (
+  return address.waiting || address.session ? (
     <Button variant="secondary" onClick={() => onChange({})} data-action="leave-review">
       {t.tree.leaveReview}
     </Button>

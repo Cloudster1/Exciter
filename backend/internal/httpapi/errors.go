@@ -164,6 +164,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := fieldRuleError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := sessionError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := projectError(err); apiErr != nil {
 			return apiErr
 		}

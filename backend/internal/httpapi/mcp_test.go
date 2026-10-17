@@ -18,15 +18,15 @@ import (
 
 // The tools docs/api-contract-m1.md names and the three the foundation marked before it, with what
 // docs/api-contract-m7.md adds for the document, its structure and baselines (#184), and for review, comments and
-// trace (#185).
+// trace (#185), and the reads of review sessions docs/api-contract-m8.md adds (#204).
 var contractTools = []string{
 	"clear_armature_link", "clear_stator_link", "clear_suspect_link", "comment_on_requirement", "compare_baseline",
 	"create_armature_issue", "create_requirement", "diff_revisions", "get_activity", "get_approval", "get_baseline",
 	"get_baseline_spec", "get_comment", "get_coverage", "get_matrix", "get_project", "get_requirement", "get_review",
-	"get_revision", "get_spec", "get_tree", "label_requirement", "link_armature_issue", "link_requirements",
+	"get_review_session", "get_revision", "get_spec", "get_tree", "label_requirement", "link_armature_issue", "link_requirements",
 	"link_stator_page", "list_armature_links", "list_armature_projects", "list_attributes", "list_audit_log",
 	"list_baselines", "list_bulk_transitions", "list_comments", "list_labels", "list_links", "list_people",
-	"list_project_link_types", "list_projects", "list_requirements", "list_reviews", "list_revisions",
+	"list_project_link_types", "list_projects", "list_requirements", "list_review_sessions", "list_reviews", "list_revisions",
 	"list_stator_links", "list_statuses", "list_suspect_links", "list_trace_chains", "list_transitions", "list_types",
 	"list_waiting_reviews", "move_requirement", "reply_to_comment", "request_review", "request_reviews",
 	"resolve_comment_thread", "search_armature_issues", "search_requirements", "search_stator_pages", "server_info",

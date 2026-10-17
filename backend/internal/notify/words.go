@@ -24,6 +24,8 @@ type mailed struct {
 	key           string
 	title         string
 	subject       Subject
+	// session is the review session it is about instead of a requirement (#204); key is then its project's.
+	session *uuid.UUID
 }
 
 // Sentence says what happened, in English.
@@ -53,6 +55,14 @@ func Sentence(kind Kind, actor, key, title string) string {
 		return fmt.Sprintf("%s saved a new revision of %s", actor, named)
 	case KindTransitioned:
 		return fmt.Sprintf("%s moved %s to another status", actor, named)
+	case KindSessionInvited:
+		return fmt.Sprintf(`%s asks you to take part in the review session "%s" of %s`, actor, title, key)
+	case KindSessionRound:
+		return fmt.Sprintf(`%s started a new round of the review session "%s" of %s`, actor, title, key)
+	case KindSessionReminder:
+		return fmt.Sprintf(`The review session "%s" of %s ends soon, and waits for you`, title, key)
+	case KindSessionClosed:
+		return fmt.Sprintf(`%s closed the review session "%s" of %s`, actor, title, key)
 	}
 	return fmt.Sprintf("%s changed %s", actor, named)
 }
@@ -64,6 +74,19 @@ func RequirementURL(appURL string, requirementID uuid.UUID, s Subject) string {
 		link += ThreadAnchor(*s.ThreadID)
 	}
 	return link
+}
+
+// SessionURL is where a notification about a review session leads: the session's page.
+func SessionURL(appURL, projectKey string, id uuid.UUID) string {
+	return fmt.Sprintf("%s/p/%s/sessions/%s", appURL, projectKey, id)
+}
+
+// link is where one mailed notification leads.
+func (m mailed) link(appURL string) string {
+	if m.session != nil {
+		return SessionURL(appURL, m.key, *m.session)
+	}
+	return RequirementURL(appURL, m.requirementID, m.subject)
 }
 
 // ThreadAnchor is the fragment that opens a requirement at one of its threads.
@@ -78,7 +101,11 @@ func (m mailed) single(to, appURL string) mail.Mail {
 	if m.subject.Excerpt != "" {
 		b.WriteString(m.subject.Excerpt + "\n\n")
 	}
-	fmt.Fprintf(&b, "Open the requirement: %s\n\n", RequirementURL(appURL, m.requirementID, m.subject))
+	if m.session != nil {
+		fmt.Fprintf(&b, "Open the session: %s\n\n", m.link(appURL))
+	} else {
+		fmt.Fprintf(&b, "Open the requirement: %s\n\n", m.link(appURL))
+	}
 	fmt.Fprintf(&b, "Choose what you are told about: %s%s\n", appURL, PreferencesPath)
 	return mail.Mail{To: to, Subject: m.sentence(), Body: b.String()}
 }
@@ -92,7 +119,7 @@ func bundle(to, appURL string, items []mailed) mail.Mail {
 	}
 	fmt.Fprintf(&b, "%d %s since your last mail:\n\n", len(items), noun)
 	for _, m := range items {
-		fmt.Fprintf(&b, "- %s\n  %s\n", m.sentence(), RequirementURL(appURL, m.requirementID, m.subject))
+		fmt.Fprintf(&b, "- %s\n  %s\n", m.sentence(), m.link(appURL))
 		if m.subject.Excerpt != "" {
 			fmt.Fprintf(&b, "  %s\n", m.subject.Excerpt)
 		}

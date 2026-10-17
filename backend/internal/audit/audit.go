@@ -118,6 +118,11 @@ const (
 	ActionStatusLocksSet      = "status.locks_set"
 	// ActionFieldRuleSaved keeps when a field is required and who changes it (#206).
 	ActionFieldRuleSaved = "field_rule.saved"
+	// ActionReviewSessionOpened, ActionReviewSessionRoundStarted and ActionReviewSessionClosed keep how a review session
+	// went (#204).
+	ActionReviewSessionOpened       = "review_session.opened"
+	ActionReviewSessionRoundStarted = "review_session.round_started"
+	ActionReviewSessionClosed       = "review_session.closed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -135,6 +140,7 @@ var Actions = []string{
 	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved, ActionOAuthGranted,
 	ActionInstallationOAuthSwitched, ActionOAuthRevoked, ActionBaselineSigned, ActionBaselineSigningSaved, ActionBaselineSigningRemoved,
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
+	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

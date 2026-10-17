@@ -9,7 +9,7 @@ const when = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
 /** A notification in the reader's words; the server sends only what happened. */
 export function sentence(n: Notification): string {
-  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? "");
+  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? n.session?.title ?? "");
 }
 
 /** One notification, leading to its requirement at its thread when it has one; following it marks it read. */
@@ -23,12 +23,32 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
         {unread && <span className="sr-only">{t.notifications.unread}: </span>}
         <span className={cx("block text-sm", unread && "font-medium")}>{sentence(n)}</span>
         {n.requirement && <span className="block truncate text-xs text-ink-muted">{n.requirement.title}</span>}
+        {n.session && <span className="block truncate text-xs text-ink-muted">{n.session.projectKey}</span>}
         {n.excerpt && <span className="mt-0.5 block truncate text-xs text-ink-muted italic">{n.excerpt}</span>}
         <span className="mt-0.5 block text-xs text-ink-subtle">{when.format(new Date(n.createdAt))}</span>
       </span>
     </>
   );
   const look = cx("flex w-full items-start gap-2 rounded-control px-2 py-2 text-left", unread ? "text-ink" : "text-ink-muted");
+  const follow = () => {
+    if (unread) markRead.mutate({ ids: [n.id] });
+    onFollow?.();
+  };
+  // A review session's leads to its page (#204).
+  if (n.session) {
+    return (
+      <Link
+        to="/p/$projectKey/sessions/$sessionId"
+        params={{ projectKey: n.session.projectKey, sessionId: n.session.id }}
+        onClick={follow}
+        className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
+        data-notification={n.kind}
+        data-unread={unread || undefined}
+      >
+        {words}
+      </Link>
+    );
+  }
   // A requirement the reader may no longer view is not listed; one without a requirement has nowhere to lead.
   if (!n.requirement) {
     return (

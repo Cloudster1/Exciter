@@ -15,6 +15,7 @@ import type { Doc } from "@/features/editor/schema";
 import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
+import { OpenSessionButton, SessionBanner } from "@/features/sessions/SessionLaunch";
 import { lockSentence } from "@/features/requirements/LockBanner";
 import { narrowed } from "./address";
 import { ChangesBar, ChangeTag, differs, EntryChanges, nextChange, RemovedSince } from "./DocumentChanges";
@@ -231,6 +232,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
           </div>
         }
       />
+      {address.session && <SessionBanner project={project} sessionId={address.session} />}
       {(tree.error ?? spec.error) && <ErrorBanner>{(tree.error ?? spec.error)!.message}</ErrorBanner>}
       <p role="status" aria-live="polite" className="sr-only" data-spec-announced>
         {announced}
@@ -503,6 +505,7 @@ function Entry({
             reqifHref={reqifExportHref(project.key, true, node.key)}
           />
         )}
+        {section && <OpenSessionButton project={project} scope={{ kind: "section", rootKey: node.key }} size="sm" />}
         {entry.can.edit && !editing && (
           <Button variant="ghost" size="sm" onClick={() => onAsk({ kind: "edit", key: node.key })} data-action="edit-entry">
             {t.requirements.edit}

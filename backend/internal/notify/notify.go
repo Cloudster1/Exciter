@@ -36,11 +36,17 @@ const (
 	KindTransitioned    Kind = "transitioned"
 	// KindSourceRevised is a reused requirement's library source revised (#49), told about the reuse.
 	KindSourceRevised Kind = "source_revised"
+	// KindSessionInvited, KindSessionRound, KindSessionReminder and KindSessionClosed are about a review session one
+	// takes part in (#204), told about the session rather than a requirement.
+	KindSessionInvited  Kind = "session_invited"
+	KindSessionRound    Kind = "session_round"
+	KindSessionReminder Kind = "session_reminder"
+	KindSessionClosed   Kind = "session_closed"
 )
 
 // Kinds lists every Kind, the order deciding which one a person named twice by one event gets.
 var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindSourceRevised, KindReplied, KindCommented,
-	KindResolved, KindRevised, KindTransitioned}
+	KindResolved, KindRevised, KindTransitioned, KindSessionInvited, KindSessionRound, KindSessionReminder, KindSessionClosed}
 
 // Digest is how mail is sent: each notification at once, or gathered every hour or day.
 type Digest string
@@ -56,10 +62,12 @@ var Digests = []Digest{DigestOff, DigestHourly, DigestDaily}
 
 // Notification is one thing the caller was told.
 type Notification struct {
-	ID          uuid.UUID        `json:"id"`
-	Kind        Kind             `json:"kind"`
-	ActorName   string           `json:"actorName"`
+	ID        uuid.UUID `json:"id"`
+	Kind      Kind      `json:"kind"`
+	ActorName string    `json:"actorName"`
+	// Requirement is what it is about, null for one about a review session, which Session names then (#204).
 	Requirement *requirement.Ref `json:"requirement"`
+	Session     *SessionLink     `json:"session"`
 	// Revision is the requirement's revision the notification is about.
 	Revision  int        `json:"revision"`
 	ThreadID  *uuid.UUID `json:"threadId"`
@@ -69,6 +77,13 @@ type Notification struct {
 	Excerpt   string     `json:"excerpt"`
 	CreatedAt time.Time  `json:"createdAt"`
 	ReadAt    *time.Time `json:"readAt"`
+}
+
+// SessionLink is the review session a notification is about.
+type SessionLink struct {
+	ID         uuid.UUID `json:"id"`
+	Title      string    `json:"title"`
+	ProjectKey string    `json:"projectKey"`
 }
 
 // ReadInput marks notifications read: the ids given, or all of the caller's.

@@ -57,7 +57,7 @@ export function ChangesBar({
             onChange={(event) => set({ changes: event.target.value as ChangeBase, baseline: undefined })}
             data-changes-base
           >
-            {BASES.map((base) => (
+            {(address.session ? [...BASES, "round" as const] : BASES).map((base) => (
               <option key={base} value={base}>
                 {t.tree.bases[base]}
               </option>

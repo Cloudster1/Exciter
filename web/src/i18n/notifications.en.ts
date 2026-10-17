@@ -77,6 +77,14 @@ export const notificationsEn = {
         return `${who} saved a new revision of ${key}`;
       case "transitioned":
         return `${who} moved ${key} to another status`;
+      case "session_invited":
+        return `${who} asks you to take part in the review session ${key}`;
+      case "session_round":
+        return `${who} started a new round of the review session ${key}`;
+      case "session_reminder":
+        return `The review session ${key} ends soon, and waits for you`;
+      case "session_closed":
+        return `${who} closed the review session ${key}`;
     }
   },
   preferencesTitle: "Notifications",
@@ -96,6 +104,10 @@ export const notificationsEn = {
     resolved: "A thread you wrote in is resolved or reopened",
     revised: "A requirement you watch gets a new revision",
     transitioned: "A requirement you watch moves to another status",
+    session_invited: "Somebody asks you to take part in a review session",
+    session_round: "A review session you take part in starts a new round",
+    session_reminder: "A review session that waits for you ends soon",
+    session_closed: "A review session you take part in is closed",
   } as Record<NotificationKind, string>,
   inAppFor: (kind: string) => `In the app: ${kind}`,
   emailFor: (kind: string) => `By email: ${kind}`,

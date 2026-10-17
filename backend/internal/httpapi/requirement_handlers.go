@@ -446,6 +446,13 @@ func specQuery(r *http.Request) (requirement.SpecQuery, *APIError) {
 		}
 		q.Baseline = id
 	}
+	if raw := params.Get("session"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return q, ErrValidation(map[string]string{"session": "A review session is named by its id. Open it again from the reviews."})
+		}
+		q.Session = id
+	}
 	switch params.Get("waiting") {
 	case "", "false":
 	case "true":

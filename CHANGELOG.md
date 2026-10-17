@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Review sessions (#204). A project's editors send a section, a baseline's
+  requirements or a query's, optionally only what changed since the last
+  approval or a baseline, to approvers and reviewers as one review with a
+  deadline and the share of approvers each requirement needs. Participants
+  are told, find the session in their inbox and decide in the document's
+  review mode, with signatures where approvals are signed; a reminder goes
+  out a day before the deadline. The session page shows each requirement's
+  and each person's progress; the moderator starts a new round after
+  changes, which asks again only of what was revised, and closes the
+  session, withdrawing what is pending and taking a baseline of what was
+  approved. Its report downloads as PDF and Word.
 - Field rules (#206). An attribute, or a requirement's own field such as its
   rationale, owner or priority, can be required from a status on; a select
   attribute can depend on another, offering only the choices the other's
