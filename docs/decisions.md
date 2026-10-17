@@ -3,6 +3,47 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-17: Control is held by the database, and a session's reviews are single reviews (#216)
+
+- **A session's approvers replace the rule.** A moderator names who agrees a
+  document, which is often not who approves its type day to day, so the
+  session's approvers and its quorum are frozen on each review it makes, as
+  a rule's approvers are on a single one. Each review stays one requirement
+  at one revision (#35), so a decision, its signature, a rejection and the
+  "Approved" condition need no change, and a session's approval counts for
+  the workflow as any approval does.
+- **A hand lock is apart from a status lock.** A status lock says the
+  workflow released the requirement, and only a transition, with its
+  conditions, takes it out; unlocking by hand undoing it would step around
+  the workflow. A hand lock is an administrator's own act, with a reason,
+  and so is its undoing. A requirement held both ways stays locked until
+  both let go.
+- **A lock freezes what the requirement says, not what others say of it.**
+  It refuses a revision, a move, the trash and a link it is the source of,
+  which are its editors' changes; a link to it from another requirement is
+  that requirement's change, so new work can still trace to what was
+  released. Comments, reviews and transitions stay open, as the issue asks.
+- **The new conditions offer, then refuse.** A transition hidden for a
+  missing link tells nobody what is missing. Links, suspects, coverage and
+  open threads are validators, so the transition is offered and a refusal
+  names the requirement and what to do, in the dialog and per requirement of
+  a bulk transition; role conditions still hide what is not the caller's.
+  They count what the requirement has, not what the caller can see, so a
+  transition means the same for everybody.
+- **Rules are checked twice.** The service checks first for the sentence
+  that names the field; the database checks again where revisions, moves,
+  links and values are written, so a lock or a field rule holds for every
+  writer, the MCP tools and the imports included.
+- **What a signature proves.** A baseline signature is #46's: the api checks
+  the password and writes a single-use re-authentication of the signer's
+  session, which the guard spends; the database proves the proof is fresh
+  and the signer's own, and that the hash is of the baseline as it is, not
+  the password itself. A sign-in at the identity provider is proven by the
+  provider. The first signature freezes the rule on the baseline, so a
+  change to who signs does not change a release half done.
+- **Reconsider if** a document must be signed as one act: a session's
+  decisions are signed one requirement at a time.
+
 ## 2026-10-17: Assistants act as their person, never approve, and connect with OAuth (#182)
 
 - **No tool decides a review.** An assistant reads reviews, asks for them and

@@ -40,8 +40,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m4.md` for the Stator integration (#39),
   `docs/api-contract-backlog.md` for what came after the first release,
   `docs/api-contract-m5.md` for traceability (#146),
-  `docs/api-contract-m6.md` for the document view (#167), and
-  `docs/api-contract-m7.md` for the MCP integration (#182).
+  `docs/api-contract-m6.md` for the document view (#167),
+  `docs/api-contract-m7.md` for the MCP integration (#182), and
+  `docs/api-contract-m8.md` for review sessions and control (#216).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -284,6 +285,15 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Review sessions and control** (M8, `docs/api-contract-m8.md`,
+  planned): baselines signed by the people a project names, with #46's
+  proof; requirements locked by a status or by hand, which the database
+  holds for every writer through `requirement_locked`; fields required from
+  a status, choices that depend on others and fields only some roles change,
+  checked by the service and again by the database; transitions that ask for
+  links, no suspects, full coverage and resolved threads; and a review of a
+  section, a baseline or a query as one session of single reviews, in rounds,
+  closed with a report and a baseline.
 - **Signed approvals** (#46): in a project with `settings.signedApprovals`,
   a decision on a review is an electronic signature. The reviewer confirms a
   meaning the server writes and proves who they are again, with their
