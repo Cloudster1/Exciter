@@ -83,6 +83,7 @@ func specBuilder() *openapi.Builder {
 	traceabilitySchemas(b)
 	documentSchemas(b)
 	assistantSchemas(b)
+	controlSchemas(b)
 	b.Enums[reflect.TypeOf(search.ViewKind(""))] = enumStrings(search.ViewKinds)
 	return b
 }

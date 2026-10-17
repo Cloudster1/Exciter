@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M8, Review sessions and control (#216):
+  `docs/api-contract-m8.md` agrees how baselines are signed, how
+  requirements are locked by their status or by hand, how fields are
+  required from a status, depend on other fields and are changed only by
+  some roles, which trace a transition can ask for, and how a section, a
+  baseline or a query is reviewed as one session in rounds and closed with
+  a report. The operations it adds answer 501 until they are built.
 - What an assistant wrote says so (#190). A revision, a change, a comment, a
   review asked for, a link or an audit entry written through a personal
   access token or a connected app carries `via`, which one and its name at
