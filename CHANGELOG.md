@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- An assistant reads a specification whole (#187): MCP resources hand out a
+  project's specification, one section of it, a requirement with what is
+  below it, or a baseline as one numbered Markdown document, read as the
+  caller and cut between two entries with the address to read on from.
+  Three prompts start an assistant on reviewing what changed in a section,
+  drafting requirements from a text, and checking one requirement's
+  quality. The document also downloads as Markdown, from
+  `GET /projects/{projectKey}/document.md` and
+  `GET /baselines/{baselineID}/document.md`.
 - Requirements and comments are read and written in Markdown (#186), by
   scripts and assistants alike. `format=markdown` answers statements,
   rationales and comment bodies as Markdown beside the editor's documents,

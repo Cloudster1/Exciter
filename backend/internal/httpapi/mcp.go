@@ -30,7 +30,6 @@ const (
 	// refusal says how to ask for less.
 	MCPMaxToolResultBytes = 64 << 10
 	mcpPath               = APIPrefix + "/mcp"
-	mcpOpenAPIResource    = "exciter://openapi.json"
 	mcpVersionHeader      = "MCP-Protocol-Version"
 )
 
@@ -41,7 +40,8 @@ var MCPProtocolVersions = []string{"2025-11-25", "2025-06-18"}
 const mcpInstructions = "Exciter manages requirements. A project is named by its key, such as CHK, and a requirement by its " +
 	"key, such as CHK-R42; list_projects and search_requirements find them. A requirement's text changes in revisions: a change " +
 	"to its title, statement or rationale sends baseRevision, the revision it was made from, and a newer one is refused so it " +
-	"can be read and merged first. A project's specification numbers its sections and requirements by outline, such as 1.2.3. " +
+	"can be read and merged first. A project's specification numbers its sections and requirements by outline, such as 1.2.3, " +
+	"and is read whole as Markdown from its resource, such as exciter://projects/CHK/spec. " +
 	"Reviews can be asked for and read here; a person decides them in Exciter's browser pages, never through a tool."
 
 const (
@@ -134,6 +134,7 @@ func (s *Server) dispatchMCP(r *http.Request, req rpcRequest) (any, *rpcError) {
 			"protocolVersion": negotiated(params.ProtocolVersion),
 			"capabilities": map[string]any{
 				"tools": map[string]any{"listChanged": false}, "resources": map[string]any{"listChanged": false},
+				"prompts": map[string]any{"listChanged": false},
 			},
 			"serverInfo":   map[string]any{"name": MCPServerName, "version": mcpServerVersion},
 			"instructions": mcpInstructions,
@@ -150,22 +151,15 @@ func (s *Server) dispatchMCP(r *http.Request, req rpcRequest) (any, *rpcError) {
 		}
 		return s.callTool(r, params)
 	case "resources/list":
-		return map[string]any{"resources": []map[string]any{{
-			"uri": mcpOpenAPIResource, "name": "openapi.json", "mimeType": "application/json",
-			"description": "The whole HTTP API, of which the tools are a part.",
-		}}}, nil
+		return s.listResources(r, req.Params)
+	case "resources/templates/list":
+		return map[string]any{"resourceTemplates": resourceTemplates}, nil
 	case "resources/read":
-		var params struct {
-			URI string `json:"uri"`
-		}
-		if err := json.Unmarshal(req.Params, &params); err != nil || params.URI != mcpOpenAPIResource {
-			return nil, &rpcError{Code: rpcInvalidParams, Message: "The one resource is " + mcpOpenAPIResource + "."}
-		}
-		text, err := Spec().MarshalIndent()
-		if err != nil {
-			return nil, &rpcError{Code: rpcInternalError, Message: "The document could not be written."}
-		}
-		return map[string]any{"contents": []map[string]any{{"uri": mcpOpenAPIResource, "mimeType": "application/json", "text": string(text)}}}, nil
+		return s.readResource(r, req.Params)
+	case "prompts/list":
+		return map[string]any{"prompts": promptList()}, nil
+	case "prompts/get":
+		return s.getPrompt(r, req.Params)
 	}
 	return nil, &rpcError{Code: rpcMethodNotFound, Message: "There is no method " + req.Method + "."}
 }
@@ -277,7 +271,6 @@ func (t mcpTool) request(outer *http.Request, args map[string]json.RawMessage) (
 		query.Set(q.name, scalar(raw))
 	}
 	var body []byte
-	contentType := "application/json"
 	switch {
 	case t.hasBody:
 		encoded, err := json.Marshal(rest)
@@ -293,17 +286,22 @@ func (t mcpTool) request(outer *http.Request, args map[string]json.RawMessage) (
 		return nil, fmt.Errorf("The tool does not take %s.", strings.Join(names, ", "))
 	}
 
+	return inProcess(outer, t.Method, path, query, body), nil
+}
+
+// inProcess is a call made in this process with the outer request's credential, as the caller would make it.
+func inProcess(outer *http.Request, method, path string, query url.Values, body []byte) *http.Request {
 	// A fresh route context, or chi answers the outer route's parameters.
 	ctx := context.WithValue(outer.Context(), chi.RouteCtxKey, chi.NewRouteContext())
 	inner := outer.Clone(ctx)
-	inner.Method = t.Method
+	inner.Method = method
 	inner.URL = &url.URL{Path: APIPrefix + path, RawQuery: query.Encode()}
 	inner.RequestURI = ""
 	inner.Body = io.NopCloser(bytes.NewReader(body))
 	inner.ContentLength = int64(len(body))
 	inner.Header.Del("Content-Length")
-	inner.Header.Set("Content-Type", contentType)
-	return inner, nil
+	inner.Header.Set("Content-Type", "application/json")
+	return inner
 }
 
 // scalar writes a JSON value the way it goes into a path or a query string.

@@ -81,10 +81,10 @@ var assistantOperations = []operation{
 		request: oauthConnectionsRequest{}, responses: ok(env{"installation": installation.Installation{}})},
 
 	// The specification as Markdown (#187), which the MCP resources read.
-	{method: "GET", path: "/projects/{projectKey}/document.md", handler: "handleProjectMarkdown", tag: "documents", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/document.md", handler: "handleProjectMarkdown", tag: "documents",
 		summary: "The same document as Markdown: each entry a heading with its outline, key and title, its text, its fields and its links.",
 		query:   []param{documentSection}, binary: true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
-	{method: "GET", path: "/baselines/{baselineID}/document.md", handler: "handleBaselineMarkdown", tag: "documents", pending: true,
+	{method: "GET", path: "/baselines/{baselineID}/document.md", handler: "handleBaselineMarkdown", tag: "documents",
 		summary: "A baseline's document as Markdown, as it was taken.",
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
 }

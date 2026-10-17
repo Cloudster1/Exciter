@@ -210,7 +210,9 @@ app role holds no privilege on.
   read them. `POST /mcp` serves the table's tool-marked rows to assistants,
   each call run through the whole router as the caller, in MCP `2025-11-25`
   or `2025-06-18` (#183), each tool with the schema of its answer and its
-  hints drawn from the row.
+  hints drawn from the row. A resource reads the document of #45 the same
+  way and writes it as Markdown (`specdoc.Markdown`), cut between entries;
+  the prompts are Go beside the tools (#187).
 - **CSV import and export** (#23): Armature's import, reshaped for
   requirements. An upload is kept whole in `import_job` with a mapping
   guessed from its headers; the same analysis reads it against the project

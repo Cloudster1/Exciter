@@ -166,3 +166,27 @@ func intAttr(n document.Node, name string, fallback int) int {
 	}
 	return fallback
 }
+
+// Words writes text as Markdown that reads as those words on one line, wherever in a line it stands.
+func Words(s string) string {
+	return escape(strings.Join(strings.Fields(s), " "), escText, false)
+}
+
+// Heading writes text as a heading of the level, at most 6, that reads as those words alone.
+func Heading(level int, s string) string {
+	return strings.Repeat("#", max(1, min(level, maxHeadingLevel))) + " " + escape(strings.Join(strings.Fields(s), " "), escHeading, false)
+}
+
+// Paragraphs writes plain text as Markdown that reads as it, each of its lines a paragraph.
+func Paragraphs(s string) string {
+	var out []string
+	for line := range strings.SplitSeq(s, "\n") {
+		if line = strings.Join(strings.Fields(line), " "); line != "" {
+			out = append(out, escape(line, escText, true))
+		}
+	}
+	return strings.Join(out, "\n\n")
+}
+
+// maxHeadingLevel is the deepest heading Markdown writes with hashes.
+const maxHeadingLevel = 6

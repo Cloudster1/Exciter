@@ -141,6 +141,22 @@ func (s *Server) pictureFor(reader uuid.UUID) func(context.Context, uuid.UUID) (
 	}
 }
 
+func (s *Server) handleProjectMarkdown(w http.ResponseWriter, r *http.Request)  { s.sendMarkdown(w, r) }
+func (s *Server) handleBaselineMarkdown(w http.ResponseWriter, r *http.Request) { s.sendMarkdown(w, r) }
+
+// sendMarkdown writes the document as Markdown (#187), recorded as an export as Word and PDF are.
+func (s *Server) sendMarkdown(w http.ResponseWriter, r *http.Request) {
+	doc, err := s.documentOf(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	if !s.noteDocument(w, r, doc, "md") {
+		return
+	}
+	sendFile(w, specdoc.MarkdownContentType, docx.FileName(doc, "md"), []byte(doc.Markdown().String()))
+}
+
 func (s *Server) handleProjectPDF(w http.ResponseWriter, r *http.Request)  { s.sendPDF(w, r) }
 func (s *Server) handleBaselinePDF(w http.ResponseWriter, r *http.Request) { s.sendPDF(w, r) }
 
