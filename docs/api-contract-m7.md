@@ -200,6 +200,20 @@ The tools of #185: review, comments and trace.
   identity provider anyway.
 - The partner tools reach Armature and Stator as the caller, with their own
   partner token, as the browser's calls do.
+- **As built** (#185):
+  - `search_armature_issues` stands for `GET /armature/search`, Armature's
+    search by key or words; `GET /armature/issues` only looks issues up by
+    their keys.
+  - `list_armature_projects` (`GET /armature/projects`, read, open world)
+    joins, as `create_armature_issue` needs a project the caller may file in.
+  - `resolve_comment_thread` (`PUT /comment-threads/{threadID}/resolution`,
+    idempotent) joins, since resolving is not an edit of a comment.
+    `update_comment` only rewrites, and a reply reopens a thread, so no tool
+    stands for the reopening `DELETE`.
+  - `list_stator_links` reads what Exciter stored and is not open world, as
+    `list_armature_links` is not.
+  - `TestNoToolDecidesAReview` holds whatever row `handleDecideReview` serves
+    untooled, and no tool's path ends in `/decisions`.
 
 ## #186 Markdown
 

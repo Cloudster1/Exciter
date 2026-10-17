@@ -36,7 +36,7 @@ func TestAnMCPClientWorksWithRequirements(t *testing.T) {
 	_, secret := makeToken(t, f.owner, map[string]any{"name": "assistant"})
 	f.h.settle(t)
 
-	a := connectAssistant(t, f, secret)
+	a := connectAssistant(t, f.api, secret)
 	ctx, session := a.ctx, a.session
 
 	started := session.InitializeResult()
@@ -139,12 +139,12 @@ type assistant struct {
 	tools   map[string]*mcp.Tool
 }
 
-func connectAssistant(t *testing.T, f *projectFixture, secret string) *assistant {
+func connectAssistant(t *testing.T, api *apiServer, secret string) *assistant {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	t.Cleanup(cancel)
 	session, err := mcp.NewClient(&mcp.Implementation{Name: "exciter-integration", Version: "1"}, nil).Connect(ctx,
-		&mcp.StreamableClientTransport{Endpoint: f.api.srv.URL + "/api/v1/mcp", HTTPClient: &http.Client{Transport: bearer(secret)}}, nil)
+		&mcp.StreamableClientTransport{Endpoint: api.srv.URL + "/api/v1/mcp", HTTPClient: &http.Client{Transport: bearer(secret)}}, nil)
 	if err != nil {
 		t.Fatalf("the client does not connect: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestAnAssistantWritesAndBaselinesASpecification(t *testing.T) {
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
 	_, secret := makeToken(t, f.owner, map[string]any{"name": "assistant"})
 	f.h.settle(t)
-	a := connectAssistant(t, f, secret)
+	a := connectAssistant(t, f.api, secret)
 
 	types := list(t, response{Body: a.call(t, "list_types", map[string]any{"projectKey": key})}, "types")
 	var typeID string
@@ -293,7 +293,7 @@ func TestAnAssistantWritesAndBaselinesASpecification(t *testing.T) {
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": other, "name": other}), http.StatusCreated, "make "+other)
 	_, limited := makeToken(t, f.owner, map[string]any{"name": "elsewhere", "projects": []string{other}})
 	f.h.settle(t)
-	reader := connectAssistant(t, f, reading)
+	reader := connectAssistant(t, f.api, reading)
 	for _, write := range []string{"move_requirement", "label_requirement", "transition_requirements", "take_baseline"} {
 		if reader.tools[write] != nil {
 			t.Errorf("a read-only token is offered %s", write)
@@ -302,7 +302,7 @@ func TestAnAssistantWritesAndBaselinesASpecification(t *testing.T) {
 	if entries := reader.call(t, "get_spec", map[string]any{"projectKey": key})["entries"].([]any); len(entries) != 3 {
 		t.Errorf("a read-only token reads %d entries of the specification", len(entries))
 	}
-	if sentence := connectAssistant(t, f, limited).refused(t, "get_spec", map[string]any{"projectKey": key}); sentence == "" {
+	if sentence := connectAssistant(t, f.api, limited).refused(t, "get_spec", map[string]any{"projectKey": key}); sentence == "" {
 		t.Error("a token limited to another project was refused without a sentence")
 	}
 }

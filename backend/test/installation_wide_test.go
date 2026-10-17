@@ -69,6 +69,7 @@ var installationWide = map[string]string{
 	"TestABaselineKeepsItsMatrix":                                armatureLink,
 	"TestTheMatrixAndItsChainsDownloadAsWorkbooks":               armatureLink,
 	"TestRawSQLKeepsCoverageRulesToAdministrators":               armatureLink,
+	"TestAnAssistantReachesArmatureAsItsPerson":                  armatureLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,
 	"TestTheConnectionKnowsWhatStatorOffers":                 statorLink,
@@ -79,6 +80,7 @@ var installationWide = map[string]string{
 	"TestTheBootstrapConnectsStatorOnce":                     statorLink,
 	"TestRequirementsShowOnTheStatorPagesTheyAreLinkedTo":    statorLink,
 	"TestRawSQLGuardsStatorRemoteLinks":                      statorLink,
+	"TestAnAssistantReachesStatorAsItsPerson":                statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
