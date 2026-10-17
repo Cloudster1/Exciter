@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
 // MCP over one endpoint: a tool call is the HTTP call the browser would make,
@@ -253,6 +255,12 @@ func (t mcpTool) request(outer *http.Request, args map[string]json.RawMessage) (
 		path = strings.Replace(path, "{"+name+"}", url.PathEscape(scalar(raw)), 1)
 	}
 	query := url.Values{}
+	// An assistant reads and writes Markdown, so a read that offers it answers in it unless the call says otherwise.
+	if slices.ContainsFunc(t.query, func(q param) bool { return q.name == formatQuery.name }) {
+		if _, said := rest[formatQuery.name]; !said {
+			query.Set(formatQuery.name, string(requirement.FormatMarkdown))
+		}
+	}
 	for _, q := range t.query {
 		raw, ok := rest[q.name]
 		if !ok {

@@ -193,19 +193,18 @@ export function AskForReviews({
         size="sm"
         variant="secondary"
         loading={ask.isPending}
-        onClick={() =>
-          ask.mutate(
-            { items: entries.map((entry) => ({ key: entry.node.key, revision: entry.node.revision })) },
-            {
-              onSuccess: (done) => {
-                setResults(done);
-                const asked = done.filter((each) => each.outcome === "requested").length;
-                const pending = done.filter((each) => each.error?.code === "review_pending").length;
-                onDone(t.tree.asked(asked, pending, done.length - asked - pending));
-              },
-            },
-          )
-        }
+        onClick={async () => {
+          // The refetch that follows takes this button away once everything below is in review, and a callback
+          // given to mutate would then never run; the promise settles either way, so the outcome is still said.
+          const done = await ask
+            .mutateAsync({ items: entries.map((entry) => ({ key: entry.node.key, revision: entry.node.revision })) })
+            .catch(() => undefined);
+          if (!done) return;
+          setResults(done);
+          const asked = done.filter((each) => each.outcome === "requested").length;
+          const pending = done.filter((each) => each.error?.code === "review_pending").length;
+          onDone(t.tree.asked(asked, pending, done.length - asked - pending));
+        }}
         data-action="ask-reviews"
       >
         {label}

@@ -47,10 +47,18 @@ func (s *Server) handleCreateRequirement(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleGetRequirement(w http.ResponseWriter, r *http.Request) {
+	asked, apiErr := markdownAsked(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
 	got, err := s.Requirements.Get(r.Context(), userFrom(r), reqKeyParam(r))
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	if asked {
+		got.WithMarkdown()
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
 }
@@ -190,6 +198,11 @@ func (s *Server) handleGetSpecification(w http.ResponseWriter, r *http.Request) 
 		respondError(w, r, apiErr)
 		return
 	}
+	asked, apiErr := markdownAsked(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
 	// Each entry compared carries its comparison, so a window with changes is smaller.
 	most := requirement.MaxSpecLimit
 	if q.Changes != "" {
@@ -204,6 +217,11 @@ func (s *Server) handleGetSpecification(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	if asked {
+		for i := range entries {
+			entries[i].WithMarkdown()
+		}
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset, "changes": changes})
 }
@@ -280,10 +298,18 @@ func (s *Server) handleGetRevision(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, apiErr)
 		return
 	}
+	asked, apiErr := markdownAsked(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
 	got, err := s.Requirements.Revision(r.Context(), userFrom(r), reqKeyParam(r), n)
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	if asked {
+		got.WithMarkdown()
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"revision": got})
 }

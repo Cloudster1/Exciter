@@ -372,3 +372,22 @@ func TestNoToolDecidesAReview(t *testing.T) {
 		}
 	}
 }
+
+// An assistant reads Markdown unless it asks for the document alone, and a tool whose read offers no format is
+// called as it was.
+func TestAReadingToolAsksForMarkdownUnlessToldOtherwise(t *testing.T) {
+	outer := httptest.NewRequest(http.MethodPost, mcpPath, nil)
+	get, _ := toolByName("get_requirement")
+	inner, err := get.request(outer, map[string]json.RawMessage{"reqKey": json.RawMessage(`"CHK-R1"`)})
+	if err != nil || inner.URL.Query().Get("format") != "markdown" {
+		t.Errorf("get_requirement reads %v: %v", inner.URL, err)
+	}
+	inner, _ = get.request(outer, map[string]json.RawMessage{"reqKey": json.RawMessage(`"CHK-R1"`), "format": json.RawMessage(`"document"`)})
+	if inner.URL.Query().Get("format") != "document" {
+		t.Errorf("a format asked for is not kept: %v", inner.URL)
+	}
+	tree, _ := toolByName("get_tree")
+	if inner, _ = tree.request(outer, map[string]json.RawMessage{"projectKey": json.RawMessage(`"CHK"`)}); inner.URL.RawQuery != "" {
+		t.Errorf("get_tree, which offers no format, reads %v", inner.URL)
+	}
+}

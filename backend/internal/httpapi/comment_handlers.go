@@ -40,10 +40,20 @@ func commentError(err error) *APIError {
 }
 
 func (s *Server) handleListComments(w http.ResponseWriter, r *http.Request) {
+	asked, apiErr := markdownAsked(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
 	threads, err := s.Comments.List(r.Context(), reqKeyParam(r))
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	if asked {
+		for i := range threads {
+			threads[i].WithMarkdown()
+		}
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"threads": threads})
 }
@@ -87,10 +97,18 @@ func (s *Server) handleGetCommentThread(w http.ResponseWriter, r *http.Request) 
 		respondError(w, r, apiErr)
 		return
 	}
+	asked, apiErr := markdownAsked(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
 	thread, err := s.Comments.Get(r.Context(), id)
 	if err != nil {
 		respondError(w, r, err)
 		return
+	}
+	if asked {
+		thread.WithMarkdown()
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"thread": thread})
 }

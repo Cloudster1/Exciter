@@ -14,6 +14,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/markdown"
 	"github.com/cloudster1/exciter/backend/internal/project"
 )
 
@@ -29,6 +30,14 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 	title, err := checkTitle(in.Title)
 	if err != nil {
 		return nil, 0, err
+	}
+	if in.StatementMarkdown != nil || in.RationaleMarkdown != nil {
+		// A new requirement has no files yet, so its Markdown shows and links none.
+		if err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+			return fromMarkdown(&in.StatementMarkdown, &in.RationaleMarkdown, &in.Statement, &in.Rationale, markdown.Resolve{Person: markdown.Members(ctx, tx)}, nil)
+		}); err != nil {
+			return nil, 0, err
+		}
 	}
 	statement := document.Empty
 	if len(in.Statement) > 0 && !isNull(in.Statement) {
@@ -208,6 +217,16 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 		}
 		if cur.TrashedAt != nil {
 			return ErrTrashed
+		}
+		if in.StatementMarkdown != nil || in.RationaleMarkdown != nil {
+			files, err := filesOf(ctx, tx, cur.ID)
+			if err != nil {
+				return err
+			}
+			if err := fromMarkdown(&in.StatementMarkdown, &in.RationaleMarkdown, &in.Statement, &in.Rationale,
+				markdown.Resolve{File: files, Person: markdown.Members(ctx, tx)}, json.RawMessage("null")); err != nil {
+				return err
+			}
 		}
 		next := Normative{Title: cur.Title, Statement: cur.Statement, Rationale: cur.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes}
 		if in.Title != nil {

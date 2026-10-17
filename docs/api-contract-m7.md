@@ -271,6 +271,20 @@ The tools of #185: review, comments and trace.
   unless its arguments name another, and its sentence says so. Writing tools
   say to send Markdown.
 
+- **As built** (#186):
+  - The conversion is `internal/markdown`, Stator's package at 6dfe0a2 cut
+    to a requirement's nodes, rather than part of `internal/document`.
+    Stator keeps what does not come across with a warning, where this
+    refuses with the warning's sentence.
+  - Stator's forms win where they differ from the spelling above: a mention
+    is `<span data-exciter="mention" data-id="<id>">@Name</span>`, as Stator
+    marks its own `data-stator`, and a picture with a width is an `img`
+    element. `docs/markdown.md` is the spelling as built.
+  - The Markdown fields are left out, not null, where they are not answered,
+    so no client's types change.
+  - A rationale of no words clears it, as an empty rationale is none.
+  - A comment holds no files, so its Markdown points at none.
+
 ## #187 Resources and prompts
 
 | Operation | Needs | Answers |

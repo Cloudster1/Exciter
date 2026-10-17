@@ -233,6 +233,12 @@ app role holds no privilege on.
   its fields and attributes, and its links. The print view in the web client
   draws it and the render service prints that as PDF; `internal/docx`,
   Stator's Word writer cut to a requirement's blocks, writes it as Word.
+- **Markdown** (#186): `internal/markdown`, Stator's export and import over
+  goldmark, reads and writes statements, rationales and comments as
+  Markdown beside the stored document. A read with `format=markdown` adds
+  each where Markdown holds it, and a write converts the Markdown fields
+  before the document's own checks, refusing what would not come back as
+  written. `docs/markdown.md` lists the spelling.
 - **Project templates** (#24): three built-in structures in code, shaped
   after Stator's space templates. Choosing one is part of making a project:
   in the same transaction it sets the types, attributes, link types and

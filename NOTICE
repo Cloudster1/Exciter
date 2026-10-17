@@ -521,6 +521,13 @@ Adapted from Stator at e8c4f92, for outbound webhooks (#48):
 - web/src/features/webhooks/Webhooks.tsx, web/src/api/webhooks.ts and their
   tests: the settings page, with a choice of projects
 
+Adapted from Stator at 6dfe0a2, for Markdown (#186):
+- backend/internal/markdown: Stator's Markdown export and import over
+  goldmark, cut to the nodes a requirement holds, a mention marked
+  data-exciter and a file named exciter:attachment/<id>, and what Stator
+  keeps with a warning refused with the sentence
+- docs/markdown.md: the layout of Stator's, for a requirement's fields
+
 Following Stator at 4afe5a1, for its remote links on pages (#42):
 - backend/cmd/stator-stub/links.go: the rules of Stator's
   internal/remotelink, a put with the same url replacing the link and

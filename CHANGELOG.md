@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements and comments are read and written in Markdown (#186), by
+  scripts and assistants alike. `format=markdown` answers statements,
+  rationales and comment bodies as Markdown beside the editor's documents,
+  and writes take `statementMarkdown`, `rationaleMarkdown` and
+  `bodyMarkdown`. Tables, lists, code, links, the requirement's own pictures
+  and files, and mentions come and go as they were; what would not come back
+  as written is refused with a sentence. The MCP tools read and write
+  Markdown unless told otherwise. `docs/markdown.md` lists the spelling.
 - An assistant works around a requirement as its person does (#185): MCP
   tools ask for reviews of one requirement or many, withdraw one, read what
   waits for the caller and where an approval stands; read, answer, rewrite

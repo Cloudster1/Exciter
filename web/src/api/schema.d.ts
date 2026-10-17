@@ -4024,6 +4024,7 @@ export interface components {
             authorName: string;
             /** @description A JSON value. */
             body: unknown;
+            bodyMarkdown?: string;
             can: components["schemas"]["CommentCan"];
             /** Format: date-time */
             createdAt: string;
@@ -4046,7 +4047,8 @@ export interface components {
         };
         CommentInput: {
             /** @description A JSON value. */
-            body: unknown;
+            body?: unknown;
+            bodyMarkdown?: string;
         };
         CommentThread: {
             can: components["schemas"]["CommentThreadCan"];
@@ -4597,8 +4599,10 @@ export interface components {
             priority?: "must" | "should" | "could" | "wont";
             /** @description A JSON value. */
             rationale?: unknown;
+            rationaleMarkdown?: string;
             /** @description A JSON value. */
             statement?: unknown;
+            statementMarkdown?: string;
             title: string;
             /** Format: uuid */
             typeId?: string;
@@ -5075,10 +5079,12 @@ export interface components {
             projectKey: string;
             /** @description A JSON value. */
             rationale: unknown;
+            rationaleMarkdown?: string;
             reuse: components["schemas"]["Reuse"] | null;
             revision: number;
             /** @description A JSON value. */
             statement: unknown;
+            statementMarkdown?: string;
             status: components["schemas"]["StatusRef"] | null;
             title: string;
             /** Format: date-time */
@@ -5162,8 +5168,10 @@ export interface components {
             priority?: ("must" | "should" | "could" | "wont") | null;
             /** @description A document of the shared editor, or null to clear it. */
             rationale?: unknown;
+            rationaleMarkdown?: string;
             /** @description A JSON value. */
             statement?: unknown;
+            statementMarkdown?: string;
             title?: string;
             /** Format: uuid */
             typeId?: string;
@@ -5255,9 +5263,11 @@ export interface components {
             number: number;
             /** @description A JSON value. */
             rationale: unknown;
+            rationaleMarkdown?: string;
             restoredFrom: number | null;
             /** @description A JSON value. */
             statement: unknown;
+            statementMarkdown?: string;
             title: string;
             type: components["schemas"]["RequirementTypeRef"] | null;
         };
@@ -5409,10 +5419,12 @@ export interface components {
             priority: ("must" | "should" | "could" | "wont") | null;
             /** @description A JSON value. */
             rationale: unknown;
+            rationaleMarkdown?: string;
             reuse: components["schemas"]["Reuse"] | null;
             review: components["schemas"]["SpecReview"] | null;
             /** @description A JSON value. */
             statement: unknown;
+            statementMarkdown?: string;
             suspectLinks: number;
             type: components["schemas"]["RequirementTypeRef"] | null;
         };
@@ -8229,7 +8241,10 @@ export interface operations {
     };
     getCommentThread: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not. */
+                format?: "document" | "markdown";
+            };
             header?: never;
             path: {
                 commentID: string;
@@ -12359,6 +12374,8 @@ export interface operations {
     getSpecification: {
         parameters: {
             query?: {
+                /** @description markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not. */
+                format?: "document" | "markdown";
                 /** @description Ids of the project's statuses: keep the requirements in one of them, and the sections above them. */
                 status?: string[];
                 /** @description Status categories: keep the requirements in one of them, and the sections above them. */
@@ -14004,7 +14021,10 @@ export interface operations {
     };
     getRequirement: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not. */
+                format?: "document" | "markdown";
+            };
             header?: never;
             path: {
                 reqKey: string;
@@ -14372,7 +14392,10 @@ export interface operations {
     };
     listComments: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not. */
+                format?: "document" | "markdown";
+            };
             header?: never;
             path: {
                 reqKey: string;
@@ -15125,7 +15148,10 @@ export interface operations {
     };
     getRevision: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not. */
+                format?: "document" | "markdown";
+            };
             header?: never;
             path: {
                 reqKey: string;

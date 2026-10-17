@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/markdown"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
@@ -98,6 +99,49 @@ func actorOf(ctx context.Context) (uuid.UUID, error) {
 		return uuid.Nil, ErrMayNotComment
 	}
 	return actor, nil
+}
+
+// body is what a comment says, sent as a document or as Markdown; a refusal of Markdown names its field.
+func (s *Service) body(ctx context.Context, in Input) (json.RawMessage, error) {
+	if in.BodyMarkdown == nil {
+		return cleanBody(in.Body)
+	}
+	if in.Body != nil {
+		return nil, &FieldError{Field: "bodyMarkdown", Message: "Send the comment as a document or as Markdown, not both."}
+	}
+	var root document.Node
+	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+		var err error
+		root, err = markdown.Convert(*in.BodyMarkdown, markdown.Resolve{Person: markdown.Members(ctx, tx)})
+		return err
+	})
+	var refusal *markdown.Refusal
+	if errors.As(err, &refusal) {
+		return nil, &FieldError{Field: "bodyMarkdown", Message: refusal.Message}
+	}
+	if err != nil {
+		return nil, err
+	}
+	raw, err := cleanBody(root)
+	var invalid *FieldError
+	if errors.As(err, &invalid) {
+		invalid.Field = "bodyMarkdown"
+	}
+	return raw, err
+}
+
+// WithMarkdown adds each comment's body as Markdown.
+func (t *Thread) WithMarkdown() {
+	for i := range t.Comments {
+		t.Comments[i].WithMarkdown()
+	}
+}
+
+// WithMarkdown adds the body as Markdown.
+func (c *Comment) WithMarkdown() {
+	if raw, err := json.Marshal(c.Body); err == nil {
+		c.BodyMarkdown = markdown.Of(raw)
+	}
 }
 
 // cleanBody holds a body to the comment allowlist and to saying something.
@@ -297,7 +341,7 @@ func toTell(ctx context.Context, tx db.DBTX, requirementID uuid.UUID, before, bo
 
 // Start begins a thread on a requirement.
 func (s *Service) Start(ctx context.Context, reqKey string, in Input) (*Thread, db.LSN, error) {
-	body, err := cleanBody(in.Body)
+	body, err := s.body(ctx, in)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -330,7 +374,7 @@ func (s *Service) Start(ctx context.Context, reqKey string, in Input) (*Thread, 
 
 // Reply adds a comment at the end of the thread the given comment is in, and reopens it if it was resolved.
 func (s *Service) Reply(ctx context.Context, commentID uuid.UUID, in Input) (*Comment, *Thread, db.LSN, error) {
-	body, err := cleanBody(in.Body)
+	body, err := s.body(ctx, in)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -386,7 +430,7 @@ func find(t *Thread, id uuid.UUID) *Comment {
 
 // Edit rewrites the actor's own comment. Nobody rewrites another person's words, not even an administrator.
 func (s *Service) Edit(ctx context.Context, commentID uuid.UUID, in Input) (*Comment, db.LSN, error) {
-	body, err := cleanBody(in.Body)
+	body, err := s.body(ctx, in)
 	if err != nil {
 		return nil, 0, err
 	}

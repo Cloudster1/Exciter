@@ -3147,6 +3147,18 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "markdown"
+              ]
+            }
           }
         ],
         "responses": {
@@ -9894,6 +9906,18 @@
             }
           },
           {
+            "name": "format",
+            "in": "query",
+            "description": "markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "markdown"
+              ]
+            }
+          },
+          {
             "name": "status",
             "in": "query",
             "description": "Ids of the project's statuses: keep the requirements in one of them, and the sections above them.",
@@ -12799,6 +12823,18 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "markdown"
+              ]
+            }
           }
         ],
         "responses": {
@@ -13315,6 +13351,18 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "markdown"
+              ]
             }
           }
         ],
@@ -14488,6 +14536,18 @@
             "required": true,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "markdown answers each document as Markdown as well, left out where Markdown cannot hold it; document, the default, does not.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "document",
+                "markdown"
+              ]
             }
           }
         ],
@@ -20353,6 +20413,9 @@
           "body": {
             "description": "A JSON value."
           },
+          "bodyMarkdown": {
+            "type": "string"
+          },
           "can": {
             "$ref": "#/components/schemas/CommentCan"
           },
@@ -20430,11 +20493,11 @@
         "properties": {
           "body": {
             "description": "A JSON value."
+          },
+          "bodyMarkdown": {
+            "type": "string"
           }
-        },
-        "required": [
-          "body"
-        ]
+        }
       },
       "CommentThread": {
         "type": "object",
@@ -22520,8 +22583,14 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "rationaleMarkdown": {
+            "type": "string"
+          },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -24407,6 +24476,9 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "rationaleMarkdown": {
+            "type": "string"
+          },
           "reuse": {
             "oneOf": [
               {
@@ -24422,6 +24494,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "status": {
             "oneOf": [
@@ -24773,8 +24848,14 @@
           "rationale": {
             "description": "A document of the shared editor, or null to clear it."
           },
+          "rationaleMarkdown": {
+            "type": "string"
+          },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -25095,6 +25176,9 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "rationaleMarkdown": {
+            "type": "string"
+          },
           "restoredFrom": {
             "type": [
               "integer",
@@ -25103,6 +25187,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -25725,6 +25812,9 @@
           "rationale": {
             "description": "A JSON value."
           },
+          "rationaleMarkdown": {
+            "type": "string"
+          },
           "reuse": {
             "oneOf": [
               {
@@ -25747,6 +25837,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "suspectLinks": {
             "type": "integer"
