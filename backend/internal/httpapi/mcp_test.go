@@ -16,12 +16,15 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 )
 
-// The tools docs/api-contract-m1.md names, and the three the foundation marked before it.
+// The tools docs/api-contract-m1.md names and the three the foundation marked before it, with what
+// docs/api-contract-m7.md adds for the document, its structure and baselines (#184).
 var contractTools = []string{
-	"comment_on_requirement", "create_requirement", "diff_revisions", "get_project", "get_requirement", "get_revision", "get_tree",
-	"link_armature_issue", "link_requirements", "list_armature_links", "list_audit_log", "list_comments", "list_links", "list_people",
-	"list_projects", "list_requirements",
-	"list_revisions", "list_transitions", "search_requirements", "server_info", "transition_requirement",
+	"comment_on_requirement", "compare_baseline", "create_requirement", "diff_revisions", "get_activity", "get_baseline",
+	"get_baseline_spec", "get_project", "get_requirement", "get_revision", "get_spec", "get_tree",
+	"label_requirement", "link_armature_issue", "link_requirements", "list_armature_links", "list_attributes", "list_audit_log",
+	"list_baselines", "list_bulk_transitions", "list_comments", "list_labels", "list_links", "list_people", "list_project_link_types",
+	"list_projects", "list_requirements", "list_revisions", "list_statuses", "list_transitions", "list_types", "move_requirement",
+	"search_requirements", "server_info", "take_baseline", "transition_requirement", "transition_requirements",
 	"update_requirement", "whoami",
 }
 
