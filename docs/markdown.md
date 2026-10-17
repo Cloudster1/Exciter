@@ -22,6 +22,12 @@ what Markdown cannot, listed below, so a reader falls back to the document
 rather than reading less than is there. The MCP tools read Markdown unless a
 call asks for `format=document`.
 
+A specification as one document is Markdown too, from
+`GET /projects/{projectKey}/document.md` and
+`GET /baselines/{baselineID}/document.md`, and to an assistant as the
+resources of [`docs/mcp.md`](mcp.md) (#187). In it, a text Markdown cannot
+hold is written as its words, marked "(as plain text)".
+
 ## Writing
 
 | Operation | Takes |

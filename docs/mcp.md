@@ -70,11 +70,32 @@ section of the tokens page shows the settings with the address filled in:
   - who you are
   Each tool says whether it only reads, whether it changes something in a way
   the history does not keep, and whether it reaches Armature or Stator.
-- **The API document** as the resource `exciter://openapi.json`, for an
-  assistant that wants to know more than the tools say.
+- **Resources** an assistant reads whole, as Markdown in the spelling of
+  [`docs/markdown.md`](markdown.md), each read as you, as a tool call is:
+  - `exciter://projects/{projectKey}/spec`: a project's specification, each
+    entry a heading with its outline, key and title, then its fields, text
+    and links; `?section=` and a key narrow it to that section and what is
+    below it
+  - `exciter://requirements/{reqKey}`: one requirement and what is below it
+  - `exciter://baselines/{baselineID}/spec`: a baseline as it was taken
+  - `exciter://openapi.json`: the API document, for an assistant that wants
+    to know more than the tools say
+
+  The list of resources names the specification of each project you may
+  view. A read is at most 256 KiB; a longer document ends after the last
+  entry that fits, with a sentence naming the address to read on from.
+- **Prompts** a client offers to start common work, each with the arguments
+  it names:
+  - `review_section`: what changed in a project or a section since its last
+    approval, or since each requirement's previous revision, with a comment
+    on each finding
+  - `write_requirements`: requirements drafted in a project, under a section
+    when one is given, from a source text
+  - `check_quality`: one requirement held to the characteristics of a
+    well-formed requirement, with how it could read better
 - **Instructions** the client hands the model when it connects: how keys look,
   that a change to a requirement's text names the revision it was made from,
-  and how the specification is numbered.
+  how the specification is numbered, and where it is read whole.
 
 Requirements and comments come and go as Markdown: a reading tool answers
 statements, rationales and comments as Markdown beside the editor's

@@ -533,15 +533,17 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		})
 
 		// A specification or a baseline as a document, for whoever views the project: read for the print view,
-		// written as Word, printed as PDF.
+		// written as Word or Markdown, printed as PDF.
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.documentsOn)
 			r.Get("/projects/{projectKey}/document", s.handleGetProjectDocument)
 			r.Get("/projects/{projectKey}/document.docx", s.handleProjectDocx)
 			r.Get("/projects/{projectKey}/document.pdf", s.handleProjectPDF)
+			r.Get("/projects/{projectKey}/document.md", s.handleProjectMarkdown)
 			r.Get("/baselines/{baselineID}/document", s.handleGetBaselineDocument)
 			r.Get("/baselines/{baselineID}/document.docx", s.handleBaselineDocx)
 			r.Get("/baselines/{baselineID}/document.pdf", s.handleBaselinePDF)
+			r.Get("/baselines/{baselineID}/document.md", s.handleBaselineMarkdown)
 		})
 
 		// What the caller may do across the installation, and the people and groups a grant names.

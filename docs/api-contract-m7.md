@@ -338,6 +338,23 @@ The tools of #185: review, comments and trace.
     it.
   - The prompts' text is English, kept in Go beside the tools.
 - `initialize` announces `prompts`.
+- **As built** (#187):
+  - A resource reads the JSON document of #45 in process, as the caller,
+    and writes the Markdown from it, so it can be cut between two entries;
+    `document.md` writes the same Markdown whole.
+  - A read that names nothing the caller may read is -32602 with the
+    sentence and the `uri`, not -32002: the protocol's SEP-2164 settled on
+    invalid params, and the official Go SDK answers so since v1.7.0.
+  - The cut says how many entries it holds and reads on from the next one,
+    `exciter://projects/KEY/spec?section=` and its key; a baseline's points
+    at `get_baseline_spec` and the offset, since a baseline has no
+    sections. An entry larger than a read alone points at
+    `get_requirement`.
+  - The document's added words are English, as the tools' are; Word and
+    PDF speak the reader's language. Each requirement lists its revision
+    first, which a change sends as `baseRevision`.
+  - `get_spec` takes no section, so `review_section` asks the model to keep
+    to the entries under the section's outline.
 
 ## #188 OAuth
 
