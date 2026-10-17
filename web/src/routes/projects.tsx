@@ -12,6 +12,7 @@ import { RequirementList } from "@/features/requirements/RequirementList";
 import { TrashPage } from "@/features/requirements/TrashPage";
 import { readAddress } from "@/features/grid/filter";
 import { GridPage } from "@/features/grid/GridPage";
+import { readSpecAddress } from "@/features/tree/address";
 import { SpecPage } from "@/features/tree/SpecPage";
 import { WorkflowDesignPage } from "@/features/workflows/WorkflowDesignPage";
 import { appRoute } from "./app";
@@ -86,9 +87,25 @@ export const newRequirementRoute = createRoute({
 export const specRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/p/$projectKey/spec",
+  validateSearch: readSpecAddress,
   component: function ProjectSpecPage() {
     const { projectKey } = specRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/spec" render={(project) => <SpecPage key={project.id} project={project} />} />;
+    const address = specRoute.useSearch();
+    const navigate = useNavigate();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/spec"
+        render={(project) => (
+          <SpecPage
+            key={project.id}
+            project={project}
+            address={address}
+            onAddress={(next) => void navigate({ to: "/p/$projectKey/spec", params: { projectKey }, search: next })}
+          />
+        )}
+      />
+    );
   },
 });
 

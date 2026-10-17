@@ -106,6 +106,20 @@ first child `{parentId: entry.node.id, afterId: null}`.
 - **UI.** A status badge opens the requirement's transitions; selected
   entries offer the transitions every one of them has, by id, and report each
   requirement's outcome; the status filter is part of the page's address.
+- **As built** (#169):
+  - `requirement.Service.TransitionsOf` reads every key in one transaction
+    with the single read's `offer`; `BulkTransition` checks the keys, the
+    transition and the comment once, refuses an archived project whole, and
+    takes each key through `transition`, which holds it to the project, so a
+    key of another project is `not_found`. The handler answers each refusal
+    with `refusalOf`, the single operation's code and sentence, a refused
+    field's sentence in place of "Some fields need attention".
+  - The spec's filter is a recursive `above` over `parent_id` from the kept
+    requirements, of which only sections stay, so a requirement outside the
+    filter never shows for its child's sake.
+  - The page keeps one selection: entries are picked for a transition, and
+    for Armature issues where Armature is connected, and the bar offers both.
+    A section's checkbox picks what is loaded below it.
 
 ## #170 Changes in the document
 

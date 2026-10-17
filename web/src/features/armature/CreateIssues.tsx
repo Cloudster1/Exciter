@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { ApiError } from "@/api/client";
 import {
   useArmatureAccount,
@@ -77,13 +77,24 @@ export function PickBox({ selection, item }: { selection: Selection; item: Picke
   );
 }
 
-/** What is picked, and the way on to Armature; it stays below the page while anything is picked. */
-export function SelectionBar({ projectKey, selection }: { projectKey: string; selection: Selection }) {
+/** What is picked, the way on to Armature where the reader may take it, and what else the page offers for the
+ * picked; it stays below the page while anything is picked. */
+export function SelectionBar({
+  projectKey,
+  selection,
+  armature = true,
+  children,
+}: {
+  projectKey: string;
+  selection: Selection;
+  armature?: boolean;
+  children?: ReactNode;
+}) {
   const c = t.armature.create;
   const [open, setOpen] = useState(false);
   const count = selection.picked.length;
   if (count === 0) return null;
-  const tooMany = count > ARMATURE_CREATE_MAX;
+  const tooMany = armature && count > ARMATURE_CREATE_MAX;
   return (
     <div
       className="sticky bottom-4 z-10 mt-4 flex flex-wrap items-center gap-3 rounded-overlay border border-border bg-surface-overlay p-3 shadow-2"
@@ -97,10 +108,13 @@ export function SelectionBar({ projectKey, selection }: { projectKey: string; se
         <Button variant="ghost" size="sm" onClick={selection.clear} data-action="clear-selection">
           {c.clear}
         </Button>
-        <Button size="sm" icon={<Icon.Plus />} disabled={tooMany} onClick={() => setOpen(true)} data-action="create-armature-issues">
-          {c.open}
-        </Button>
+        {armature && (
+          <Button size="sm" icon={<Icon.Plus />} disabled={tooMany} onClick={() => setOpen(true)} data-action="create-armature-issues">
+            {c.open}
+          </Button>
+        )}
       </div>
+      {children}
       {open && (
         <CreateIssuesDialog
           projectKey={projectKey}

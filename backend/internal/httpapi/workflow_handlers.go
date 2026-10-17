@@ -3,7 +3,10 @@ package httpapi
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
@@ -198,6 +201,55 @@ func (s *Server) handleTransitionRequirement(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
+}
+
+func (s *Server) handleListBulkTransitions(w http.ResponseWriter, r *http.Request) {
+	offered, err := s.Requirements.TransitionsOf(r.Context(), userFrom(r), projectKeyParam(r), r.URL.Query()["key"])
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"requirements": offered})
+}
+
+func (s *Server) handleBulkTransition(w http.ResponseWriter, r *http.Request) {
+	var req requirement.BulkTransitionInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	outcomes, lsn, err := s.Requirements.BulkTransition(r.Context(), userFrom(r), projectKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	results := make([]requirement.BulkTransitionResult, len(outcomes))
+	for i, o := range outcomes {
+		results[i] = requirement.BulkTransitionResult{Key: o.Key, Outcome: requirement.BulkTaken, Requirement: o.Requirement}
+		if o.Err != nil {
+			results[i] = requirement.BulkTransitionResult{Key: o.Key, Outcome: requirement.BulkRefused, Error: refusalOf(r, o.Err)}
+		}
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"results": results})
+}
+
+// refusalOf is what the single operation would have answered for one requirement of a bulk one: its code, and its
+// sentence, or the fields' sentences when it refused a field.
+func refusalOf(r *http.Request, err error) *requirement.BulkRefusal {
+	apiErr := toAPIError(err)
+	if apiErr.Status >= http.StatusInternalServerError {
+		loggerFrom(r.Context()).Error("one requirement of a bulk request failed", "code", apiErr.Code, "error", err)
+	}
+	message := apiErr.Message
+	if len(apiErr.Fields) > 0 {
+		sentences := make([]string, 0, len(apiErr.Fields))
+		for _, field := range slices.Sorted(maps.Keys(apiErr.Fields)) {
+			sentences = append(sentences, apiErr.Fields[field])
+		}
+		message = strings.Join(sentences, " ")
+	}
+	return &requirement.BulkRefusal{Code: apiErr.Code, Message: message}
 }
 
 // workflowError maps the workflows' refusals; nil when err is none of theirs.

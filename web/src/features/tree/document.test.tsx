@@ -2,11 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { SpecEntry, TreeNode } from "@/api/tree";
+import type { AvailableTransition } from "@/api/workflows";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
-import { addedPlace, editableOf, lastBelow, stepTo } from "./SpecPage";
+import { readSpecAddress } from "./address";
+import { rangeOf, sharedTransitions } from "./DocumentStates";
+import { addedPlace, editableOf, entriesBelow, lastBelow, stepTo } from "./SpecPage";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -231,5 +234,147 @@ describe("editing in the document", () => {
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Add next to/ })).toBeNull();
     expect(screen.getByText("Arrow keys move between entries.")).toBeInTheDocument();
+  });
+});
+
+const draft = { id: "st-draft", name: "Draft", category: "draft" as const };
+const review = { id: "st-review", name: "In review", category: "review" as const };
+const submit = { id: "tr-submit", name: "Submit for review", toStatus: { ...review, description: "", position: 1, requirements: 0 }, needsComment: false };
+const reject = {
+  id: "tr-reject",
+  name: "Reject",
+  toStatus: { id: "st-rejected", name: "Rejected", category: "closed" as const, description: "", position: 5, requirements: 0 },
+  needsComment: true,
+};
+const statuses = [draft, review].map((status, position) => ({ ...status, description: "", position, requirements: 0 }));
+
+function stubStates(answers: Parameters<typeof stubApi>[0] = {}) {
+  return stubDocument(
+    [
+      entry(scope, "What is in scope."),
+      entry(node({ ...pay, status: draft }), "Pay at once."),
+      entry(node({ ...ship, status: draft }), "Ship in a day."),
+      entry(node({ id: "o", key: "CHK-R4", title: "Other", outline: "2", status: review }), "Other things."),
+    ],
+    { "GET /projects/CHK/statuses": { status: 200, body: { statuses } }, ...answers },
+  );
+}
+
+describe("states in the document", () => {
+  it("offers only the transitions every picked requirement has", () => {
+    const answer = (key: string, transitions: AvailableTransition[]) => ({ key, transitions });
+    expect(sharedTransitions([answer("A", [submit, reject]), answer("B", [reject])], ["A", "B"]).map((each) => each.id)).toEqual(["tr-reject"]);
+    expect(sharedTransitions([answer("A", [submit])], ["A", "B"])).toEqual([]);
+    expect(sharedTransitions([], [])).toEqual([]);
+  });
+
+  it("picks a range either way, and what is below a section", () => {
+    expect(rangeOf(["A", "B", "C", "D"], "C", "A")).toEqual(["A", "B", "C"]);
+    expect(rangeOf(["A", "B"], "X", "B")).toEqual(["B"]);
+    const entries = [entry(scope, ""), entry(pay, ""), entry(ship, ""), entry(node({ id: "o", key: "CHK-R4" }), "")];
+    expect(entriesBelow(entries, "CHK-R1").map((each) => each.node.key)).toEqual(["CHK-R2", "CHK-R3"]);
+  });
+
+  it("reads statuses and categories from the address, and drops the rest", () => {
+    expect(readSpecAddress({ status: ["a", ""], category: ["review", "lost"] })).toEqual({ status: ["a"], category: ["review"] });
+    expect(readSpecAddress({ category: "draft" })).toEqual({ category: ["draft"] });
+    expect(readSpecAddress({})).toEqual({});
+  });
+
+  it("takes a transition from a requirement's status, asking why where it wants a comment", async () => {
+    const sent = stubStates({
+      "GET /requirements/CHK-R2/transitions": { status: 200, body: { transitions: [submit, reject] } },
+      "POST /requirements/CHK-R2/transitions": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", status: { ...reject.toStatus } }) } },
+    });
+    await renderAt("/p/CHK/spec");
+    await userEvent.click(await screen.findByRole("button", { name: "CHK-R2 is Draft. Show its transitions" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Reject: Rejected" }));
+    const dialog = screen.getByRole("dialog", { name: "Reject" });
+    await userEvent.type(within(dialog).getByLabelText("Why"), "Out of scope.");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Reject" }));
+    await waitFor(() =>
+      expect(sent.find((r) => r.method === "POST")).toMatchObject({
+        path: "/requirements/CHK-R2/transitions",
+        body: { transitionId: "tr-reject", comment: "Out of scope." },
+      }),
+    );
+    await waitFor(() => expect(document.body.querySelector("[data-spec-announced]")).toHaveTextContent("CHK-R2 moved to Rejected."));
+  });
+
+  it("moves the picked requirements at once, keeps the refused ones picked and says why", async () => {
+    const sent = stubStates({
+      "GET /projects/CHK/transitions": {
+        status: 200,
+        body: {
+          requirements: [
+            { key: "CHK-R2", transitions: [submit, reject] },
+            { key: "CHK-R3", transitions: [submit] },
+          ],
+        },
+      },
+      "POST /projects/CHK/transitions": {
+        status: 200,
+        body: {
+          results: [
+            { key: "CHK-R2", outcome: "taken", requirement: aRequirement({ key: "CHK-R2", status: { ...review } }), error: null },
+            {
+              key: "CHK-R3",
+              outcome: "refused",
+              requirement: null,
+              error: { code: "transition_unavailable", message: "Somebody moved CHK-R3 to In review meanwhile." },
+            },
+          ],
+        },
+      },
+    });
+    await renderAt("/p/CHK/spec");
+    expect(await screen.findByRole("checkbox", { name: "Select everything in Scope" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Select CHK-R1" })).toBeNull();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select CHK-R2" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select CHK-R3" }));
+    const bar = document.body.querySelector<HTMLElement>("[data-selection-bar]")!;
+    expect(within(bar).queryByRole("button", { name: "Reject" })).toBeNull();
+    await userEvent.click(await within(bar).findByRole("button", { name: "Submit for review" }));
+    await waitFor(() => expect(sent.find((r) => r.method === "POST")?.body).toEqual({ transitionId: "tr-submit", keys: ["CHK-R2", "CHK-R3"] }));
+    expect(await within(bar).findByText(/Somebody moved CHK-R3 to In review meanwhile\./)).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Select CHK-R3" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select CHK-R2" })).not.toBeChecked();
+    expect(document.body.querySelector("[data-spec-announced]")).toHaveTextContent("1 requirement moved to In review, 1 not moved.");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("picks a range with Shift, and everything in a section at once", async () => {
+    stubStates({ "GET /projects/CHK/transitions": { status: 200, body: { requirements: [] } } });
+    const user = userEvent.setup();
+    await renderAt("/p/CHK/spec");
+    await user.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
+    await user.keyboard("{Shift>}");
+    await user.click(screen.getByRole("checkbox", { name: "Select CHK-R4" }));
+    await user.keyboard("{/Shift}");
+    for (const key of ["CHK-R2", "CHK-R3", "CHK-R4"]) expect(screen.getByRole("checkbox", { name: `Select ${key}` })).toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: "Clear the selection" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select everything in Scope" }));
+    expect(screen.getByRole("checkbox", { name: "Select CHK-R2" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select CHK-R3" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select CHK-R4" })).not.toBeChecked();
+    expect(await screen.findByText("They share no transition you may take. Pick requirements in the same status and workflow.")).toBeInTheDocument();
+  });
+
+  it("narrows the document to statuses, and keeps that in the address", async () => {
+    const asked: string[] = [];
+    stubStates({
+      "GET /projects/CHK/spec": (request) => {
+        asked.push(new URL(request.url).searchParams.getAll("category").join(","));
+        return { status: 200, body: { entries: [entry(node({ ...pay, status: review }), "Pay at once.")], total: 1, limit: 50, offset: 0 } };
+      },
+    });
+    const router = await renderAt("/p/CHK/spec");
+    await userEvent.click(await screen.findByRole("button", { name: "In review" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({ category: ["review"] }));
+    await waitFor(() => expect(asked).toContain("review"));
+    await userEvent.selectOptions(screen.getByLabelText("Status"), "st-draft");
+    await waitFor(() => expect(router.state.location.search).toEqual({ category: ["review"], status: ["st-draft"] }));
+    await userEvent.click(screen.getByRole("button", { name: "Show every status" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
   });
 });

@@ -194,8 +194,16 @@ describe("picking requirements for Armature issues", () => {
     expect(within(dialog).getByRole("button", { name: "Create 1 issue" })).toBeDisabled();
   });
 
-  it("offers nothing to pick to a reader, or without Armature", async () => {
-    stubSpec({}, false);
+  it("offers nothing to pick to a reader, and no Armature issues without Armature", async () => {
+    stubSpec(
+      {
+        "GET /projects/CHK/spec": {
+          status: 200,
+          body: { entries: [entry(scope, false), entry(pay, false), entry(ship, false)], total: 3, limit: 50, offset: 0 },
+        },
+      },
+      false,
+    );
     await renderAt("/p/CHK/spec");
     await screen.findByRole("heading", { name: "1.2 Pay at once" });
     expect(screen.queryByRole("checkbox")).toBeNull();
@@ -203,7 +211,9 @@ describe("picking requirements for Armature issues", () => {
     stubSpec({ "GET /armature/account": { status: 200, body: { account: { ...account, configured: false, baseUrl: "", status: "not_configured" } } } });
     await renderAt("/p/CHK/spec");
     await screen.findByRole("heading", { name: "1.2 Pay at once" });
-    expect(screen.queryByRole("checkbox")).toBeNull();
+    // Picking is still there for moving requirements through their workflow (#169), but not for Armature.
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
+    expect(document.querySelector('[data-action="create-armature-issues"]')).toBeNull();
   });
 
   it("picks every requirement a grid shows at once", async () => {

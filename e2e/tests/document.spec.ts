@@ -2,6 +2,7 @@ import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
+import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
@@ -94,5 +95,52 @@ test.describe("the document", { tag: "@desktop" }, () => {
     await page.getByRole("link", { name: `${KEY}-R2` }).click();
     await dialog.locator('[data-action="discard-changes"]').click();
     await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R2`);
+  });
+
+  test("submits a section for review at once, and a reviewer approves from the document", async ({ page, api, pageAs, people }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Document" } }));
+    must(
+      await api.PUT("/projects/{projectKey}/grants", {
+        params: { path: { projectKey: KEY } },
+        body: {
+          grants: [
+            { subject: { type: "user", id: people.alice.id }, role: "admin" },
+            { subject: { type: "everyone" }, role: "editor" },
+            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+          ],
+        },
+      }),
+    );
+    const write = async (body: Record<string, unknown>) =>
+      must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: body as never })).requirement;
+    const scope = await write({ kind: "section", title: "Scope" });
+    const pay = await write({ title: "Pay", place: { parentId: scope.id, afterId: null } });
+    const ship = await write({ title: "Ship", place: { parentId: scope.id, afterId: pay.id } });
+    const other = await write({ title: "Other" });
+
+    await page.goto(`/p/${KEY}/spec`);
+    await page.locator(`[data-pick-below="${scope.key}"]`).check();
+    const bar = page.locator("[data-selection-bar]");
+    await expect(bar.getByRole("status")).toHaveText("2 requirements selected");
+    await bar.locator('[data-bulk-transition="Submit for review"]').click();
+    await expect(page.locator("[data-spec-announced]")).toHaveText("2 requirements moved to In review.");
+    for (const key of [pay.key, ship.key]) {
+      await expect(page.locator(`[data-spec-entry="${key}"] [data-status="In review"]`)).toBeVisible();
+    }
+    await expect(page.locator(`[data-spec-entry="${other.key}"] [data-status="Draft"]`)).toBeVisible();
+
+    await page.locator('[data-filter-category="review"]').click();
+    await expect(page.locator(`[data-spec-entry="${other.key}"]`)).toHaveCount(0);
+    await expect(page.locator(`[data-spec-entry="${scope.key}"]`)).toBeVisible();
+    await expectAccessible(page);
+
+    // Alice moved them, so bob's read may come from a replica a moment behind.
+    const bob = await pageAs("bob");
+    const payStatus = bob.locator(`[data-spec-entry="${pay.key}"] [data-action="status-menu"]`);
+    await openUntil(bob, `/p/${KEY}/spec`, () => expect(payStatus.locator('[data-status="In review"]')).toBeVisible(ONE_LOOK));
+    await payStatus.click();
+    await bob.getByRole("menuitem", { name: "Approve: Approved" }).click();
+    await expect(bob.locator(`[data-spec-entry="${pay.key}"] [data-status="Approved"]`)).toBeVisible();
+    await expect(bob.locator("[data-spec-announced]")).toHaveText(`${pay.key} moved to Approved.`);
   });
 });

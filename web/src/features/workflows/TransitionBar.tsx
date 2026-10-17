@@ -73,7 +73,8 @@ export function TransitionBar({ requirement }: { requirement: Requirement }) {
   );
 }
 
-function CommentDialog({
+/** Asks why before a transition that wants a comment, and says what refused it. */
+export function CommentDialog({
   transition,
   pending,
   error,
