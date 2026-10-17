@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // Agreed limits, Stator's where Stator has them.
@@ -99,10 +100,12 @@ type Review struct {
 	Decisions   []DecisionEntry `json:"decisions"`
 	Comment     string          `json:"comment"`
 	RequestedBy string          `json:"requestedByName"`
-	RequestedAt time.Time       `json:"requestedAt"`
-	FinishedAt  *time.Time      `json:"finishedAt"`
-	AuthorName  string          `json:"authorName"`
-	Can         Can             `json:"can"`
+	// Via is the token or connected app the review was asked for through, null for a session (#190).
+	Via         *via.Via   `json:"via"`
+	RequestedAt time.Time  `json:"requestedAt"`
+	FinishedAt  *time.Time `json:"finishedAt"`
+	AuthorName  string     `json:"authorName"`
+	Can         Can        `json:"can"`
 	// Signed says a decision on this review is an electronic signature, as its project asks (#46).
 	Signed bool `json:"signed"`
 	// Meanings are what the caller signs with each decision, in their language, while they may decide a signed review;

@@ -373,6 +373,10 @@ export const en = {
   webhooks: webhooksEn,
   oauth: oauthEn,
   themes: themesEn,
+  via: {
+    through: (name: string) => `through ${name}`,
+    kinds: { token: "a personal access token", oauth: "a connected app" } as Record<"token" | "oauth", string>,
+  },
   notFound: {
     title: "Page not found",
     emptyTitle: "Nothing lives at this address",

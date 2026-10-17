@@ -3,6 +3,7 @@ import { auditExportHref, useAuditFacets, useAuditLog, type AuditEntry, type Aud
 import { ApiError } from "@/api/client";
 import { Button, ButtonLink, EmptyState, ErrorBanner, Field, PageHeader, Select, Skeleton, Table, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { Through } from "@/components/Through";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 
@@ -238,6 +239,7 @@ function AuditRow({ entry, onActor, onTarget }: { entry: AuditEntry; onActor: (a
         ) : (
           <span className="text-ink-subtle">{actor}</span>
         )}
+        <Through via={entry.via} className="block" />
       </Td>
       <Td className="text-sm">
         <span className="block text-2xs text-ink-subtle">{typeLabel(entry.targetType)}</span>

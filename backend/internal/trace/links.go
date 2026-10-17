@@ -13,12 +13,13 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // selectLinks reads the live links of requirement $1 the reader sees, each from that end, in the order of
 // their types and directions.
-const selectLinks = `
-SELECT l.id, l.type_id, l.source_id = $1, o.id, op.key, o.number, o.kind, o.title, o.revision,
+var selectLinks = `
+SELECT ` + via.Column("l") + `, l.id, l.type_id, l.source_id = $1, o.id, op.key, o.number, o.kind, o.title, o.revision,
        o.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), o.trashed_at IS NOT NULL,
        l.source_reviewed_rev, l.target_reviewed_rev, l.created_at, COALESCE(u.name, ''), h.revision, h.trashed_at IS NOT NULL
 FROM trace_link l
@@ -60,7 +61,7 @@ func readLinks(ctx context.Context, tx db.DBTX, id uuid.UUID, only *uuid.UUID) (
 			status   requirement.StatusRef
 		)
 		o := &f.link.Other
-		if err := rows.Scan(&f.link.ID, &f.typeID, &outgoing, &o.ID, &o.ProjectKey, &number, &o.Kind, &o.Title, &o.Revision,
+		if err := rows.Scan(&f.link.Via, &f.link.ID, &f.typeID, &outgoing, &o.ID, &o.ProjectKey, &number, &o.Kind, &o.Title, &o.Revision,
 			&statusID, &status.Name, &status.Category, &o.Trashed,
 			&f.link.SourceRevision, &f.link.TargetRevision, &f.link.CreatedAt, &f.link.CreatedByName, &f.here, &f.hereTrashed); err != nil {
 			rows.Close()

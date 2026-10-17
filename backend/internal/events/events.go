@@ -40,9 +40,11 @@ func Emit(ctx context.Context, tx db.DBTX, topic string, payload any) error {
 	if err != nil {
 		return fmt.Errorf("marshal %s payload: %w", topic, err)
 	}
+	// What the change was written through, as its rows say (#190), so a webhook can say it too.
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO outbox_event (topic, payload, trace_parent)
-		VALUES ($1, $2, NULLIF($3, ''))`,
+		VALUES ($1, $2::jsonb || COALESCE((SELECT jsonb_build_object('via', jsonb_build_object('kind', h.kind, 'name', h.name)) FROM via_held() h),
+		        '{}'::jsonb), NULLIF($3, ''))`,
 		topic, body, TraceParent(ctx)); err != nil {
 		return fmt.Errorf("emit %s: %w", topic, err)
 	}

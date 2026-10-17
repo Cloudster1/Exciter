@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Comparison, RevisionEntry } from "@/api/history";
 import { renderAt, stubApi } from "@/test/app";
+import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
 
@@ -12,6 +13,7 @@ const project = aProject();
 const current = aRequirement({ revision: 2 });
 const entry = (number: number, comment: string): RevisionEntry => ({
   number,
+  via: null,
   title: "Pay the basket",
   comment,
   authorId: null,
@@ -28,6 +30,21 @@ const base = {
 };
 
 describe("a requirement's history", () => {
+  it("marks a revision written through a token with the token's name, and none written by hand", async () => {
+    stubApi({
+      ...base,
+      "GET /requirements/CHK-R1/revisions": {
+        status: 200,
+        body: { revisions: [{ ...entry(2, "Later."), via: { kind: "token", name: "Nightly script" } }, entry(1, "First.")], total: 2, limit: 20, offset: 0 },
+      },
+    });
+    await renderAt("/p/CHK/r/CHK-R1/history");
+    const rows = await screen.findAllByRole("row");
+    expect(within(rows[1]!).getByText(/through Nightly script/)).toHaveAttribute("data-via", "token");
+    expect(rows[2]!.querySelector("[data-via]")).toBeNull();
+    expect(await axeViolations()).toEqual([]);
+  });
+
   it("lists its revisions, the latest first, and compares the two selected", async () => {
     stubApi(base);
     const router = await renderAt("/p/CHK/r/CHK-R1/history");

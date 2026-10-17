@@ -44,6 +44,7 @@ function anIssue(key: string, summary: string, category = "in_progress", over: P
 function aLink(issueKey: string, over: Partial<ArmatureLink> = {}): ArmatureLink {
   return {
     id: `0195f000-0000-7000-8000-${issueKey.replace("-", "").padStart(12, "0").toLowerCase()}`,
+    via: null,
     relation: "implements",
     issueKey,
     statusCategory: "in_progress",

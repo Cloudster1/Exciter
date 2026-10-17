@@ -18284,6 +18284,16 @@
                 "type": "null"
               }
             ]
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -18291,6 +18301,7 @@
           "kind",
           "at",
           "actorName",
+          "via",
           "revision",
           "change"
         ]
@@ -18810,6 +18821,16 @@
               "pending",
               "failed"
             ]
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -18825,7 +18846,8 @@
           "reviewedRevision",
           "suspect",
           "createdByName",
-          "createdAt"
+          "createdAt",
+          "via"
         ]
       },
       "ArmatureLinkInput": {
@@ -19426,6 +19448,16 @@
           },
           "targetType": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -19437,7 +19469,8 @@
           "actorName",
           "data",
           "ip",
-          "createdAt"
+          "createdAt",
+          "via"
         ]
       },
       "AuditFacets": {
@@ -20303,6 +20336,16 @@
           "threadId": {
             "type": "string",
             "format": "uuid"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -20315,6 +20358,7 @@
           "deleted",
           "createdAt",
           "editedAt",
+          "via",
           "can"
         ]
       },
@@ -24886,6 +24930,16 @@
               "withdrawn",
               "superseded"
             ]
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -24899,6 +24953,7 @@
           "decisions",
           "comment",
           "requestedByName",
+          "via",
           "requestedAt",
           "finishedAt",
           "authorName",
@@ -25071,6 +25126,16 @@
                 "type": "null"
               }
             ]
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -25082,6 +25147,7 @@
           "createdAt",
           "restoredFrom",
           "hash",
+          "via",
           "statement",
           "rationale",
           "type",
@@ -25122,6 +25188,16 @@
           },
           "title": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -25132,7 +25208,8 @@
           "authorName",
           "createdAt",
           "restoredFrom",
-          "hash"
+          "hash",
+          "via"
         ]
       },
       "RuleOption": {
@@ -26056,6 +26133,16 @@
           },
           "url": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -26073,7 +26160,8 @@
           "brokenAt",
           "detachedAt",
           "createdByName",
-          "createdAt"
+          "createdAt",
+          "via"
         ]
       },
       "StatorLinkInput": {
@@ -26765,6 +26853,16 @@
           },
           "type": {
             "$ref": "#/components/schemas/LinkType"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -26777,7 +26875,8 @@
           "targetRevision",
           "suspect",
           "createdAt",
-          "createdByName"
+          "createdByName",
+          "via"
         ]
       },
       "TraceLinkInput": {
@@ -27354,6 +27453,25 @@
           "email",
           "name",
           "locale"
+        ]
+      },
+      "Via": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "token",
+              "oauth"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
         ]
       },
       "View": {
@@ -28416,6 +28534,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "via": {
+            "$ref": "#/components/schemas/Via"
           }
         },
         "required": [

@@ -20,12 +20,18 @@ const UserVar = "app.user_id"
 // token they act with, read by the permission functions; unset is no limit.
 const TokenProjectsVar = "app.token_projects"
 
+// ViaVar is the setting that names the token or OAuth grant the person acts
+// through, which the database stamps on what they write (#190); unset is a session.
+const ViaVar = "app.via"
+
 // acting is whom the transactions act for and, for a token limited to some
 // projects, which; one value so that naming another person drops the limit.
 type acting struct {
 	user         uuid.UUID
 	projectsOnly bool
 	projects     []uuid.UUID
+	// via is the token or grant the person acts through, uuid.Nil for a session.
+	via uuid.UUID
 }
 
 // WithUser names the person the transactions made with ctx act for, so row
@@ -38,6 +44,23 @@ func WithUser(ctx context.Context, id uuid.UUID) context.Context {
 // named, none when the list is empty.
 func WithUserInProjects(ctx context.Context, id uuid.UUID, projects []uuid.UUID) context.Context {
 	return context.WithValue(ctx, userKey{}, acting{user: id, projectsOnly: true, projects: projects})
+}
+
+// WithVia names the token or grant the person ctx acts for acts through; naming another person drops it, as it
+// drops a token's projects.
+func WithVia(ctx context.Context, id uuid.UUID) context.Context {
+	a, ok := ctx.Value(userKey{}).(acting)
+	if !ok {
+		return ctx
+	}
+	a.via = id
+	return context.WithValue(ctx, userKey{}, a)
+}
+
+// ViaFrom is the token or grant WithVia named, if any.
+func ViaFrom(ctx context.Context) (uuid.UUID, bool) {
+	a, _ := ctx.Value(userKey{}).(acting)
+	return a.via, a.via != uuid.Nil
 }
 
 // UserFrom is the person WithUser named, if any.

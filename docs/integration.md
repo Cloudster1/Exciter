@@ -221,6 +221,10 @@ version 1's payload unchanged:
   or a broker hearing several installations tells them apart; `type` is
   `dev.exciter.` and the topic; `dataversion` is the payload's own version,
   which rises only for a change that breaks a receiver of the data.
+- **`actor.via`** says what the change was written through: `{kind, name}`,
+  `token` and the personal access token's name, or `oauth` and the
+  connected app's (#190). It is left out for a change made in the browser,
+  so a receiver of either version that does not know it reads past it.
 - **Version 1 is the default.** A new endpoint is on version 1 unless it
   names 2, in the form or through `version` on `POST /webhooks`; saving one
   without `version` keeps the one it has; the list shows each, and its menu

@@ -82,6 +82,7 @@ function made(requirementKey: string, key: string, summary: string): ArmatureCre
     },
     link: {
       id: "0195f000-0000-7000-8000-0000000000a1",
+      via: null,
       relation: "verifies",
       issueKey: key,
       statusCategory: "todo",

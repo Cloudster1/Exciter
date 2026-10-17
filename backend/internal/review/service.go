@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // Topics a review writes to the outbox.
@@ -313,8 +314,8 @@ func (s *Service) DeleteRule(ctx context.Context, ruleID uuid.UUID) (db.LSN, err
 }
 
 // selectReviews reads reviews with their requirement as it is now, and what $1 may do to each.
-const selectReviews = `
-SELECT v.id, r.id, p.key, r.number, r.kind, r.title, r.revision, r.trashed_at IS NOT NULL, st.id, COALESCE(st.name, ''),
+var selectReviews = `
+SELECT ` + via.Column("v") + `, v.id, r.id, p.key, r.number, r.kind, r.title, r.revision, r.trashed_at IS NOT NULL, st.id, COALESCE(st.name, ''),
        COALESCE(st.category, ''), v.revision, v.state, v.required, review_approvals(v.id), v.comment, COALESCE(q.name, ''),
        v.requested_at, v.finished_at, COALESCE(a.name, ''), review_decidable(v.id, $1::uuid),
        v.state = 'pending' AND (v.requested_by = $1::uuid OR perm_project_holds(r.project_id, $1::uuid, 'administer')),
@@ -342,7 +343,7 @@ func reviews(ctx context.Context, tx db.DBTX, actor uuid.UUID, rest string, args
 			title    string
 		)
 		ref := &v.Requirement
-		err := row.Scan(&v.ID, &ref.ID, &ref.ProjectKey, &number, &ref.Kind, &ref.Title, &ref.Revision, &ref.Trashed, &statusID,
+		err := row.Scan(&v.Via, &v.ID, &ref.ID, &ref.ProjectKey, &number, &ref.Kind, &ref.Title, &ref.Revision, &ref.Trashed, &statusID,
 			&status.Name, &status.Category, &v.Revision, &v.State, &v.Required, &v.Approvals, &v.Comment, &v.RequestedBy,
 			&v.RequestedAt, &v.FinishedAt, &v.AuthorName, &v.Can.Decide, &v.Can.Withdraw, &v.Signed, &title)
 		ref.Key = requirement.Key(ref.ProjectKey, number)

@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/keyset"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 var (
@@ -30,8 +31,11 @@ var (
 // emptyDoc is the document of a side that has no statement or rationale: the empty requirement, or a null rationale.
 var emptyDoc = json.RawMessage(`{"type":"doc","content":[]}`)
 
-const selectRevision = `
-SELECT v.number, v.title, v.comment, v.created_by, COALESCE(u.name, ''), v.created_at, v.restored_from, v.hash,
+// viaRevision is what a revision was written through, read in the history and the activity alike.
+var viaRevision = via.Column("v")
+
+var selectRevision = `
+SELECT v.number, v.title, v.comment, v.created_by, COALESCE(u.name, ''), v.created_at, v.restored_from, v.hash, ` + viaRevision + `,
        v.statement, v.rationale, v.attributes, v.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), t.project_id
 FROM requirement_revision v
 LEFT JOIN app_user u ON u.id = v.created_by
@@ -51,7 +55,7 @@ func scanRevision(row pgx.Row) (*stored, error) {
 		typeID    *uuid.UUID
 		typ       TypeRef
 	)
-	err := row.Scan(&v.Number, &v.Title, &v.Comment, &v.AuthorID, &v.AuthorName, &v.CreatedAt, &v.RestoredFrom, &v.Hash,
+	err := row.Scan(&v.Number, &v.Title, &v.Comment, &v.AuthorID, &v.AuthorName, &v.CreatedAt, &v.RestoredFrom, &v.Hash, &v.Via,
 		&v.Statement, &rationale, &attrs, &typeID, &typ.Name, &typ.Icon, &typ.Colour, &v.typeProject)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRevision
@@ -452,12 +456,13 @@ func (s *Service) Activity(ctx context.Context, reader uuid.UUID, key string, af
 		rows, err := tx.Query(ctx, `
 			SELECT * FROM (
 				SELECT 'revision' AS kind, v.created_at, `+revisionEntryID+` AS id, COALESCE(u.name, '') AS actor,
-				       v.number, v.title, v.comment, v.created_by, v.restored_from, v.hash, '' AS field, '' AS from_value, '' AS to_value, '' AS reason
+				       v.number, v.title, v.comment, v.created_by, v.restored_from, v.hash, '' AS field, '' AS from_value, '' AS to_value, '' AS reason,
+				       `+viaRevision+` AS via
 				FROM requirement_revision v LEFT JOIN app_user u ON u.id = v.created_by
 				WHERE v.requirement_id = $1
 				UNION ALL
 				SELECT 'change', c.created_at, c.id, COALESCE(u.name, ''),
-				       0, '', '', c.actor_id, NULL, '', c.field, c.from_value, c.to_value, c.reason
+				       0, '', '', c.actor_id, NULL, '', c.field, c.from_value, c.to_value, c.reason, `+via.Column("c")+`
 				FROM requirement_change c LEFT JOIN app_user u ON u.id = c.actor_id
 				WHERE c.requirement_id = $1
 			) a
@@ -476,11 +481,11 @@ func (s *Service) Activity(ctx context.Context, reader uuid.UUID, key string, af
 				field, fromValue, toValue string
 			)
 			if err := rows.Scan(&e.Kind, &e.At, &e.ID, &e.ActorName, &v.Number, &v.Title, &v.Comment, &authorID, &v.RestoredFrom, &v.Hash,
-				&field, &fromValue, &toValue, &c.Reason); err != nil {
+				&field, &fromValue, &toValue, &c.Reason, &e.Via); err != nil {
 				return err
 			}
 			if e.Kind == ActivityRevision {
-				v.AuthorID, v.AuthorName, v.CreatedAt = authorID, e.ActorName, e.At
+				v.AuthorID, v.AuthorName, v.CreatedAt, v.Via = authorID, e.ActorName, e.At, e.Via
 				e.Revision = &v
 			} else {
 				c.Field, c.From, c.To = ChangeField(field), fromValue, toValue

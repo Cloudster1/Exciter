@@ -165,6 +165,10 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			} else {
 				ctx = db.WithUser(ctx, principal.UserID)
 			}
+			// What is written through a token or a grant is marked so by the database (#190).
+			if principal.Token != nil {
+				ctx = db.WithVia(ctx, principal.Token.ID)
+			}
 			r = r.WithContext(ctx)
 		case errors.Is(err, auth.ErrInvalidToken):
 			// A dead credential makes the caller anonymous, so sign-in still

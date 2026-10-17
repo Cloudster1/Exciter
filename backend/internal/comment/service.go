@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/markdown"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // The discussion on requirements (#33), Stator's comment service over requirements: whether the actor may read or
@@ -161,9 +162,9 @@ func cleanBody(body any) (json.RawMessage, error) {
 	return raw, nil
 }
 
-const selectComments = `
+var selectComments = `
 SELECT t.id, t.requirement_id, t.resolved_at, COALESCE(r.name, ''),
-       c.id, c.author_id, COALESCE(u.name, ''), c.revision, c.body, c.deleted_at IS NOT NULL, c.created_at, c.edited_at
+       c.id, c.author_id, COALESCE(u.name, ''), c.revision, c.body, c.deleted_at IS NOT NULL, c.created_at, c.edited_at, ` + via.Column("c") + `
 FROM comment_thread t
 JOIN comment c ON c.thread_id = t.id
 LEFT JOIN app_user u ON u.id = c.author_id
@@ -186,7 +187,7 @@ func threads(ctx context.Context, tx db.DBTX, actor uuid.UUID, r *onRequirement,
 			body                    []byte
 		)
 		if err := rows.Scan(&threadID, &requirementID, &resolvedAt, &resolvedBy,
-			&c.ID, &c.AuthorID, &c.AuthorName, &c.Revision, &body, &c.Deleted, &c.CreatedAt, &c.EditedAt); err != nil {
+			&c.ID, &c.AuthorID, &c.AuthorName, &c.Revision, &body, &c.Deleted, &c.CreatedAt, &c.EditedAt, &c.Via); err != nil {
 			return nil, err
 		}
 		c.ThreadID = threadID

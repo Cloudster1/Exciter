@@ -3,6 +3,7 @@ import type { Requirement } from "@/api/requirements";
 import { useDecide, useRequestReview, useReviews, useWithdrawReview, type Decision, type Review } from "@/api/reviews";
 import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, Tag } from "@/components/ui";
 import { REVIEW_COMMENT_MAX_LENGTH } from "@/config";
+import { Through } from "@/components/Through";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { SignDialog } from "./SignDialog";
@@ -129,7 +130,9 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
   };
   return (
     <div className="space-y-2 rounded-overlay border border-border bg-surface p-3" data-pending-review={review.id}>
-      <p className="text-sm text-ink">{t.review.pending(review.revision, review.requestedByName)}</p>
+      <p className="text-sm text-ink">
+        {t.review.pending(review.revision, review.requestedByName)} <Through via={review.via} />
+      </p>
       {review.comment && <p className="text-sm text-ink-muted italic">{review.comment}</p>}
       <p className="text-sm text-ink-muted" data-review-approvals={`${review.approvals}/${review.required}`}>
         {t.review.approvals(review.approvals, review.required)}

@@ -14,6 +14,9 @@ import (
 // gone does, and the delivery is withheld.
 func (s *Service) payload(ctx context.Context, tx db.DBTX, topic string, in emitted) (any, error) {
 	actor := person(ctx, tx, in.ActorID)
+	if actor != nil {
+		actor.Via = in.Via
+	}
 	switch topic {
 	case TopicLinkCreated, TopicLinkRemoved:
 		link, err := s.link(ctx, tx, in.LinkID)

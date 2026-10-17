@@ -113,6 +113,11 @@ func (c *Cluster) inTx(
 				return fmt.Errorf("apply the token's projects: %w", err)
 			}
 		}
+		if via, ok := ViaFrom(ctx); ok {
+			if _, err := tx.Exec(ctx, setConfigSQL, ViaVar, via.String()); err != nil {
+				return fmt.Errorf("apply what the person acts through: %w", err)
+			}
+		}
 	}
 	if err := fn(ctx, tx); err != nil {
 		return err

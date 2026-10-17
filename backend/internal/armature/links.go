@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/trace"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // Requirements traced to Armature issues (#27): the links a requirement has, made and removed as the person.
@@ -32,8 +33,8 @@ var (
 
 // selectLinks reads requirement $1's links with how far each one's sync has come; one with no record yet is
 // waiting for the worker.
-const selectLinks = `
-SELECT l.id, l.relation, l.issue_key, COALESCE(l.status_category, ''), l.status_stale,
+var selectLinks = `
+SELECT ` + via.Column("l") + `, l.id, l.relation, l.issue_key, COALESCE(l.status_category, ''), l.status_stale,
        COALESCE(rl.state, 'pending'), COALESCE(rl.error, ''), l.broken_at, l.detached_at, l.reviewed_rev,
        r.trashed_at IS NULL AND r.revision > l.reviewed_rev, COALESCE(u.name, ''), l.created_at
 FROM armature_issue_link l
@@ -55,7 +56,7 @@ func readLinks(ctx context.Context, tx db.DBTX, requirementID uuid.UUID, only *u
 	}
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Link, error) {
 		var l Link
-		err := row.Scan(&l.ID, &l.Relation, &l.IssueKey, &l.StatusCategory, &l.StatusStale, &l.Sync, &l.Error,
+		err := row.Scan(&l.Via, &l.ID, &l.Relation, &l.IssueKey, &l.StatusCategory, &l.StatusStale, &l.Sync, &l.Error,
 			&l.BrokenAt, &l.DetachedAt, &l.ReviewedRevision, &l.Suspect, &l.CreatedByName, &l.CreatedAt)
 		return l, err
 	})

@@ -58,6 +58,19 @@ own endpoints, which refuse in the shape their RFCs give clients
     `oauth.MaxClientNameLength` = 100.
 - **Decided:** no tool decides a review, and Exciter is its own authorization
   server ahead of Armature and Stator (`docs/decisions.md`, 2026-10-17).
+- **As built** (#190):
+  - One function, `via_held()`, reads what `app.via` names when the acting
+    person holds it. The trigger stamps from it, and `events.Emit` adds it to
+    the event, so a row and its event always say the same.
+  - A webhook carries `via` on its `actor`, beside whom it names, rather
+    than once per payload type; it is left out for a session.
+  - A review's `via` is how it was asked for. A link answers `via`, though
+    no page shows who made a link, so the pages mark the history, the
+    activity, comments, a pending review and the audit log.
+  - The audit export gains `via_kind` and `via_name` as its last columns, so
+    a reader of the earlier export finds the others where they were.
+  - A write as the admin role on somebody's behalf, such as the worker's,
+    carries no `via`: it names no person's token.
 
 ## #183 The protocol
 

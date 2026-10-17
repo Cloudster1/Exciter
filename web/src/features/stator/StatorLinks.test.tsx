@@ -47,6 +47,7 @@ function aPage(id: string, title: string, version: number): StatorPage {
 function aLink(pageId: string, over: Partial<StatorLink> = {}): StatorLink {
   return {
     id: `0195f000-0000-7000-8000-${pageId.slice(-6).padStart(12, "b")}`,
+    via: null,
     relation: "specifies",
     pageId,
     spaceKey: "ENG",

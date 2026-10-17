@@ -11,6 +11,7 @@ import { HISTORY_PAGE_SIZE, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { DiffTitle, DocDiffView, DocView, type DiffBlockView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { AttributeValues, type Values } from "@/features/types/AttributeFields";
+import { Through } from "@/components/Through";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 
@@ -183,7 +184,10 @@ function HistoryList({ requirement, offset, tab, onSearch }: ScreenProps & { off
                         {entry.number === requirement.revision && <Tag className="ml-2">{t.history.latest}</Tag>}
                         {entry.title !== requirement.title && <span className="block text-xs text-ink-muted">{entry.title}</span>}
                       </Td>
-                      <Td className="text-ink-muted">{t.history.written(entry.authorName, when(entry.createdAt))}</Td>
+                      <Td className="text-ink-muted">
+                        {t.history.written(entry.authorName, when(entry.createdAt))}
+                        <Through via={entry.via} className="block" />
+                      </Td>
                       <Td>
                         {entry.comment ? <span className="text-ink">{entry.comment}</span> : <span className="text-ink-subtle">{t.history.noComment}</span>}
                         {entry.restoredFrom != null && <span className="block text-xs text-ink-muted">{t.history.restoredFrom(entry.restoredFrom)}</span>}
@@ -251,7 +255,9 @@ function RevisionScreen({ project, requirement, number, onSearch }: ScreenProps 
         !error && <Skeleton />
       ) : (
         <Card className="space-y-4 p-4">
-          <p className="text-sm text-ink-muted">{t.history.written(data.authorName, when(data.createdAt))}</p>
+          <p className="text-sm text-ink-muted">
+            {t.history.written(data.authorName, when(data.createdAt))} <Through via={data.via} />
+          </p>
           <h2 className="text-lg font-semibold text-ink">{data.title}</h2>
           <DocView doc={data.statement as Doc} />
           {Boolean(data.rationale) && (
@@ -337,7 +343,7 @@ function ActivityList({ requirement }: { requirement: Requirement }) {
       <ol className="space-y-2" aria-label={t.history.activityLabel} data-activity>
         {entries.map((e) => (
           <li key={e.id} className="rounded-control border border-border px-3 py-2 text-sm" data-activity-entry={e.kind}>
-            <span className="font-medium text-ink">{e.actorName || "-"}</span>{" "}
+            <span className="font-medium text-ink">{e.actorName || "-"}</span> {e.via && <Through via={e.via} />}{" "}
             <span className="text-ink-muted">
               {e.revision
                 ? t.history.activityRevision(e.revision.number)
