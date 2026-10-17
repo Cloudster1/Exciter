@@ -966,6 +966,21 @@ var operations = []operation{
 		summary: "The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links.",
 		query:   append(append([]param{}, gridQuery...), matrixQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+
+	// The document view's bulk operations (#169, #171), agreed in docs/api-contract-m6.md.
+	{method: "GET", path: "/projects/{projectKey}/transitions", handler: "handleListBulkTransitions", tag: "workflow", pending: true,
+		summary: "The transitions the caller may take now on each of several requirements of a project; one not viewable is left out.",
+		query: []param{{name: "key", repeated: true,
+			description: "Keys of the project's requirements, 1 to " + strconv.Itoa(requirement.MaxBulk) + "."}},
+		responses: map[int]any{http.StatusOK: env{"requirements": []requirement.RequirementTransitions{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "POST", path: "/projects/{projectKey}/transitions", handler: "handleBulkTransition", tag: "workflow", pending: true,
+		summary: "Take one transition on several requirements, each on its own; the answer says for each whether it was taken, and why not.",
+		request: requirement.BulkTransitionInput{}, responses: map[int]any{http.StatusOK: env{"results": []requirement.BulkTransitionResult{}},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+	{method: "POST", path: "/projects/{projectKey}/reviews", handler: "handleBulkRequestReview", tag: "reviews", pending: true,
+		summary: "Ask for the review of several requirements at the revisions the caller saw, each on its own; the answer says for each whether it was asked, and why not.",
+		request: review.BulkRequestInput{}, responses: map[int]any{http.StatusOK: env{"results": []review.BulkRequestResult{}},
+			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 }
 
 // levelQuery keeps a coverage report's rows at a level in each dimension; the totals count every requirement.

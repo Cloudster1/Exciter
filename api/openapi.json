@@ -8737,6 +8737,98 @@
         }
       }
     },
+    "/projects/{projectKey}/reviews": {
+      "post": {
+        "operationId": "bulkRequestReview",
+        "summary": "Ask for the review of several requirements at the revisions the caller saw, each on its own; the answer says for each whether it was asked, and why not.",
+        "tags": [
+          "reviews"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BulkReviewRequestResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/spec": {
       "get": {
         "operationId": "getSpecification",
@@ -9960,6 +10052,179 @@
           },
           "422": {
             "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/transitions": {
+      "get": {
+        "operationId": "listBulkTransitions",
+        "summary": "The transitions the caller may take now on each of several requirements of a project; one not viewable is left out.",
+        "tags": [
+          "workflow"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Keys of the project's requirements, 1 to 100.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RequirementTransitions"
+                      }
+                    }
+                  },
+                  "required": [
+                    "requirements"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "bulkTransition",
+        "summary": "Take one transition on several requirements, each on its own; the answer says for each whether it was taken, and why not.",
+        "tags": [
+          "workflow"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkTransitionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BulkTransitionResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -18738,6 +19003,159 @@
           "version"
         ]
       },
+      "BulkRefusal": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "BulkReviewRequest": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkReviewRequestItem"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "BulkReviewRequestItem": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "revision"
+        ]
+      },
+      "BulkReviewRequestResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BulkRefusal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "taken",
+              "requested",
+              "refused"
+            ]
+          },
+          "review": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Review"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "outcome",
+          "review",
+          "error"
+        ]
+      },
+      "BulkTransitionInput": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transitionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "transitionId",
+          "keys"
+        ]
+      },
+      "BulkTransitionResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BulkRefusal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "taken",
+              "requested",
+              "refused"
+            ]
+          },
+          "requirement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Requirement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "outcome",
+          "requirement",
+          "error"
+        ]
+      },
       "CallingToken": {
         "type": "object",
         "properties": {
@@ -22552,6 +22970,24 @@
           "revision",
           "status",
           "trashed"
+        ]
+      },
+      "RequirementTransitions": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableTransition"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "transitions"
         ]
       },
       "RequirementType": {
