@@ -123,6 +123,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await page.locator("[data-theme-file]").setInputFiles({ name: `${name}.armature-theme.json`, mimeType: "application/json", buffer: readFileSync(file) });
     await expect(notice(page)).toHaveText(`Imported ${name} (2).`);
     await rowAction(page, `${name} (2)`, "use-theme");
+    await expect(notice(page)).toHaveText(`Now using ${name} (2).`);
     await pickScheme(page, "light");
     await page.goto("/");
     await expect(customStyle(page)).toBeAttached();
@@ -135,6 +136,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await expect(notice(page)).toContainText("Imported Meadow, from Stator");
     const meadow = (await notice(page).textContent())!.replace(/^Imported /, "").replace(/\.$/, "");
     await rowAction(page, meadow, "use-theme");
+    await expect(notice(page)).toHaveText(`Now using ${meadow}.`);
     await page.goto("/");
     expect(await rootVar(page, "--color-primary")).toBe(MEADOW_SPEC.colors.light.primary);
   });
