@@ -11,7 +11,7 @@ before it has an account; the names promise features, not data.
   "product": "exciter",
   "build": { "version": "0.1.0", "commit": "abc1234", "builtAt": "2026-10-15T09:00:00Z" },
   "apiVersion": "1",
-  "capabilities": ["requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"]
+  "capabilities": ["mcp@1", "requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"]
 }
 ```
 
@@ -52,6 +52,16 @@ type, and taken off.
 - `GET /requirements/{reqKey}/links`
 - `POST /requirements/{reqKey}/links`
 - `DELETE /links/{linkID}`
+
+### `mcp@1`
+
+An assistant works with requirements over the Model Context Protocol, as the
+person whose token it holds, in the revisions `2025-11-25` or `2025-06-18`
+(#183). Only the endpoint is promised: the tools, resources and prompts are
+what their lists name, and a partner reads them there.
+[`docs/mcp.md`](mcp.md) says how to connect a client.
+
+- `POST /mcp`
 
 ### `specifications@1`
 

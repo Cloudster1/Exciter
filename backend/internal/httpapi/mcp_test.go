@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/openapi"
 )
 
 // The tools docs/api-contract-m1.md names, and the three the foundation marked before it.
@@ -123,7 +124,8 @@ func TestTheEndpointSpeaksJSONRPC(t *testing.T) {
 	}
 
 	status, resp := call(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`, nil)
-	if status != http.StatusOK || resp.Error != nil || !strings.Contains(string(resp.Result), MCPProtocolVersion) || !strings.Contains(string(resp.Result), `"exciter"`) {
+	if status != http.StatusOK || resp.Error != nil || !strings.Contains(string(resp.Result), MCPProtocolVersions[0]) || !strings.Contains(string(resp.Result), `"exciter"`) ||
+		!strings.Contains(string(resp.Result), `"instructions"`) {
 		t.Fatalf("initialize: %d %+v", status, resp)
 	}
 	if string(resp.ID) != "1" {
@@ -211,18 +213,130 @@ func TestAToolCallBecomesTheHTTPCallItStandsFor(t *testing.T) {
 	}
 }
 
-func TestAResultTooLargeIsCutAndSaysSo(t *testing.T) {
+func TestAResultTooLargeIsRefusedAndSaysHowToAskForLess(t *testing.T) {
 	rec := &capture{header: http.Header{}}
 	rec.WriteHeader(http.StatusOK)
 	_, _ = rec.Write([]byte(`{"text":"` + strings.Repeat("a", MCPMaxToolResultBytes) + `"}`))
-	got := rec.toolResult()
-	if got.StructuredContent != nil || !strings.HasSuffix(got.Content[0].Text, string(truncatedNote)) {
-		t.Errorf("a long result was not cut: %d bytes", len(got.Content[0].Text))
+	if got := rec.toolResult(); !got.IsError || got.StructuredContent != nil || got.Content[0].Text != tooLarge {
+		t.Errorf("a long result answered %+v", got.Content)
+	}
+	fits := &capture{header: http.Header{}}
+	_, _ = fits.Write([]byte(`{"requirement":{"key":"CHK-R1"}}`))
+	if got := fits.toolResult(); got.IsError || got.StructuredContent == nil || got.Content[0].Text != `{"requirement":{"key":"CHK-R1"}}` {
+		t.Errorf("an answer that fits is structured and its text the same JSON: %+v", got)
 	}
 	refused := &capture{header: http.Header{}}
 	refused.WriteHeader(http.StatusNotFound)
 	_, _ = refused.Write([]byte(`{"error":{"code":"not_found","message":"There is no such requirement."}}`))
 	if r := refused.toolResult(); !r.IsError || r.Content[0].Text != "There is no such requirement." {
 		t.Errorf("a refusal reads %+v", r)
+	}
+}
+
+// A client asks in the newest version it speaks and goes on in whatever is answered, so the answer is its version
+// when it is spoken here and the newest otherwise; a header naming a version neither side can speak is refused.
+func TestTheVersionIsNegotiatedAndTheHeaderHeldToIt(t *testing.T) {
+	s := &Server{}
+	call := func(asked, header string) (int, string) {
+		body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"` + asked + `"}}`
+		req := httptest.NewRequest(http.MethodPost, mcpPath, strings.NewReader(body))
+		if header != "" {
+			req.Header.Set(mcpVersionHeader, header)
+		}
+		rec := httptest.NewRecorder()
+		s.handleMCP(rec, req)
+		var resp rpcResponse
+		_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+		var result struct {
+			ProtocolVersion string `json:"protocolVersion"`
+		}
+		_ = json.Unmarshal(resp.Result, &result)
+		return rec.Code, result.ProtocolVersion
+	}
+	for asked, answered := range map[string]string{
+		"2025-06-18": "2025-06-18", "2025-11-25": "2025-11-25", "2024-11-05": MCPProtocolVersions[0], "": MCPProtocolVersions[0],
+		"2026-07-28": MCPProtocolVersions[0],
+	} {
+		if _, got := call(asked, ""); got != answered {
+			t.Errorf("asked for %q, answered %q, want %q", asked, got, answered)
+		}
+	}
+	for header, status := range map[string]int{
+		"2025-06-18": http.StatusOK, "2025-11-25": http.StatusOK, "2026-07-28": http.StatusOK, "2024-11-05": http.StatusBadRequest,
+		"2025-03-26": http.StatusBadRequest, "nonsense": http.StatusBadRequest,
+	} {
+		if got, _ := call("2025-06-18", header); got != status {
+			t.Errorf("the header %q answered %d, want %d", header, got, status)
+		}
+	}
+}
+
+// What a tool answers is described as the protocol asks, an object standing alone, and every hint is said so that
+// a client never takes a write for destructive by default.
+func TestEveryToolDescribesWhatItAnswersAndHowItActs(t *testing.T) {
+	rows := map[string]operation{}
+	for _, op := range operations {
+		if op.tool != "" {
+			rows[op.tool] = op
+		}
+	}
+	for _, tool := range listTools(false, false) {
+		name := tool["name"].(string)
+		op := rows[name]
+		if tool["title"] == "" || tool["title"] == name {
+			t.Errorf("%s has no title in words: %v", name, tool["title"])
+		}
+		hints := tool["annotations"].(map[string]any)
+		for _, hint := range []string{"readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"} {
+			if _, ok := hints[hint].(bool); !ok {
+				t.Errorf("%s does not say %s", name, hint)
+			}
+		}
+		if hints["idempotentHint"] != (op.method == http.MethodPut || op.method == http.MethodPatch) || hints["destructiveHint"] != op.destructive ||
+			hints["openWorldHint"] != op.openWorld {
+			t.Errorf("%s hints %v for %s", name, hints, op.method)
+		}
+		output, described := tool["outputSchema"].(*openapi.Schema)
+		if answersNothing := op.responses[http.StatusOK] == nil && op.responses[http.StatusCreated] == nil; answersNothing {
+			if described {
+				t.Errorf("%s answers nothing but describes an output", name)
+			}
+			continue
+		}
+		if !described || output.Type != "object" || len(output.Properties) == 0 {
+			t.Errorf("%s: the output is not an object: %+v", name, output)
+			continue
+		}
+		encoded, _ := json.Marshal(output)
+		if strings.Contains(string(encoded), "#/components/") {
+			t.Errorf("%s: the output schema refers outside itself", name)
+		}
+	}
+	if get, _ := toolByName("get_requirement"); get.Title != "Get requirement" || get.Output.Properties["requirement"] == nil {
+		t.Errorf("get_requirement is %q with output %+v", get.Title, get.Output)
+	}
+	if link, _ := toolByName("link_armature_issue"); !link.OpenWorld {
+		t.Error("linking an Armature issue does not say it reaches Armature")
+	}
+}
+
+// A page of another site that rebinds a name to a local server reaches MCP with a bearer as well as with a cookie.
+func TestMCPRefusesAForeignOriginWhateverTheCredential(t *testing.T) {
+	h := newServer(t).Routes(nil)
+	for origin, refused := range map[string]bool{"http://evil.test": true, "http://app.test": false, "": false} {
+		req := httptest.NewRequest(http.MethodPost, mcpPath, strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"ping"}`))
+		req.Header.Set("Authorization", "Bearer x")
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		resp, body := serve(t, h, req)
+		if got := resp.StatusCode == http.StatusForbidden && errorOf(t, body)["code"] == "cross_site"; got != refused {
+			t.Errorf("origin %q: %d %v", origin, resp.StatusCode, body)
+		}
+	}
+	resp, body := serve(t, h, httptest.NewRequest(http.MethodGet, mcpPath, nil))
+	if resp.StatusCode != http.StatusMethodNotAllowed || errorOf(t, body)["code"] != "method_not_allowed" {
+		t.Errorf("GET %s = %d %v, want 405: there is no stream to open", mcpPath, resp.StatusCode, body)
 	}
 }

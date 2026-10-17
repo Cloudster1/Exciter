@@ -114,6 +114,23 @@ for, run through the whole router as the caller (#22).
   one.
 - `docs/mcp.md` says how to connect a client with a personal token, and from
   #189 with OAuth.
+- **As built** (#183):
+  - A header naming a revision newer than both, in the protocol's form of a
+    date, passes. A newer client asks in its own revision first: the
+    official Go SDK, v1.8.0, sends `server/discover` under `2026-07-28` and
+    falls back to `initialize` when the method is unknown, which it is here.
+    Refusing the header would end the conversation before the fallback.
+    `2026-07-28` itself, stateless and with requests over several round
+    trips, is not offered; it is a change of its own.
+  - `list_armature_links` reads what Exciter stored and is not open world,
+    so of #22's tools only `link_armature_issue` is.
+  - The origin rule is the same-site check's: `/mcp` is held to it with any
+    credential, where it is switched on, as in production. The integration
+    suite's server does not check origins, so the unit suite proves the
+    refusal.
+  - `outputSchema` is the first of the row's 200, 201 and 202 answers, its
+    top level inlined so it is an object. The `/mcp` row documents the
+    header and its 400 and 403.
 
 ## #184 and #185 The tools
 

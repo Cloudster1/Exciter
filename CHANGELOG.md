@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Assistants connect over a newer MCP revision (#183). Exciter speaks
+  `2025-11-25` beside `2025-06-18`, answering in the one the client asks for,
+  and tells the model how keys, revisions and the specification's numbering
+  work. Every tool now says what it answers, as a schema the answer is held
+  to, and whether it only reads, keeps what it replaces, can be repeated and
+  reaches Armature. An answer larger than 64 KiB is refused with a sentence
+  asking to narrow the query or page, since a cut one would not fit its
+  schema, and a call from a page of another site is refused with a token as
+  well as with a cookie. `/meta` lists `mcp@1`, and `docs/mcp.md` says how
+  to connect a client with a token.
 - The API contract for M7, MCP integration (#182): `docs/api-contract-m7.md`
   agrees how assistants work with requirements over MCP as the people they
   act for: the current protocol, tools for reviews, comments, trace,

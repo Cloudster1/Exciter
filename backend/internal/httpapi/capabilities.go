@@ -79,6 +79,14 @@ var integrationCapabilities = []capability{
 		},
 	},
 	{
+		// The tools, resources and prompts are discovered from their lists, so only the endpoint is promised (#183).
+		name:    "mcp@1",
+		promise: "An assistant works with requirements over MCP 2025-11-25 or 2025-06-18 as the person whose token it holds, with the tools, resources and prompts its lists name.",
+		operations: []string{
+			"POST /mcp",
+		},
+	},
+	{
 		name:    "theme-export@1",
 		promise: "A theme exported as one armature-theme/1 file with its pictures and fonts, and such a file imported as a theme of the caller's own.",
 		operations: []string{

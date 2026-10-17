@@ -11,6 +11,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,15 +22,25 @@ import (
 // MCP over one endpoint: a tool call is the HTTP call the browser would make,
 // run in this process as the caller, so nothing is stored between requests.
 const (
-	MCPProtocolVersion = "2025-06-18"
-	MCPServerName      = "exciter"
-	mcpServerVersion   = "1"
-	// MCPMaxToolResultBytes cuts a tool result a model would drown in; the
-	// text says how to ask for less.
+	MCPServerName    = "exciter"
+	mcpServerVersion = "1"
+	// MCPMaxToolResultBytes refuses a tool result a model would drown in; the
+	// refusal says how to ask for less.
 	MCPMaxToolResultBytes = 64 << 10
 	mcpPath               = APIPrefix + "/mcp"
 	mcpOpenAPIResource    = "exciter://openapi.json"
+	mcpVersionHeader      = "MCP-Protocol-Version"
 )
+
+// MCPProtocolVersions are the revisions spoken here, newest first (#183).
+var MCPProtocolVersions = []string{"2025-11-25", "2025-06-18"}
+
+// mcpInstructions is what the model is told of Exciter before it calls anything.
+const mcpInstructions = "Exciter manages requirements. A project is named by its key, such as CHK, and a requirement by its " +
+	"key, such as CHK-R42; list_projects and search_requirements find them. A requirement's text changes in revisions: a change " +
+	"to its title, statement or rationale sends baseRevision, the revision it was made from, and a newer one is refused so it " +
+	"can be read and merged first. A project's specification numbers its sections and requirements by outline, such as 1.2.3. " +
+	"Reviews can be asked for and read here; a person decides them in Exciter's browser pages, never through a tool."
 
 const (
 	rpcInvalidRequest = -32600
@@ -37,7 +49,7 @@ const (
 	rpcInternalError  = -32603
 )
 
-var truncatedNote = []byte("\n... The result was cut here. Narrow the query, or page with limit and offset.")
+var tooLarge = fmt.Sprintf("The answer is larger than %d KiB. Narrow the query, or page with limit and offset.", MCPMaxToolResultBytes>>10)
 
 type rpcRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -78,6 +90,11 @@ type toolResult struct {
 }
 
 func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
+	if v := r.Header.Get(mcpVersionHeader); v != "" && !spoken(v) {
+		respondError(w, r, &APIError{Status: http.StatusBadRequest, Code: "unsupported_protocol_version",
+			Message: "Exciter speaks MCP " + strings.Join(MCPProtocolVersions, " and ") + ". Update the client, or set it to one of them."})
+		return
+	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 	if err != nil {
 		respondError(w, r, ErrBadRequest("The request body is too large. Send less at a time."))
@@ -107,10 +124,17 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) dispatchMCP(r *http.Request, req rpcRequest) (any, *rpcError) {
 	switch req.Method {
 	case "initialize":
+		var params struct {
+			ProtocolVersion string `json:"protocolVersion"`
+		}
+		_ = json.Unmarshal(req.Params, &params)
 		return map[string]any{
-			"protocolVersion": MCPProtocolVersion,
-			"capabilities":    map[string]any{"tools": map[string]any{}, "resources": map[string]any{}},
-			"serverInfo":      map[string]any{"name": MCPServerName, "version": mcpServerVersion},
+			"protocolVersion": negotiated(params.ProtocolVersion),
+			"capabilities": map[string]any{
+				"tools": map[string]any{"listChanged": false}, "resources": map[string]any{"listChanged": false},
+			},
+			"serverInfo":   map[string]any{"name": MCPServerName, "version": mcpServerVersion},
+			"instructions": mcpInstructions,
 		}, nil
 	case "ping":
 		return map[string]any{}, nil
@@ -152,15 +176,40 @@ func listTools(readOnly, projectsOnly bool) []map[string]any {
 		if (readOnly && !t.ReadOnly) || (projectsOnly && t.OrgWide) {
 			continue
 		}
-		out = append(out, map[string]any{
+		tool := map[string]any{
 			"name":        t.Name,
+			"title":       t.Title,
 			"description": t.Description,
 			"inputSchema": t.Input,
-			"annotations": map[string]any{"title": t.Name, "readOnlyHint": t.ReadOnly},
-		})
+			// Every hint is sent, as the protocol takes a write left unmarked for destructive.
+			"annotations": map[string]any{"title": t.Title, "readOnlyHint": t.ReadOnly, "destructiveHint": t.Destructive,
+				"idempotentHint": t.Idempotent, "openWorldHint": t.OpenWorld},
+		}
+		if t.Output != nil {
+			tool["outputSchema"] = t.Output
+		}
+		out = append(out, tool)
 	}
 	return out
 }
+
+// negotiated answers the version a client asks for when it is spoken here, and the newest otherwise, for the client
+// to decide whether to go on.
+func negotiated(asked string) string {
+	if slices.Contains(MCPProtocolVersions, asked) {
+		return asked
+	}
+	return MCPProtocolVersions[0]
+}
+
+// spoken says whether a request may be answered in the version its header names. One newer than any spoken here
+// passes, as a newer client asks in its own version first and falls back on what the answer says.
+func spoken(version string) bool {
+	return slices.Contains(MCPProtocolVersions, version) || (protocolRevision.MatchString(version) && version > MCPProtocolVersions[0])
+}
+
+// protocolRevision is how the protocol names its revisions, by the day each was published.
+var protocolRevision = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
 // callTool runs the tool as the HTTP call it stands for, through the whole
 // middleware chain, so what a token may do here is what it may do anywhere.
@@ -304,16 +353,15 @@ func (c *capture) toolResult() toolResult {
 	if len(bytes.TrimSpace(body)) == 0 {
 		return toolResult{Content: []toolContent{{Type: "text", Text: "Done."}}}
 	}
-	out := toolResult{}
+	// A cut answer would not fit the tool's output schema, so one too large is refused whole.
+	if len(body) > MCPMaxToolResultBytes {
+		return refusal(tooLarge)
+	}
+	out := toolResult{Content: []toolContent{{Type: "text", Text: string(body)}}}
 	var structured map[string]any
 	if json.Unmarshal(body, &structured) == nil {
 		out.StructuredContent = structured
 	}
-	if len(body) > MCPMaxToolResultBytes {
-		body = append(body[:MCPMaxToolResultBytes:MCPMaxToolResultBytes], truncatedNote...)
-		out.StructuredContent = nil
-	}
-	out.Content = []toolContent{{Type: "text", Text: string(body)}}
 	return out
 }
 

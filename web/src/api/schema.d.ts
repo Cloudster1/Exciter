@@ -9141,7 +9141,10 @@ export interface operations {
     mcp: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The protocol revision the client goes on in after initialize: 2025-11-25 or 2025-06-18; 400 unsupported_protocol_version for another, unless it is newer than both. */
+                "MCP-Protocol-Version"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9166,6 +9169,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
             };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
