@@ -25,6 +25,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
+	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/cloudster1/exciter/backend/internal/webhook"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
@@ -52,6 +53,7 @@ func specBuilder() *openapi.Builder {
 	b.Enums[reflect.TypeOf(auth.Locale(""))] = enumStrings(auth.Locales)
 	b.Enums[reflect.TypeOf(auth.Proof(""))] = []string{string(auth.ProofPassword), string(auth.ProofOIDC)}
 	b.Enums[reflect.TypeOf(auth.TokenKind(""))] = enumStrings(auth.TokenKinds)
+	b.Enums[reflect.TypeOf(via.Kind(""))] = enumStrings(via.Kinds)
 	b.Enums[reflect.TypeOf(auth.RoleSource(""))] = enumStrings(auth.RoleSources)
 	// A mapped group and an answered request make a member or an admin; ownership is the bootstrap's alone.
 	granted := &openapi.Schema{Type: "string", Enum: []string{string(auth.RoleMember), string(auth.RoleAdmin)}}

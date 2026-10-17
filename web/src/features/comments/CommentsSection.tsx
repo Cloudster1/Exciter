@@ -18,6 +18,7 @@ import { Icon } from "@/components/icons";
 import { Editor } from "@/features/editor/Editor";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
+import { Through } from "@/components/Through";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { useFocusWhenRendered } from "@/lib/focus";
@@ -286,6 +287,7 @@ function CommentView({ reqKey, comment }: { reqKey: string; comment: Comment }) 
           <span className="font-medium text-ink" data-comment-author="">
             {author}
           </span>
+          <Through via={comment.via} />
           <time dateTime={comment.createdAt}>{when.format(new Date(comment.createdAt))}</time>
           <span data-comment-revision={comment.revision}>· {t.comments.onRevision(comment.revision)}</span>
           {comment.editedAt && !comment.deleted && <span data-comment-edited="">· {t.comments.edited}</span>}

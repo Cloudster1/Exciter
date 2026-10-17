@@ -3560,6 +3560,7 @@ export interface components {
             /** @enum {string} */
             kind: "revision" | "change";
             revision: components["schemas"]["RevisionEntry"] | null;
+            via: components["schemas"]["Via"] | null;
         };
         AdmitRequest: {
             /** @enum {string} */
@@ -3696,6 +3697,7 @@ export interface components {
             suspect: boolean;
             /** @enum {string} */
             sync: "synced" | "pending" | "failed";
+            via: components["schemas"]["Via"] | null;
         };
         ArmatureLinkInput: {
             issueKey: string;
@@ -3848,6 +3850,7 @@ export interface components {
             /** Format: uuid */
             targetId: string | null;
             targetType: string;
+            via: components["schemas"]["Via"] | null;
         };
         AuditFacets: {
             actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked")[];
@@ -4038,6 +4041,7 @@ export interface components {
             revision: number;
             /** Format: uuid */
             threadId: string;
+            via: components["schemas"]["Via"] | null;
         };
         CommentCan: {
             delete: boolean;
@@ -5224,6 +5228,7 @@ export interface components {
             signed: boolean;
             /** @enum {string} */
             state: "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+            via: components["schemas"]["Via"] | null;
         };
         ReviewCan: {
             decide: boolean;
@@ -5274,6 +5279,7 @@ export interface components {
             statementMarkdown?: string;
             title: string;
             type: components["schemas"]["RequirementTypeRef"] | null;
+            via: components["schemas"]["Via"] | null;
         };
         RevisionEntry: {
             /** Format: uuid */
@@ -5286,6 +5292,7 @@ export interface components {
             number: number;
             restoredFrom: number | null;
             title: string;
+            via: components["schemas"]["Via"] | null;
         };
         RuleOption: {
             choices: string[];
@@ -5514,6 +5521,7 @@ export interface components {
             /** @enum {string} */
             sync: "synced" | "pending" | "failed" | "none";
             url: string;
+            via: components["schemas"]["Via"] | null;
         };
         StatorLinkInput: {
             /** Format: uuid */
@@ -5697,6 +5705,7 @@ export interface components {
             suspect: components["schemas"]["SuspectLinkEnd"][];
             targetRevision: number;
             type: components["schemas"]["LinkType"];
+            via: components["schemas"]["Via"] | null;
         };
         TraceLinkInput: {
             /** @enum {string} */
@@ -5846,6 +5855,11 @@ export interface components {
             id: string;
             /** @enum {string} */
             locale: "" | "en" | "de";
+            name: string;
+        };
+        Via: {
+            /** @enum {string} */
+            kind: "token" | "oauth";
             name: string;
         };
         View: {
@@ -6093,6 +6107,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+            via?: components["schemas"]["Via"];
         };
         WebhookPing: {
             message: string;

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // Limits on link types, matching the web client's.
@@ -144,6 +145,8 @@ type Link struct {
 	Suspect       []MovedEnd `json:"suspect"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	CreatedByName string     `json:"createdByName"`
+	// Via is the token or connected app it was made through, null for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // LinkInput links the requirement in the path to another.

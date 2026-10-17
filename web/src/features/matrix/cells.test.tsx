@@ -107,6 +107,7 @@ describe("a matrix cell", () => {
   it("traces the row to an issue column with the relation picked", async () => {
     const trace: ArmatureLink = {
       id: "0195f000-0000-7000-8000-0000000000e1",
+      via: null,
       relation: "implements",
       issueKey: "WEB-1",
       statusCategory: "done",

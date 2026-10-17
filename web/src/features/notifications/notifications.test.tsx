@@ -162,6 +162,7 @@ describe("the notification bell", () => {
       comments: [
         {
           id: threadId,
+          via: null,
           threadId,
           authorId: "0195f000-0000-7000-8000-0000000000e9",
           authorName: "Bob Builder",

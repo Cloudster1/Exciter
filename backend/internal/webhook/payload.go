@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // EnvelopeV1 is what an endpoint on version 1 receives, the shape Armature and Stator send: the id is the event's,
@@ -111,6 +112,8 @@ type emitted struct {
 	Decision       string     `json:"decision"`
 	Signed         bool       `json:"signed"`
 	Reply          bool       `json:"reply"`
+	// Via is the token or connected app the change was written through, absent for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // requirements are the requirements an event is about, for the projects an endpoint listens to.
@@ -153,6 +156,9 @@ type RequirementRef struct {
 type Person struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
+	// Via is the token or connected app they acted through, left out for a session, so a receiver of either
+	// envelope version reads past it (#190).
+	Via *via.Via `json:"via,omitempty"`
 }
 
 // RequirementEvent is the payload of requirement.created, requirement.trashed and requirement.restored.

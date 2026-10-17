@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
 
@@ -329,6 +330,8 @@ type RevisionEntry struct {
 	// Hash is the SHA-256 of the normative content, which a revision that
 	// changes nothing does not get past.
 	Hash string `json:"hash"`
+	// Via is the token or connected app the revision was written through, null for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // Revision is one revision with its normative content, as it was.
@@ -447,12 +450,14 @@ type Change struct {
 
 // ActivityEntry is one revision or logged change, newest first.
 type ActivityEntry struct {
-	ID        uuid.UUID      `json:"id"`
-	Kind      ActivityKind   `json:"kind"`
-	At        time.Time      `json:"at"`
-	ActorName string         `json:"actorName"`
-	Revision  *RevisionEntry `json:"revision"`
-	Change    *Change        `json:"change"`
+	ID        uuid.UUID    `json:"id"`
+	Kind      ActivityKind `json:"kind"`
+	At        time.Time    `json:"at"`
+	ActorName string       `json:"actorName"`
+	// Via is what the revision or change was written through, null for a session (#190).
+	Via      *via.Via       `json:"via"`
+	Revision *RevisionEntry `json:"revision"`
+	Change   *Change        `json:"change"`
 }
 
 // TrashItem is one requirement the caller put in the trash, with what went with it.

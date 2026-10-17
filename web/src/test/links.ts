@@ -48,6 +48,7 @@ export function aLink(other: { key: string; title: string }, overrides: Partial<
   const direction = overrides.direction ?? "outgoing";
   return {
     id: `0195f000-0000-7000-8000-${other.key.replace(/\D/g, "").padStart(12, "0")}`,
+    via: null,
     type,
     direction,
     phrase: direction === "outgoing" ? type.forward : type.backward,

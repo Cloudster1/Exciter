@@ -22,6 +22,7 @@ const say = (text: string): Doc => ({ type: "doc", content: [{ type: "paragraph"
 function aComment(over: Partial<Comment> = {}): Comment {
   return {
     id: threadId,
+    via: null,
     threadId,
     authorId: "0195f000-0000-7000-8000-0000000000e1",
     authorName: "Grace Hopper",
@@ -102,6 +103,18 @@ async function write(id: string, text: string) {
 const section = () => screen.findByRole("region", { name: /Discussion/ });
 
 describe("the discussion on a requirement", () => {
+  it("says which comment an assistant wrote, and through what", async () => {
+    stubPage({
+      threads: [aThread({ comments: [aComment({ via: { kind: "oauth", name: "Desk assistant" }, body: say("Checked overnight.") })] })],
+    });
+    await renderAt("/p/CHK/r/CHK-R1");
+    const thread = (await within(await section()).findAllByRole("article"))[0]!;
+    const mark = within(thread).getByText(/through Desk assistant/);
+    expect(mark).toHaveAttribute("data-via", "oauth");
+    expect(mark).toHaveTextContent("(a connected app)");
+    expect(await axeViolations()).toEqual([]);
+  });
+
   it("lists threads with their replies and revisions, a placeholder for what was deleted, and what each allows", async () => {
     stubPage();
     await renderAt("/p/CHK/r/CHK-R1");

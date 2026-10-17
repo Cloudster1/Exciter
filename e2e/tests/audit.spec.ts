@@ -16,7 +16,7 @@ const SPILL = 7;
 const PLANTED_ACTION = "theme.default_set";
 const FACET_PLANTED = `#audit-action option[value="${PLANTED_ACTION}"]`;
 // audit.CSVHeader, the export's first line.
-const CSV_HEADER = "time,action,actor_id,actor,target_type,target_id,ip,data";
+const CSV_HEADER = "time,action,actor_id,actor,target_type,target_id,ip,data,via_kind,via_name";
 const REFUSED = /^Only an administrator can do that\. Ask one/;
 const NOT_ADMIN = "Only an administrator reads the audit log.";
 

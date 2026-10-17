@@ -5,6 +5,7 @@ package armature
 import (
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
 
@@ -193,6 +194,8 @@ type Link struct {
 	Suspect          bool      `json:"suspect"`
 	CreatedByName    string    `json:"createdByName"`
 	CreatedAt        time.Time `json:"createdAt"`
+	// Via is the token or connected app it was made through, null for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // LinkInput traces a requirement to an issue by its key.

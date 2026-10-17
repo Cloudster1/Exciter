@@ -224,6 +224,11 @@ app role holds no privilege on.
   puts the grant's reading and projects on the principal as a personal
   token's. The worker sweeps what ran out. A person's grants are listed and
   ended under row level security, as their tokens are (#189).
+- **What an assistant wrote** (#190): `authenticate` puts the calling token
+  or grant on the context, `inTx` sets it as `app.via`, and a trigger on
+  each table an assistant writes stamps `via_kind`, `via_id` and `via_name`
+  from the token or grant the acting person holds. Nothing else writes
+  them, none changes, and a token revoked leaves its name behind.
 - **CSV import and export** (#23): Armature's import, reshaped for
   requirements. An upload is kept whole in `import_job` with a mapping
   guessed from its headers; the same analysis reads it against the project

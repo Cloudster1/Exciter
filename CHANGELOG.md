@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- What an assistant wrote says so (#190). A revision, a change, a comment, a
+  review asked for, a link or an audit entry written through a personal
+  access token or a connected app carries `via`, which one and its name at
+  that moment, written by the database and never by a caller. The history,
+  the activity, comments, pending reviews and the audit log show "through"
+  and the name, a token revoked keeps its name on what it wrote, the audit
+  export names it in two last columns, and webhooks carry it on their
+  actor.
 - Connected apps (#189): under the account menu, beside the access tokens, a
   person sees the apps they connected through OAuth, the host each sends
   back to, whether it only reads, the projects it reaches and when it was

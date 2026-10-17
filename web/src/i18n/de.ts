@@ -374,6 +374,10 @@ export const de: Messages = {
   webhooks: webhooksDe,
   oauth: oauthDe,
   themes: themesDe,
+  via: {
+    through: (name: string) => `über ${name}`,
+    kinds: { token: "ein persönliches Zugriffstoken", oauth: "eine verbundene App" } as Record<"token" | "oauth", string>,
+  },
   notFound: {
     title: "Seite nicht gefunden",
     emptyTitle: "Unter dieser Adresse gibt es nichts",

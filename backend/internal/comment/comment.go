@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/document"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 // Agreed limits, Stator's where Stator has them.
@@ -52,7 +53,9 @@ type Comment struct {
 	Deleted      bool       `json:"deleted"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	EditedAt     *time.Time `json:"editedAt"`
-	Can          Can        `json:"can"`
+	// Via is the token or connected app the comment was written through, null for a session (#190).
+	Via *via.Via `json:"via"`
+	Can Can      `json:"can"`
 }
 
 // Can is what the caller may do to one comment.

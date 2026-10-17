@@ -5,6 +5,7 @@ package stator
 import (
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
 
@@ -196,6 +197,8 @@ type Link struct {
 	DetachedAt    *time.Time `json:"detachedAt"`
 	CreatedByName string     `json:"createdByName"`
 	CreatedAt     time.Time  `json:"createdAt"`
+	// Via is the token or connected app it was made through, null for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // LinkInput traces a requirement to a page by its id.

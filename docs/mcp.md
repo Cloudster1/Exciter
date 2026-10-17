@@ -135,6 +135,11 @@ statements, rationales and comments as Markdown beside the editor's
 documents, and a writing tool takes them as Markdown, as
 [`docs/markdown.md`](markdown.md) spells it.
 
+What an assistant writes says so. A revision, a comment, a link or a review
+it asks for is marked "through" and the name of the token or the connected
+app it came through, in the history, the activity, the comments and the
+audit log, and a token revoked keeps its name there (#190).
+
 An assistant never decides a review. It can read reviews and the approval of a
 requirement, but approving or rejecting is done by a person in Exciter's
 pages.

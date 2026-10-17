@@ -15,6 +15,7 @@ const eventId = "0199a000-0000-7000-8000-0000000000e0";
 
 const entry = (over: Partial<AuditEntry>): AuditEntry => ({
   id: crypto.randomUUID(),
+  via: null,
   action: "member.created",
   targetType: "user",
   targetId: bobId,

@@ -15,6 +15,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/keyset"
+	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
 const (
@@ -41,6 +42,8 @@ type AuditEntry struct {
 	Data      json.RawMessage `json:"data"`
 	IP        string          `json:"ip"`
 	CreatedAt time.Time       `json:"createdAt"`
+	// Via is the token or connected app the act was done through, null for a session (#190).
+	Via *via.Via `json:"via"`
 }
 
 // AuditActor is somebody who acted, by id and the name they go by.
@@ -134,15 +137,15 @@ func NewService(cluster *db.Cluster) *Service {
 	return &Service{db: cluster}
 }
 
-const selectRow = `
+var selectRow = `
 SELECT a.id, a.action, a.target_type, a.target_id, a.actor_user_id, COALESCE(u.name, ''), a.data,
-       COALESCE(host(a.ip), ''), a.created_at
+       COALESCE(host(a.ip), ''), a.created_at, ` + via.Column("a") + `
 FROM audit_log a
 LEFT JOIN app_user u ON u.id = a.actor_user_id`
 
 func scanRow(row pgx.Row) (AuditEntry, error) {
 	var r AuditEntry
-	err := row.Scan(&r.ID, &r.Action, &r.TargetType, &r.TargetID, &r.ActorID, &r.ActorName, &r.Data, &r.IP, &r.CreatedAt)
+	err := row.Scan(&r.ID, &r.Action, &r.TargetType, &r.TargetID, &r.ActorID, &r.ActorName, &r.Data, &r.IP, &r.CreatedAt, &r.Via)
 	return r, err
 }
 
@@ -236,7 +239,8 @@ func (s *Service) Facets(ctx context.Context) (*AuditFacets, error) {
 }
 
 // CSVHeader is the first line of an export.
-var CSVHeader = []string{"time", "action", "actor_id", "actor", "target_type", "target_id", "ip", "data"}
+// The columns of #190 come last, so a reader of the earlier export finds the others where they were.
+var CSVHeader = []string{"time", "action", "actor_id", "actor", "target_type", "target_id", "ip", "data", "via_kind", "via_name"}
 
 // CSV writes the filtered log as a spreadsheet reads it, newest first, and
 // refuses more than MaxExport entries: a record cut short reads as complete.
@@ -282,9 +286,13 @@ func CSVLine(r AuditEntry) []string {
 		}
 		return v.String()
 	}
+	kind, name := "", ""
+	if r.Via != nil {
+		kind, name = string(r.Via.Kind), Cell(r.Via.Name)
+	}
 	return []string{
 		r.CreatedAt.UTC().Format(time.RFC3339Nano), r.Action, id(r.ActorID), Cell(r.ActorName),
-		r.TargetType, id(r.TargetID), r.IP, Cell(string(r.Data)),
+		r.TargetType, id(r.TargetID), r.IP, Cell(string(r.Data)), kind, name,
 	}
 }
 
