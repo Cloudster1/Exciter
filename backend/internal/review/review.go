@@ -111,6 +111,8 @@ type Review struct {
 	// Meanings are what the caller signs with each decision, in their language, while they may decide a signed review;
 	// empty otherwise.
 	Meanings map[Decision]string `json:"meanings"`
+	// Session is the review session that asked for it (#204), null for one asked on its own.
+	Session *SessionRef `json:"session"`
 }
 
 // DecisionEntry is one approver's decision, the latest standing.

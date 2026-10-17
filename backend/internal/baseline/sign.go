@@ -17,7 +17,9 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/signing"
 )
 
@@ -480,4 +482,49 @@ func readContent(ctx context.Context, tx db.DBTX, f *found) (Content, error) {
 		}
 	}
 	return c, rows.Err()
+}
+
+// takeSessionItems records the requirements a closing review session approved, at their revisions now, and the
+// sections above them (#204); $1 is the project, $2 the baseline, $3 the requirements.
+const takeSessionItems = requirement.WalkTree + `, kept AS (
+	SELECT id, parent_id FROM requirement WHERE id = ANY($3::uuid[])
+	UNION
+	SELECT r.id, r.parent_id FROM requirement r JOIN kept k ON r.id = k.parent_id
+)
+INSERT INTO baseline_item (baseline_id, requirement_id, number, kind, revision, parent_id, rank, path, status_id, status_name,
+                           status_category, type_id)
+SELECT $2, r.id, r.number, r.kind, r.revision, r.parent_id, r.rank, w.path, r.status_id, st.name, st.category, r.type_id
+FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id
+WHERE w.id IN (SELECT id FROM kept)`
+
+// TakeOfSession takes, in a closing review session's transaction, a baseline of what it approved, which its
+// moderator may take as review_session_closing lets them (#204).
+func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID uuid.UUID, name, description string, approved []uuid.UUID) (uuid.UUID, error) {
+	name, err := checkName(name)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if description, err = checkDescription(description); err != nil {
+		return uuid.Nil, err
+	}
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, `
+		INSERT INTO baseline (project_id, name, description, created_by, detail, session_id)
+		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, projectID, name, description, actor, DetailFull, sessionID).Scan(&id)
+	if err != nil {
+		return uuid.Nil, nameRefusal(err)
+	}
+	for _, step := range []struct {
+		sql  string
+		args []any
+	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}}} {
+		if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
+			return uuid.Nil, fmt.Errorf("take the session's baseline: %w", err)
+		}
+	}
+	if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionBaselineTaken, TargetType: "baseline", TargetID: &id, Actor: actor,
+		Data: map[string]any{"name": name, "session": sessionID, "items": len(approved)}}); err != nil {
+		return uuid.Nil, err
+	}
+	return id, events.Emit(ctx, tx, TopicTaken, map[string]any{"actorId": actor, "baselineId": id, "projectId": projectID})
 }

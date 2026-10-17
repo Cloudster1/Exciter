@@ -1502,7 +1502,10 @@
                 "requirement.locked",
                 "requirement.unlocked",
                 "status.locks_set",
-                "field_rule.saved"
+                "field_rule.saved",
+                "review_session.opened",
+                "review_session.round_started",
+                "review_session.closed"
               ]
             }
           },
@@ -1683,7 +1686,10 @@
                 "requirement.locked",
                 "requirement.unlocked",
                 "status.locks_set",
-                "field_rule.saved"
+                "field_rule.saved",
+                "review_session.opened",
+                "review_session.round_started",
+                "review_session.closed"
               ]
             }
           },
@@ -10207,16 +10213,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10296,16 +10292,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10475,7 +10461,8 @@
               "enum": [
                 "previous",
                 "approved",
-                "baseline"
+                "baseline",
+                "round"
               ]
             }
           },
@@ -10483,6 +10470,14 @@
             "name": "baseline",
             "in": "query",
             "description": "With changes=baseline, the id of one of the project's baselines.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "description": "A review session of the project: keep its requirements and the sections above them; changes=round compares each with its previous round (#204).",
             "schema": {
               "type": "string"
             }
@@ -15806,16 +15801,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -15896,16 +15881,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -16004,16 +15979,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -16060,16 +16025,6 @@
                   "required": [
                     "report"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -16127,16 +16082,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -16182,16 +16127,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -16290,16 +16225,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -16368,16 +16293,6 @@
                     "sessions",
                     "total"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -20949,7 +20864,10 @@
               "requirement.locked",
               "requirement.unlocked",
               "status.locks_set",
-              "field_rule.saved"
+              "field_rule.saved",
+              "review_session.opened",
+              "review_session.round_started",
+              "review_session.closed"
             ]
           },
           "actorId": {
@@ -21079,7 +20997,10 @@
                 "requirement.locked",
                 "requirement.unlocked",
                 "status.locks_set",
-                "field_rule.saved"
+                "field_rule.saved",
+                "review_session.opened",
+                "review_session.round_started",
+                "review_session.closed"
               ]
             }
           },
@@ -24360,7 +24281,11 @@
               "commented",
               "resolved",
               "revised",
-              "transitioned"
+              "transitioned",
+              "session_invited",
+              "session_round",
+              "session_reminder",
+              "session_closed"
             ]
           },
           "linkId": {
@@ -24397,6 +24322,16 @@
           "revision": {
             "type": "integer"
           },
+          "session": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SessionLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "threadId": {
             "type": [
               "string",
@@ -24410,6 +24345,7 @@
           "kind",
           "actorName",
           "requirement",
+          "session",
           "revision",
           "threadId",
           "commentId",
@@ -26802,6 +26738,16 @@
           "revision": {
             "type": "integer"
           },
+          "session": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReviewSessionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "signed": {
             "type": "boolean"
           },
@@ -26843,7 +26789,8 @@
           "authorName",
           "can",
           "signed",
-          "meanings"
+          "meanings",
+          "session"
         ]
       },
       "ReviewCan": {
@@ -27367,6 +27314,26 @@
           "decided",
           "commented",
           "of"
+        ]
+      },
+      "ReviewSessionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "round"
         ]
       },
       "ReviewSessionReport": {
@@ -27962,6 +27929,26 @@
           "url"
         ]
       },
+      "SessionLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "projectKey"
+        ]
+      },
       "SetGroupRoleRequest": {
         "type": "object",
         "properties": {
@@ -28126,7 +28113,8 @@
             "enum": [
               "previous",
               "approved",
-              "baseline"
+              "baseline",
+              "round"
             ]
           },
           "baselineId": {

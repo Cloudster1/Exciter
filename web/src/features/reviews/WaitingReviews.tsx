@@ -5,6 +5,7 @@ import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/compone
 import { Icon } from "@/components/icons";
 import { REVIEWS_PAGE_SIZE, REVIEWS_PATH, UNREAD_BADGE_MAX } from "@/config";
 import { t } from "@/i18n";
+import { MySessions } from "@/features/sessions/SessionList";
 import { localDateFormat } from "@/lib/format";
 
 // The reviews waiting on the reader (#35), after Stator's WaitingReviews.
@@ -20,6 +21,7 @@ export function WaitingReviewsScreen() {
   return (
     <div className="mx-auto max-w-3xl" data-waiting-reviews="">
       <PageHeader title={t.review.inboxTitle} meta={t.review.inboxIntro} />
+      <MySessions />
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
       ) : isLoading || !data ? (

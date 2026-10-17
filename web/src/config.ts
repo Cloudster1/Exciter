@@ -385,6 +385,8 @@ export const BASELINE_NAME_MAX_LENGTH = 100;
 export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;
 /** The most signatures a baseline's signing rule asks for, the API's baseline.MaxSignatures (#205). */
 export const BASELINE_SIGNATURES_MAX = 10;
+/** The longest title a review session takes, the API's review.MaxSessionTitleLength (#204). */
+export const SESSION_TITLE_MAX_LENGTH = 100;
 /** The longest reason a hand lock takes, the API's requirement.MaxLockReasonLength (#205). */
 export const LOCK_REASON_MAX_LENGTH = 500;
 

@@ -156,6 +156,15 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				return err
 			}
 		}
+		if q.Session != uuid.Nil {
+			var mine bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM review_session WHERE id = $1 AND project_id = $2)`, q.Session, p.ID).Scan(&mine); err != nil {
+				return err
+			}
+			if !mine {
+				return &FieldError{"session", "That review session is not one of this project's. Open it from the project's sessions."}
+			}
+		}
 		ctes, where, counted := specSQL(p.ID, q)
 		if err := tx.QueryRow(ctx, walkTree+ctes+` SELECT count(*)::int FROM walk w`+where, counted.values...).Scan(&total); err != nil {
 			return fmt.Errorf("count the specification: %w", err)

@@ -16,6 +16,7 @@ import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { BaselineMatrixView } from "./BaselineMatrix";
 import { BaselineSigning } from "./BaselineSigning";
+import { OpenSessionButton } from "@/features/sessions/SessionLaunch";
 import { keepsBaselines } from "./Baselines";
 
 const takenOn = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
@@ -44,6 +45,7 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
       {baseline.description && <p className="text-sm text-ink-muted">{baseline.description}</p>}
       <div className="flex flex-wrap items-start gap-2">
         <ExportMenu title={baseline.name} href={(format) => baselineDocumentHref(baseline.id, format)} />
+        <OpenSessionButton project={project} scope={{ kind: "baseline", baselineId: baseline.id }} />
       </div>
       <Actions project={project} baseline={baseline} />
       <BaselineSigning baseline={baseline} />

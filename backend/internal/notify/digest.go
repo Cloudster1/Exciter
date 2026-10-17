@@ -145,6 +145,11 @@ func (d *Digester) send(ctx context.Context, userID uuid.UUID) (bool, error) {
 		}
 		words := make([]mailed, len(items))
 		for i, n := range items {
+			if n.Session != nil {
+				id := n.Session.ID
+				words[i] = mailed{kind: n.Kind, actor: n.ActorName, key: n.Session.ProjectKey, title: n.Session.Title, session: &id}
+				continue
+			}
 			words[i] = mailed{kind: n.Kind, actor: n.ActorName, requirementID: n.Requirement.ID, key: n.Requirement.Key,
 				title: n.Requirement.Title, subject: Subject{RequirementID: n.Requirement.ID, Revision: n.Revision,
 					ThreadID: n.ThreadID, CommentID: n.CommentID, ReviewID: n.ReviewID, LinkID: n.LinkID, Excerpt: n.Excerpt}}

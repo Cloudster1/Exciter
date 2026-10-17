@@ -30,6 +30,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/review"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/stator"
@@ -114,6 +115,7 @@ func run() error {
 		mailer = mail.SMTPMailer{Addr: cfg.Mail.SMTPAddr, From: cfg.Mail.From}
 		go notify.NewDigester(cluster, mailer, cfg.AppBaseURL, log).Run(ctx)
 	}
+	go review.NewReminder(cluster, log).Run(ctx)
 	fanOut := notify.NewFanOut(cluster, mailer, cfg.AppBaseURL, log)
 	for _, topic := range fanOut.Topics() {
 		handlers.Route(topic, fanOut)

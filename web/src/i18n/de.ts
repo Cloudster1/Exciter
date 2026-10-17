@@ -19,6 +19,7 @@ import { chainsDe } from "./chains.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
 import { fieldRulesDe } from "./fieldRules.de";
+import { sessionsDe } from "./sessions.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
@@ -329,6 +330,9 @@ export const de: Messages = {
       "requirement.unlocked": "Anforderung entsperrt",
       "status.locks_set": "Sperre eines Status geändert",
       "field_rule.saved": "Feldregel gespeichert",
+      "review_session.opened": "Review-Sitzung eröffnet",
+      "review_session.round_started": "Runde einer Review-Sitzung begonnen",
+      "review_session.closed": "Review-Sitzung geschlossen",
     },
     targetTypes: {
       user: "Person",
@@ -343,6 +347,7 @@ export const de: Messages = {
       status: "Status",
       baseline: "Baseline",
       attribute: "Attribut",
+      review_session: "Review-Sitzung",
       api_token: "Zugriffstoken",
       oauth_grant: "Verbundene App",
       armature_connection: "Armature-Verbindung",
@@ -370,6 +375,7 @@ export const de: Messages = {
   reuse: reuseDe,
   control: controlDe,
   fieldRules: fieldRulesDe,
+  sessions: sessionsDe,
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,

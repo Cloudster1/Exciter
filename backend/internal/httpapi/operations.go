@@ -330,6 +330,7 @@ var operations = []operation{
 				description: "Compare each requirement with its previous revision, its last approved one, or a baseline; the window is then at most " +
 					strconv.Itoa(requirement.MaxSpecChangesLimit) + "."},
 			{name: "baseline", description: "With changes=baseline, the id of one of the project's baselines."},
+			{name: "session", description: "A review session of the project: keep its requirements and the sections above them; changes=round compares each with its previous round (#204)."},
 			{name: "onlyChanged", schema: &openapi.Schema{Type: "boolean"}, description: "true to keep what differs from the base, and the sections above it."},
 			{name: "waiting", schema: &openapi.Schema{Type: "boolean"},
 				description: "true to keep the requirements whose pending review waits for the caller's decision, and the sections above them."},

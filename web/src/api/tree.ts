@@ -33,6 +33,8 @@ export interface SpecAddress {
   onlyChanged?: boolean;
   /** Keeps what waits for the reader's decision (#171): review mode. */
   waiting?: boolean;
+  /** Keeps a review session's requirements (#204), which changes=round compares with the session's last round. */
+  session?: string;
 }
 
 function specKey(projectKey: string, address: SpecAddress = {}) {
@@ -69,6 +71,7 @@ export function useSpec(projectKey: string, address: SpecAddress = {}) {
               changes,
               baseline: changes === "baseline" ? address.baseline : undefined,
               waiting: address.waiting || undefined,
+              session: address.session,
             },
           },
         })

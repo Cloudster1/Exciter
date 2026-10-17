@@ -20,6 +20,8 @@ import { SuspectList } from "@/features/links/SuspectList";
 import { BaselineList } from "@/features/baselines/Baselines";
 import { BaselinePage } from "@/features/baselines/BaselinePage";
 import { BaselineCompare } from "@/features/baselines/BaselineCompare";
+import { SessionList } from "@/features/sessions/SessionList";
+import { SessionPage } from "@/features/sessions/SessionPage";
 import { CoveragePage } from "@/features/coverage/CoveragePage";
 import { readMatrixAddress } from "@/features/matrix/address";
 import { readChainsAddress } from "@/features/matrix/chainsAddress";
@@ -39,6 +41,7 @@ type ProjectPath =
   | "/p/$projectKey/grid"
   | "/p/$projectKey/suspects"
   | "/p/$projectKey/baselines"
+  | "/p/$projectKey/sessions"
   | "/p/$projectKey/coverage"
   | "/p/$projectKey/matrix"
   | "/p/$projectKey/chains";
@@ -151,6 +154,31 @@ export const suspectsRoute = createRoute({
   component: function ProjectSuspectsPage() {
     const { projectKey } = suspectsRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/suspects" render={(project) => <SuspectList key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's review sessions (#204). */
+export const sessionsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/sessions",
+  component: function ProjectSessionsPage() {
+    const { projectKey } = sessionsRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/sessions" render={(project) => <SessionList key={project.id} project={project} />} />;
+  },
+});
+
+export const sessionRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/sessions/$sessionId",
+  component: function ProjectSessionPage() {
+    const { projectKey, sessionId } = sessionRoute.useParams();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/sessions"
+        render={(project) => <SessionPage key={sessionId} project={project} sessionId={sessionId} />}
+      />
+    );
   },
 });
 

@@ -285,8 +285,8 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
-- **Review sessions and control** (M8, `docs/api-contract-m8.md`,
-  planned): baselines signed by the people a project names, with #46's
+- **Review sessions and control** (M8, `docs/api-contract-m8.md`):
+  baselines signed by the people a project names, with #46's
   proof; requirements locked by a status or by hand, which the database
   holds for every writer through `requirement_locked`; fields required from
   a status, choices that depend on others and fields only some roles change,
