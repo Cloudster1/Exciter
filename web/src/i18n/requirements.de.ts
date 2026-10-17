@@ -34,7 +34,9 @@ export const requirementsDe: typeof requirementsEn = {
   created: "Anforderung geschrieben.",
   saved: (revision: number) => `Als Revision ${revision} gespeichert.`,
   savedNoRevision: "Gespeichert. Die Aussage hat sich nicht geändert, daher wurde keine Revision geschrieben.",
-  conflictReloaded: "Ihre Änderungen sind noch da. Lesen Sie den neuesten Stand oben und speichern Sie dann erneut darüber.",
+  conflictReloaded:
+    "Inzwischen hat jemand eine neuere Revision gespeichert. Ihre Änderungen sind noch da: Lesen Sie, was sie geändert hat, und speichern Sie dann erneut darüber.",
+  newerChanges: (n: number) => `Was Revision ${n} seit dem Öffnen geändert hat`,
   revision: (n: number) => `Revision ${n}`,
   saveOver: (n: number) => `Über Revision ${n} speichern`,
   formerKeys: (keys: string) => `Frühere Schlüssel, die weiter funktionieren: ${keys}`,

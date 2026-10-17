@@ -282,6 +282,12 @@ type SpecEntry struct {
 	SuspectLinks int `json:"suspectLinks"`
 	// Reuse is what the entry follows or branched from (#49), null for one of its own.
 	Reuse *Reuse `json:"reuse"`
+	// Type, Owner and Priority are the requirement's, null when unset or for a section (#168).
+	Type     *TypeRef   `json:"type"`
+	Owner    *PersonRef `json:"owner"`
+	Priority *Priority  `json:"priority"`
+	// Approval is its review now open and the latest revision approved, as the requirement's page reads it.
+	Approval Approval `json:"approval"`
 }
 
 // RevisionEntry is one revision as the history lists it.

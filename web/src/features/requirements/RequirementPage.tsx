@@ -1,26 +1,15 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
-import {
-  PRIORITIES,
-  findPeople,
-  useTrashRequirement,
-  useUpdateRequirement,
-  type Priority,
-  type Requirement,
-  type RequirementChanges,
-} from "@/api/requirements";
-import { useUploadAttachments } from "@/api/attachments";
-import { useAttributes, useTypes } from "@/api/attributes";
-import { Button, Card, ErrorBanner, Field, IconButton, Labelled, PageHeader, SectionTitle, Select, SelectInput, Tag } from "@/components/ui";
+import { PRIORITIES, useTrashRequirement, useUpdateRequirement, type Priority, type Requirement } from "@/api/requirements";
+import { useAttributes } from "@/api/attributes";
+import { Button, Card, ErrorBanner, IconButton, PageHeader, SectionTitle, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { REQUIREMENT_TITLE_MAX_LENGTH, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { DocView } from "@/features/editor/DocView";
-import { Editor } from "@/features/editor/Editor";
-import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
+import type { Doc } from "@/features/editor/schema";
 import { SubjectPicker } from "@/features/permissions/SubjectPicker";
-import { AttributeFields, AttributeValues, valuesFor, type Values } from "@/features/types/AttributeFields";
+import { AttributeValues, type Values } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { RequirementLabels } from "@/features/labels/RequirementLabels";
 import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
@@ -34,6 +23,7 @@ import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
+import { RequirementEdit } from "./RequirementEdit";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
 export function RequirementPage({ project, requirement }: { project: Project; requirement: Requirement }) {
@@ -162,161 +152,6 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
         </section>
       )}
       {attributes && <AttributeValues attributes={attributes} values={requirement.attributes as Values} />}
-    </Card>
-  );
-}
-
-/** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
-export function RequirementEdit({
-  project,
-  requirement,
-  onDone,
-  onCancel,
-}: {
-  project: Project;
-  requirement: Requirement;
-  onDone: (notice: string) => void;
-  onCancel: () => void;
-}) {
-  const update = useUpdateRequirement(requirement.key);
-  const files = useUploadAttachments(requirement.key);
-  const { data: types } = useTypes(project.key);
-  const { data: attributes } = useAttributes(project.key);
-  const [typeId, setTypeId] = useState<string | null>(requirement.type?.id ?? null);
-  const [values, setValues] = useState<Values>((requirement.attributes as Values) ?? {});
-  const [title, setTitle] = useState(requirement.title);
-  const [statement, setStatement] = useState<Doc>((requirement.statement as Doc | null) ?? emptyDoc);
-  const [rationale, setRationale] = useState<Doc | null>((requirement.rationale as Doc | null) ?? null);
-  const [comment, setComment] = useState("");
-  const conflict = update.error instanceof ApiError && update.error.code === "revision_conflict";
-  // A reuse that follows its library source takes its words from there, so only the rest is edited here (#49).
-  const locked = requirement.reuse?.state === "following";
-  const fields = update.error instanceof ApiError ? update.error.fields : {};
-  const general = update.error && Object.keys(fields).length === 0;
-
-  // The revision the draft was opened at; after a refusal, the newer one the author chose to save over.
-  const [base, setBase] = useState(requirement.revision);
-
-  function save(event?: FormEvent, over = base) {
-    event?.preventDefault();
-    setBase(over);
-    const changes: RequirementChanges = locked ? { baseRevision: over, comment } : { title, statement, baseRevision: over, comment };
-    if (requirement.kind === "requirement") {
-      if (!locked) changes.rationale = rationale && !isEmptyDoc(rationale) ? rationale : null;
-      if (typeId && typeId !== requirement.type?.id) changes.typeId = typeId;
-      // Only what changed is sent, so a value cleared is sent as null and the rest stay as they are.
-      const before = (requirement.attributes as Values) ?? {};
-      const changed = Object.fromEntries(
-        Object.entries(values)
-          .filter(([id, value]) => JSON.stringify(value ?? null) !== JSON.stringify(before[id] ?? null))
-          .map(([id, value]) => [id, value ?? null]),
-      );
-      if (Object.keys(changed).length > 0) changes.attributes = changed;
-    }
-    update.mutate(changes, {
-      onSuccess: (saved) => onDone(saved.revision > requirement.revision ? t.requirements.saved(saved.revision) : t.requirements.savedNoRevision),
-    });
-  }
-
-  return (
-    <Card className="p-4">
-      <form onSubmit={save} className="space-y-4" noValidate data-requirement-edit>
-        {general && <ErrorBanner>{update.error.message}</ErrorBanner>}
-        {files.errors.map((message) => (
-          <ErrorBanner key={message}>{message}</ErrorBanner>
-        ))}
-        {conflict && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted" data-conflict>
-            <span>{t.requirements.conflictReloaded}</span>
-            <Button variant="secondary" size="sm" onClick={() => save(undefined, requirement.revision)} data-action="save-over-latest">
-              {t.requirements.saveOver(requirement.revision)}
-            </Button>
-          </div>
-        )}
-        {locked && (
-          <p className="text-sm text-ink-muted" data-reuse-locked>
-            {t.reuse.locked}
-          </p>
-        )}
-        <Field
-          label={t.requirements.name}
-          value={title}
-          maxLength={REQUIREMENT_TITLE_MAX_LENGTH}
-          onChange={(event) => setTitle(event.target.value)}
-          error={fields.title}
-          readOnly={locked}
-          required
-        />
-        {locked ? (
-          <section aria-labelledby="locked-statement-title" className="space-y-2">
-            <SectionTitle id="locked-statement-title">{t.requirements.statement}</SectionTitle>
-            <DocView doc={statement} data-statement="" />
-          </section>
-        ) : (
-          <Labelled id="edit-statement" label={t.requirements.statement} error={fields.statement}>
-            <Editor
-              id="edit-statement"
-              value={statement}
-              onChange={setStatement}
-              mentions={findPeople}
-              upload={files.upload}
-              aria-label={t.requirements.statement}
-            />
-          </Labelled>
-        )}
-        {requirement.kind === "requirement" && (
-          <Select
-            label={t.types.type}
-            value={typeId ?? ""}
-            onChange={(event) => {
-              const next = event.target.value || null;
-              setTypeId(next);
-              setValues(valuesFor(attributes ?? [], next, values));
-            }}
-            error={fields.typeId}
-            data-type-select
-          >
-            {(types ?? [])
-              .filter((type) => !type.retired || type.id === requirement.type?.id)
-              .map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-          </Select>
-        )}
-        {requirement.kind === "requirement" && !locked && (
-          <Labelled id="edit-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
-            <Editor
-              id="edit-rationale"
-              value={rationale}
-              onChange={setRationale}
-              mentions={findPeople}
-              upload={files.upload}
-              aria-label={t.requirements.rationale}
-            />
-          </Labelled>
-        )}
-        {requirement.kind === "requirement" && attributes && (
-          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
-        )}
-        <Field
-          label={t.requirements.comment}
-          hint={t.requirements.commentHint}
-          value={comment}
-          maxLength={REVISION_COMMENT_MAX_LENGTH}
-          onChange={(event) => setComment(event.target.value)}
-          error={fields.comment ?? fields.baseRevision}
-        />
-        <div className="flex gap-2">
-          <Button type="submit" loading={update.isPending} data-action="save-requirement">
-            {t.requirements.save}
-          </Button>
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t.requirements.cancel}
-          </Button>
-        </div>
-      </form>
     </Card>
   );
 }

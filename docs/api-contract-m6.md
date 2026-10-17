@@ -61,6 +61,18 @@ first child `{parentId: entry.node.id, afterId: null}`.
 - **UI.** Edit turns the entry into its editor in place; one entry at a time;
   leaving with unsaved changes asks first; the keyboard moves between entries
   and starts, saves and leaves an edit.
+- **As built** (#168):
+  - `RequirementEdit` moved to `web/src/features/requirements/RequirementEdit.tsx`
+    and edits an `Editable`, which a requirement and a specification entry
+    both give; the new requirement form's fields are `RequirementCreate`,
+    which takes a place. On a conflict both pages show what the newer
+    revision changed since the draft was opened.
+  - A requirement added after an entry is written below the entry's last
+    descendant, where the server places it. Leaving the page with a changed
+    draft is held by the router's blocker, which also covers closing the tab.
+  - Keys: the arrow keys, Home and End move between entries, Enter or E
+    edits, A adds after; in a form Ctrl or Cmd S saves and Escape leaves,
+    unless the editor's own popup took the key.
 
 ## #169 States from the document
 

@@ -4996,6 +4996,7 @@ export interface components {
             shape: components["schemas"]["Shape"];
         };
         SpecEntry: {
+            approval: components["schemas"]["Approval"];
             attributes: {
                 [key: string]: unknown;
             };
@@ -5003,12 +5004,15 @@ export interface components {
             comments: components["schemas"]["CommentCounts"];
             labels: string[];
             node: components["schemas"]["TreeNode"];
+            owner: components["schemas"]["PersonRef"] | null;
+            priority: ("must" | "should" | "could" | "wont") | null;
             /** @description A JSON value. */
             rationale: unknown;
             reuse: components["schemas"]["Reuse"] | null;
             /** @description A JSON value. */
             statement: unknown;
             suspectLinks: number;
+            type: components["schemas"]["RequirementTypeRef"] | null;
         };
         SpecificationDocument: {
             baseline: components["schemas"]["DocumentBaseline"] | null;
