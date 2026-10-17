@@ -241,6 +241,16 @@ JOIN test_run_latest l ON l.project_id = r.project_id AND l.branch = evidence_co
 JOIN test_result tr ON tr.run_id = l.run_id AND tr.requirement_id = i.requirement_id
 JOIN test_run t ON t.id = tr.run_id
 WHERE i.baseline_id = $1`
+	// takeCode records each item's code tags on the counting branch, copied whole (#201).
+	takeCode = `
+INSERT INTO baseline_evidence (baseline_id, requirement_id, kind, repository, branch, name, outcome, revision, commit_sha, url, path, line, word)
+SELECT $1, t.requirement_id, 'code', s.repository, s.branch, t.path, code_tag_relation(s.project_id, t.word), t.revision, s.commit_sha,
+       s.file_url, t.path, t.line, t.word
+FROM baseline_item i
+JOIN requirement r ON r.id = i.requirement_id
+JOIN code_scan s ON s.project_id = r.project_id AND s.branch = evidence_counting_branch(r.project_id)
+JOIN code_tag t ON t.scan_id = s.id AND t.requirement_id = i.requirement_id
+WHERE i.baseline_id = $1 AND code_tag_relation(s.project_id, t.word) IS NOT NULL`
 )
 
 // Take records a baseline of the project, or of one section's subtree, in one transaction that reads the database as
@@ -276,7 +286,7 @@ func (s *Service) Take(ctx context.Context, actor uuid.UUID, projectKey string, 
 			sql  string
 			args []any
 		}{{takeItems, []any{p.ID, id, root}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-			{takeEvidence, []any{id}}} {
+			{takeEvidence, []any{id}}, {takeCode, []any{id}}} {
 			if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 				return fmt.Errorf("take the baseline: %w", err)
 			}

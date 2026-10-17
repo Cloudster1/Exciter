@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
@@ -30,7 +31,9 @@ type Subject struct {
 	LinkID        *uuid.UUID
 	// SessionID names a review session the event is about instead of a requirement (#204).
 	SessionID *uuid.UUID
-	Excerpt   string
+	// CodeScanID names a code scan the event is about instead of a requirement (#201).
+	CodeScanID *uuid.UUID
+	Excerpt    string
 }
 
 // Tell is one person to tell, and why. About, when set, is what they are told about instead of the plan's subject.
@@ -102,6 +105,7 @@ func NewFanOut(cluster *db.Cluster, mailer mail.Mailer, appURL string, log *slog
 		review.TopicSessionRound:    planSession(KindSessionRound, false),
 		review.TopicSessionReminder: planSession(KindSessionReminder, true),
 		review.TopicSessionClosed:   planSession(KindSessionClosed, false),
+		codetrace.TopicUploaded:     planCodeScan,
 	}}
 }
 
@@ -161,12 +165,18 @@ func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t T
 			number     int
 			err        error
 		)
-		if subject.SessionID != nil {
+		switch {
+		case subject.CodeScanID != nil:
+			about.scan = subject.CodeScanID
+			err = tx.QueryRow(ctx, `
+				SELECT s.repository || ' ' || s.branch, p.key FROM code_scan s JOIN project p ON p.id = s.project_id
+				WHERE s.id = $1 AND perm_project_holds(s.project_id, $2::uuid, 'view')`, *subject.CodeScanID, t.UserID).Scan(&about.title, &about.key)
+		case subject.SessionID != nil:
 			about.session = subject.SessionID
 			err = tx.QueryRow(ctx, `
 				SELECT s.title, p.key FROM review_session s JOIN project p ON p.id = s.project_id
 				WHERE s.id = $1 AND perm_project_holds(s.project_id, $2::uuid, 'view')`, *subject.SessionID, t.UserID).Scan(&about.title, &about.key)
-		} else {
+		default:
 			err = tx.QueryRow(ctx, `
 				SELECT r.id, r.title, p.key, r.number FROM requirement r JOIN project p ON p.id = r.project_id
 				WHERE r.id = $1 AND r.trashed_at IS NULL AND perm_requirement_viewable(r.id, $2::uuid)`,
@@ -189,12 +199,12 @@ func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t T
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
 			INSERT INTO notification (user_id, event_id, kind, actor_id, requirement_id, revision, thread_id, comment_id,
-			                          review_id, link_id, excerpt, session_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			                          review_id, link_id, excerpt, session_id, code_scan_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 			ON CONFLICT (event_id, user_id) DO NOTHING
 			RETURNING id`,
 			t.UserID, eventID, t.Kind, nullable(plan.Actor), nullable(subject.RequirementID), subject.Revision, subject.ThreadID,
-			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID).Scan(&id)
+			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID, subject.CodeScanID).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}

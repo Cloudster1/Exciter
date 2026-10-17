@@ -22,6 +22,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -182,6 +183,7 @@ func run() error {
 		Trace:           links,
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		TestResults:     testresult.NewService(cluster).WithCommits(armatures),
+		Code:            codetrace.NewService(cluster),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

@@ -30,12 +30,14 @@ const (
 	ColumnsPages MatrixColumns = "pages"
 	// ColumnsTests are the test cases whose latest results on the counting branch verify the rows (#200).
 	ColumnsTests MatrixColumns = "tests"
+	// ColumnsCode are the files whose tags implement or verify the rows on the counting branch (#201).
+	ColumnsCode MatrixColumns = "code"
 )
 
 // MatrixColumnKinds lists every MatrixColumns, for the API document; RecordedColumnKinds are those a baseline's
 // matrix lays out from what it recorded.
 var (
-	MatrixColumnKinds   = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages, ColumnsTests}
+	MatrixColumnKinds   = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages, ColumnsTests, ColumnsCode}
 	RecordedColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages}
 )
 
@@ -60,10 +62,12 @@ const (
 	KindStator   LinkKind = "stator"
 	// KindTest is a test case's latest result for the row, named by its outcome (#200).
 	KindTest LinkKind = "test"
+	// KindCode is a code tag in a file for the row, named by its relation (#201).
+	KindCode LinkKind = "code"
 )
 
 // LinkKinds lists every LinkKind, for the API document.
-var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator, KindTest}
+var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator, KindTest, KindCode}
 
 // Gaps says which rows or columns without a link a matrix keeps; empty keeps every one.
 type Gaps string
@@ -110,6 +114,14 @@ type MatrixColumn struct {
 	IssueKey    string           `json:"issueKey"`
 	Page        *MatrixPage      `json:"page"`
 	Test        *MatrixTest      `json:"test,omitempty"`
+	Code        *MatrixCode      `json:"code,omitempty"`
+}
+
+// MatrixCode is a file as a column: its repository and path, and its address at the scanned commit.
+type MatrixCode struct {
+	Repository string `json:"repository"`
+	Path       string `json:"path"`
+	URL        string `json:"url"`
 }
 
 // MatrixTest is a test case as a column: its repository, suite and name.
@@ -176,7 +188,7 @@ func checkMatrix(q *MatrixQuery) error {
 		q.Columns = ColumnsRequirements
 	}
 	if !slices.Contains(MatrixColumnKinds, q.Columns) {
-		return &FieldError{Field: "columns", Message: "Show requirements, issues, pages or tests as the columns."}
+		return &FieldError{Field: "columns", Message: "Show requirements, issues, pages, tests or code as the columns."}
 	}
 	if q.Direction == "" {
 		q.Direction = DirectionBoth
@@ -190,10 +202,10 @@ func checkMatrix(q *MatrixQuery) error {
 	if q.Columns != ColumnsRequirements && len(q.LinkTypes) > 0 {
 		return &FieldError{Field: "linkType", Message: "Link types narrow requirement columns. Show requirements as the columns, or leave the link types out."}
 	}
-	if q.Columns != ColumnsTests && q.ColumnRepository != "" {
-		return &FieldError{Field: "columnRepository", Message: "A repository narrows test columns. Show tests as the columns, or leave the repository out."}
+	if q.Columns != ColumnsTests && q.Columns != ColumnsCode && q.ColumnRepository != "" {
+		return &FieldError{Field: "columnRepository", Message: "A repository narrows test and code columns. Show those as the columns, or leave the repository out."}
 	}
-	if q.Columns == ColumnsTests && len(q.Relations) > 0 {
+	if (q.Columns == ColumnsTests || q.Columns == ColumnsCode) && len(q.Relations) > 0 {
 		return &FieldError{Field: "relation", Message: "Relations narrow issue and page columns. Show those as the columns, or leave the relations out."}
 	}
 	if q.Columns != ColumnsRequirements && q.ColumnFilter != nil {
@@ -248,6 +260,8 @@ func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey strin
 			l, err = pageLinks(ctx, tx, ids, q.Relations)
 		case ColumnsTests:
 			l, err = testLinks(ctx, tx, ids, q.ColumnRepository)
+		case ColumnsCode:
+			l, err = codeLinks(ctx, tx, ids, q.ColumnRepository)
 		default:
 			l, err = requirementLinks(ctx, tx, reader, other, ids, q)
 		}

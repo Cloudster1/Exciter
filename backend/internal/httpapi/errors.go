@@ -203,6 +203,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := evidenceError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := codeError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := attachmentError(err); apiErr != nil {
 			return apiErr
 		}

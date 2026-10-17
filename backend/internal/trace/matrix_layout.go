@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/rql"
@@ -167,6 +169,57 @@ func testLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, repository str
 			at[x.test] = column
 			test := x.test
 			l.columns = append(l.columns, MatrixColumn{Test: &test})
+		}
+		x.column = column
+		l.links = append(l.links, x.laidLink)
+	}
+	return l, nil
+}
+
+// codeLinks reads the code tags on the counting branch that implement or verify the rows; the files are the columns,
+// by repository and path, each cell a tag by its relation and line.
+func codeLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, repository string) (*laid, error) {
+	l := &laid{}
+	if len(rows) == 0 {
+		return l, nil
+	}
+	found, err := tx.Query(ctx, `
+		SELECT t.requirement_id, s.repository, t.path, s.file_url, s.commit_sha, t.line, code_tag_relation(s.project_id, t.word), t.revision < r.revision
+		FROM code_tag t
+		JOIN code_scan s ON s.id = t.scan_id AND s.branch = evidence_branch(s.project_id)
+		JOIN requirement r ON r.id = t.requirement_id
+		WHERE t.requirement_id = ANY ($1) AND ($2 = '' OR s.repository = $2) AND code_tag_relation(s.project_id, t.word) IS NOT NULL
+		ORDER BY s.repository, t.path, t.line`, rows, repository)
+	if err != nil {
+		return nil, fmt.Errorf("read the matrix's code: %w", err)
+	}
+	type codeLink struct {
+		file MatrixCode
+		laidLink
+	}
+	all, err := pgx.CollectRows(found, func(row pgx.CollectableRow) (codeLink, error) {
+		x := codeLink{laidLink: laidLink{link: MatrixLink{Kind: KindCode, Direction: Incoming}}}
+		var (
+			template, commit, relation string
+			line                       int
+		)
+		err := row.Scan(&x.row, &x.file.Repository, &x.file.Path, &template, &commit, &line, &relation, &x.link.Outdated)
+		x.file.URL = codetrace.FileLink(template, commit, x.file.Path, 1)
+		x.link.Name = relation + ", line " + strconv.Itoa(line)
+		return x, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	at := map[[2]string]int{}
+	for _, x := range all {
+		key := [2]string{x.file.Repository, x.file.Path}
+		column, ok := at[key]
+		if !ok {
+			column = len(l.columns)
+			at[key] = column
+			file := x.file
+			l.columns = append(l.columns, MatrixColumn{Code: &file})
 		}
 		x.column = column
 		l.links = append(l.links, x.laidLink)

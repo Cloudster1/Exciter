@@ -17,6 +17,7 @@ import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, 
 import { t } from "@/i18n";
 import { TraceModelCard } from "@/features/matrix/TraceModelCard";
 import { EvidenceSettingsCard } from "@/features/evidence/EvidenceSettingsCard";
+import { CodeTagWordsCard } from "@/features/evidence/CodeTagWordsCard";
 
 const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -86,6 +87,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
           <div className="space-y-5">
             <TraceModelCard project={project} />
             <EvidenceSettingsCard project={project} />
+            <CodeTagWordsCard project={project} />
           </div>
         )}
         {tab === "import" && <ImportPanel project={project} />}

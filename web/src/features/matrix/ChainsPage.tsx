@@ -232,6 +232,16 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
         <a href={node.page.url} target="_blank" rel="noopener noreferrer" className="text-ink hover:text-accent hover:underline">
           {title ?? `${node.page.spaceKey}/${node.page.id}`}
         </a>
+      ) : node.code ? (
+        <span className="font-mono text-xs text-ink" data-chain-code={`${node.code.path}:${node.code.line}`}>
+          {node.code.url ? (
+            <a href={node.code.url} target="_blank" rel="noopener noreferrer" className="hover:text-accent hover:underline">
+              {node.code.path}:{node.code.line}
+            </a>
+          ) : (
+            `${node.code.path}:${node.code.line}`
+          )}
+        </span>
       ) : node.test ? (
         <span className="text-ink" data-chain-test={node.test.name}>
           {node.test.name} <Tag>{t.evidence.results.outcome[node.test.outcome] ?? node.test.outcome}</Tag>
@@ -240,7 +250,8 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
         <span className="font-mono text-xs text-ink">{node.issueKey}</span>
       )}
       {node.test?.outdated && <Icon.Warning className="size-3.5 text-warning" label={t.evidence.matrix.outdated} />}
-      {node.suspect && !node.test && <Icon.Warning className="size-3.5 text-warning" label={t.coverage.suspect} />}
+      {node.code?.outdated && <Icon.Warning className="size-3.5 text-warning" label={t.evidence.matrix.outdated} />}
+      {node.suspect && !node.test && !node.code && <Icon.Warning className="size-3.5 text-warning" label={t.coverage.suspect} />}
     </span>
   );
 }

@@ -19,7 +19,7 @@ export type MatrixLink = Wire["MatrixLink"];
 export type MatrixParams = Omit<NonNullable<operations["traceMatrix"]["parameters"]["query"]>, "limit" | "offset" | "columnLimit" | "columnOffset">;
 export type Level = CoverageRow["decomposed"];
 export type Dimension = "decomposed" | "implemented" | "verified";
-export type MatrixColumns = "requirements" | "issues" | "pages" | "tests";
+export type MatrixColumns = "requirements" | "issues" | "pages" | "tests" | "code";
 
 /** Every dimension, in report order. */
 export const DIMENSIONS: Dimension[] = ["decomposed", "implemented", "verified"];

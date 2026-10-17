@@ -16,6 +16,8 @@ export const ISSUE_RELATIONS = ["implements", "verifies", "relates"] as const;
 export const PAGE_RELATIONS = ["specifies", "describes", "relates"] as const;
 /** The relation a level of tests is reached by, the server's trace.TestRelations (#200). */
 export const TEST_RELATIONS = ["verifies"] as const;
+/** The relations a level of code is reached by, the server's trace.CodeRelations (#201). */
+export const CODE_RELATIONS = ["implements", "verifies"] as const;
 
 /** A matrix as its address holds it: the grid's narrowing and order for the rows, then what the columns are. */
 export interface MatrixAddress extends Omit<GridAddress, "columns"> {
@@ -55,7 +57,7 @@ const list = (value: unknown): string[] | undefined => {
 export function readMatrixAddress(search: Record<string, unknown>): MatrixAddress {
   const { columns: _gridColumns, ...grid } = readAddress(search);
   const address: MatrixAddress = grid;
-  if (search.columns === "issues" || search.columns === "pages" || search.columns === "tests") address.columns = search.columns;
+  if (search.columns === "issues" || search.columns === "pages" || search.columns === "tests" || search.columns === "code") address.columns = search.columns;
   if (typeof search.columnProject === "string" && search.columnProject) address.columnProject = search.columnProject;
   const linkType = list(search.linkType);
   if (linkType) address.linkType = linkType;
@@ -170,11 +172,13 @@ export function columnName(column: Matrix["columns"][number], titles?: ReadonlyM
   if (column.requirement) return column.requirement.key;
   if (column.page) return titles?.get(column.page.id) ?? `${column.page.spaceKey}/${column.page.id}`;
   if (column.test) return column.test.name;
+  if (column.code) return column.code.path;
   return column.issueKey;
 }
 
 /** A column's identity, unique on a page, whatever it is called. */
 export function columnKey(column: Matrix["columns"][number]): string {
   if (column.test) return `${column.test.repository} ${column.test.suite} ${column.test.name}`;
+  if (column.code) return `${column.code.repository} ${column.code.path}`;
   return column.requirement?.id ?? column.page?.id ?? column.issueKey;
 }

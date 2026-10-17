@@ -186,13 +186,20 @@ same names set them anywhere else.
 - `exciter-ci check` prints the trace check's verdict and what failed it,
   narrowed by `--query` and judged on `--branch`, the project's counting
   branch when empty. `--fail` names what fails it.
-- Both exit 0 when they pass, 1 when the check fails, and 2 when Exciter could
-  not be asked, with the sentence it answered.
+- `exciter-ci scan [DIR]` (#201) reads the requirement tags in a checkout's
+  source comments, `[implements CHK-R42]` or `[verifies CHK-R42@3]` in the
+  project's tag words, and uploads them for its branch, replacing that branch's
+  scan before. It reads the files git tracks when `DIR` is a checkout, every
+  file but build output otherwise, and leaves out what `--exclude` names. The
+  address of a line comes from GitHub, GitLab or Gitea, or `--file-url`; git
+  inside a container needs the checkout marked safe, as `make code-scan` does.
+- All three exit 0 when they pass, 1 when the check fails, and 2 when Exciter
+  could not be asked, with the sentence it answered.
 
 A test case names what it verifies with `[verifies KEY]` in its name, a
 property named `verifies` or `requirement`, or a `tag` property such as
-`verifies:KEY`. `make test-results` and `make trace-check` run the same against
-this checkout's stack.
+`verifies:KEY`. `make test-results`, `make code-scan` and `make trace-check`
+run the same against this checkout's stack.
 
 ## Webhooks
 

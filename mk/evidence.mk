@@ -1,6 +1,6 @@
 # exciter-ci against this checkout's stack (#200), as a pipeline runs it against an installation. EXCITER_TOKEN is a
 # token with the evidence scope and EXCITER_PROJECT the project's key; the reports are paths in this checkout.
-CI_RUN = docker compose --profile tools run --rm -e EXCITER_TOKEN -e EXCITER_PROJECT ci
+CI_RUN = docker compose --profile tools run --build --rm -e EXCITER_TOKEN -e EXCITER_PROJECT ci
 
 .PHONY: ci-image
 ci-image: ## Build the exciter-ci image a pipeline runs
@@ -15,3 +15,11 @@ test-results: ## Upload JUnit reports to the stack: make test-results REPORTS_GL
 .PHONY: trace-check
 trace-check: ## Ask the stack's trace check for a verdict: make trace-check [BRANCH=main] [QUERY='type = Feature'] [FAIL=failing]
 	$(CI_RUN) check $(if $(BRANCH),--branch "$(BRANCH)") $(if $(QUERY),--query "$(QUERY)") $(if $(FAIL),--fail "$(FAIL)")
+
+# A checkout mounted from the host belongs to another user than the container's, which git refuses to read unless told.
+GIT_SAFE = -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*'
+
+.PHONY: code-scan
+code-scan: ## Upload the requirement tags of this checkout, or of DIR inside it, to the stack: make code-scan [DIR=backend] [BRANCH=main]
+	docker compose --profile tools run --build --rm -e EXCITER_TOKEN -e EXCITER_PROJECT $(GIT_SAFE) ci scan \
+		$(if $(BRANCH),--branch "$(BRANCH)") $(if $(REPOSITORY),--repository "$(REPOSITORY)") $(or $(DIR),.)

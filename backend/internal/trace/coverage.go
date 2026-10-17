@@ -39,13 +39,15 @@ type Source string
 const (
 	SourceLinks Source = "links"
 	SourceTests Source = "tests"
+	SourceCode  Source = "code"
 )
 
-// VerifiedSources lists every Source verified may count, for the API document; DefaultSources is a rule's without
-// one.
+// VerifiedSources and ImplementedSources list what each dimension may count, for the API document; DefaultSources is
+// a rule's without one.
 var (
-	VerifiedSources = []Source{SourceLinks, SourceTests}
-	DefaultSources  = []Source{SourceLinks}
+	VerifiedSources    = []Source{SourceLinks, SourceTests, SourceCode}
+	ImplementedSources = []Source{SourceLinks, SourceCode}
+	DefaultSources     = []Source{SourceLinks}
 )
 
 // Level is how far a requirement is covered in one dimension; na when its type's rule does not ask for it.
@@ -69,8 +71,9 @@ type CoverageRule struct {
 	Decomposed  bool       `json:"decomposed"`
 	Implemented bool       `json:"implemented"`
 	Verified    bool       `json:"verified"`
-	// VerifiedFrom are the sources that count for verified, at least one.
-	VerifiedFrom []Source `json:"verifiedFrom"`
+	// VerifiedFrom and ImplementedFrom are the sources that count for each dimension, at least one.
+	VerifiedFrom    []Source `json:"verifiedFrom"`
+	ImplementedFrom []Source `json:"implementedFrom"`
 }
 
 // CoverageRuleInput sets one type's rule, or the project's rule for every other type when TypeID is absent.
@@ -79,8 +82,9 @@ type CoverageRuleInput struct {
 	Decomposed  bool       `json:"decomposed"`
 	Implemented bool       `json:"implemented"`
 	Verified    bool       `json:"verified"`
-	// VerifiedFrom are the sources that count for verified; links alone when absent.
-	VerifiedFrom []Source `json:"verifiedFrom,omitempty"`
+	// VerifiedFrom and ImplementedFrom are the sources that count for each dimension; links alone when absent.
+	VerifiedFrom    []Source `json:"verifiedFrom,omitempty"`
+	ImplementedFrom []Source `json:"implementedFrom,omitempty"`
 }
 
 // Totals count the requirements a dimension applies to by level.
@@ -109,7 +113,7 @@ type CoverageRow struct {
 // Asks is which dimensions a requirement's rule asks for, and what counts for verified; links when none is named.
 type Asks struct {
 	Decomposed, Implemented, Verified bool
-	VerifiedFrom                      []Source
+	VerifiedFrom, ImplementedFrom     []Source
 }
 
 // Counted are the links that judge one requirement: trace links where it is the target of a type counting
@@ -122,6 +126,9 @@ type Counted struct {
 	// Tests are the latest results on the branch evidence is read on; TestsWhole those passed against the current
 	// revision (#200).
 	Tests, TestsWhole int
+	// CodeImplementing and CodeVerifying are the code tags of each relation on that branch, the Whole ones naming the
+	// current revision (#201).
+	CodeImplementing, CodeImplementingWhole, CodeVerifying, CodeVerifyingWhole int
 }
 
 // Judge answers a requirement's level in each dimension, as the contract's table says.
@@ -131,7 +138,14 @@ func Judge(asks Asks, c Counted) (decomposed, implemented, verified Level) {
 		decomposed = level(c.Decomposing > 0, c.DecomposingSuspect == 0)
 	}
 	if asks.Implemented {
-		implemented = level(c.Implementing > 0, c.ImplementingDone > 0 && c.ImplementingSuspect == 0)
+		from := asks.ImplementedFrom
+		if len(from) == 0 {
+			from = DefaultSources
+		}
+		implemented = judgeSources([]held{
+			{slices.Contains(from, SourceLinks) && c.Implementing > 0, c.ImplementingDone > 0 && c.ImplementingSuspect == 0},
+			{slices.Contains(from, SourceCode) && c.CodeImplementing > 0, c.CodeImplementingWhole == c.CodeImplementing},
+		})
 	}
 	if asks.Verified {
 		from := asks.VerifiedFrom
@@ -142,6 +156,7 @@ func Judge(asks Asks, c Counted) (decomposed, implemented, verified Level) {
 			{slices.Contains(from, SourceLinks) && c.VerifyingLinks+c.VerifyingIssues > 0,
 				c.VerifyingLinksSuspect+c.VerifyingIssuesSuspect == 0 && c.VerifyingIssuesDone == c.VerifyingIssues},
 			{slices.Contains(from, SourceTests) && c.Tests > 0, c.TestsWhole == c.Tests},
+			{slices.Contains(from, SourceCode) && c.CodeVerifying > 0, c.CodeVerifyingWhole == c.CodeVerifying},
 		})
 	}
 	return decomposed, implemented, verified

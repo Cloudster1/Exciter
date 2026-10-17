@@ -26,6 +26,8 @@ type mailed struct {
 	subject       Subject
 	// session is the review session it is about instead of a requirement (#204); key is then its project's.
 	session *uuid.UUID
+	// scan is the code scan it is about (#201); key is then its project's and title its repository and branch.
+	scan *uuid.UUID
 }
 
 // Sentence says what happened, in English.
@@ -63,6 +65,10 @@ func Sentence(kind Kind, actor, key, title string) string {
 		return fmt.Sprintf(`The review session "%s" of %s ends soon, and waits for you`, title, key)
 	case KindSessionClosed:
 		return fmt.Sprintf(`%s closed the review session "%s" of %s`, actor, title, key)
+	case KindCodeOutdated:
+		return fmt.Sprintf("A scan of %s in %s brought code tags naming older revisions of requirements you follow", title, key)
+	case KindCodeOrphaned:
+		return fmt.Sprintf("A scan of %s in %s brought code tags naming requirements in the trash or none", title, key)
 	}
 	return fmt.Sprintf("%s changed %s", actor, named)
 }
@@ -81,8 +87,16 @@ func SessionURL(appURL, projectKey string, id uuid.UUID) string {
 	return fmt.Sprintf("%s/p/%s/sessions/%s", appURL, projectKey, id)
 }
 
+// CodeTagsURL is where a notification about a code scan leads: the project's outdated and orphaned tags.
+func CodeTagsURL(appURL, projectKey string) string {
+	return fmt.Sprintf("%s/p/%s/code-tags", appURL, projectKey)
+}
+
 // link is where one mailed notification leads.
 func (m mailed) link(appURL string) string {
+	if m.scan != nil {
+		return CodeTagsURL(appURL, m.key)
+	}
 	if m.session != nil {
 		return SessionURL(appURL, m.key, *m.session)
 	}
@@ -101,9 +115,12 @@ func (m mailed) single(to, appURL string) mail.Mail {
 	if m.subject.Excerpt != "" {
 		b.WriteString(m.subject.Excerpt + "\n\n")
 	}
-	if m.session != nil {
+	switch {
+	case m.scan != nil:
+		fmt.Fprintf(&b, "Open the code tags: %s\n\n", m.link(appURL))
+	case m.session != nil:
 		fmt.Fprintf(&b, "Open the session: %s\n\n", m.link(appURL))
-	} else {
+	default:
 		fmt.Fprintf(&b, "Open the requirement: %s\n\n", m.link(appURL))
 	}
 	fmt.Fprintf(&b, "Choose what you are told about: %s%s\n", appURL, PreferencesPath)

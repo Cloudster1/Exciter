@@ -61,6 +61,7 @@ export function MatrixToolbar({
             { value: "issues", label: t.coverage.columnIssues, attrs: { "data-columns": "issues" } },
             { value: "pages", label: t.matrix.columnPagesKind, attrs: { "data-columns": "pages" } },
             { value: "tests", label: t.evidence.matrix.tests, attrs: { "data-columns": "tests" } },
+            { value: "code", label: t.evidence.matrix.code, attrs: { "data-columns": "code" } },
           ]}
         />
         {setup.columns === "requirements" ? (
@@ -99,7 +100,7 @@ export function MatrixToolbar({
               onChange={(linkTypes) => set({ linkTypes })}
             />
           </>
-        ) : setup.columns === "tests" ? null : (
+        ) : setup.columns === "tests" || setup.columns === "code" ? null : (
           <Choices
             label={t.matrix.relations}
             hint={t.matrix.everyRelation}

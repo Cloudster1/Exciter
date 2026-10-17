@@ -432,3 +432,57 @@ func planSession(kind Kind, waiting bool) Planner {
 		return plan, err
 	}
 }
+
+// codeScanEvent is what a code scan's event says it brought on the counting branch (#201).
+type codeScanEvent struct {
+	ActorID  uuid.UUID   `json:"actorId"`
+	ScanID   uuid.UUID   `json:"scanId"`
+	Project  uuid.UUID   `json:"projectId"`
+	Outdated []uuid.UUID `json:"outdated"`
+	Orphaned []uuid.UUID `json:"orphaned"`
+	Unknown  int         `json:"unknown"`
+}
+
+// followers are a requirement's owner and watchers, an owner who stopped watching it left out, as a suspect link's.
+const followers = `
+SELECT user_id FROM requirement_watch_coverage($1) UNION
+SELECT r.owner_id FROM requirement r JOIN app_user o ON o.id = r.owner_id AND o.is_active AND o.role IS NOT NULL
+WHERE r.id = $1 AND NOT EXISTS (SELECT 1 FROM watch_optout x WHERE x.user_id = r.owner_id AND x.requirement_id = r.id)`
+
+// planCodeScan tells the followers of each requirement a scan brought outdated or trashed tags for, and the project's
+// administrators of keys that name nothing, each once, about the scan.
+func planCodeScan(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+	var in codeScanEvent
+	if err := json.Unmarshal(e.Payload, &in); err != nil || in.ScanID == uuid.Nil {
+		return nil, nil
+	}
+	if len(in.Outdated) == 0 && len(in.Orphaned) == 0 && in.Unknown == 0 {
+		return nil, nil
+	}
+	scan := in.ScanID
+	plan := &Plan{Actor: in.ActorID, Subject: Subject{CodeScanID: &scan}}
+	for _, group := range []struct {
+		ids  []uuid.UUID
+		kind Kind
+	}{{in.Orphaned, KindCodeOrphaned}, {in.Outdated, KindCodeOutdated}} {
+		for _, id := range group.ids {
+			told, err := people(ctx, tx, followers, id)
+			if err != nil {
+				return nil, err
+			}
+			for _, person := range told {
+				plan.Tells = append(plan.Tells, Tell{UserID: person, Kind: group.kind})
+			}
+		}
+	}
+	if in.Unknown > 0 {
+		admins, err := people(ctx, tx, `SELECT u.id FROM app_user u WHERE u.is_active AND u.role IS NOT NULL AND perm_project_holds($1, u.id, 'administer')`, in.Project)
+		if err != nil {
+			return nil, err
+		}
+		for _, person := range admins {
+			plan.Tells = append(plan.Tells, Tell{UserID: person, Kind: KindCodeOrphaned})
+		}
+	}
+	return plan, nil
+}

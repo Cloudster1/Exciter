@@ -23,6 +23,7 @@ import { BaselineCompare } from "@/features/baselines/BaselineCompare";
 import { SessionList } from "@/features/sessions/SessionList";
 import { SessionPage } from "@/features/sessions/SessionPage";
 import { CoveragePage } from "@/features/coverage/CoveragePage";
+import { CodeTagsPage } from "@/features/evidence/CodeTagsPage";
 import { readMatrixAddress } from "@/features/matrix/address";
 import { readChainsAddress } from "@/features/matrix/chainsAddress";
 import { ChainsPage } from "@/features/matrix/ChainsPage";
@@ -43,6 +44,7 @@ type ProjectPath =
   | "/p/$projectKey/baselines"
   | "/p/$projectKey/sessions"
   | "/p/$projectKey/coverage"
+  | "/p/$projectKey/code-tags"
   | "/p/$projectKey/matrix"
   | "/p/$projectKey/chains";
 
@@ -199,6 +201,16 @@ export const coverageRoute = createRoute({
   component: function ProjectCoveragePage() {
     const { projectKey } = coverageRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/coverage" render={(project) => <CoveragePage key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's outdated and orphaned code tags (#201), where a scan's notification leads. */
+export const codeTagsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/code-tags",
+  component: function ProjectCodeTagsPage() {
+    const { projectKey } = codeTagsRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/code-tags" render={(project) => <CodeTagsPage key={project.id} project={project} />} />;
   },
 });
 
