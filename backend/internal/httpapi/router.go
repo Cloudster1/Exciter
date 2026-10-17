@@ -168,6 +168,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	// Liveness and readiness are deliberately outside the API and authentication.
 	r.Get("/healthz", s.handleLiveness)
 	r.Get("/readyz", s.handleReadiness)
+	mountPending(r, true, true)
 
 	r.Route(APIPrefix, func(r chi.Router) {
 		r.Use(wholeOrg(r))
@@ -179,7 +180,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Get("/auth/oidc/reauthenticate", s.handleReauthStart)
 		r.With(s.armatureOn).Post("/armature/webhook", s.handleArmatureWebhook)
 		r.With(s.statorOn).Post("/stator/webhook", s.handleStatorWebhook)
-		mountPending(r, true)
+		mountPending(r, true, false)
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
@@ -553,7 +554,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
-			mountPending(r, false)
+			mountPending(r, false, false)
 		})
 	})
 
@@ -574,9 +575,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 // mountPending routes each pending operation to a 501 so clients can be written
 // against it; the ones that are not public sit behind the sign-in.
-func mountPending(r chi.Router, public bool) {
+func mountPending(r chi.Router, public, root bool) {
 	for _, op := range operations {
-		if op.pending && op.public == public {
+		if op.pending && op.public == public && op.root == root {
 			r.Method(op.method, op.path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				respondError(w, r, errNotImplemented)
 			}))

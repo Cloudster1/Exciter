@@ -79,6 +79,7 @@ func specBuilder() *openapi.Builder {
 	reviewSchemas(b)
 	traceabilitySchemas(b)
 	documentSchemas(b)
+	assistantSchemas(b)
 	b.Enums[reflect.TypeOf(search.ViewKind(""))] = enumStrings(search.ViewKinds)
 	return b
 }
@@ -308,6 +309,10 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 			"multipart/form-data": {Schema: &openapi.Schema{Type: "object", Required: []string{"file"},
 				Properties: map[string]*openapi.Schema{"file": {Type: "string", Format: "binary"}}}},
 		}}
+	case op.form:
+		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
+			"application/x-www-form-urlencoded": {Schema: b.SchemaOf(op.request)},
+		}}
 	case op.request != nil:
 		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
 			"application/json": {Schema: b.SchemaOf(op.request)},
@@ -339,6 +344,9 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 		Content: map[string]openapi.MediaType{"application/json": {Schema: errorSchema}}}
 	if op.public {
 		o.Security = []map[string][]string{}
+	}
+	if op.root {
+		o.Servers = []openapi.Server{{URL: "/", Description: "Outside the API's prefix"}}
 	}
 	return o
 }

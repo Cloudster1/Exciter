@@ -39,8 +39,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m3.md` for review and control (#32),
   `docs/api-contract-m4.md` for the Stator integration (#39),
   `docs/api-contract-backlog.md` for what came after the first release,
-  `docs/api-contract-m5.md` for traceability (#146), and
-  `docs/api-contract-m6.md` for the document view (#167).
+  `docs/api-contract-m5.md` for traceability (#146),
+  `docs/api-contract-m6.md` for the document view (#167), and
+  `docs/api-contract-m7.md` for the MCP integration (#182).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -251,6 +252,12 @@ app role holds no privilege on.
   place. Its changes, filters and review mode are parameters of
   `GET /projects/{projectKey}/spec`; bulk transitions and review requests
   take each requirement through the single operation, each on its own.
+- **MCP integration** (M7, `docs/api-contract-m7.md`, planned): the endpoint
+  of #22 on the current protocol, with tools for everything since M1 but
+  deciding a review, requirements in Markdown, the specification as
+  resources, and prompts. Exciter becomes the OAuth authorization server of
+  its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
+  and what is written through a token or a grant carries `via`.
 - **Signed approvals** (#46): in a project with `settings.signedApprovals`,
   a decision on a review is an electronic signature. The reviewer confirms a
   meaning the server writes and proves who they are again, with their
