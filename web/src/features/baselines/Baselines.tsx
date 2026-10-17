@@ -8,6 +8,7 @@ import { Button, Card, EmptyState, ErrorBanner, Field, PageHeader, Select, Skele
 import { Icon } from "@/components/icons";
 import { BASELINE_DESCRIPTION_MAX_LENGTH, BASELINE_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
+import { signingWords } from "./BaselineSigning";
 import { localDateFormat } from "@/lib/format";
 
 // A project's baselines (#37): listed newest first, and taken by its administrators.
@@ -70,11 +71,18 @@ export function BaselineList({ project }: { project: Project }) {
                 >
                   {b.name}
                 </Link>
-                {b.locked && (
-                  <Tag title={t.baseline.lockedHint}>
+                {b.signing && b.signing.signatures > 0 ? (
+                  <Tag title={signingWords(b)} data-baseline-signed={b.signing.signed ? "signed" : "signing"}>
                     <Icon.Lock className="mr-1 size-3" aria-hidden="true" />
-                    {t.baseline.locked}
+                    {b.signing.signed ? t.control.signedTag : t.control.signing(b.signing.signatures, b.signing.required)}
                   </Tag>
+                ) : (
+                  b.locked && (
+                    <Tag title={t.baseline.lockedHint}>
+                      <Icon.Lock className="mr-1 size-3" aria-hidden="true" />
+                      {t.baseline.locked}
+                    </Tag>
+                  )
                 )}
               </span>
               <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-subtle">

@@ -69,6 +69,14 @@ func (w words) locked(day string) string {
 	return w.pick(fmt.Sprintf("Locked on %s; it never changes.", day), fmt.Sprintf("Gesperrt am %s; sie ändert sich nie.", day))
 }
 
+// signing says where a baseline's signing stands (#205).
+func (w words) signing(signed bool, n, of int) string {
+	if signed {
+		return w.pick(fmt.Sprintf("Signed, with %d of %d signatures.", n, of), fmt.Sprintf("Unterschrieben, mit %d von %d Unterschriften.", n, of))
+	}
+	return w.pick(fmt.Sprintf("Being signed: %d of %d signatures so far.", n, of), fmt.Sprintf("In Unterschrift: bisher %d von %d Unterschriften.", n, of))
+}
+
 func (w words) exported(by, day string) string {
 	return w.pick(fmt.Sprintf("Exported by %s on %s.", by, day), fmt.Sprintf("Exportiert von %s am %s.", by, day))
 }

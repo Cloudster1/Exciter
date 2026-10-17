@@ -92,6 +92,11 @@ export function DocumentView({ doc }: { doc: SpecDocument }) {
         <div className="space-y-1 text-sm text-ink-muted">
           {b && <p>{t.documents.taken(day.format(new Date(b.takenAt)), b.takenBy)}</p>}
           {b && (b.lockedAt ? <p className="font-semibold text-ink">{t.documents.locked(day.format(new Date(b.lockedAt)))}</p> : <p>{t.documents.unlocked}</p>)}
+          {b && b.signatures > 0 && (
+            <p className={b.signed ? "font-semibold text-ink" : undefined} data-print-signing={b.signed ? "signed" : "signing"}>
+              {b.signed ? t.control.signed(b.signatures, b.signaturesRequired) : t.control.signing(b.signatures, b.signaturesRequired)}
+            </p>
+          )}
           {b?.description && <p>{b.description}</p>}
           <p>{t.documents.exported(doc.exportedBy, day.format(new Date(doc.exportedAt)))}</p>
           <p>{t.documents.holds(doc.entries.length)}</p>

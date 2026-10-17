@@ -23,7 +23,8 @@ func (s *Server) baselinesOn(next http.Handler) http.Handler {
 			respondError(w, r, errBaselinesOff)
 			return
 		}
-		next.ServeHTTP(w, r)
+		// A baseline answers the meaning its signer would sign, in their language (#205).
+		next.ServeHTTP(w, signer(r))
 	})
 }
 
@@ -37,6 +38,9 @@ func baselineError(err error) *APIError {
 		return ErrNotFound("That baseline was not found. Reload the project's baselines; somebody may have deleted it.")
 	case errors.Is(err, baseline.ErrForbidden):
 		return ErrForbidden("Only the project's administrators take, change and delete its baselines. Ask one of them.")
+	case errors.Is(err, baseline.ErrSigned):
+		return &APIError{Status: http.StatusConflict, Code: "baseline_signed",
+			Message: "This baseline is signed and keeps its name. Take a new baseline to record a later state."}
 	case errors.Is(err, baseline.ErrLocked):
 		return &APIError{Status: http.StatusConflict, Code: "baseline_locked",
 			Message: "This baseline is locked, so it keeps its name and is never deleted. Take a new baseline instead."}

@@ -48,3 +48,27 @@ export function resumeSigning(): Resumed | undefined {
   window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   return resumed;
 }
+
+/** The decision a baseline's signature stands for in the address the provider brings the browser back to (#205). */
+export const RELEASE = "release";
+
+/** What the browser came back with to finish a baseline's signature: the proof or why there is none. */
+export interface ResumedRelease {
+  baselineId: string;
+  proof?: string;
+  failure?: string;
+}
+
+/** Reads, once, a baseline's signature the browser came back to finish, and takes it out of the address. */
+export function resumeBaselineSigning(baselineId: string): ResumedRelease | undefined {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("sign") !== RELEASE || url.searchParams.get("baseline") !== baselineId) return undefined;
+  const resumed: ResumedRelease = {
+    baselineId,
+    proof: url.searchParams.get("signature") ?? undefined,
+    failure: url.searchParams.get("signature_error") ?? undefined,
+  };
+  for (const name of ["baseline", "sign", "signature", "signature_error"]) url.searchParams.delete(name);
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  return resumed;
+}

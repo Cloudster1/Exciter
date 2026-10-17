@@ -23,6 +23,7 @@ import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
+import { LockAction, LockBanner } from "./LockBanner";
 import { RequirementEdit } from "./RequirementEdit";
 
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
@@ -69,6 +70,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
         actions={
           <>
             <WatchMenu requirement={requirement} onFailure={setWatchFailed} />
+            <LockAction project={project} requirement={requirement} onNotice={setNotice} />
             {mayEdit && !editing && (
               <Button variant="secondary" icon={<Icon.Edit />} onClick={() => setEditing(true)} data-action="edit-requirement">
                 {t.requirements.edit}
@@ -84,7 +86,8 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           {t.requirements.trashed}
         </p>
       )}
-      {!mayEdit && !requirement.trashedAt && <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>}
+      <LockBanner project={project} requirement={requirement} onNotice={setNotice} />
+      {!mayEdit && !requirement.trashedAt && !requirement.lock && <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>}
       {requirement.copiedFrom && (
         <p className="text-sm text-ink-muted" data-copied-from>
           <Link

@@ -42,6 +42,8 @@ type Status struct {
 	Position    int       `json:"position"`
 	// Requirements counts those in it now, which keep it from being deleted.
 	Requirements int `json:"requirements"`
+	// Locks says its requirements take no new revision, move, link or trash while in it (#205).
+	Locks bool `json:"locks"`
 }
 
 // StatusInput makes a status, or changes one where nil leaves a field alone.
@@ -50,6 +52,7 @@ type StatusInput struct {
 	Category    *Category `json:"category,omitempty"`
 	Description *string   `json:"description,omitempty"`
 	Position    *int      `json:"position,omitempty"`
+	Locks       *bool     `json:"locks,omitempty"`
 }
 
 // Point is where the designer drew a status, in canvas pixels.

@@ -70,6 +70,7 @@ func (d *Document) markdownHead() string {
 		if d.Baseline.LockedAt != nil {
 			of += " Locked on " + day(*d.Baseline.LockedAt) + "; it never changes."
 		}
+		of += d.Baseline.signingSentence()
 	}
 	parts := []string{markdown.Heading(1, d.Title), markdown.Words(of + " Exported by " + d.ExportedBy + " on " + day(d.ExportedAt) + ".")}
 	if d.Baseline != nil && d.Baseline.Description != "" {

@@ -55,7 +55,7 @@ func (s *Service) Matrix(ctx context.Context, reader, id uuid.UUID, q MatrixQuer
 		if err != nil {
 			return err
 		}
-		out.Detail = from.Detail
+		out.Detail, out.Signing = from.Detail, from.Signing
 		this, err := baselineMatrixSide(ctx, tx, from, q)
 		if err != nil {
 			return err

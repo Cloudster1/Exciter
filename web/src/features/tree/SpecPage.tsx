@@ -15,6 +15,7 @@ import type { Doc } from "@/features/editor/schema";
 import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
+import { lockSentence } from "@/features/requirements/LockBanner";
 import { narrowed } from "./address";
 import { ChangesBar, ChangeTag, differs, EntryChanges, nextChange, RemovedSince } from "./DocumentChanges";
 import { AskForReviews, EntryComments, EntryReview, progressOf, ReviewModeButton, withDecided } from "./DocumentReviews";
@@ -481,6 +482,13 @@ function Entry({
         {entry.change && <ChangeTag change={entry.change} />}
         {!section && <StatusMenu entry={entry} onMoved={onMoved} />}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
+        {entry.lock && (
+          <Tag title={lockSentence(node.key, entry.lock)} data-spec-lock={entry.lock.by}>
+            <Icon.Lock className="mr-1 size-3" aria-hidden="true" />
+            {t.control.lockedShort}
+            <span className="sr-only">: {lockSentence(node.key, entry.lock)}</span>
+          </Tag>
+        )}
         {entry.reuse && (
           <Tag data-spec-reuse={entry.reuse.behind ? "behind" : entry.reuse.state}>
             {entry.reuse.behind ? t.reuse.badgeBehind : entry.reuse.state === "variant" ? t.reuse.badgeVariant : t.reuse.badgeFollowing}

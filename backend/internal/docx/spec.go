@@ -53,6 +53,11 @@ func (w *writer) cover(doc *specdoc.Document, f frame) {
 				w.text(w.words.unlocked, runProps{})
 			}
 		})
+		if b.Signatures > 0 {
+			w.para(f, paraProps{style: "CoverLine"}, func() {
+				w.text(w.words.signing(b.Signed, b.Signatures, b.SignaturesRequired), runProps{bold: b.Signed})
+			})
+		}
 		if b.Description != "" {
 			w.para(f, paraProps{style: "CoverLine"}, func() { w.text(b.Description, runProps{}) })
 		}

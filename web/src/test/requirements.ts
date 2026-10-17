@@ -31,6 +31,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     updatedAt: "2026-10-01T08:00:00Z",
     updatedByName: "Ada Lovelace",
     trashedAt: null,
+    lock: null,
     can: { edit: true, transition: true, delete: true, link: true, comment: true },
     ...overrides,
   };

@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/signing"
 	"github.com/cloudster1/exciter/backend/internal/via"
 )
 
@@ -349,7 +350,7 @@ func reviews(ctx context.Context, tx db.DBTX, actor uuid.UUID, rest string, args
 		ref.Key = requirement.Key(ref.ProjectKey, number)
 		v.Meanings = map[Decision]string{}
 		if v.Signed && v.Can.Decide {
-			lang := signerOf(ctx).lang
+			lang := signing.Lang(ctx)
 			v.Meanings = map[Decision]string{
 				DecisionApprove: meaning(lang, DecisionApprove, v.Revision, ref.Key, title),
 				DecisionReject:  meaning(lang, DecisionReject, v.Revision, ref.Key, title),

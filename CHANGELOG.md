@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Signed baselines and locked requirements (#205). A project's
+  administrators name who signs its baselines and how many signatures
+  release one, under Settings, Approval. A signer signs on the baseline's
+  page with the meaning shown and the password again, or a fresh sign-in at
+  the identity provider, as approvals are signed; the signature keeps the
+  hash of what the baseline holds. A signed baseline keeps its name, is
+  never deleted, and says so in the list, on its page, on its Word and PDF
+  cover, in Markdown and in its matrix files. A status can lock its
+  requirements, and an administrator locks one by hand with a reason: a
+  locked requirement takes no new revision, move, link from it or trash,
+  from the page, the imports or an assistant alike, says why on its page
+  and in the document, and still takes comments, reviews and transitions.
 - The API contract for M8, Review sessions and control (#216):
   `docs/api-contract-m8.md` agrees how baselines are signed, how
   requirements are locked by their status or by hand, how fields are

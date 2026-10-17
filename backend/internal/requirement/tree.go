@@ -173,7 +173,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			       pv.id, COALESCE(pv.revision, 0), COALESCE(pv.required, 0), COALESCE(review_approvals(pv.id), 0),
 			       (SELECT count(*)::int FROM review_decision d WHERE d.review_id = pv.id AND d.decision = 'reject'),
 			       COALESCE(review_names(pv.id, `+me+`), false), COALESCE(review_decidable(pv.id, `+me+`), false),
-			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`)`+approval+reuseSQL+`
+			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`)`+approval+reuseSQL+lockSQL+`
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN chg c ON c.id = r.id
 			LEFT JOIN requirement_review pv ON pv.requirement_id = r.id AND pv.state = 'pending'
@@ -202,6 +202,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				movedFrom []int32
 				reviewID  *uuid.UUID
 				review    SpecReview
+				locked    scannedLock
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
@@ -209,7 +210,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
 				&kind, &fromRev, &movedFrom, &reviewID, &review.Revision, &review.Required, &review.Approvals, &review.Rejections,
 				&review.Approver, &review.MayDecide, &review.Decision, &e.Approval.Pending, &e.Approval.ApprovedRevision},
-				reused.targets()...)...)
+				append(reused.targets(), locked.targets()...)...)...)
 			if err != nil {
 				return e, err
 			}
@@ -250,8 +251,9 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				e.Labels = []string{}
 			}
 			open := p.ArchivedAt == nil
+			e.Lock = locked.lock(e.Node.Status)
 			e.Can = Can{Edit: p.Can.Edit && open, Transition: (p.Can.Edit || p.Can.Approve) && open, Delete: p.Can.Edit && open,
-				Link: p.Can.Edit && open, Comment: p.Can.Comment && open}
+				Link: p.Can.Edit && open, Comment: p.Can.Comment && open}.locked(e.Lock)
 			return e, json.Unmarshal(attrs, &e.Attributes)
 		})
 		if err != nil {

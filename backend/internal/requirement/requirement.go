@@ -141,6 +141,8 @@ type Requirement struct {
 	Watching Watching `json:"watching"`
 	// Approval is its review now open and the latest revision approved (#35).
 	Approval Approval `json:"approval"`
+	// Lock says why it takes no new revision, move, link or trash (#205), null when nothing locks it.
+	Lock *Lock `json:"lock"`
 }
 
 // Approval is a requirement's standing for the workflow and the page: the review now open, and the latest revision
@@ -301,6 +303,8 @@ type SpecEntry struct {
 	Change *SpecChange `json:"change"`
 	// Review is its pending review as its reader stands to it (#171), null without one.
 	Review *SpecReview `json:"review"`
+	// Lock says why it takes no new revision, move, link or trash (#205), null when nothing locks it.
+	Lock *Lock `json:"lock"`
 }
 
 // SpecReview is a requirement's pending review as the document shows it to its reader.
@@ -433,10 +437,12 @@ const (
 	ChangeTrash      ChangeField = "trash"
 	// ChangeReuse is a reused requirement made a variant, or following its source again (#49).
 	ChangeReuse ChangeField = "reuse"
+	// ChangeLock is a hand lock set, changed or cleared (#205), its reason kept as the change's.
+	ChangeLock ChangeField = "lock"
 )
 
 // ChangeFields lists every ChangeField, for the API document.
-var ChangeFields = []ChangeField{ChangeStatus, ChangeOwner, ChangePriority, ChangeLabels, ChangePlace, ChangeKey, ChangeLink, ChangeAttachment, ChangeTrash, ChangeReuse}
+var ChangeFields = []ChangeField{ChangeStatus, ChangeOwner, ChangePriority, ChangeLabels, ChangePlace, ChangeKey, ChangeLink, ChangeAttachment, ChangeTrash, ChangeReuse, ChangeLock}
 
 // Change is one logged change: the field, and what it was and became as a reader sees them.
 type Change struct {
