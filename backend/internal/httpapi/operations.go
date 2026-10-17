@@ -74,9 +74,11 @@ type operation struct {
 	// headers are the request headers the handler reads, for a caller that is not a browser.
 	headers []param
 	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file,
-	// and form that it is the request's fields URL-encoded, as OAuth's token endpoint takes them.
+	// and form that it is the request's fields URL-encoded, as OAuth's token endpoint takes them. A multipart request
+	// names the form's other fields, and files says the part named file may come more than once.
 	request   any
 	multipart bool
+	files     bool
 	form      bool
 	// cloudEvent says the operation also takes a partner's version 2 envelope, as application/cloudevents+json (#133).
 	cloudEvent bool

@@ -112,6 +112,12 @@ func (b *Builder) Schema(t reflect.Type) *Schema {
 	panic(fmt.Sprintf("openapi: no schema for %s", t))
 }
 
+// Inline describes a struct's fields in place rather than as a component, for a form whose fields sit beside its
+// files.
+func (b *Builder) Inline(v any) *Schema {
+	return b.object(reflect.TypeOf(v))
+}
+
 // name registers a struct type as a component and returns its name. Two types sharing a name are refused,
 // since keeping either one would document the other's routes with the wrong body.
 func (b *Builder) name(t reflect.Type) string {

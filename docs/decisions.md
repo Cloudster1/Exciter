@@ -3,6 +3,38 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-17: Evidence comes from CI with a scope of its own, and names the revision it was made against (#224)
+
+- **An evidence scope, not a new kind of token.** A pipeline needs to upload
+  and to ask for a verdict, and nothing else. A personal token and an app's
+  grant already say whose rights a call uses, which projects it reaches and
+  what wrote a row (#190); a scope on them narrows that to the uploads and
+  the trace check without a second kind of credential to issue, rotate and
+  audit. A token of the project, nobody's, would need its own rights model;
+  reconsider if a team wants CI apart from every person.
+- **The branch that counts is the project's.** Results arrive per branch,
+  and a feature branch passing must not make the released branch look
+  verified. So one branch, `main` unless named, counts for coverage, the
+  matrix and the queries, and the trace check takes its own branch, so a
+  pull request's pipeline checks what it is about to merge.
+- **A result names the revision current at upload.** The worker reads a run
+  after it arrives; a revision saved in between was not what the tests ran
+  against. Stamping the newest revision made at or before the upload, in
+  the database, keeps "verified" to what was tested.
+- **Outdated is suspect for evidence.** Evidence made against an older
+  revision is shown and marked, as a suspect link is (#36), not hidden: the
+  test may still hold, and only a person reading both knows.
+- **A tag carries its revision forward.** A scan replaces its branch's scan
+  before, so a tag without a revision stamped anew each time would turn
+  current with every scan, though the code never changed. A tag keeps the
+  revision it first appeared under until the tag itself is edited.
+- **Evidence extends the signed hash.** A baseline records the evidence it
+  held, and a signature should cover it. Its lines come after the others
+  and a baseline without evidence has none, so every baseline signed before
+  keeps its hash and its signatures stay valid.
+- **Reconsider if** test cases are managed in Exciter (#202): CI evidence is
+  read from what runners write, not from cases of Exciter's own.
+
 ## 2026-10-17: Control is held by the database, and a session's reviews are single reviews (#216)
 
 - **A session's approvers replace the rule.** A moderator names who agrees a

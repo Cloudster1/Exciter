@@ -84,6 +84,7 @@ func specBuilder() *openapi.Builder {
 	documentSchemas(b)
 	assistantSchemas(b)
 	controlSchemas(b)
+	evidenceSchemas(b)
 	b.Enums[reflect.TypeOf(search.ViewKind(""))] = enumStrings(search.ViewKinds)
 	return b
 }
@@ -310,8 +311,7 @@ func (op operation) describe(b *openapi.Builder, errorSchema *openapi.Schema) *o
 	switch {
 	case op.multipart:
 		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
-			"multipart/form-data": {Schema: &openapi.Schema{Type: "object", Required: []string{"file"},
-				Properties: map[string]*openapi.Schema{"file": {Type: "string", Format: "binary"}}}},
+			"multipart/form-data": {Schema: multipartSchema(b, op)},
 		}}
 	case op.form:
 		o.RequestBody = &openapi.RequestBody{Required: true, Content: map[string]openapi.MediaType{
@@ -404,6 +404,21 @@ func pathParamSchema(name string) *openapi.Schema {
 		return &openapi.Schema{Type: "integer"}
 	}
 	return &openapi.Schema{Type: "string"}
+}
+
+// multipartSchema is a form with a part named file, once or more, beside the request's own fields.
+func multipartSchema(b *openapi.Builder, op operation) *openapi.Schema {
+	file := &openapi.Schema{Type: "string", Format: "binary"}
+	if op.files {
+		file = &openapi.Schema{Type: "array", Items: file}
+	}
+	form := &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{}}
+	if op.request != nil {
+		form = b.Inline(op.request)
+	}
+	form.Properties["file"] = file
+	form.Required = append(form.Required, "file")
+	return form
 }
 
 func ok(body any) map[int]any      { return map[int]any{http.StatusOK: body} }
