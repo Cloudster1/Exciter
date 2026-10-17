@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements are edited where they are read in the specification (#168).
+  Edit turns the entry itself into its editor, one entry at a time, and an
+  entry adds a requirement or a section after it or first below it, written
+  where it will stand. Leaving a draft with changes asks first, and a save
+  over a newer revision shows what that revision changed before it is saved
+  over, on the requirement's page too. The arrow keys move between entries,
+  Enter or E edits one, A adds one after it, Ctrl S saves and Escape leaves,
+  each step announced to screen readers. Each entry of
+  `GET /projects/{projectKey}/spec` now carries its type, owner, priority and
+  approval.
 - The API contract for M6, Document view (#167): `docs/api-contract-m6.md`
   agrees how the specification is edited in place, narrowed by status,
   marked with what changed since the previous revision, the last approval or

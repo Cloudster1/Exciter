@@ -114,27 +114,48 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+reuseSQL+`
-			FROM walk w JOIN requirement r ON r.id = w.id`+reuseJoins+`
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`,
+			       COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.owner_id, COALESCE(o.name, ''), r.priority`+approval+reuseSQL+`
+			FROM walk w JOIN requirement r ON r.id = w.id
+			LEFT JOIN requirement_type t ON t.id = r.type_id
+			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+`
 			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
 		if err != nil {
 			return fmt.Errorf("read the specification: %w", err)
 		}
 		entries, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (SpecEntry, error) {
 			var (
-				e      SpecEntry
-				number int
-				path   []int32
-				attrs  []byte
-				reused scannedReuse
+				e         SpecEntry
+				number    int
+				path      []int32
+				attrs     []byte
+				reused    scannedReuse
+				typ       TypeRef
+				ownerID   *uuid.UUID
+				ownerName string
+				priority  *string
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
-				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks}, reused.targets()...)...)
+				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks,
+				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &e.Approval.Pending, &e.Approval.ApprovedRevision},
+				reused.targets()...)...)
 			if err != nil {
 				return e, err
 			}
 			e.Reuse = reused.reuse()
+			if n.TypeID != nil {
+				typ.ID = *n.TypeID
+				e.Type = &typ
+			}
+			if ownerID != nil {
+				e.Owner = &PersonRef{ID: *ownerID, Name: ownerName}
+			}
+			if priority != nil {
+				pr := Priority(*priority)
+				e.Priority = &pr
+			}
+			e.Approval.Current = e.Approval.ApprovedRevision != nil && *e.Approval.ApprovedRevision == n.Revision
 			n.Key = Key(p.Key, number)
 			n.Outline = outlineOf(path)
 			if len(e.Rationale) == 0 || string(e.Rationale) == "null" {

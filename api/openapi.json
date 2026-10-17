@@ -23947,6 +23947,9 @@
       "SpecEntry": {
         "type": "object",
         "properties": {
+          "approval": {
+            "$ref": "#/components/schemas/Approval"
+          },
           "attributes": {
             "type": "object",
             "additionalProperties": {
@@ -23968,6 +23971,32 @@
           "node": {
             "$ref": "#/components/schemas/TreeNode"
           },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "rationale": {
             "description": "A JSON value."
           },
@@ -23986,6 +24015,16 @@
           },
           "suspectLinks": {
             "type": "integer"
+          },
+          "type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementTypeRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -23997,7 +24036,11 @@
           "can",
           "comments",
           "suspectLinks",
-          "reuse"
+          "reuse",
+          "type",
+          "owner",
+          "priority",
+          "approval"
         ]
       },
       "SpecificationDocument": {
