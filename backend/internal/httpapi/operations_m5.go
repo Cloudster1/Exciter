@@ -26,6 +26,7 @@ var traceabilityOperations = []operation{
 		request: trace.ModelInput{}, responses: map[int]any{http.StatusOK: env{"model": trace.Model{}}, http.StatusForbidden: errorEnvelope{},
 			http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/projects/{projectKey}/trace-chains", handler: "handleTraceChains", tag: "coverage",
+		tool: "list_trace_chains", toolHelp: "The chains of a project's trace model: a page of its first level, each with every path down the levels and where it breaks, a window at a time with limit and offset.",
 		summary:   "A page of the trace model's first level, narrowed like the grid, with every path down the levels and where it breaks.",
 		query:     append(append([]param{}, gridQuery...), append(chainQuery, windowQuery(trace.ChainDefaultLimit, trace.ChainMaxLimit)...)...),
 		responses: map[int]any{http.StatusOK: env{"chains": trace.Chains{}}, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},

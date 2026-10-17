@@ -59,8 +59,14 @@ section of the tokens page shows the settings with the address filled in:
     revisions, comparisons and activity
   - workflow transitions, one requirement or many at once
   - baselines: taking one, reading it, and what changed since
-  - trace links, and Armature issues
-  - comments and search
+  - reviews: asking for them, one requirement or many, withdrawing one, and
+    reading what waits for you and where an approval stands
+  - comments: starting, answering, rewriting your own, and resolving threads
+  - trace links and their suspects, coverage, the matrix and the chains of
+    the trace model
+  - Armature issues and Stator pages: finding them, linking requirements to
+    them, filing issues from requirements, and confirming a suspect link
+  - search
   - who you are
   Each tool says whether it only reads, whether it changes something in a way
   the history does not keep, and whether it reaches Armature or Stator.

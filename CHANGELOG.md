@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- An assistant works around a requirement as its person does (#185): MCP
+  tools ask for reviews of one requirement or many, withdraw one, read what
+  waits for the caller and where an approval stands; read, answer, rewrite
+  and resolve comments; find and confirm suspect links; read coverage, the
+  matrix and the trace chains; and find Armature issues and Stator pages,
+  link requirements to them and file issues from requirements. No tool
+  decides a review.
 - An assistant works with the specification as a person does in the
   document view (#184): sixteen new MCP tools read the specification with
   its changes against the previous revision, the last approval or a

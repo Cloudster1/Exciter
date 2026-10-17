@@ -17,15 +17,21 @@ import (
 )
 
 // The tools docs/api-contract-m1.md names and the three the foundation marked before it, with what
-// docs/api-contract-m7.md adds for the document, its structure and baselines (#184).
+// docs/api-contract-m7.md adds for the document, its structure and baselines (#184), and for review, comments and
+// trace (#185).
 var contractTools = []string{
-	"comment_on_requirement", "compare_baseline", "create_requirement", "diff_revisions", "get_activity", "get_baseline",
-	"get_baseline_spec", "get_project", "get_requirement", "get_revision", "get_spec", "get_tree",
-	"label_requirement", "link_armature_issue", "link_requirements", "list_armature_links", "list_attributes", "list_audit_log",
-	"list_baselines", "list_bulk_transitions", "list_comments", "list_labels", "list_links", "list_people", "list_project_link_types",
-	"list_projects", "list_requirements", "list_revisions", "list_statuses", "list_transitions", "list_types", "move_requirement",
-	"search_requirements", "server_info", "take_baseline", "transition_requirement", "transition_requirements",
-	"update_requirement", "whoami",
+	"clear_armature_link", "clear_stator_link", "clear_suspect_link", "comment_on_requirement", "compare_baseline",
+	"create_armature_issue", "create_requirement", "diff_revisions", "get_activity", "get_approval", "get_baseline",
+	"get_baseline_spec", "get_comment", "get_coverage", "get_matrix", "get_project", "get_requirement", "get_review",
+	"get_revision", "get_spec", "get_tree", "label_requirement", "link_armature_issue", "link_requirements",
+	"link_stator_page", "list_armature_links", "list_armature_projects", "list_attributes", "list_audit_log",
+	"list_baselines", "list_bulk_transitions", "list_comments", "list_labels", "list_links", "list_people",
+	"list_project_link_types", "list_projects", "list_requirements", "list_reviews", "list_revisions",
+	"list_stator_links", "list_statuses", "list_suspect_links", "list_trace_chains", "list_transitions", "list_types",
+	"list_waiting_reviews", "move_requirement", "reply_to_comment", "request_review", "request_reviews",
+	"resolve_comment_thread", "search_armature_issues", "search_requirements", "search_stator_pages", "server_info",
+	"take_baseline", "transition_requirement", "transition_requirements", "update_comment", "update_requirement",
+	"whoami", "withdraw_review",
 }
 
 func TestTheToolsAreTheContractsEachNamedOnceAndExplained(t *testing.T) {
@@ -341,5 +347,28 @@ func TestMCPRefusesAForeignOriginWhateverTheCredential(t *testing.T) {
 	resp, body := serve(t, h, httptest.NewRequest(http.MethodGet, mcpPath, nil))
 	if resp.StatusCode != http.StatusMethodNotAllowed || errorOf(t, body)["code"] != "method_not_allowed" {
 		t.Errorf("GET %s = %d %v, want 405: there is no stream to open", mcpPath, resp.StatusCode, body)
+	}
+}
+
+// An approval is a person's own judgement, and a signed one proves the person to the identity provider, so no tool
+// stands for deciding a review however the table grows (docs/decisions.md, 2026-10-17).
+func TestNoToolDecidesAReview(t *testing.T) {
+	found := false
+	for _, op := range operations {
+		if op.handler != "handleDecideReview" {
+			continue
+		}
+		found = true
+		if op.tool != "" {
+			t.Errorf("%s %s is the tool %s; a review is decided by a person in the browser", op.method, op.path, op.tool)
+		}
+	}
+	if !found {
+		t.Fatal("the decisions operation is not in the table; hold whatever decides a review now instead")
+	}
+	for _, tool := range toolCatalog() {
+		if strings.HasSuffix(tool.Path, "/decisions") {
+			t.Errorf("%s stands for %s", tool.Name, tool.Path)
+		}
 	}
 }
