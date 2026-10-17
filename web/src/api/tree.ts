@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { SPEC_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { Requirement } from "./requirements";
+import type { StatusCategory } from "./workflows";
 import type { components } from "./schema";
 
 type Wire = components["schemas"];
@@ -18,8 +19,14 @@ function treeKey(projectKey: string) {
   return ["tree", projectKey.toUpperCase()] as const;
 }
 
-function specKey(projectKey: string) {
-  return ["spec", projectKey.toUpperCase()] as const;
+/** What the specification is narrowed to, as its address holds it (#169). */
+export interface SpecAddress {
+  status?: string[];
+  category?: StatusCategory[];
+}
+
+function specKey(projectKey: string, address: SpecAddress = {}) {
+  return ["spec", projectKey.toUpperCase(), address] as const;
 }
 
 /** A project's whole tree out of the trash, in reading order. */
@@ -31,13 +38,17 @@ export function useTree(projectKey: string) {
   });
 }
 
-/** The specification, read a window at a time as the reader goes on. */
-export function useSpec(projectKey: string) {
+/** The specification, read a window at a time as the reader goes on, narrowed as its address says. */
+export function useSpec(projectKey: string, address: SpecAddress = {}) {
   return useInfiniteQuery({
-    queryKey: specKey(projectKey),
+    queryKey: specKey(projectKey, address),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
-      (await api.GET("/projects/{projectKey}/spec", { params: { path: { projectKey }, query: { limit: SPEC_PAGE_SIZE, offset: pageParam } } })).data!,
+      (
+        await api.GET("/projects/{projectKey}/spec", {
+          params: { path: { projectKey }, query: { limit: SPEC_PAGE_SIZE, offset: pageParam, status: address.status, category: address.category } },
+        })
+      ).data!,
     getNextPageParam: (last) => (last.offset + last.entries.length < last.total ? last.offset + last.entries.length : undefined),
   });
 }

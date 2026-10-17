@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -189,7 +190,12 @@ func (s *Server) handleGetSpecification(w http.ResponseWriter, r *http.Request) 
 		respondError(w, r, apiErr)
 		return
 	}
-	entries, total, err := s.Requirements.Spec(r.Context(), userFrom(r), projectKeyParam(r), limit, offset)
+	filter, apiErr := specFilter(r)
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	entries, total, err := s.Requirements.Spec(r.Context(), userFrom(r), projectKeyParam(r), filter, limit, offset)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -389,4 +395,18 @@ func reuseError(err error) *APIError {
 		return ErrForbidden("You may not read this requirement's source, so you cannot take its words. Ask the library's administrators to let you read it.")
 	}
 	return nil
+}
+
+// specFilter reads the statuses and status categories the specification is narrowed to (#169).
+func specFilter(r *http.Request) (requirement.SpecFilter, *APIError) {
+	q := r.URL.Query()
+	f := requirement.SpecFilter{Categories: q["category"]}
+	for _, raw := range q["status"] {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return f, ErrValidation(map[string]string{"status": "A status is named by its id. Pick the statuses again from the filter."})
+		}
+		f.Statuses = append(f.Statuses, id)
+	}
+	return f, nil
 }

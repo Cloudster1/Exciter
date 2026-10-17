@@ -71,26 +71,40 @@ func (s *Service) Transitions(ctx context.Context, reader uuid.UUID, key string)
 		if err != nil {
 			return err
 		}
-		if l.Kind == KindSection || l.TrashedAt != nil || l.archived || !l.Can.Transition {
-			return nil
-		}
-		w, actor, err := flowOf(ctx, tx, reader, l)
-		if err != nil {
-			return err
-		}
-		subject, err := subjectOf(ctx, tx, l)
-		if err != nil {
-			return err
-		}
-		out = workflow.Offer(w, subject, actor)
-		return nil
+		out, err = offer(ctx, tx, reader, l)
+		return err
 	})
 	return out, err
+}
+
+// offer is what the reader may take on a loaded requirement now: nothing on a section, in the trash or in an
+// archived project, or for somebody who may not transition it.
+func offer(ctx context.Context, tx db.DBTX, reader uuid.UUID, l *loaded) ([]workflow.Available, error) {
+	if l.Kind == KindSection || l.TrashedAt != nil || l.archived || !l.Can.Transition {
+		return []workflow.Available{}, nil
+	}
+	w, actor, err := flowOf(ctx, tx, reader, l)
+	if err != nil {
+		return nil, err
+	}
+	subject, err := subjectOf(ctx, tx, l)
+	if err != nil {
+		return nil, err
+	}
+	if offered := workflow.Offer(w, subject, actor); offered != nil {
+		return offered, nil
+	}
+	return []workflow.Available{}, nil
 }
 
 // Transition takes a transition: its conditions and validators first, then the status by the database's own
 // function, then what its post-functions ask for. The change is logged, never a revision.
 func (s *Service) Transition(ctx context.Context, actor uuid.UUID, key string, in workflow.TransitionRequest) (*Requirement, db.LSN, error) {
+	return s.transition(ctx, actor, key, in, uuid.Nil)
+}
+
+// transition takes a transition on the requirement key names, which must be of the project within unless that is nil.
+func (s *Service) transition(ctx context.Context, actor uuid.UUID, key string, in workflow.TransitionRequest, within uuid.UUID) (*Requirement, db.LSN, error) {
 	var out *Requirement
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		l, err := find(ctx, tx, actor, key)
@@ -98,6 +112,8 @@ func (s *Service) Transition(ctx context.Context, actor uuid.UUID, key string, i
 			return err
 		}
 		switch {
+		case within != uuid.Nil && l.projectID != within:
+			return ErrNotFound
 		case l.archived:
 			return project.ErrArchived
 		case l.TrashedAt != nil:

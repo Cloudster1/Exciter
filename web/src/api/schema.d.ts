@@ -1643,7 +1643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The project read as one numbered document: a window of the tree in reading order, with content. */
+        /** The project read as one numbered document: a window of the tree in reading order, with content, narrowed to statuses when asked. */
         get: operations["getSpecification"];
         put?: never;
         post?: never;
@@ -11140,6 +11140,10 @@ export interface operations {
     getSpecification: {
         parameters: {
             query?: {
+                /** @description Ids of the project's statuses: keep the requirements in one of them, and the sections above them. */
+                status?: string[];
+                /** @description Status categories: keep the requirements in one of them, and the sections above them. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
                 /** @description 1 to 200; 20 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */
@@ -11165,6 +11169,15 @@ export interface operations {
                         offset: number;
                         total: number;
                     };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -11752,15 +11765,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11809,15 +11813,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

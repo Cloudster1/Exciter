@@ -2,18 +2,20 @@ import { Fragment, useCallback, useRef, useState, type KeyboardEvent } from "rea
 import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Project } from "@/api/projects";
-import { useSpec, useTree, type Place, type SpecEntry, type TreeNode } from "@/api/tree";
+import { useSpec, useTree, type Place, type SpecAddress, type SpecEntry, type TreeNode } from "@/api/tree";
 import { reqifExportHref } from "@/api/reqif";
 import { projectDocumentHref } from "@/api/documents";
 import { Button, Card, Dialog, EmptyState, ErrorBanner, Menu, PageHeader, Skeleton, Tag, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { PickBox, SelectionBar, useMayCreateIssues, useSelection, type Selection } from "@/features/armature/CreateIssues";
+import { SelectionBar, useMayCreateIssues, useSelection, type Picked, type Selection } from "@/features/armature/CreateIssues";
 import { COMMENTS_ID } from "@/features/comments/CommentsSection";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
+import { narrowed } from "./address";
+import { BulkTransitions, EntryPick, pickedOf, rangeOf, SectionPick, StatusFilter, StatusMenu } from "./DocumentStates";
 import { PlaceDialog, type Placed } from "./PlaceDialog";
 import { RequirementTree } from "./RequirementTree";
 import { SuspectBadge } from "@/features/links/Suspect";
@@ -73,12 +75,26 @@ export function stepTo(keys: string[], from: string, key: string): string | unde
   return undefined;
 }
 
-/** A project read as one numbered document beside its tree; editors change and add entries in place and move by dragging. */
-export function SpecPage({ project }: { project: Project }) {
+/** Entries below a section's, among those loaded, up to the next at its depth or above. */
+export function entriesBelow(entries: SpecEntry[], key: string): SpecEntry[] {
+  const at = entries.findIndex((entry) => entry.node.key === key);
+  const depth = entries[at]?.node.depth;
+  if (depth === undefined) return [];
+  const out: SpecEntry[] = [];
+  for (const entry of entries.slice(at + 1)) {
+    if (entry.node.depth <= depth) break;
+    out.push(entry);
+  }
+  return out;
+}
+
+/** A project read as one numbered document beside its tree; editors change and add entries in place and move by
+ * dragging, and whoever may move requirements through their workflow does so one at a time or many at once. */
+export function SpecPage({ project, address = {}, onAddress }: { project: Project; address?: SpecAddress; onAddress?: (next: SpecAddress) => void }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tree = useTree(project.key);
-  const spec = useSpec(project.key);
+  const spec = useSpec(project.key, address);
   const [moving, setMoving] = useState<Placed | null>(null);
   const [open, setOpen] = useState<Open | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -89,10 +105,27 @@ export function SpecPage({ project }: { project: Project }) {
   const documentRef = useRef<HTMLElement>(null);
   const selection = useSelection();
   const mayCreate = useMayCreateIssues(project);
+  // The entry last picked, from which a pick with Shift reaches.
+  const lastPick = useRef<string | null>(null);
   const entries = spec.data?.pages.flatMap((page) => page.entries) ?? [];
   const keys = entries.map((entry) => entry.node.key);
   const mayWrite = project.can.edit && !project.archivedAt;
   const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
+  const selectable = (entry: SpecEntry) => entry.node.kind !== "section" && (entry.can.transition || (mayCreate && entry.can.link));
+  const pickable = entries.filter(selectable);
+  const mayMove = pickable.some((entry) => entry.can.transition);
+  const pick = (key: string, on: boolean, range: boolean) => {
+    const keys =
+      range && lastPick.current
+        ? rangeOf(
+            pickable.map((entry) => entry.node.key),
+            lastPick.current,
+            key,
+          )
+        : [key];
+    selection.set(pickable.filter((entry) => keys.includes(entry.node.key)).map(pickedOf), on);
+    lastPick.current = key;
+  };
   const placed = (node: TreeNode): Placed => ({ id: node.id, key: node.key, title: node.title, projectKey: project.key });
   const anchor = open?.kind === "add" && open.where === "after" ? entries.find((entry) => entry.node.key === open.key) : undefined;
   const addAfter = anchor ? lastBelow(entries, anchor.node.key) : undefined;
@@ -196,6 +229,12 @@ export function SpecPage({ project }: { project: Project }) {
             <p id="spec-keys" className="text-xs text-ink-subtle">
               {mayWrite ? t.tree.specKeys : t.tree.specKeysReader}
             </p>
+            {onAddress && <StatusFilter projectKey={project.key} address={address} onChange={onAddress} />}
+            {spec.data && entries.length === 0 && narrowed(address) && (
+              <p className="text-sm text-ink-muted" data-spec-empty-filter>
+                {t.tree.emptyFiltered}
+              </p>
+            )}
             {entries.map((entry, index) => (
               <Fragment key={entry.node.id}>
                 <Entry
@@ -204,7 +243,14 @@ export function SpecPage({ project }: { project: Project }) {
                   open={open?.key === entry.node.key ? open : null}
                   mayWrite={mayWrite}
                   tabStop={focused ? focused === entry.node.key : index === 0}
-                  selection={mayCreate ? selection : undefined}
+                  selection={pickable.length > 0 ? selection : undefined}
+                  selectable={selectable(entry)}
+                  below={entry.node.kind === "section" ? entriesBelow(entries, entry.node.key).filter(selectable).map(pickedOf) : []}
+                  onPick={pick}
+                  onMoved={(notice) => {
+                    setAnnounced(notice);
+                    void refresh();
+                  }}
                   onAsk={ask}
                   onFocus={() => setFocused(entry.node.key)}
                   onDirty={setDirty}
@@ -236,7 +282,11 @@ export function SpecPage({ project }: { project: Project }) {
           </article>
         </div>
       )}
-      {mayCreate && <SelectionBar projectKey={project.key} selection={selection} />}
+      {(mayCreate || mayMove) && (
+        <SelectionBar projectKey={project.key} selection={selection} armature={mayCreate}>
+          {mayMove && <BulkTransitions projectKey={project.key} selection={selection} onDone={setAnnounced} />}
+        </SelectionBar>
+      )}
       {moving && <PlaceDialog placed={moving} mode="move" onClose={() => setMoving(null)} onDone={() => setMoving(null)} />}
       {(asked || leaving.status === "blocked") && (
         <DiscardDialog
@@ -283,6 +333,10 @@ function Entry({
   mayWrite,
   tabStop,
   selection,
+  selectable,
+  below,
+  onPick,
+  onMoved,
   onAsk,
   onFocus,
   onDirty,
@@ -296,6 +350,10 @@ function Entry({
   mayWrite: boolean;
   tabStop: boolean;
   selection?: Selection;
+  selectable: boolean;
+  below: Picked[];
+  onPick: (key: string, on: boolean, range: boolean) => void;
+  onMoved: (notice: string) => void;
   onAsk: (next: Open | null) => void;
   onFocus: () => void;
   onDirty: (dirty: boolean) => void;
@@ -318,7 +376,8 @@ function Entry({
       data-editing={editing ? "" : undefined}
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        {selection && !section && entry.can.link && <PickBox selection={selection} item={{ key: node.key, title: node.title, outline: node.outline }} />}
+        {selection && selectable && <EntryPick entry={entry} selection={selection} onPick={onPick} />}
+        {selection && section && <SectionPick entry={entry} below={below} selection={selection} />}
         <Heading id={`spec-${node.id}`} className={cx("font-semibold text-ink", section ? "text-lg" : "text-base")}>
           <span className="font-mono text-ink-muted" data-spec-outline>
             {node.outline}
@@ -344,6 +403,7 @@ function Entry({
             {t.comments.open(entry.comments.open)}
           </Link>
         )}
+        {!section && <StatusMenu entry={entry} onMoved={onMoved} />}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
         {entry.reuse && (
           <Tag data-spec-reuse={entry.reuse.behind ? "behind" : entry.reuse.state}>

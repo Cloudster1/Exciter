@@ -318,6 +318,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/projects/{projectKey}/workflows/{workflowID}", s.handleDeleteWorkflow)
 			r.Get("/requirements/{reqKey}/transitions", s.handleListTransitions)
 			r.Post("/requirements/{reqKey}/transitions", s.handleTransitionRequirement)
+			r.Get("/projects/{projectKey}/transitions", s.handleListBulkTransitions)
+			r.Post("/projects/{projectKey}/transitions", s.handleBulkTransition)
 		})
 
 		// Labels: seen with their requirements, put on and taken off by who edits them.

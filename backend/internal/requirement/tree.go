@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/rank"
+	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
 // walkTree numbers a project's tree out of the trash: each node's place among its siblings, by rank, makes
@@ -97,8 +99,58 @@ func (s *Service) Tree(ctx context.Context, reader uuid.UUID, projectKey string)
 	return out, err
 }
 
-// Spec answers a window of a project's tree in reading order, with what each node says.
-func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string, limit, offset int) ([]SpecEntry, int, error) {
+// SpecFilter narrows the specification to the requirements in some statuses or status categories (#169).
+type SpecFilter struct {
+	Statuses   []uuid.UUID
+	Categories []string
+}
+
+func (f SpecFilter) narrows() bool { return len(f.Statuses) > 0 || len(f.Categories) > 0 }
+
+// specKept follows walkTree: the requirements a filter keeps and the sections above them, so the outline reads.
+// flag, statuses and categories are the placeholders of whether to narrow, and by what.
+func specKept(flag, statuses, categories string) (cte, where string) {
+	cte = `, kept AS (
+	SELECT r.id FROM requirement r LEFT JOIN req_status st ON st.id = r.status_id
+	WHERE r.project_id = $1 AND r.trashed_at IS NULL AND r.kind = 'requirement'
+	  AND (r.status_id = ANY(` + statuses + `::uuid[]) OR st.category = ANY(` + categories + `::text[]))
+), above AS (
+	SELECT r.parent_id AS id FROM requirement r JOIN kept k ON k.id = r.id WHERE r.parent_id IS NOT NULL
+	UNION
+	SELECT r.parent_id FROM requirement r JOIN above a ON a.id = r.id WHERE r.parent_id IS NOT NULL
+)`
+	where = ` WHERE (NOT ` + flag + `::boolean OR w.id IN (SELECT id FROM kept)
+	       OR w.id IN (SELECT a.id FROM above a JOIN requirement sc ON sc.id = a.id WHERE sc.kind = 'section'))`
+	return cte, where
+}
+
+// checkFilter refuses a category there is none of, and a status the project does not have.
+func checkFilter(ctx context.Context, tx db.DBTX, projectID uuid.UUID, f SpecFilter) error {
+	for _, c := range f.Categories {
+		if !slices.Contains(workflow.Categories, workflow.Category(c)) {
+			return &FieldError{"category", "Choose draft, review, approved, done or closed as a status category."}
+		}
+	}
+	if len(f.Statuses) == 0 {
+		return nil
+	}
+	var known int
+	if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM req_status WHERE project_id = $1 AND id = ANY($2)`,
+		projectID, f.Statuses).Scan(&known); err != nil {
+		return err
+	}
+	asked := map[uuid.UUID]bool{}
+	for _, id := range f.Statuses {
+		asked[id] = true
+	}
+	if known != len(asked) {
+		return &FieldError{"status", "One of those statuses is not this project's. Pick the statuses again from the filter."}
+	}
+	return nil
+}
+
+// Spec answers a window of a project's tree in reading order, with what each node says, narrowed by filter.
+func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string, filter SpecFilter, limit, offset int) ([]SpecEntry, int, error) {
 	out := []SpecEntry{}
 	total := 0
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
@@ -106,20 +158,34 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 		if err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, `SELECT count(*)::int FROM requirement WHERE project_id = $1 AND trashed_at IS NULL`,
-			p.ID).Scan(&total); err != nil {
+		if err := checkFilter(ctx, tx, p.ID, filter); err != nil {
 			return err
 		}
-		rows, err := tx.Query(ctx, walkTree+`
+		statuses, categories := filter.Statuses, filter.Categories
+		if statuses == nil {
+			statuses = []uuid.UUID{}
+		}
+		if categories == nil {
+			categories = []string{}
+		}
+		countCTE, countWhere := specKept("$2", "$3", "$4")
+		if err := tx.QueryRow(ctx, walkTree+countCTE+` SELECT count(*)::int FROM walk w`+countWhere,
+			p.ID, filter.narrows(), statuses, categories).Scan(&total); err != nil {
+			return fmt.Errorf("count the specification: %w", err)
+		}
+		cte, where := specKept("$4", "$5", "$6")
+		rows, err := tx.Query(ctx, walkTree+cte+`
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
 			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`,
-			       COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.owner_id, COALESCE(o.name, ''), r.priority`+approval+reuseSQL+`
+			       COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.owner_id, COALESCE(o.name, ''), r.priority,
+			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')`+approval+reuseSQL+`
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN requirement_type t ON t.id = r.type_id
-			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+`
-			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset)
+			LEFT JOIN req_status st ON st.id = r.status_id
+			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+where+`
+			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset, filter.narrows(), statuses, categories)
 		if err != nil {
 			return fmt.Errorf("read the specification: %w", err)
 		}
@@ -134,11 +200,14 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				ownerID   *uuid.UUID
 				ownerName string
 				priority  *string
+				statusID  *uuid.UUID
+				status    StatusRef
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
 				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks,
-				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &e.Approval.Pending, &e.Approval.ApprovedRevision},
+				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
+				&e.Approval.Pending, &e.Approval.ApprovedRevision},
 				reused.targets()...)...)
 			if err != nil {
 				return e, err
@@ -150,6 +219,10 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			}
 			if ownerID != nil {
 				e.Owner = &PersonRef{ID: *ownerID, Name: ownerName}
+			}
+			if statusID != nil {
+				status.ID = *statusID
+				n.Status = &status
 			}
 			if priority != nil {
 				pr := Priority(*priority)

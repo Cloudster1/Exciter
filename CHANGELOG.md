@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements move through their workflow from the specification (#169). A
+  requirement's status opens the transitions open to the reader, with the
+  comment one asks for. Entries are picked one by one, as a range with
+  Shift, or a section at once, and the bar below takes a transition every
+  picked requirement has on all of them, saying which moved and why the rest
+  did not. The document narrows to status categories or a status, kept in
+  its address. `GET /projects/{projectKey}/transitions` reads the
+  transitions of up to 100 requirements, `POST` takes one on each in its own
+  transaction, and `GET /projects/{projectKey}/spec` takes `status` and
+  `category`, and its entries carry their status, which they left empty.
 - Requirements are edited where they are read in the specification (#168).
   Edit turns the entry itself into its editor, one entry at a time, and an
   entry adds a requirement or a section after it or first below it, written

@@ -8832,7 +8832,7 @@
     "/projects/{projectKey}/spec": {
       "get": {
         "operationId": "getSpecification",
-        "summary": "The project read as one numbered document: a window of the tree in reading order, with content.",
+        "summary": "The project read as one numbered document: a window of the tree in reading order, with content, narrowed to statuses when asked.",
         "tags": [
           "tree"
         ],
@@ -8843,6 +8843,35 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Ids of the project's statuses: keep the requirements in one of them, and the sections above them.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories: keep the requirements in one of them, and the sections above them.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
             }
           },
           {
@@ -8892,6 +8921,16 @@
                     "offset",
                     "total"
                   ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -10133,16 +10172,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10215,16 +10244,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {

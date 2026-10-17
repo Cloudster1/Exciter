@@ -150,6 +150,29 @@ export function useTransitions(reqKey: string, enabled = true) {
   });
 }
 
+export type RequirementTransitions = Wire["RequirementTransitions"];
+export type BulkTransitionResult = Wire["BulkTransitionResult"];
+
+/** What the reader may take now on each of several requirements of a project; one they may not is left out. */
+export function useBulkTransitions(projectKey: string, keys: string[]) {
+  return useQuery({
+    queryKey: ["transitions", "bulk", projectKey.toUpperCase(), keys] as const,
+    queryFn: async (): Promise<RequirementTransitions[]> =>
+      (await api.GET("/projects/{projectKey}/transitions", { params: { path: { projectKey }, query: { key: keys } } })).data!.requirements,
+    enabled: keys.length > 0,
+  });
+}
+
+/** Takes one transition on several requirements, each on its own; everything that shows a status is read anew. */
+export function useTakeBulkTransition(projectKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { transitionId: string; comment?: string; keys: string[] }): Promise<BulkTransitionResult[]> =>
+      (await api.POST("/projects/{projectKey}/transitions", { params: { path: { projectKey } }, body })).data!.results,
+    onSettled: () => Promise.all([["spec"], ["tree"], ["requirements"], ["transitions"]].map((queryKey) => queryClient.invalidateQueries({ queryKey }))),
+  });
+}
+
 /** Takes a transition; the requirement, its history and what it offers next are read anew. */
 export function useTakeTransition(reqKey: string) {
   const queryClient = useQueryClient();
