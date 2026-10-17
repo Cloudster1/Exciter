@@ -66,8 +66,8 @@ type BulkTransitioned struct {
 	Err         error
 }
 
-// checkBulk refuses no key, more than MaxBulk and a key named twice, on field.
-func checkBulk(field string, keys []string) error {
+// CheckBulk refuses no key, more than MaxBulk and a key named twice, on field.
+func CheckBulk(field string, keys []string) error {
 	if len(keys) == 0 {
 		return &FieldError{field, "Name at least one requirement."}
 	}
@@ -88,7 +88,7 @@ func checkBulk(field string, keys []string) error {
 // TransitionsOf answers what the reader may take now on each requirement of a project that keys name; one the
 // reader may not view, of another project, a section or in the trash is left out.
 func (s *Service) TransitionsOf(ctx context.Context, reader uuid.UUID, projectKey string, keys []string) ([]RequirementTransitions, error) {
-	if err := checkBulk("key", keys); err != nil {
+	if err := CheckBulk("key", keys); err != nil {
 		return nil, err
 	}
 	out := []RequirementTransitions{}
@@ -122,7 +122,7 @@ func (s *Service) TransitionsOf(ctx context.Context, reader uuid.UUID, projectKe
 // BulkTransition takes one transition on each requirement keys name, each in its own transaction and in the order
 // given, as Transition would, so one refused undoes nothing else. Only a request no requirement could pass is an error.
 func (s *Service) BulkTransition(ctx context.Context, actor uuid.UUID, projectKey string, in BulkTransitionInput) ([]BulkTransitioned, db.LSN, error) {
-	if err := checkBulk("keys", in.Keys); err != nil {
+	if err := CheckBulk("keys", in.Keys); err != nil {
 		return nil, 0, err
 	}
 	if in.TransitionID == uuid.Nil {

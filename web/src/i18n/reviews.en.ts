@@ -57,6 +57,7 @@ export const reviewEn = {
   removed: "The rule is removed.",
   readOnly: "Only the project's administrators set who approves.",
 
+  inDocument: (projectKey: string) => `Review in the ${projectKey} document`,
   inboxTitle: "Reviews",
   inboxIntro: "Revisions waiting for your decision, the oldest first, across every project you may read.",
   inboxEmpty: "Nothing waits for your decision.",

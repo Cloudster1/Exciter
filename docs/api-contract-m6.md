@@ -209,6 +209,21 @@ first child `{parentId: entry.node.id, afterId: null}`.
   of how many; an author asks for review of the changed requirements of a
   section, or of the selection, in one step. `/reviews` opens each project's
   document in review mode.
+- **As built** (#171):
+  - The entry's `review` also carries `mayDecide`, `review_decidable`, since
+    an approver who wrote the revision is named but may not decide it unless
+    the rule allows it; `approver` is `review_names`.
+  - A decision on a review a new revision superseded answers 409
+    `review_closed`, as `POST /reviews/{reviewID}/decisions` always has for a
+    review no longer pending; `revision_moved_on` is for a decision naming
+    another revision of a pending one. The entry says either as superseded.
+  - `review.Service.BulkRequest` checks the items with `requirement.CheckBulk`
+    and the comment once, and takes each through `request`, held to the
+    project. `waiting` is `review_decidable` and no decision by the caller,
+    the condition of `GET /reviews/waiting`.
+  - The page keeps what the reader decided beside the waiting entries it
+    reads again, in outline order, until review mode ends, rather than asking
+    the server for decided ones.
 
 ## What is left for later
 

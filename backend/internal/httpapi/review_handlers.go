@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"net/http"
 
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
 )
 
@@ -153,6 +154,28 @@ func (s *Server) handleRequestReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusCreated, map[string]any{"review": made})
+}
+
+func (s *Server) handleBulkRequestReview(w http.ResponseWriter, r *http.Request) {
+	var req review.BulkRequestInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	outcomes, lsn, err := s.Reviews.BulkRequest(r.Context(), projectKeyParam(r), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	results := make([]review.BulkRequestResult, len(outcomes))
+	for i, o := range outcomes {
+		results[i] = review.BulkRequestResult{Key: o.Key, Outcome: requirement.BulkRequested, Review: o.Review}
+		if o.Err != nil {
+			results[i] = review.BulkRequestResult{Key: o.Key, Outcome: requirement.BulkRefused, Error: refusalOf(r, o.Err)}
+		}
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"results": results})
 }
 
 func (s *Server) handleListWaitingReviews(w http.ResponseWriter, r *http.Request) {

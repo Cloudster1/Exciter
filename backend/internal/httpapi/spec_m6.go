@@ -19,6 +19,7 @@ func documentSchemas(b *openapi.Builder) {
 		reflect.TypeFor[review.BulkRequestItem]():             "BulkReviewRequestItem",
 		reflect.TypeFor[review.BulkRequestInput]():            "BulkReviewRequest",
 		reflect.TypeFor[review.BulkRequestResult]():           "BulkReviewRequestResult",
+		reflect.TypeFor[requirement.SpecReview]():             "SpecReview",
 	}
 	for t, name := range names {
 		b.Names[t] = name

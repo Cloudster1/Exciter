@@ -42,6 +42,16 @@ export function WaitingReviewsScreen() {
                   <span>{t.review.inboxRow(review.requestedByName, askedOn.format(new Date(review.requestedAt)))}</span>
                   <span aria-hidden="true">·</span>
                   <span data-waiting-approvals={`${review.approvals}/${review.required}`}>{t.review.approvals(review.approvals, review.required)}</span>
+                  <span aria-hidden="true">·</span>
+                  <Link
+                    to="/p/$projectKey/spec"
+                    params={{ projectKey: review.requirement.projectKey }}
+                    search={{ waiting: true, changes: "approved" }}
+                    className="hover:text-accent hover:underline"
+                    data-review-in-document={review.requirement.projectKey}
+                  >
+                    {t.review.inDocument(review.requirement.projectKey)}
+                  </Link>
                 </span>
               </li>
             ))}

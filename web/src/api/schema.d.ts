@@ -5027,6 +5027,7 @@ export interface components {
             /** @description A JSON value. */
             rationale: unknown;
             reuse: components["schemas"]["Reuse"] | null;
+            review: components["schemas"]["SpecReview"] | null;
             /** @description A JSON value. */
             statement: unknown;
             suspectLinks: number;
@@ -5037,6 +5038,17 @@ export interface components {
             outline: string;
             revision: number;
             title: string;
+        };
+        SpecReview: {
+            approvals: number;
+            approver: boolean;
+            decision: string | null;
+            /** Format: uuid */
+            id: string;
+            mayDecide: boolean;
+            rejections: number;
+            required: number;
+            revision: number;
         };
         SpecificationDocument: {
             baseline: components["schemas"]["DocumentBaseline"] | null;
@@ -11141,15 +11153,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11174,6 +11177,8 @@ export interface operations {
                 baseline?: string;
                 /** @description true to keep what differs from the base, and the sections above it. */
                 onlyChanged?: boolean;
+                /** @description true to keep the requirements whose pending review waits for the caller's decision, and the sections above them. */
+                waiting?: boolean;
                 /** @description 1 to 200; 20 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */

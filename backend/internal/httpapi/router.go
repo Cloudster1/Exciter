@@ -426,6 +426,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/requirements/{reqKey}/approval", s.handleGetApproval)
 			r.Get("/requirements/{reqKey}/reviews", s.handleListReviews)
 			r.Post("/requirements/{reqKey}/reviews", s.handleRequestReview)
+			r.Post("/projects/{projectKey}/reviews", s.handleBulkRequestReview)
 			r.Get("/reviews/waiting", s.handleListWaitingReviews)
 			r.Get("/reviews/{reviewID}", s.handleGetReview)
 			r.Post("/reviews/{reviewID}/decisions", s.handleDecideReview)

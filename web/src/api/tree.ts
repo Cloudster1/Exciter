@@ -31,6 +31,8 @@ export interface SpecAddress {
   baseline?: string;
   /** Collapses what did not change to its heading; the page's own, never sent. */
   onlyChanged?: boolean;
+  /** Keeps what waits for the reader's decision (#171): review mode. */
+  waiting?: boolean;
 }
 
 function specKey(projectKey: string, address: SpecAddress = {}) {
@@ -66,6 +68,7 @@ export function useSpec(projectKey: string, address: SpecAddress = {}) {
               category: address.category,
               changes,
               baseline: changes === "baseline" ? address.baseline : undefined,
+              waiting: address.waiting || undefined,
             },
           },
         })

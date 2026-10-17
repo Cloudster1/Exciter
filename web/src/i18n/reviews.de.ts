@@ -54,6 +54,7 @@ export const reviewDe: typeof reviewEn = {
   removed: "Die Regel ist entfernt.",
   readOnly: "Nur die Administratoren des Projekts legen fest, wer freigibt.",
 
+  inDocument: (projectKey: string) => `Im Dokument von ${projectKey} prüfen`,
   inboxTitle: "Prüfungen",
   inboxIntro: "Revisionen, die auf Ihre Entscheidung warten, die ältesten zuerst, aus allen Projekten, die Sie lesen dürfen.",
   inboxEmpty: "Nichts wartet auf Ihre Entscheidung.",
