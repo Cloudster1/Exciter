@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 // specEntry finds the entry a key names in a specification answer.
@@ -207,5 +209,138 @@ func TestTheDocumentMovesStates(t *testing.T) {
 		want(t, f.owner.put(t, "/api/v1/projects/"+key+"/archive", nil), http.StatusOK, "archive the project")
 		refuse(t, "a bulk transition", editor.post(t, bulk, map[string]any{"transitionId": submit, "keys": []string{keepKey}}), http.StatusConflict, "project_archived")
 		want(t, f.owner.delete(t, "/api/v1/projects/"+key+"/archive"), http.StatusOK, "unarchive the project")
+	})
+}
+
+// The document compares each requirement with its previous revision, its last approval or a baseline, and keeps
+// only what changed when asked (#170).
+func TestTheDocumentShowsWhatChanged(t *testing.T) {
+	w := newCommentWorld(t, "DCH")
+	key := w.key
+	write := func(body map[string]any) map[string]any {
+		t.Helper()
+		return obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+key+"/requirements", body), http.StatusCreated, "write"), "requirement")
+	}
+	revise := func(reqKey string, base int, title string) {
+		t.Helper()
+		want(t, w.owner.patch(t, "/api/v1/requirements/"+reqKey, map[string]any{"title": title, "baseRevision": base}), http.StatusOK, "revise "+reqKey)
+	}
+	brakes := w.reqKey
+	scope := write(map[string]any{"kind": "section", "title": "Scope"})
+	pay := write(map[string]any{"title": "Pay", "place": place(scope["id"], nil)})
+	ship := write(map[string]any{"title": "Ship", "place": place(scope["id"], pay["id"])})
+	gone := write(map[string]any{"title": "Gone"})
+	payKey, shipKey := pay["key"].(string), ship["key"].(string)
+	revise(payKey, 1, "Pay by card")
+	baseline := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+key+"/baselines", map[string]any{"name": "Before"}), http.StatusCreated, "take a baseline"), "baseline")
+	revise(shipKey, 1, "Ship in a day")
+	want(t, w.owner.post(t, "/api/v1/requirements/"+brakes+"/move", map[string]any{"place": place(scope["id"], nil)}), http.StatusOK, "move the brakes")
+	want(t, w.owner.delete(t, "/api/v1/requirements/"+gone["key"].(string)), http.StatusNoContent, "trash Gone")
+	refund := write(map[string]any{"title": "Refund"})
+
+	want(t, w.owner.put(t, "/api/v1/projects/"+key+"/approval-rules", map[string]any{"required": 1,
+		"approvers": []map[string]any{{"subjectType": "user", "userId": w.daveID}}}), http.StatusOK, "dave approves")
+	review := obj(t, want(t, w.bob.post(t, "/api/v1/requirements/"+payKey+"/reviews", map[string]any{"revision": 2}), http.StatusCreated, "ask"), "review")
+	want(t, w.dave.post(t, "/api/v1/reviews/"+review["id"].(string)+"/decisions", map[string]any{"decision": "approve", "revision": 2}), http.StatusOK, "approve")
+
+	spec := func(query string) response {
+		t.Helper()
+		return want(t, w.bob.get(t, "/api/v1/projects/"+key+"/spec?"+query), http.StatusOK, "read "+query)
+	}
+	change := func(t *testing.T, r response, reqKey string) map[string]any {
+		t.Helper()
+		c, _ := specEntry(t, r, reqKey)["change"].(map[string]any)
+		if c == nil {
+			t.Fatalf("%s has no change: %v", reqKey, specEntry(t, r, reqKey))
+		}
+		return c
+	}
+	kindOf := func(c map[string]any) string { return fmt.Sprintf("%v %v>%v", c["kind"], c["from"], c["to"]) }
+	summary := func(r response) map[string]any { return r.Body["changes"].(map[string]any) }
+
+	t.Run("against the previous revision every requirement differs, and the title's words are marked", func(t *testing.T) {
+		r := spec("changes=previous")
+		if got := kindOf(change(t, r, payKey)); got != "changed 1>2" {
+			t.Errorf("Pay against its previous revision: %s", got)
+		}
+		if got := kindOf(change(t, r, refund["key"].(string))); got != "added 0>1" {
+			t.Errorf("Refund, at its first revision: %s", got)
+		}
+		title := change(t, r, payKey)["comparison"].(map[string]any)["title"].([]any)
+		if len(title) != 1 || title[0].(map[string]any)["change"] != "modified" || !strings.Contains(fmt.Sprint(title[0]), "diffInsert") {
+			t.Errorf("the title's changed words are marked: %v", title)
+		}
+		if specEntry(t, r, scope["key"].(string))["change"] != nil {
+			t.Error("a section has a change")
+		}
+		if s := summary(r); s["base"] != "previous" || s["changed"] != float64(4) || len(s["removed"].([]any)) != 0 {
+			t.Errorf("the summary: %v", s)
+		}
+	})
+
+	t.Run("against the last approval an approved revision is unchanged and one never approved is added", func(t *testing.T) {
+		r := spec("changes=approved")
+		pay := change(t, r, payKey)
+		if kindOf(pay) != "unchanged 2>2" || pay["comparison"] != nil {
+			t.Errorf("Pay, approved at its latest revision: %v", pay)
+		}
+		if got := kindOf(change(t, r, shipKey)); got != "added 0>2" {
+			t.Errorf("Ship, never approved: %s", got)
+		}
+		if s := summary(r); s["changed"] != float64(3) {
+			t.Errorf("the brakes, Ship and Refund differ from their approval: %v", s)
+		}
+		keys := []string{}
+		for _, each := range list(t, spec("changes=approved&onlyChanged=true"), "entries") {
+			keys = append(keys, each.(map[string]any)["node"].(map[string]any)["key"].(string))
+		}
+		sameList(t, "only what changed since its approval", keys, scope["key"].(string), brakes, shipKey, refund["key"].(string))
+	})
+
+	t.Run("against a baseline it says what was revised, moved, added and removed", func(t *testing.T) {
+		r := spec("changes=baseline&baseline=" + baseline["id"].(string))
+		if got := kindOf(change(t, r, payKey)); got != "unchanged 2>2" {
+			t.Errorf("Pay, as the baseline held it: %s", got)
+		}
+		if got := kindOf(change(t, r, shipKey)); got != "changed 1>2" {
+			t.Errorf("Ship, revised since: %s", got)
+		}
+		moved := change(t, r, brakes)
+		if kindOf(moved) != "moved 1>1" || moved["movedFrom"] != "1" || moved["comparison"] != nil {
+			t.Errorf("the brakes, moved below Scope since: %v", moved)
+		}
+		if got := kindOf(change(t, r, refund["key"].(string))); got != "added 0>1" {
+			t.Errorf("Refund, written since: %s", got)
+		}
+		s := summary(r)
+		removed := s["removed"].([]any)
+		if s["baselineId"] != baseline["id"] || s["changed"] != float64(3) || len(removed) != 1 || removed[0].(map[string]any)["key"] != gone["key"] ||
+			removed[0].(map[string]any)["title"] != "Gone" {
+			t.Errorf("the summary against the baseline: %v", s)
+		}
+		later := want(t, w.bob.get(t, "/api/v1/projects/"+key+"/spec?changes=baseline&baseline="+baseline["id"].(string)+"&offset=1"), http.StatusOK, "a later window")
+		if len(summary(later)["removed"].([]any)) != 0 {
+			t.Error("a later window lists what was removed again")
+		}
+	})
+
+	t.Run("the comparison of one requirement marks its title too", func(t *testing.T) {
+		c := obj(t, want(t, w.bob.get(t, "/api/v1/requirements/"+shipKey+"/diff"), http.StatusOK, "compare Ship"), "comparison")
+		if title := c["title"].([]any); len(title) != 1 || !strings.Contains(fmt.Sprint(title), "diffInsert") {
+			t.Errorf("Ship's comparison marks its title: %v", title)
+		}
+	})
+
+	t.Run("a base there is none of, a baseline left out or not the project's, and too long a window are refused", func(t *testing.T) {
+		for name, query := range map[string]string{
+			"an unknown base":             "changes=lost",
+			"no baseline":                 "changes=baseline",
+			"a baseline there is none of": "changes=baseline&baseline=" + uuid.NewString(),
+			"a baseline that is no id":    "changes=baseline&baseline=first",
+			"only changed without a base": "onlyChanged=true",
+			"too long a window":           "changes=previous&limit=51",
+		} {
+			refuse(t, name, w.bob.get(t, "/api/v1/projects/"+key+"/spec?"+query), http.StatusUnprocessableEntity, "validation_failed")
+		}
 	})
 }

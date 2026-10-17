@@ -185,22 +185,27 @@ func (s *Server) handleGetTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetSpecification(w http.ResponseWriter, r *http.Request) {
-	limit, offset, apiErr := offsetWindow(r, requirement.DefaultLimit, requirement.MaxSpecLimit)
+	q, apiErr := specQuery(r)
 	if apiErr != nil {
 		respondError(w, r, apiErr)
 		return
 	}
-	filter, apiErr := specFilter(r)
+	// Each entry compared carries its comparison, so a window with changes is smaller.
+	most := requirement.MaxSpecLimit
+	if q.Changes != "" {
+		most = requirement.MaxSpecChangesLimit
+	}
+	limit, offset, apiErr := offsetWindow(r, requirement.DefaultLimit, most)
 	if apiErr != nil {
 		respondError(w, r, apiErr)
 		return
 	}
-	entries, total, err := s.Requirements.Spec(r.Context(), userFrom(r), projectKeyParam(r), filter, limit, offset)
+	entries, total, changes, err := s.Requirements.Spec(r.Context(), userFrom(r), projectKeyParam(r), q, limit, offset)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset})
+	respondJSON(w, r, http.StatusOK, map[string]any{"entries": entries, "total": total, "limit": limit, "offset": offset, "changes": changes})
 }
 
 func (s *Server) handleMoveRequirement(w http.ResponseWriter, r *http.Request) {
@@ -397,16 +402,30 @@ func reuseError(err error) *APIError {
 	return nil
 }
 
-// specFilter reads the statuses and status categories the specification is narrowed to (#169).
-func specFilter(r *http.Request) (requirement.SpecFilter, *APIError) {
-	q := r.URL.Query()
-	f := requirement.SpecFilter{Categories: q["category"]}
-	for _, raw := range q["status"] {
+// specQuery reads what the specification is narrowed to (#169) and compared with (#170).
+func specQuery(r *http.Request) (requirement.SpecQuery, *APIError) {
+	params := r.URL.Query()
+	q := requirement.SpecQuery{Filter: requirement.SpecFilter{Categories: params["category"]}, Changes: requirement.ChangeBase(params.Get("changes"))}
+	for _, raw := range params["status"] {
 		id, err := uuid.Parse(raw)
 		if err != nil {
-			return f, ErrValidation(map[string]string{"status": "A status is named by its id. Pick the statuses again from the filter."})
+			return q, ErrValidation(map[string]string{"status": "A status is named by its id. Pick the statuses again from the filter."})
 		}
-		f.Statuses = append(f.Statuses, id)
+		q.Filter.Statuses = append(q.Filter.Statuses, id)
 	}
-	return f, nil
+	if raw := params.Get("baseline"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return q, ErrValidation(map[string]string{"baseline": "A baseline is named by its id. Pick the baseline again from the list."})
+		}
+		q.Baseline = id
+	}
+	switch params.Get("onlyChanged") {
+	case "", "false":
+	case "true":
+		q.OnlyChanged = true
+	default:
+		return q, ErrValidation(map[string]string{"onlyChanged": "Say true to keep only what changed, or leave it out."})
+	}
+	return q, nil
 }

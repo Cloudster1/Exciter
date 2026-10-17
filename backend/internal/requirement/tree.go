@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/rank"
@@ -107,23 +108,6 @@ type SpecFilter struct {
 
 func (f SpecFilter) narrows() bool { return len(f.Statuses) > 0 || len(f.Categories) > 0 }
 
-// specKept follows walkTree: the requirements a filter keeps and the sections above them, so the outline reads.
-// flag, statuses and categories are the placeholders of whether to narrow, and by what.
-func specKept(flag, statuses, categories string) (cte, where string) {
-	cte = `, kept AS (
-	SELECT r.id FROM requirement r LEFT JOIN req_status st ON st.id = r.status_id
-	WHERE r.project_id = $1 AND r.trashed_at IS NULL AND r.kind = 'requirement'
-	  AND (r.status_id = ANY(` + statuses + `::uuid[]) OR st.category = ANY(` + categories + `::text[]))
-), above AS (
-	SELECT r.parent_id AS id FROM requirement r JOIN kept k ON k.id = r.id WHERE r.parent_id IS NOT NULL
-	UNION
-	SELECT r.parent_id FROM requirement r JOIN above a ON a.id = r.id WHERE r.parent_id IS NOT NULL
-)`
-	where = ` WHERE (NOT ` + flag + `::boolean OR w.id IN (SELECT id FROM kept)
-	       OR w.id IN (SELECT a.id FROM above a JOIN requirement sc ON sc.id = a.id WHERE sc.kind = 'section'))`
-	return cte, where
-}
-
 // checkFilter refuses a category there is none of, and a status the project does not have.
 func checkFilter(ctx context.Context, tx db.DBTX, projectID uuid.UUID, f SpecFilter) error {
 	for _, c := range f.Categories {
@@ -149,43 +133,47 @@ func checkFilter(ctx context.Context, tx db.DBTX, projectID uuid.UUID, f SpecFil
 	return nil
 }
 
-// Spec answers a window of a project's tree in reading order, with what each node says, narrowed by filter.
-func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string, filter SpecFilter, limit, offset int) ([]SpecEntry, int, error) {
+// Spec answers a window of a project's tree in reading order, with what each node says, narrowed and compared as
+// the query asks; the summary of the changes is nil when it asks for none.
+func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string, q SpecQuery, limit, offset int) ([]SpecEntry, int, *SpecChanges, error) {
+	if err := q.check(); err != nil {
+		return nil, 0, nil, err
+	}
 	out := []SpecEntry{}
 	total := 0
+	var changes *SpecChanges
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, projectKey)
 		if err != nil {
 			return err
 		}
-		if err := checkFilter(ctx, tx, p.ID, filter); err != nil {
+		if err := checkFilter(ctx, tx, p.ID, q.Filter); err != nil {
 			return err
 		}
-		statuses, categories := filter.Statuses, filter.Categories
-		if statuses == nil {
-			statuses = []uuid.UUID{}
+		if q.Changes == BaseBaseline {
+			if err := checkBaseline(ctx, tx, p.ID, q.Baseline); err != nil {
+				return err
+			}
 		}
-		if categories == nil {
-			categories = []string{}
-		}
-		countCTE, countWhere := specKept("$2", "$3", "$4")
-		if err := tx.QueryRow(ctx, walkTree+countCTE+` SELECT count(*)::int FROM walk w`+countWhere,
-			p.ID, filter.narrows(), statuses, categories).Scan(&total); err != nil {
+		ctes, where, counted := specSQL(p.ID, q)
+		if err := tx.QueryRow(ctx, walkTree+ctes+` SELECT count(*)::int FROM walk w`+where, counted.values...).Scan(&total); err != nil {
 			return fmt.Errorf("count the specification: %w", err)
 		}
-		cte, where := specKept("$4", "$5", "$6")
-		rows, err := tx.Query(ctx, walkTree+cte+`
+		ctes, where, args := specSQL(p.ID, q)
+		window := ` LIMIT ` + args.add(limit) + ` OFFSET ` + args.add(offset)
+		rows, err := tx.Query(ctx, walkTree+ctes+`
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
 			       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
 			       r.statement, r.rationale, r.attributes,
 			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`,
 			       COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.owner_id, COALESCE(o.name, ''), r.priority,
-			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')`+approval+reuseSQL+`
+			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), c.kind, c.from_rev, c.moved_from`+approval+reuseSQL+`
 			FROM walk w JOIN requirement r ON r.id = w.id
+			LEFT JOIN chg c ON c.id = r.id
 			LEFT JOIN requirement_type t ON t.id = r.type_id
 			LEFT JOIN req_status st ON st.id = r.status_id
 			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+where+`
-			ORDER BY w.path LIMIT $2 OFFSET $3`, p.ID, limit, offset, filter.narrows(), statuses, categories)
+			ORDER BY w.path`+window, args.values...)
 		if err != nil {
 			return fmt.Errorf("read the specification: %w", err)
 		}
@@ -202,12 +190,15 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				priority  *string
 				statusID  *uuid.UUID
 				status    StatusRef
+				kind      *string
+				fromRev   *int
+				movedFrom []int32
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
 				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
-				&e.Approval.Pending, &e.Approval.ApprovedRevision},
+				&kind, &fromRev, &movedFrom, &e.Approval.Pending, &e.Approval.ApprovedRevision},
 				reused.targets()...)...)
 			if err != nil {
 				return e, err
@@ -223,6 +214,13 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			if statusID != nil {
 				status.ID = *statusID
 				n.Status = &status
+			}
+			if kind != nil && fromRev != nil {
+				e.Change = &SpecChange{Kind: ChangeKind(*kind), From: *fromRev, To: n.Revision}
+				if movedFrom != nil {
+					outline := outlineOf(movedFrom)
+					e.Change.MovedFrom = &outline
+				}
 			}
 			if priority != nil {
 				pr := Priority(*priority)
@@ -242,12 +240,40 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				Link: p.Can.Edit && open, Comment: p.Can.Comment && open}
 			return e, json.Unmarshal(attrs, &e.Attributes)
 		})
+		if err != nil {
+			return err
+		}
 		if entries != nil {
 			out = entries
 		}
+		if q.Changes == "" {
+			return nil
+		}
+		if err := compareEntries(ctx, tx, p.ID, out); err != nil {
+			return err
+		}
+		changes, err = summary(ctx, tx, p.ID, p.Key, q, offset)
 		return err
 	})
-	return out, total, err
+	return out, total, changes, err
+}
+
+// compareEntries fills in the comparison of every entry that differs from its base by a revision.
+func compareEntries(ctx context.Context, tx db.DBTX, projectID uuid.UUID, entries []SpecEntry) error {
+	defs, err := attribute.Defs(ctx, tx, projectID)
+	if err != nil {
+		return err
+	}
+	for i := range entries {
+		c := entries[i].Change
+		if c == nil || (c.Kind != ChangeChanged && c.Kind != ChangeAdded) {
+			continue
+		}
+		if c.Comparison, err = comparison(ctx, tx, defs, entries[i].Node.ID, c.From, c.To); err != nil {
+			return fmt.Errorf("compare %s: %w", entries[i].Node.Key, err)
+		}
+	}
+	return nil
 }
 
 // placeError is the refusal of a place, on the field that named it.

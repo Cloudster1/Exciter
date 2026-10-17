@@ -288,6 +288,8 @@ type SpecEntry struct {
 	Priority *Priority  `json:"priority"`
 	// Approval is its review now open and the latest revision approved, as the requirement's page reads it.
 	Approval Approval `json:"approval"`
+	// Change is how it differs from the base asked for (#170), null for a section or when nothing was asked.
+	Change *SpecChange `json:"change"`
 }
 
 // RevisionEntry is one revision as the history lists it.
@@ -365,8 +367,10 @@ type CompareSide struct {
 
 // Comparison is what changed between two revisions of one requirement.
 type Comparison struct {
-	From       CompareSide     `json:"from"`
-	To         CompareSide     `json:"to"`
+	From CompareSide `json:"from"`
+	To   CompareSide `json:"to"`
+	// Title is the title as one paragraph, its changed words marked as the statement's are (#170).
+	Title      []DiffBlock     `json:"title"`
 	Statement  []DiffBlock     `json:"statement"`
 	Rationale  []DiffBlock     `json:"rationale"`
 	Attributes []AttributeDiff `json:"attributes"`

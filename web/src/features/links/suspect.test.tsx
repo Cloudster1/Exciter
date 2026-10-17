@@ -25,6 +25,7 @@ const moved = {
 const comparison: Comparison = {
   from: { number: 1, title: "Keep a ledger", type: null, authorName: "Ada", createdAt: "2026-10-01T08:00:00Z" },
   to: { number: 2, title: "Keep a ledger of every payment", type: null, authorName: "Ada", createdAt: "2026-10-02T08:00:00Z" },
+  title: [{ change: "equal", node: { type: "paragraph", content: [{ type: "text", text: "Keep a ledger" }] } }],
   statement: [{ change: "modified", node: { type: "paragraph", content: [{ type: "text", text: "every payment", marks: [{ type: "diffInsert" }] }] } }],
   rationale: [],
   attributes: [],

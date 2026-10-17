@@ -32,6 +32,7 @@ export const historyEn = {
   backToHistory: "Back to the history",
   previous: "Previous",
   next: "Next",
+  titleChanged: "Title",
   statement: "Statement",
   rationale: "Rationale",
   attributes: "Attributes",

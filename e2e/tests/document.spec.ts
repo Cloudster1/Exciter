@@ -143,4 +143,45 @@ test.describe("the document", { tag: "@desktop" }, () => {
     await expect(bob.locator(`[data-spec-entry="${pay.key}"] [data-status="Approved"]`)).toBeVisible();
     await expect(bob.locator("[data-spec-announced]")).toHaveText(`${pay.key} moved to Approved.`);
   });
+
+  test("marks what two revised requirements changed, against their previous revisions and against a baseline", async ({ page, api }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Document" } }));
+    const write = async (body: Record<string, unknown>) =>
+      must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: body as never })).requirement;
+    const scope = await write({ kind: "section", title: "Scope" });
+    const pay = await write({ title: "Pay", statement: paragraph("The shopper pays at once."), place: { parentId: scope.id, afterId: null } });
+    const ship = await write({ title: "Ship", statement: paragraph("The basket ships."), place: { parentId: scope.id, afterId: pay.id } });
+    must(await api.POST("/projects/{projectKey}/baselines", { params: { path: { projectKey: KEY } }, body: { name: "Before" } }));
+    const revise = async (reqKey: string, title: string, text: string) =>
+      must(await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey } }, body: { title, statement: paragraph(text), baseRevision: 1 } }));
+    await revise(pay.key, "Pay by card", "The shopper pays by card.");
+    await revise(ship.key, "Ship in a day", "The basket ships in a day.");
+
+    await page.goto(`/p/${KEY}/spec`);
+    const entry = (key: string) => page.locator(`[data-spec-entry="${key}"]`);
+    await expect(entry(pay.key).getByRole("heading")).toHaveText("1.1 Pay by card");
+    await page.locator('[data-action="show-changes"]').click();
+    await expect(entry(pay.key).locator('[data-spec-change="changed"]')).toBeVisible();
+    await expect(entry(pay.key).locator("[data-diff-title] ins")).toHaveText(/by card/);
+    // The words are marked one by one: "at" and "once" go, "by" and "card" come.
+    const payDiff = entry(pay.key).locator('[data-diff-of="statement"]');
+    await expect(payDiff.locator("del")).toHaveText([/at/, /once/]);
+    await expect(payDiff.locator("ins")).toHaveText([/by/, /card/]);
+    await expect(entry(ship.key).locator('[data-diff-of="statement"] ins').first()).toBeVisible();
+    await expect(page.locator("[data-changes-count]")).toHaveText("2 requirements differ");
+    await expectAccessible(page);
+
+    await page.locator("[data-changes-base]").selectOption("baseline");
+    await page.locator("[data-changes-baseline]").selectOption({ label: "Before" });
+    await expect(page).toHaveURL(/changes=baseline/);
+    await expect(entry(pay.key).locator("[data-full-comparison]")).toHaveText("Compare revision 1 with 2");
+    await expect(entry(ship.key).locator('[data-spec-change="changed"]')).toBeVisible();
+
+    await entry(scope.key).focus();
+    await page.locator('[data-action="next-change"]').click();
+    await expect(entry(pay.key)).toBeFocused();
+    await entry(pay.key).locator("[data-full-comparison]").click();
+    await expect(page).toHaveURL(`/p/${KEY}/r/${pay.key}/history?from=1&to=2`);
+    await expect(page.locator('[data-diff-of="title"] ins')).toContainText("by card");
+  });
 });

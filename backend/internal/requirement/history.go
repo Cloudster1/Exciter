@@ -154,28 +154,50 @@ func (s *Service) Compare(ctx context.Context, reader uuid.UUID, key string, fro
 				return ErrNoRevision
 			}
 		}
-		a, err := side(ctx, tx, l.ID, earlier)
+		defs, err := attribute.Defs(ctx, tx, l.projectID)
 		if err != nil {
 			return err
 		}
-		b, err := side(ctx, tx, l.ID, later)
-		if err != nil {
-			return err
-		}
-		c := &Comparison{From: compareSide(a), To: compareSide(b)}
-		if c.Statement, err = Diff(orEmpty(a.Statement), orEmpty(b.Statement)); err != nil {
-			return err
-		}
-		if c.Rationale, err = Diff(orEmpty(a.Rationale), orEmpty(b.Rationale)); err != nil {
-			return err
-		}
-		if c.Attributes, err = attributeDiff(ctx, tx, l.projectID, a.Attributes, b.Attributes); err != nil {
-			return err
-		}
-		out = c
-		return nil
+		out, err = comparison(ctx, tx, defs, l.ID, earlier, later)
+		return err
 	})
 	return out, err
+}
+
+// comparison compares two revisions of one requirement, 0 the empty one, its attributes named by the project's defs.
+func comparison(ctx context.Context, tx db.DBTX, defs []attribute.Def, id uuid.UUID, earlier, later int) (*Comparison, error) {
+	a, err := side(ctx, tx, id, earlier)
+	if err != nil {
+		return nil, err
+	}
+	b, err := side(ctx, tx, id, later)
+	if err != nil {
+		return nil, err
+	}
+	c := &Comparison{From: compareSide(a), To: compareSide(b)}
+	if c.Title, err = Diff(titleDoc(a.Title), titleDoc(b.Title)); err != nil {
+		return nil, err
+	}
+	if c.Statement, err = Diff(orEmpty(a.Statement), orEmpty(b.Statement)); err != nil {
+		return nil, err
+	}
+	if c.Rationale, err = Diff(orEmpty(a.Rationale), orEmpty(b.Rationale)); err != nil {
+		return nil, err
+	}
+	if c.Attributes, err = attributeDiff(ctx, tx, defs, a.Attributes, b.Attributes); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// titleDoc is a title as a document of one paragraph, so its words are compared as a statement's are.
+func titleDoc(title string) json.RawMessage {
+	paragraph := map[string]any{"type": "paragraph"}
+	if title != "" {
+		paragraph["content"] = []map[string]any{{"type": "text", "text": title}}
+	}
+	raw, _ := json.Marshal(map[string]any{"type": "doc", "content": []any{paragraph}})
+	return raw
 }
 
 func compareSide(v *stored) CompareSide {
@@ -184,11 +206,7 @@ func compareSide(v *stored) CompareSide {
 
 // attributeDiff lists each attribute set on either side, in the project's order, with the values as a reader
 // sees them; one that differs is changed, one set on both alike is equal.
-func attributeDiff(ctx context.Context, tx db.DBTX, projectID uuid.UUID, from, to map[string]json.RawMessage) ([]AttributeDiff, error) {
-	defs, err := attribute.Defs(ctx, tx, projectID)
-	if err != nil {
-		return nil, err
-	}
+func attributeDiff(ctx context.Context, tx db.DBTX, defs []attribute.Def, from, to map[string]json.RawMessage) ([]AttributeDiff, error) {
 	names, err := peopleIn(ctx, tx, from, to)
 	if err != nil {
 		return nil, err

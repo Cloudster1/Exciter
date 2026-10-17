@@ -34,6 +34,7 @@ export const historyDe: typeof historyEn = {
   backToHistory: "Zurück zum Verlauf",
   previous: "Zurück",
   next: "Weiter",
+  titleChanged: "Titel",
   statement: "Aussage",
   rationale: "Begründung",
   attributes: "Attribute",

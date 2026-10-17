@@ -44,6 +44,7 @@ describe("a requirement's history", () => {
     const comparison: Comparison = {
       from: { number: 1, title: "Pay the basket", type: null, authorName: "Ada", createdAt: "2026-10-01T08:00:00Z" },
       to: { number: 2, title: "Pay the basket", type: null, authorName: "Ada", createdAt: "2026-10-02T08:00:00Z" },
+      title: [{ change: "equal", node: { type: "paragraph", content: [{ type: "text", text: "Pay the basket" }] } }],
       statement: [
         {
           change: "modified",

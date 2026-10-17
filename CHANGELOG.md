@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The specification shows what changed (#170). Show changes compares each
+  requirement with its previous revision, its last approval or a baseline,
+  and marks in place the words inserted and deleted in its title, statement
+  and rationale, its attributes before and after, and whether it is new,
+  unchanged or moved, with a link to its whole comparison. Only changed
+  collapses the rest to their headings, next and previous change step
+  between the changed ones, and against a baseline the requirements it held
+  that are gone are listed. All of it is kept in the page's address.
+  `GET /projects/{projectKey}/spec` takes `changes`, `baseline` and
+  `onlyChanged`, and every comparison, `GET /requirements/{reqKey}/diff`'s
+  too, marks the title's words as it marks the statement's.
 - Requirements move through their workflow from the specification (#169). A
   requirement's status opens the transitions open to the reader, with the
   comment one asks for. Entries are picked one by one, as a range with

@@ -117,6 +117,7 @@ describe("a requirement's Armature issues", () => {
             comparison: {
               from: { number: 1, title: "Pay the basket", type: null, authorName: "Ada", createdAt: "2026-10-01T08:00:00Z" },
               to: { number: 2, title: "Pay the basket at once", type: null, authorName: "Ada", createdAt: "2026-10-02T08:00:00Z" },
+              title: [],
               statement: [],
               rationale: [],
               attributes: [],

@@ -3821,6 +3821,7 @@ export interface components {
             from: components["schemas"]["CompareSide"];
             rationale: components["schemas"]["DiffBlock"][];
             statement: components["schemas"]["DiffBlock"][];
+            title: components["schemas"]["DiffBlock"][];
             to: components["schemas"]["CompareSide"];
         };
         Completion: {
@@ -4995,12 +4996,29 @@ export interface components {
             };
             shape: components["schemas"]["Shape"];
         };
+        SpecChange: {
+            comparison: components["schemas"]["Comparison"] | null;
+            from: number;
+            /** @enum {string} */
+            kind: "changed" | "unchanged" | "added" | "moved";
+            movedFrom: string | null;
+            to: number;
+        };
+        SpecChanges: {
+            /** @enum {string} */
+            base: "previous" | "approved" | "baseline";
+            /** Format: uuid */
+            baselineId: string | null;
+            changed: number;
+            removed: components["schemas"]["SpecRemoved"][];
+        };
         SpecEntry: {
             approval: components["schemas"]["Approval"];
             attributes: {
                 [key: string]: unknown;
             };
             can: components["schemas"]["RequirementCan"];
+            change: components["schemas"]["SpecChange"] | null;
             comments: components["schemas"]["CommentCounts"];
             labels: string[];
             node: components["schemas"]["TreeNode"];
@@ -5013,6 +5031,12 @@ export interface components {
             statement: unknown;
             suspectLinks: number;
             type: components["schemas"]["RequirementTypeRef"] | null;
+        };
+        SpecRemoved: {
+            key: string;
+            outline: string;
+            revision: number;
+            title: string;
         };
         SpecificationDocument: {
             baseline: components["schemas"]["DocumentBaseline"] | null;
@@ -11144,6 +11168,12 @@ export interface operations {
                 status?: string[];
                 /** @description Status categories: keep the requirements in one of them, and the sections above them. */
                 category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Compare each requirement with its previous revision, its last approved one, or a baseline; the window is then at most 50. */
+                changes?: "previous" | "approved" | "baseline";
+                /** @description With changes=baseline, the id of one of the project's baselines. */
+                baseline?: string;
+                /** @description true to keep what differs from the base, and the sections above it. */
+                onlyChanged?: boolean;
                 /** @description 1 to 200; 20 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */
@@ -11164,6 +11194,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        changes: components["schemas"]["SpecChanges"] | null;
                         entries: components["schemas"]["SpecEntry"][];
                         limit: number;
                         offset: number;
