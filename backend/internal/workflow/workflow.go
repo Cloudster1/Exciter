@@ -171,10 +171,14 @@ type OptionKind string
 const (
 	OptionText  OptionKind = "text"
 	OptionRoles OptionKind = "roles"
+	// OptionLinkType is the id of a link type of the project; OptionDirection and OptionDimension pick from Choices (#206).
+	OptionLinkType  OptionKind = "linkType"
+	OptionDirection OptionKind = "direction"
+	OptionDimension OptionKind = "dimension"
 )
 
 // OptionKinds lists every OptionKind, for the API document.
-var OptionKinds = []OptionKind{OptionText, OptionRoles}
+var OptionKinds = []OptionKind{OptionText, OptionRoles, OptionLinkType, OptionDirection, OptionDimension}
 
 // Option is one setting a rule type takes in its config.
 type Option struct {

@@ -38,6 +38,8 @@ type Project struct {
 	ArchivedByName string     `json:"archivedByName"`
 	// Can says what the reader may do here, so the interface offers only that.
 	Can perm.ProjectCan `json:"can"`
+	// Roles are the reader's project roles, which a field's permits name (#206).
+	Roles []string `json:"roles"`
 	// Watching says the reader follows every requirement of the project (#34).
 	Watching bool `json:"watching"`
 }

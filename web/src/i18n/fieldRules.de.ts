@@ -1,0 +1,40 @@
+import type { fieldRulesEn } from "./fieldRules.en";
+
+/** The German strings of field rules, held to the English shape. */
+export const fieldRulesDe: typeof fieldRulesEn = {
+  labels: {
+    title: "den Titel",
+    statement: "die Aussage",
+    rationale: "die Begründung",
+    type: "den Typ",
+    owner: "den Verantwortlichen",
+    priority: "die Priorität",
+  },
+  names: { title: "Titel", statement: "Aussage", rationale: "Begründung", type: "Typ", owner: "Verantwortlich", priority: "Priorität" },
+  roles: { viewer: "Lesende", reviewer: "Prüfende", editor: "Bearbeitende", admin: "Administratoren" },
+  only: (roles: string[], field: string, status: string) => `Nur ${roles.join(" und ")} ändern ${field} in ${status}.`,
+  nobody: (field: string, status: string) => `Niemand ändert ${field} in ${status}.`,
+  readOnly: "Hier nur lesbar",
+  tab: "Felder",
+  title: "Feste Felder",
+  intro: "Wann die eigenen Felder einer Anforderung nötig sind und wer sie in welchen Status ändert. Die Regeln eines Attributs stehen beim Attribut.",
+  requiredFrom: "Nötig ab",
+  requiredFromHint: "Nötig in diesem Status und jedem Status danach in der Reihenfolge des Projekts.",
+  never: "Nicht nötig",
+  always: "Immer nötig",
+  dependsOn: "Hängt ab von",
+  dependsOnNone: "Nichts",
+  dependsOnHint: "Jede Option des anderen Attributs erlaubt nur die hier angekreuzten Optionen; eine ohne Kreuz erlaubt jede Option.",
+  choicesFor: (option: string) => `Wenn es ${option} ist`,
+  editableBy: "Wer es ändert",
+  editableByHint:
+    "Ohne Zeilen ändert es, wer die Anforderung bearbeitet. Jede Zeile lässt die angekreuzten Rollen es in den angekreuzten Status ändern, in jedem Status, wenn keiner angekreuzt ist.",
+  addPermit: "Zeile hinzufügen",
+  removePermit: (n: number) => `Zeile ${n} entfernen`,
+  permit: (n: number) => `Zeile ${n}`,
+  rolesLegend: "Rollen",
+  statusesLegend: "Status",
+  save: "Speichern",
+  saved: (field: string) => `Die Regel für ${field} ist gespeichert.`,
+  readOnlySettings: "Nur die Administratoren des Projekts legen Feldregeln fest.",
+};

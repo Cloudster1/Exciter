@@ -99,7 +99,7 @@ func run() error {
 		return err
 	}
 	// A topic without a handler is marked done as it arrives; each feature routes its own here.
-	requirements, links := requirement.NewService(cluster), trace.NewService(cluster)
+	requirements, links := requirement.NewService(cluster).WithCoverage(trace.CoverageJudge{}), trace.NewService(cluster)
 	imports := csvio.NewService(cluster, requirements, links, search.NewService(cluster))
 	exchanges := reqifio.NewService(cluster, requirements, attribute.NewService(cluster), links,
 		attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log), store)

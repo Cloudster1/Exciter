@@ -20,6 +20,7 @@ import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
+import { fieldRulesEn } from "./fieldRules.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
@@ -326,6 +327,7 @@ export const en = {
       "requirement.locked": "Requirement locked",
       "requirement.unlocked": "Requirement unlocked",
       "status.locks_set": "Status lock changed",
+      "field_rule.saved": "Field rule saved",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -339,6 +341,7 @@ export const en = {
       workflow: "Workflow",
       status: "Status",
       baseline: "Baseline",
+      attribute: "Attribute",
       api_token: "Access token",
       oauth_grant: "Connected app",
       armature_connection: "Armature connection",
@@ -365,6 +368,7 @@ export const en = {
   stator: statorEn,
   reuse: reuseEn,
   control: controlEn,
+  fieldRules: fieldRulesEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

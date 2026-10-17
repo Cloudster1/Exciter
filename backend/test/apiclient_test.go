@@ -98,7 +98,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 	callback := base + httpapi.APIPrefix + "/auth/oidc/callback"
 	accounts := auth.NewService(h.cluster, cheapPasswords(), time.Hour)
 	store := h.bucket(t)
-	requirements := requirement.NewService(h.cluster)
+	requirements := requirement.NewService(h.cluster).WithCoverage(trace.CoverageJudge{})
 	links, finder := trace.NewService(h.cluster), search.NewService(h.cluster)
 	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), store: store,
 		themes: theme.NewService(h.cluster, store), files: attachment.NewService(h.cluster, store, requirements).WithMaxSize(testUploadLimit), h: h}

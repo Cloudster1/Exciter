@@ -84,7 +84,7 @@ func Decide(w *Workflow, id uuid.UUID, s Subject, a Actor, in Input) (*Transitio
 		if !ok {
 			return nil, nil, fmt.Errorf("transition %q has a validator this server does not know: %s", t.Name, r.Type)
 		}
-		if err := known.validate(s, in); err != nil {
+		if err := known.validate(r.Config, s, in); err != nil {
 			return nil, nil, err
 		}
 	}

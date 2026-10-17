@@ -308,6 +308,8 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/projects/{projectKey}/attributes", s.handleCreateAttribute)
 			r.Patch("/projects/{projectKey}/attributes/{attributeID}", s.handleUpdateAttribute)
 			r.Delete("/projects/{projectKey}/attributes/{attributeID}", s.handleDeleteAttribute)
+			r.Get("/projects/{projectKey}/field-rules", s.handleListFieldRules)
+			r.Put("/projects/{projectKey}/field-rules/{field}", s.handleSaveFieldRule)
 		})
 
 		// Statuses and workflows: read by whoever views their project, shaped by its administrators, taken by its editors.

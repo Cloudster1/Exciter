@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Field rules (#206). An attribute, or a requirement's own field such as its
+  rationale, owner or priority, can be required from a status on; a select
+  attribute can depend on another, offering only the choices the other's
+  option allows; and a field can be changed only by some project roles in
+  some statuses, which the editor, the page and the grid show read-only
+  with who does. Transitions can ask for links of a type, no suspect links,
+  full coverage in a dimension and resolved discussions: the transition is
+  still offered, and taking it says which requirement lacks what, one by
+  one in the document's bulk transitions too. The database holds the
+  choices and who changes what, for every writer.
 - Signed baselines and locked requirements (#205). A project's
   administrators name who signs its baselines and how many signatures
   release one, under Settings, Approval. A signer signs on the baseline's

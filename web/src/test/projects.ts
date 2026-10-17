@@ -17,6 +17,7 @@ export function aProject(overrides: Partial<Project> = {}): Project {
     archivedByName: "",
     can: { view: true, comment: true, edit: true, approve: true, administer: true, purge: true },
     watching: false,
+    roles: ["admin"],
     ...overrides,
   };
 }

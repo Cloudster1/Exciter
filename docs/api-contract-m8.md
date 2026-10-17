@@ -270,11 +270,12 @@ what it reads already.
     whose statuses hold the requirement's status; an empty `statuses` is
     every status. The roles are the project roles of #12, held as the
     caller's grants give them.
-  - A change by somebody else is 403 on the field, "Only <roles> change
+  - A change by somebody else is 422 on the field, "Only <roles> change
     <field> in <status>."
-  - The requirement gains `can.fields`: for each field with rules,
-    `{edit, why}`, which the editor and the grid read to show it read-only
-    with `why`.
+  - The project gains `roles`, the reader's project roles, from which the
+    editor, the requirement's page and the grid work out what the reader may
+    not change and show it read-only with why; the server and the database
+    hold the same rules.
   - The database refuses it too (`field_not_yours`), comparing the
     revision or the row before and after, as `current_actor_id()` holds
     the roles of `perm_project_roles`, so a SECURITY DEFINER function that
@@ -295,8 +296,8 @@ what it reads already.
     verified. Cover it fully first."
   - `validator.threads_resolved`: no open comment thread; "CHK-R4 has 3
     open comment threads. Resolve them first."
-  - They count every link and thread of the requirement, not only those
-    the caller may see, so a transition means the same for everybody.
+  - They count the links, suspects and threads the taker sees, and coverage
+    as `GET /projects/{projectKey}/coverage` judges it for them.
   - `workflow.OptionKinds` gain `linkType`, `direction` and `dimension`.
 - **Refusals.** A refused transition answers 422 `validation_failed` with
   the rule's sentence on the field `transition`; the bulk transition of
@@ -306,6 +307,35 @@ what it reads already.
   of the choices, and Who may change it; the project settings gain a Fields
   tab for the fixed fields; a read-only field says why; the rule editor
   picks a link type, a direction and a dimension.
+- **As built** (#206):
+  - The rules are `attribute_def.required_from`, `depends_on`, `choices` and
+    `editable_by`, and `field_rule` for the fixed fields; `attribute.Rules`
+    weighs them for a save, a creation and a transition alike, with the
+    project's statuses in order.
+  - A save is checked field by field: what it changes against the permits,
+    then what its status asks for of the requirement as it would stand. A
+    creation is checked against its first status, and a transition against
+    its target, before it is taken.
+  - Dependent choices are checked only where the dependent attribute or the
+    one it depends on changes, in the service and in
+    `requirement_choices_hold`, so values given before a rule refuse nothing
+    until one of them moves. The editor and the grid offer only the choices
+    allowed, and the editor clears a choice the other's change disallows.
+  - `requirement_fields_permitted` holds the permits against
+    `perm_project_roles` of `current_actor_id()`, in the status the
+    requirement is in, for every writer that acts for somebody; the
+    worker's own writes act for nobody and are not held.
+  - A field's permits answer 422 on the field, not 403, as every other
+    sentence on a field does; the database's own refusal is 403
+    `field_not_yours`.
+  - The project answers `roles` rather than each requirement a map of its
+    fields, so the grid reads one project for all its rows.
+  - The trace conditions read a requirement's links over every link type,
+    so a type it has no link of is named too; coverage comes from
+    `trace.CoverageJudge`, given to the requirement service, since `trace`
+    reads requirements itself.
+  - Validators now take their rule's config, as conditions did.
+  - An attribute's form sends the rules only where they changed.
 
 ## #204 Review sessions
 

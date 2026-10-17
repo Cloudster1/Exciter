@@ -154,7 +154,7 @@ func run() error {
 		WithCoverageCache(coverage)
 	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel), statorCache,
 		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
-	requirements := requirement.NewService(cluster)
+	requirements := requirement.NewService(cluster).WithCoverage(trace.CoverageJudge{})
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
 	attributes := attribute.NewService(cluster)

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
 
@@ -289,4 +290,17 @@ func window[T any](all []T, limit, offset int) []T {
 		return []T{}
 	}
 	return all[offset:min(len(all), offset+limit)]
+}
+
+// CoverageJudge judges one requirement in each dimension for a transition that asks for coverage (#206).
+type CoverageJudge struct{}
+
+func (CoverageJudge) Judge(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID, typeID *uuid.UUID) (map[string]string, error) {
+	rows, err := judge(ctx, tx, projectID, []search.Kept{{Ref: requirement.Ref{ID: id}, TypeID: typeID}})
+	out := map[string]string{}
+	if err != nil || len(rows) == 0 {
+		return out, err
+	}
+	out[string(Decomposed)], out[string(Implemented)], out[string(Verified)] = string(rows[0].Decomposed), string(rows[0].Implemented), string(rows[0].Verified)
+	return out, nil
 }

@@ -59,6 +59,8 @@ type Service struct {
 	db *db.Cluster
 	// files brings a copy's files along; nil copies none.
 	files FileCopier
+	// coverage judges a requirement for a transition that asks for coverage (#206).
+	coverage Coverage
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }

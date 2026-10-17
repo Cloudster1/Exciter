@@ -13,9 +13,10 @@ import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { ComparisonView } from "@/features/history/RequirementHistory";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
+import { useFieldAccess } from "@/features/types/fieldAccess";
 
 /** What an edit starts from, which a requirement's page and a specification entry both hold. */
-export type Editable = Pick<Requirement, "key" | "kind" | "title" | "statement" | "rationale" | "type" | "attributes" | "revision" | "reuse">;
+export type Editable = Pick<Requirement, "key" | "kind" | "title" | "statement" | "rationale" | "type" | "attributes" | "revision" | "reuse" | "status">;
 
 /** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
 export function RequirementEdit({
@@ -41,6 +42,14 @@ export function RequirementEdit({
   const files = useUploadAttachments(requirement.key);
   const { data: types } = useTypes(project.key);
   const { data: attributes } = useAttributes(project.key);
+  // What the reader may not change in the requirement's status shows as it is, with who does (#206).
+  const access = useFieldAccess(project, requirement.status);
+  const fixed = { title: access("title"), statement: access("statement"), rationale: access("rationale"), type: access("type") };
+  const readOnly: Record<string, string> = {};
+  for (const a of attributes ?? []) {
+    const each = access(a.id);
+    if (!each.edit) readOnly[a.id] = each.why;
+  }
   const [typeId, setTypeId] = useState<string | null>(requirement.type?.id ?? null);
   const [values, setValues] = useState<Values>((requirement.attributes as Values) ?? {});
   const [title, setTitle] = useState(requirement.title);
@@ -132,13 +141,19 @@ export function RequirementEdit({
           maxLength={REQUIREMENT_TITLE_MAX_LENGTH}
           onChange={(event) => setTitle(event.target.value)}
           error={fields.title}
-          readOnly={locked}
+          hint={fixed.title.edit ? undefined : fixed.title.why}
+          readOnly={locked || !fixed.title.edit}
           autoFocus={autoFocus}
           required
         />
-        {locked ? (
+        {locked || !fixed.statement.edit ? (
           <section aria-labelledby="locked-statement-title" className="space-y-2">
             <SectionTitle id="locked-statement-title">{t.requirements.statement}</SectionTitle>
+            {!fixed.statement.edit && (
+              <p className="text-xs text-ink-muted" data-read-only-why="statement">
+                {fixed.statement.why}
+              </p>
+            )}
             <DocView doc={statement} data-statement="" />
           </section>
         ) : (
@@ -163,6 +178,8 @@ export function RequirementEdit({
               setValues(valuesFor(attributes ?? [], next, values));
             }}
             error={fields.typeId}
+            disabled={!fixed.type.edit}
+            hint={fixed.type.edit ? undefined : fixed.type.why}
             data-type-select
           >
             {(types ?? [])
@@ -174,7 +191,16 @@ export function RequirementEdit({
               ))}
           </Select>
         )}
-        {requirement.kind === "requirement" && !locked && (
+        {requirement.kind === "requirement" && !locked && !fixed.rationale.edit && (
+          <section aria-labelledby="read-only-rationale-title" className="space-y-2">
+            <SectionTitle id="read-only-rationale-title">{t.requirements.rationale}</SectionTitle>
+            <p className="text-xs text-ink-muted" data-read-only-why="rationale">
+              {fixed.rationale.why}
+            </p>
+            {rationale && <DocView doc={rationale} />}
+          </section>
+        )}
+        {requirement.kind === "requirement" && !locked && fixed.rationale.edit && (
           <Labelled id="edit-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
             <Editor
               id="edit-rationale"
@@ -187,7 +213,7 @@ export function RequirementEdit({
           </Labelled>
         )}
         {requirement.kind === "requirement" && attributes && (
-          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
+          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} readOnly={readOnly} />
         )}
         <Field
           label={t.requirements.comment}
