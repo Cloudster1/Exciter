@@ -3,6 +3,23 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-17: The document view is the specification with parameters, agreed first (#167)
+
+- **One read, not two.** Changes, the status filter and review mode are
+  parameters of `GET /projects/{projectKey}/spec` rather than an endpoint of
+  their own, so a window of the document and its comparisons line up, and
+  only changed or waiting narrows the same paging and `total`. With changes a
+  window is smaller, as each entry carries its comparison.
+- **Bulk is many singles.** A bulk transition or review request takes each
+  requirement through the single operation's service and SQL function in its
+  own transaction and answers a result for each, so the guards hold
+  unchanged and one refusal undoes nothing else. Errors carry the single
+  operation's codes.
+- **A review stays one requirement at one revision.** The document decides
+  many in one pass; a review of a document as a whole is left for later.
+- **No migration.** Revisions, statuses, reviews and baselines already hold
+  everything the view reads.
+
 ## 2026-10-16: Baselines record more from now on, and null means not recorded (#153)
 
 - **No backfill.** An older baseline's suspect state or status at the time

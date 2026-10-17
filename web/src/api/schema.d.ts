@@ -1619,6 +1619,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the review of several requirements at the revisions the caller saw, each on its own; the answer says for each whether it was asked, and why not. */
+        post: operations["bulkRequestReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/spec": {
         parameters: {
             query?: never;
@@ -1752,6 +1769,24 @@ export interface paths {
         /** Replace a project's trace model; no levels clears it. The project's administrators'. */
         put: operations["saveTraceModel"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The transitions the caller may take now on each of several requirements of a project; one not viewable is left out. */
+        get: operations["listBulkTransitions"];
+        put?: never;
+        /** Take one transition on several requirements, each on its own; the answer says for each whether it was taken, and why not. */
+        post: operations["bulkTransition"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3680,6 +3715,38 @@ export interface components {
             commit?: string;
             version: string;
         };
+        BulkRefusal: {
+            code: string;
+            message: string;
+        };
+        BulkReviewRequest: {
+            comment?: string;
+            items: components["schemas"]["BulkReviewRequestItem"][];
+        };
+        BulkReviewRequestItem: {
+            key: string;
+            revision: number;
+        };
+        BulkReviewRequestResult: {
+            error: components["schemas"]["BulkRefusal"] | null;
+            key: string;
+            /** @enum {string} */
+            outcome: "taken" | "requested" | "refused";
+            review: components["schemas"]["Review"] | null;
+        };
+        BulkTransitionInput: {
+            comment?: string;
+            keys: string[];
+            /** Format: uuid */
+            transitionId: string;
+        };
+        BulkTransitionResult: {
+            error: components["schemas"]["BulkRefusal"] | null;
+            key: string;
+            /** @enum {string} */
+            outcome: "taken" | "requested" | "refused";
+            requirement: components["schemas"]["Requirement"] | null;
+        };
         CallingToken: {
             allProjects: boolean;
             /** Format: date-time */
@@ -4663,6 +4730,10 @@ export interface components {
             status: components["schemas"]["StatusRef"] | null;
             title: string;
             trashed: boolean;
+        };
+        RequirementTransitions: {
+            key: string;
+            transitions: components["schemas"]["AvailableTransition"][];
         };
         RequirementType: {
             colour: string;
@@ -10998,6 +11069,70 @@ export interface operations {
             };
         };
     };
+    bulkRequestReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: components["schemas"]["BulkReviewRequestResult"][];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getSpecification: {
         parameters: {
             query?: {
@@ -11561,6 +11696,124 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listBulkTransitions: {
+        parameters: {
+            query?: {
+                /** @description Keys of the project's requirements, 1 to 100. */
+                key?: string[];
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        requirements: components["schemas"]["RequirementTransitions"][];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    bulkTransition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkTransitionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: components["schemas"]["BulkTransitionResult"][];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

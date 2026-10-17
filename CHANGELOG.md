@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M6, Document view (#167): `docs/api-contract-m6.md`
+  agrees how the specification is edited in place, narrowed by status,
+  marked with what changed since the previous revision, the last approval or
+  a baseline, and reviewed entry by entry, with transitions and review
+  requests for many requirements at once. The operations it adds answer 501
+  until they are built.
 - The matrix, the chain report and a baseline's matrix download as Excel
   workbooks beside their CSV files (#154): a frozen header and key column,
   linked cells green, suspect ones amber, gaps and breaks red, a baseline's

@@ -38,8 +38,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m2.md` for the Armature integration (#25),
   `docs/api-contract-m3.md` for review and control (#32),
   `docs/api-contract-m4.md` for the Stator integration (#39),
-  `docs/api-contract-backlog.md` for what came after the first release, and
-  `docs/api-contract-m5.md` for traceability (#146).
+  `docs/api-contract-backlog.md` for what came after the first release,
+  `docs/api-contract-m5.md` for traceability (#146), and
+  `docs/api-contract-m6.md` for the document view (#167).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -245,6 +246,11 @@ app role holds no privilege on.
   follows from each root, one query per level for the whole page.
   `internal/xlsx` writes the matrix, the chains and a baseline's matrix as
   a workbook by hand, as `internal/docx` writes Word.
+- **Document view** (M6, `docs/api-contract-m6.md`, planned): the
+  specification of #15 written, moved through its workflow and reviewed in
+  place. Its changes, filters and review mode are parameters of
+  `GET /projects/{projectKey}/spec`; bulk transitions and review requests
+  take each requirement through the single operation, each on its own.
 - **Signed approvals** (#46): in a project with `settings.signedApprovals`,
   a decision on a review is an electronic signature. The reviewer confirms a
   meaning the server writes and proves who they are again, with their
