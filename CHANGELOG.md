@@ -9,6 +9,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements are reviewed in the specification (#171). Review what waits
+  for me narrows the document to the requirements whose review waits for
+  the reader's decision, marked with what changed since their last
+  approval, and each entry takes the approval or the rejection in place,
+  with the signature where approvals are signed. A decided entry stays in
+  view, marked, a count says how many are decided, a review a newer
+  revision superseded says so, and comment threads open inside the entry.
+  An author asks for the review of the picked requirements, or of what
+  changed in a section, in one step, and is told which were asked for and
+  which already waited. The reviews page opens each project's document in
+  review mode. `POST /projects/{projectKey}/reviews` asks for up to 100,
+  each on its own; spec entries carry their pending review, and
+  `GET /projects/{projectKey}/spec` takes `waiting`.
 - The specification shows what changed (#170). Show changes compares each
   requirement with its previous revision, its last approval or a baseline,
   and marks in place the words inserted and deleted in its title, statement

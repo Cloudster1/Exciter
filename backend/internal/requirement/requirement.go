@@ -290,6 +290,23 @@ type SpecEntry struct {
 	Approval Approval `json:"approval"`
 	// Change is how it differs from the base asked for (#170), null for a section or when nothing was asked.
 	Change *SpecChange `json:"change"`
+	// Review is its pending review as its reader stands to it (#171), null without one.
+	Review *SpecReview `json:"review"`
+}
+
+// SpecReview is a requirement's pending review as the document shows it to its reader.
+type SpecReview struct {
+	ID         uuid.UUID `json:"id"`
+	Revision   int       `json:"revision"`
+	Required   int       `json:"required"`
+	Approvals  int       `json:"approvals"`
+	Rejections int       `json:"rejections"`
+	// Approver says the reader is one of its frozen approvers; MayDecide that they may decide it now, which the
+	// revision's author may not unless the rule allows it.
+	Approver  bool `json:"approver"`
+	MayDecide bool `json:"mayDecide"`
+	// Decision is the reader's standing one, approve or reject, null before they decide.
+	Decision *string `json:"decision"`
 }
 
 // RevisionEntry is one revision as the history lists it.

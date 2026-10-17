@@ -8806,16 +8806,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -8899,6 +8889,14 @@
             "name": "onlyChanged",
             "in": "query",
             "description": "true to keep what differs from the base, and the sections above it.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "waiting",
+            "in": "query",
+            "description": "true to keep the requirements whose pending review waits for the caller's decision, and the sections above them.",
             "schema": {
               "type": "boolean"
             }
@@ -24164,6 +24162,16 @@
               }
             ]
           },
+          "review": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SpecReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statement": {
             "description": "A JSON value."
           },
@@ -24195,7 +24203,8 @@
           "owner",
           "priority",
           "approval",
-          "change"
+          "change",
+          "review"
         ]
       },
       "SpecRemoved": {
@@ -24219,6 +24228,49 @@
           "title",
           "outline",
           "revision"
+        ]
+      },
+      "SpecReview": {
+        "type": "object",
+        "properties": {
+          "approvals": {
+            "type": "integer"
+          },
+          "approver": {
+            "type": "boolean"
+          },
+          "decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mayDecide": {
+            "type": "boolean"
+          },
+          "rejections": {
+            "type": "integer"
+          },
+          "required": {
+            "type": "integer"
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "required",
+          "approvals",
+          "rejections",
+          "approver",
+          "mayDecide",
+          "decision"
         ]
       },
       "SpecificationDocument": {

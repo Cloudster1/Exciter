@@ -72,4 +72,24 @@ export const treeEn = {
   wasAt: (outline: string) => `was ${outline}`,
   fullComparison: (from: number, to: number) => `Compare revision ${from} with ${to}`,
   removedTitle: "No longer in the document",
+  reviewMode: "Review what waits for me",
+  leaveReview: "Leave review",
+  reviewing: "Review mode shows the requirements waiting for your decision, with what changed since their last approval.",
+  nothingWaiting: "Nothing in this project waits for your decision.",
+  progress: (decided: number, total: number) => `${decided} of ${total} decided`,
+  reviewStanding: (revision: number, approvals: number, required: number, rejections: number) =>
+    `Revision ${revision} is in review: ${approvals} of ${required} ${required === 1 ? "approval" : "approvals"}${rejections > 0 ? `, ${rejections} rejected` : ""}.`,
+  youDecided: { approve: "You approved it.", reject: "You rejected it." },
+  rejectNeedsComment: "Rejecting it asks you to say why.",
+  superseded: "A newer revision superseded this review, so it takes no decision. Ask for a review of the new revision.",
+  showComments: (open: number) => (open > 0 ? `Comments (${open} open)` : "Comments"),
+  hideComments: "Hide the comments",
+  askReviews: "Ask for review",
+  askChangedHere: "Ask for review of what changed here",
+  asked: (asked: number, pending: number, refused: number) =>
+    [`${asked === 1 ? "1 review" : `${asked} reviews`} asked for`, pending > 0 ? `${pending} already waiting` : "", refused > 0 ? `${refused} refused` : ""]
+      .filter(Boolean)
+      .join(", ") + ".",
+  notAsked: "Not asked for",
+  alreadyPending: "A review of it is already waiting.",
 };

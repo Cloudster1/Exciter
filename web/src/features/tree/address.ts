@@ -13,6 +13,7 @@ export function readSpecAddress(search: Record<string, unknown>): SpecAddress {
   if (search.changes === "previous" || search.changes === "approved" || search.changes === "baseline") address.changes = search.changes;
   if (address.changes === "baseline" && typeof search.baseline === "string" && search.baseline) address.baseline = search.baseline;
   if (address.changes && (search.onlyChanged === true || search.onlyChanged === "true")) address.onlyChanged = true;
+  if (search.waiting === true || search.waiting === "true") address.waiting = true;
   return address;
 }
 

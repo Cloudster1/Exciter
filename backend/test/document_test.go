@@ -344,3 +344,115 @@ func TestTheDocumentShowsWhatChanged(t *testing.T) {
 		}
 	})
 }
+
+// The document asks for many reviews at once, each as the single request would, and shows each entry's review as
+// its reader stands to it; waiting keeps what waits for the reader's decision (#171).
+func TestTheDocumentReviews(t *testing.T) {
+	ctx := context.Background()
+	w := newCommentWorld(t, "DRV")
+	key := w.key
+	other := projectKey(t, "DRO")
+	want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": other, "name": "Elsewhere"}), http.StatusCreated, "make another project")
+	write := func(projectKey string, body map[string]any) map[string]any {
+		t.Helper()
+		return obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+projectKey+"/requirements", body), http.StatusCreated, "write"), "requirement")
+	}
+	scope := write(key, map[string]any{"kind": "section", "title": "Scope"})
+	pay := write(key, map[string]any{"title": "Pay", "place": place(scope["id"], nil)})
+	ship := write(key, map[string]any{"title": "Ship", "place": place(scope["id"], pay["id"])})
+	keep := write(key, map[string]any{"title": "Keep", "place": place(scope["id"], ship["id"])})
+	stranger := write(other, map[string]any{"title": "Elsewhere"})
+	payKey, shipKey, keepKey, scopeKey := pay["key"].(string), ship["key"].(string), keep["key"].(string), scope["key"].(string)
+	want(t, w.owner.put(t, "/api/v1/projects/"+key+"/approval-rules", map[string]any{"required": 1,
+		"approvers": []map[string]any{{"subjectType": "user", "userId": w.daveID}}}), http.StatusOK, "dave approves")
+	bulk := "/api/v1/projects/" + key + "/reviews"
+	item := func(reqKey string, revision int) map[string]any {
+		return map[string]any{"key": reqKey, "revision": revision}
+	}
+	reviewOf := func(t *testing.T, c *client, query, reqKey string) map[string]any {
+		t.Helper()
+		r, _ := specEntry(t, want(t, c.get(t, "/api/v1/projects/"+key+"/spec?"+query), http.StatusOK, "read the specification"), reqKey)["review"].(map[string]any)
+		return r
+	}
+	keysOf := func(t *testing.T, c *client, query string) []string {
+		t.Helper()
+		var out []string
+		for _, each := range list(t, want(t, c.get(t, "/api/v1/projects/"+key+"/spec?"+query), http.StatusOK, "read "+query), "entries") {
+			out = append(out, each.(map[string]any)["node"].(map[string]any)["key"].(string))
+		}
+		return out
+	}
+
+	t.Run("a review is asked for each requirement on its own, and one refused undoes nothing", func(t *testing.T) {
+		results := list(t, want(t, w.bob.post(t, bulk, map[string]any{"comment": "Ready.", "items": []any{
+			item(payKey, 1), item(shipKey, 1), item(keepKey, 2), item(scopeKey, 1), item(stranger["key"].(string), 1),
+		}}), http.StatusOK, "ask for five"), "results")
+		expected := [][2]string{{"requested", ""}, {"requested", ""}, {"refused", "revision_moved_on"}, {"refused", "section_not_reviewed"}, {"refused", "not_found"}}
+		for i, wanted := range expected {
+			r := results[i].(map[string]any)
+			code := ""
+			if refusal, _ := r["error"].(map[string]any); refusal != nil {
+				code = refusal["code"].(string)
+			}
+			if r["outcome"] != wanted[0] || code != wanted[1] {
+				t.Errorf("result %d is %v %s, want %s %s", i, r["outcome"], code, wanted[0], wanted[1])
+			}
+		}
+		again := list(t, want(t, w.bob.post(t, bulk, map[string]any{"items": []any{item(payKey, 1)}}), http.StatusOK, "ask again"), "results")
+		if r := again[0].(map[string]any); r["error"].(map[string]any)["code"] != "review_pending" {
+			t.Errorf("a second review of Pay: %v", r)
+		}
+		if n := w.h.countRows(t, `SELECT count(*) FROM requirement_review WHERE requirement_id = $1`, stranger["id"]); n != 0 {
+			t.Error("another project's requirement was reviewed through this project's bulk request")
+		}
+		refuse(t, "no items", w.bob.post(t, bulk, map[string]any{"items": []any{}}), http.StatusUnprocessableEntity, "validation_failed")
+		refuse(t, "a key twice", w.bob.post(t, bulk, map[string]any{"items": []any{item(keepKey, 1), item(keepKey, 1)}}), http.StatusUnprocessableEntity, "validation_failed")
+		byReader := list(t, want(t, w.carol.post(t, bulk, map[string]any{"items": []any{item(keepKey, 1)}}), http.StatusOK, "a reader asks"), "results")
+		if r := byReader[0].(map[string]any); r["error"].(map[string]any)["code"] != "forbidden" {
+			t.Errorf("a reader asks for a review: %v", r)
+		}
+	})
+
+	t.Run("each entry says how its reader stands to its review, and waiting keeps what waits for them", func(t *testing.T) {
+		mine := reviewOf(t, w.dave, "", payKey)
+		if mine == nil || mine["approver"] != true || mine["mayDecide"] != true || mine["decision"] != nil || mine["required"] != float64(1) || mine["revision"] != float64(1) {
+			t.Fatalf("Pay's review as dave reads it: %v", mine)
+		}
+		if theirs := reviewOf(t, w.bob, "", payKey); theirs["approver"] != false || theirs["mayDecide"] != false {
+			t.Errorf("Pay's review as bob reads it: %v", theirs)
+		}
+		if none := reviewOf(t, w.dave, "", keepKey); none != nil {
+			t.Errorf("Keep has no review: %v", none)
+		}
+		sameList(t, "what waits for dave", keysOf(t, w.dave, "waiting=true"), scopeKey, payKey, shipKey)
+		sameList(t, "what waits for bob", keysOf(t, w.bob, "waiting=true"))
+		refuse(t, "waiting that is no yes", w.dave.get(t, "/api/v1/projects/"+key+"/spec?waiting=maybe"), http.StatusUnprocessableEntity, "validation_failed")
+	})
+
+	t.Run("a decision takes the entry out of waiting, and a review a revision superseded refuses one", func(t *testing.T) {
+		payReview := reviewOf(t, w.dave, "", payKey)["id"].(string)
+		want(t, w.dave.post(t, "/api/v1/reviews/"+payReview+"/decisions", map[string]any{"decision": "approve", "revision": 1}), http.StatusOK, "approve Pay")
+		sameList(t, "what still waits for dave", keysOf(t, w.dave, "waiting=true"), scopeKey, shipKey)
+		if r := reviewOf(t, w.dave, "", payKey); r != nil {
+			t.Errorf("an approved review is no longer pending: %v", r)
+		}
+		shipReview := reviewOf(t, w.dave, "", shipKey)["id"].(string)
+		want(t, w.owner.patch(t, "/api/v1/requirements/"+shipKey, map[string]any{"title": "Ship in a day", "baseRevision": 1}), http.StatusOK, "revise Ship")
+		refuse(t, "a decision on a superseded review", w.dave.post(t, "/api/v1/reviews/"+shipReview+"/decisions", map[string]any{"decision": "approve", "revision": 1}),
+			http.StatusConflict, "review_closed")
+	})
+
+	t.Run("the database refuses a decision by somebody the review does not name", func(t *testing.T) {
+		keepReview := list(t, want(t, w.bob.post(t, bulk, map[string]any{"items": []any{item(keepKey, 1)}}), http.StatusOK, "ask for Keep"), "results")[0].(map[string]any)["review"].(map[string]any)
+		conn := w.h.appConn(t, w.bobID)
+		if _, err := conn.Exec(ctx, `INSERT INTO review_decision (review_id, reviewer_id, decision) VALUES ($1, $2, 'approve')`, keepReview["id"], w.bobID); !isPolicyViolation(err) {
+			t.Errorf("bob, whom the review does not name, decided it through SQL: %v", err)
+		}
+	})
+
+	t.Run("an archived project takes no bulk request", func(t *testing.T) {
+		want(t, w.owner.put(t, "/api/v1/projects/"+key+"/archive", nil), http.StatusOK, "archive the project")
+		refuse(t, "a bulk request", w.bob.post(t, bulk, map[string]any{"items": []any{item(keepKey, 1)}}), http.StatusConflict, "project_archived")
+		want(t, w.owner.delete(t, "/api/v1/projects/"+key+"/archive"), http.StatusOK, "unarchive the project")
+	})
+}

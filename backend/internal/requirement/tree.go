@@ -142,6 +142,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 	out := []SpecEntry{}
 	total := 0
 	var changes *SpecChanges
+	q.reader = reader
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, projectKey)
 		if err != nil {
@@ -160,6 +161,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			return fmt.Errorf("count the specification: %w", err)
 		}
 		ctes, where, args := specSQL(p.ID, q)
+		me := args.add(reader) + `::uuid`
 		window := ` LIMIT ` + args.add(limit) + ` OFFSET ` + args.add(offset)
 		rows, err := tx.Query(ctx, walkTree+ctes+`
 			SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
@@ -167,9 +169,14 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			       r.statement, r.rationale, r.attributes,
 			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+commentCounts+`,`+SuspectLinks+`,
 			       COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.owner_id, COALESCE(o.name, ''), r.priority,
-			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), c.kind, c.from_rev, c.moved_from`+approval+reuseSQL+`
+			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), c.kind, c.from_rev, c.moved_from,
+			       pv.id, COALESCE(pv.revision, 0), COALESCE(pv.required, 0), COALESCE(review_approvals(pv.id), 0),
+			       (SELECT count(*)::int FROM review_decision d WHERE d.review_id = pv.id AND d.decision = 'reject'),
+			       COALESCE(review_names(pv.id, `+me+`), false), COALESCE(review_decidable(pv.id, `+me+`), false),
+			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`)`+approval+reuseSQL+`
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN chg c ON c.id = r.id
+			LEFT JOIN requirement_review pv ON pv.requirement_id = r.id AND pv.state = 'pending'
 			LEFT JOIN requirement_type t ON t.id = r.type_id
 			LEFT JOIN req_status st ON st.id = r.status_id
 			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+where+`
@@ -193,12 +200,15 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				kind      *string
 				fromRev   *int
 				movedFrom []int32
+				reviewID  *uuid.UUID
+				review    SpecReview
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
 				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
-				&kind, &fromRev, &movedFrom, &e.Approval.Pending, &e.Approval.ApprovedRevision},
+				&kind, &fromRev, &movedFrom, &reviewID, &review.Revision, &review.Required, &review.Approvals, &review.Rejections,
+				&review.Approver, &review.MayDecide, &review.Decision, &e.Approval.Pending, &e.Approval.ApprovedRevision},
 				reused.targets()...)...)
 			if err != nil {
 				return e, err
@@ -214,6 +224,10 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			if statusID != nil {
 				status.ID = *statusID
 				n.Status = &status
+			}
+			if reviewID != nil {
+				review.ID = *reviewID
+				e.Review = &review
 			}
 			if kind != nil && fromRev != nil {
 				e.Change = &SpecChange{Kind: ChangeKind(*kind), From: *fromRev, To: n.Revision}

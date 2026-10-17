@@ -80,6 +80,11 @@ type SpecQuery struct {
 	Baseline uuid.UUID
 	// OnlyChanged keeps the requirements that differ from their base, and the sections above them.
 	OnlyChanged bool
+	// Waiting keeps the requirements whose pending review waits for the reader's decision (#171), and the sections
+	// above them.
+	Waiting bool
+	// reader is who reads, whom waiting and each entry's review are about.
+	reader uuid.UUID
 }
 
 // check refuses a base there is none of, a baseline left out, and only changed without a base.
@@ -141,7 +146,7 @@ func specSQL(projectID uuid.UUID, q SpecQuery) (ctes, where string, p *params) {
 	p.add(projectID)
 	ctes = changesCTE(q, p)
 	byStatus, onlyChanged := q.Filter.narrows(), q.OnlyChanged && q.Changes != ""
-	if !byStatus && !onlyChanged {
+	if !byStatus && !onlyChanged && !q.Waiting {
 		return ctes, "", p
 	}
 	statuses, categories := q.Filter.Statuses, q.Filter.Categories
@@ -157,6 +162,13 @@ func specSQL(projectID uuid.UUID, q SpecQuery) (ctes, where string, p *params) {
 	}
 	if onlyChanged {
 		keep += ` AND c.kind <> 'unchanged'`
+	}
+	if q.Waiting {
+		// As GET /reviews/waiting counts them: pending, the reader's to decide, not decided by them yet.
+		reader := p.add(q.reader) + `::uuid`
+		keep += ` AND EXISTS (SELECT 1 FROM requirement_review v WHERE v.requirement_id = r.id AND v.state = 'pending'
+	      AND review_decidable(v.id, ` + reader + `)
+	      AND NOT EXISTS (SELECT 1 FROM review_decision d WHERE d.review_id = v.id AND d.reviewer_id = ` + reader + `))`
 	}
 	ctes += `, kept AS (
 	SELECT r.id FROM requirement r LEFT JOIN req_status st ON st.id = r.status_id LEFT JOIN chg c ON c.id = r.id

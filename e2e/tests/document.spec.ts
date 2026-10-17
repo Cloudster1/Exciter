@@ -184,4 +184,56 @@ test.describe("the document", { tag: "@desktop" }, () => {
     await expect(page).toHaveURL(`/p/${KEY}/r/${pay.key}/history?from=1&to=2`);
     await expect(page.locator('[data-diff-of="title"] ins')).toContainText("by card");
   });
+
+  test("an author asks for review of a section, and a reviewer approves one and rejects another in the document", async ({ page, api, pageAs, people }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Document" } }));
+    const path = { params: { path: { projectKey: KEY } } };
+    must(
+      await api.PUT("/projects/{projectKey}/grants", {
+        ...path,
+        body: {
+          grants: [
+            { subject: { type: "user", id: people.alice.id }, role: "admin" },
+            { subject: { type: "everyone" }, role: "editor" },
+            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+          ],
+        },
+      }),
+    );
+    must(
+      await api.PUT("/projects/{projectKey}/approval-rules", {
+        ...path,
+        body: { required: 1, authorMayApprove: false, approvers: [{ subjectType: "user", userId: people.bob.id }] },
+      }),
+    );
+    const write = async (body: Record<string, unknown>) =>
+      must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: body as never })).requirement;
+    const scope = await write({ kind: "section", title: "Scope" });
+    const pay = await write({ title: "Pay", statement: paragraph("The shopper pays at once."), place: { parentId: scope.id, afterId: null } });
+    const ship = await write({ title: "Ship", statement: paragraph("The basket ships."), place: { parentId: scope.id, afterId: pay.id } });
+
+    // Nothing is approved yet, so against the last approval both are new, and the section asks for both at once.
+    await page.goto(`/p/${KEY}/spec?changes=approved`);
+    await page.locator(`[data-spec-entry="${scope.key}"] [data-action="ask-reviews"]`).click();
+    await expect(page.locator("[data-spec-announced]")).toHaveText("2 reviews asked for.");
+
+    const bob = await pageAs("bob");
+    await openUntil(bob, "/reviews", () => expect(bob.locator(`[data-review-in-document="${KEY}"]`).first()).toBeVisible(ONE_LOOK));
+    await bob.locator(`[data-review-in-document="${KEY}"]`).first().click();
+    await expect(bob).toHaveURL(new RegExp(`/p/${KEY}/spec\\?`));
+    const entry = (key: string) => bob.locator(`[data-spec-entry="${key}"]`);
+    await expect(bob.locator("[data-review-progress]")).toHaveText("0 of 2 decided");
+    await expect(entry(pay.key).locator('[data-spec-change="added"]')).toBeVisible();
+    await expectAccessible(bob);
+
+    await entry(pay.key).locator('[data-action="approve-entry"]').click();
+    await expect(entry(pay.key).locator('[data-your-decision="approve"]')).toBeVisible();
+    await entry(ship.key).getByLabel("Your comment").fill("Say how fast it ships.");
+    await entry(ship.key).locator('[data-action="reject-entry"]').click();
+    await expect(entry(ship.key).locator('[data-your-decision="reject"]')).toBeVisible();
+    await expect(bob.locator("[data-review-progress]")).toHaveText("2 of 2 decided");
+
+    await bob.locator('[data-action="leave-review"]').click();
+    await expect(entry(pay.key).locator("[data-entry-review]")).toHaveCount(0);
+  });
 });

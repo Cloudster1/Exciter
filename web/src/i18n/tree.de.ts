@@ -76,4 +76,24 @@ export const treeDe: typeof treeEn = {
   wasAt: (outline: string) => `war ${outline}`,
   fullComparison: (from: number, to: number) => `Revision ${from} mit ${to} vergleichen`,
   removedTitle: "Nicht mehr im Dokument",
+  reviewMode: "Prüfen, was auf mich wartet",
+  leaveReview: "Prüfung beenden",
+  reviewing: "Die Prüfung zeigt die Anforderungen, die auf Ihre Entscheidung warten, mit dem, was sich seit ihrer letzten Freigabe geändert hat.",
+  nothingWaiting: "In diesem Projekt wartet nichts auf Ihre Entscheidung.",
+  progress: (decided: number, total: number) => `${decided} von ${total} entschieden`,
+  reviewStanding: (revision: number, approvals: number, required: number, rejections: number) =>
+    `Revision ${revision} ist in Prüfung: ${approvals} von ${required} ${required === 1 ? "Freigabe" : "Freigaben"}${rejections > 0 ? `, ${rejections} abgelehnt` : ""}.`,
+  youDecided: { approve: "Sie haben sie freigegeben.", reject: "Sie haben sie abgelehnt." },
+  rejectNeedsComment: "Wer ablehnt, sagt warum.",
+  superseded: "Eine neuere Revision hat diese Prüfung abgelöst, sie nimmt keine Entscheidung mehr. Bitten Sie um eine Prüfung der neuen Revision.",
+  showComments: (open: number) => (open > 0 ? `Kommentare (${open} offen)` : "Kommentare"),
+  hideComments: "Kommentare ausblenden",
+  askReviews: "Um Prüfung bitten",
+  askChangedHere: "Um Prüfung des hier Geänderten bitten",
+  asked: (asked: number, pending: number, refused: number) =>
+    [`Um ${asked === 1 ? "1 Prüfung" : `${asked} Prüfungen`} gebeten`, pending > 0 ? `${pending} warten schon` : "", refused > 0 ? `${refused} abgelehnt` : ""]
+      .filter(Boolean)
+      .join(", ") + ".",
+  notAsked: "Nicht erbeten",
+  alreadyPending: "Eine Prüfung wartet schon.",
 };

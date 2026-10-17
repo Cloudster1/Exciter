@@ -531,6 +531,11 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*Review, error) {
 
 // Request asks for the requirement's current revision to be approved, pinning it and freezing its rule's approvers.
 func (s *Service) Request(ctx context.Context, reqKey string, in RequestInput) (*Review, db.LSN, error) {
+	return s.request(ctx, reqKey, in, uuid.Nil)
+}
+
+// request asks for a review of the requirement reqKey names, which must be of the project within unless that is nil.
+func (s *Service) request(ctx context.Context, reqKey string, in RequestInput, within uuid.UUID) (*Review, db.LSN, error) {
 	actor, err := actorOf(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -544,6 +549,9 @@ func (s *Service) Request(ctx context.Context, reqKey string, in RequestInput) (
 		r, err := requirement.FindEndpoint(ctx, tx, actor, reqKey)
 		if err != nil {
 			return err
+		}
+		if within != uuid.Nil && r.ProjectID != within {
+			return requirement.ErrNotFound
 		}
 		var editable bool
 		if err := tx.QueryRow(ctx, `SELECT perm_project_holds($1, $2, 'edit')`, r.ProjectID, actor).Scan(&editable); err != nil {

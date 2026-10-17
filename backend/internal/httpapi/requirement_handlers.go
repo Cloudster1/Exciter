@@ -420,6 +420,13 @@ func specQuery(r *http.Request) (requirement.SpecQuery, *APIError) {
 		}
 		q.Baseline = id
 	}
+	switch params.Get("waiting") {
+	case "", "false":
+	case "true":
+		q.Waiting = true
+	default:
+		return q, ErrValidation(map[string]string{"waiting": "Say true to keep what waits for your decision, or leave it out."})
+	}
 	switch params.Get("onlyChanged") {
 	case "", "false":
 	case "true":

@@ -1,7 +1,8 @@
-import { Fragment, useCallback, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Project } from "@/api/projects";
+import type { Decision } from "@/api/reviews";
 import { useSpec, useTree, type Place, type SpecAddress, type SpecEntry, type TreeNode } from "@/api/tree";
 import { reqifExportHref } from "@/api/reqif";
 import { projectDocumentHref } from "@/api/documents";
@@ -16,6 +17,7 @@ import { RequirementEdit, type Editable } from "@/features/requirements/Requirem
 import { t } from "@/i18n";
 import { narrowed } from "./address";
 import { ChangesBar, ChangeTag, differs, EntryChanges, nextChange, RemovedSince } from "./DocumentChanges";
+import { AskForReviews, EntryComments, EntryReview, progressOf, ReviewModeButton, withDecided } from "./DocumentReviews";
 import { BulkTransitions, EntryPick, pickedOf, rangeOf, SectionPick, StatusFilter, StatusMenu } from "./DocumentStates";
 import { PlaceDialog, type Placed } from "./PlaceDialog";
 import { RequirementTree } from "./RequirementTree";
@@ -108,7 +110,17 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
   const mayCreate = useMayCreateIssues(project);
   // The entry last picked, from which a pick with Shift reaches.
   const lastPick = useRef<string | null>(null);
-  const entries = spec.data?.pages.flatMap((page) => page.entries) ?? [];
+  const loaded = spec.data?.pages.flatMap((page) => page.entries) ?? [];
+  // What the reader decided in review mode stays in view, marked, until they leave it.
+  const [decided, setDecided] = useState<Map<string, SpecEntry>>(new Map());
+  const reviewing = Boolean(address.waiting);
+  const entries = reviewing ? withDecided(loaded, decided) : loaded;
+  useEffect(() => {
+    if (!reviewing && decided.size > 0) {
+      setDecided(new Map());
+      void queryClient.invalidateQueries({ queryKey: ["spec"] });
+    }
+  }, [reviewing, decided, queryClient]);
   const summary = spec.data?.pages[0]?.changes ?? null;
   const keys = entries.map((entry) => entry.node.key);
   const mayWrite = project.can.edit && !project.archivedAt;
@@ -208,6 +220,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
         actions={
           <div className="flex flex-wrap gap-2">
             <ExportMenu title={project.name} href={(format) => projectDocumentHref(project.key, format)} reqifHref={reqifExportHref(project.key, true)} />
+            {onAddress && <ReviewModeButton address={address} onChange={onAddress} />}
             {mayWrite && (
               <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
                 {t.requirements.create}
@@ -243,6 +256,19 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
             <p id="spec-keys" className="text-xs text-ink-subtle">
               {mayWrite ? t.tree.specKeys : t.tree.specKeysReader}
             </p>
+            {reviewing && (
+              <p className="text-sm text-ink-muted" data-reviewing>
+                {t.tree.reviewing}{" "}
+                <span className="font-medium text-ink" data-review-progress>
+                  {t.tree.progress(progressOf(entries).decided, progressOf(entries).total)}
+                </span>
+              </p>
+            )}
+            {reviewing && spec.data && entries.length === 0 && (
+              <p className="text-sm text-ink-muted" data-nothing-waiting>
+                {t.tree.nothingWaiting}
+              </p>
+            )}
             {onAddress && <StatusFilter projectKey={project.key} address={address} onChange={onAddress} />}
             {onAddress && <ChangesBar projectKey={project.key} address={address} summary={summary} onChange={onAddress} onStep={step} />}
             {address.changes === "baseline" && !address.baseline && (
@@ -268,6 +294,15 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
                   below={entry.node.kind === "section" ? entriesBelow(entries, entry.node.key).filter(selectable).map(pickedOf) : []}
                   onPick={pick}
                   collapsed={Boolean(address.onlyChanged) && entry.node.kind === "requirement" && !differs(entry)}
+                  changedBelow={
+                    mayWrite && address.changes && entry.node.kind === "section"
+                      ? entriesBelow(entries, entry.node.key).filter((each) => each.node.kind === "requirement" && differs(each) && !each.review)
+                      : []
+                  }
+                  onDecided={(decision) => {
+                    if (entry.review) setDecided(new Map(decided).set(entry.node.key, { ...entry, review: { ...entry.review, decision } }));
+                    setAnnounced(`${entry.node.key}: ${t.tree.youDecided[decision]}`);
+                  }}
                   onMoved={(notice) => {
                     setAnnounced(notice);
                     void refresh();
@@ -307,6 +342,14 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
       {(mayCreate || mayMove) && (
         <SelectionBar projectKey={project.key} selection={selection} armature={mayCreate}>
           {mayMove && <BulkTransitions projectKey={project.key} selection={selection} onDone={setAnnounced} />}
+          {mayWrite && (
+            <AskForReviews
+              projectKey={project.key}
+              entries={entries.filter((entry) => selection.has(entry.node.key) && !entry.review)}
+              label={t.tree.askReviews}
+              onDone={setAnnounced}
+            />
+          )}
         </SelectionBar>
       )}
       {moving && <PlaceDialog placed={moving} mode="move" onClose={() => setMoving(null)} onDone={() => setMoving(null)} />}
@@ -360,6 +403,8 @@ function Entry({
   onPick,
   onMoved,
   collapsed,
+  changedBelow,
+  onDecided,
   onAsk,
   onFocus,
   onDirty,
@@ -379,6 +424,9 @@ function Entry({
   onMoved: (notice: string) => void;
   /** Shows the heading alone, for an entry that did not change while only changed ones are read. */
   collapsed: boolean;
+  /** A section's changed requirements without a review waiting, which it asks a review of at once. */
+  changedBelow: SpecEntry[];
+  onDecided: (decision: Decision) => void;
   onAsk: (next: Open | null) => void;
   onFocus: () => void;
   onDirty: (dirty: boolean) => void;
@@ -500,6 +548,9 @@ function Entry({
           )}
         </>
       )}
+      {!collapsed && !editing && entry.review && <EntryReview project={project} entry={entry} onDecided={onDecided} />}
+      {!collapsed && !editing && !section && <EntryComments entry={entry} />}
+      {changedBelow.length > 0 && <AskForReviews projectKey={project.key} entries={changedBelow} label={t.tree.askChangedHere} onDone={onMoved} />}
       {addingBelow && (
         <AddedHere project={project} place={addedPlace(node, "below")} where={t.tree.addingBelow(node.key)} onDirty={onDirty} onAsk={onAsk} onAdded={onAdded} />
       )}

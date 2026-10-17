@@ -18,11 +18,11 @@ func TestABulkRequestNamesEachRequirementOnceAndNotTooMany(t *testing.T) {
 		"a key twice, any case": {"CHK-R1", "chk-r1"},
 	} {
 		var field *FieldError
-		if err := checkBulk("keys", keys); !errors.As(err, &field) || field.Field != "keys" {
+		if err := CheckBulk("keys", keys); !errors.As(err, &field) || field.Field != "keys" {
 			t.Errorf("%s: %v, want a refusal on keys", name, err)
 		}
 	}
-	if err := checkBulk("keys", many[:MaxBulk]); err != nil {
+	if err := CheckBulk("keys", many[:MaxBulk]); err != nil {
 		t.Errorf("as many as the limit: %v", err)
 	}
 }

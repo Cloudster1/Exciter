@@ -217,6 +217,7 @@ describe("the reviews waiting on the reader", () => {
     expect(within(list).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
     expect(list).toHaveTextContent("Asked by Bob Builder");
     expect(list).toHaveTextContent("1 of 2 approvals");
+    expect(within(list).getByRole("link", { name: "Review in the CHK document" })).toHaveAttribute("href", "/p/CHK/spec?waiting=true&changes=approved");
     expect(await axeViolations()).toEqual([]);
   });
 

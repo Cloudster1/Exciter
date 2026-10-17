@@ -89,6 +89,27 @@ export function useRequestReview(reqKey: string) {
   });
 }
 
+/** One review with its approvers, decisions and what signing it means, read when it is needed. */
+export function useReview(reviewId: string | undefined) {
+  return useQuery({
+    queryKey: [...reviewsKey, "one", reviewId] as const,
+    queryFn: async (): Promise<Review> => (await api.GET("/reviews/{reviewID}", { params: { path: { reviewID: reviewId! } } })).data!.review,
+    enabled: Boolean(reviewId),
+  });
+}
+
+export type BulkReviewResult = components["schemas"]["BulkReviewRequestResult"];
+
+/** Asks for the review of several requirements at the revisions the reader saw, each on its own (#171). */
+export function useBulkRequestReview(projectKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { items: { key: string; revision: number }[]; comment?: string }): Promise<BulkReviewResult[]> =>
+      (await api.POST("/projects/{projectKey}/reviews", { params: { path: { projectKey } }, body })).data!.results,
+    onSettled: () => Promise.all([["spec"], reviewsKey, ["requirements"]].map((queryKey) => queryClient.invalidateQueries({ queryKey }))),
+  });
+}
+
 /** Approves or rejects the revision under review, as read. */
 export function useDecide(reqKey: string) {
   const queryClient = useQueryClient();
