@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 )
@@ -101,6 +102,9 @@ func applyStatus(st *Status, in StatusInput) error {
 	if in.Position != nil {
 		st.Position = max(*in.Position, 0)
 	}
+	if in.Locks != nil {
+		st.Locks = *in.Locks
+	}
 	return nil
 }
 
@@ -137,18 +141,29 @@ func (s *Service) CreateStatus(ctx context.Context, actor uuid.UUID, projectKey 
 			}
 		}
 		var id uuid.UUID
-		err = tx.QueryRow(ctx, `INSERT INTO req_status (project_id, name, category, description, position)
-			VALUES ($1, $2, $3, $4, $5) RETURNING id`, p.ID, st.Name, st.Category, st.Description, st.Position).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO req_status (project_id, name, category, description, position, locks)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, p.ID, st.Name, st.Category, st.Description, st.Position, st.Locks).Scan(&id)
 		if taken(err) {
 			return &InvalidError{"name", "Another status of this project is called that. Pick another name."}
 		}
 		if err != nil {
 			return err
 		}
+		if st.Locks {
+			if err := noteLocks(ctx, tx, actor, p.Key, id, &st); err != nil {
+				return err
+			}
+		}
 		out, err = statusByID(ctx, tx, p.ID, id)
 		return err
 	})
 	return out, lsn, err
+}
+
+// noteLocks audits a status made to lock its requirements, or to stop (#205).
+func noteLocks(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectKey string, id uuid.UUID, st *Status) error {
+	return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionStatusLocksSet, TargetType: "status", TargetID: &id, Actor: actor,
+		Data: map[string]any{"project": projectKey, "status": st.Name, "locks": st.Locks}})
 }
 
 // UpdateStatus renames a status, or changes its category, description or place in the list.
@@ -163,16 +178,22 @@ func (s *Service) UpdateStatus(ctx context.Context, actor uuid.UUID, projectKey 
 		if err != nil {
 			return err
 		}
+		locked := st.Locks
 		if err := applyStatus(st, in); err != nil {
 			return err
 		}
-		_, err = tx.Exec(ctx, `UPDATE req_status SET name = $2, category = $3, description = $4, position = $5 WHERE id = $1`,
-			id, st.Name, st.Category, st.Description, st.Position)
+		_, err = tx.Exec(ctx, `UPDATE req_status SET name = $2, category = $3, description = $4, position = $5, locks = $6 WHERE id = $1`,
+			id, st.Name, st.Category, st.Description, st.Position, st.Locks)
 		if taken(err) {
 			return &InvalidError{"name", "Another status of this project is called that. Pick another name."}
 		}
 		if err != nil {
 			return err
+		}
+		if st.Locks != locked {
+			if err := noteLocks(ctx, tx, actor, p.Key, id, st); err != nil {
+				return err
+			}
 		}
 		out, err = statusByID(ctx, tx, p.ID, id)
 		return err

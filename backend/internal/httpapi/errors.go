@@ -155,6 +155,12 @@ func toAPIError(err error) *APIError {
 		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
 			Message: "Exciter does not sign in through an identity provider yet. Sign in with a password, or ask an administrator to set one up."}
 	default:
+		if apiErr := lockedError(err); apiErr != nil {
+			return apiErr
+		}
+		if apiErr := lockError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := projectError(err); apiErr != nil {
 			return apiErr
 		}

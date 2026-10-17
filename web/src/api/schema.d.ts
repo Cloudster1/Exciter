@@ -4063,7 +4063,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -4080,7 +4080,7 @@ export interface components {
             via: components["schemas"]["Via"] | null;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -4112,6 +4112,7 @@ export interface components {
             name: string;
             projectKey: string;
             root: components["schemas"]["RequirementRef"] | null;
+            signing: components["schemas"]["BaselineSigning"] | null;
         };
         BaselineComparison: {
             externalLinks: components["schemas"]["BaselineExternalChange"][];
@@ -4167,6 +4168,7 @@ export interface components {
             limit: number;
             offset: number;
             rows: components["schemas"]["RequirementRef"][];
+            signing: components["schemas"]["BaselineSigning"] | null;
             total: number;
             with: components["schemas"]["BaselineSide"] | null;
         };
@@ -4215,6 +4217,15 @@ export interface components {
             subjectType: "user" | "group";
             /** Format: uuid */
             userId?: string;
+        };
+        BaselineSigning: {
+            canSign: boolean;
+            frozen: boolean;
+            meaning: string;
+            required: number;
+            signatures: number;
+            signed: boolean;
+            signers: components["schemas"]["BaselineSigner"][];
         };
         BaselineSigningRule: {
             required: number;
@@ -4471,6 +4482,9 @@ export interface components {
             /** Format: date-time */
             lockedAt: string | null;
             name: string;
+            signatures: number;
+            signaturesRequired: number;
+            signed: boolean;
             /** Format: date-time */
             takenAt: string;
             takenBy: string;
@@ -5356,6 +5370,7 @@ export interface components {
             /** @enum {string} */
             kind: "requirement" | "section";
             labels: string[];
+            lock: components["schemas"]["RequirementLock"] | null;
             number: number;
             outline: string;
             owner: components["schemas"]["PersonRef"] | null;
@@ -5390,10 +5405,19 @@ export interface components {
         };
         RequirementChange: {
             /** @enum {string} */
-            field: "status" | "owner" | "priority" | "labels" | "place" | "key" | "link" | "attachment" | "trash" | "reuse";
+            field: "status" | "owner" | "priority" | "labels" | "place" | "key" | "link" | "attachment" | "trash" | "reuse" | "lock";
             from: string;
             reason: string;
             to: string;
+        };
+        RequirementLock: {
+            /** @enum {string} */
+            by: "status" | "hand";
+            /** Format: date-time */
+            lockedAt: string | null;
+            lockedByName: string;
+            reason: string;
+            status: components["schemas"]["StatusRef"] | null;
         };
         RequirementLockRequest: {
             reason: string;
@@ -5859,6 +5883,7 @@ export interface components {
             change: components["schemas"]["SpecChange"] | null;
             comments: components["schemas"]["CommentCounts"];
             labels: string[];
+            lock: components["schemas"]["RequirementLock"] | null;
             node: components["schemas"]["TreeNode"];
             owner: components["schemas"]["PersonRef"] | null;
             priority: ("must" | "should" | "could" | "wont") | null;
@@ -6023,6 +6048,7 @@ export interface components {
             description: string;
             /** Format: uuid */
             id: string;
+            locks: boolean;
             name: string;
             position: number;
             requirements: number;
@@ -6031,6 +6057,7 @@ export interface components {
             /** @enum {string} */
             category?: "draft" | "review" | "approved" | "done" | "closed";
             description?: string;
+            locks?: boolean;
             name?: string;
             position?: number;
         };
@@ -7669,7 +7696,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -7718,7 +7745,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -8553,15 +8580,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -8628,15 +8646,6 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11298,15 +11307,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11362,15 +11362,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11402,15 +11393,6 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15625,15 +15607,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -15678,15 +15651,6 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

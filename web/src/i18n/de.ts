@@ -17,6 +17,7 @@ import { coverageDe } from "./coverage.de";
 import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
 import { reuseDe } from "./reuse.de";
+import { controlDe } from "./control.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
@@ -320,6 +321,12 @@ export const de: Messages = {
       "project.signatures_set": "Signierte Genehmigungen geändert",
       "project.library_set": "Bibliothek geändert",
       "trace_model.saved": "Verfolgungsmodell gespeichert",
+      "baseline.signed": "Baseline unterschrieben",
+      "baseline_signing.saved": "Unterzeichnende der Baselines benannt",
+      "baseline_signing.removed": "Unterschreiben von Baselines beendet",
+      "requirement.locked": "Anforderung gesperrt",
+      "requirement.unlocked": "Anforderung entsperrt",
+      "status.locks_set": "Sperre eines Status geändert",
     },
     targetTypes: {
       user: "Person",
@@ -331,6 +338,8 @@ export const de: Messages = {
       project: "Projekt",
       requirement: "Anforderung",
       workflow: "Workflow",
+      status: "Status",
+      baseline: "Baseline",
       api_token: "Zugriffstoken",
       oauth_grant: "Verbundene App",
       armature_connection: "Armature-Verbindung",
@@ -356,6 +365,7 @@ export const de: Messages = {
   armature: armatureDe,
   stator: statorDe,
   reuse: reuseDe,
+  control: controlDe,
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,

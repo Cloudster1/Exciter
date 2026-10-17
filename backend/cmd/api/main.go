@@ -158,7 +158,7 @@ func run() error {
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)
 	attributes := attribute.NewService(cluster)
-	baselines := baseline.NewService(cluster)
+	baselines := baseline.NewService(cluster).WithPasswords(accounts)
 	files := attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log)
 	server := &httpapi.Server{
 		DB:              cluster,

@@ -383,6 +383,10 @@ export const BASELINE_SPEC_PAGE_SIZE = 50;
 /** The longest name and description a baseline takes, as the API's baseline.MaxNameLength and MaxDescriptionLength. */
 export const BASELINE_NAME_MAX_LENGTH = 100;
 export const BASELINE_DESCRIPTION_MAX_LENGTH = 2000;
+/** The most signatures a baseline's signing rule asks for, the API's baseline.MaxSignatures (#205). */
+export const BASELINE_SIGNATURES_MAX = 10;
+/** The longest reason a hand lock takes, the API's requirement.MaxLockReasonLength (#205). */
+export const LOCK_REASON_MAX_LENGTH = 500;
 
 /** How many requirements one page of a coverage report lists, the API's trace.CoverageDefaultLimit (#38). */
 export const COVERAGE_PAGE_SIZE = 50;

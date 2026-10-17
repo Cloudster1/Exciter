@@ -17,12 +17,12 @@ var ErrNotFound = errors.New("status or workflow not found")
 
 const selectStatus = `
 SELECT s.id, s.name, s.category, s.description, s.position,
-       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL)
+       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL), s.locks
 FROM req_status s`
 
 func scanStatus(row pgx.CollectableRow) (Status, error) {
 	var s Status
-	err := row.Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.Position, &s.Requirements)
+	err := row.Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.Position, &s.Requirements, &s.Locks)
 	return s, err
 }
 
@@ -53,7 +53,7 @@ func Load(ctx context.Context, tx db.DBTX, id uuid.UUID) (*Workflow, error) {
 	w.ProjectDefault = projectDefault != nil && *projectDefault == id.String()
 	rows, err := tx.Query(ctx, `
 		SELECT s.id, s.name, s.category, s.description, s.position,
-		       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL),
+		       (SELECT count(*)::int FROM requirement r WHERE r.status_id = s.id AND r.trashed_at IS NULL), s.locks,
 		       st.is_initial, st.on_revision_status_id, st.layout_x, st.layout_y
 		FROM workflow_step st JOIN req_status s ON s.id = st.status_id
 		WHERE st.workflow_id = $1 ORDER BY s.position, lower(s.name)`, id)
@@ -66,7 +66,7 @@ func Load(ctx context.Context, tx db.DBTX, id uuid.UUID) (*Workflow, error) {
 			x, y *int
 		)
 		err := row.Scan(&st.Status.ID, &st.Status.Name, &st.Status.Category, &st.Status.Description, &st.Status.Position, &st.Status.Requirements,
-			&st.IsInitial, &st.OnRevisionStatusID, &x, &y)
+			&st.Status.Locks, &st.IsInitial, &st.OnRevisionStatusID, &x, &y)
 		if x != nil && y != nil {
 			st.Layout = &Point{X: *x, Y: *y}
 		}

@@ -15,6 +15,7 @@ import { baselineDocumentHref } from "@/api/documents";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 import { BaselineMatrixView } from "./BaselineMatrix";
+import { BaselineSigning } from "./BaselineSigning";
 import { keepsBaselines } from "./Baselines";
 
 const takenOn = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
@@ -45,6 +46,7 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
         <ExportMenu title={baseline.name} href={(format) => baselineDocumentHref(baseline.id, format)} />
       </div>
       <Actions project={project} baseline={baseline} />
+      <BaselineSigning baseline={baseline} />
       <ComparePicker project={project} baseline={baseline} />
       <Segmented
         label={t.baseline.pageTabs}
@@ -67,6 +69,13 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(baseline.name);
   const fields = update.error instanceof ApiError ? update.error.fields : {};
+  if (baseline.signing && baseline.signing.signatures > 0) {
+    return (
+      <p className="text-sm text-ink-muted" data-baseline-locked="signed">
+        {t.control.signedHint}
+      </p>
+    );
+  }
   if (baseline.locked) {
     return (
       <p className="flex items-center gap-2 text-sm text-ink-muted" data-baseline-locked="">

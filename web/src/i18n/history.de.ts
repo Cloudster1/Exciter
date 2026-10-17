@@ -66,6 +66,7 @@ export const historyDe: typeof historyEn = {
     attachment: "eine Datei",
     trash: "den Papierkorb",
     reuse: "wie sie ihrer Bibliotheksquelle folgt",
+    lock: "die Sperre",
   },
   because: (reason: string) => `Weil: ${reason}`,
 };

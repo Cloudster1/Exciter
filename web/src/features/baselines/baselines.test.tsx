@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Baseline, BaselineComparison } from "@/api/baselines";
 import type { TreeNode } from "@/api/tree";
-import { renderAt, stubApi } from "@/test/app";
+import { renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
@@ -28,6 +28,7 @@ function aBaseline(over: Partial<Baseline> = {}): Baseline {
     createdByName: "Ada Lovelace",
     createdAt: "2026-10-01T08:00:00Z",
     detail: 2,
+    signing: null,
     ...over,
   };
 }
@@ -298,5 +299,106 @@ describe("a comparison", () => {
     });
     await renderAt(`/p/CHK/baselines/${id}/compare`);
     expect(await screen.findByText("Nothing differs.")).toBeInTheDocument();
+  });
+});
+
+describe("a signed baseline", () => {
+  const signing = (over: Partial<NonNullable<Baseline["signing"]>> = {}): NonNullable<Baseline["signing"]> => ({
+    required: 2,
+    signers: [{ subjectType: "user", userId: "0195f000-0000-7000-8000-0000000000c1", name: "Dave Doe" }],
+    signatures: 0,
+    signed: false,
+    frozen: false,
+    canSign: true,
+    meaning: "I release the baseline Release 1.0 of CHK as the agreed state of its requirements.",
+    ...over,
+  });
+
+  function stubSigned(baseline: Baseline, more: Parameters<typeof stubApi>[0] = {}) {
+    return stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      [`GET /baselines/${id}`]: { status: 200, body: { baseline } },
+      "GET /projects/CHK/baselines": { status: 200, body: { baselines: [baseline] } },
+      [`GET /baselines/${id}/spec`]: { status: 200, body: { entries: [], total: 0, limit: 50, offset: 0 } },
+      [`GET /baselines/${id}/signatures`]: {
+        status: 200,
+        body: {
+          signatures: [
+            {
+              signerName: "Carol Cole",
+              meaning: "I release the baseline Release 1.0 of CHK as the agreed state of its requirements.",
+              method: "password",
+              authenticatedAt: "2026-10-02T08:00:00Z",
+              signedAt: "2026-10-02T08:00:00Z",
+              contentHash: "abc",
+            },
+          ],
+        },
+      },
+      ...more,
+    });
+  }
+
+  it("is signed with the meaning shown and the password", async () => {
+    const sent = stubSigned(aBaseline({ signing: signing() }), {
+      [`POST /baselines/${id}/signatures`]: {
+        status: 200,
+        body: { baseline: aBaseline({ locked: true, signing: signing({ signatures: 1, frozen: true, canSign: false, meaning: "" }) }) },
+      },
+    });
+    await renderAt(`/p/CHK/baselines/${id}`, { me: { ...signedIn, signsWith: "password" } });
+    const panel = await screen.findByRole("heading", { name: "Signing" });
+    expect(panel.closest("[data-baseline-signing]")).toHaveTextContent("Released by 2 signatures");
+    await userEvent.click(screen.getByRole("button", { name: "Sign" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign the baseline" });
+    expect(within(dialog).getByText(/I release the baseline Release 1.0/)).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.type(within(dialog).getByLabelText("Your password"), "secret");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign and release" }));
+    await waitFor(() =>
+      expect(sent.find((each) => each.method === "POST")?.body).toEqual({
+        meaning: "I release the baseline Release 1.0 of CHK as the agreed state of its requirements.",
+        password: "secret",
+      }),
+    );
+    expect(await screen.findByText("Your signature is given.")).toBeInTheDocument();
+  });
+
+  it("says it is signed, by whom, and offers no rename or delete", async () => {
+    stubSigned(aBaseline({ locked: true, signing: signing({ signatures: 2, signed: true, frozen: true, canSign: false, meaning: "" }) }));
+    await renderAt(`/p/CHK/baselines/${id}`);
+    const panel = (await screen.findByRole("heading", { name: "Signing" })).closest("[data-baseline-signing]") as HTMLElement;
+    expect(panel).toHaveAttribute("data-baseline-signing", "signed");
+    expect(panel).toHaveTextContent("Signed, with 2 of 2 signatures");
+    expect(await within(panel).findByText(/Carol Cole signed/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("is marked in the list while it is being signed", async () => {
+    stubSigned(aBaseline({ locked: true, signing: signing({ signatures: 1, frozen: true }) }));
+    await renderAt("/p/CHK/baselines");
+    const list = await screen.findByRole("list", { name: "Baselines" });
+    expect(list.querySelector("[data-baseline-signed]")).toHaveTextContent("Signing: 1 of 2 signatures");
+  });
+
+  it("has its signers named by the project's administrators", async () => {
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/approval-rules": { status: 200, body: { rules: [] } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [] } },
+      "GET /projects/CHK/baseline-signing": { status: 200, body: { rule: null } },
+      "PUT /projects/CHK/baseline-signing": { status: 200, body: { rule: { required: 1, signers: [], updatedAt: "2026-10-02T08:00:00Z" } } },
+    });
+    await renderAt("/p/CHK/settings?tab=approval");
+    const card = (await screen.findByRole("heading", { name: "Who signs baselines" })).closest("[data-signing-rule]") as HTMLElement;
+    expect(await within(card).findByText("Nobody signs this project's baselines.")).toBeInTheDocument();
+    await userEvent.click(within(card).getByRole("button", { name: "Name who signs" }));
+    await userEvent.click(within(card).getByRole("button", { name: "Save" }));
+    expect(await within(card).findByText("Name at least one person or group who signs.")).toBeInTheDocument();
+    expect(sent.some((each) => each.method === "PUT")).toBe(false);
+    expect(await axeViolations()).toEqual([]);
   });
 });

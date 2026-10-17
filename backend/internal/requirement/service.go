@@ -93,7 +93,7 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
                  WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + `
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + `
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -130,6 +130,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		copied               Ref
 		copiedNumber         int
 		reused               scannedReuse
+		locked               scannedLock
 	)
 	r := &l.Requirement
 	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
@@ -137,7 +138,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
-		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, reused.targets()...)...)
+		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(reused.targets(), locked.targets()...)...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -179,7 +180,8 @@ func scan(row pgx.Row) (*loaded, error) {
 	}
 	open := r.TrashedAt == nil
 	l.editor = edit
-	r.Can = Can{Edit: edit && open, Transition: (edit || approve) && open, Delete: edit && open, Link: edit && open, Comment: alter && open}
+	r.Lock = locked.lock(r.Status)
+	r.Can = Can{Edit: edit && open, Transition: (edit || approve) && open, Delete: edit && open, Link: edit && open, Comment: alter && open}.locked(r.Lock)
 	return &l, nil
 }
 

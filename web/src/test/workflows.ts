@@ -2,7 +2,7 @@ import type { Status, StatusCategory, Workflow } from "@/api/workflows";
 
 /** A status as the API answers it, in no requirement unless a test says otherwise. */
 export function aStatus(id: string, name: string, category: StatusCategory, overrides: Partial<Status> = {}): Status {
-  return { id, name, category, description: "", position: 0, requirements: 0, ...overrides };
+  return { id, name, category, description: "", position: 0, requirements: 0, locks: false, ...overrides };
 }
 
 export const draft = aStatus("0195f000-0000-7000-8000-000000000b01", "Draft", "draft", { position: 0, requirements: 2 });

@@ -120,5 +120,8 @@ func BaselineMatrixSheet(name string, m *baseline.Matrix) xlsx.Sheet {
 	if len(m.Rows) < m.Total {
 		rows = append(rows, []xlsx.Cell{xlsx.Text(fmt.Sprintf("This file holds the first %d of the %d requirements the baseline holds.", len(m.Rows), m.Total), xlsx.Note)})
 	}
+	if note := SigningNote(m.Signing); note != "" {
+		rows = append(rows, []xlsx.Cell{xlsx.Text(note, xlsx.Note)})
+	}
 	return xlsx.Sheet{Name: name, Rows: rows, FreezeRows: 1, FreezeColumns: 2, Filter: true}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/signing"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
@@ -44,7 +45,8 @@ func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
 // Service takes, keeps and compares baselines.
 type Service struct {
-	db *db.Cluster
+	db        *db.Cluster
+	passwords signing.Passwords
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
@@ -69,16 +71,26 @@ func checkDescription(description string) (string, error) {
 const selectBaseline = `
 SELECT b.id, p.key, b.name, b.description, b.root_id, b.root_number, COALESCE(r.kind, 'section'), COALESCE(r.title, ''),
        COALESCE(r.revision, 0), r.trashed_at IS NOT NULL, (SELECT count(*)::int FROM baseline_item i WHERE i.baseline_id = b.id),
-       b.locked_at, COALESCE(u.name, ''), b.created_at, b.detail, b.project_id
+       b.locked_at, COALESCE(u.name, ''), b.created_at, b.detail, b.project_id,
+       (SELECT count(*)::int FROM baseline_signature s WHERE s.baseline_id = b.id), bs.required, rr.required,
+       p.archived_at IS NULL AND NOT EXISTS (SELECT 1 FROM baseline_signature s WHERE s.baseline_id = b.id AND s.signer_id = current_actor_id())
+       AND CASE WHEN bs.baseline_id IS NOT NULL THEN baseline_signer_named(b.id, current_actor_id())
+                ELSE rr.project_id IS NOT NULL AND baseline_signing_rule_names(b.project_id, current_actor_id()) END
 FROM baseline b
 JOIN project p ON p.id = b.project_id
 LEFT JOIN requirement r ON r.id = b.root_id
-LEFT JOIN app_user u ON u.id = b.created_by`
+LEFT JOIN app_user u ON u.id = b.created_by
+LEFT JOIN baseline_signing bs ON bs.baseline_id = b.id
+LEFT JOIN baseline_signing_rule rr ON rr.project_id = b.project_id`
 
 // found is a baseline with the project it is of.
 type found struct {
 	Baseline
 	projectID uuid.UUID
+	// signatures, frozen and rule are how many signed, the number its first signature froze, and the project's now.
+	signatures   int
+	frozen, rule *int
+	maySign      bool
 }
 
 func scanBaseline(row pgx.CollectableRow) (found, error) {
@@ -89,7 +101,8 @@ func scanBaseline(row pgx.CollectableRow) (found, error) {
 		root       requirement.Ref
 	)
 	err := row.Scan(&f.ID, &f.ProjectKey, &f.Name, &f.Description, &rootID, &rootNumber, &root.Kind, &root.Title, &root.Revision,
-		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.Detail, &f.projectID)
+		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.Detail, &f.projectID,
+		&f.signatures, &f.frozen, &f.rule, &f.maySign)
 	if rootID != nil && rootNumber != nil {
 		root.ID, root.ProjectKey, root.Key = *rootID, f.ProjectKey, requirement.Key(f.ProjectKey, *rootNumber)
 		f.Root = &root
@@ -103,7 +116,11 @@ func baselines(ctx context.Context, tx db.DBTX, rest string, args ...any) ([]fou
 	if err != nil {
 		return nil, fmt.Errorf("read the baselines: %w", err)
 	}
-	return pgx.CollectRows(rows, scanBaseline)
+	all, err := pgx.CollectRows(rows, scanBaseline)
+	if err != nil {
+		return nil, err
+	}
+	return all, fillSigning(ctx, tx, all)
 }
 
 func get(ctx context.Context, tx db.DBTX, id uuid.UUID) (*found, error) {
@@ -299,6 +316,9 @@ func (s *Service) Update(ctx context.Context, actor, id uuid.UUID, in UpdateInpu
 			return err
 		}
 		renames := in.Name != nil || in.Description != nil
+		if f.signatures > 0 && (renames || (in.Locked != nil && !*in.Locked)) {
+			return ErrSigned
+		}
 		if f.Locked {
 			if renames || (in.Locked != nil && !*in.Locked) {
 				return ErrLocked
@@ -346,6 +366,9 @@ func (s *Service) Delete(ctx context.Context, actor, id uuid.UUID) (db.LSN, erro
 		f, err := managed(ctx, tx, actor, id)
 		if err != nil {
 			return err
+		}
+		if f.signatures > 0 {
+			return ErrSigned
 		}
 		if f.Locked {
 			return ErrLocked

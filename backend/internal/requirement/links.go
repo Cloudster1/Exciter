@@ -25,7 +25,8 @@ type Endpoint struct {
 	// TypeID and TypeName are its type, nil and empty for one written before types.
 	TypeID   *uuid.UUID
 	TypeName string
-	// Linkable is the reader editing it while it is out of the trash and its project open.
+	// Linkable is the reader editing it while it is out of the trash and its project open; a lock on it is the
+	// database's to refuse, for only a link from it is refused.
 	Linkable bool
 	// Archived says its project is archived, which leaves it as it is.
 	Archived bool
@@ -42,7 +43,7 @@ func FindEndpoint(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string)
 			Status: l.Status, Trashed: l.TrashedAt != nil},
 		ProjectID: l.projectID,
 		TypeID:    l.typeID(),
-		Linkable:  l.Can.Link && !l.archived,
+		Linkable:  l.editor && l.TrashedAt == nil && !l.archived,
 		Archived:  l.archived,
 	}
 	if l.Type != nil {

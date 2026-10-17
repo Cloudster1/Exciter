@@ -101,6 +101,9 @@ func (s *Service) Baseline(ctx context.Context, reader, id uuid.UUID) (*Document
 	}
 	doc := &Document{Kind: KindBaseline, Title: b.Name, ProjectKey: b.ProjectKey, ExportedAt: time.Now().UTC(), Entries: []Entry{}, Total: b.Items,
 		Baseline: &BaselineInfo{ID: b.ID, Name: b.Name, Description: b.Description, TakenAt: b.CreatedAt, TakenBy: b.CreatedByName, LockedAt: b.LockedAt}}
+	if g := b.Signing; g != nil && g.Signatures > 0 {
+		doc.Baseline.Signatures, doc.Baseline.SignaturesRequired, doc.Baseline.Signed = g.Signatures, g.Required, g.Signed
+	}
 	err = s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, b.ProjectKey)
 		if err != nil {

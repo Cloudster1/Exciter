@@ -70,7 +70,7 @@ sentence that says what to do, as in M1.
 | `PUT /projects/{projectKey}/baseline-signing` | administer | `{rule}`; 422 |
 | `DELETE /projects/{projectKey}/baseline-signing` | administer | 204 |
 | `GET /baselines/{baselineID}/signatures` | view | `{signatures}` |
-| `POST /baselines/{baselineID}/signatures` | a signer, signed in | `{baseline}`; 403 `session_only`, 409 `no_signing_rule`, `already_signed`, `signature_spent`, `baseline_changed`; 422 on `password`; 429 `too_many_attempts` |
+| `POST /baselines/{baselineID}/signatures` | a signer, signed in | `{baseline}`; 403 `session_only`, `not_a_signer`; 409 `no_signing_rule`, `already_signed`, `signature_spent`, `baseline_changed`; 422 on `password`; 429 `too_many_attempts` |
 | `POST /requirements/{reqKey}/lock` | administer | `{requirement}`; 409 `section_not_locked`; 422 |
 | `DELETE /requirements/{reqKey}/lock` | administer | `{requirement}`; 409 `not_locked_by_hand` |
 
@@ -82,7 +82,7 @@ sentence that says what to do, as in M1.
   - `required` is how many signatures release a baseline, 1 to
     `review.MaxRequired`.
   - Saving and removing it are audited as `baseline_signing.saved` and
-    `baseline_signing.removed`.
+    `baseline_signing.removed`, and each signature as `baseline.signed`.
   - Without a rule, a baseline is not signed: signing answers 409
     `no_signing_rule`, "Nobody signs this project's baselines yet. Ask a
     project administrator to name who signs them."
@@ -91,9 +91,9 @@ sentence that says what to do, as in M1.
   as it stood then, so a later change to the rule does not change who signs
   a baseline already being signed.
 - **Who signs.** Somebody the frozen signers name, directly or through a
-  group, who may view the project. Each person signs a baseline once; a
-  second time is 409 `already_signed`. A token never signs (403
-  `session_only`), as in #46.
+  group, who may view the project; anybody else is 403 `not_a_signer`. Each
+  person signs a baseline once; a second time is 409 `already_signed`. A
+  token never signs (403 `session_only`), as in #46.
 - **Proving who one is** is #46's: the request takes `password`, or the
   `reauthentication` a fresh sign-in at the identity provider left, through
   `GET /auth/oidc/reauthenticate?next=`. Its refusals are #46's: 422 on
@@ -108,8 +108,11 @@ sentence that says what to do, as in M1.
   never changes.
 - **The content hash** is the SHA-256, in lowercase hex, of the baseline's
   content in a fixed form, one line per row, each ending in `\n`:
-  - `baseline <id> <project key> <root key or ->`
-  - per item, in path order: `item <requirement id> <revision> <revision hash>`
+  - `baseline <id> <project id> <root id or ->`, by ids, since a project's
+    key can change
+  - per item, in path order:
+    `item <requirement id> <revision> <revision hash or -> <path>`, the path
+    its outline numbers joined by `.`
   - per trace link, ordered by type id, source id and target id:
     `link <type id> <source id> <target id>`
   - per Armature link, then per Stator link, ordered by their ids:
@@ -118,10 +121,15 @@ sentence that says what to do, as in M1.
   The SQL function `baseline_content_hash(id)` computes it, and the guard
   recomputes it. `baseline.ContentHash` computes it in Go from the same
   rows, for the unit test and for the report.
-- **The baseline gains** `signing: {required, signers, signatures, signed}`,
-  null while it is unsigned and no rule is frozen on it.
+- **The baseline gains** `signing: {required, signers, signatures, signed,
+  frozen, canSign, meaning}`, null while nobody signs the project's baselines
+  and no rule is frozen on it.
+  - Until the first signature it shows the project's rule, `frozen` false;
+    from then on the rule frozen on the baseline.
   - `signatures` counts those given.
   - `signed` is true once it reaches `required`.
+  - `canSign` says the caller may sign it now, in a session, and `meaning`
+    is then the sentence they sign, in their language, empty otherwise.
   - The list of signatures is `GET /baselines/{baselineID}/signatures`,
     each `{signerName, meaning, method, authenticatedAt, signedAt,
     contentHash}`.
@@ -185,6 +193,35 @@ sentence that says what to do, as in M1.
   who or which status locked it and why; the editor, move and trash are
   not offered; the status settings gain Locks requirements; an
   administrator locks and unlocks from the requirement's menu.
+
+- **As built** (#205):
+  - The proof of identity of #46 is `internal/signing`: `Prove` checks the
+    password before the transaction, `Spend` finds or records the
+    re-authentication in it. `review` keeps its error values and
+    `WithSigner` over it, so its refusals and handlers read as before.
+  - `baseline_content_hash` hashes in the database for the guard;
+    `baseline.ContentHash` hashes in Go the rows `baseline_content_rows`
+    hands a reader of the project, who may not read a trashed requirement's
+    revisions, so both hash the same rows.
+  - The first signature freezes the rule into `baseline_signing` and
+    `baseline_signer` and sets `locked_at`, all in the guard, so no writer
+    signs a baseline its project's rule does not name.
+  - The lock is three triggers, `requirement_revision_unlocked`,
+    `requirement_row_unlocked` and `trace_link_unlocked`, over one function,
+    `requirement_lock_sentence`, whose sentence is the refusal's message:
+    the API, the CSV and ReqIF imports and the MCP tools say it as it is.
+    A first revision is a requirement's making and is never refused, so a
+    status that locks may be where requirements start.
+  - The row trigger compares what it guards, since a trigger on columns
+    fires for any of them set, changed or not.
+  - A hand lock is written only by `requirement_lock` and
+    `requirement_unlock`, which hold it to the project's administrators; the
+    app role holds no grant on its columns. Locking needs a reason.
+  - A requirement locked answers `can.edit`, `can.delete` and `can.link`
+    false; linking to it reads the reader's edit right alone, so a link to
+    it from another requirement goes on.
+  - The signing rule's signers are picked as an approval rule's, and the
+    project's settings show it under Approval, beside the approval rules.
 
 ## #206 Field rules
 

@@ -106,6 +106,16 @@ const (
 	ActionOAuthRevoked = "oauth.revoked"
 	// ActionInstallationOAuthSwitched is OAuth connections switched on or off for the installation (#188).
 	ActionInstallationOAuthSwitched = "installation.oauth_switched"
+	// ActionBaselineSigned, ActionBaselineSigningSaved and ActionBaselineSigningRemoved keep who released a baseline and
+	// who may (#205).
+	ActionBaselineSigned         = "baseline.signed"
+	ActionBaselineSigningSaved   = "baseline_signing.saved"
+	ActionBaselineSigningRemoved = "baseline_signing.removed"
+	// ActionRequirementLocked, ActionRequirementUnlocked and ActionStatusLocksSet keep what holds requirements as they are
+	// (#205).
+	ActionRequirementLocked   = "requirement.locked"
+	ActionRequirementUnlocked = "requirement.unlocked"
+	ActionStatusLocksSet      = "status.locks_set"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -121,7 +131,8 @@ var Actions = []string{
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
 	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved, ActionOAuthGranted,
-	ActionInstallationOAuthSwitched, ActionOAuthRevoked,
+	ActionInstallationOAuthSwitched, ActionOAuthRevoked, ActionBaselineSigned, ActionBaselineSigningSaved, ActionBaselineSigningRemoved,
+	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

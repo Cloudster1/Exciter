@@ -4,30 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/signing"
 )
 
 var (
 	// ErrSignatureNeedsSession refuses a signature from anything but a signed-in session, such as a token.
-	ErrSignatureNeedsSession = errors.New("a signature is given in a signed-in session")
+	ErrSignatureNeedsSession = signing.ErrNeedsSession
 	// ErrTooManyAttempts refuses signing after a run of wrong passwords, until it has passed.
-	ErrTooManyAttempts = errors.New("too many wrong passwords")
+	ErrTooManyAttempts = signing.ErrTooManyAttempts
 	// ErrSignatureSpent refuses a re-authentication that is used up, expired or of another session.
-	ErrSignatureSpent = errors.New("that re-authentication is used up or has expired")
+	ErrSignatureSpent = signing.ErrSpent
 )
 
 // Passwords checks the signed-in person's own password, as auth.Service does.
-type Passwords interface {
-	VerifyOwnPassword(ctx context.Context, userID uuid.UUID, password string) error
-}
+type Passwords = signing.Passwords
 
 // WithPasswords lets the service check a signer's password; without it only a re-authentication signs.
 func (s *Service) WithPasswords(p Passwords) *Service {
@@ -35,22 +32,9 @@ func (s *Service) WithPasswords(p Passwords) *Service {
 	return s
 }
 
-// signer is who decides, as the request that brought them: their session, if any, and their language.
-type signer struct {
-	session *uuid.UUID
-	lang    string
-}
-
-type signerKey struct{}
-
 // WithSigner says which session a request rides on and in which language its reader reads, for signatures.
 func WithSigner(ctx context.Context, session *uuid.UUID, lang string) context.Context {
-	return context.WithValue(ctx, signerKey{}, signer{session: session, lang: lang})
-}
-
-func signerOf(ctx context.Context) signer {
-	s, _ := ctx.Value(signerKey{}).(signer)
-	return s
+	return signing.With(ctx, session, lang)
 }
 
 // meaning is the sentence a signature means, which the signer confirms and the signature keeps.
@@ -81,60 +65,22 @@ func (s *Service) signed(ctx context.Context, id uuid.UUID) (bool, error) {
 	return signed, err
 }
 
-// proveSigner checks what a signature is given with before the decision is written: a password now, or a
-// re-authentication the provider gave. A password is checked here, outside the transaction, for it is slow.
+// proveSigner checks what a signature is given with before the decision is written.
 func (s *Service) proveSigner(ctx context.Context, actor uuid.UUID, in DecisionInput) error {
-	who := signerOf(ctx)
-	if who.session == nil {
-		return ErrSignatureNeedsSession
+	err := signing.Prove(ctx, s.passwords, actor, in.Password, in.Reauthentication,
+		"This decision is an electronic signature. Sign with your password, or sign in again at the identity provider.")
+	var field *signing.FieldError
+	if errors.As(err, &field) {
+		return &FieldError{Field: field.Field, Message: field.Message}
 	}
-	switch {
-	case in.Password != "":
-		if s.passwords == nil {
-			return &FieldError{Field: "password", Message: "Signing with a password is not set up here. Sign in again at the identity provider to sign."}
-		}
-		switch err := s.passwords.VerifyOwnPassword(ctx, actor, in.Password); {
-		case errors.Is(err, auth.ErrWrongPassword):
-			return &FieldError{Field: "password", Message: "That is not your password. Type it again to sign."}
-		case errors.Is(err, auth.ErrNoPassword):
-			return &FieldError{Field: "password", Message: "You sign in through the identity provider, so you sign by signing in there again."}
-		case errors.Is(err, auth.ErrTooManyAttempts):
-			return ErrTooManyAttempts
-		case err != nil:
-			return err
-		}
-	case in.Reauthentication == nil:
-		return &FieldError{Field: "password", Message: "This decision is an electronic signature. Sign with your password, or sign in again at the identity provider."}
-	}
-	return nil
+	return err
 }
 
-// sign writes the signature a decision stands on, in the decision's transaction: a password just checked spends a
-// re-authentication made for it, a sign-in at the provider spends the one it gave.
+// sign writes the signature a decision stands on, in the decision's transaction, spending the proof it was given.
 func sign(ctx context.Context, tx db.DBTX, actor uuid.UUID, id uuid.UUID, h *held, in DecisionInput) error {
-	who := signerOf(ctx)
-	var (
-		proof  uuid.UUID
-		method string
-		at     time.Time
-	)
-	if in.Password != "" {
-		if err := tx.QueryRow(ctx, `
-			INSERT INTO reauthentication (user_id, session_id, method, authenticated_at, expires_at)
-			VALUES ($1, $2, 'password', now(), now() + interval '1 minute') RETURNING id, method, authenticated_at`,
-			actor, *who.session).Scan(&proof, &method, &at); err != nil {
-			return fmt.Errorf("record the password given: %w", err)
-		}
-	} else {
-		err := tx.QueryRow(ctx, `
-			SELECT id, method, authenticated_at FROM reauthentication
-			WHERE id = $1 AND session_id = $2 AND used_at IS NULL AND expires_at > now()`, *in.Reauthentication, *who.session).Scan(&proof, &method, &at)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrSignatureSpent
-		}
-		if err != nil {
-			return err
-		}
+	proof, err := signing.Spend(ctx, tx, actor, in.Password != "", in.Reauthentication)
+	if err != nil {
+		return err
 	}
 	var key, title, hash string
 	var number int
@@ -144,12 +90,12 @@ func sign(ctx context.Context, tx db.DBTX, actor uuid.UUID, id uuid.UUID, h *hel
 		WHERE r.id = $1`, h.requirement, h.revision).Scan(&key, &number, &title, &hash); err != nil {
 		return fmt.Errorf("read what is signed: %w", err)
 	}
-	_, err := tx.Exec(ctx, `
+	_, err = tx.Exec(ctx, `
 		INSERT INTO review_signature (review_id, requirement_id, revision, content_hash, signer_id, decision, meaning, method,
 		                              authenticated_at, session_id, reauthentication_id)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		id, h.requirement, h.revision, hash, actor, in.Decision, meaning(who.lang, in.Decision, h.revision, requirement.Key(key, number), title),
-		method, at, *who.session, proof)
+		id, h.requirement, h.revision, hash, actor, in.Decision, meaning(signing.Lang(ctx), in.Decision, h.revision, requirement.Key(key, number), title),
+		proof.Method, proof.AuthenticatedAt, proof.Session, proof.ID)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Message == "review_signature_unproven" {
 		return ErrSignatureSpent

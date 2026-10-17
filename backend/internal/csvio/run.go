@@ -284,6 +284,9 @@ func reason(err error, line int) string {
 		link *trace.FieldError
 		file *FileError
 	)
+	if sentence, ok := requirement.LockedSentence(err); ok {
+		return sentence
+	}
 	switch {
 	case errors.As(err, &req):
 		return req.Message

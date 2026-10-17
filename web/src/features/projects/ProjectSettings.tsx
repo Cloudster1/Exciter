@@ -7,6 +7,7 @@ import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, Section
 import { ImportPanel } from "@/features/import/ImportPanel";
 import { ReqIFPanel } from "@/features/reqif/ReqIFPanel";
 import { ApprovalRules } from "@/features/reviews/ApprovalRules";
+import { SigningRuleCard } from "@/features/baselines/SigningRule";
 import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
 import { AttributeList } from "@/features/types/AttributeList";
 import { TypeList } from "@/features/types/TypeList";
@@ -70,7 +71,12 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "types" && <TypeList project={project} />}
         {tab === "attributes" && <AttributeList project={project} />}
         {tab === "workflow" && <WorkflowSettings project={project} />}
-        {tab === "approval" && <ApprovalRules project={project} />}
+        {tab === "approval" && (
+          <>
+            <ApprovalRules project={project} />
+            <SigningRuleCard project={project} />
+          </>
+        )}
         {tab === "links" && <ProjectLinkTypes project={project} />}
         {tab === "trace" && <TraceModelCard project={project} />}
         {tab === "import" && <ImportPanel project={project} />}
