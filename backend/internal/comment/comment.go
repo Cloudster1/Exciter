@@ -46,11 +46,13 @@ type Comment struct {
 	// Revision is the requirement's revision when the comment was written, so a reader sees what it was about.
 	Revision int `json:"revision"`
 	// Body is the comment's rich text document, null once deleted.
-	Body      any        `json:"body"`
-	Deleted   bool       `json:"deleted"`
-	CreatedAt time.Time  `json:"createdAt"`
-	EditedAt  *time.Time `json:"editedAt"`
-	Can       Can        `json:"can"`
+	Body any `json:"body"`
+	// BodyMarkdown is the body as Markdown, answered when a read asks for it and where Markdown holds it (#186).
+	BodyMarkdown *string    `json:"bodyMarkdown,omitempty"`
+	Deleted      bool       `json:"deleted"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	EditedAt     *time.Time `json:"editedAt"`
+	Can          Can        `json:"can"`
 }
 
 // Can is what the caller may do to one comment.
@@ -61,7 +63,9 @@ type Can struct {
 
 // Input is a comment's body, a document in the comment subset of the requirement editor.
 type Input struct {
-	Body any `json:"body"`
+	Body any `json:"body,omitempty"`
+	// BodyMarkdown is the same written as Markdown, either form but not both (#186).
+	BodyMarkdown *string `json:"bodyMarkdown,omitempty"`
 }
 
 // Mentionable is somebody the mention picker offers, and whether they may read the requirement.

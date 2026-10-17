@@ -76,6 +76,11 @@ section of the tokens page shows the settings with the address filled in:
   that a change to a requirement's text names the revision it was made from,
   and how the specification is numbered.
 
+Requirements and comments come and go as Markdown: a reading tool answers
+statements, rationales and comments as Markdown beside the editor's
+documents, and a writing tool takes them as Markdown, as
+[`docs/markdown.md`](markdown.md) spells it.
+
 An assistant never decides a review. It can read reviews and the approval of a
 requirement, but approving or rejecting is done by a person in Exciter's
 pages.

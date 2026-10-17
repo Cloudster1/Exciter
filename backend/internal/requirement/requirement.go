@@ -108,7 +108,8 @@ type Requirement struct {
 	// rationale is null.
 	Statement json.RawMessage `json:"statement"`
 	Rationale json.RawMessage `json:"rationale"`
-	Type      *TypeRef        `json:"type"`
+	Markdown
+	Type *TypeRef `json:"type"`
 	// Attributes are the values by attribute id, shaped by each attribute's kind.
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	// Revision is the number of the latest revision, from 1.
@@ -198,15 +199,18 @@ type Place struct {
 
 // CreateInput is a new requirement or section.
 type CreateInput struct {
-	Kind       Kind                       `json:"kind,omitempty"`
-	Title      string                     `json:"title"`
-	Statement  json.RawMessage            `json:"statement,omitempty"`
-	Rationale  json.RawMessage            `json:"rationale,omitempty"`
-	TypeID     *uuid.UUID                 `json:"typeId,omitempty"`
-	Attributes map[string]json.RawMessage `json:"attributes,omitempty"`
-	OwnerID    *uuid.UUID                 `json:"ownerId,omitempty"`
-	Priority   *Priority                  `json:"priority,omitempty"`
-	Labels     []string                   `json:"labels,omitempty"`
+	Kind      Kind            `json:"kind,omitempty"`
+	Title     string          `json:"title"`
+	Statement json.RawMessage `json:"statement,omitempty"`
+	Rationale json.RawMessage `json:"rationale,omitempty"`
+	// StatementMarkdown and RationaleMarkdown are the same written as Markdown, either form of each but not both (#186).
+	StatementMarkdown *string                    `json:"statementMarkdown,omitempty"`
+	RationaleMarkdown *string                    `json:"rationaleMarkdown,omitempty"`
+	TypeID            *uuid.UUID                 `json:"typeId,omitempty"`
+	Attributes        map[string]json.RawMessage `json:"attributes,omitempty"`
+	OwnerID           *uuid.UUID                 `json:"ownerId,omitempty"`
+	Priority          *Priority                  `json:"priority,omitempty"`
+	Labels            []string                   `json:"labels,omitempty"`
 	// Place is where it goes; left out, it goes last at the top level.
 	Place *Place `json:"place,omitempty"`
 	// Comment goes with revision 1.
@@ -222,7 +226,10 @@ type UpdateInput struct {
 	Statement json.RawMessage `json:"statement,omitempty"`
 	// Rationale set to null clears it.
 	Rationale json.RawMessage `json:"rationale,omitempty"`
-	TypeID    *uuid.UUID      `json:"typeId,omitempty"`
+	// StatementMarkdown and RationaleMarkdown are the same written as Markdown; a rationale of no words clears it.
+	StatementMarkdown *string    `json:"statementMarkdown,omitempty"`
+	RationaleMarkdown *string    `json:"rationaleMarkdown,omitempty"`
+	TypeID            *uuid.UUID `json:"typeId,omitempty"`
 	// Attributes merge: a key set to null clears that value, keys left out stay.
 	Attributes map[string]json.RawMessage `json:"attributes,omitempty"`
 	// OwnerID and Priority set to null clear them.
@@ -271,9 +278,10 @@ type TreeNode struct {
 
 // SpecEntry is one node of the specification view with its content.
 type SpecEntry struct {
-	Node       TreeNode                   `json:"node"`
-	Statement  json.RawMessage            `json:"statement"`
-	Rationale  json.RawMessage            `json:"rationale"`
+	Node      TreeNode        `json:"node"`
+	Statement json.RawMessage `json:"statement"`
+	Rationale json.RawMessage `json:"rationale"`
+	Markdown
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	Labels     []string                   `json:"labels"`
 	Can        Can                        `json:"can"`
@@ -326,8 +334,9 @@ type RevisionEntry struct {
 // Revision is one revision with its normative content, as it was.
 type Revision struct {
 	RevisionEntry
-	Statement  json.RawMessage            `json:"statement"`
-	Rationale  json.RawMessage            `json:"rationale"`
+	Statement json.RawMessage `json:"statement"`
+	Rationale json.RawMessage `json:"rationale"`
+	Markdown
 	Type       *TypeRef                   `json:"type"`
 	Attributes map[string]json.RawMessage `json:"attributes"`
 }
