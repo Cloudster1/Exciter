@@ -76,6 +76,8 @@ type ServerMetadata struct {
 	TokenEndpointAuthMethodsSupported      []string `json:"token_endpoint_auth_methods_supported"`
 	RevocationEndpointAuthMethodsSupported []string `json:"revocation_endpoint_auth_methods_supported"`
 	ClientIDMetadataDocumentSupported      bool     `json:"client_id_metadata_document_supported"`
+	// AuthorizationResponseIssParameterSupported says the redirect names the issuer (RFC 9207).
+	AuthorizationResponseIssParameterSupported bool `json:"authorization_response_iss_parameter_supported"`
 }
 
 // ClientMetadataInput is what a client registers itself with (RFC 7591), and what its metadata document holds.

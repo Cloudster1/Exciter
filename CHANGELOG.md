@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Assistants connect with Exciter's address alone (#188). Exciter is the
+  OAuth authorization server of its MCP endpoint: a client that meets the
+  401 reads where to go, registers itself or names its metadata document,
+  and sends its person to the new Connect an app page, which names the app
+  and where it sends back. The person allows it, narrowed to reading or to
+  projects as a token is, or denies it. The access token lasts an hour, is
+  good at the MCP endpoint alone, and is renewed by a refresh token that
+  turns over at each use; one used twice ends the connection. Switching
+  somebody off ends their connections, and administrators can switch OAuth
+  connections off on the installation page. The audit log records each
+  connection and each switch.
 - An assistant reads a specification whole (#187): MCP resources hand out a
   project's specification, one section of it, a requirement with what is
   below it, or a baseline as one numbered Markdown document, read as the

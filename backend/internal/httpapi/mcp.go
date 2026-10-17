@@ -292,7 +292,7 @@ func (t mcpTool) request(outer *http.Request, args map[string]json.RawMessage) (
 // inProcess is a call made in this process with the outer request's credential, as the caller would make it.
 func inProcess(outer *http.Request, method, path string, query url.Values, body []byte) *http.Request {
 	// A fresh route context, or chi answers the outer route's parameters.
-	ctx := context.WithValue(outer.Context(), chi.RouteCtxKey, chi.NewRouteContext())
+	ctx := withinProcess(context.WithValue(outer.Context(), chi.RouteCtxKey, chi.NewRouteContext()))
 	inner := outer.Clone(ctx)
 	inner.Method = method
 	inner.URL = &url.URL{Path: APIPrefix + path, RawQuery: query.Encode()}

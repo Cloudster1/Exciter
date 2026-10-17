@@ -213,6 +213,16 @@ app role holds no privilege on.
   hints drawn from the row. A resource reads the document of #45 the same
   way and writes it as Markdown (`specdoc.Markdown`), cut between entries;
   the prompts are Go beside the tools (#187).
+- **OAuth** (#188, `internal/oauth`): Exciter is the authorization server of
+  its MCP endpoint. A client registers or is known by its metadata document,
+  fetched through `netguard`; the person consents on the web's
+  `/oauth/consent`, and the client trades the code and its PKCE verifier for
+  an hour's access token and a refresh token that turns over at each use.
+  Only digests are stored, and requests, codes and tokens are the admin
+  role's alone, as sessions are. `authenticate` knows the access token's
+  prefix, accepts it at `/mcp` and for the calls MCP makes in process, and
+  puts the grant's reading and projects on the principal as a personal
+  token's. The worker sweeps what ran out.
 - **CSV import and export** (#23): Armature's import, reshaped for
   requirements. An upload is kept whole in `import_job` with a mapping
   guessed from its headers; the same analysis reads it against the project

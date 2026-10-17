@@ -22,6 +22,8 @@ const MaxNameLength = 80
 // Installation is what everybody signed in may read about it.
 type Installation struct {
 	Name string `json:"name"`
+	// OAuthConnections says assistants may connect with OAuth (#188).
+	OAuthConnections bool `json:"oauthConnections"`
 }
 
 var (
@@ -46,14 +48,21 @@ func NewService(cluster *db.Cluster) *Service {
 func (s *Service) Get(ctx context.Context) (*Installation, error) {
 	var out Installation
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		var err error
-		out.Name, err = Name(ctx, tx)
-		return err
+		return read(ctx, tx, &out)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &out, nil
+}
+
+// read reads the installation in a transaction, so a change answers what it wrote, not what a replica holds.
+func read(ctx context.Context, tx db.DBTX, out *Installation) error {
+	var err error
+	if out.Name, err = Name(ctx, tx); err != nil {
+		return err
+	}
+	return get(ctx, tx, "oauth_connections", &out.OAuthConnections)
 }
 
 // Rename gives the installation a new name and records who did; the database lets only an administrator.
@@ -65,6 +74,7 @@ func (s *Service) Rename(ctx context.Context, actor uuid.UUID, name string) (*In
 	case utf8.RuneCountInString(name) > MaxNameLength:
 		return nil, 0, ErrNameTooLong
 	}
+	var out Installation
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		before, err := Name(ctx, tx)
 		if err != nil {
@@ -77,15 +87,43 @@ func (s *Service) Rename(ctx context.Context, actor uuid.UUID, name string) (*In
 		if err := set(ctx, tx, "name", name); err != nil {
 			return err
 		}
-		return audit.Write(ctx, tx, audit.Entry{
+		if err := audit.Write(ctx, tx, audit.Entry{
 			Action: audit.ActionInstallationRenamed, TargetType: "installation", TargetID: &id, Actor: actor,
 			Data: map[string]any{"from": before, "to": name},
-		})
+		}); err != nil {
+			return err
+		}
+		return read(ctx, tx, &out)
 	})
 	if err != nil {
 		return nil, 0, err
 	}
-	return &Installation{Name: name}, lsn, nil
+	return &out, lsn, nil
+}
+
+// SwitchOAuth lets assistants connect with OAuth, or stops them; their grants are kept while off.
+func (s *Service) SwitchOAuth(ctx context.Context, actor uuid.UUID, on bool) (*Installation, db.LSN, error) {
+	var out Installation
+	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		id, err := ID(ctx, tx)
+		if err != nil {
+			return err
+		}
+		if err := set(ctx, tx, "oauth_connections", on); err != nil {
+			return err
+		}
+		if err := audit.Write(ctx, tx, audit.Entry{
+			Action: audit.ActionInstallationOAuthSwitched, TargetType: "installation", TargetID: &id, Actor: actor,
+			Data: map[string]any{"enabled": on},
+		}); err != nil {
+			return err
+		}
+		return read(ctx, tx, &out)
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	return &out, lsn, nil
 }
 
 // ID is the installation's own id, which an audit entry about it names and every object's key carries.

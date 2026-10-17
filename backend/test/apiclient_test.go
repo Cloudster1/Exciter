@@ -32,6 +32,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/notify"
+	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
@@ -119,6 +120,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Notifications: notify.NewService(h.cluster),
 		Reviews:       review.NewService(h.cluster).WithPasswords(accounts),
 		Baselines:     baseline.NewService(h.cluster),
+		OAuth:         oauth.NewService(h.cluster, "http://"+appHost, httpapi.APIPrefix, nil),
 		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

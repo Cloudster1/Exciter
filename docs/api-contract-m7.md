@@ -490,6 +490,35 @@ The tools of #185: review, comments and trace.
     installation's administrators, and a client to those signed in.
   - Requests, codes and tokens are read only through the admin role, as
     sessions are, since they are used before anybody is signed in.
+- **As built** (#188):
+  - The server's metadata also says
+    `authorization_response_iss_parameter_supported: true`. The redirect
+    carries `iss`, and the official Go SDK refuses one the server does not
+    advertise.
+  - A loopback redirect matches the one registered at any port (RFC 8252),
+    and `resource` may end with a slash.
+  - A registration's metadata Exciter does not use is ignored, as RFC 7591
+    says. A registered client's id is random; a client secret is
+    `exciter_ocs_` and a code `exciter_oac_`, so a scanner tells them apart.
+  - The registrations of an address are counted in the database, from
+    `oauth_client.registered_from` behind the trusted proxy, not in Valkey.
+  - A wrong verifier, redirect or resource leaves a code unused; only a
+    second trade ends its grant.
+  - The worker sweeps every `oauth.SweepInterval`, 10 minutes: what ran out,
+    and a grant left with neither a live code nor a refresh token.
+  - A metadata document is fetched without following redirects, since it
+    names itself by its address; without cache headers it is fetched again
+    at each use.
+  - The client endpoints are left out of the same-site check: they never
+    read the session, so a cookie the browser adds proves nothing.
+  - While off, a grant's token is 401 `invalid_token` with a sentence, and no
+    `WWW-Authenticate` names the metadata.
+  - `GET /auth/me` reads the installation, so its `oauthConnections` is the
+    setting rather than false.
+  - Switching somebody off ends their grants in the database, by a trigger
+    on `app_user`, as both ways of letting somebody go do.
+  - The consent page is a route of the app, so somebody signed out signs in
+    and comes back to it with the request.
 
 ## #189 Connected apps
 

@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/notify"
+	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
@@ -113,6 +114,8 @@ type Server struct {
 	Imports *csvio.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
+	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
+	OAuth *oauth.Service
 	// Documents reads specifications and baselines as documents to sign and send (#45).
 	Documents *specdoc.Service
 	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
@@ -168,6 +171,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	// Liveness and readiness are deliberately outside the API and authentication.
 	r.Get("/healthz", s.handleLiveness)
 	r.Get("/readyz", s.handleReadiness)
+	s.mountOAuthDiscovery(r)
 	mountPending(r, true, true)
 
 	r.Route(APIPrefix, func(r chi.Router) {
@@ -180,6 +184,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Get("/auth/oidc/reauthenticate", s.handleReauthStart)
 		r.With(s.armatureOn).Post("/armature/webhook", s.handleArmatureWebhook)
 		r.With(s.statorOn).Post("/stator/webhook", s.handleStatorWebhook)
+		s.mountOAuth(r)
 		mountPending(r, true, false)
 
 		r.Group(func(r chi.Router) {
@@ -385,7 +390,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.With(requireAdmin).Get("/tokens/everyone", s.handleListEveryonesAPITokens)
 			r.With(requireAdmin).Delete("/tokens/everyone/{tokenID}", s.handleRevokeAnybodysAPIToken)
 		})
-		r.With(requireAuth).Post("/mcp", s.handleMCP)
+		r.With(s.requireMCPAuth).Post("/mcp", s.handleMCP)
 
 		// Comments: read by whoever views the requirement, written by whoever may comment on it (#33).
 		r.Group(func(r chi.Router) {

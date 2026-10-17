@@ -13,6 +13,30 @@ tool call is the HTTP call the browser would make, run with the person's
 rights. Exciter speaks the protocol's revisions `2025-11-25` and `2025-06-18`
 over streamable HTTP, without a stream: each request has one answer.
 
+## With the address alone
+
+A client that speaks OAuth, as claude.ai's and Claude Desktop's connectors do,
+needs nothing but the address. Exciter is the authorization server of its own
+MCP endpoint (#188):
+
+1. Add the address in the client. Its first call is refused with a 401 that
+   says where Exciter describes itself, and the client registers itself, or
+   names the address of its own metadata document.
+2. The client sends you to Exciter's **Connect an app** page, signing you in
+   first if you are not. It names the app, its address and the host you go
+   back to.
+3. Allow it, narrowed to reading or to the projects you pick if you like, or
+   deny it. Either way you go back to the app, which connects on its own.
+
+The app then acts as you, within what you allowed: an access token lasts an
+hour and is renewed with a refresh token, which turns over at each use. A
+refresh token used twice ends the connection, as a stolen one would. The
+tokens are good at the MCP endpoint alone, never for the rest of the API.
+Connecting the same app again replaces its earlier connection, and switching
+somebody off ends theirs. Administrators can switch OAuth connections off on
+the installation page; while off, every app connected this way is refused,
+and comes back when they are on again.
+
 ## With a personal access token
 
 1. In Exciter, open the account menu, then **Access tokens**, and create a
@@ -113,7 +137,8 @@ at most 64 KiB.
 ## When it does not connect
 
 - **401**: the token is wrong, expired, revoked, or its person was switched
-  off. Make a new one.
+  off. Make a new one, or connect the app again. An OAuth token used outside
+  the MCP endpoint is refused too.
 - **403 `cross_site`**: the request came from a web page of another site,
   which Exciter refuses to protect a server reachable from a browser. Clients
   outside a browser send no `Origin` and are not affected.

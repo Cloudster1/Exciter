@@ -32,6 +32,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/notify"
+	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
@@ -182,23 +183,25 @@ func run() error {
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),
-		Renderer:        renderer(cfg, log),
-		Armature:        armatures,
-		Stator:          stators,
-		Webhooks:        webhook.NewService(cluster, box, webhook.Options{AppURL: cfg.AppBaseURL, Allow: allow, Log: log}),
-		Comments:        comment.NewService(cluster),
-		Watches:         watch.NewService(cluster),
-		Notifications:   notify.NewService(cluster),
-		Reviews:         review.NewService(cluster).WithPasswords(accounts),
-		Baselines:       baselines,
-		Log:             log,
-		Telemetry:       tel,
-		Fresh:           freshnessTracker(cfg, valkey, log),
-		CookieName:      cfg.Auth.SessionCookie,
-		Secure:          cfg.Auth.SecureCookies,
-		AppBaseURL:      cfg.AppBaseURL,
-		CheckOrigin:     cfg.IsProduction(),
-		RequestTimeout:  cfg.RequestTimeout,
+		OAuth: oauth.NewService(cluster, cfg.AppBaseURL, httpapi.APIPrefix,
+			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))),
+		Renderer:       renderer(cfg, log),
+		Armature:       armatures,
+		Stator:         stators,
+		Webhooks:       webhook.NewService(cluster, box, webhook.Options{AppURL: cfg.AppBaseURL, Allow: allow, Log: log}),
+		Comments:       comment.NewService(cluster),
+		Watches:        watch.NewService(cluster),
+		Notifications:  notify.NewService(cluster),
+		Reviews:        review.NewService(cluster).WithPasswords(accounts),
+		Baselines:      baselines,
+		Log:            log,
+		Telemetry:      tel,
+		Fresh:          freshnessTracker(cfg, valkey, log),
+		CookieName:     cfg.Auth.SessionCookie,
+		Secure:         cfg.Auth.SecureCookies,
+		AppBaseURL:     cfg.AppBaseURL,
+		CheckOrigin:    cfg.IsProduction(),
+		RequestTimeout: cfg.RequestTimeout,
 	}
 	origins := cfg.CORSOrigins
 	if len(origins) == 0 && !cfg.IsProduction() {

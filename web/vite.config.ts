@@ -44,6 +44,10 @@ export default defineConfig({
         target: process.env.VITE_API_PROXY || "http://localhost:8080",
         changeOrigin: true,
       },
+      "/.well-known/oauth-": {
+        target: process.env.VITE_API_PROXY || "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
   test: {

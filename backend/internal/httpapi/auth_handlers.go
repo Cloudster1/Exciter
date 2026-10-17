@@ -72,6 +72,14 @@ func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
 		Role:         p.Role,
 		Token:        p.Token,
 	}
+	// The principal carries the name alone; what else the installation says is read, so it is never answered false.
+	if s.Installation != nil {
+		inst, err := s.Installation.Get(r.Context())
+		if err != nil {
+			return nil, err
+		}
+		out.Installation = *inst
+	}
 	// A token signs nothing, so only a session says how its person would.
 	if p.SessionID != nil && s.Accounts != nil {
 		signs, err := s.Accounts.SignsWith(r.Context(), p.UserID)

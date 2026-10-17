@@ -54,6 +54,8 @@ export const LANGUAGE_STORAGE_KEY = "exciter.language";
 
 /** Where an administrator renames the installation. */
 export const INSTALLATION_PATH = "/settings/installation";
+/** Where a person lets an app connect as them through OAuth (#188); the API sends the browser here. */
+export const OAUTH_CONSENT_PATH = "/oauth/consent";
 
 /** Where an administrator manages the installation's people. */
 export const MEMBERS_PATH = "/settings/members";
