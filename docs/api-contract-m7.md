@@ -188,6 +188,8 @@ The tools of #185: review, comments and trace.
 | `search_armature_issues` | `GET /armature/issues` | read, open world |
 | `create_armature_issue` | `POST /projects/{projectKey}/armature-issues` | open world |
 
+- **As built** (#184): as agreed. A token limited to projects is offered all
+  sixteen, none of their rows being installation-wide.
 - `get_approval` joins #185's list so that an assistant can say where a
   requirement's approval stands without reading every review.
 - #183 marks #22's `list_armature_links` and `link_armature_issue` open

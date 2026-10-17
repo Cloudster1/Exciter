@@ -51,9 +51,14 @@ section of the tokens page shows the settings with the address filled in:
 ## What the assistant gets
 
 - **Tools**, as the client's list shows them. They cover:
-  - projects and their specifications
-  - requirements: reading, writing, their revisions and comparisons
-  - workflow transitions
+  - projects and their specifications, read as one numbered document and
+    compared with the previous revision, the last approval or a baseline
+  - a project's types, attributes, statuses and link types, so that what an
+    assistant writes fits the project
+  - requirements: reading, writing, moving and labelling them, their
+    revisions, comparisons and activity
+  - workflow transitions, one requirement or many at once
+  - baselines: taking one, reading it, and what changed since
   - trace links, and Armature issues
   - comments and search
   - who you are

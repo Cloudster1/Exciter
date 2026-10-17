@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- An assistant works with the specification as a person does in the
+  document view (#184): sixteen new MCP tools read the specification with
+  its changes against the previous revision, the last approval or a
+  baseline, list a project's types, attributes, statuses and link types,
+  move and label requirements, read their activity, move many through the
+  workflow in one step, and take, read and compare baselines.
 - Assistants connect over a newer MCP revision (#183). Exciter speaks
   `2025-11-25` beside `2025-06-18`, answering in the one the client asks for,
   and tells the model how keys, revisions and the specification's numbering
