@@ -3,6 +3,35 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-17: Assistants act as their person, never approve, and connect with OAuth (#182)
+
+- **No tool decides a review.** An assistant reads reviews, asks for them and
+  comments, but approving or rejecting stays a person's act in the browser:
+  an approval is the judgement it records, and signed approvals (#46) prove
+  the person to the identity provider, which a tool call cannot. A unit test
+  holds the decisions operation untooled.
+- **Exciter is its own authorization server, ahead of the partners.**
+  Armature and Stator take personal tokens only. A client that connects with
+  an address alone needs OAuth, and the installation's identity provider
+  cannot be it: Exciter's API never accepts the provider's tokens, and the
+  provider knows nothing of projects or of reading only. So Exciter issues
+  the tokens after its own consent page, which offers what a personal token
+  does, and they are good for MCP alone, so a token handed to an assistant
+  cannot reach the rest of the API. Personal tokens stay for clients that
+  send a header and for scripts.
+- **Both ways of knowing a client.** Clients that register themselves and
+  clients known by a metadata document are both in use; a metadata
+  document needs no registration to keep, so it is preferred when offered.
+- **Markdown beside the document, never instead.** The API adds Markdown to
+  what it answers rather than replacing the editor's document, so no client
+  changes, and a document Markdown cannot hold answers null rather than
+  less than is there.
+- **`via` is written by the database.** As `app.user_id` says who acts,
+  `app.via` says through what, and a trigger names it from the person's own
+  token or grant, so a caller can neither claim nor hide an assistant.
+- **Reconsider if** Armature or Stator take OAuth for MCP: the three should
+  then share one way, and whichever comes second follows the first.
+
 ## 2026-10-17: The document view is the specification with parameters, agreed first (#167)
 
 - **One read, not two.** Changes, the status filter and review mode are

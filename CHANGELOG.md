@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M7, MCP integration (#182): `docs/api-contract-m7.md`
+  agrees how assistants work with requirements over MCP as the people they
+  act for: the current protocol, tools for reviews, comments, trace,
+  baselines and the document view, requirements in Markdown, the
+  specification as resources and prompts, connecting with OAuth, connected
+  apps, and marking what an assistant wrote. No tool decides a review. The
+  operations it adds answer 501 until they are built.
 - Requirements are reviewed in the specification (#171). Review what waits
   for me narrows the document to the requirements whose review waits for
   the reader's decision, marked with what changed since their last

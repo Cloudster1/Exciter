@@ -73,18 +73,22 @@ type operation struct {
 	query   []param
 	// headers are the request headers the handler reads, for a caller that is not a browser.
 	headers []param
-	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file.
+	// request is the JSON body type the handler decodes; multipart says the body is a form with a part named file,
+	// and form that it is the request's fields URL-encoded, as OAuth's token endpoint takes them.
 	request   any
 	multipart bool
+	form      bool
 	// cloudEvent says the operation also takes a partner's version 2 envelope, as application/cloudevents+json (#133).
 	cloudEvent bool
 	// responses maps a status to its envelope or bare type; nil is no body.
 	responses map[int]any
 	// public routes need no session; binary ones answer with a file, and
 	// redirect ones send the browser on with a Location header.
-	public      bool
-	binary      bool
-	redirect    bool
+	public   bool
+	binary   bool
+	redirect bool
+	// root routes are served outside the API's prefix, where a probe or an RFC expects them.
+	root        bool
 	description string
 	// pending routes are agreed but not built yet: they answer 501, and the
 	// integration suite does not expect them covered. See docs/architecture.md.
@@ -100,9 +104,9 @@ type operation struct {
 // operations is the table. Order is by area, then by path; paths are relative
 // to APIPrefix except the probes, which live at the root.
 var operations = []operation{
-	{method: "GET", path: "/healthz", handler: "handleLiveness", tag: "health", summary: "Whether the process is running.", public: true,
+	{method: "GET", path: "/healthz", handler: "handleLiveness", tag: "health", summary: "Whether the process is running.", public: true, root: true,
 		responses: ok(statusResponse{})},
-	{method: "GET", path: "/readyz", handler: "handleReadiness", tag: "health", summary: "Whether the process can serve traffic, and how reads are routed.", public: true,
+	{method: "GET", path: "/readyz", handler: "handleReadiness", tag: "health", summary: "Whether the process can serve traffic, and how reads are routed.", public: true, root: true,
 		responses: map[int]any{http.StatusOK: readinessResponse{}, http.StatusServiceUnavailable: statusResponse{}}},
 	{method: "GET", path: "/openapi.json", handler: "handleOpenAPI", tag: "health", summary: "This document.", public: true,
 		responses: ok(openapi.Document{})},

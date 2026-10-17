@@ -49,6 +49,8 @@ type Operation struct {
 	RequestBody *RequestBody          `json:"requestBody,omitempty"`
 	Responses   map[string]*Response  `json:"responses"`
 	Security    []map[string][]string `json:"security,omitempty"`
+	// Servers puts an operation outside the document's prefix, as a probe or a well-known address is.
+	Servers []Server `json:"servers,omitempty"`
 }
 
 type Parameter struct {

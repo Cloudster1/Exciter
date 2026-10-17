@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -21,7 +22,7 @@ func TestEveryPendingOperationAnswersNotImplemented(t *testing.T) {
 			continue
 		}
 		pending++
-		path := APIPrefix + pathParamPattern.ReplaceAllString(op.path, uuid.NewString())
+		path := op.address(pathParamPattern.ReplaceAllString(op.path, uuid.NewString()))
 		signedIn := httptestRequest(op.method, path, `{}`)
 		signedIn.Header.Set("Authorization", "Bearer member")
 		resp, body := serve(t, router, signedIn)
@@ -35,5 +36,30 @@ func TestEveryPendingOperationAnswersNotImplemented(t *testing.T) {
 	}
 	if pending == 0 {
 		t.Skip("nothing is pending")
+	}
+}
+
+// address is where a row's path is served: under the API's prefix, or outside it for a root row.
+func (op operation) address(path string) string {
+	if op.root {
+		return path
+	}
+	return APIPrefix + path
+}
+
+// A row outside the prefix is served there and described there, or a client of the document would call
+// /api/v1/.well-known/... and find nothing.
+func TestARootOperationIsServedAndDescribedOutsideThePrefix(t *testing.T) {
+	doc := Spec()
+	for _, op := range operations {
+		described := doc.Paths[op.path][strings.ToLower(op.method)]
+		outside := len(described.Servers) == 1 && described.Servers[0].URL == "/"
+		if op.root != outside {
+			t.Errorf("%s %s: root %v, but the document puts it at %v", op.method, op.path, op.root, described.Servers)
+		}
+	}
+	resp, _ := serve(t, newServer(t).Routes(nil), httptestRequest(http.MethodGet, "/healthz", ""))
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("/healthz = %d, want 200 at the root", resp.StatusCode)
 	}
 }
