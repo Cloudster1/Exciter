@@ -1494,7 +1494,8 @@
                 "project.library_set",
                 "trace_model.saved",
                 "oauth.granted",
-                "installation.oauth_switched"
+                "installation.oauth_switched",
+                "oauth.revoked"
               ]
             }
           },
@@ -1667,7 +1668,8 @@
                 "project.library_set",
                 "trace_model.saved",
                 "oauth.granted",
-                "installation.oauth_switched"
+                "installation.oauth_switched",
+                "oauth.revoked"
               ]
             }
           },
@@ -4826,16 +4828,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4878,16 +4870,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4923,16 +4905,6 @@
           "204": {
             "description": "No Content"
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4967,16 +4939,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -19427,7 +19389,8 @@
               "project.library_set",
               "trace_model.saved",
               "oauth.granted",
-              "installation.oauth_switched"
+              "installation.oauth_switched",
+              "oauth.revoked"
             ]
           },
           "actorId": {
@@ -19538,7 +19501,8 @@
                 "project.library_set",
                 "trace_model.saved",
                 "oauth.granted",
-                "installation.oauth_switched"
+                "installation.oauth_switched",
+                "oauth.revoked"
               ]
             }
           },

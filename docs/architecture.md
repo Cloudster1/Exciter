@@ -222,7 +222,8 @@ app role holds no privilege on.
   role's alone, as sessions are. `authenticate` knows the access token's
   prefix, accepts it at `/mcp` and for the calls MCP makes in process, and
   puts the grant's reading and projects on the principal as a personal
-  token's. The worker sweeps what ran out.
+  token's. The worker sweeps what ran out. A person's grants are listed and
+  ended under row level security, as their tokens are (#189).
 - **CSV import and export** (#23): Armature's import, reshaped for
   requirements. An upload is kept whole in `import_job` with a mapping
   guessed from its headers; the same analysis reads it against the project

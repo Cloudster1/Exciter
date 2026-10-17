@@ -22,12 +22,16 @@ async function aClient(name: string): Promise<string> {
   return id;
 }
 
+// The verifier of the last request asked for, which a client keeps to trade its code.
+let verifier = "";
+
 /** Begins connecting as the client would, and answers the request the consent page is sent with. */
 async function askToConnect(client: string, scope = "mcp"): Promise<string> {
   const anyone = await request.newContext({ baseURL: WEB_URL });
   try {
     const resource = ((await (await anyone.get("/.well-known/oauth-protected-resource")).json()) as { resource: string }).resource;
-    const challenge = createHash("sha256").update(randomBytes(32).toString("base64url")).digest("base64url");
+    verifier = randomBytes(32).toString("base64url");
+    const challenge = createHash("sha256").update(verifier).digest("base64url");
     const query = new URLSearchParams({
       response_type: "code",
       client_id: client,
@@ -46,6 +50,24 @@ async function askToConnect(client: string, scope = "mcp"): Promise<string> {
   } finally {
     await anyone.dispose();
   }
+}
+
+/** Trades a code for an access token as the client, and answers how MCP then answers it. */
+async function tradeAndCall(client: string, code: string): Promise<{ token: string; status: () => Promise<number> }> {
+  const anyone = await request.newContext({ baseURL: WEB_URL });
+  const traded = await anyone.post("/api/v1/oauth/token", {
+    form: { grant_type: "authorization_code", code, redirect_uri: CALLBACK, code_verifier: verifier, client_id: client },
+  });
+  expect(traded.status()).toBe(200);
+  const token = ((await traded.json()) as { access_token: string }).access_token;
+  const status = async () =>
+    (
+      await anyone.post("/api/v1/mcp", {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        data: { jsonrpc: "2.0", id: 1, method: "tools/list" },
+      })
+    ).status();
+  return { token, status };
 }
 
 test.describe("connecting an app", { tag: "@desktop" }, () => {
@@ -89,6 +111,31 @@ test.describe("connecting an app", { tag: "@desktop" }, () => {
     const back = new URL(page.url());
     expect(back.searchParams.get("error")).toBe("access_denied");
     expect(back.searchParams.get("state")).toBe(STATE);
+  });
+
+  test("alice finds the app she connected under her account, disconnects it, and it is refused", async ({ page }) => {
+    const client = await aClient("Listed assistant");
+    made.push(client);
+    await page.goto(`/oauth/consent?request=${await askToConnect(client)}`);
+    await page.locator('[data-action="allow-app"]').click();
+    await page.waitForURL((url) => url.href.startsWith(CALLBACK));
+    const app = await tradeAndCall(client, new URL(page.url()).searchParams.get("code")!);
+    expect(await app.status()).toBe(200);
+
+    await page.goto("/");
+    await page.locator('[data-action="account"]').click();
+    await page.getByRole("menuitem", { name: "Connected apps" }).click();
+    await expect(page).toHaveURL(/\/settings\/connected-apps$/);
+    const row = page.locator('[data-app-row="Listed assistant"]');
+    await expect(row).toContainText("Sends back to 127.0.0.1:9");
+    await expect(row.locator("[data-app-last-used]")).not.toHaveText("Never used");
+    await expectAccessible(page);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: "Disconnect Listed assistant" }).click();
+    await expect(page.locator("[data-apps-notice]")).toHaveText("Listed assistant was disconnected.");
+    await expect(row).toHaveCount(0);
+    expect(await app.status()).toBe(401);
   });
 
   test("a request that ran out says to start again", async ({ page }) => {

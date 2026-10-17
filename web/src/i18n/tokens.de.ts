@@ -45,8 +45,10 @@ export const tokensDe: typeof tokensEn = {
   confirmRevoke: (name: string) => `${name} widerrufen? Alles, was es nutzt, wird ab jetzt abgewiesen.`,
   revoked: (name: string) => `${name} wurde widerrufen.`,
   mcpTitle: "Einen Assistenten anbinden",
-  mcpBody:
-    "Ein Assistent, der das Model Context Protocol spricht, kann unter der Adresse unten Anforderungen in Ihrem Namen suchen, lesen und schreiben. Geben Sie seinem Client eines Ihrer Token als Bearer im Authorization-Header.",
+  mcpBody: "Ein Assistent, der das Model Context Protocol spricht, kann unter der Adresse unten in Ihrem Namen Anforderungen suchen, lesen und schreiben.",
+  mcpOAuth:
+    "Eine App, die sich per OAuth verbindet, braucht nur die Adresse: Tragen Sie sie dort ein und erlauben Sie die App, wenn Exciter fragt. Danach finden Sie sie unter Verbundene Apps, wo Sie sie trennen können.",
+  mcpHeader: "Ein Client, der stattdessen einen Header nimmt, bekommt eines Ihrer Token als Bearer im Authorization-Header.",
   mcpEndpoint: "MCP-Adresse",
   mcpConfig: "Client-Einstellungen",
   mcpReadOnly: "Mit einem Token nur zum Lesen bekommt der Assistent nur die Werkzeuge, die lesen, und ändert nie eine Anforderung.",

@@ -43,6 +43,7 @@ import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
+import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
 import { printBaselineDocumentRoute, printProjectDocumentRoute } from "./print";
 import { RouteError, rootRoute } from "./root";
 
@@ -84,6 +85,8 @@ const routeTree = rootRoute.addChildren([
     defaultThemeRoute,
     themesRoute,
     tokensRoute,
+    connectedAppsRoute,
+    allConnectedAppsRoute,
     allTokensRoute,
     armatureSettingsRoute,
     webhooksRoute,

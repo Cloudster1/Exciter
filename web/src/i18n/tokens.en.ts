@@ -43,8 +43,10 @@ export const tokensEn = {
   confirmRevoke: (name: string) => `Revoke ${name}? Anything using it is refused from now on.`,
   revoked: (name: string) => `${name} was revoked.`,
   mcpTitle: "Connect an assistant",
-  mcpBody:
-    "An assistant that speaks the Model Context Protocol can search, read and write requirements as you at the address below. Give its client one of your tokens as a bearer in the Authorization header.",
+  mcpBody: "An assistant that speaks the Model Context Protocol can search, read and write requirements as you at the address below.",
+  mcpOAuth:
+    "An app that connects with OAuth needs the address alone: add it there, and allow the app when Exciter asks. You find it afterwards under Connected apps, where you can disconnect it.",
+  mcpHeader: "A client that takes a header instead gets one of your tokens as a bearer in the Authorization header.",
   mcpEndpoint: "MCP address",
   mcpConfig: "Client settings",
   mcpReadOnly: "With a read-only token the assistant is offered only the tools that read, and never changes a requirement.",

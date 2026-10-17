@@ -33,7 +33,16 @@ hour and is renewed with a refresh token, which turns over at each use. A
 refresh token used twice ends the connection, as a stolen one would. The
 tokens are good at the MCP endpoint alone, never for the rest of the API.
 Connecting the same app again replaces its earlier connection, and switching
-somebody off ends theirs. Administrators can switch OAuth connections off on
+somebody off ends theirs.
+
+**Connected apps**, under the account menu beside the access tokens, lists
+the apps you connected: the host each sends back to, whether it only reads,
+the projects it reaches, and when it was connected and last used.
+**Disconnect** ends an app's tokens at once; its next call is refused, and it
+has to be connected again. Administrators see and disconnect everybody's
+under **All connected apps** in the settings. The audit log records each
+connection ended, and who ended it: its person, an administrator, the app
+itself, or a refresh token used twice. Administrators can switch OAuth connections off on
 the installation page; while off, every app connected this way is refused,
 and comes back when they are on again.
 

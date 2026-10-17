@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useLogout, useMe, useSetLanguage } from "@/api/auth";
 import { Avatar, Breadcrumbs, Button, IconButton, Menu, type Crumb, type MenuItem } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { ARMATURE_ACCOUNT_PATH, NOTIFICATION_SETTINGS_PATH, STATOR_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
+import { ARMATURE_ACCOUNT_PATH, CONNECTED_APPS_PATH, NOTIFICATION_SETTINGS_PATH, STATOR_ACCOUNT_PATH, THEMES_PATH, TOKENS_PATH, WATCHING_PATH } from "@/config";
 import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { WaitingReviewsButton } from "@/features/reviews/WaitingReviews";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
@@ -114,6 +114,12 @@ function AccountMenu() {
   const items: MenuItem[] = [
     { label: t.account.themes, icon: <Icon.Palette />, onSelect: () => navigate({ to: THEMES_PATH }), attrs: { "data-action": "themes" } },
     { label: t.account.tokens, icon: <Icon.Key />, onSelect: () => navigate({ to: TOKENS_PATH }), attrs: { "data-action": "tokens" } },
+    {
+      label: t.account.connectedApps,
+      icon: <Icon.Link />,
+      onSelect: () => navigate({ to: CONNECTED_APPS_PATH }),
+      attrs: { "data-action": "connected-apps" },
+    },
     {
       label: t.account.armature,
       icon: <Icon.Link />,
