@@ -33,6 +33,8 @@ type Baseline struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	// Detail is how much it recorded: DetailLinks before #153, DetailFull since.
 	Detail int `json:"detail"`
+	// Signing is where its signing stands (#205), null while nobody signs the project's baselines and none signed it.
+	Signing *Signing `json:"signing"`
 }
 
 // Input takes a baseline of the project, or of the section RootKey names and everything below it.

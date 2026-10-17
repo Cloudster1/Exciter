@@ -5,6 +5,7 @@ package specdoc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -66,6 +67,10 @@ type BaselineInfo struct {
 	TakenAt     time.Time  `json:"takenAt"`
 	TakenBy     string     `json:"takenBy"`
 	LockedAt    *time.Time `json:"lockedAt"`
+	// Signatures counts those given and SignaturesRequired those that release it (#205), 0 while nobody signs it.
+	Signatures         int  `json:"signatures"`
+	SignaturesRequired int  `json:"signaturesRequired"`
+	Signed             bool `json:"signed"`
 }
 
 // Entry is one requirement or section of a document, at the revision the document holds.
@@ -105,3 +110,14 @@ type Link struct {
 
 // Truncated says the document holds fewer requirements than there are.
 func (d *Document) Truncated() bool { return len(d.Entries) < d.Total }
+
+// signingSentence says where the baseline's signing stands, in a document's head (#205); empty while nobody signed it.
+func (b *BaselineInfo) signingSentence() string {
+	switch {
+	case b.Signatures == 0:
+		return ""
+	case b.Signed:
+		return fmt.Sprintf(" Signed, with %d of %d signatures.", b.Signatures, b.SignaturesRequired)
+	}
+	return fmt.Sprintf(" Being signed: %d of %d signatures so far.", b.Signatures, b.SignaturesRequired)
+}

@@ -191,11 +191,16 @@ describe("editing in the document", () => {
 
 const draft = { id: "st-draft", name: "Draft", category: "draft" as const };
 const review = { id: "st-review", name: "In review", category: "review" as const };
-const submit = { id: "tr-submit", name: "Submit for review", toStatus: { ...review, description: "", position: 1, requirements: 0 }, needsComment: false };
+const submit = {
+  id: "tr-submit",
+  name: "Submit for review",
+  toStatus: { ...review, description: "", position: 1, requirements: 0, locks: false },
+  needsComment: false,
+};
 const reject = {
   id: "tr-reject",
   name: "Reject",
-  toStatus: { id: "st-rejected", name: "Rejected", category: "closed" as const, description: "", position: 5, requirements: 0 },
+  toStatus: { id: "st-rejected", name: "Rejected", category: "closed" as const, description: "", position: 5, requirements: 0, locks: false },
   needsComment: true,
 };
 const statuses = [draft, review].map((status, position) => ({ ...status, description: "", position, requirements: 0 }));

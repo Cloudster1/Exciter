@@ -99,3 +99,61 @@ export function useBaselineActions(projectKey: string) {
     }),
   };
 }
+
+// Signed baselines (#205): who signs a project's baselines, and the signatures that release one.
+
+export type SigningRule = Wire["BaselineSigningRule"];
+export type SigningRuleInput = Wire["BaselineSigningRuleInput"];
+export type BaselineSigner = Wire["BaselineSigner"];
+export type BaselineSignature = Wire["BaselineSignature"];
+export type BaselineSigning = Wire["BaselineSigning"];
+
+const signingRuleKey = (projectKey: string) => [...baselinesKey, "signing", projectKey.toUpperCase()] as const;
+
+/** Who signs a project's baselines, null while nobody does. */
+export function useSigningRule(projectKey: string) {
+  return useQuery({
+    queryKey: signingRuleKey(projectKey),
+    queryFn: async (): Promise<SigningRule | null> =>
+      (await api.GET("/projects/{projectKey}/baseline-signing", { params: { path: { projectKey } } })).data!.rule ?? null,
+  });
+}
+
+/** Names who signs a project's baselines, or stops them being signed; every baseline asks again, as its signing reads the rule. */
+export function useSigningRuleActions(projectKey: string) {
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: baselinesKey });
+  return {
+    save: useMutation({
+      mutationFn: async (body: SigningRuleInput): Promise<SigningRule> =>
+        (await api.PUT("/projects/{projectKey}/baseline-signing", { params: { path: { projectKey } }, body })).data!.rule,
+      onSuccess: refresh,
+    }),
+    remove: useMutation({
+      mutationFn: async () => {
+        await api.DELETE("/projects/{projectKey}/baseline-signing", { params: { path: { projectKey } } });
+      },
+      onSuccess: refresh,
+    }),
+  };
+}
+
+/** Every signature of a baseline, in the order given. */
+export function useBaselineSignatures(id: string, enabled = true) {
+  return useQuery({
+    queryKey: [...baselineKey(id), "signatures"],
+    queryFn: async (): Promise<BaselineSignature[]> =>
+      (await api.GET("/baselines/{baselineID}/signatures", { params: { path: { baselineID: id } } })).data!.signatures,
+    enabled,
+  });
+}
+
+/** Signs a baseline with the meaning shown and the password or a fresh sign-in. */
+export function useSignBaseline(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Wire["BaselineSignRequest"]): Promise<Baseline> =>
+      (await api.POST("/baselines/{baselineID}/signatures", { params: { path: { baselineID: id } }, body })).data!.baseline,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: baselinesKey }),
+  });
+}

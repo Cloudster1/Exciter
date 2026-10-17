@@ -35,7 +35,9 @@ type MatrixCell struct {
 
 // Matrix is a page of a baseline's requirements against what they linked to, and against With when compared.
 type Matrix struct {
-	Detail  int                  `json:"detail"`
+	Detail int `json:"detail"`
+	// Signing is the baseline's (#205), which its files say.
+	Signing *Signing             `json:"signing"`
 	With    *Side                `json:"with"`
 	Rows    []requirement.Ref    `json:"rows"`
 	Columns []trace.MatrixColumn `json:"columns"`

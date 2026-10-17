@@ -64,6 +64,7 @@ export const historyEn = {
     attachment: "a file",
     trash: "the trash",
     reuse: "how it follows its library source",
+    lock: "the lock",
   },
   because: (reason: string) => `Because: ${reason}`,
 };

@@ -19,6 +19,7 @@ import { coverageEn } from "./coverage.en";
 import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
+import { controlEn } from "./control.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
@@ -319,6 +320,12 @@ export const en = {
       "project.signatures_set": "Signed approvals changed",
       "project.library_set": "Library changed",
       "trace_model.saved": "Trace model saved",
+      "baseline.signed": "Baseline signed",
+      "baseline_signing.saved": "Baseline signers named",
+      "baseline_signing.removed": "Baseline signing stopped",
+      "requirement.locked": "Requirement locked",
+      "requirement.unlocked": "Requirement unlocked",
+      "status.locks_set": "Status lock changed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -330,6 +337,8 @@ export const en = {
       project: "Project",
       requirement: "Requirement",
       workflow: "Workflow",
+      status: "Status",
+      baseline: "Baseline",
       api_token: "Access token",
       oauth_grant: "Connected app",
       armature_connection: "Armature connection",
@@ -355,6 +364,7 @@ export const en = {
   armature: armatureEn,
   stator: statorEn,
   reuse: reuseEn,
+  control: controlEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

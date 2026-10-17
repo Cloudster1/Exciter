@@ -41,6 +41,7 @@ export const entry = (n: TreeNode, text: string, over: Partial<SpecEntry> = {}):
   approval: { pendingReviewId: null, approvedRevision: null, current: false },
   change: null,
   review: null,
+  lock: null,
   ...over,
 });
 

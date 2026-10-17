@@ -104,6 +104,24 @@ export function useUpdateRequirement(key: string) {
   });
 }
 
+/** Locks a requirement by hand with a reason, or unlocks it (#205); the document reads it again, as its entries say it. */
+export function useLockRequirement(key: string) {
+  const store = useStore();
+  const queryClient = useQueryClient();
+  const settle = (saved: Requirement) => Promise.all([store(saved), queryClient.invalidateQueries({ queryKey: ["spec"] })]);
+  return {
+    lock: useMutation({
+      mutationFn: async (reason: string): Promise<Requirement> =>
+        (await api.POST("/requirements/{reqKey}/lock", { params: { path: { reqKey: key } }, body: { reason } })).data!.requirement,
+      onSuccess: settle,
+    }),
+    unlock: useMutation({
+      mutationFn: async (): Promise<Requirement> => (await api.DELETE("/requirements/{reqKey}/lock", { params: { path: { reqKey: key } } })).data!.requirement,
+      onSuccess: settle,
+    }),
+  };
+}
+
 /** Moves a requirement to its project's trash. */
 export function useTrashRequirement(key: string, projectKey: string) {
   const queryClient = useQueryClient();

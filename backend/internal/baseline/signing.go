@@ -6,8 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// MaxSigners bounds the people and groups one signing rule names (#205).
-const MaxSigners = 20
+// Bounds of a signing rule (#205): the people and groups it names, and the signatures it asks for, as many as a
+// review's approvals.
+const (
+	MaxSigners    = 20
+	MinSignatures = 1
+	MaxSignatures = 10
+)
 
 // SignerType says whether a signer is a person or every member of a group.
 type SignerType string
@@ -42,12 +47,17 @@ type SigningRuleInput struct {
 	Signers  []Signer `json:"signers"`
 }
 
-// Signing is where a baseline's signing stands, under the rule its first signature froze on it.
+// Signing is where a baseline's signing stands: under the rule its first signature froze on it, or the project's
+// rule until then.
 type Signing struct {
 	Required   int      `json:"required"`
 	Signers    []Signer `json:"signers"`
 	Signatures int      `json:"signatures"`
 	Signed     bool     `json:"signed"`
+	Frozen     bool     `json:"frozen"`
+	// CanSign says the caller may sign it now, in a session; Meaning is then the sentence they sign, in their language.
+	CanSign bool   `json:"canSign"`
+	Meaning string `json:"meaning"`
 }
 
 // Signature is one signer's release of a baseline as it was given, which never changes.

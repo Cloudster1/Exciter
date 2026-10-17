@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { STATUS_CATEGORIES, useStatusActions, useStatuses, type Status, type StatusCategory } from "@/api/workflows";
-import { Button, Card, ErrorBanner, Field, IconButton, Select, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, IconButton, Select, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { STATUS_DESCRIPTION_MAX_LENGTH, STATUS_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
@@ -49,6 +49,12 @@ export function StatusList({ project, mayChange }: { project: Project; mayChange
               <tr key={status.id} data-status-row={status.name}>
                 <Td>
                   <StatusBadge name={status.name} category={status.category} />
+                  {status.locks && (
+                    <Tag className="ml-2" data-status-locks="">
+                      <Icon.Lock className="mr-1 size-3" aria-hidden="true" />
+                      {t.control.statusLocked}
+                    </Tag>
+                  )}
                   {status.description && <span className="mt-1 block text-xs text-ink-subtle">{status.description}</span>}
                 </Td>
                 <Td>
@@ -107,17 +113,18 @@ export function StatusList({ project, mayChange }: { project: Project; mayChange
   );
 }
 
-/** Changes a status's name, category or description in place. */
+/** Changes a status's name, category, description or whether it locks its requirements, in place. */
 function StatusForm({ projectKey, status, onDone }: { projectKey: string; status: Status; onDone: () => void }) {
   const { update } = useStatusActions(projectKey);
   const [name, setName] = useState(status.name);
   const [category, setCategory] = useState<StatusCategory>(status.category);
   const [description, setDescription] = useState(status.description);
+  const [locks, setLocks] = useState(status.locks);
   const fields = update.error instanceof ApiError ? update.error.fields : {};
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    update.mutate({ id: status.id, name: name.trim(), category, description: description.trim() }, { onSuccess: onDone });
+    update.mutate({ id: status.id, name: name.trim(), category, description: description.trim(), locks }, { onSuccess: onDone });
   }
 
   return (
@@ -146,6 +153,18 @@ function StatusForm({ projectKey, status, onDone }: { projectKey: string; status
         onChange={(event) => setDescription(event.target.value)}
         error={fields.description}
       />
+      <div>
+        <Checkbox
+          label={t.control.statusLocks}
+          checked={locks}
+          onChange={(event) => setLocks(event.target.checked)}
+          aria-describedby={`status-locks-hint-${status.id}`}
+          data-field="status-locks"
+        />
+        <p id={`status-locks-hint-${status.id}`} className="ml-6 text-xs text-ink-muted">
+          {t.control.statusLocksHint}
+        </p>
+      </div>
       <div className="flex gap-2">
         <Button type="submit" size="sm" loading={update.isPending} data-action="save-status">
           {t.workflows.saveStatus}

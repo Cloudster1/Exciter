@@ -1495,7 +1495,13 @@
                 "trace_model.saved",
                 "oauth.granted",
                 "installation.oauth_switched",
-                "oauth.revoked"
+                "oauth.revoked",
+                "baseline.signed",
+                "baseline_signing.saved",
+                "baseline_signing.removed",
+                "requirement.locked",
+                "requirement.unlocked",
+                "status.locks_set"
               ]
             }
           },
@@ -1669,7 +1675,13 @@
                 "trace_model.saved",
                 "oauth.granted",
                 "installation.oauth_switched",
-                "oauth.revoked"
+                "oauth.revoked",
+                "baseline.signed",
+                "baseline_signing.saved",
+                "baseline_signing.removed",
+                "requirement.locked",
+                "requirement.unlocked",
+                "status.locks_set"
               ]
             }
           },
@@ -2895,16 +2907,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -2995,16 +2997,6 @@
           },
           "429": {
             "description": "Too Many Requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6764,16 +6756,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -6824,16 +6806,6 @@
                   "required": [
                     "rule"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -6907,16 +6879,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14531,16 +14493,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -14620,16 +14572,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20944,7 +20886,13 @@
               "trace_model.saved",
               "oauth.granted",
               "installation.oauth_switched",
-              "oauth.revoked"
+              "oauth.revoked",
+              "baseline.signed",
+              "baseline_signing.saved",
+              "baseline_signing.removed",
+              "requirement.locked",
+              "requirement.unlocked",
+              "status.locks_set"
             ]
           },
           "actorId": {
@@ -21067,7 +21015,13 @@
                 "trace_model.saved",
                 "oauth.granted",
                 "installation.oauth_switched",
-                "oauth.revoked"
+                "oauth.revoked",
+                "baseline.signed",
+                "baseline_signing.saved",
+                "baseline_signing.removed",
+                "requirement.locked",
+                "requirement.unlocked",
+                "status.locks_set"
               ]
             }
           },
@@ -21182,6 +21136,16 @@
                 "type": "null"
               }
             ]
+          },
+          "signing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BaselineSigning"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -21195,7 +21159,8 @@
           "lockedAt",
           "createdByName",
           "createdAt",
-          "detail"
+          "detail",
+          "signing"
         ]
       },
       "BaselineComparison": {
@@ -21442,6 +21407,16 @@
               "$ref": "#/components/schemas/RequirementRef"
             }
           },
+          "signing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BaselineSigning"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "total": {
             "type": "integer"
           },
@@ -21458,6 +21433,7 @@
         },
         "required": [
           "detail",
+          "signing",
           "with",
           "rows",
           "columns",
@@ -21645,6 +21621,44 @@
         },
         "required": [
           "subjectType"
+        ]
+      },
+      "BaselineSigning": {
+        "type": "object",
+        "properties": {
+          "canSign": {
+            "type": "boolean"
+          },
+          "frozen": {
+            "type": "boolean"
+          },
+          "meaning": {
+            "type": "string"
+          },
+          "required": {
+            "type": "integer"
+          },
+          "signatures": {
+            "type": "integer"
+          },
+          "signed": {
+            "type": "boolean"
+          },
+          "signers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaselineSigner"
+            }
+          }
+        },
+        "required": [
+          "required",
+          "signers",
+          "signatures",
+          "signed",
+          "frozen",
+          "canSign",
+          "meaning"
         ]
       },
       "BaselineSigningRule": {
@@ -22639,6 +22653,15 @@
           "name": {
             "type": "string"
           },
+          "signatures": {
+            "type": "integer"
+          },
+          "signaturesRequired": {
+            "type": "integer"
+          },
+          "signed": {
+            "type": "boolean"
+          },
           "takenAt": {
             "type": "string",
             "format": "date-time"
@@ -22653,7 +22676,10 @@
           "description",
           "takenAt",
           "takenBy",
-          "lockedAt"
+          "lockedAt",
+          "signatures",
+          "signaturesRequired",
+          "signed"
         ]
       },
       "DocumentEntry": {
@@ -26071,6 +26097,16 @@
               "type": "string"
             }
           },
+          "lock": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementLock"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "number": {
             "type": "integer"
           },
@@ -26208,7 +26244,8 @@
           "can",
           "comments",
           "watching",
-          "approval"
+          "approval",
+          "lock"
         ]
       },
       "RequirementCan": {
@@ -26253,7 +26290,8 @@
               "link",
               "attachment",
               "trash",
-              "reuse"
+              "reuse",
+              "lock"
             ]
           },
           "from": {
@@ -26271,6 +26309,48 @@
           "from",
           "to",
           "reason"
+        ]
+      },
+      "RequirementLock": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "type": "string",
+            "enum": [
+              "status",
+              "hand"
+            ]
+          },
+          "lockedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lockedByName": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "by",
+          "status",
+          "reason",
+          "lockedByName",
+          "lockedAt"
         ]
       },
       "RequirementLockRequest": {
@@ -28039,6 +28119,16 @@
               "type": "string"
             }
           },
+          "lock": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementLock"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "node": {
             "$ref": "#/components/schemas/TreeNode"
           },
@@ -28129,7 +28219,8 @@
           "priority",
           "approval",
           "change",
-          "review"
+          "review",
+          "lock"
         ]
       },
       "SpecRemoved": {
@@ -28718,6 +28809,9 @@
             "type": "string",
             "format": "uuid"
           },
+          "locks": {
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
@@ -28734,7 +28828,8 @@
           "category",
           "description",
           "position",
-          "requirements"
+          "requirements",
+          "locks"
         ]
       },
       "StatusInput": {
@@ -28752,6 +28847,9 @@
           },
           "description": {
             "type": "string"
+          },
+          "locks": {
+            "type": "boolean"
           },
           "name": {
             "type": "string"
