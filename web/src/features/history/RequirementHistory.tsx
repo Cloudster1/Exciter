@@ -8,7 +8,7 @@ import type { Requirement } from "@/api/requirements";
 import { Button, Card, Checkbox, Dialog, EmptyState, ErrorBanner, Field, PageHeader, SectionTitle, Skeleton, Table, Tabs, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { HISTORY_PAGE_SIZE, REVISION_COMMENT_MAX_LENGTH } from "@/config";
-import { DocDiffView, DocView, type DiffBlockView } from "@/features/editor/DocView";
+import { DiffTitle, DocDiffView, DocView, type DiffBlockView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { AttributeValues, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
@@ -300,6 +300,14 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
           </Card>
         ))}
       </div>
+      {comparison.title.some((b) => b.change !== "equal") && (
+        <Card className="space-y-2 p-4">
+          <SectionTitle>{t.history.titleChanged}</SectionTitle>
+          <p className="text-ink" data-diff-of="title">
+            <DiffTitle blocks={comparison.title as DiffBlockView[]} />
+          </p>
+        </Card>
+      )}
       <Card className="space-y-2 p-4">
         <SectionTitle>{t.history.statement}</SectionTitle>
         <DocDiffView blocks={comparison.statement as DiffBlockView[]} data-diff-of="statement" />
@@ -312,34 +320,7 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
       )}
       <Card className="space-y-2 p-4">
         <SectionTitle>{t.history.attributes}</SectionTitle>
-        {comparison.attributes.every((a) => a.change === "equal") ? (
-          <p className="text-sm text-ink-subtle">{t.history.noAttributes}</p>
-        ) : (
-          <Table dense aria-label={t.history.attributes}>
-            <thead>
-              <tr>
-                <Th>{t.history.attributeColumn}</Th>
-                <Th>{t.history.before}</Th>
-                <Th>{t.history.after}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.attributes
-                .filter((a) => a.change !== "equal")
-                .map((a) => (
-                  <tr key={a.attributeId} data-attribute-diff={a.name} data-change={a.change}>
-                    <Td className="font-medium text-ink">{a.name}</Td>
-                    <Td>
-                      <del className="text-ink-muted">{a.fromText}</del>
-                    </Td>
-                    <Td>
-                      <ins className="text-ink no-underline">{a.toText}</ins>
-                    </Td>
-                  </tr>
-                ))}
-            </tbody>
-          </Table>
-        )}
+        <AttributeChanges attributes={comparison.attributes} />
       </Card>
     </div>
   );
@@ -376,5 +357,36 @@ function ActivityList({ requirement }: { requirement: Requirement }) {
         </Button>
       )}
     </div>
+  );
+}
+
+/** The attributes that changed between two revisions, before and after, or a line that none did. */
+export function AttributeChanges({ attributes }: { attributes: Comparison["attributes"] }) {
+  if (attributes.every((a) => a.change === "equal")) return <p className="text-sm text-ink-subtle">{t.history.noAttributes}</p>;
+  return (
+    <Table dense aria-label={t.history.attributes}>
+      <thead>
+        <tr>
+          <Th>{t.history.attributeColumn}</Th>
+          <Th>{t.history.before}</Th>
+          <Th>{t.history.after}</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {attributes
+          .filter((a) => a.change !== "equal")
+          .map((a) => (
+            <tr key={a.attributeId} data-attribute-diff={a.name} data-change={a.change}>
+              <Td className="font-medium text-ink">{a.name}</Td>
+              <Td>
+                <del className="text-ink-muted">{a.fromText}</del>
+              </Td>
+              <Td>
+                <ins className="text-ink no-underline">{a.toText}</ins>
+              </Td>
+            </tr>
+          ))}
+      </tbody>
+    </Table>
   );
 }

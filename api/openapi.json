@@ -8875,6 +8875,35 @@
             }
           },
           {
+            "name": "changes",
+            "in": "query",
+            "description": "Compare each requirement with its previous revision, its last approved one, or a baseline; the window is then at most 50.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "previous",
+                "approved",
+                "baseline"
+              ]
+            }
+          },
+          {
+            "name": "baseline",
+            "in": "query",
+            "description": "With changes=baseline, the id of one of the project's baselines.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyChanged",
+            "in": "query",
+            "description": "true to keep what differs from the base, and the sections above it.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "1 to 200; 20 when absent.",
@@ -8899,6 +8928,16 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "changes": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/SpecChanges"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "entries": {
                       "type": "array",
                       "items": {
@@ -8916,6 +8955,7 @@
                     }
                   },
                   "required": [
+                    "changes",
                     "entries",
                     "limit",
                     "offset",
@@ -19452,6 +19492,12 @@
               "$ref": "#/components/schemas/DiffBlock"
             }
           },
+          "title": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffBlock"
+            }
+          },
           "to": {
             "$ref": "#/components/schemas/CompareSide"
           }
@@ -19459,6 +19505,7 @@
         "required": [
           "from",
           "to",
+          "title",
           "statement",
           "rationale",
           "attributes"
@@ -23963,6 +24010,84 @@
           "css"
         ]
       },
+      "SpecChange": {
+        "type": "object",
+        "properties": {
+          "comparison": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Comparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "changed",
+              "unchanged",
+              "added",
+              "moved"
+            ]
+          },
+          "movedFrom": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "from",
+          "to",
+          "movedFrom",
+          "comparison"
+        ]
+      },
+      "SpecChanges": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "string",
+            "enum": [
+              "previous",
+              "approved",
+              "baseline"
+            ]
+          },
+          "baselineId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "changed": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecRemoved"
+            }
+          }
+        },
+        "required": [
+          "base",
+          "baselineId",
+          "changed",
+          "removed"
+        ]
+      },
       "SpecEntry": {
         "type": "object",
         "properties": {
@@ -23977,6 +24102,16 @@
           },
           "can": {
             "$ref": "#/components/schemas/RequirementCan"
+          },
+          "change": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SpecChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "comments": {
             "$ref": "#/components/schemas/CommentCounts"
@@ -24059,7 +24194,31 @@
           "type",
           "owner",
           "priority",
-          "approval"
+          "approval",
+          "change"
+        ]
+      },
+      "SpecRemoved": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "outline": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "outline",
+          "revision"
         ]
       },
       "SpecificationDocument": {

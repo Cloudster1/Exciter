@@ -153,6 +153,21 @@ first child `{parentId: entry.node.id, afterId: null}`.
   diffs of title, statement, rationale and attributes; only changed collapses
   the rest, with next and previous change; all of it in the page's address;
   each changed entry links to its full comparison.
+- **As built** (#170):
+  - `requirement/changes.go` classifies every requirement of the project in
+    one CTE, `chg`, per base, which the window, `onlyChanged` and the count
+    of `changed` share; a query's parameters are numbered as its text asks
+    for them, so a base that needs no baseline sends none.
+  - Moved against a baseline is another parent or rank, as
+    `baseline.Classify` decides it, so a requirement renumbered by one added
+    before it is not moved. A requirement outside a section baseline's
+    section is added.
+  - `comparison` loads the project's attribute definitions once for the
+    window; `Compare` shares it. The title is diffed as a one-paragraph
+    document.
+  - The page's Only changed collapses unchanged entries to their headings
+    in place, so the outline still reads, rather than sending `onlyChanged`;
+    the parameter stays for other clients.
 
 ## #171 Reviews in the document
 

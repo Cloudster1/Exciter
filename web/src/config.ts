@@ -153,6 +153,9 @@ export const TYPE_COLOURS = ["#4f6bed", "#0f9d8a", "#d97706", "#c2410c", "#7c3ae
 
 /** How many nodes of the specification one read brings; the server's requirement.MaxSpecLimit is the most. */
 export const SPEC_PAGE_SIZE = 50;
+
+/** Entries per window of the specification with its changes, each carrying its comparison: the api's most (#170). */
+export const SPEC_CHANGES_PAGE_SIZE = 50;
 /** How far a level of the tree is indented, and how much of a row's height its edges take as a drop beside it. */
 export const TREE_INDENT_PX = 14;
 export const TREE_DROP_EDGE = 0.25;

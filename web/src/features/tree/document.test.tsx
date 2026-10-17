@@ -8,6 +8,7 @@ import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
 import { readSpecAddress } from "./address";
+import { nextChange } from "./DocumentChanges";
 import { rangeOf, sharedTransitions } from "./DocumentStates";
 import { addedPlace, editableOf, entriesBelow, lastBelow, stepTo } from "./SpecPage";
 
@@ -47,6 +48,7 @@ const entry = (n: TreeNode, text: string, over: Partial<SpecEntry> = {}): SpecEn
   owner: null,
   priority: null,
   approval: { pendingReviewId: null, approvedRevision: null, current: false },
+  change: null,
   ...over,
 });
 
@@ -136,6 +138,7 @@ describe("editing in the document", () => {
           comparison: {
             from: { number: 1, title: "Pay", type: null, authorName: "Alice", createdAt: "2026-10-01T10:00:00Z" },
             to: { number: 2, title: "Pay in cash", type: null, authorName: "Bob", createdAt: "2026-10-02T10:00:00Z" },
+            title: [],
             statement: [],
             rationale: [],
             attributes: [],
@@ -376,5 +379,137 @@ describe("states in the document", () => {
     await waitFor(() => expect(router.state.location.search).toEqual({ category: ["review"], status: ["st-draft"] }));
     await userEvent.click(screen.getByRole("button", { name: "Show every status" }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));
+  });
+});
+
+const side = (number: number, title: string) => ({ number, title, type: null, authorName: "Ada", createdAt: "2026-10-01T10:00:00Z" });
+const marked = (text: string, mark: "diffInsert" | "diffDelete") => ({ type: "text", text, marks: [{ type: mark }] });
+const payChange = {
+  kind: "changed" as const,
+  from: 1,
+  to: 2,
+  movedFrom: null,
+  comparison: {
+    from: side(1, "Pay"),
+    to: side(2, "Pay by card"),
+    title: [{ change: "modified" as const, node: { type: "paragraph", content: [{ type: "text", text: "Pay" }, marked(" by card", "diffInsert")] } }],
+    statement: [
+      {
+        change: "modified" as const,
+        node: { type: "paragraph", content: [{ type: "text", text: "Pay " }, marked("at once", "diffDelete"), marked("by card", "diffInsert")] },
+      },
+    ],
+    rationale: [],
+    attributes: [{ attributeId: "a1", name: "Risk", change: "modified" as const, from: "low", to: "high", fromText: "Low", toText: "High" }],
+  },
+};
+
+function stubChanges(answers: Parameters<typeof stubApi>[0] = {}) {
+  const asked: URLSearchParams[] = [];
+  const sent = stubDocument([], {
+    "GET /projects/CHK/spec": (request) => {
+      const query = new URL(request.url).searchParams;
+      asked.push(query);
+      const base = query.get("changes");
+      const entries = [
+        entry(scope, "What is in scope.", { change: null }),
+        entry(node({ ...pay, title: "Pay by card", revision: 2 }), "Pay by card.", { change: base ? payChange : null }),
+        entry(node({ ...ship, revision: 1 }), "Ship in a day.", {
+          change: base
+            ? {
+                kind: base === "baseline" ? ("moved" as const) : ("unchanged" as const),
+                from: 1,
+                to: 1,
+                movedFrom: base === "baseline" ? "2" : null,
+                comparison: null,
+              }
+            : null,
+        }),
+      ];
+      const changes = base
+        ? {
+            base,
+            baselineId: query.get("baseline"),
+            changed: base === "baseline" ? 2 : 1,
+            removed: base === "baseline" ? [{ key: "CHK-R9", title: "Gone", outline: "3", revision: 4 }] : [],
+          }
+        : null;
+      return { status: 200, body: { entries, total: 3, limit: 50, offset: 0, changes } };
+    },
+    "GET /projects/CHK/baselines": { status: 200, body: { baselines: [{ id: "b1", name: "Release 1.0" }] } },
+    ...answers,
+  });
+  return { sent, asked };
+}
+
+describe("changes in the document", () => {
+  it("steps to the next and previous changed entry, and past the ends to none", () => {
+    const changed = { kind: "changed" as const, from: 1, to: 2, movedFrom: null, comparison: null };
+    const unchanged = { ...changed, kind: "unchanged" as const };
+    const entries = [
+      entry(scope, ""),
+      entry(pay, "", { change: changed }),
+      entry(ship, "", { change: unchanged }),
+      entry(node({ id: "o", key: "CHK-R4" }), "", { change: changed }),
+    ];
+    expect(nextChange(entries, null, 1)).toBe("CHK-R2");
+    expect(nextChange(entries, null, -1)).toBe("CHK-R4");
+    expect(nextChange(entries, "CHK-R2", 1)).toBe("CHK-R4");
+    expect(nextChange(entries, "CHK-R3", -1)).toBe("CHK-R2");
+    expect(nextChange(entries, "CHK-R4", 1)).toBeUndefined();
+  });
+
+  it("reads the base, the baseline and only changed from the address, and drops a baseline without its base", () => {
+    expect(readSpecAddress({ changes: "baseline", baseline: "b1", onlyChanged: true })).toEqual({ changes: "baseline", baseline: "b1", onlyChanged: true });
+    expect(readSpecAddress({ changes: "previous", baseline: "b1" })).toEqual({ changes: "previous" });
+    expect(readSpecAddress({ changes: "lost", onlyChanged: true })).toEqual({});
+  });
+
+  it("marks what changed against the previous revision, in the title, the statement and the attributes", async () => {
+    const { asked } = stubChanges();
+    const router = await renderAt("/p/CHK/spec");
+    await screen.findByRole("heading", { name: "1.1 Pay by card" });
+    await userEvent.click(screen.getByRole("switch", { name: "Show changes" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({ changes: "previous" }));
+    await waitFor(() => expect(asked.some((query) => query.get("changes") === "previous" && query.get("limit") === "50")).toBe(true));
+    const pay = entryOf("CHK-R2");
+    await waitFor(() => expect(pay.querySelector('[data-spec-change="changed"]')).toHaveTextContent("Changed"));
+    expect(within(pay).getByRole("heading").querySelector("[data-diff-title] ins")).toHaveTextContent("by card");
+    expect(pay.querySelector('[data-diff-of="statement"] del')).toHaveTextContent("at once");
+    expect(within(pay).getByRole("table", { name: "Attributes" })).toHaveTextContent("High");
+    expect(within(pay).getByRole("link", { name: "Compare revision 1 with 2" })).toHaveAttribute("href", "/p/CHK/r/CHK-R2/history?from=1&to=2");
+    expect(within(entryOf("CHK-R3")).getByText("Unchanged")).toBeInTheDocument();
+    expect(screen.getByText("1 requirement differs")).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("compares with a baseline, saying what moved and what is gone", async () => {
+    const { asked } = stubChanges();
+    const router = await renderAt("/p/CHK/spec?changes=previous");
+    await userEvent.selectOptions(await screen.findByLabelText("Compared with"), "baseline");
+    expect(await screen.findByText("Pick the baseline to compare with.")).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Baseline"), "b1");
+    await waitFor(() => expect(router.state.location.search).toEqual({ changes: "baseline", baseline: "b1" }));
+    await waitFor(() => expect(asked.some((query) => query.get("changes") === "baseline" && query.get("baseline") === "b1")).toBe(true));
+    expect(await within(entryOf("CHK-R3")).findByText("Moved, was 2")).toBeInTheDocument();
+    const removed = document.body.querySelector<HTMLElement>("[data-spec-removed]")!;
+    expect(within(removed).getByText("CHK-R9")).toBeInTheDocument();
+    expect(removed.querySelector("del")).toHaveTextContent("3 Gone");
+  });
+
+  it("collapses what did not change to its heading, and steps between changes", async () => {
+    stubChanges();
+    const router = await renderAt("/p/CHK/spec?changes=previous");
+    await screen.findByRole("article", { name: "Specification" });
+    await waitFor(() => expect(entryOf("CHK-R2").querySelector('[data-spec-change="changed"]')).not.toBeNull());
+    await userEvent.click(screen.getByRole("button", { name: "Only changed" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({ changes: "previous", onlyChanged: true }));
+    expect(within(entryOf("CHK-R3")).getByRole("heading", { name: "1.2 Ship" })).toBeInTheDocument();
+    expect(within(entryOf("CHK-R3")).queryByText("Ship in a day.")).toBeNull();
+    expect(within(entryOf("CHK-R1")).getByText("What is in scope.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Next change" }));
+    await waitFor(() => expect(entryOf("CHK-R2")).toHaveFocus());
+    await userEvent.click(screen.getByRole("button", { name: "Next change" }));
+    await waitFor(() => expect(document.body.querySelector("[data-spec-announced]")).toHaveTextContent("No further change among the entries shown."));
   });
 });

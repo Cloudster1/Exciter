@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SPEC_PAGE_SIZE } from "@/config";
+import { SPEC_CHANGES_PAGE_SIZE, SPEC_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { Requirement } from "./requirements";
 import type { StatusCategory } from "./workflows";
@@ -19,10 +19,18 @@ function treeKey(projectKey: string) {
   return ["tree", projectKey.toUpperCase()] as const;
 }
 
-/** What the specification is narrowed to, as its address holds it (#169). */
+export type ChangeBase = NonNullable<SpecChanges>["base"];
+export type SpecChange = NonNullable<SpecEntry["change"]>;
+export type SpecChanges = Wire["SpecChanges"] | null;
+
+/** What the specification is narrowed to (#169) and compared with (#170), as its address holds it. */
 export interface SpecAddress {
   status?: string[];
   category?: StatusCategory[];
+  changes?: ChangeBase;
+  baseline?: string;
+  /** Collapses what did not change to its heading; the page's own, never sent. */
+  onlyChanged?: boolean;
 }
 
 function specKey(projectKey: string, address: SpecAddress = {}) {
@@ -38,15 +46,28 @@ export function useTree(projectKey: string) {
   });
 }
 
-/** The specification, read a window at a time as the reader goes on, narrowed as its address says. */
+/** The specification, read a window at a time as the reader goes on, narrowed and compared as its address says. */
 export function useSpec(projectKey: string, address: SpecAddress = {}) {
+  // Collapsing is the page's own, so a switch of it reads nothing again.
+  const asked: SpecAddress = { ...address, onlyChanged: undefined };
+  const changes = address.changes === "baseline" && !address.baseline ? undefined : address.changes;
   return useInfiniteQuery({
-    queryKey: specKey(projectKey, address),
+    queryKey: specKey(projectKey, asked),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
       (
         await api.GET("/projects/{projectKey}/spec", {
-          params: { path: { projectKey }, query: { limit: SPEC_PAGE_SIZE, offset: pageParam, status: address.status, category: address.category } },
+          params: {
+            path: { projectKey },
+            query: {
+              limit: changes ? SPEC_CHANGES_PAGE_SIZE : SPEC_PAGE_SIZE,
+              offset: pageParam,
+              status: address.status,
+              category: address.category,
+              changes,
+              baseline: changes === "baseline" ? address.baseline : undefined,
+            },
+          },
         })
       ).data!,
     getNextPageParam: (last) => (last.offset + last.entries.length < last.total ? last.offset + last.entries.length : undefined),

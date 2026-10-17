@@ -10,6 +10,9 @@ export function readSpecAddress(search: Record<string, unknown>): SpecAddress {
   const category = strings(search.category).filter((each): each is StatusCategory => STATUS_CATEGORIES.includes(each as StatusCategory));
   if (status.length) address.status = status;
   if (category.length) address.category = category;
+  if (search.changes === "previous" || search.changes === "approved" || search.changes === "baseline") address.changes = search.changes;
+  if (address.changes === "baseline" && typeof search.baseline === "string" && search.baseline) address.baseline = search.baseline;
+  if (address.changes && (search.onlyChanged === true || search.onlyChanged === "true")) address.onlyChanged = true;
   return address;
 }
 

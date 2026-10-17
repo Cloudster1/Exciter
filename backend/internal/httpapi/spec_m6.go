@@ -24,4 +24,6 @@ func documentSchemas(b *openapi.Builder) {
 		b.Names[t] = name
 	}
 	b.Enums[reflect.TypeOf(requirement.BulkOutcome(""))] = enumStrings(requirement.BulkOutcomes)
+	b.Enums[reflect.TypeOf(requirement.ChangeBase(""))] = enumStrings(requirement.ChangeBases)
+	b.Enums[reflect.TypeOf(requirement.ChangeKind(""))] = enumStrings(requirement.ChangeKinds)
 }

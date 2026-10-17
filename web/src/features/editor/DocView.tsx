@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cx } from "@/components/ui";
 import { attachmentUrl } from "@/api/attachments";
 import { t } from "@/i18n";
@@ -21,6 +21,20 @@ export interface DiffBlockView {
 }
 
 /** Two revisions of a document compared, block by block, each changed block labelled so colour is never the only sign. */
+/** A title compared as one paragraph, inline where the title stands: its words, the changed ones marked. */
+export function DiffTitle({ blocks }: { blocks: DiffBlockView[] }) {
+  return (
+    <span data-diff-title>
+      {blocks.map((b, i) => {
+        const words = inline(b.node);
+        if (b.change === "deleted") return <del key={i}>{words}</del>;
+        if (b.change === "inserted") return <ins key={i}>{words}</ins>;
+        return <Fragment key={i}>{words}</Fragment>;
+      })}
+    </span>
+  );
+}
+
 export function DocDiffView({ blocks, ...rest }: { blocks: DiffBlockView[]; [attr: `data-${string}`]: string | undefined }) {
   const labels = { inserted: t.history.added, deleted: t.history.removed, modified: t.history.changed };
   return (

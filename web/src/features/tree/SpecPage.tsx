@@ -9,12 +9,13 @@ import { Button, Card, Dialog, EmptyState, ErrorBanner, Menu, PageHeader, Skelet
 import { Icon } from "@/components/icons";
 import { SelectionBar, useMayCreateIssues, useSelection, type Picked, type Selection } from "@/features/armature/CreateIssues";
 import { COMMENTS_ID } from "@/features/comments/CommentsSection";
-import { DocView } from "@/features/editor/DocView";
+import { DiffTitle, DocView, type DiffBlockView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
 import { narrowed } from "./address";
+import { ChangesBar, ChangeTag, differs, EntryChanges, nextChange, RemovedSince } from "./DocumentChanges";
 import { BulkTransitions, EntryPick, pickedOf, rangeOf, SectionPick, StatusFilter, StatusMenu } from "./DocumentStates";
 import { PlaceDialog, type Placed } from "./PlaceDialog";
 import { RequirementTree } from "./RequirementTree";
@@ -108,6 +109,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
   // The entry last picked, from which a pick with Shift reaches.
   const lastPick = useRef<string | null>(null);
   const entries = spec.data?.pages.flatMap((page) => page.entries) ?? [];
+  const summary = spec.data?.pages[0]?.changes ?? null;
   const keys = entries.map((entry) => entry.node.key);
   const mayWrite = project.can.edit && !project.archivedAt;
   const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
@@ -164,11 +166,23 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
     else begin(next);
   }
 
+  /** Goes to the next or previous changed entry from the one focused, or says there is none. */
+  function step(direction: 1 | -1) {
+    const to = nextChange(entries, focused, direction);
+    if (to) focusEntry(to);
+    else setAnnounced(t.tree.noMoreChanges);
+  }
+
   function keyDown(event: KeyboardEvent<HTMLElement>) {
     const target = event.target as HTMLElement;
     const key = target.dataset.specEntry;
     // Only the entry itself steers: keys typed into its editor, links or buttons are theirs.
     if (!key || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (address.changes && (event.key === "n" || event.key === "p") && !event.shiftKey) {
+      event.preventDefault();
+      step(event.key === "n" ? 1 : -1);
+      return;
+    }
     const next = stepTo(keys, key, event.key);
     if (next) {
       event.preventDefault();
@@ -230,6 +244,12 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
               {mayWrite ? t.tree.specKeys : t.tree.specKeysReader}
             </p>
             {onAddress && <StatusFilter projectKey={project.key} address={address} onChange={onAddress} />}
+            {onAddress && <ChangesBar projectKey={project.key} address={address} summary={summary} onChange={onAddress} onStep={step} />}
+            {address.changes === "baseline" && !address.baseline && (
+              <p className="text-sm text-ink-muted" data-pick-baseline-first>
+                {t.tree.pickBaselineFirst}
+              </p>
+            )}
             {spec.data && entries.length === 0 && narrowed(address) && (
               <p className="text-sm text-ink-muted" data-spec-empty-filter>
                 {t.tree.emptyFiltered}
@@ -247,6 +267,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
                   selectable={selectable(entry)}
                   below={entry.node.kind === "section" ? entriesBelow(entries, entry.node.key).filter(selectable).map(pickedOf) : []}
                   onPick={pick}
+                  collapsed={Boolean(address.onlyChanged) && entry.node.kind === "requirement" && !differs(entry)}
                   onMoved={(notice) => {
                     setAnnounced(notice);
                     void refresh();
@@ -273,6 +294,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
                 )}
               </Fragment>
             ))}
+            {summary && <RemovedSince removed={summary.removed} />}
             {spec.isLoading && <Skeleton />}
             {spec.hasNextPage && (
               <Button variant="secondary" loading={spec.isFetchingNextPage} onClick={() => void spec.fetchNextPage()} data-action="spec-more">
@@ -337,6 +359,7 @@ function Entry({
   below,
   onPick,
   onMoved,
+  collapsed,
   onAsk,
   onFocus,
   onDirty,
@@ -354,6 +377,8 @@ function Entry({
   below: Picked[];
   onPick: (key: string, on: boolean, range: boolean) => void;
   onMoved: (notice: string) => void;
+  /** Shows the heading alone, for an entry that did not change while only changed ones are read. */
+  collapsed: boolean;
   onAsk: (next: Open | null) => void;
   onFocus: () => void;
   onDirty: (dirty: boolean) => void;
@@ -365,6 +390,8 @@ function Entry({
   const section = node.kind === "section";
   const editing = open?.kind === "edit";
   const addingBelow = open?.kind === "add" && open.where === "below";
+  const title = entry.change?.comparison?.title as DiffBlockView[] | undefined;
+  const titleDiff = title?.some((block) => block.change !== "equal") ? title : undefined;
   const Heading = node.depth === 0 ? "h2" : "h3";
   return (
     <section
@@ -382,7 +409,7 @@ function Entry({
           <span className="font-mono text-ink-muted" data-spec-outline>
             {node.outline}
           </span>{" "}
-          {node.title}
+          {titleDiff ? <DiffTitle blocks={titleDiff} /> : node.title}
         </Heading>
         <Link
           to="/p/$projectKey/r/$reqKey"
@@ -403,6 +430,7 @@ function Entry({
             {t.comments.open(entry.comments.open)}
           </Link>
         )}
+        {entry.change && <ChangeTag change={entry.change} />}
         {!section && <StatusMenu entry={entry} onMoved={onMoved} />}
         {entry.suspectLinks > 0 && <SuspectBadge count={entry.suspectLinks} />}
         {entry.reuse && (
@@ -459,6 +487,8 @@ function Entry({
           onCancel={() => onAsk(null)}
           onConflict={onConflict}
         />
+      ) : collapsed ? null : entry.change?.comparison ? (
+        <EntryChanges projectKey={project.key} entry={entry} change={entry.change} />
       ) : (
         <>
           <DocView doc={entry.statement as Doc} />
