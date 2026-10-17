@@ -46,6 +46,7 @@ export function editableOf(entry: SpecEntry): Editable {
     attributes: entry.attributes,
     revision: node.revision,
     reuse: entry.reuse,
+    status: node.status,
   };
 }
 

@@ -153,6 +153,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		}
 		l, err := findByID(ctx, tx, actor, id)
 		if err == nil {
+			err = requiredIn(ctx, tx, l, statusID(l))
+		}
+		if err == nil {
 			out = &l.Requirement
 		}
 		return err
@@ -274,6 +277,11 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 			}
 		}
 		if err := following(cur, next); err != nil {
+			return err
+		}
+		after := fields{title: next.Title, statement: next.Statement, rationale: next.Rationale, typeID: next.TypeID,
+			owner: ownerAfter(cur, in.OwnerID), priority: priorityAfter(cur, in.Priority), attributes: next.Attributes}
+		if err := holdFieldRules(ctx, tx, actor, cur, after); err != nil {
 			return err
 		}
 		if hash := next.Hash(); hash != cur.hash {

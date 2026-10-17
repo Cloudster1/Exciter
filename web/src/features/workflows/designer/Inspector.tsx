@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { RuleType, Status } from "@/api/workflows";
 import { Button, Field, Select } from "@/components/ui";
 import { t } from "@/i18n";
+import { useProjectLinkTypes } from "@/api/links";
 import { StatusBadge } from "../StatusBadge";
 import type { Selection } from "./flow";
 import { ANYWHERE, addStatus, connect, removeEdge, removeStatus, setInitial, setOnRevision, updateEdge, type Design, type Edge } from "./graph";
@@ -34,6 +35,7 @@ export function Inspector({
     if (edge) {
       return (
         <EdgePanel
+          projectKey={projectKey}
           edge={edge}
           statuses={statuses}
           catalogue={catalogue}
@@ -219,18 +221,21 @@ function NodePanel({
 }
 
 function EdgePanel({
+  projectKey,
   edge,
   statuses,
   catalogue,
   onChange,
   onRemove,
 }: {
+  projectKey: string;
   edge: Edge;
   statuses: Map<string, Status>;
   catalogue: RuleType[];
   onChange: (patch: Partial<Edge>) => void;
   onRemove: () => void;
 }) {
+  const { data: linkTypes } = useProjectLinkTypes(projectKey);
   const from = edge.from === ANYWHERE ? t.workflows.anyStatusLower : (statuses.get(edge.from)?.name ?? "");
   const to = statuses.get(edge.to)?.name ?? "";
   return (
@@ -243,7 +248,12 @@ function EdgePanel({
         value={edge.description}
         onChange={(event) => onChange({ description: event.target.value })}
       />
-      <RuleEditor rules={edge.rules} catalogue={catalogue} onChange={(rules) => onChange({ rules })} />
+      <RuleEditor
+        rules={edge.rules}
+        catalogue={catalogue}
+        linkTypes={(linkTypes ?? []).map((each) => ({ id: each.id, name: each.name }))}
+        onChange={(rules) => onChange({ rules })}
+      />
       <Button size="sm" variant="ghost" onClick={onRemove} data-action="remove-transition">
         {t.workflows.removeTransition}
       </Button>

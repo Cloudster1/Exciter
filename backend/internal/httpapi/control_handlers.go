@@ -4,8 +4,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/signing"
@@ -164,4 +167,43 @@ func (s *Server) handleUnlockRequirement(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"requirement": got})
+}
+
+// fieldRuleError answers what the database refused for a field's rules, in the sentence it gave (#206).
+func fieldRuleError(err error) *APIError {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return nil
+	}
+	switch pgErr.ConstraintName {
+	case "field_not_yours":
+		return &APIError{Status: http.StatusForbidden, Code: "field_not_yours", Message: pgErr.Message}
+	case "attribute_value_choice":
+		return ErrValidation(map[string]string{"attributes": pgErr.Message})
+	}
+	return nil
+}
+
+func (s *Server) handleListFieldRules(w http.ResponseWriter, r *http.Request) {
+	rules, err := s.Attributes.FieldRules(r.Context(), userFrom(r), projectKeyParam(r))
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"rules": rules})
+}
+
+func (s *Server) handleSaveFieldRule(w http.ResponseWriter, r *http.Request) {
+	var req attribute.FieldRuleInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	rule, lsn, err := s.Attributes.SaveFieldRule(r.Context(), userFrom(r), projectKeyParam(r), chi.URLParam(r, "field"), req)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"rule": rule})
 }

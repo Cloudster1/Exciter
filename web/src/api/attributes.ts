@@ -106,3 +106,51 @@ export function useAttributeActions(projectKey: string) {
 export function showsOn(attribute: Attribute, typeId: string | null | undefined): boolean {
   return attribute.typeIds.length === 0 || (typeId != null && attribute.typeIds.includes(typeId));
 }
+
+// Field rules (#206): when a field is required, which choices another allows, and who changes it.
+
+export type FieldRule = Wire["FieldRule"];
+export type FieldPermit = Wire["FieldPermit"];
+export type FixedField = FieldRule["field"];
+
+const fieldRulesKey = (projectKey: string) => ["projects", "one", projectKey.toUpperCase(), "field-rules"] as const;
+
+/** The rules of a project's fixed fields: title, statement, rationale, type, owner and priority. */
+export function useFieldRules(projectKey: string) {
+  return useQuery({
+    queryKey: fieldRulesKey(projectKey),
+    queryFn: async (): Promise<FieldRule[]> => (await api.GET("/projects/{projectKey}/field-rules", { params: { path: { projectKey } } })).data!.rules,
+  });
+}
+
+/** Sets one fixed field's rule whole. */
+export function useSaveFieldRule(projectKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ field, ...body }: Wire["FieldRuleInput"] & { field: FixedField }): Promise<FieldRule> =>
+      (await api.PUT("/projects/{projectKey}/field-rules/{field}", { params: { path: { projectKey, field } }, body })).data!.rule,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: fieldRulesKey(projectKey) }),
+  });
+}
+
+/** The options a dependent select may hold while the attribute it depends on holds what values say; all of them
+ * where that one's option names none. */
+export function allowedOptions(attribute: Attribute, values: Record<string, unknown>): Attribute["options"] {
+  const dependency = attribute.dependsOn;
+  const parent = dependency ? values[dependency.attributeId] : undefined;
+  const allowed = dependency && typeof parent === "string" ? dependency.choices[parent] : undefined;
+  return allowed ? attribute.options.filter((option) => allowed.includes(option.id)) : attribute.options;
+}
+
+/** The roles that may change a field under its permits while in a status: null when the reader may; otherwise who
+ * may, empty when nobody does. */
+export function permittedRoles(permits: FieldPermit[], statusId: string | null | undefined, roles: string[]): string[] | null {
+  if (permits.length === 0) return null;
+  const who: string[] = [];
+  for (const permit of permits) {
+    if (permit.statuses.length > 0 && (!statusId || !permit.statuses.includes(statusId))) continue;
+    if (permit.roles.some((role) => roles.includes(role))) return null;
+    for (const role of permit.roles) if (!who.includes(role)) who.push(role);
+  }
+  return who;
+}

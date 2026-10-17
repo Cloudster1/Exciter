@@ -1501,7 +1501,8 @@
                 "baseline_signing.removed",
                 "requirement.locked",
                 "requirement.unlocked",
-                "status.locks_set"
+                "status.locks_set",
+                "field_rule.saved"
               ]
             }
           },
@@ -1681,7 +1682,8 @@
                 "baseline_signing.removed",
                 "requirement.locked",
                 "requirement.unlocked",
-                "status.locks_set"
+                "status.locks_set",
+                "field_rule.saved"
               ]
             }
           },
@@ -8109,16 +8111,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -8198,16 +8190,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20555,8 +20537,24 @@
             "type": "string",
             "format": "date-time"
           },
+          "dependsOn": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttributeDependency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description": {
             "type": "string"
+          },
+          "editableBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldPermit"
+            }
           },
           "id": {
             "type": "string",
@@ -20591,6 +20589,13 @@
           "required": {
             "type": "boolean"
           },
+          "requiredFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "retired": {
             "type": "boolean"
           },
@@ -20616,6 +20621,9 @@
           "typeIds",
           "position",
           "retired",
+          "requiredFrom",
+          "dependsOn",
+          "editableBy",
           "createdAt",
           "updatedAt"
         ]
@@ -20647,6 +20655,29 @@
           "attributeId",
           "op",
           "value"
+        ]
+      },
+      "AttributeDependency": {
+        "type": "object",
+        "properties": {
+          "attributeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "choices": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        "required": [
+          "attributeId",
+          "choices"
         ]
       },
       "AttributeDiff": {
@@ -20694,8 +20725,25 @@
       "AttributeInput": {
         "type": "object",
         "properties": {
+          "dependsOn": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttributeDependency",
+                "description": "The select attribute it depends on and the options each of its options allows; null clears it, absent leaves it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description": {
             "type": "string"
+          },
+          "editableBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldPermit"
+            }
           },
           "kind": {
             "type": "string",
@@ -20725,6 +20773,14 @@
           },
           "required": {
             "type": "boolean"
+          },
+          "requiredFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The status from which on it is required; null clears it, absent leaves it."
           },
           "retired": {
             "type": "boolean"
@@ -20892,7 +20948,8 @@
               "baseline_signing.removed",
               "requirement.locked",
               "requirement.unlocked",
-              "status.locks_set"
+              "status.locks_set",
+              "field_rule.saved"
             ]
           },
           "actorId": {
@@ -21021,7 +21078,8 @@
                 "baseline_signing.removed",
                 "requirement.locked",
                 "requirement.unlocked",
-                "status.locks_set"
+                "status.locks_set",
+                "field_rule.saved"
               ]
             }
           },
@@ -25264,6 +25322,12 @@
           "requirements": {
             "type": "integer"
           },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "settings": {
             "$ref": "#/components/schemas/ProjectSettings"
           },
@@ -25292,6 +25356,7 @@
           "archivedAt",
           "archivedByName",
           "can",
+          "roles",
           "watching"
         ]
       },
@@ -27619,7 +27684,10 @@
             "type": "string",
             "enum": [
               "text",
-              "roles"
+              "roles",
+              "linkType",
+              "direction",
+              "dimension"
             ]
           },
           "label": {

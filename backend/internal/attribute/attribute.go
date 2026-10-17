@@ -3,6 +3,7 @@
 package attribute
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -114,9 +115,15 @@ type Def struct {
 	TypeIDs  []uuid.UUID `json:"typeIds"`
 	Position int         `json:"position"`
 	// Retired attributes leave forms and lists; their values stay on requirements and revisions.
-	Retired   bool      `json:"retired"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Retired bool `json:"retired"`
+	// RequiredFrom is the status from which on it needs a value, in the project's status order (#206); null for none.
+	RequiredFrom *uuid.UUID `json:"requiredFrom"`
+	// DependsOn narrows a select's options by another select's option, null when it depends on none.
+	DependsOn *Dependency `json:"dependsOn"`
+	// EditableBy empty leaves it to whoever may edit the requirement.
+	EditableBy []Permit  `json:"editableBy"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 // DefInput makes an attribute, or changes one where nil leaves a field alone;
@@ -131,4 +138,8 @@ type DefInput struct {
 	TypeIDs  *[]uuid.UUID   `json:"typeIds,omitempty"`
 	Position *int           `json:"position,omitempty"`
 	Retired  *bool          `json:"retired,omitempty"`
+	// RequiredFrom and DependsOn set to null clear them (#206).
+	RequiredFrom json.RawMessage `json:"requiredFrom,omitempty"`
+	DependsOn    json.RawMessage `json:"dependsOn,omitempty"`
+	EditableBy   *[]Permit       `json:"editableBy,omitempty"`
 }

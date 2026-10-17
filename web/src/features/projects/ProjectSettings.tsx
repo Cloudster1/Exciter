@@ -10,13 +10,14 @@ import { ApprovalRules } from "@/features/reviews/ApprovalRules";
 import { SigningRuleCard } from "@/features/baselines/SigningRule";
 import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
 import { AttributeList } from "@/features/types/AttributeList";
+import { FixedFieldRules } from "@/features/types/FixedFieldRules";
 import { TypeList } from "@/features/types/TypeList";
 import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { TraceModelCard } from "@/features/matrix/TraceModelCard";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
+const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -43,6 +44,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "details", label: t.projects.detailsTitle, attrs: { "data-tab": "details" } },
               { value: "types", label: t.types.tab, attrs: { "data-tab": "types" } },
               { value: "attributes", label: t.attributes.tab, attrs: { "data-tab": "attributes" } },
+              { value: "fields", label: t.fieldRules.tab, attrs: { "data-tab": "fields" } },
               { value: "workflow", label: t.workflows.tab, attrs: { "data-tab": "workflow" } },
               { value: "approval", label: t.review.rulesTab, attrs: { "data-tab": "approval" } },
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
@@ -70,6 +72,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         )}
         {tab === "types" && <TypeList project={project} />}
         {tab === "attributes" && <AttributeList project={project} />}
+        {tab === "fields" && <FixedFieldRules project={project} />}
         {tab === "workflow" && <WorkflowSettings project={project} />}
         {tab === "approval" && (
           <>

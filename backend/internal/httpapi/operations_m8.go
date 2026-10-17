@@ -48,10 +48,10 @@ var controlOperations = []operation{
 			http.StatusConflict: errorEnvelope{}}},
 
 	// Field rules (#206).
-	{method: "GET", path: "/projects/{projectKey}/field-rules", handler: "handleListFieldRules", tag: "types", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/field-rules", handler: "handleListFieldRules", tag: "types",
 		summary:   "When the fixed fields are required and who changes them; an attribute's rules are on its definition.",
 		responses: ok(env{"rules": []attribute.FieldRule{}})},
-	{method: "PUT", path: "/projects/{projectKey}/field-rules/{field}", handler: "handleSaveFieldRule", tag: "types", pending: true,
+	{method: "PUT", path: "/projects/{projectKey}/field-rules/{field}", handler: "handleSaveFieldRule", tag: "types",
 		summary: "Set a fixed field's rule whole: the status it is required from and who changes it in which statuses. For the project's administrators.",
 		request: attribute.FieldRuleInput{}, responses: map[int]any{http.StatusOK: env{"rule": attribute.FieldRule{}}, http.StatusForbidden: errorEnvelope{},
 			http.StatusUnprocessableEntity: errorEnvelope{}}},

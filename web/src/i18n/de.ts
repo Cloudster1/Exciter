@@ -18,6 +18,7 @@ import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
+import { fieldRulesDe } from "./fieldRules.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
@@ -327,6 +328,7 @@ export const de: Messages = {
       "requirement.locked": "Anforderung gesperrt",
       "requirement.unlocked": "Anforderung entsperrt",
       "status.locks_set": "Sperre eines Status geändert",
+      "field_rule.saved": "Feldregel gespeichert",
     },
     targetTypes: {
       user: "Person",
@@ -340,6 +342,7 @@ export const de: Messages = {
       workflow: "Workflow",
       status: "Status",
       baseline: "Baseline",
+      attribute: "Attribut",
       api_token: "Zugriffstoken",
       oauth_grant: "Verbundene App",
       armature_connection: "Armature-Verbindung",
@@ -366,6 +369,7 @@ export const de: Messages = {
   stator: statorDe,
   reuse: reuseDe,
   control: controlDe,
+  fieldRules: fieldRulesDe,
   comments: commentsDe,
   watch: watchDe,
   notifications: notificationsDe,

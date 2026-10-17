@@ -57,4 +57,8 @@ func controlSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(review.ParticipantRole(""))] = enumStrings(review.ParticipantRoles)
 	b.FieldOverrides["ReviewSessionSince.base"] = &openapi.Schema{Type: "string", Enum: []string{"approved", "baseline"}}
 	b.FieldOverrides["FieldRule.field"] = &openapi.Schema{Type: "string", Enum: attribute.FixedFields}
+	b.FieldOverrides["AttributeInput.requiredFrom"] = openapi.Nullable(&openapi.Schema{Type: "string", Format: "uuid",
+		Description: "The status from which on it is required; null clears it, absent leaves it."})
+	b.FieldOverrides["AttributeInput.dependsOn"] = openapi.Nullable(&openapi.Schema{Ref: "#/components/schemas/AttributeDependency",
+		Description: "The select attribute it depends on and the options each of its options allows; null clears it, absent leaves it."})
 }

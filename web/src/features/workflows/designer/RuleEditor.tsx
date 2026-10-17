@@ -9,7 +9,18 @@ const KINDS: RuleKind[] = ["condition", "validator", "postfunction"];
 
 /** The rules on one transition, grouped the way the engine asks them: whether the move is offered, whether
  * what comes with it passes, and what happens afterwards; a rule is picked from the server's list, never typed. */
-export function RuleEditor({ rules, catalogue, onChange }: { rules: DraftRule[]; catalogue: RuleType[]; onChange: (rules: DraftRule[]) => void }) {
+export function RuleEditor({
+  rules,
+  catalogue,
+  linkTypes = [],
+  onChange,
+}: {
+  rules: DraftRule[];
+  catalogue: RuleType[];
+  /** The project's link types, which a rule asking for links picks from (#206). */
+  linkTypes?: { id: string; name: string }[];
+  onChange: (rules: DraftRule[]) => void;
+}) {
   const [picked, setPicked] = useState("");
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const chosen = catalogue.find((type) => type.type === picked);
@@ -41,7 +52,7 @@ export function RuleEditor({ rules, catalogue, onChange }: { rules: DraftRule[];
             {ofKind.length > 0 && (
               <ul className="mt-1.5 space-y-1">
                 {ofKind.map(({ rule, index }) => {
-                  const text = describeRule(rule, catalogue);
+                  const text = describeRule(rule, catalogue, linkTypes);
                   return (
                     <li
                       key={`${rule.type}-${index}`}
@@ -110,6 +121,27 @@ export function RuleEditor({ rules, catalogue, onChange }: { rules: DraftRule[];
                 );
               })}
             </fieldset>
+          ) : option.kind === "linkType" || option.kind === "direction" || option.kind === "dimension" ? (
+            <Select
+              key={option.name}
+              label={optionLabel(option.name, option.label)}
+              id={`field-rule-${option.name}`}
+              value={typeof config[option.name] === "string" ? (config[option.name] as string) : ""}
+              onChange={(event) => setConfig({ ...config, [option.name]: event.target.value })}
+            >
+              <option value="">{t.workflows.chooseOption}</option>
+              {option.kind === "linkType"
+                ? linkTypes.map((each) => (
+                    <option key={each.id} value={each.id}>
+                      {each.name}
+                    </option>
+                  ))
+                : option.choices.map((choice) => (
+                    <option key={choice} value={choice}>
+                      {(t.workflows.optionChoices as Record<string, string | undefined>)[choice] ?? choice}
+                    </option>
+                  ))}
+            </Select>
           ) : (
             <Field
               key={option.name}

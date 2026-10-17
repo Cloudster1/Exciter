@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import { showsOn, type Attribute } from "@/api/attributes";
+import { allowedOptions, showsOn, type Attribute } from "@/api/attributes";
 import { PRIORITIES, useUpdateRequirement, type Priority, type RequirementChanges, type RequirementRow } from "@/api/requirements";
 import type { Sort } from "@/api/search";
 import { Button, Checkbox, IconButton, Input, SelectInput, Table, Td, Th, Tag } from "@/components/ui";
@@ -13,6 +13,8 @@ import { usePeopleNames } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { t } from "@/i18n";
+import { useProject } from "@/api/projects";
+import { useAccess, type Access } from "@/features/types/fieldAccess";
 import { localDateFormat } from "@/lib/format";
 import { SORT_COLUMNS } from "./filter";
 import { SuspectBadge } from "@/features/links/Suspect";
@@ -51,6 +53,8 @@ export function GridTable({
   onSort: (next: Sort) => void;
   onEdit: (result: EditResult) => void;
 }) {
+  const { data: project } = useProject(projectKey);
+  const access = useAccess(project);
   const sortable = (column: string) => (SORT_COLUMNS as readonly string[]).includes(column) || attributes.some((each) => each.id === column);
   // A heading goes from A to Z, to Z to A, and back to the outline.
   const next = (column: string): Sort => (sort.column !== column ? { column, desc: false } : sort.desc ? { column: "", desc: false } : { column, desc: true });
@@ -109,7 +113,7 @@ export function GridTable({
             )}
             {columns.map((column) => (
               <Td key={column}>
-                <Cell projectKey={projectKey} row={row} column={column} attributes={attributes} onEdit={onEdit} />
+                <Cell projectKey={projectKey} row={row} column={column} attributes={attributes} access={access} onEdit={onEdit} />
               </Td>
             ))}
           </tr>
@@ -124,12 +128,15 @@ function Cell({
   row,
   column,
   attributes,
+  access,
   onEdit,
 }: {
   projectKey: string;
   row: RequirementRow;
   column: string;
   attributes: Attribute[];
+  /** Whether the reader changes a field in the row's status (#206). */
+  access: (field: string, status: RequirementRow["status"]) => Access;
   onEdit: (result: EditResult) => void;
 }) {
   const update = useUpdateRequirement(row.key);
@@ -162,7 +169,7 @@ function Cell({
     case "owner":
       return <span className="text-ink-muted">{row.owner?.name ?? ""}</span>;
     case "priority":
-      return row.can.edit && requirement ? (
+      return row.can.edit && requirement && access("priority", row.status).edit ? (
         <SelectInput
           aria-label={t.grid.editPriority(row.key)}
           value={row.priority ?? ""}
@@ -195,7 +202,7 @@ function Cell({
   }
   const attribute = attributes.find((each) => each.id === column);
   if (!attribute) return null;
-  const editable = row.can.edit && requirement && !attribute.retired && showsOn(attribute, row.type?.id);
+  const editable = row.can.edit && requirement && !attribute.retired && showsOn(attribute, row.type?.id) && access(attribute.id, row.status).edit;
   return (
     <ValueCell
       attribute={attribute}
@@ -294,7 +301,7 @@ function ValueCell({
             <option value="false">{t.grid.no}</option>
           </>
         ) : (
-          attribute.options
+          allowedOptions(attribute, row.attributes)
             .filter((option) => !option.retired || option.id === value)
             .map((option) => (
               <option key={option.id} value={option.id}>

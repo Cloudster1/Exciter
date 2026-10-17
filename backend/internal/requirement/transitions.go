@@ -135,6 +135,9 @@ func (s *Service) transition(ctx context.Context, actor uuid.UUID, key string, i
 		if err != nil {
 			return err
 		}
+		if err := s.traceOf(ctx, tx, l, &subject); err != nil {
+			return err
+		}
 		t, effect, err := workflow.Decide(w, in.TransitionID, subject, who, workflow.Input{Comment: comment})
 		switch {
 		case errors.Is(err, workflow.ErrUnavailable), errors.Is(err, workflow.ErrNoTransition):
@@ -146,6 +149,9 @@ func (s *Service) transition(ctx context.Context, actor uuid.UUID, key string, i
 		case errors.Is(err, workflow.ErrNotYours):
 			return ErrForbidden
 		case err != nil:
+			return err
+		}
+		if err := requiredIn(ctx, tx, l, &t.ToStatusID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `SELECT requirement_transition($1, $2, $3)`, l.ID, t.ID, comment); err != nil {

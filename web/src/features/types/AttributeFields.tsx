@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { showsOn, type Attribute } from "@/api/attributes";
+import { allowedOptions, showsOn, type Attribute } from "@/api/attributes";
 import { api } from "@/api/client";
 import { findPeople } from "@/api/requirements";
 import { Checkbox, IconButton, Input, Labelled, SelectInput } from "@/components/ui";
@@ -46,15 +46,29 @@ export function AttributeFields({
   values,
   onChange,
   errors,
+  readOnly = {},
 }: {
   attributes: Attribute[];
   typeId: string | null | undefined;
   values: Values;
   onChange: (values: Values) => void;
   errors: Record<string, string>;
+  /** Attributes the reader may not change here, by id, with why (#206). */
+  readOnly?: Record<string, string>;
 }) {
   const { data: names } = usePeopleNames();
-  const set = (id: string, value: unknown) => onChange({ ...values, [id]: value });
+  // A change of an attribute another depends on clears the other's options it no longer allows (#206).
+  const set = (id: string, value: unknown) => {
+    const next: Values = { ...values, [id]: value };
+    for (const a of attributes) {
+      if (a.dependsOn?.attributeId !== id || next[a.id] === undefined || next[a.id] === null) continue;
+      const allowed = allowedOptions(a, next).map((o) => o.id);
+      const held = next[a.id];
+      if (Array.isArray(held)) next[a.id] = held.filter((each) => allowed.includes(each as string));
+      else if (!allowed.includes(held as string)) next[a.id] = null;
+    }
+    onChange(next);
+  };
   const shown = shownAttributes(attributes, typeId, values);
   if (shown.length === 0) return null;
   return (
@@ -65,6 +79,21 @@ export function AttributeFields({
         const value = values[a.id];
         const error = errors[`attributes.${a.id}`];
         const label = a.required ? `${a.name} (${t.attributes.required.toLowerCase()})` : a.name;
+        const options = allowedOptions(a, values);
+        if (readOnly[a.id] !== undefined) {
+          return (
+            <div key={a.id} className="space-y-1" data-attribute-field={a.name} data-read-only-why={a.id}>
+              <AttributeValues attributes={[a]} values={values} />
+              {(value === undefined || value === null) && (
+                <p className="text-sm text-ink">
+                  {a.name}: {t.attributes.none}
+                </p>
+              )}
+              <p className="text-xs text-ink-muted">{readOnly[a.id]}</p>
+              {error && <p className="text-sm text-danger">{error}</p>}
+            </div>
+          );
+        }
         if (a.kind === "boolean") {
           return (
             <div key={a.id} data-attribute-field={a.name}>
@@ -81,7 +110,7 @@ export function AttributeFields({
               ) : a.kind === "select" ? (
                 <SelectInput id={id} value={(value as string) ?? ""} onChange={(event) => set(a.id, event.target.value || null)}>
                   <option value="">{t.attributes.none}</option>
-                  {a.options
+                  {options
                     .filter((o) => !o.retired || o.id === value)
                     .map((o) => (
                       <option key={o.id} value={o.id}>
@@ -91,7 +120,7 @@ export function AttributeFields({
                 </SelectInput>
               ) : a.kind === "multiSelect" ? (
                 <div className="flex flex-wrap gap-x-4 gap-y-1" id={id}>
-                  {a.options
+                  {options
                     .filter((o) => !o.retired || ((value as string[]) ?? []).includes(o.id))
                     .map((o) => {
                       const picked = ((value as string[] | undefined) ?? []).includes(o.id);
