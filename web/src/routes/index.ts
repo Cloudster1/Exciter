@@ -33,6 +33,8 @@ import {
   chainsRoute,
   baselineRoute,
   baselineCompareRoute,
+  sessionsRoute,
+  sessionRoute,
   workflowDesignRoute,
 } from "./projects";
 import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
@@ -44,13 +46,14 @@ import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
-import { printBaselineDocumentRoute, printProjectDocumentRoute } from "./print";
+import { printBaselineDocumentRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   printProjectDocumentRoute,
   printBaselineDocumentRoute,
+  printSessionReportRoute,
   appRoute.addChildren([
     homeRoute,
     projectsRoute,
@@ -68,6 +71,8 @@ const routeTree = rootRoute.addChildren([
     chainsRoute,
     baselineRoute,
     baselineCompareRoute,
+    sessionsRoute,
+    sessionRoute,
     specRoute,
     gridRoute,
     requirementRoute,

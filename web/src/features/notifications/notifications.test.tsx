@@ -41,6 +41,7 @@ function aNotification(over: Partial<Notification> = {}): Notification {
     excerpt: "Tightened the limit.",
     createdAt: "2026-10-01T08:00:00Z",
     readAt: null,
+    session: null,
     ...over,
   };
 }

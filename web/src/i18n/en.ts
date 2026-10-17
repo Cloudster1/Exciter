@@ -21,6 +21,7 @@ import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
 import { fieldRulesEn } from "./fieldRules.en";
+import { sessionsEn } from "./sessions.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
@@ -328,6 +329,9 @@ export const en = {
       "requirement.unlocked": "Requirement unlocked",
       "status.locks_set": "Status lock changed",
       "field_rule.saved": "Field rule saved",
+      "review_session.opened": "Review session opened",
+      "review_session.round_started": "Review session round started",
+      "review_session.closed": "Review session closed",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -342,6 +346,7 @@ export const en = {
       status: "Status",
       baseline: "Baseline",
       attribute: "Attribute",
+      review_session: "Review session",
       api_token: "Access token",
       oauth_grant: "Connected app",
       armature_connection: "Armature connection",
@@ -369,6 +374,7 @@ export const en = {
   reuse: reuseEn,
   control: controlEn,
   fieldRules: fieldRulesEn,
+  sessions: sessionsEn,
   comments: commentsEn,
   watch: watchEn,
   notifications: notificationsEn,

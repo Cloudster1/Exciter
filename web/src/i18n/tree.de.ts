@@ -63,7 +63,7 @@ export const treeDe: typeof treeEn = {
   changesLabel: "Änderungen",
   showChanges: "Änderungen zeigen",
   changesBase: "Verglichen mit",
-  bases: { previous: "Der vorigen Revision", approved: "Der letzten Freigabe", baseline: "Einer Baseline" },
+  bases: { previous: "Der vorigen Revision", approved: "Der letzten Freigabe", baseline: "Einer Baseline", round: "Der letzten Runde der Sitzung" },
   changesBaseline: "Baseline",
   pickBaseline: "Baseline wählen",
   pickBaselineFirst: "Wählen Sie die Baseline, mit der verglichen wird.",

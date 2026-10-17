@@ -22,10 +22,13 @@ const (
 	BaseApproved ChangeBase = "approved"
 	// BaseBaseline compares each with the revision and place a baseline holds.
 	BaseBaseline ChangeBase = "baseline"
+	// BaseRound compares each requirement of a review session with the revision its previous round pinned, or with
+	// its last approval when it was pinned once (#204).
+	BaseRound ChangeBase = "round"
 )
 
 // ChangeBases lists every ChangeBase, for the API document.
-var ChangeBases = []ChangeBase{BasePrevious, BaseApproved, BaseBaseline}
+var ChangeBases = []ChangeBase{BasePrevious, BaseApproved, BaseBaseline, BaseRound}
 
 // ChangeKind is how a requirement differs from its base.
 type ChangeKind string
@@ -83,6 +86,8 @@ type SpecQuery struct {
 	// Waiting keeps the requirements whose pending review waits for the reader's decision (#171), and the sections
 	// above them.
 	Waiting bool
+	// Session keeps a review session's requirements (#204), and the sections above them; nil for none.
+	Session uuid.UUID
 	// reader is who reads, whom waiting and each entry's review are about.
 	reader uuid.UUID
 }
@@ -99,8 +104,12 @@ func (q SpecQuery) check() error {
 		if q.Baseline == uuid.Nil {
 			return &FieldError{"baseline", "Choose the baseline to compare with."}
 		}
+	case BaseRound:
+		if q.Session == uuid.Nil {
+			return &FieldError{"changes", "Compare with the last round within a review session; name the session."}
+		}
 	default:
-		return &FieldError{"changes", "Compare with the previous revision, the last approval or a baseline."}
+		return &FieldError{"changes", "Compare with the previous revision, the last approval, a baseline or a session's last round."}
 	}
 	return nil
 }
@@ -135,6 +144,15 @@ func changesCTE(q SpecQuery, p *params) string {
 	            WHEN ` + moved + ` THEN 'moved' ELSE 'unchanged' END AS kind,
 	       CASE WHEN ` + moved + ` THEN bi.path END AS moved_from
 	` + fmt.Sprintf(live, `LEFT JOIN baseline_item bi ON bi.baseline_id = `+p.add(q.Baseline)+`::uuid AND bi.requirement_id = r.id`) + `)`
+	case BaseRound:
+		return `, chg AS (SELECT r.id, COALESCE(prev.revision, a.rev, 0) AS from_rev,
+	       CASE WHEN COALESCE(prev.revision, a.rev) IS NULL THEN 'added' WHEN COALESCE(prev.revision, a.rev) = r.revision THEN 'unchanged'
+	            ELSE 'changed' END AS kind,
+	       NULL::int[] AS moved_from
+	` + fmt.Sprintf(live, `LEFT JOIN LATERAL (SELECT i.revision FROM review_session_item i WHERE i.session_id = `+p.add(q.Session)+`::uuid
+	       AND i.requirement_id = r.id ORDER BY i.round DESC OFFSET 1 LIMIT 1) prev ON true
+	       LEFT JOIN LATERAL (SELECT max(v.revision) AS rev FROM requirement_review v
+	       WHERE v.requirement_id = r.id AND v.state = 'approved' AND v.session_id IS DISTINCT FROM `+p.add(q.Session)+`::uuid) a ON true`) + `)`
 	}
 	return `, chg AS (SELECT NULL::uuid AS id, 0 AS from_rev, ''::text AS kind, NULL::int[] AS moved_from WHERE false)`
 }
@@ -146,7 +164,8 @@ func specSQL(projectID uuid.UUID, q SpecQuery) (ctes, where string, p *params) {
 	p.add(projectID)
 	ctes = changesCTE(q, p)
 	byStatus, onlyChanged := q.Filter.narrows(), q.OnlyChanged && q.Changes != ""
-	if !byStatus && !onlyChanged && !q.Waiting {
+	inSession := q.Session != uuid.Nil
+	if !byStatus && !onlyChanged && !q.Waiting && !inSession {
 		return ctes, "", p
 	}
 	statuses, categories := q.Filter.Statuses, q.Filter.Categories
@@ -162,6 +181,9 @@ func specSQL(projectID uuid.UUID, q SpecQuery) (ctes, where string, p *params) {
 	}
 	if onlyChanged {
 		keep += ` AND c.kind <> 'unchanged'`
+	}
+	if inSession {
+		keep += ` AND r.id IN (SELECT i.requirement_id FROM review_session_item i WHERE i.session_id = ` + p.add(q.Session) + `::uuid)`
 	}
 	if q.Waiting {
 		// As GET /reviews/waiting counts them: pending, the reader's to decide, not decided by them yet.

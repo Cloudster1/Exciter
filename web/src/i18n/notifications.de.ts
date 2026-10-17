@@ -76,6 +76,14 @@ export const notificationsDe: typeof notificationsEn = {
         return `${who} hat eine neue Revision von ${key} gespeichert`;
       case "transitioned":
         return `${who} hat ${key} in einen anderen Status gebracht`;
+      case "session_invited":
+        return `${who} bittet Sie, an der Review-Sitzung ${key} teilzunehmen`;
+      case "session_round":
+        return `${who} hat eine neue Runde der Review-Sitzung ${key} begonnen`;
+      case "session_reminder":
+        return `Die Review-Sitzung ${key} endet bald und wartet auf Sie`;
+      case "session_closed":
+        return `${who} hat die Review-Sitzung ${key} geschlossen`;
     }
   },
   preferencesTitle: "Benachrichtigungen",
@@ -95,6 +103,10 @@ export const notificationsDe: typeof notificationsEn = {
     resolved: "Eine Diskussion, in der Sie geschrieben haben, wird erledigt oder wieder geöffnet",
     revised: "Eine Anforderung, die Sie beobachten, bekommt eine neue Revision",
     transitioned: "Eine Anforderung, die Sie beobachten, wechselt den Status",
+    session_invited: "Jemand bittet Sie, an einer Review-Sitzung teilzunehmen",
+    session_round: "Eine Review-Sitzung, an der Sie teilnehmen, beginnt eine neue Runde",
+    session_reminder: "Eine Review-Sitzung, die auf Sie wartet, endet bald",
+    session_closed: "Eine Review-Sitzung, an der Sie teilnehmen, ist geschlossen",
   },
   inAppFor: (kind: string) => `In der App: ${kind}`,
   emailFor: (kind: string) => `Per E-Mail: ${kind}`,

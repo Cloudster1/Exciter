@@ -168,41 +168,48 @@ func (s *Server) sendPDF(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
+	pdf, ok := s.printed(w, r, printPath(doc))
+	if !ok || !s.noteDocument(w, r, doc, "pdf") {
+		return
+	}
+	sendFile(w, "application/pdf", docx.FileName(doc, "pdf"), pdf)
+}
+
+// printed has the render service print a page of the web client as the reader, with a token only the print holds;
+// false when it answered the refusal itself.
+func (s *Server) printed(w http.ResponseWriter, r *http.Request, path string) ([]byte, bool) {
 	renderer := s.Renderer
 	if renderer == nil {
 		renderer = render.Unavailable{}
 	}
 	if _, off := renderer.(render.Unavailable); off {
 		respondError(w, r, render.ErrUnavailable)
-		return
+		return nil, false
 	}
 	p := PrincipalFrom(r.Context())
 	if p == nil || len(p.TokenProjects) > 0 || (p.Token != nil && !p.Token.AllProjects) {
 		respondError(w, r, errProjectToken)
-		return
+		return nil, false
 	}
 	token, tokenID, lsn, err := s.Accounts.MintRenderToken(r.Context(), p.UserID)
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
-		return
+		return nil, false
 	}
 	// The print's own requests read no older than the token, so what the reader wrote just before is printed.
 	if s.Fresh != nil {
 		s.Fresh.Note(r.Context(), tokenFreshnessKey(tokenID), lsn)
 	}
-	pdf, err := renderer.PDF(r.Context(), render.Request{Path: printPath(doc), Token: token, Language: language(r)})
+	pdf, err := renderer.PDF(r.Context(), render.Request{Path: path, Token: token, Language: language(r)})
 	if revokeErr := s.Accounts.RevokeRenderToken(context.WithoutCancel(r.Context()), tokenID); revokeErr != nil && s.Log != nil {
 		s.Log.Warn("a print's token could not be deleted; it expires by itself", "error", revokeErr)
 	}
 	if err != nil {
 		respondError(w, r, err)
-		return
+		return nil, false
 	}
-	if !s.noteDocument(w, r, doc, "pdf") {
-		return
-	}
-	sendFile(w, "application/pdf", docx.FileName(doc, "pdf"), pdf)
+	return pdf, true
 }
 
 // printPath is the print view of a document in the web client.

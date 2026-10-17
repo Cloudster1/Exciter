@@ -43,9 +43,14 @@ func Write(ctx context.Context, out io.Writer, doc *specdoc.Document, lang strin
 	if err != nil {
 		return err
 	}
+	return w.pack(out, body, doc.ExportedAt, coreProperties(doc, lang), lang)
+}
+
+// pack writes the document's parts as the .docx's zip, its pictures beside them.
+func (w *writer) pack(out io.Writer, body []byte, modified time.Time, core []byte, lang string) error {
 	zw := zip.NewWriter(out)
 	part := func(name string, data []byte) error {
-		f, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: doc.ExportedAt})
+		f, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: modified})
 		if err != nil {
 			return err
 		}
@@ -58,7 +63,7 @@ func Write(ctx context.Context, out io.Writer, doc *specdoc.Document, lang strin
 	}{
 		{"[Content_Types].xml", contentTypes(w.media)},
 		{"_rels/.rels", []byte(packageRels)},
-		{"docProps/core.xml", coreProperties(doc, lang)},
+		{"docProps/core.xml", core},
 		{"docProps/app.xml", []byte(appProperties)},
 		{"word/document.xml", body},
 		{"word/styles.xml", styles(lang)},

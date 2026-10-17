@@ -470,7 +470,39 @@ what it reads already.
   participants, deadline and quorum; the session page shows progress per
   requirement and per participant, starts a round, closes with a baseline
   and downloads the report; review mode reads the session.
-- **As built** notes join each issue's section when it is built.
+- **As built** (#204):
+  - A session's reviews are asked only by `review_session_pin`, a SECURITY
+    DEFINER function the moderator calls: it pins the current revision, asks
+    the review in the moderator's name, freezes the session's approvers on it
+    and sets `required` from the quorum, not counting the revision's author,
+    who never approves it. `requirement_review_not_in_session` keeps the app
+    role from asking one itself.
+  - `review_decidable` learned that a closed session takes no decision; a
+    decision on a review the session does not name was refused already, and
+    a review of an older pin was superseded by the revision that made it
+    older.
+  - Opening, a round and closing each happen in one transaction; a round
+    pins anew a requirement revised since its pin, out of the trash and
+    without a review of its own waiting (`pinAgain`).
+  - A reviewer needs the comment right and an approver the approve right in
+    the project, so everybody named can do what the session asks of them.
+  - The closing baseline is taken by `baseline.TakeOfSession` in the closing
+    transaction, of the requirements approved at their revision now and the
+    sections above them; `baseline_takers` lets the moderator take it while
+    `review_session_closing` holds.
+  - Notifications name the session rather than a requirement
+    (`notification.session_id`), are read by whoever may read its project,
+    and lead to `/p/{projectKey}/sessions/{sessionId}`. The reminder is the
+    worker's `review.Reminder`, which runs whether or not mail is on and
+    tells only approvers with a decision still to give.
+  - The specification's `changes=round` compares each requirement with the
+    revision its previous round pinned, or with its last approval outside
+    the session when it was pinned once.
+  - The Word report is written with `internal/docx`'s own blocks
+    (`docx.ReportBytes`); the PDF prints `/print/sessions/{sessionId}`
+    through the render service, as a document's does (`Server.printed`).
+  - The web opens a session from a section of the document, a baseline's
+    page and the project's sessions, where a query is given too.
 
 ## What is left for later
 

@@ -59,7 +59,7 @@ export const treeEn = {
   changesLabel: "Changes",
   showChanges: "Show changes",
   changesBase: "Compared with",
-  bases: { previous: "The previous revision", approved: "The last approval", baseline: "A baseline" },
+  bases: { previous: "The previous revision", approved: "The last approval", baseline: "A baseline", round: "The session's last round" },
   changesBaseline: "Baseline",
   pickBaseline: "Pick a baseline",
   pickBaselineFirst: "Pick the baseline to compare with.",

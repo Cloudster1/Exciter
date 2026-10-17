@@ -394,3 +394,41 @@ func planReviewDecided(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, 
 	}
 	return plan, nil
 }
+
+// sessionEvent is what a review session's events carry (#204).
+type sessionEvent struct {
+	ActorID   uuid.UUID `json:"actorId"`
+	SessionID uuid.UUID `json:"sessionId"`
+}
+
+// planSession tells everybody a review session reaches, in person or through a group, of what happened to it; a
+// reminder only those with something still to do: an approver with a pending review they have not decided.
+func planSession(kind Kind, waiting bool) Planner {
+	return func(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+		var in sessionEvent
+		if err := json.Unmarshal(e.Payload, &in); err != nil || in.SessionID == uuid.Nil {
+			return nil, nil
+		}
+		session := in.SessionID
+		plan := &Plan{Actor: in.ActorID, Subject: Subject{SessionID: &session}}
+		if waiting {
+			// A reminder is nobody's act, so the moderator is told as well when they have something to do.
+			plan.Actor = uuid.Nil
+		}
+		reached, err := people(ctx, tx, `
+			WITH people AS (
+				SELECT p.user_id AS person, p.role FROM review_session_participant p WHERE p.session_id = $1 AND p.user_id IS NOT NULL
+				UNION
+				SELECT m.user_id, p.role FROM review_session_participant p JOIN group_member m ON m.group_id = p.group_id WHERE p.session_id = $1
+			)
+			SELECT DISTINCT person FROM people
+			WHERE NOT $2 OR (role = 'approver' AND EXISTS (
+				SELECT 1 FROM review_session_item i JOIN requirement_review v ON v.id = i.review_id
+				WHERE i.session_id = $1 AND v.state = 'pending'
+				  AND NOT EXISTS (SELECT 1 FROM review_decision d WHERE d.review_id = v.id AND d.reviewer_id = person)))`, in.SessionID, waiting)
+		for _, id := range reached {
+			plan.Tells = append(plan.Tells, Tell{UserID: id, Kind: kind})
+		}
+		return plan, err
+	}
+}

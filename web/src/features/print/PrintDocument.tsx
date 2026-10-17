@@ -14,7 +14,7 @@ import { usePrintReady } from "./printReady";
 const day = localDateFormat({ dateStyle: "long" });
 
 /** Paper is light, so a print takes the light scheme whatever the browser prefers. */
-function useLightScheme(): void {
+export function useLightScheme(): void {
   useEffect(() => {
     const html = document.documentElement;
     const before = html.getAttribute("data-theme");

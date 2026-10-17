@@ -57,6 +57,7 @@ function aReview(over: Partial<Review> = {}): Review {
     can: { decide: true, withdraw: false },
     signed: false,
     meanings: {},
+    session: null,
     ...over,
   };
 }
