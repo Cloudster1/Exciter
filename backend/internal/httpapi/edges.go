@@ -60,7 +60,9 @@ func (s *Server) sameSite(allowed []string) func(http.Handler) http.Handler {
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if safeMethod(r.Method) || !carriesCookie(r, s.CookieName) {
+			// MCP is held to the origin with a bearer too: a page of another site that reached a local server by
+			// rebinding its name would otherwise call it with whatever token the server is configured with.
+			if safeMethod(r.Method) || (!carriesCookie(r, s.CookieName) && r.URL.Path != mcpPath) {
 				next.ServeHTTP(w, r)
 				return
 			}

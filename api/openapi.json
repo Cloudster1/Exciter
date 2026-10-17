@@ -4396,6 +4396,14 @@
         "tags": [
           "mcp"
         ],
+        "parameters": [
+          {
+            "name": "MCP-Protocol-Version",
+            "in": "header",
+            "description": "The protocol revision the client goes on in after initialize: 2025-11-25 or 2025-06-18; 400 unsupported_protocol_version for another, unless it is newer than both.",
+            "schema": null
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4419,6 +4427,26 @@
           },
           "202": {
             "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",

@@ -14,14 +14,18 @@ import (
 // mcpTool is one marked row of the table as an assistant sees it: a name, a
 // sentence, and one flat input schema covering path, query and body.
 type mcpTool struct {
-	Name        string
+	Name, Title string
 	Description string
 	Method      string
 	Path        string
 	ReadOnly    bool
+	// Destructive, Idempotent and OpenWorld are the hints of #183; docs/api-contract-m7.md says which tools carry them.
+	Destructive, Idempotent, OpenWorld bool
 	// OrgWide tools are left out for a token limited to projects.
-	OrgWide    bool
-	Input      *openapi.Schema
+	OrgWide bool
+	Input   *openapi.Schema
+	// Output is the schema of what a successful call answers, nil when it answers nothing.
+	Output     *openapi.Schema
 	pathParams []string
 	query      []param
 	hasBody    bool
@@ -38,10 +42,15 @@ var toolCatalog = sync.OnceValue(func() []mcpTool {
 		}
 		out = append(out, mcpTool{
 			Name:        op.tool,
+			Title:       toolTitle(op.tool),
 			Description: op.toolHelp,
 			Method:      op.method,
 			Path:        op.path,
 			ReadOnly:    op.method == http.MethodGet,
+			Destructive: op.destructive,
+			Idempotent:  op.method == http.MethodPut || op.method == http.MethodPatch,
+			OpenWorld:   op.openWorld,
+			Output:      toolOutput(b, op),
 			OrgWide:     op.orgWide,
 			Input:       toolInput(b, op),
 			pathParams:  pathParams(op.path),
@@ -95,4 +104,30 @@ func toolInput(b *openapi.Builder, op operation) *openapi.Schema {
 		s.Required = append(s.Required, body.Required...)
 	}
 	return b.SelfContained(s)
+}
+
+// toolTitle is a tool's name in words, as a client shows it: get_requirement is "Get requirement".
+func toolTitle(name string) string {
+	words := strings.ReplaceAll(name, "_", " ")
+	return strings.ToUpper(words[:1]) + words[1:]
+}
+
+// toolOutput is the schema of the row's successful answer, its top level an object as the protocol requires.
+func toolOutput(b *openapi.Builder, op operation) *openapi.Schema {
+	for _, status := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted} {
+		body, ok := op.responses[status]
+		if !ok {
+			continue
+		}
+		if body == nil {
+			return nil
+		}
+		s := envelopeSchema(b, body)
+		if name, ok := strings.CutPrefix(s.Ref, "#/components/schemas/"); ok {
+			copied := *b.Components()[name]
+			s = &copied
+		}
+		return b.SelfContained(s)
+	}
+	return nil
 }

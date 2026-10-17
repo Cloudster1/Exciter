@@ -96,6 +96,9 @@ type operation struct {
 	// tool names the operation for an assistant and toolHelp is the sentence
 	// the model reads; empty means it is not offered.
 	tool, toolHelp string
+	// destructive marks a tool whose write keeps nothing of what it replaced, and openWorld one whose answer is
+	// read from Armature or Stator, for the hints an assistant's client shows (#183).
+	destructive, openWorld bool
 	// orgWide routes concern the installation as a whole, which a token
 	// limited to projects is refused.
 	orgWide bool
@@ -574,7 +577,10 @@ var operations = []operation{
 		responses: none()},
 	{method: "POST", path: "/mcp", handler: "handleMCP", id: "mcp", tag: "mcp",
 		summary: "The Model Context Protocol endpoint: the marked operations of this API as tools, run as the caller. The body is a JSON-RPC 2.0 request.",
-		request: json.RawMessage{}, responses: map[int]any{http.StatusOK: json.RawMessage{}, http.StatusAccepted: nil}},
+		headers: []param{{name: "MCP-Protocol-Version", description: "The protocol revision the client goes on in after initialize: " +
+			strings.Join(MCPProtocolVersions, " or ") + "; 400 unsupported_protocol_version for another, unless it is newer than both."}},
+		request: json.RawMessage{}, responses: map[int]any{http.StatusOK: json.RawMessage{}, http.StatusAccepted: nil,
+			http.StatusBadRequest: errorEnvelope{}, http.StatusForbidden: errorEnvelope{}}},
 
 	// CSV import and export (#23).
 	{method: "POST", path: "/projects/{projectKey}/import", handler: "handleUploadImport", tag: "import",
@@ -711,7 +717,7 @@ var operations = []operation{
 		responses: ok(env{"links": []armature.Link{}})},
 	{method: "POST", path: "/requirements/{reqKey}/armature-links", handler: "handleCreateArmatureLink", tag: "armature",
 		summary: "Trace a requirement to an Armature issue the caller may see; the worker puts a link to the requirement on the issue.",
-		tool:    "link_armature_issue", toolHelp: "Trace a requirement to an Armature issue by its key, such as CP-12, as implements, verifies or relates; the caller's own Armature token must see the issue.",
+		tool:    "link_armature_issue", openWorld: true, toolHelp: "Trace a requirement to an Armature issue by its key, such as CP-12, as implements, verifies or relates; the caller's own Armature token must see the issue.",
 		request: armature.LinkInput{}, responses: map[int]any{http.StatusCreated: env{"link": armature.Link{}}, http.StatusConflict: errorEnvelope{},
 			http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusBadGateway: errorEnvelope{}}},
 	{method: "DELETE", path: "/armature-links/{linkID}", handler: "handleDeleteArmatureLink", tag: "armature",

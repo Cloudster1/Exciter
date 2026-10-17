@@ -19,7 +19,9 @@ traceability, milestones `M0 Foundation` to `M5 Traceability`. What comes
 next is in the [issues](https://github.com/Cloudster1/Exciter/issues) and
 their milestones. How it is built is described in
 [`docs/architecture.md`](docs/architecture.md) and argued in
-[`docs/decisions.md`](docs/decisions.md).
+[`docs/decisions.md`](docs/decisions.md). An assistant can work with
+requirements over MCP as the person it works for; [`docs/mcp.md`](docs/mcp.md)
+says how to connect one.
 
 ## Working on it
 

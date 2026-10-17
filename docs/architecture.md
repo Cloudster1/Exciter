@@ -208,7 +208,9 @@ app role holds no privilege on.
   write before any handler, and one limited to projects carries them into
   every transaction (`app.token_projects`), where the permission functions
   read them. `POST /mcp` serves the table's tool-marked rows to assistants,
-  each call run through the whole router as the caller.
+  each call run through the whole router as the caller, in MCP `2025-11-25`
+  or `2025-06-18` (#183), each tool with the schema of its answer and its
+  hints drawn from the row.
 - **CSV import and export** (#23): Armature's import, reshaped for
   requirements. An upload is kept whole in `import_job` with a mapping
   guessed from its headers; the same analysis reads it against the project
