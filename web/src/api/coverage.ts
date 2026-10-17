@@ -1,10 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { API_BASE, COVERAGE_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
-import { api } from "./client";
-import type { components } from "./schema";
+import { API_BASE, COVERAGE_PAGE_SIZE, MATRIX_COLUMN_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
+import { api, queryString } from "./client";
+import type { components, operations } from "./schema";
 
-// Coverage and the traceability matrix (#38): what each type is asked for, how far the requirements are, and
-// the links between them laid out.
+// Coverage and the traceability matrix (#38, #147): what each type is asked for, how far the requirements are,
+// and the links between them laid out.
 
 type Wire = components["schemas"];
 
@@ -14,9 +14,12 @@ export type CoverageRow = Wire["CoverageRow"];
 export type CoverageSummary = Wire["CoverageSummary"];
 export type CoverageTotals = Wire["CoverageTotals"];
 export type Matrix = Wire["TraceMatrix"];
+export type MatrixLink = Wire["MatrixLink"];
+/** What a matrix lays out, as its query string takes it: the grid's narrowing and order, the columns and the links counted. */
+export type MatrixParams = Omit<NonNullable<operations["traceMatrix"]["parameters"]["query"]>, "limit" | "offset" | "columnLimit" | "columnOffset">;
 export type Level = CoverageRow["decomposed"];
 export type Dimension = "decomposed" | "implemented" | "verified";
-export type MatrixColumns = "requirements" | "issues";
+export type MatrixColumns = "requirements" | "issues" | "pages";
 
 /** Every dimension, in report order. */
 export const DIMENSIONS: Dimension[] = ["decomposed", "implemented", "verified"];
@@ -46,19 +49,26 @@ export function useCoverage(projectKey: string, only: LevelFilter, offset: numbe
   });
 }
 
-/** A window of a project's traceability matrix. */
-export function useMatrix(projectKey: string, columns: MatrixColumns, offset: number) {
+/** A window of a project's traceability matrix, of its rows and of its columns. */
+export function useMatrix(projectKey: string, params: MatrixParams, offset: number, columnOffset = 0) {
   return useQuery({
-    queryKey: [...coverageKey(projectKey), "matrix", columns, offset],
+    queryKey: [...coverageKey(projectKey), "matrix", params, offset, columnOffset],
     queryFn: async (): Promise<Matrix> =>
-      (await api.GET("/projects/{projectKey}/matrix", { params: { path: { projectKey }, query: { columns, limit: MATRIX_PAGE_SIZE, offset } } })).data!.matrix,
+      (
+        await api.GET("/projects/{projectKey}/matrix", {
+          params: { path: { projectKey }, query: { ...params, limit: MATRIX_PAGE_SIZE, offset, columnLimit: MATRIX_COLUMN_PAGE_SIZE, columnOffset } },
+        })
+      ).data!.matrix,
     placeholderData: keepPreviousData,
   });
 }
 
-/** Where the whole matrix downloads as a CSV file. */
-export function matrixHref(projectKey: string, columns: MatrixColumns): string {
-  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/matrix.csv?columns=${columns}`;
+/** A file a matrix or a chain report downloads as: CSV, or an Excel workbook (#154). */
+export type ExportFormat = "csv" | "xlsx";
+
+/** Where the whole matrix, laid out as params says, downloads as a file. */
+export function matrixHref(projectKey: string, params: MatrixParams, format: ExportFormat = "csv"): string {
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/matrix.${format}${queryString(params)}`;
 }
 
 /** Sets and removes a project's coverage rules; its coverage asks again. */

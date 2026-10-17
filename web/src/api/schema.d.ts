@@ -1523,7 +1523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to. */
+        /** A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to. */
         get: operations["traceMatrix"];
         put?: never;
         post?: never;
@@ -1540,7 +1540,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The traceability matrix as a CSV file, every row the filter keeps. */
+        /** The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links. */
         get: operations["traceMatrixCSV"];
         put?: never;
         post?: never;
@@ -1870,7 +1870,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's own views of a project's grid, then the shared ones. */
+        /** The caller's own views of a project's grid, matrix or chains, then the shared ones, with what each names that the project lost left out. */
         get: operations["listViews"];
         put?: never;
         /** Save a view of a project's grid; sharing it is for its editors. */
@@ -3543,7 +3543,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -3559,7 +3559,7 @@ export interface components {
             targetType: string;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -3581,6 +3581,7 @@ export interface components {
             createdAt: string;
             createdByName: string;
             description: string;
+            detail: number;
             /** Format: uuid */
             id: string;
             items: number;
@@ -3656,7 +3657,7 @@ export interface components {
         BaselineMatrixLink: {
             /** @enum {string} */
             change?: "added" | "removed" | "changed";
-            direction?: string;
+            direction: string;
             /** @enum {string} */
             kind: "trace" | "armature" | "stator";
             name: string;
@@ -4155,11 +4156,19 @@ export interface components {
         };
         MatrixColumn: {
             issueKey: string;
+            page: components["schemas"]["MatrixPage"] | null;
             requirement: components["schemas"]["RequirementRef"] | null;
         };
         MatrixLink: {
+            /** @enum {string} */
+            direction: "outgoing" | "incoming";
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "trace" | "armature" | "stator";
             name: string;
             suspect: boolean;
+            typeKey?: string;
         };
         MatrixPage: {
             /** Format: uuid */
@@ -4167,6 +4176,19 @@ export interface components {
             spaceKey: string;
             title?: string;
             url: string;
+        };
+        MatrixRow: {
+            canLink: boolean;
+            /** Format: uuid */
+            id: string;
+            key: string;
+            /** @enum {string} */
+            kind: "requirement" | "section";
+            projectKey: string;
+            revision: number;
+            status: components["schemas"]["StatusRef"] | null;
+            title: string;
+            trashed: boolean;
         };
         MeResponse: {
             installation: components["schemas"]["Installation"];
@@ -5176,10 +5198,15 @@ export interface components {
         };
         TraceMatrix: {
             cells: components["schemas"]["MatrixCell"][];
+            columnLimit: number;
+            columnLinks: number[];
+            columnOffset: number;
+            columnTotal: number;
             columns: components["schemas"]["MatrixColumn"][];
             limit: number;
             offset: number;
-            rows: components["schemas"]["RequirementRef"][];
+            rowLinks: number[];
+            rows: components["schemas"]["MatrixRow"][];
             total: number;
         };
         TraceModel: {
@@ -5316,14 +5343,18 @@ export interface components {
             columns: string[];
             /** Format: date-time */
             createdAt: string;
+            dropped: string[];
             filter: components["schemas"]["ViewFilter"];
             /** Format: uuid */
             id: string;
+            /** @enum {string} */
+            kind: "grid" | "matrix" | "chain";
             name: string;
             /** Format: uuid */
             ownerId: string;
             ownerName: string;
             projectKey: string;
+            settings: components["schemas"]["ViewSettings"];
             shared: boolean;
             sort: components["schemas"]["ViewSort"];
             /** Format: date-time */
@@ -5345,9 +5376,24 @@ export interface components {
         ViewInput: {
             columns?: string[];
             filter?: components["schemas"]["ViewFilter"];
+            /** @enum {string} */
+            kind?: "grid" | "matrix" | "chain";
             name?: string;
+            settings?: components["schemas"]["ViewSettings"];
             shared?: boolean;
             sort?: components["schemas"]["ViewSort"];
+        };
+        ViewSettings: {
+            columnProject?: string;
+            columnQuery?: string;
+            columnTypes?: string[];
+            columns?: string;
+            direction?: string;
+            gaps?: string;
+            levels?: number[];
+            linkTypes?: string[];
+            onlyBroken?: boolean;
+            relations?: string[];
         };
         ViewSort: {
             column: string;
@@ -6550,7 +6596,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -6599,7 +6645,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -7227,7 +7273,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
                 /** @description 1 to 200; 50 when absent. */
@@ -7263,15 +7309,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -7291,7 +7328,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
             };
@@ -7314,15 +7351,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7349,7 +7377,7 @@ export interface operations {
                 /** @description Keys of the link types to count; every type when absent. */
                 linkType?: string[];
                 /** @description Which way a link must point from its row: outgoing, incoming, or both, the default. */
-                direction?: "outgoing" | "incoming" | "both";
+                direction?: "both" | "outgoing" | "incoming";
                 /** @description Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent. */
                 with?: string;
             };
@@ -7372,15 +7400,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10486,14 +10505,30 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
                 /** @description 1 to 200; 50 when absent. */
                 limit?: number;
                 /** @description 0 or later; 0 when absent. */
                 offset?: number;
+                /** @description 1 to 500; 100 when absent. */
+                columnLimit?: number;
+                /** @description 0 or later; 0 when absent. */
+                columnOffset?: number;
             };
             header?: never;
             path: {
@@ -10572,10 +10607,22 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
             };
             header?: never;
             path: {
@@ -10652,10 +10699,22 @@ export interface operations {
                 sort?: string;
                 /** @description true to order the column backwards. */
                 desc?: boolean;
-                /** @description requirements, the default, or issues. */
-                columns?: "requirements" | "issues";
+                /** @description requirements, the default, issues, or Stator pages. */
+                columns?: "requirements" | "issues" | "pages";
                 /** @description For requirement columns, the project they come from; the same project when absent. */
                 columnProject?: string;
+                /** @description For requirement columns, keys of the link types to count; every type when absent. */
+                linkType?: string[];
+                /** @description For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either. */
+                direction?: "both" | "outgoing" | "incoming";
+                /** @description For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent. */
+                relation?: ("describes" | "implements" | "relates" | "specifies" | "verifies")[];
+                /** @description For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery. */
+                columnQuery?: string;
+                /** @description For requirement columns, requirement types of the column project the columns are kept to, linked or not. */
+                columnType?: string[];
+                /** @description Keep only the rows, the columns, or both, without a link; columns and both need a column filter. */
+                gaps?: "rows" | "columns" | "both";
             };
             header?: never;
             path: {
@@ -10685,15 +10744,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11261,15 +11311,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11343,15 +11384,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11439,15 +11471,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -11479,15 +11502,6 @@ export interface operations {
                     "application/json": {
                         model: components["schemas"]["TraceModel"];
                     };
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -11547,15 +11561,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11891,7 +11896,10 @@ export interface operations {
     };
     listViews: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description grid, the default, matrix or chain (#152). */
+                kind?: "grid" | "matrix" | "chain";
+            };
             header?: never;
             path: {
                 projectKey: string;

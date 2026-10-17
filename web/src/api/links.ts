@@ -94,7 +94,8 @@ export function useLinks(reqKey: string, enabled = true) {
 /** Links a requirement and removes its links; both ends' lists and histories ask again. */
 export function useLinkActions(reqKey: string) {
   const queryClient = useQueryClient();
-  const refresh = () => Promise.all([queryClient.invalidateQueries({ queryKey: linksQueryKey }), queryClient.invalidateQueries({ queryKey: ["history"] })]);
+  // Coverage and the matrix (#149) count links, so they ask again too.
+  const refresh = () => Promise.all([linksQueryKey, ["history"], ["coverage"]].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   return {
     create: useMutation({
       mutationFn: async (body: LinkInput): Promise<TraceLink> =>
@@ -114,6 +115,18 @@ export function useLinkActions(reqKey: string) {
 /** Whether a type reads the same from both ends, so it is offered once. */
 export function symmetric(type: LinkType): boolean {
   return type.forward === type.backward;
+}
+
+/** The ways a requirement can be linked, each usable type read forward and, where it reads otherwise, backward, as
+ * `typeId:direction` with the phrase from this requirement. */
+export function linkWays(types: LinkType[], reads: (phrase: string) => string): { value: string; label: string }[] {
+  return types
+    .filter((type) => type.enabled && !type.retired)
+    .flatMap((type) => {
+      const out = [{ value: `${type.id}:outgoing`, label: reads(type.forward) }];
+      if (!symmetric(type)) out.push({ value: `${type.id}:incoming`, label: reads(type.backward) });
+      return out;
+    });
 }
 
 /** Links gathered under their type and direction, in the order the server lists them. */
@@ -148,7 +161,7 @@ export function useClearances(linkId: string) {
 /** Everything that shows whether a link is suspect asks again once one is cleared. */
 export function refreshSuspects(queryClient: QueryClient) {
   return Promise.all(
-    [linksQueryKey, suspectsKey, ["clearances"], ["requirements"], ["spec"], ["armature", "links"], ["stator", "links"]].map((queryKey) =>
+    [linksQueryKey, suspectsKey, ["clearances"], ["requirements"], ["spec"], ["armature", "links"], ["stator", "links"], ["coverage"]].map((queryKey) =>
       queryClient.invalidateQueries({ queryKey }),
     ),
   );

@@ -2,12 +2,10 @@ package httpapi
 
 import (
 	"reflect"
-	"slices"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
-	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
@@ -34,7 +32,8 @@ func traceabilitySchemas(b *openapi.Builder) {
 	}
 	b.Enums[reflect.TypeOf(trace.LevelKind(""))] = enumStrings(trace.LevelKinds)
 	b.Enums[reflect.TypeOf(trace.LinkKind(""))] = enumStrings(trace.LinkKinds)
-	relations := append(enumStrings(armature.Relations), enumStrings(stator.Relations)...)
-	b.FieldOverrides["TraceModelStep.relation"] = &openapi.Schema{Type: "string", Enum: slices.Compact(slices.Sorted(slices.Values(relations)))}
+	b.Enums[reflect.TypeOf(trace.MatrixDirection(""))] = enumStrings(trace.MatrixDirections)
+	b.Enums[reflect.TypeOf(trace.Gaps(""))] = enumStrings(trace.GapKinds)
+	b.FieldOverrides["TraceModelStep.relation"] = &openapi.Schema{Type: "string", Enum: matrixRelations}
 	b.FieldOverrides["BaselineMatrixLink.status"] = openapi.Nullable(&openapi.Schema{Type: "string", Enum: armature.StatusCategories})
 }

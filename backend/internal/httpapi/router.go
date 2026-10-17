@@ -354,6 +354,13 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
 			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
 			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)
+			r.Get("/projects/{projectKey}/matrix.xlsx", s.handleTraceMatrixXLSX)
+			// The trace model and its chains (#151): read by a project's readers, set by its administrators.
+			r.Get("/projects/{projectKey}/trace-model", s.handleGetTraceModel)
+			r.Put("/projects/{projectKey}/trace-model", s.handleSaveTraceModel)
+			r.Get("/projects/{projectKey}/trace-chains", s.handleTraceChains)
+			r.Get("/projects/{projectKey}/trace-chains.csv", s.handleTraceChainsCSV)
+			r.Get("/projects/{projectKey}/trace-chains.xlsx", s.handleTraceChainsXLSX)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.
@@ -433,6 +440,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/baselines/{baselineID}", s.handleDeleteBaseline)
 			r.Get("/baselines/{baselineID}/spec", s.handleBaselineSpec)
 			r.Get("/baselines/{baselineID}/compare", s.handleCompareBaseline)
+			r.Get("/baselines/{baselineID}/matrix", s.handleBaselineMatrix)
+			r.Get("/baselines/{baselineID}/matrix.csv", s.handleBaselineMatrixCSV)
+			r.Get("/baselines/{baselineID}/matrix.xlsx", s.handleBaselineMatrixXLSX)
 		})
 
 		// Outbound webhooks (#48): the installation's administrators', a token held to some projects refused by wholeOrg.

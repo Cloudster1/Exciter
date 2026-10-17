@@ -53,12 +53,20 @@ export function QueryInput({
   value,
   onSubmit,
   error,
+  name = "grid-query",
+  label = t.query.label,
+  region,
 }: {
   projectKey: string;
   value: string;
   onSubmit: (query: string) => void;
   /** What the grid's request threw; a bad_query is shown under the text. */
   error?: unknown;
+  /** Tells two boxes on one page apart, the matrix's rows' and columns' (#148), in their ids and names. */
+  name?: string;
+  label?: string;
+  /** Names the search landmark when a page has two. */
+  region?: string;
 }) {
   const [draft, setDraft] = useState(value);
   const [help, setHelp] = useState(false);
@@ -158,10 +166,10 @@ export function QueryInput({
     onSubmit(draft.trim());
   }
 
-  const listId = `grid-query-${projectKey.toLowerCase()}-suggestions`;
+  const listId = `${name}-${projectKey.toLowerCase()}-suggestions`;
   return (
     // biome-ignore lint/a11y/useSemanticElements: jsdom, which the unit tests run in, does not know the search element yet
-    <form role="search" onSubmit={submit} className="min-w-0 flex-1 space-y-2" noValidate data-query-input>
+    <form role="search" aria-label={region} onSubmit={submit} className="min-w-0 flex-1 space-y-2" noValidate data-query-input>
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <Input
@@ -184,7 +192,7 @@ export function QueryInput({
               setAsked(false);
               setActive(-1);
             }}
-            aria-label={t.query.label}
+            aria-label={label}
             role="combobox"
             aria-expanded={open}
             aria-controls={listId}

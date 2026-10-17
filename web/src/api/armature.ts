@@ -169,7 +169,8 @@ export function useArmatureLinks(reqKey: string, enabled: boolean) {
 
 export function useArmatureLinkActions(reqKey: string) {
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: linksKey(reqKey) });
+  // Coverage and the matrix (#149) count traces to issues, so they ask again too.
+  const refresh = () => Promise.all([linksKey(reqKey), ["coverage"]].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   const create = useMutation({
     mutationFn: async (body: ArmatureLinkInput): Promise<ArmatureLink> =>
       (await api.POST("/requirements/{reqKey}/armature-links", { params: { path: { reqKey } }, body })).data!.link,

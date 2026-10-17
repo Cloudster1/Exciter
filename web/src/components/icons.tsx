@@ -47,6 +47,7 @@ export const Icon = {
   Search: makeIcon("search", ["M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10Z", "m10.5 10.5 3 3"]),
   User: makeIcon("user", ["M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M2.5 14a5.5 5.5 0 0 1 11 0"]),
   ChevronDown: makeIcon("chevron-down", ["m4 6 4 4 4-4"]),
+  ChevronUp: makeIcon("chevron-up", ["m4 10 4-4 4 4"]),
   External: makeIcon("external", ["M9 2.5h4.5V7", "M13.5 2.5 7.5 8.5", "M11 9.5v4H2.5V5h4"]),
   Warning: makeIcon("warning", ["M8 2.5 14 13H2z", "M8 6.5v3", "M8 11.5h.01"]),
   Collapse: makeIcon("collapse", ["M2.5 3h11v10h-11z", "M6 3v10", "m10.5 6.5-1.5 1.5 1.5 1.5"]),

@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
@@ -9,9 +10,11 @@ import { expectAccessible } from "../fixtures/shell";
 // before she locks it.
 
 const KEY = uniqueKey("BASE");
+// Tests run side by side, so the matrix's (#153) makes its own project.
+const MATRIX_KEY = uniqueKey("BMTX");
 
-async function removeProject(api: ExciterApi) {
-  const path = { params: { path: { projectKey: KEY } } };
+async function removeProject(api: ExciterApi, projectKey = KEY) {
+  const path = { params: { path: { projectKey } } };
   const found = await api.GET("/projects/{projectKey}", path);
   if (!found.data) return;
   if (!found.data.project.archivedAt) await api.PUT("/projects/{projectKey}/archive", path);
@@ -19,7 +22,10 @@ async function removeProject(api: ExciterApi) {
 }
 
 test.describe("baselines", { tag: "@desktop" }, () => {
-  test.afterEach(async ({ api }) => removeProject(api));
+  test.afterEach(async ({ api }) => {
+    await removeProject(api);
+    await removeProject(api, MATRIX_KEY);
+  });
 
   test("alice takes a baseline, compares it with now after a change, and locks it", async ({ page, api }) => {
     const projectKey = { params: { path: { projectKey: KEY } } };
@@ -62,5 +68,40 @@ test.describe("baselines", { tag: "@desktop" }, () => {
     await page.getByRole("button", { name: "Lock" }).click();
     await expect(page.getByText("A locked baseline keeps its name and is never deleted.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
+  });
+
+  test("alice reads the matrix a baseline recorded, and what changed in it since", async ({ page, api }) => {
+    const projectKey = { params: { path: { projectKey: MATRIX_KEY } } };
+    must(await api.POST("/projects", { body: { key: MATRIX_KEY, name: "Baseline matrix" } }));
+    for (const title of ["Brakes engage within 100 ms", "Brake pedal reads within 10 ms", "Brake bench run"]) {
+      must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title } }));
+    }
+    must(
+      await api.POST("/requirements/{reqKey}/links", {
+        params: { path: { reqKey: `${MATRIX_KEY}-R2` } },
+        body: { typeKey: "derives", otherKey: `${MATRIX_KEY}-R1` },
+      }),
+    );
+    const taken = must(await api.POST("/projects/{projectKey}/baselines", { ...projectKey, body: { name: "Signed off" } })).baseline;
+    must(
+      await api.POST("/requirements/{reqKey}/links", {
+        params: { path: { reqKey: `${MATRIX_KEY}-R3` } },
+        body: { typeKey: "verifies", otherKey: `${MATRIX_KEY}-R1` },
+      }),
+    );
+
+    await page.goto(`/p/${MATRIX_KEY}/baselines/${taken.id}`);
+    await page.getByRole("button", { name: "Matrix", exact: true }).click();
+    const matrix = page.getByRole("table", { name: "Matrix" });
+    await expect(matrix.locator(`[data-cell="${MATRIX_KEY}-R1:${MATRIX_KEY}-R2"]`)).toHaveAttribute("title", `${MATRIX_KEY}-R1 to ${MATRIX_KEY}-R2: Derives`);
+    await expect(matrix.getByRole("columnheader", { name: `${MATRIX_KEY}-R3` })).toHaveCount(0);
+
+    await page.getByLabel("Compare the matrix with").selectOption("now");
+    await expect(matrix.locator(`[data-cell="${MATRIX_KEY}-R1:${MATRIX_KEY}-R3"] [data-change="added"]`)).toBeVisible();
+    await expectAccessible(page);
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download CSV" }).click();
+    const file = await readFile((await (await download).path()) ?? "", "utf8");
+    expect(file).toContain("Verifies (added)");
   });
 });

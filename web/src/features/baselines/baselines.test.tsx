@@ -27,6 +27,7 @@ function aBaseline(over: Partial<Baseline> = {}): Baseline {
     lockedAt: null,
     createdByName: "Ada Lovelace",
     createdAt: "2026-10-01T08:00:00Z",
+    detail: 2,
     ...over,
   };
 }
@@ -126,6 +127,81 @@ describe("a baseline", () => {
       ...more,
     });
   }
+
+  it("lays its links out as a matrix, each marked as it changed since when compared, with the whole of it to download", async () => {
+    const asked: URLSearchParams[] = [];
+    const matrix = (compared: boolean) => ({
+      detail: 2,
+      with: compared ? { baseline: null, at: "2026-10-16T08:00:00Z" } : null,
+      rows: [ref("CHK-R1", "Brakes engage within 100 ms"), ref("CHK-R3", "Brake bench run")],
+      columns: [{ requirement: ref("CHK-R2", "Brake pedal"), issueKey: "", page: null }],
+      cells: [
+        {
+          row: 0,
+          column: 0,
+          links: [
+            {
+              kind: "trace",
+              name: "Derives",
+              typeKey: "derives",
+              direction: "incoming",
+              suspect: compared,
+              status: null,
+              change: compared ? "changed" : undefined,
+            },
+          ],
+        },
+        ...(compared
+          ? [{ row: 1, column: 0, links: [{ kind: "trace", name: "Verifies", direction: "outgoing", suspect: false, status: null, change: "added" }] }]
+          : []),
+      ],
+      total: 2,
+      limit: 50,
+      offset: 0,
+    });
+    stubBaseline(aBaseline(), {
+      [`GET /baselines/${id}/matrix`]: (request) => {
+        const query = new URL(request.url).searchParams;
+        asked.push(query);
+        return { status: 200, body: { matrix: matrix(query.get("with") === "now") } };
+      },
+    });
+    await renderAt(`/p/CHK/baselines/${id}`);
+    await userEvent.click(await screen.findByRole("button", { name: "Matrix" }));
+    const table = await screen.findByRole("table", { name: "Matrix" });
+    expect(table.querySelector('[data-cell="CHK-R1:CHK-R2"]')).toHaveAttribute("title", "CHK-R1 to CHK-R2: Derives");
+    await userEvent.selectOptions(screen.getByLabelText("Compare the matrix with"), "now");
+    await waitFor(() => expect(asked.at(-1)?.get("with")).toBe("now"));
+    await waitFor(() => expect(table.querySelector('[data-cell="CHK-R3:CHK-R2"]')).toHaveAttribute("title", "CHK-R3 to CHK-R2: Verifies (added)"));
+    expect(table.querySelector('[data-cell="CHK-R1:CHK-R2"] [data-change="changed"]')).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Download CSV" })).toHaveAttribute("href", expect.stringContaining(`/baselines/${id}/matrix.csv?with=now`));
+    expect(screen.getByRole("link", { name: "Download Excel" })).toHaveAttribute("href", expect.stringContaining(`/baselines/${id}/matrix.xlsx?with=now`));
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says what a baseline taken before did not record", async () => {
+    stubBaseline(aBaseline({ detail: 1 }), {
+      [`GET /baselines/${id}/matrix`]: {
+        status: 200,
+        body: {
+          matrix: {
+            detail: 1,
+            with: null,
+            rows: [ref("CHK-R1", "Brakes engage within 100 ms")],
+            columns: [{ requirement: ref("CHK-R2", "Brake pedal"), issueKey: "", page: null }],
+            cells: [{ row: 0, column: 0, links: [{ kind: "trace", name: "Derives", direction: "incoming", suspect: null, status: null }] }],
+            total: 1,
+            limit: 50,
+            offset: 0,
+          },
+        },
+      },
+    });
+    await renderAt(`/p/CHK/baselines/${id}`);
+    await userEvent.click(await screen.findByRole("button", { name: "Matrix" }));
+    expect(await screen.findByText(/was taken before suspect state, Armature status and Stator pages were recorded/)).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-cell="CHK-R1:CHK-R2"]')).toHaveAttribute("title", "CHK-R1 to CHK-R2: Derives (not recorded)"));
+  });
 
   it("reads as a specification at the revisions it holds, and its administrators lock it", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);

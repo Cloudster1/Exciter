@@ -72,6 +72,21 @@ the new parameters gets #38's matrix, with more fields in it.
   relations. The whole setup is the page's address, so a link shares it and a
   reload keeps it, and the download carries it.
 
+- **As built** (#147):
+  - The matrix moved to `internal/trace/matrix.go` and takes a
+    `trace.MatrixQuery`. `search.Keep` takes the grid's order, sharing
+    `orderBy` with the grid, and reads whether the reader edits each row.
+  - A link type is any key the installation or either axis's project has,
+    turned off for the project or not: links of a type turned off stay, and
+    the matrix still shows them. Link types with issue columns, and
+    relations with requirement columns, are 422 on their field rather than
+    ignored, so a setup never narrows by something it cannot.
+  - Relations are checked against Armature's in the handler, since
+    `internal/trace` sits below `internal/armature`.
+  - The web page's address holds the grid's narrowing and order, `columns`
+    only when it is `issues`, and only what fits those columns; the link
+    types and relations are pressed chips, none pressed counting all.
+
 ## #148 Gaps
 
 | Operation | Needs | Answers |
@@ -102,6 +117,21 @@ the new parameters gets #38's matrix, with more fields in it.
 - **UI.** A column filter beside the rows', the counts at the end of each row
   and the foot of each column, empty ones marked, and an "only gaps" choice.
 
+- **As built** (#148):
+  - The matrix reads every link between the rows kept and the columns it
+    may show in one query, `internal/trace/matrix_layout.go`, and pages
+    both after counting, so the counts and gaps cover the whole matrix.
+    Without a column filter the columns may be any requirement of the
+    column project, shown when the page's rows reach them.
+  - A refused column query is 400 `bad_query` with its position and
+    `fields.columnQuery`, so the page shows it under the column filter's
+    box. A refused `columnType` is 422 on `columnType`.
+  - The file holds every column, refusing more than 500 with 422 asking for
+    a narrower filter, and its second line and third column are the counts.
+  - On the page, the column query offers words of the column project, the
+    column types are chips, and "Only gaps" offers columns and both only
+    once a column filter is set; the address drops them otherwise.
+
 ## #149 Links made, removed and cleared in a cell
 
 No new operations: a cell is a place to call the ones a requirement page
@@ -127,6 +157,18 @@ calls, with the same rights.
   forgets on the events a link makes, removes or clears; the web client also
   drops its own copy of the project's coverage.
 
+- **As built** (#149):
+  - Each cell is a button wherever it has a link, or its row may be linked;
+    an empty cell of a row the reader may not link is no button.
+  - The panel is `features/matrix/CellPanel.tsx`, on the overlay hooks the
+    bell uses. It shows the cell's links as the matrix counted them, read
+    from the row's own links for their revisions and suspect ends, and adds,
+    removes and clears through the requirement page's hooks.
+  - `useAnchored` now places a panel again whenever it resizes, so one that
+    loads what it shows turns to the side with room once it has.
+  - The link and Armature link hooks, and clearing, also drop the cached
+    coverage and matrix, so the cell shows a change at once.
+
 ## #150 Stator pages as columns
 
 | Operation | Needs | Answers |
@@ -145,6 +187,21 @@ calls, with the same rights.
   asks `GET /stator/pages`, and the file asks Stator as the reader the same
   way. A page the reader cannot read there is named by its space and id.
 - Coverage does not count pages.
+
+- **As built** (#150):
+  - Exciter keeps no page's title, so columns are ordered by space, then
+    page id, not by title.
+  - A page link is suspect by the rule the requirement page shows: its page
+    has a version past the one confirmed. That rule,
+    `trace.StatorSuspectSQL`, now lives below `internal/stator`, which
+    names it `stator.SuspectSQL`, so the two never drift.
+  - Relations are checked against Stator's for page columns, and
+    Armature's for issue columns; link types and a column filter are 422
+    with any columns but requirements.
+  - The file names a page by the title `GET /stator/pages` gives the reader,
+    or by `SPACE/id` where Stator gives none; the web client asks the same
+    lookup and caches it per batch. A page cell's panel traces and confirms
+    through the Stator link hooks.
 
 ## #151 The trace model and the chain report
 
@@ -203,6 +260,30 @@ calls, with the same rights.
   administer the project; and a Chains view beside the matrix, its levels,
   filters and "only broken" in the page's address.
 
+- **As built** (#151):
+  - Migration 00770: `trace_level`, `trace_level_type` and
+    `trace_level_step`, the children carrying the project with a foreign
+    key to their level's, so their policies read it directly. The app role
+    inserts and deletes and updates nothing: a model is replaced whole.
+    The database refuses a level of somebody who does not administer the
+    project or of an archived one, a type of another project, and a link
+    type of another project, straight through SQL.
+  - A type sits in one level only, so the levels hold different
+    requirements and no path can loop.
+  - `level` shows levels that follow one another, the first a level of
+    requirements; others are 422. Paths still pass through every level
+    between the first and the last shown.
+  - The report reads each step for the whole frontier in one query: a link
+    type in its direction (a symmetric one either way), onto the next
+    level's types in the project, out of the trash and as the reader sees
+    it; then Armature or Stator links, neither broken nor detached.
+  - The file holds every root up to the export's 20000 lines and is cut
+    there, saying so on its last line and with `X-Export-Truncated`.
+  - Web: a Trace model tab in the project's settings
+    (`features/matrix/TraceModelCard.tsx`) and the report at
+    `/p/$projectKey/chains`, linked from the matrix and back, its roots'
+    filter, levels as From and To, and "only broken" in its address.
+
 ## #152 Matrix and chain views
 
 | Operation | Needs | Answers |
@@ -227,6 +308,21 @@ calls, with the same rights.
   sentence what was left out.
 - **UI.** The grid's views control, given a kind, on the matrix and the chain
   report; `?view=` opens one.
+
+- **As built** (#152):
+  - Migration 00780: `saved_view.kind`, fixed once saved (the app role may
+    not update it), and `saved_view.settings`; the name is unique per owner,
+    project and kind.
+  - `internal/search` sits below `internal/trace`, so it checks settings
+    against the words of trace's parameters itself, and a test keeps its
+    level bound equal to `trace.MaxLevels`; trace checks them again as the
+    view opens.
+  - A view read leaves out a column project the reader may no longer see,
+    link types and column types the project no longer has, and levels past
+    its trace model's last, and lists each in `dropped` as `kind:value`;
+    the page says how many in a sentence.
+  - The grid's views control takes a kind, and the matrix and the chain
+    report keep the open view in their addresses as the grid does.
 
 ## #153 A baseline's matrix
 
@@ -258,6 +354,25 @@ calls, with the same rights.
   choice, cells coloured by their change, and "not recorded" where the
   baseline did not record what the page shows.
 
+- **As built** (#153):
+  - Migration 00790: `baseline.detail` (1 before, 2 since), the columns of
+    the contract, null meaning not recorded, and `baseline_page_link`
+    frozen and guarded as the other rows a baseline holds. The app role
+    changes none of it: its column grants on `baseline` stay name,
+    description and lock.
+  - A detail 2 baseline records trace links from `trace_link_state`, with
+    their type's key and suspect state, and Armature and Stator links
+    neither broken nor detached. Comparisons read now the same way, so an
+    older baseline compared with now shows a broken link it kept as
+    removed.
+  - Both sides of a matrix share one shape (`internal/baseline/matrix_side.go`)
+    and compare by link id, row and direction; a changed link shows the
+    later side's state. Rows are the baseline's then the other side's
+    new ones; columns are what the page's rows reach on either side.
+  - Web: a Specification and Matrix choice on the baseline's page, the
+    matrix's own "compare the matrix with", cells coloured by their change,
+    and a sentence on a detail 1 baseline.
+
 ## #154 Excel
 
 | Operation | Needs | Answers |
@@ -276,3 +391,15 @@ calls, with the same rights.
 - **Built in memory** before the first byte is written, so a refusal is
   still the JSON error. Written without a new dependency.
 - **UI.** An Excel download beside each CSV one.
+- **As built** (#154):
+  - `internal/xlsx` writes one sheet with shared strings, a style table of
+    ten formats (plain, bold header, fills for linked, suspect, gap, break,
+    added, removed and changed, and an italic note), frozen panes, column
+    widths from 8 to 60 characters and an autofilter over the first row.
+    Counts are numbers, so a spreadsheet sums and sorts them.
+  - `csvio.MatrixSheet`, `ChainsSheet` and `BaselineMatrixSheet` lay out
+    what their CSV files hold; the handlers write the workbook into a buffer
+    and keep `X-Export-Truncated`. A workbook read back by openpyxl keeps its
+    frozen panes, filter, fills and numbers.
+  - The integration suite now waits for the replicas after a scene writes
+    rows straight through SQL, which a page column test showed it must.

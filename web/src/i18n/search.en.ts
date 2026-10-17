@@ -105,6 +105,7 @@ export const gridEn = {
   none: "None",
   views: "Views",
   allRequirements: "All requirements",
+  noView: "No saved view",
   saveAs: "Save as a view",
   saveChanges: "Save changes to this view",
   viewName: "Name",

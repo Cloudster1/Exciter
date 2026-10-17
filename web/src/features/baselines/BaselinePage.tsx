@@ -4,7 +4,7 @@ import { NOW, useBaseline, useBaselineActions, useBaselines, useBaselineSpec, ty
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import type { StatusCategory } from "@/api/workflows";
-import { Button, Card, ErrorBanner, Field, PageHeader, Select, Skeleton, Tag, cx } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, PageHeader, Segmented, Select, Skeleton, Tag, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { BASELINE_NAME_MAX_LENGTH, BASELINE_SPEC_PAGE_SIZE } from "@/config";
 import { DocView } from "@/features/editor/DocView";
@@ -14,6 +14,7 @@ import { ExportMenu } from "@/features/print/ExportMenu";
 import { baselineDocumentHref } from "@/api/documents";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { BaselineMatrixView } from "./BaselineMatrix";
 import { keepsBaselines } from "./Baselines";
 
 const takenOn = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
@@ -21,6 +22,7 @@ const takenOn = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 /** One baseline read as a specification, each requirement at the revision it holds, with its administrators' actions. */
 export function BaselinePage({ project, baselineId }: { project: Project; baselineId: string }) {
   const { data: baseline, error, refetch } = useBaseline(baselineId);
+  const [reading, setReading] = useState<"spec" | "matrix">("spec");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!baseline) return <Skeleton />;
   return (
@@ -44,7 +46,17 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
       </div>
       <Actions project={project} baseline={baseline} />
       <ComparePicker project={project} baseline={baseline} />
-      <Reading project={project} baseline={baseline} />
+      <Segmented
+        label={t.baseline.pageTabs}
+        value={reading}
+        onChange={setReading}
+        size="sm"
+        options={[
+          { value: "spec", label: t.baseline.readingTab },
+          { value: "matrix", label: t.baseline.matrixTab, attrs: { "data-action": "baseline-matrix" } },
+        ]}
+      />
+      {reading === "spec" ? <Reading project={project} baseline={baseline} /> : <BaselineMatrixView project={project} baseline={baseline} />}
     </div>
   );
 }

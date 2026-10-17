@@ -3,6 +3,68 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-16: Baselines record more from now on, and null means not recorded (#153)
+
+- **No backfill.** An older baseline's suspect state or status at the time
+  it was taken cannot be known now, so its columns stay null and the page
+  says "not recorded" rather than guess.
+- **Broken and detached links are not recorded.** They trace nothing at the
+  moment a baseline is taken, as the matrix leaves them out; comparisons
+  read now the same way, so both sides agree on what a link is.
+- **Links compare by id.** A link removed and made again is a new link, so
+  a comparison shows one removed and one added, which is what happened.
+
+## 2026-10-16: Chains follow levels of their own types, shown as a range (#151)
+
+- **A type sits in one level.** The levels then hold different
+  requirements, so a path only ever moves down and cannot loop, and a
+  report needs no cycle guard.
+- **Levels shown are a range.** Showing level 0 and 2 without 1 would
+  either hide how a line got from one to the other or need paths to skip
+  levels; a From and a To keep every line readable from cell to cell.
+- **One query per level, for the whole page.** The walk asks for every
+  requirement of a level's frontier at once, so a page costs as many
+  queries as the model has levels, whatever its fan-out.
+- **A model is replaced whole.** The app role may insert and delete levels
+  but change none, so no half-edited model is ever read, and the audit log
+  keeps one entry per save.
+
+## 2026-10-16: A matrix cell edits through the requirement's own links (#149)
+
+- **No new operations.** A cell's panel calls what the requirement page
+  calls, with the same rights, so a link made in the matrix is the same
+  link with the same history, notifications and guards.
+- **Revisions come from the row's links.** Confirming a link needs both
+  ends' revisions, which the matrix does not carry; the panel reads the
+  row's links when it opens rather than widening every cell of every page.
+- **Panels place themselves again as they grow,** in `useAnchored` for
+  every popover, since one that loads its content was measured empty.
+
+## 2026-10-16: Gaps count over the whole matrix, then page (#148)
+
+- **Read once, page after.** Every link between the rows kept and the
+  columns possible is read in one query and counted before either axis is
+  paged, so a row's count and "only gaps" mean the whole matrix, not the
+  page in view; a matrix is bounded by the export's rows and a project's
+  requirements, so the links fit in memory.
+- **Column gaps need a column filter.** Without one the columns are what
+  the rows reach and never empty; asking for their gaps is refused rather
+  than answering an empty list that looks like full coverage.
+- **The file's counts are a line and a column of their own,** so a
+  spreadsheet sums and sorts them without parsing the cells.
+
+## 2026-10-16: The matrix narrows only by what fits its columns (#147)
+
+- **A filter that cannot apply is refused, not ignored.** Link types with
+  issue columns, or relations with requirement columns, are 422 on the
+  field. Ignoring them would show a matrix that looks narrowed and is not.
+- **Any link type that exists, enabled or not.** A type turned off for a
+  project keeps its links, and the matrix shows them; refusing its key would
+  hide links that are there.
+- **Rows in the grid's order.** The matrix shares the grid's `orderBy`, so a
+  query's `ORDER BY` or a sort column means the same in both; the coverage
+  report keeps outline order, as #38 agreed.
+
 ## 2026-10-16: Traceability is a milestone of its own, agreed first (#146)
 
 - **The matrix grows, coverage stays.** #38's coverage rules and dimensions

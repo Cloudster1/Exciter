@@ -31,7 +31,7 @@ var (
 
 // selectViews reads views with whether $1 may change each.
 const selectViews = `
-SELECT v.id, p.key, v.name, v.owner_id, COALESCE(u.name, ''), v.shared, v.filter, v.columns, v.sort, v.created_at, v.updated_at,
+SELECT v.id, p.key, v.name, v.owner_id, COALESCE(u.name, ''), v.shared, v.kind, v.filter, v.columns, v.settings, v.sort, v.created_at, v.updated_at,
        v.owner_id = $1 OR (v.shared AND perm_project_holds(v.project_id, $1, 'administer'))
 FROM saved_view v
 JOIN project p ON p.id = v.project_id
@@ -39,10 +39,11 @@ LEFT JOIN app_user u ON u.id = v.owner_id`
 
 func scanView(row pgx.Row) (*View, error) {
 	var (
-		v            View
-		filter, sort []byte
+		v                      View
+		filter, settings, sort []byte
 	)
-	err := row.Scan(&v.ID, &v.ProjectKey, &v.Name, &v.OwnerID, &v.OwnerName, &v.Shared, &filter, &v.Columns, &sort, &v.CreatedAt, &v.UpdatedAt, &v.CanEdit)
+	err := row.Scan(&v.ID, &v.ProjectKey, &v.Name, &v.OwnerID, &v.OwnerName, &v.Shared, &v.Kind, &filter, &v.Columns, &settings, &sort,
+		&v.CreatedAt, &v.UpdatedAt, &v.CanEdit)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrViewNotFound
 	}
@@ -55,23 +56,34 @@ func scanView(row pgx.Row) (*View, error) {
 	if err := json.Unmarshal(sort, &v.Sort); err != nil {
 		return nil, fmt.Errorf("read view %s: %w", v.ID, err)
 	}
+	if err := json.Unmarshal(settings, &v.Settings); err != nil {
+		return nil, fmt.Errorf("read view %s: %w", v.ID, err)
+	}
 	if v.Columns == nil {
 		v.Columns = []string{}
 	}
+	v.Dropped = []string{}
 	v.Filter = v.Filter.filled()
 	return &v, nil
 }
 
-// Views answers the reader's own views of a project's grid, then those shared with them, each by name.
-func (s *Service) Views(ctx context.Context, reader uuid.UUID, projectKey string) ([]View, error) {
+// Views answers the reader's own views of one kind of a project's, then those shared with them, each by name, with
+// what each names that the project no longer has left out.
+func (s *Service) Views(ctx context.Context, reader uuid.UUID, projectKey string, kind ViewKind) ([]View, error) {
+	if kind == "" {
+		kind = ViewGrid
+	}
+	if !slices.Contains(ViewKinds, kind) {
+		return nil, &FieldError{"kind", "A view is of the grid, the matrix or the chains."}
+	}
 	out := []View{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, projectKey)
 		if err != nil {
 			return err
 		}
-		rows, err := tx.Query(ctx, selectViews+` WHERE v.project_id = $2
-			ORDER BY v.owner_id <> $1, lower(v.name), v.id`, reader, p.ID)
+		rows, err := tx.Query(ctx, selectViews+` WHERE v.project_id = $2 AND v.kind = $3
+			ORDER BY v.owner_id <> $1, lower(v.name), v.id`, reader, p.ID, kind)
 		if err != nil {
 			return fmt.Errorf("list the views: %w", err)
 		}
@@ -83,13 +95,26 @@ func (s *Service) Views(ctx context.Context, reader uuid.UUID, projectKey string
 			}
 			out = append(out, *v)
 		}
-		return rows.Err()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		rows.Close()
+		for i := range out {
+			if err := dropLost(ctx, tx, reader, p, &out[i]); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	return out, err
 }
 
-// checkView holds what a view says to the grid's rules, with the project's attributes.
-func checkView(name string, f Filter, columns []string, sort Sort, defs []attribute.Def) (string, Filter, error) {
+// checkView holds what a view says to the grid's rules, with the project's attributes, and its settings to its kind's.
+func checkView(v View, defs []attribute.Def) (string, Filter, error) {
+	name, f, columns, sort := v.Name, v.Filter, v.Columns, v.Sort
+	if err := checkSettings(v.Kind, columns, v.Settings); err != nil {
+		return "", f, err
+	}
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", f, &FieldError{"name", "Give the view a name."}
@@ -133,7 +158,10 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 		if err != nil {
 			return err
 		}
-		v := View{Columns: []string{}}
+		v := View{Columns: []string{}, Kind: ViewGrid}
+		if in.Kind != nil {
+			v.Kind = *in.Kind
+		}
 		apply(&v, in)
 		if v.Shared && !p.Can.Edit {
 			return ErrShareForbidden
@@ -142,26 +170,28 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 		if err != nil {
 			return err
 		}
-		if v.Name, v.Filter, err = checkView(v.Name, v.Filter, v.Columns, v.Sort, defs); err != nil {
+		if v.Name, v.Filter, err = checkView(v, defs); err != nil {
 			return err
 		}
 		// A view keeps a query that runs now; one that later names what the project no longer has says so then.
 		if _, err := compileQuery(ctx, tx, actor, p, defs, v.Filter.Query); err != nil {
 			return err
 		}
-		filter, sort, err := encodeView(v)
+		filter, settings, sort, err := encodeView(v)
 		if err != nil {
 			return err
 		}
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO saved_view (project_id, owner_id, name, shared, filter, columns, sort)
-			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-			p.ID, actor, v.Name, v.Shared, filter, v.Columns, sort).Scan(&id); err != nil {
+			INSERT INTO saved_view (project_id, owner_id, name, shared, kind, filter, columns, settings, sort)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+			p.ID, actor, v.Name, v.Shared, v.Kind, filter, v.Columns, settings, sort).Scan(&id); err != nil {
 			return fmt.Errorf("save the view: %w", nameTaken(err))
 		}
-		out, err = scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2`, actor, id))
-		return err
+		if out, err = scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2`, actor, id)); err != nil {
+			return err
+		}
+		return dropLost(ctx, tx, actor, p, out)
 	})
 	return out, lsn, err
 }
@@ -183,15 +213,20 @@ func apply(v *View, in ViewInput) {
 	if in.Sort != nil {
 		v.Sort = *in.Sort
 	}
+	if in.Settings != nil {
+		v.Settings = *in.Settings
+	}
 }
 
-func encodeView(v View) ([]byte, []byte, error) {
-	filter, err := json.Marshal(v.Filter)
-	if err != nil {
-		return nil, nil, err
+func encodeView(v View) (filter, settings, sort []byte, err error) {
+	if filter, err = json.Marshal(v.Filter); err != nil {
+		return nil, nil, nil, err
 	}
-	sort, err := json.Marshal(v.Sort)
-	return filter, sort, err
+	if settings, err = json.Marshal(v.Settings); err != nil {
+		return nil, nil, nil, err
+	}
+	sort, err = json.Marshal(v.Sort)
+	return filter, settings, sort, err
 }
 
 // UpdateView changes what in names of a view: its owner's to do, or a project administrator's once shared.
@@ -203,6 +238,9 @@ func (s *Service) UpdateView(ctx context.Context, actor, id uuid.UUID, in ViewIn
 			return err
 		}
 		wasShared := v.Shared
+		if in.Kind != nil && *in.Kind != v.Kind {
+			return &FieldError{"kind", "A view keeps the kind it was saved as. Save a new view instead."}
+		}
 		apply(v, in)
 		if v.Shared && !wasShared && !p.Can.Edit {
 			return ErrShareForbidden
@@ -214,23 +252,25 @@ func (s *Service) UpdateView(ctx context.Context, actor, id uuid.UUID, in ViewIn
 		if err != nil {
 			return err
 		}
-		if v.Name, v.Filter, err = checkView(v.Name, v.Filter, v.Columns, v.Sort, defs); err != nil {
+		if v.Name, v.Filter, err = checkView(*v, defs); err != nil {
 			return err
 		}
 		// A view keeps a query that runs now; one that later names what the project no longer has says so then.
 		if _, err := compileQuery(ctx, tx, actor, p, defs, v.Filter.Query); err != nil {
 			return err
 		}
-		filter, sort, err := encodeView(*v)
+		filter, settings, sort, err := encodeView(*v)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE saved_view SET name = $2, shared = $3, filter = $4, columns = $5, sort = $6 WHERE id = $1`,
-			id, v.Name, v.Shared, filter, v.Columns, sort); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE saved_view SET name = $2, shared = $3, filter = $4, columns = $5, settings = $6, sort = $7 WHERE id = $1`,
+			id, v.Name, v.Shared, filter, v.Columns, settings, sort); err != nil {
 			return fmt.Errorf("change the view: %w", nameTaken(err))
 		}
-		out, err = scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2`, actor, id))
-		return err
+		if out, err = scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2`, actor, id)); err != nil {
+			return err
+		}
+		return dropLost(ctx, tx, actor, p, out)
 	})
 	return out, lsn, err
 }

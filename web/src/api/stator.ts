@@ -164,7 +164,8 @@ export function useStatorLinks(reqKey: string, enabled: boolean) {
 
 export function useStatorLinkActions(reqKey: string) {
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: linksKey(reqKey) });
+  // The matrix (#150) shows traces to pages, so it asks again too.
+  const refresh = () => Promise.all([linksKey(reqKey), ["coverage"]].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   const create = useMutation({
     mutationFn: async (body: StatorLinkInput): Promise<StatorLink> =>
       (await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey } }, body })).data!.link,

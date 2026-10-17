@@ -13,8 +13,9 @@ import { TypeList } from "@/features/types/TypeList";
 import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
+import { TraceModelCard } from "@/features/matrix/TraceModelCard";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "approval", "links", "import", "reqif"] as const;
+const SETTINGS_TABS = ["details", "types", "attributes", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -44,6 +45,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "workflow", label: t.workflows.tab, attrs: { "data-tab": "workflow" } },
               { value: "approval", label: t.review.rulesTab, attrs: { "data-tab": "approval" } },
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
+              { value: "trace", label: t.chains.tab, attrs: { "data-tab": "trace" } },
               { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
               { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
             ]}
@@ -70,6 +72,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "workflow" && <WorkflowSettings project={project} />}
         {tab === "approval" && <ApprovalRules project={project} />}
         {tab === "links" && <ProjectLinkTypes project={project} />}
+        {tab === "trace" && <TraceModelCard project={project} />}
         {tab === "import" && <ImportPanel project={project} />}
         {tab === "reqif" && <ReqIFPanel project={project} />}
       </TabPanel>

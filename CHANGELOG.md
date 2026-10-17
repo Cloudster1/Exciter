@@ -9,6 +9,50 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The matrix, the chain report and a baseline's matrix download as Excel
+  workbooks beside their CSV files (#154): a frozen header and key column,
+  linked cells green, suspect ones amber, gaps and breaks red, a baseline's
+  changes in their own colours, counts as numbers, and an autofilter;
+  written without a new dependency.
+- A baseline's matrix (#153). Baselines taken from now on also record
+  each item's type, whether each link was suspect, each Armature link's
+  status, and the Stator page links; broken and detached links are left
+  out. A baseline's page shows its matrix against requirements, issues or
+  pages, compared with now or another baseline with each link marked
+  added, removed or changed, and downloads it as CSV. A baseline taken
+  before says what it did not record.
+- Matrix and chain views (#152). The matrix and the chain report save
+  their setup under a name, personal or shared, as the grid's views do,
+  each kind listed only where it belongs; a view naming what the project
+  has since lost opens without it and says so.
+- A project's trace model and its chain report (#151). An administrator
+  sets the levels a project's requirements trace through, such as need,
+  system, test and Armature issue, under Settings, Trace model, with the
+  link types or relations that lead from each to the next. The chain
+  report shows every path from the first level down, marks where one
+  breaks, keeps only the broken ones when asked, shows a range of the
+  levels, and downloads as CSV.
+- Stator pages as matrix columns (#150). The matrix lays requirements out
+  against the Stator pages they are traced to, each link named by its
+  relation and marked when its page moved on, titled as the reader sees
+  them in Stator, in the page, its cells and its CSV.
+- Links are made, removed and confirmed from a matrix cell (#149). A cell
+  opens a panel beside it with its links; whoever may link its row adds
+  one of a chosen type and direction, or relation for an Armature issue,
+  removes one, or confirms a suspect one. Anybody else reads them. The
+  matrix and coverage follow at once.
+- The matrix shows its gaps (#148). A column filter, a query and types
+  over the column project, makes the columns what it keeps, linked or not;
+  columns are paged as rows are; every row and column shows its count of
+  links, a gap marked; and "Only gaps" keeps the rows, the columns, or
+  both, without a link. The CSV carries the counts as its second line and
+  third column.
+- The traceability matrix has its own page (#147), `/p/<KEY>/matrix`,
+  reached from Coverage. Its rows are narrowed and ordered as in the grid,
+  and it counts only the link types, the direction and, for Armature issue
+  columns, the relations you pick. The whole layout is in the page's
+  address and in its CSV download. Each cell's links now say their id,
+  kind, type and direction, and each row whether you may link it.
 - The API contract for M5, Traceability (#146): `docs/api-contract-m5.md`
   agrees how the matrix gains chosen axes and link types, gaps, links made
   in its cells and Stator page columns, a project's trace model and its

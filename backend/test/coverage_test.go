@@ -54,6 +54,8 @@ func newCoverageScene(t *testing.T, prefix string) *coverageScene {
 			t.Fatal(err)
 		}
 	}
+	// The rows written straight through SQL reach the replicas before any read of the API looks for them.
+	s.h.settle(t)
 	return s
 }
 
@@ -203,8 +205,8 @@ func TestTheMatrixLaysOutTheLinks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(records) != 5 || strings.Join(records[0], ",") != "Key,Title,WEB-1,WEB-2,WEB-3" ||
-			records[1][2] != "implements" || records[1][3] != "verifies" || records[2][4] != "implements" {
+		if len(records) != 6 || strings.Join(records[0], ",") != "Key,Title,Links,WEB-1,WEB-2,WEB-3" || strings.Join(records[1], ",") != ",Links,,1,1,1" ||
+			records[2][2] != "2" || records[2][3] != "implements" || records[2][4] != "verifies" || records[3][5] != "implements" {
 			t.Errorf("the file reads %v", records)
 		}
 		fieldError(t, s.carol.get(t, matrix+".csv?columns=everything"), "columns")

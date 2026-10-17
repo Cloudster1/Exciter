@@ -31,6 +31,8 @@ export const coverageDe: typeof coverageEn = {
   columnIssues: "Armature-Issues",
   download: "CSV herunterladen",
   downloadHint: "Die ganze Matrix als Datei, eine Zeile pro Anforderung.",
+  downloadExcel: "Excel herunterladen",
+  downloadExcelHint: "Die ganze Matrix als Arbeitsmappe, eingefärbt, eine Zeile pro Anforderung.",
   noLinks: "Keine dieser Anforderungen ist bisher verknüpft.",
   suspect: "verdächtig",
   cell: (row, column, links) => `${row} zu ${column}: ${links}`,

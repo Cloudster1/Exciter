@@ -29,9 +29,8 @@ var (
 	ErrLinkExists = errors.New("the page is linked with that relation already")
 )
 
-// SuspectSQL says whether the page link aliased l of the requirement aliased r is suspect: its page has a newer
-// version than the one confirmed, and neither is gone.
-const SuspectSQL = `COALESCE(r.trashed_at IS NULL AND l.broken_at IS NULL AND l.detached_at IS NULL AND l.page_version > l.page_version_seen, false)`
+// SuspectSQL says whether the page link aliased l of the requirement aliased r is suspect; the matrix reads it too.
+const SuspectSQL = trace.StatorSuspectSQL
 
 // selectLinks reads requirement $1's page links with how far each one's remote link on the page has come: none
 // while Stator takes no remote links, and waiting for the worker while it has no record yet.

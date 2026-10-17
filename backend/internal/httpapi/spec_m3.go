@@ -51,6 +51,7 @@ func reviewSchemas(b *openapi.Builder) {
 		reflect.TypeFor[trace.MatrixCell]():        "MatrixCell",
 		reflect.TypeFor[trace.MatrixLink]():        "MatrixLink",
 		reflect.TypeFor[trace.Matrix]():            "TraceMatrix",
+		reflect.TypeFor[trace.MatrixRow]():         "MatrixRow",
 		reflect.TypeFor[baseline.Baseline]():       "Baseline",
 		reflect.TypeFor[baseline.Input]():          "NewBaseline",
 		reflect.TypeFor[baseline.UpdateInput]():    "BaselineUpdate",

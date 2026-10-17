@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
@@ -5,7 +6,7 @@ import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL, statorURL } from "../fixtures/stack";
 
-// Requirements traced to Stator pages (#41): the stub announces a new version of the page through its webhook, which
+// Requirements traced to Stator pages (#41), and read as the matrix's columns (#150): the stub announces a new version of the page through its webhook, which
 // the stack receives as it would Stator's.
 
 const KEY = uniqueKey("SLK");
@@ -80,6 +81,26 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
 
     await panel.getByRole("button", { name: "Remove Brake timing, Specified by the page" }).click();
     await expect(panel.getByText(/No page yet/)).toBeVisible();
+  });
+
+  // The matrix (#150): the pages the requirements are traced to as its columns, titled as alice reads them.
+  test("alice reads the pages as matrix columns and opens a page's cell", async ({ page, api }) => {
+    const timing = await pageId("Brake timing");
+    must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "describes" } }));
+
+    await page.goto(`/p/${KEY}/matrix?columns=pages`);
+    const matrix = page.getByRole("table", { name: "Matrix" });
+    await expect(matrix.getByRole("columnheader", { name: "Brake timing" })).toBeVisible();
+    await page.getByRole("button", { name: `${KEY}-R1 to Brake timing: describes` }).click();
+    const cell = page.getByRole("dialog", { name: `${KEY}-R1 and Brake timing` });
+    await expect(cell.getByText("Described by Brake timing", { exact: true })).toBeVisible();
+    await expectAccessible(page);
+    await page.keyboard.press("Escape");
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download CSV" }).click();
+    const file = await readFile((await (await download).path()) ?? "", "utf8");
+    expect(file).toContain("Key,Title,Links,Brake timing");
   });
 
   // The way back (#42): the worker puts the requirement on the page as alice, and a person taking it off in Stator

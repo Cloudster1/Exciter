@@ -10,21 +10,24 @@ import (
 
 func TestAMatrixFileNamesTheLinksOfEachCell(t *testing.T) {
 	m := &trace.Matrix{
-		Rows:    []requirement.Ref{{Key: "CHK-R1", Title: "=Brakes"}, {Key: "CHK-R2", Title: "Lights"}},
+		Rows:    []trace.MatrixRow{{Ref: requirement.Ref{Key: "CHK-R1", Title: "=Brakes"}}, {Ref: requirement.Ref{Key: "CHK-R2", Title: "Lights"}}},
 		Columns: []trace.MatrixColumn{{IssueKey: "WEB-1"}, {IssueKey: "WEB-2"}},
 		Cells: []trace.MatrixCell{
 			{Row: 0, Column: 1, Links: []trace.MatrixLink{{Name: "implements"}, {Name: "verifies", Suspect: true}}},
 			{Row: 1, Column: 0, Links: []trace.MatrixLink{{Name: "relates"}}},
 		},
-		Total: 3,
+		RowLinks:    []int{2, 1},
+		ColumnLinks: []int{1, 2},
+		Total:       3,
 	}
 	var b strings.Builder
 	if err := WriteMatrix(&b, m); err != nil {
 		t.Fatal(err)
 	}
-	want := "Key,Title,WEB-1,WEB-2\n" +
-		"CHK-R1,'=Brakes,,implements; verifies (suspect)\n" +
-		"CHK-R2,Lights,relates,\n" +
+	want := "Key,Title,Links,WEB-1,WEB-2\n" +
+		",Links,,1,2\n" +
+		"CHK-R1,'=Brakes,2,,implements; verifies (suspect)\n" +
+		"CHK-R2,Lights,1,relates,\n" +
 		"This file holds the first 2 of the 3 requirements the filter keeps. Narrow the filter to export the rest.\n"
 	if b.String() != want {
 		t.Errorf("wrote\n%s\nwant\n%s", b.String(), want)

@@ -1347,7 +1347,8 @@
                 "webhook.deleted",
                 "webhook.secret_rotated",
                 "webhook.disabled",
-                "project.library_set"
+                "project.library_set",
+                "trace_model.saved"
               ]
             }
           },
@@ -1517,7 +1518,8 @@
                 "webhook.deleted",
                 "webhook.secret_rotated",
                 "webhook.disabled",
-                "project.library_set"
+                "project.library_set",
+                "trace_model.saved"
               ]
             }
           },
@@ -2381,9 +2383,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -2433,16 +2435,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2512,9 +2504,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -2541,16 +2533,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2620,9 +2602,9 @@
             "schema": {
               "type": "string",
               "enum": [
+                "both",
                 "outgoing",
-                "incoming",
-                "both"
+                "incoming"
               ]
             }
           },
@@ -2649,16 +2631,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7333,7 +7305,7 @@
     "/projects/{projectKey}/matrix": {
       "get": {
         "operationId": "traceMatrix",
-        "summary": "A traceability matrix: a page of the project's requirements, narrowed like the grid, against the requirements or Armature issues they link to.",
+        "summary": "A traceability matrix: a page of the project's requirements, narrowed and ordered like the grid, against the requirements or Armature issues they link to.",
         "tags": [
           "coverage"
         ],
@@ -7497,12 +7469,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -7515,6 +7488,81 @@
             }
           },
           {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "describes",
+                  "implements",
+                  "relates",
+                  "specifies",
+                  "verifies"
+                ]
+              }
+            }
+          },
+          {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "1 to 200; 50 when absent.",
@@ -7524,6 +7572,22 @@
           },
           {
             "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "columnLimit",
+            "in": "query",
+            "description": "1 to 500; 100 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "columnOffset",
             "in": "query",
             "description": "0 or later; 0 when absent.",
             "schema": {
@@ -7586,7 +7650,7 @@
     "/projects/{projectKey}/matrix.csv": {
       "get": {
         "operationId": "traceMatrixCSV",
-        "summary": "The traceability matrix as a CSV file, every row the filter keeps.",
+        "summary": "The traceability matrix as a CSV file, every row the filter keeps and every column, each with its count of links.",
         "tags": [
           "coverage"
         ],
@@ -7750,12 +7814,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -7765,6 +7830,81 @@
             "description": "For requirement columns, the project they come from; the same project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "describes",
+                  "implements",
+                  "relates",
+                  "specifies",
+                  "verifies"
+                ]
+              }
+            }
+          },
+          {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
             }
           }
         ],
@@ -7980,12 +8120,13 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, or issues.",
+            "description": "requirements, the default, issues, or Stator pages.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
-                "issues"
+                "issues",
+                "pages"
               ]
             }
           },
@@ -7995,6 +8136,81 @@
             "description": "For requirement columns, the project they come from; the same project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "linkType",
+            "in": "query",
+            "description": "For requirement columns, keys of the link types to count; every type when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "For requirement columns, which way a link points from its row: outgoing, incoming, or both, the default. A type that reads the same both ways counts in either.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "both",
+                "outgoing",
+                "incoming"
+              ]
+            }
+          },
+          {
+            "name": "relation",
+            "in": "query",
+            "description": "For issue columns, the Armature relations to count, implements, verifies or relates; for page columns, the Stator ones, specifies, describes or relates; every one when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "describes",
+                  "implements",
+                  "relates",
+                  "specifies",
+                  "verifies"
+                ]
+              }
+            }
+          },
+          {
+            "name": "columnQuery",
+            "in": "query",
+            "description": "For requirement columns, a query in the query language over the column project; with columnType, the columns are what it keeps, linked or not. Refused with bad_query, its position, and fields.columnQuery.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnType",
+            "in": "query",
+            "description": "For requirement columns, requirement types of the column project the columns are kept to, linked or not.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "gaps",
+            "in": "query",
+            "description": "Keep only the rows, the columns, or both, without a link; columns and both need a column filter.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rows",
+                "columns",
+                "both"
+              ]
             }
           }
         ],
@@ -8022,16 +8238,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9168,16 +9374,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -9399,16 +9595,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9646,16 +9832,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -9701,16 +9877,6 @@
                   "required": [
                     "model"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -9794,16 +9960,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10303,7 +10459,7 @@
     "/projects/{projectKey}/views": {
       "get": {
         "operationId": "listViews",
-        "summary": "The caller's own views of a project's grid, then the shared ones.",
+        "summary": "The caller's own views of a project's grid, matrix or chains, then the shared ones, with what each names that the project lost left out.",
         "tags": [
           "search"
         ],
@@ -10314,6 +10470,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "grid, the default, matrix or chain (#152).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "grid",
+                "matrix",
+                "chain"
+              ]
             }
           }
         ],
@@ -17925,7 +18094,8 @@
               "webhook.deleted",
               "webhook.secret_rotated",
               "webhook.disabled",
-              "project.library_set"
+              "project.library_set",
+              "trace_model.saved"
             ]
           },
           "actorId": {
@@ -18033,7 +18203,8 @@
                 "webhook.deleted",
                 "webhook.secret_rotated",
                 "webhook.disabled",
-                "project.library_set"
+                "project.library_set",
+                "trace_model.saved"
               ]
             }
           },
@@ -18113,6 +18284,9 @@
           "description": {
             "type": "string"
           },
+          "detail": {
+            "type": "integer"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -18157,7 +18331,8 @@
           "locked",
           "lockedAt",
           "createdByName",
-          "createdAt"
+          "createdAt",
+          "detail"
         ]
       },
       "BaselineComparison": {
@@ -18504,6 +18679,7 @@
         "required": [
           "kind",
           "name",
+          "direction",
           "suspect",
           "status"
         ]
@@ -20353,6 +20529,16 @@
           "issueKey": {
             "type": "string"
           },
+          "page": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MatrixPage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "requirement": {
             "oneOf": [
               {
@@ -20366,21 +20552,47 @@
         },
         "required": [
           "requirement",
-          "issueKey"
+          "issueKey",
+          "page"
         ]
       },
       "MatrixLink": {
         "type": "object",
         "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "trace",
+              "armature",
+              "stator"
+            ]
+          },
           "name": {
             "type": "string"
           },
           "suspect": {
             "type": "boolean"
+          },
+          "typeKey": {
+            "type": "string"
           }
         },
         "required": [
+          "id",
+          "kind",
           "name",
+          "direction",
           "suspect"
         ]
       },
@@ -20405,6 +20617,61 @@
           "id",
           "spaceKey",
           "url"
+        ]
+      },
+      "MatrixRow": {
+        "type": "object",
+        "properties": {
+          "canLink": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "section"
+            ]
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "projectKey",
+          "kind",
+          "title",
+          "revision",
+          "status",
+          "trashed",
+          "canLink"
         ]
       },
       "MeResponse": {
@@ -24304,6 +24571,21 @@
               "$ref": "#/components/schemas/MatrixCell"
             }
           },
+          "columnLimit": {
+            "type": "integer"
+          },
+          "columnLinks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "columnOffset": {
+            "type": "integer"
+          },
+          "columnTotal": {
+            "type": "integer"
+          },
           "columns": {
             "type": "array",
             "items": {
@@ -24316,10 +24598,16 @@
           "offset": {
             "type": "integer"
           },
+          "rowLinks": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
           "rows": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RequirementRef"
+              "$ref": "#/components/schemas/MatrixRow"
             }
           },
           "total": {
@@ -24330,9 +24618,14 @@
           "rows",
           "columns",
           "cells",
+          "rowLinks",
+          "columnLinks",
           "total",
           "limit",
-          "offset"
+          "offset",
+          "columnTotal",
+          "columnLimit",
+          "columnOffset"
         ]
       },
       "TraceModel": {
@@ -24836,12 +25129,26 @@
             "type": "string",
             "format": "date-time"
           },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "filter": {
             "$ref": "#/components/schemas/ViewFilter"
           },
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grid",
+              "matrix",
+              "chain"
+            ]
           },
           "name": {
             "type": "string"
@@ -24855,6 +25162,9 @@
           },
           "projectKey": {
             "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ViewSettings"
           },
           "shared": {
             "type": "boolean"
@@ -24874,9 +25184,12 @@
           "ownerId",
           "ownerName",
           "shared",
+          "kind",
           "filter",
           "columns",
+          "settings",
           "sort",
+          "dropped",
           "canEdit",
           "createdAt",
           "updatedAt"
@@ -24989,14 +25302,73 @@
           "filter": {
             "$ref": "#/components/schemas/ViewFilter"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grid",
+              "matrix",
+              "chain"
+            ]
+          },
           "name": {
             "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ViewSettings"
           },
           "shared": {
             "type": "boolean"
           },
           "sort": {
             "$ref": "#/components/schemas/ViewSort"
+          }
+        }
+      },
+      "ViewSettings": {
+        "type": "object",
+        "properties": {
+          "columnProject": {
+            "type": "string"
+          },
+          "columnQuery": {
+            "type": "string"
+          },
+          "columnTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "columns": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "gaps": {
+            "type": "string"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "linkTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onlyBroken": {
+            "type": "boolean"
+          },
+          "relations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
