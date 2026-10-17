@@ -134,100 +134,25 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - `seed bootstrap` connects Armature and Stator from
   `EXCITER_BOOTSTRAP_ARMATURE_URL` and `EXCITER_BOOTSTRAP_STATOR_URL` where
   nothing is connected yet (#104).
-
-### Changed
-
-- The development realm is `dynamo`, the suite's, instead of `suite-dev`
-  (#102). `deploy/keycloak/realm.json` is the same file in Armature, Stator
-  and Exciter, with each tool's client and the partners' groups, and
-  `make realm-check` refuses a copy that drifts from Dynamo's. A running
-  development stack keeps the old issuer: run `make clean && make up`, or set
-  the issuer under Settings, Single sign-on to
-  `http://localhost:<keycloak port>/realms/dynamo`.
+- One installation is one team's requirements (#84, #108). The first start
+  makes it, called `EXCITER_NAME` (`Exciter` by default), and an
+  administrator renames it under Settings, Installation. Everybody signed in
+  works in it; keys and names, such as project keys, are unique in it.
 - Releases are published from a tag (#101). `./release.sh` opens the pull
-  request `release/vX.Y.Z` instead of committing and tagging on `main`;
-  merging it tags the merge commit `vX.Y.Z`, and the tag pushes the `backend`
-  and `web` images to `ghcr.io/cloudster1/exciter-<image>` (as the version and
-  the short commit), publishes the GitHub release and tells Dynamo. See
+  request `release/vX.Y.Z`; merging it tags the merge commit `vX.Y.Z`, and
+  the tag pushes the `backend`, `web` and `render` images to
+  `ghcr.io/cloudster1/exciter-<image>` (as the version and the short commit),
+  pushes the chart, publishes the GitHub release and tells Dynamo. See
   `docs/releasing.md`.
-
+- The development realm is `dynamo`, the suite's (#102):
+  `deploy/keycloak/realm.json` is the same file in Armature, Stator and
+  Exciter, with each tool's client and the partners' groups.
 - Exciter reads the webhook version header, `X-Armature-Webhook-Version` and
   `X-Stator-Webhook-Version`, before the body, and refuses a version it does
   not read with 422 `unknown_version`. The API document describes both
   webhook envelopes (#103).
-
-- Connecting Armature asks its `GET /api/v1/meta` for `product: armature`
-  instead of reading the title of its OpenAPI document, so it needs an
-  Armature from 14 October 2026 on (#100).
-- `GET /api/v1/meta` names the product `exciter` in lower case, as Stator
-  and Armature name themselves (#99).
-- The `armature` client of the development realm no longer requires PKCE,
-  which Armature's sign-in does not send yet (#31).
-- The tables are the installation's (#108): `org` is `installation`, a
-  membership is a role on the account, the identity provider and the
-  Armature connection are one row each, and no table has `org_id`. Scripts
-  that read `org`, `org_member`, `org_join_request` or `org_id` need the new
-  names. Through SQL, the app role can no longer delete an account.
-- The code no longer carries an organization (#107). Admitting somebody who
-  asked to join answers `membership: {userId, role}` instead of the
-  organization's id, slug and name. Secrets and files stored earlier stay
-  readable.
-- The schema no longer asks which organization a row is of (#106). Keys and
-  names, such as project keys, are unique in the installation; the tenant
-  policies became one open policy per table beside the permission policies,
-  which stay. Upgrading stops, naming them, at policies Exciter did not make
-  and at rows that would share a key, so they can be dealt with first.
-- The integration suite works in the stack's one installation, keeping its
-  tests apart by the people, keys and names they make, and puts back every
-  setting there is one of (#90). The test-only endpoints `/api/v1/test/orgs`
-  and their settings `EXCITER_TEST_ENDPOINTS` and
-  `EXCITER_TEST_ENDPOINTS_TOKEN` are gone.
-- The interface and the API say "everyone", "all projects" or "Exciter"
-  instead of "the organization" (#88). `GET /themes/active` answers `source:
-  "everyone"` for the default theme, where it said `organization`.
-- The Armature connection is its address (#87). Settings, Armature asks for
-  no organization any more, and the webhook address is
-  `/api/v1/armature/webhook`. Every member's token still has to come from the
-  Armature the first token was made in.
-- Letting somebody go switches their account off (#86). Members has Switch
-  off and Switch on instead of Remove: switching off signs the person out
-  everywhere and ends their tokens, and keeps their account, role and work.
-  The installation always keeps an active administrator, owner or admin,
-  rather than an owner. Everybody's tokens moved from `/api/v1/org/tokens` to
-  `/api/v1/tokens/everyone`, and their page to `/settings/all-tokens`.
-- Signing in lands in the installation (#85). The sign-in page asks for no
-  organization, single sign-on starts at `/api/v1/auth/oidc/start` with the
-  installation's provider, and there is nothing to switch between:
-  `POST /auth/switch-org`, the organization switchers and the organizations
-  on `/auth/me` are gone. `/auth/me` answers `installation` and `role`. The
-  slugged `/auth/oidc/{orgSlug}/start` is removed rather than redirected, as
-  no release has shipped with it.
-- One installation is one team's requirements (#84). The first start makes
-  the installation's one organization, called `EXCITER_NAME` (`Exciter` by
-  default), which replaces `EXCITER_BOOTSTRAP_ORG_SLUG` and
-  `EXCITER_BOOTSTRAP_ORG_NAME`; an administrator renames it under Settings,
-  Installation. Somebody let go is told their account has been switched off,
-  and their open session ends.
-- Upgrading to one installation (#82, #89):
-  - A database holding several organizations is refused, naming them; keep
-    the one to go on with, delete the others with
-    `DELETE FROM org WHERE slug = ...`, and migrate again.
-  - `EXCITER_NAME` names the installation on its first start and replaces
-    `EXCITER_BOOTSTRAP_ORG_SLUG` and `EXCITER_BOOTSTRAP_ORG_NAME`.
-  - Removed without a redirect, as no release shipped with them:
-    `/auth/oidc/{orgSlug}/start` (now `/auth/oidc/start`),
-    `POST /auth/switch-org`, `/org/tokens` (now `/tokens/everyone`),
-    `/settings/organization-tokens` (now `/settings/all-tokens`),
-    `/armature/webhook/{orgSlug}` (now `/armature/webhook`) and the Armature
-    connection's `orgSlug`.
-
-### Fixed
-
-- The list of people an @ offers in the editor stays under the caret on a page
-  scrolled down, where it used to land out of view (#33).
-
-### Added
-
+- Connecting Armature asks its `GET /api/v1/meta` for `product: armature`, so
+  it needs an Armature from 14 October 2026 on (#100).
 - `GET /api/v1/meta` lists what Exciter offers partners:
   `requirement-embed@1`, `trace-links@1`, `specifications@1` and
   `theme-export@1`, described in `docs/integration.md` (#100).

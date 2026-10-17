@@ -17,14 +17,14 @@ Adapted from Stator at 7e2c09d (the first commit under Apache-2.0 is a5661a6):
   and scripts/test-summary.sh: the same files, renamed to Exciter
 - .github/workflows/ci.yml and release.yml, .github/ISSUE_TEMPLATE and
   .github/PULL_REQUEST_TEMPLATE.md: the same files, with two browser shards
-  and no container images yet
+  and Exciter's own images and chart
 - CLAUDE.md and the layout of docs/architecture.md and docs/decisions.md
 - mk/stack.mk, deploy/docker-compose.yml, deploy/postgres/init-roles.sh and
   replica-entrypoint.sh: the stack's infrastructure services, renamed, with
   the port slots moved to 10000-19999 by scripts/stack-ports.sh
 - deploy/keycloak/realm.json: the client definition, given to three clients
   in one realm
-- backend/internal/config, db, freshness, tenant, secret, keyset, openapi,
+- backend/internal/config, db, freshness, secret, keyset, openapi,
   observability and version, which Stator adapted from Armature's: renamed,
   config cut to what the skeleton reads, db's token spaces made token
   projects, the anonymous and public link readers left out

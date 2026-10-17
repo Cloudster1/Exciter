@@ -34,3 +34,6 @@ release-notes-*.md
 .claude/worktrees/
 # the chart make chart-package packs
 /dist/
+# Claude Code state that stays on the machine
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

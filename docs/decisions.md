@@ -431,9 +431,9 @@ travels as a pull request of its own.
   `release.sh`, the workflow and the test that refuses them disagreeing:
   `VERSION`, the chart's `version` and `appVersion` once #104 adds the chart,
   and a `package.json` once it carries a version.
-- **Images are `ghcr.io/cloudster1/exciter-<image>`**, `backend` and `web`,
-  tagged `X.Y.Z` and with the short commit. A test keeps the list equal to the
-  images the stack builds and the chart runs; the chart is
+- **Images are `ghcr.io/cloudster1/exciter-<image>`**, `backend`, `web`
+  and `render`, tagged `X.Y.Z` and with the short commit. A test keeps the
+  list equal to the images the stack builds and the chart runs; the chart is
   `oci://ghcr.io/cloudster1/charts/exciter` since #104.
 - **Dynamo is told, not waited for.** A `repository_dispatch`
   (`tool-released`, `{tool, version}`) goes to Dynamo when
