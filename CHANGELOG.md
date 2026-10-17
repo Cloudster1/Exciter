@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Connected apps (#189): under the account menu, beside the access tokens, a
+  person sees the apps they connected through OAuth, the host each sends
+  back to, whether it only reads, the projects it reaches and when it was
+  last used, and disconnects one, which ends its tokens at once.
+  Administrators see and disconnect everybody's under All connected apps.
+  The audit log records each connection ended and who ended it, and the
+  token page's Connect an assistant says how to connect an app with the
+  address alone.
 - Assistants connect with Exciter's address alone (#188). Exciter is the
   OAuth authorization server of its MCP endpoint: a client that meets the
   401 reads where to go, registers itself or names its metadata document,

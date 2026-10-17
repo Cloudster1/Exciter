@@ -191,6 +191,7 @@ describe("the account menu", () => {
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
     const themes = within(menu).getByRole("menuitem", { name: "Themes" });
     const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
+    const apps = within(menu).getByRole("menuitem", { name: "Connected apps" });
     const armature = within(menu).getByRole("menuitem", { name: "Armature account" });
     const stator = within(menu).getByRole("menuitem", { name: "Stator account" });
     const notifications = within(menu).getByRole("menuitem", { name: "Notification settings" });
@@ -200,7 +201,7 @@ describe("the account menu", () => {
     expect(browser).toHaveAttribute("aria-checked", "true");
     expect(english).toHaveAttribute("aria-checked", "false");
     expect(themes).toHaveFocus();
-    for (const next of [tokens, armature, stator, notifications, watching, browser, english, german, signOut, themes]) {
+    for (const next of [tokens, apps, armature, stator, notifications, watching, browser, english, german, signOut, themes]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }

@@ -253,6 +253,9 @@ export const FILE_SIZE_DECIMALS_BELOW = 10;
 /** Where a person keeps their personal access tokens, and where administrators see everybody's (#22, #86). */
 export const TOKENS_PATH = "/settings/tokens";
 export const ALL_TOKENS_PATH = "/settings/all-tokens";
+/** A person's apps connected with OAuth, and everybody's for the administrators (#189). */
+export const CONNECTED_APPS_PATH = "/settings/connected-apps";
+export const ALL_CONNECTED_APPS_PATH = "/settings/all-connected-apps";
 /** The one scope a token may carry, and the longest name it takes, the API's auth.ScopeRead and MaxTokenNameLength. */
 export const TOKEN_READ_SCOPE = "read";
 export const TOKEN_NAME_MAX_LENGTH = 100;

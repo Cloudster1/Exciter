@@ -101,6 +101,9 @@ const (
 	ActionProjectLibrarySet = "project.library_set"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
+	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
+	// reused token (#189).
+	ActionOAuthRevoked = "oauth.revoked"
 	// ActionInstallationOAuthSwitched is OAuth connections switched on or off for the installation (#188).
 	ActionInstallationOAuthSwitched = "installation.oauth_switched"
 )
@@ -118,7 +121,7 @@ var Actions = []string{
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
 	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved, ActionOAuthGranted,
-	ActionInstallationOAuthSwitched,
+	ActionInstallationOAuthSwitched, ActionOAuthRevoked,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

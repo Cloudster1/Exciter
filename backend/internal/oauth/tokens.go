@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/db"
 )
@@ -84,10 +85,25 @@ func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*
 
 // endGrant ends a grant whose code or refresh token came back once used, as a stolen one would, and refuses.
 func endGrant(ctx context.Context, tx db.DBTX, grant uuid.UUID, r *Refusal) error {
-	if _, err := tx.Exec(ctx, `DELETE FROM oauth_grant WHERE id = $1`, grant); err != nil {
+	if err := deleteGrant(ctx, tx, grant, EndedByReusedToken); err != nil {
 		return err
 	}
 	return r
+}
+
+// deleteGrant ends a grant nobody signed in ended, and records who did.
+func deleteGrant(ctx context.Context, tx db.DBTX, grant uuid.UUID, by string) error {
+	var owner uuid.UUID
+	var client string
+	err := tx.QueryRow(ctx, `DELETE FROM oauth_grant g USING oauth_client c WHERE g.id = $1 AND c.id = g.client_id
+		RETURNING g.user_id, c.name`, grant).Scan(&owner, &client)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return audit.Write(ctx, tx, endedEntry(grant, uuid.Nil, owner, client, by, ""))
 }
 
 func redeemCode(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, bool, error) {
@@ -188,14 +204,21 @@ func (s *Service) Revoke(ctx context.Context, in RevokeRequest, who ClientAuth) 
 		return refuse(ErrInvalidRequest, "Send the token to end.")
 	}
 	_, err = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		_, err := tx.Exec(ctx, `
-			WITH found AS (
-				SELECT t.token_hash, t.kind, t.grant_id FROM oauth_token t JOIN oauth_grant g ON g.id = t.grant_id
-				WHERE t.token_hash = $1 AND g.client_id = $2
-			), access AS (
-				DELETE FROM oauth_token WHERE token_hash IN (SELECT token_hash FROM found WHERE kind = 'access')
-			)
-			DELETE FROM oauth_grant WHERE id IN (SELECT grant_id FROM found WHERE kind = 'refresh')`, auth.HashToken(in.Token), c.ID)
+		var (
+			kind  string
+			grant uuid.UUID
+		)
+		err := tx.QueryRow(ctx, `SELECT t.kind, t.grant_id FROM oauth_token t JOIN oauth_grant g ON g.id = t.grant_id
+			WHERE t.token_hash = $1 AND g.client_id = $2`, auth.HashToken(in.Token), c.ID).Scan(&kind, &grant)
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil
+		case err != nil:
+			return err
+		case kind == "refresh":
+			return deleteGrant(ctx, tx, grant, EndedByClient)
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM oauth_token WHERE token_hash = $1`, auth.HashToken(in.Token))
 		return err
 	})
 	return err

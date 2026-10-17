@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/oauth"
 )
 
@@ -65,6 +67,11 @@ func (s *Server) mountOAuth(r chi.Router) {
 		r.Post("/oauth/revoke", s.handleOAuthRevoke)
 		r.With(requireAuth, requireSession).Get("/oauth/requests/{requestID}", s.handleGetOAuthRequest)
 		r.With(requireAuth, requireSession).Post("/oauth/requests/{requestID}", s.handleDecideOAuthRequest)
+		// Connected apps (#189): a person's own, and everybody's for the administrators, ended only from a session.
+		r.With(requireAuth).Get("/oauth/grants", s.handleListOAuthGrants)
+		r.With(requireAuth, requireSession).Delete("/oauth/grants/{grantID}", s.handleRevokeOAuthGrant)
+		r.With(requireAdmin).Get("/oauth/grants/everyone", s.handleListEveryonesOAuthGrants)
+		r.With(requireAdmin, requireSession).Delete("/oauth/grants/everyone/{grantID}", s.handleRevokeAnybodysOAuthGrant)
 	})
 	r.With(requireAdmin, requireSession, s.installationOn).Put("/installation/oauth-connections", s.handleSwitchOAuthConnections)
 }
@@ -185,6 +192,8 @@ func (s *Server) handleOAuthRevoke(w http.ResponseWriter, r *http.Request) {
 // oauthError maps the consent's refusals; nil when err is none of theirs.
 func oauthError(err error) *APIError {
 	switch {
+	case errors.Is(err, oauth.ErrNoSuchGrant):
+		return ErrNotFound("That connection was not found. It may have been ended already; reload the list.")
 	case errors.Is(err, oauth.ErrNoRequest):
 		return ErrNotFound("The request to connect has expired or was answered already. Start connecting from the client again.")
 	case errors.Is(err, oauth.ErrWiderThanAsked):
@@ -306,3 +315,44 @@ func inProcessCall(ctx context.Context) bool {
 
 // isClientEndpoint says whether a path is one a client calls with its own credentials, never the session's.
 func isClientEndpoint(path string) bool { return clientEndpoints[strings.TrimRight(path, "/")] }
+
+func (s *Server) handleListOAuthGrants(w http.ResponseWriter, r *http.Request) {
+	grants, err := s.OAuth.Grants(r.Context(), userFrom(r))
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"grants": grants})
+}
+
+func (s *Server) handleListEveryonesOAuthGrants(w http.ResponseWriter, r *http.Request) {
+	grants, err := s.OAuth.EveryonesGrants(r.Context())
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"grants": grants})
+}
+
+func (s *Server) handleRevokeOAuthGrant(w http.ResponseWriter, r *http.Request) {
+	s.endGrant(w, r, s.OAuth.EndGrant)
+}
+
+func (s *Server) handleRevokeAnybodysOAuthGrant(w http.ResponseWriter, r *http.Request) {
+	s.endGrant(w, r, s.OAuth.EndAnybodysGrant)
+}
+
+func (s *Server) endGrant(w http.ResponseWriter, r *http.Request, end func(context.Context, uuid.UUID, uuid.UUID, string) (db.LSN, error)) {
+	id, apiErr := pathUUID(r, "grantID", "connection")
+	if apiErr != nil {
+		respondError(w, r, apiErr)
+		return
+	}
+	lsn, err := end(r.Context(), userFrom(r), id, s.clientIP(r))
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -35,3 +35,39 @@ export function useSwitchOAuthConnections() {
     onSuccess: (installation) => queryClient.setQueryData(installationQueryKey, installation),
   });
 }
+
+/** A client the caller connected, what it may do and when it was last used (#189). */
+export type Grant = Wire["OAuthGrant"];
+/** A connected client in everybody's list, with whose it is. */
+export type OrgGrant = Wire["OrgOAuthGrant"];
+
+export const grantsQueryKey = ["oauth", "grants"] as const;
+const everyonesGrantsKey = [...grantsQueryKey, "everyone"] as const;
+
+/** The caller's connected apps, by last use. */
+export function useGrants() {
+  return useQuery({
+    queryKey: [...grantsQueryKey, "mine"],
+    queryFn: async (): Promise<Grant[]> => (await api.GET("/oauth/grants")).data!.grants,
+  });
+}
+
+/** Everybody's connected apps, for the administrators. */
+export function useEveryonesGrants() {
+  return useQuery({
+    queryKey: everyonesGrantsKey,
+    queryFn: async (): Promise<OrgGrant[]> => (await api.GET("/oauth/grants/everyone")).data!.grants,
+  });
+}
+
+/** Ends one of the caller's connections, or with anybodys set anybody's, as an administrator. */
+export function useEndGrant(anybodys = false) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (anybodys) await api.DELETE("/oauth/grants/everyone/{grantID}", { params: { path: { grantID: id } } });
+      else await api.DELETE("/oauth/grants/{grantID}", { params: { path: { grantID: id } } });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: grantsQueryKey }),
+  });
+}

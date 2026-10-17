@@ -141,6 +141,9 @@ function ConnectAssistant() {
         {t.tokens.mcpTitle}
       </h2>
       <p className="text-sm text-ink-muted">{t.tokens.mcpBody}</p>
+      <p className="text-sm text-ink-muted" data-mcp-oauth>
+        {t.tokens.mcpOAuth}
+      </p>
       <Field
         label={t.tokens.mcpEndpoint}
         value={endpoint}
@@ -149,6 +152,7 @@ function ConnectAssistant() {
         onFocus={(event) => event.target.select()}
         data-mcp-endpoint
       />
+      <p className="text-sm text-ink-muted">{t.tokens.mcpHeader}</p>
       <figure className="space-y-1">
         <figcaption className="text-sm font-medium text-ink">{t.tokens.mcpConfig}</figcaption>
         {/* biome-ignore lint/a11y/noNoninteractiveTabindex: settings wider than the page scroll, and a keyboard scrolls only what has focus */}

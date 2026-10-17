@@ -547,6 +547,16 @@ The tools of #185: review, comments and trace.
   - "Connect an assistant" says to add Exciter's address in a client that
     connects with OAuth, and keeps the token settings for clients that send
     a header.
+- **As built** (#189):
+  - The page says **Disconnect** for revoking, as a person ends a connection
+    rather than a token; the routes and `oauth.revoked` keep the contract's
+    words.
+  - A grant the sweeper removes because it ran out, and one replaced by
+    connecting the client again, are not recorded as revoked: nobody ended
+    them, and `oauth.granted` records the new one.
+  - The token page's "Connect an assistant" says that an OAuth app needs the
+    address alone and is found under Connected apps, and keeps the client
+    settings with a header for the others.
 
 ## #190 What an assistant wrote
 
