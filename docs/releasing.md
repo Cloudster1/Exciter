@@ -35,9 +35,9 @@ From an up-to-date `main` with a clean working tree:
    commit `main` does not have, version files that say another version, and
    a tag that already points elsewhere.
 6. In the same run, from the tag:
-   - the images `backend` and `web` are built with `VERSION` and `COMMIT` and
-     pushed to `ghcr.io/cloudster1/exciter-<image>` as `X.Y.Z` and as the
-     short commit;
+   - the images `backend`, `web` and `render` are built with `VERSION` and
+     `COMMIT` and pushed to `ghcr.io/cloudster1/exciter-<image>` as `X.Y.Z`
+     and as the short commit;
    - the chart is packaged and pushed to
      `oci://ghcr.io/cloudster1/charts/exciter` as version `X.Y.Z`;
    - the GitHub release `vX.Y.Z` is published with the tag message as its

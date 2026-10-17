@@ -13,16 +13,21 @@ settings such as the theme, the link types and the Armature connection are
 for everyone. People who must not see each other's work run an installation
 each.
 
-Exciter is at the start: the plan is in the
-[issues](https://github.com/Cloudster1/Exciter/issues) and their milestones,
-from `M0 Foundation` to `M4 Stator integration`. What exists is described in
+What has shipped is in [`CHANGELOG.md`](CHANGELOG.md): the requirements
+core, the Armature and Stator integrations, review and control, and
+traceability, milestones `M0 Foundation` to `M5 Traceability`. What comes
+next is in the [issues](https://github.com/Cloudster1/Exciter/issues) and
+their milestones. How it is built is described in
 [`docs/architecture.md`](docs/architecture.md) and argued in
 [`docs/decisions.md`](docs/decisions.md).
 
 ## Working on it
 
-Every toolchain runs in a container, driven by the `Makefile`; Docker and
-make are the only requirements. [`CLAUDE.md`](CLAUDE.md) holds the rules.
+Every toolchain runs in a container, driven by the `Makefile`. The host
+needs Docker, make, `jq` and `python3` for the gate and its hooks, and `gh`
+to open pull requests and releases. [`CONTRIBUTING.md`](CONTRIBUTING.md)
+says how to work on Exciter, and [`SECURITY.md`](SECURITY.md) how to report
+a vulnerability.
 
 ```sh
 make up                 # the stack: Postgres with a replica, Valkey, SeaweedFS, Mailpit, Keycloak, the api, the web client
@@ -50,7 +55,8 @@ written to `.cache/stack.env`. Keycloak's realm `dynamo` (admin console
 `<name> password`, and a client for each of Exciter, Armature and Stator.
 It is the suite's realm, the same file in all three repositories; its client
 secrets (`<client>-dev-secret`) and passwords are for development only.
-`make realm-check` compares it with Dynamo's canonical copy.
+`make realm-check` compares it with Dynamo's canonical copy once Dynamo
+publishes one, and passes until then.
 
 To try the integration end to end, `make suite-up ARMATURE_DIR=<checkout>
 STATOR_DIR=<checkout>` runs Exciter, Armature and Stator side by side on that

@@ -6,8 +6,8 @@ Exciter is requirements management. It deliberately mirrors
 same patterns, same design tokens, same identity provider. Someone who knows
 one codebase should find their way around the other two without a map.
 
-This document describes the architecture the milestones build towards. Each
-section names the issue that brings it; until then the section is the plan.
+This document describes the architecture as it is built. Each section names
+the issue that brought it.
 
 ## Overview
 
