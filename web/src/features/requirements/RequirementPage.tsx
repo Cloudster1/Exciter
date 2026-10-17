@@ -15,6 +15,7 @@ import { RequirementLabels } from "@/features/labels/RequirementLabels";
 import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
 import { ArmatureLinks } from "@/features/armature/ArmatureLinks";
 import { StatorLinks } from "@/features/stator/StatorLinks";
+import { TestResults } from "@/features/evidence/TestResults";
 import { CommentsSection } from "@/features/comments/CommentsSection";
 import { ReviewPanel } from "@/features/reviews/ReviewPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
@@ -129,6 +130,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       <LinksPanel requirement={requirement} />
       <ArmatureLinks requirement={requirement} />
       <StatorLinks requirement={requirement} />
+      <TestResults requirement={requirement} />
       <AttachmentPanel requirement={requirement} />
       <CommentsSection requirement={requirement} />
       {project.settings.library && !requirement.trashedAt && <ReuseAction project={project} requirement={requirement} />}

@@ -49,6 +49,7 @@ func evidenceSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(trace.Verdict(""))] = enumStrings(trace.Verdicts)
 	b.Enums[reflect.TypeOf(trace.CheckReason(""))] = enumStrings(trace.CheckReasons)
 	b.Enums[reflect.TypeOf(trace.EvidenceKind(""))] = enumStrings(trace.EvidenceKinds)
+	b.Enums[reflect.TypeOf(trace.Source(""))] = enumStrings(trace.VerifiedSources)
 	b.FieldOverrides["TraceCheckEvidence.outcome"] = &openapi.Schema{Type: "string", Enum: enumStrings(testresult.Outcomes)}
 	b.FieldOverrides["TraceCheckOrphan.problem"] = &openapi.Schema{Type: "string", Enum: enumStrings(codetrace.Problems)}
 }

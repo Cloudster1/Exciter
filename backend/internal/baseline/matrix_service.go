@@ -33,7 +33,7 @@ func checkMatrixQuery(q *MatrixQuery) error {
 		q.Direction = trace.DirectionBoth
 	}
 	switch {
-	case !slices.Contains(trace.MatrixColumnKinds, q.Columns):
+	case !slices.Contains(trace.RecordedColumnKinds, q.Columns):
 		return &FieldError{"columns", "Show requirements, issues or pages as the columns."}
 	case !slices.Contains(trace.MatrixDirections, q.Direction):
 		return &FieldError{"direction", "Count the links that point outgoing, incoming or both."}

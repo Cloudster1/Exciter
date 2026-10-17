@@ -123,6 +123,8 @@ const (
 	ActionReviewSessionOpened       = "review_session.opened"
 	ActionReviewSessionRoundStarted = "review_session.round_started"
 	ActionReviewSessionClosed       = "review_session.closed"
+	// ActionEvidenceSettingsSaved keeps which branch a project's test results count on (#200).
+	ActionEvidenceSettingsSaved = "evidence_settings.saved"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -140,7 +142,7 @@ var Actions = []string{
 	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved, ActionOAuthGranted,
 	ActionInstallationOAuthSwitched, ActionOAuthRevoked, ActionBaselineSigned, ActionBaselineSigningSaved, ActionBaselineSigningRemoved,
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
-	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed,
+	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

@@ -316,6 +316,65 @@ Examples: `testResult = failed`, `verified != full AND testOutdated > 0`.
   gain the counting branch.
 - The token page and the consent page offer the evidence scope.
 
+### As built (#200)
+
+- **Migrations**:
+  - `00960_evidence_scope.sql`: the token CHECK, `evidence` on
+    `oauth_request` and `oauth_grant`.
+  - `00961_test_results.sql`: `evidence_settings`, `test_run`,
+    `test_result`, `test_run_latest`, `coverage_rule.verified_from`, and
+    the functions `evidence_counting_branch`, `evidence_branch`,
+    `requirement_test_counts` and `requirement_test_result`, with
+    `requirement_coverage` re-created.
+  - `00962_baseline_evidence.sql`: `baseline_evidence`, with the hash
+    functions re-created.
+  - `00963_trace_tests_level.sql`: the `tests` level kind.
+- **An app's grant** keeps `read_only` and gains a boolean `evidence` beside
+  it, never both, rather than one `scope` column: the access token reads
+  the grant's, so no token row changes. `scopeAsked` in `internal/oauth`
+  reads `evidence` alone.
+- **The route table** marks evidence rows `evidence: true`, and
+  `evidenceToken` beside `wholeOrg` refuses every other route, MCP
+  included. `principalOf` authenticates an access token before it refuses
+  one outside MCP, so an evidence one passes.
+- **A multipart row** names its form fields with `request` and says a file
+  part may come more than once with `files`; `spec.go`'s
+  `multipartSchema` lays them out beside `file`, and `uploadedRun` reads
+  them.
+- **The guards**:
+  - `test_run_guard` keeps a run as uploaded and its state moving forward.
+  - `test_run_finished`, SECURITY DEFINER, makes a done run the latest of
+    its repository, branch and job.
+  - `test_result_stamped` stamps the revision from the run's `uploaded_at`.
+  - The app role holds no UPDATE or DELETE on results and no write on
+    `test_run_latest`.
+- **Results are keyed** by run, requirement, suite and name; there is no
+  table of test cases.
+- **The worker** routes `test_run.requested` to `testresult.Handler`, which
+  restores the uploader's token projects. `testresult.Retention` prunes
+  hourly as the admin role. `test_run.finished` and
+  `evidence_settings.saved` clear the coverage cache.
+- **Armature**: `armature.Service.Commits` reads
+  `GET /issues/{key}/development` of the requirement's linked issues as the
+  reader. The stub serves it, with `POST /_stub/{tenant}/issues/{key}/commits`
+  to tell it of a commit.
+- **The trace check** narrows with the grid's parameters (`q`, `query`,
+  `type`, ...). A chain ending in a test that is not passing and current is
+  broken there, its `missing` "passing test".
+- **A baseline's matrix** lays out requirements, issues and pages as before,
+  and refuses `columns=tests` with 422: the evidence it recorded shows on
+  its requirements and is in its signed content.
+- **`exciter-ci`** lives in `backend/cmd/exciter-ci` and is built by
+  `deploy/Dockerfile.ci`. Compose runs it as `ci` under the `tools` profile,
+  for `make ci-image`, `make test-results` and `make trace-check`.
+  `tests/test-release-workflow.sh` knows it as a tool image the chart does
+  not run.
+- **The web**: `features/evidence` holds the results panel on the
+  requirement page and the counting branch card on the trace settings tab.
+  The coverage rules choose what verifies, the matrix and the trace model
+  take tests, and the token, consent and connected-apps pages offer and
+  name the evidence scope.
+
 ## #201 Code tags
 
 | Operation | Needs | Answers |
@@ -417,3 +476,5 @@ uploads.
   stays apart from it until then.
 - Notifications of a failing test; the owner sees it on the requirement and
   the trace check fails on it.
+- A baseline's matrix of the tests it recorded: the evidence is in the
+  baseline and its signed content, and its matrix refuses `columns=tests`.

@@ -35,6 +35,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/watch"
@@ -112,6 +113,8 @@ type Server struct {
 	Baselines *baseline.Service
 	// Imports moves requirements in and out of CSV files; nil answers their routes that they are not set up.
 	Imports *csvio.Service
+	// TestResults keeps the test results CI uploads (#200); nil answers their routes that they are not set up.
+	TestResults *testresult.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -175,7 +178,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 	mountPending(r, true, true)
 
 	r.Route(APIPrefix, func(r chi.Router) {
-		r.Use(wholeOrg(r))
+		r.Use(wholeOrg(r), evidenceToken(r))
 		r.Get("/openapi.json", s.handleOpenAPI)
 		r.Get("/meta", s.handleMeta)
 		r.Post("/auth/login", s.handleLogin)
@@ -373,6 +376,17 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/trace-chains", s.handleTraceChains)
 			r.Get("/projects/{projectKey}/trace-chains.csv", s.handleTraceChainsCSV)
 			r.Get("/projects/{projectKey}/trace-chains.xlsx", s.handleTraceChainsXLSX)
+		})
+
+		// Test results from CI and the trace check (#200): uploaded by a project's editors, read by its readers.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.evidenceOn)
+			r.Post("/projects/{projectKey}/test-runs", s.handleUploadTestRun)
+			r.Get("/test-runs/{runID}", s.handleGetTestRun)
+			r.Get("/requirements/{reqKey}/test-results", s.handleListTestResults)
+			r.Get("/projects/{projectKey}/evidence-settings", s.handleGetEvidenceSettings)
+			r.Put("/projects/{projectKey}/evidence-settings", s.handleSaveEvidenceSettings)
+			r.Get("/projects/{projectKey}/trace-check", s.handleTraceCheck)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

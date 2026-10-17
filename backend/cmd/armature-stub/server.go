@@ -41,6 +41,7 @@ var routes = []route{
 	{Method: "POST", Path: "/issues", handler: (*stub).createIssue},
 	{Method: "GET", Path: "/issues/{issueKey}", handler: (*stub).getIssue},
 	{Method: "GET", Path: "/issues/{issueKey}/remote-links", handler: (*stub).listLinks},
+	{Method: "GET", Path: "/issues/{issueKey}/development", handler: (*stub).development},
 	{Method: "POST", Path: "/issues/{issueKey}/remote-links", handler: (*stub).putLink},
 	{Method: "DELETE", Path: "/issues/{issueKey}/remote-links/{remoteLinkID}", handler: (*stub).deleteLink},
 	{Method: "GET", Path: "/themes/active", handler: (*stub).activeTheme},
@@ -99,6 +100,7 @@ func (s *stub) handler() http.Handler {
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/deliveries", s.control((*stub).listDeliveries))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/webhooks", s.control((*stub).sendEvent))
 	mux.HandleFunc("PATCH "+stubPrefix+"/{tenant}/issues/{issueKey}", s.control((*stub).changeIssue))
+	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/issues/{issueKey}/commits", s.control((*stub).addCommit))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/issues/{issueKey}/move", s.control((*stub).moveIssue))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/issues/{issueKey}", s.control((*stub).deleteIssue))
 	mux.HandleFunc("DELETE "+stubPrefix+"/{tenant}/issues/{issueKey}/remote-links", s.control((*stub).takeOffLink))

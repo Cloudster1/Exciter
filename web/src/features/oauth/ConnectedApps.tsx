@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useEndGrant, useGrants, type Grant } from "@/api/oauth";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { TOKEN_READ_SCOPE } from "@/config";
+import { TOKEN_EVIDENCE_SCOPE, TOKEN_READ_SCOPE } from "@/config";
 import { reachOf, when } from "@/features/tokens/TokensPage";
 import { t } from "@/i18n";
 
@@ -12,6 +12,7 @@ export function AppCell({ grant }: { grant: Grant }) {
     <>
       <span className="font-medium text-ink">{grant.client.name}</span>
       {grant.scopes.includes(TOKEN_READ_SCOPE) && <Tag className="ml-2">{t.tokens.tagReadOnly}</Tag>}
+      {grant.scopes.includes(TOKEN_EVIDENCE_SCOPE) && <Tag className="ml-2">{t.tokens.tagEvidence}</Tag>}
       <p className="text-xs text-ink-muted">{t.oauth.sendsBackTo(grant.redirectHost)}</p>
       <p className="text-xs text-ink-muted" data-app-projects={grant.allProjects ? "" : grant.projects.join(",")}>
         {reachOf(grant)}

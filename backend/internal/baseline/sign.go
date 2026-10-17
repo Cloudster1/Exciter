@@ -381,6 +381,14 @@ type Content struct {
 	Items                 []ContentItem
 	Links                 []ContentLink
 	External, Pages       []uuid.UUID
+	// Evidence is what the baseline recorded of each requirement's test results (#200).
+	Evidence []ContentEvidence
+}
+
+// ContentEvidence is one piece of evidence a baseline recorded, its line as baseline_evidence_line writes it.
+type ContentEvidence struct {
+	RequirementID uuid.UUID
+	Line          string
 }
 
 // ContentItem is a requirement or section at the revision the baseline holds; Hash is empty for one purged since.
@@ -438,6 +446,13 @@ func ContentHash(c Content) string {
 			fmt.Fprintf(&b, "%s %s\n", line.kind, id)
 		}
 	}
+	evidence := slices.Clone(c.Evidence)
+	slices.SortFunc(evidence, func(x, y ContentEvidence) int {
+		return cmp.Or(strings.Compare(x.RequirementID.String(), y.RequirementID.String()), strings.Compare(x.Line, y.Line))
+	})
+	for _, e := range evidence {
+		fmt.Fprintf(&b, "evidence %s %s\n", e.RequirementID, e.Line)
+	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return hex.EncodeToString(sum[:])
 }
@@ -479,6 +494,8 @@ func readContent(ctx context.Context, tx db.DBTX, f *found) (Content, error) {
 			c.External = append(c.External, a)
 		case "page":
 			c.Pages = append(c.Pages, a)
+		case "evidence":
+			c.Evidence = append(c.Evidence, ContentEvidence{RequirementID: a, Line: *hash})
 		}
 	}
 	return c, rows.Err()
@@ -517,7 +534,8 @@ func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID 
 	for _, step := range []struct {
 		sql  string
 		args []any
-	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}}} {
+	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
+		{takeEvidence, []any{id}}} {
 		if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 			return uuid.Nil, fmt.Errorf("take the session's baseline: %w", err)
 		}

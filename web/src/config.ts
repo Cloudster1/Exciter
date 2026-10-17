@@ -256,8 +256,10 @@ export const ALL_TOKENS_PATH = "/settings/all-tokens";
 /** A person's apps connected with OAuth, and everybody's for the administrators (#189). */
 export const CONNECTED_APPS_PATH = "/settings/connected-apps";
 export const ALL_CONNECTED_APPS_PATH = "/settings/all-connected-apps";
-/** The one scope a token may carry, and the longest name it takes, the API's auth.ScopeRead and MaxTokenNameLength. */
+/** The scopes a token may carry, one at most, and the longest name it takes: the API's auth.ScopeRead, auth.ScopeEvidence
+ * and MaxTokenNameLength. */
 export const TOKEN_READ_SCOPE = "read";
+export const TOKEN_EVIDENCE_SCOPE = "evidence";
 export const TOKEN_NAME_MAX_LENGTH = 100;
 /** The lifetimes offered for a new token, in days, and the one picked unless a person changes it. */
 export const TOKEN_EXPIRY_DAYS = [7, 30, 90, 365] as const;
@@ -394,6 +396,10 @@ export const LOCK_REASON_MAX_LENGTH = 500;
 export const COVERAGE_PAGE_SIZE = 50;
 /** How many requirements one page of a traceability matrix holds, the API's trace.MatrixDefaultLimit. */
 export const MATRIX_PAGE_SIZE = 50;
+/** How much of a commit's SHA a test result shows, as git abbreviates it (#200). */
+export const TEST_COMMIT_SHOWN = 7;
+/** The longest repository, branch or job a test run names, the API's testresult.MaxNameLength. */
+export const TEST_NAME_MAX_LENGTH = 200;
 /** How many roots a page of the chain report shows (#151), within the server's 200. */
 export const CHAIN_PAGE_SIZE = 50;
 /** At most this many levels in a trace model, as the server's trace.MaxLevels. */

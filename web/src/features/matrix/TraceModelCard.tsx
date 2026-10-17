@@ -8,7 +8,7 @@ import { Button, Card, ErrorBanner, Field, IconButton, SectionTitle, Select, Ske
 import { Icon } from "@/components/icons";
 import { TRACE_LEVEL_NAME_MAX, TRACE_MAX_LEVELS } from "@/config";
 import { t } from "@/i18n";
-import { ISSUE_RELATIONS, PAGE_RELATIONS } from "./address";
+import { ISSUE_RELATIONS, PAGE_RELATIONS, TEST_RELATIONS } from "./address";
 import { Choices } from "./Choices";
 
 /** A level as the card edits it; a step is `typeId:direction` for a link type, or a relation. */
@@ -155,7 +155,9 @@ function ModelForm({ project, model, notice, onNotice: setNotice }: { project: P
                         ? ways
                         : level.kind === "issues"
                           ? ISSUE_RELATIONS.map((r) => ({ value: r, label: t.matrix.relationNames[r] }))
-                          : PAGE_RELATIONS.map((r) => ({ value: r, label: t.stator.links.headings[r] }))
+                          : level.kind === "tests"
+                            ? TEST_RELATIONS.map((r) => ({ value: r, label: t.matrix.relationNames[r] }))
+                            : PAGE_RELATIONS.map((r) => ({ value: r, label: t.stator.links.headings[r] }))
                     }
                     chosen={level.steps}
                     onChange={(steps) => may && set(i, { steps })}

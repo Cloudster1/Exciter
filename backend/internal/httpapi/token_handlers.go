@@ -20,6 +20,8 @@ var (
 		Message: "A token cannot do this. Sign in to Exciter and do it there."}
 	errProjectsToken = &APIError{Status: http.StatusForbidden, Code: "projects_token",
 		Message: "This token is limited to some projects, and this concerns everyone. Use a token without that limit, or sign in."}
+	errEvidenceToken = &APIError{Status: http.StatusForbidden, Code: "evidence_token",
+		Message: "This token uploads evidence and runs the trace check alone. Use a token without the evidence scope for anything else."}
 )
 
 // tokenError maps the tokens' refusals; nil when err is none of theirs.
@@ -28,7 +30,7 @@ func tokenError(err error) *APIError {
 	case errors.Is(err, auth.ErrTokenName):
 		return ErrValidation(map[string]string{"name": "Give the token a name of at most 100 characters."})
 	case errors.Is(err, auth.ErrTokenScope):
-		return ErrValidation(map[string]string{"scopes": "That is not a token scope. Use read, or leave the scopes empty."})
+		return ErrValidation(map[string]string{"scopes": "That is not a token scope. Use read or evidence, or leave the scopes empty."})
 	case errors.Is(err, auth.ErrTokenExpiry):
 		return ErrValidation(map[string]string{"expiresAt": "The expiry has to be in the future. Pick a later day, or leave it empty."})
 	case errors.Is(err, auth.ErrTokenProjects):
@@ -97,6 +99,34 @@ func wholeOrg(api chi.Routes) func(http.Handler) http.Handler {
 				match := chi.NewRouteContext()
 				if api.Match(match, r.Method, strings.TrimPrefix(r.URL.Path, APIPrefix)) && orgWideRoutes()[r.Method+" "+match.RoutePattern()] {
 					respondError(w, r, errProjectsToken)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// evidenceRoutes are the operations of the table an evidence token reaches, by method and pattern.
+var evidenceRoutes = sync.OnceValue(func() map[string]bool {
+	out := map[string]bool{}
+	for _, op := range operations {
+		if op.evidence {
+			out[op.method+" "+op.path] = true
+		}
+	}
+	return out
+})
+
+// evidenceToken refuses an evidence token every operation the table does not mark evidence, MCP included, so the
+// scope holds for every route added later.
+func evidenceToken(api chi.Routes) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if PrincipalFrom(r.Context()).Evidence() {
+				match := chi.NewRouteContext()
+				if !api.Match(match, r.Method, strings.TrimPrefix(r.URL.Path, APIPrefix)) || !evidenceRoutes()[r.Method+" "+match.RoutePattern()] {
+					respondError(w, r, errEvidenceToken)
 					return
 				}
 			}

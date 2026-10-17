@@ -128,6 +128,9 @@ jobs:
           - image: render
             dockerfile: deploy/Dockerfile.render
             target: ""
+          - image: ci
+            dockerfile: deploy/Dockerfile.ci
+            target: ""
     steps:
       - uses: actions/checkout@v4
         with:
@@ -230,7 +233,7 @@ jobs:
           {
             echo "### Exciter $TAG"
             echo
-            for image in backend web render; do
+            for image in backend web render ci; do
               echo "- \`$IMAGE_PREFIX-$image:$VERSION\`"
             done
             echo "- chart \`${CHART_REPOSITORY}/exciter\` version \`$VERSION\`"

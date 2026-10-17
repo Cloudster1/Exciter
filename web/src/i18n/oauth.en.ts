@@ -7,6 +7,7 @@ export const oauthEn = {
   knownMetadata: "Exciter read its description from this address.",
   goesBack: (host: string) => `You go back to ${host} afterwards.`,
   askedToRead: "It asked only to read.",
+  askedForEvidence: "It asked only to upload test results and run the trace check, as a CI pipeline does. It reads and changes nothing else.",
   readOnly: "Read only",
   readOnlyHint: "It reads everything you can and changes nothing.",
   projectsSome: "The app reaches only the projects picked here, never more than you can, and nothing that concerns everyone.",

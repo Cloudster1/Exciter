@@ -36,6 +36,10 @@ func MatrixSheet(name string, m *trace.Matrix) xlsx.Sheet {
 				names[i] += suspectMark
 				style = xlsx.Suspect
 			}
+			if l.Outdated {
+				names[i] += outdatedMark
+				style = xlsx.Suspect
+			}
 		}
 		rows[cell.Row+2][cell.Column+matrixLead] = xlsx.Text(strings.Join(names, "; "), style)
 	}

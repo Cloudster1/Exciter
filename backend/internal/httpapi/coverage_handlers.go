@@ -137,7 +137,8 @@ func (s *Server) matrix(r *http.Request, limit, offset, columnLimit, columnOffse
 	return s.Trace.Matrix(r.Context(), userFrom(r), projectKeyParam(r), trace.MatrixQuery{
 		Filter: filter, Sort: sort, Columns: trace.MatrixColumns(q.Get("columns")), ColumnProject: q.Get("columnProject"),
 		ColumnFilter: columnFilter, LinkTypes: q["linkType"], Direction: trace.MatrixDirection(q.Get("direction")), Relations: relations,
-		Gaps: trace.Gaps(q.Get("gaps")), Limit: limit, Offset: offset, ColumnLimit: columnLimit, ColumnOffset: columnOffset,
+		ColumnRepository: strings.TrimSpace(q.Get("columnRepository")),
+		Gaps:             trace.Gaps(q.Get("gaps")), Limit: limit, Offset: offset, ColumnLimit: columnLimit, ColumnOffset: columnOffset,
 	})
 }
 

@@ -18,6 +18,7 @@ import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
+import { evidenceDe } from "./evidence.de";
 import { fieldRulesDe } from "./fieldRules.de";
 import { sessionsDe } from "./sessions.de";
 import { statorDe } from "./stator.de";
@@ -333,6 +334,7 @@ export const de: Messages = {
       "review_session.opened": "Review-Sitzung eröffnet",
       "review_session.round_started": "Runde einer Review-Sitzung begonnen",
       "review_session.closed": "Review-Sitzung geschlossen",
+      "evidence_settings.saved": "Zählender Branch benannt",
     },
     targetTypes: {
       user: "Person",
@@ -374,6 +376,7 @@ export const de: Messages = {
   stator: statorDe,
   reuse: reuseDe,
   control: controlDe,
+  evidence: evidenceDe,
   fieldRules: fieldRulesDe,
   sessions: sessionsDe,
   comments: commentsDe,

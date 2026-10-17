@@ -66,14 +66,17 @@ func TestParseAPITokenRefusesAnythingElse(t *testing.T) {
 	}
 }
 
-func TestOnlyTheReadScopeExists(t *testing.T) {
+func TestOnlyTheReadAndEvidenceScopesExistAndOneAtATime(t *testing.T) {
 	if err := ValidateScopes(nil); err != nil {
 		t.Errorf("no scope: %v", err)
 	}
 	if err := ValidateScopes([]string{ScopeRead, ScopeRead}); err != nil {
 		t.Errorf("read: %v", err)
 	}
-	for _, scope := range []string{"write", "admin", "READ", ""} {
+	if err := ValidateScopes([]string{ScopeEvidence}); err != nil {
+		t.Errorf("evidence: %v", err)
+	}
+	for _, scope := range []string{"write", "admin", "READ", "", ScopeEvidence} {
 		if err := ValidateScopes([]string{ScopeRead, scope}); err != ErrTokenScope {
 			t.Errorf("%q was accepted: %v", scope, err)
 		}

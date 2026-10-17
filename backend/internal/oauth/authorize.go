@@ -68,9 +68,9 @@ func (s *Service) Authorize(ctx context.Context, q url.Values) (string, error) {
 	if !s.isResource(q.Get("resource")) {
 		return back(ErrInvalidTarget, "Name the MCP endpoint, "+s.Resource()+", as the resource."), nil
 	}
-	readOnly, ok := scopeReadOnly(q.Get("scope"))
+	asked, ok := scopeAsked(q.Get("scope"))
 	if !ok {
-		return back(ErrInvalidScope, "Ask for mcp, or mcp:read to only read."), nil
+		return back(ErrInvalidScope, "Ask for mcp, mcp:read to only read, or evidence alone to upload evidence."), nil
 	}
 	if !c.grants(GrantAuthorizationCode) {
 		return back(ErrUnauthorizedClient, "The client did not register for authorization_code."), nil
@@ -78,9 +78,9 @@ func (s *Service) Authorize(ctx context.Context, q url.Values) (string, error) {
 	var id uuid.UUID
 	_, err = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			INSERT INTO oauth_request (client_id, redirect_uri, state, code_challenge, read_only, resource, expires_at)
-			VALUES ($1, $2, $3, $4, $5, $6, now() + make_interval(secs => $7)) RETURNING id`,
-			c.ID, redirect, state, q.Get("code_challenge"), readOnly, s.Resource(), RequestTTL.Seconds()).Scan(&id)
+			INSERT INTO oauth_request (client_id, redirect_uri, state, code_challenge, read_only, evidence, resource, expires_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(secs => $8)) RETURNING id`,
+			c.ID, redirect, state, q.Get("code_challenge"), asked.readOnly, asked.evidence, s.Resource(), RequestTTL.Seconds()).Scan(&id)
 	})
 	if err != nil {
 		return "", err
@@ -125,9 +125,9 @@ func (s *Service) pending(ctx context.Context, id uuid.UUID) (*pending, error) {
 	var p pending
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT r.id, r.redirect_uri, r.state, r.read_only, r.expires_at, c.id, c.name, c.uri, c.kind
+			SELECT r.id, r.redirect_uri, r.state, r.read_only, r.evidence, r.expires_at, c.id, c.name, c.uri, c.kind
 			FROM oauth_request r JOIN oauth_client c ON c.id = r.client_id
-			WHERE r.id = $1 AND r.expires_at > now()`, id).Scan(&p.ID, &p.redirect, &p.state, &p.ReadOnly, &p.ExpiresAt,
+			WHERE r.id = $1 AND r.expires_at > now()`, id).Scan(&p.ID, &p.redirect, &p.state, &p.ReadOnly, &p.Evidence, &p.ExpiresAt,
 			&p.Client.ID, &p.Client.Name, &p.Client.URI, &p.Client.Kind)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -159,7 +159,8 @@ func (s *Service) Decide(ctx context.Context, person uuid.UUID, id uuid.UUID, in
 		})
 		return back(url.Values{"error": {ErrAccessDenied}, "error_description": {"The person declined to connect the client."}}), lsn, err
 	}
-	readOnly := in.ReadOnly || p.ReadOnly
+	// Evidence is narrower than reading in what it reaches, so a person narrowing to read does not apply to it.
+	readOnly := (in.ReadOnly || p.ReadOnly) && !p.Evidence
 	if p.ReadOnly && !in.ReadOnly {
 		return "", 0, ErrWiderThanAsked
 	}
@@ -188,8 +189,8 @@ func (s *Service) Decide(ctx context.Context, person uuid.UUID, id uuid.UUID, in
 		}
 		var grant uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO oauth_grant (user_id, client_id, redirect_uri, read_only, projects_only) VALUES ($1, $2, $3, $4, $5)
-			RETURNING id`, person, r.client, r.redirect, readOnly, len(projects) > 0).Scan(&grant); err != nil {
+			INSERT INTO oauth_grant (user_id, client_id, redirect_uri, read_only, evidence, projects_only) VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id`, person, r.client, r.redirect, readOnly, p.Evidence, len(projects) > 0).Scan(&grant); err != nil {
 			return err
 		}
 		if len(projects) > 0 {
@@ -208,7 +209,7 @@ func (s *Service) Decide(ctx context.Context, person uuid.UUID, id uuid.UUID, in
 			return err
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionOAuthGranted, TargetType: "oauth_grant", TargetID: &grant, Actor: person, IP: ip,
-			Data: map[string]any{"client": p.Client.Name, "clientId": p.Client.ID, "readOnly": readOnly, "projects": projects}})
+			Data: map[string]any{"client": p.Client.Name, "clientId": p.Client.ID, "readOnly": readOnly, "evidence": p.Evidence, "projects": projects}})
 	})
 	if err != nil {
 		return "", lsn, err

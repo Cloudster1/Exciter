@@ -18,7 +18,9 @@ import (
 // ChainQuery is what a chain report shows: the first level's requirements the grid's filter keeps, in its order, a
 // window of them, the levels at the positions given (every one when none is), and only broken lines when asked.
 type ChainQuery struct {
-	Filter     search.Filter
+	Filter search.Filter
+	// Branch reads evidence on a branch other than the counting one, as a trace check asks (#200).
+	Branch     string
 	Sort       search.Sort
 	Levels     []int
 	OnlyBroken bool
@@ -71,6 +73,9 @@ func (s *Service) Chains(ctx context.Context, reader uuid.UUID, projectKey strin
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, projectKey)
 		if err != nil {
+			return err
+		}
+		if err := evidenceOn(ctx, tx, q.Branch); err != nil {
 			return err
 		}
 		model, err := readModel(ctx, tx, p.ID)
@@ -139,7 +144,9 @@ func (c *Chains) lay(below []map[uuid.UUID][]ChainNode, q ChainQuery) error {
 			if len(lines) >= q.MaxLines {
 				return false
 			}
-			lines = append(lines, ChainLine{Root: root, Nodes: slices.Clone(path), Broken: len(path) < len(below)})
+			// A chain that ends in a test failing, skipped or outdated breaks there: the test does not hold.
+			broken := len(path) < len(below) || (last.Test != nil && !last.Test.holds())
+			lines = append(lines, ChainLine{Root: root, Nodes: slices.Clone(path), Broken: broken})
 			return true
 		}
 		for _, n := range next {
@@ -248,6 +255,29 @@ func step(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 		}
 		for from := range found {
 			slices.SortFunc(found[from], func(a, b ChainNode) int { return CompareIssueKeys(a.IssueKey, b.IssueKey) })
+		}
+		return found, rows.Err()
+	case LevelTests:
+		rows, err := tx.Query(ctx, `
+			SELECT tr.requirement_id, l.repository, tr.suite, tr.name, tr.outcome, tr.revision < r.revision
+			FROM test_result tr
+			JOIN test_run_latest l ON l.run_id = tr.run_id AND l.branch = evidence_branch(l.project_id)
+			JOIN requirement r ON r.id = tr.requirement_id
+			WHERE tr.requirement_id = ANY ($1)
+			ORDER BY l.repository, tr.suite, tr.name, l.job`, frontier)
+		if err != nil {
+			return nil, fmt.Errorf("follow the trace level %s: %w", level.Name, err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var (
+				from uuid.UUID
+				test ChainTest
+			)
+			if err := rows.Scan(&from, &test.Repository, &test.Suite, &test.Name, &test.Outcome, &test.Outdated); err != nil {
+				return nil, err
+			}
+			add(from, ChainNode{Test: &test, Via: TestRelations[0], Suspect: test.Outdated})
 		}
 		return found, rows.Err()
 	default:

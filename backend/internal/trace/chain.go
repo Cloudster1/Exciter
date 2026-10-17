@@ -28,10 +28,15 @@ const (
 	LevelRequirements LevelKind = "requirements"
 	LevelIssues       LevelKind = "issues"
 	LevelPages        LevelKind = "pages"
+	// LevelTests are the tests whose latest results on the counting branch verify the level before (#200).
+	LevelTests LevelKind = "tests"
 )
 
 // LevelKinds lists every LevelKind, for the API document.
-var LevelKinds = []LevelKind{LevelRequirements, LevelIssues, LevelPages}
+var LevelKinds = []LevelKind{LevelRequirements, LevelIssues, LevelPages, LevelTests}
+
+// TestRelations are the relations a level of tests is reached by.
+var TestRelations = []string{"verifies"}
 
 // IssueRelations and PageRelations are Armature's and Stator's relations, which internal/trace sits below; a test of
 // the API's keeps them equal to armature.Relations and stator.Relations.
@@ -91,9 +96,22 @@ type ChainNode struct {
 	Requirement *requirement.Ref `json:"requirement"`
 	IssueKey    string           `json:"issueKey,omitempty"`
 	Page        *MatrixPage      `json:"page"`
+	Test        *ChainTest       `json:"test,omitempty"`
 	Via         string           `json:"via,omitempty"`
 	Suspect     bool             `json:"suspect"`
 }
+
+// ChainTest is a test as a chain's node: its case, its latest outcome, and whether a newer revision outdated it.
+type ChainTest struct {
+	Repository string `json:"repository"`
+	Suite      string `json:"suite"`
+	Name       string `json:"name"`
+	Outcome    string `json:"outcome"`
+	Outdated   bool   `json:"outdated"`
+}
+
+// holds says a test passed against the current revision, as a chain needs it to end whole.
+func (t *ChainTest) holds() bool { return t.Outcome == "passed" && !t.Outdated }
 
 // ChainLine is one path from a root down the levels shown; fewer nodes than levels is a break below the last.
 type ChainLine struct {

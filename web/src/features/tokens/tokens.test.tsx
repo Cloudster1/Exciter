@@ -73,6 +73,29 @@ describe("personal access tokens", () => {
     expect(screen.queryByRole("textbox", { name: "Your new token" })).not.toBeInTheDocument();
   });
 
+  it("makes a token for CI that uploads evidence alone, never also read only (#200)", async () => {
+    const made = aToken({ name: "CI", scopes: ["evidence"], secret: "exciter_pat_ci" });
+    let mine: ApiToken[] = [];
+    const sent = stubApi({
+      "GET /tokens": () => ({ status: 200, body: { tokens: mine } }),
+      "GET /projects": { status: 200, body: { projects: [] } },
+      "POST /tokens": () => {
+        mine = [{ ...made, secret: undefined }];
+        return { status: 201, body: { token: made } };
+      },
+    });
+    await renderAt(TOKENS_PATH);
+    await userEvent.type(await screen.findByRole("textbox", { name: "Token name" }), "CI");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Read only" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Evidence only" }));
+    expect(screen.getByRole("checkbox", { name: "Read only" })).not.toBeChecked();
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.click(screen.getByRole("button", { name: "Create token" }));
+    await waitFor(() => expect(sent.find((each) => each.method === "POST")?.body).toMatchObject({ name: "CI", scopes: ["evidence"] }));
+    const row = (await screen.findByText("CI", { selector: "span" })).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Evidence only")).toBeInTheDocument();
+  });
+
   it("revokes a token once its owner agrees", async () => {
     const token = aToken();
     const sent = stubApi({

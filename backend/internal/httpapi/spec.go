@@ -232,8 +232,8 @@ func coreSchemas(b *openapi.Builder) {
 	b.FieldOverrides["StatusRef.category"] = category
 	b.FieldOverrides["ViewFilter.categories"] = &openapi.Schema{Type: "array", Items: category}
 	b.FieldOverrides["ViewFilter.priorities"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: enumStrings(requirement.Priorities)}}
-	b.FieldOverrides["APIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead}}}
-	b.FieldOverrides["NewAPIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead}}}
+	b.FieldOverrides["APIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead, auth.ScopeEvidence}}}
+	b.FieldOverrides["NewAPIToken.scopes"] = &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: []string{auth.ScopeRead, auth.ScopeEvidence}}}
 	// A requirement update clears an owner, a priority or a rationale with null, and leaves out what it keeps.
 	b.FieldOverrides["RequirementUpdate.ownerId"] = openapi.Nullable(&openapi.Schema{Type: "string", Format: "uuid"})
 	b.FieldOverrides["RequirementUpdate.priority"] = openapi.Nullable(&openapi.Schema{Type: "string", Enum: enumStrings(requirement.Priorities)})

@@ -146,6 +146,54 @@ saved or an account checked, puts every live page link on its page, each
 requirement's as the maker of its newest link. Nothing else Stator lists is
 checked yet; the page reads, search and webhooks are what every Stator has.
 
+A test result's commit links to Armature's development panel (#200) when an
+issue the requirement links to names the commit there. The panel,
+`GET /issues/{issueKey}/development`, has no capability in Armature's list, so
+Exciter asks it for each linked issue as the reader and takes a 404 for a panel
+that is not there.
+
+## CI pipelines
+
+A pipeline sends Exciter its test results and asks for a verdict with
+`exciter-ci`, released as `ghcr.io/cloudster1/exciter-ci` (#200). It needs a
+personal access token, or an app's grant, of the `evidence` scope, which
+reaches the uploads and the trace check alone; make one under Your account,
+Access tokens, with Evidence only.
+
+| Variable | What it is |
+| --- | --- |
+| `EXCITER_URL` | Where Exciter is served, such as `https://exciter.example.com`. |
+| `EXCITER_TOKEN` | The evidence token. |
+| `EXCITER_PROJECT` | The project's key. |
+
+The repository, commit, branch, job and run address come from GitHub Actions,
+Gitea Actions or GitLab CI, a pull request's branch being its head; flags of the
+same names set them anywhere else.
+
+```yaml
+- run: go test -json ./... | go-junit-report -parser gojson > junit.xml
+- run: >
+    docker run --rm -v "$PWD:/work" -e EXCITER_URL -e EXCITER_TOKEN -e EXCITER_PROJECT
+    -e GITHUB_ACTIONS -e GITHUB_REPOSITORY -e GITHUB_SHA -e GITHUB_REF_NAME -e GITHUB_HEAD_REF
+    -e GITHUB_SERVER_URL -e GITHUB_RUN_ID -e GITHUB_JOB
+    ghcr.io/cloudster1/exciter-ci results junit.xml
+- run: docker run --rm -e EXCITER_URL -e EXCITER_TOKEN -e EXCITER_PROJECT ghcr.io/cloudster1/exciter-ci check --fail broken,gaps,failing
+```
+
+- `exciter-ci results FILE...` uploads JUnit XML reports, a quoted pattern
+  included, waits until the worker has landed them (`--wait`, ten minutes by
+  default), and prints what was read and each key that verifies nothing.
+- `exciter-ci check` prints the trace check's verdict and what failed it,
+  narrowed by `--query` and judged on `--branch`, the project's counting
+  branch when empty. `--fail` names what fails it.
+- Both exit 0 when they pass, 1 when the check fails, and 2 when Exciter could
+  not be asked, with the sentence it answered.
+
+A test case names what it verifies with `[verifies KEY]` in its name, a
+property named `verifies` or `requirement`, or a `tag` property such as
+`verifies:KEY`. `make test-results` and `make trace-check` run the same against
+this checkout's stack.
+
 ## Webhooks
 
 Armature and Stator post their webhooks to Exciter in one envelope, which

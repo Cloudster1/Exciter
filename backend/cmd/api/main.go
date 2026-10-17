@@ -46,6 +46,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -180,6 +181,7 @@ func run() error {
 		Labels:          label.NewService(cluster),
 		Trace:           links,
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
+		TestResults:     testresult.NewService(cluster).WithCommits(armatures),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

@@ -11,6 +11,7 @@ import {
   TOKEN_DEFAULT_EXPIRY_DAYS,
   TOKEN_EXPIRY_DAYS,
   TOKEN_NAME_MAX_LENGTH,
+  TOKEN_EVIDENCE_SCOPE,
   TOKEN_READ_SCOPE,
 } from "@/config";
 import { t } from "@/i18n";
@@ -94,6 +95,7 @@ export function TokensPage() {
                   <Td>
                     <span className="font-medium text-ink">{token.name}</span>
                     {token.scopes.includes(TOKEN_READ_SCOPE) && <Tag className="ml-2">{t.tokens.tagReadOnly}</Tag>}
+                    {token.scopes.includes(TOKEN_EVIDENCE_SCOPE) && <Tag className="ml-2">{t.tokens.tagEvidence}</Tag>}
                     {expired(token, now) && <Tag className="ml-2">{t.tokens.tagExpired}</Tag>}
                     <p className="text-xs text-ink-muted" data-token-projects={token.allProjects ? "" : token.projects.join(",")}>
                       {reachOf(token)}
@@ -170,6 +172,7 @@ function CreateTokenForm({ onCreated }: { onCreated: (token: ApiToken) => void }
   const create = useCreateToken();
   const [name, setName] = useState("");
   const [readOnly, setReadOnly] = useState(false);
+  const [evidence, setEvidence] = useState(false);
   const [days, setDays] = useState<number>(TOKEN_DEFAULT_EXPIRY_DAYS);
   // No project picked means the token reaches every project its owner does.
   const [projects, setProjects] = useState<string[]>([]);
@@ -184,11 +187,17 @@ function CreateTokenForm({ onCreated }: { onCreated: (token: ApiToken) => void }
       return;
     }
     create.mutate(
-      { name: name.trim(), scopes: readOnly ? [TOKEN_READ_SCOPE] : [], ...(projects.length > 0 ? { projects } : {}), expiresAt: expiryFrom(days) },
+      {
+        name: name.trim(),
+        scopes: readOnly ? [TOKEN_READ_SCOPE] : evidence ? [TOKEN_EVIDENCE_SCOPE] : [],
+        ...(projects.length > 0 ? { projects } : {}),
+        expiresAt: expiryFrom(days),
+      },
       {
         onSuccess: (token) => {
           setName("");
           setReadOnly(false);
+          setEvidence(false);
           setDays(TOKEN_DEFAULT_EXPIRY_DAYS);
           setProjects([]);
           onCreated(token);
@@ -228,11 +237,29 @@ function CreateTokenForm({ onCreated }: { onCreated: (token: ApiToken) => void }
             <Checkbox
               label={t.tokens.readOnly}
               checked={readOnly}
-              onChange={(event) => setReadOnly(event.target.checked)}
+              onChange={(event) => {
+                setReadOnly(event.target.checked);
+                if (event.target.checked) setEvidence(false);
+              }}
               aria-describedby="tokens-read-only-hint"
             />
             <p id="tokens-read-only-hint" className="text-xs text-ink-muted">
               {t.tokens.readOnlyHint}
+            </p>
+          </div>
+          <div className="pb-2">
+            <Checkbox
+              label={t.tokens.evidenceOnly}
+              checked={evidence}
+              onChange={(event) => {
+                setEvidence(event.target.checked);
+                if (event.target.checked) setReadOnly(false);
+              }}
+              aria-describedby="tokens-evidence-hint"
+              data-token-evidence=""
+            />
+            <p id="tokens-evidence-hint" className="text-xs text-ink-muted">
+              {t.tokens.evidenceOnlyHint}
             </p>
           </div>
         </div>

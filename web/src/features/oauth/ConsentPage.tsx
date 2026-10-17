@@ -64,21 +64,28 @@ function Consent({ request }: { request: AuthorizationRequest }) {
           {t.oauth.goesBack(request.redirectHost)}
         </p>
         {request.readOnly && <p className="text-ink-muted">{t.oauth.askedToRead}</p>}
+        {request.evidence && (
+          <p className="text-ink-muted" data-consent-evidence>
+            {t.oauth.askedForEvidence}
+          </p>
+        )}
       </div>
-      <div>
-        <Checkbox
-          label={t.oauth.readOnly}
-          checked={readOnly}
-          disabled={request.readOnly}
-          onChange={(event) => setReadOnly(event.target.checked)}
-          aria-describedby="consent-read-only-hint"
-          data-consent-read-only=""
-        />
-        <p id="consent-read-only-hint" className="text-xs text-ink-muted">
-          {t.oauth.readOnlyHint}
-        </p>
-        {fields.readOnly && <ErrorBanner>{fields.readOnly}</ErrorBanner>}
-      </div>
+      {!request.evidence && (
+        <div>
+          <Checkbox
+            label={t.oauth.readOnly}
+            checked={readOnly}
+            disabled={request.readOnly}
+            onChange={(event) => setReadOnly(event.target.checked)}
+            aria-describedby="consent-read-only-hint"
+            data-consent-read-only=""
+          />
+          <p id="consent-read-only-hint" className="text-xs text-ink-muted">
+            {t.oauth.readOnlyHint}
+          </p>
+          {fields.readOnly && <ErrorBanner>{fields.readOnly}</ErrorBanner>}
+        </div>
+      )}
       <ProjectPicker id="consent-projects" picked={projects} onChange={setProjects} some={t.oauth.projectsSome} error={fields.projects} />
       {expired && <ErrorBanner>{t.oauth.expired}</ErrorBanner>}
       {formError && <ErrorBanner>{formError}</ErrorBanner>}

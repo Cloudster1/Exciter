@@ -135,6 +135,16 @@ function Report({ project }: { project: Project }) {
 }
 
 /** What coverage asks of each type; its administrators tick and untick it in place. */
+/** What verified may count, as the rule's select offers it: links, test results, or either (#200). */
+const VERIFIED_SOURCES = { links: ["links"], tests: ["tests"], both: ["links", "tests"] } satisfies Record<string, CoverageRule["verifiedFrom"]>;
+type SourcesChoice = keyof typeof VERIFIED_SOURCES;
+
+function sourcesOf(from: CoverageRule["verifiedFrom"]): SourcesChoice {
+  const links = from.includes("links");
+  const tests = from.includes("tests");
+  return links && tests ? "both" : tests ? "tests" : "links";
+}
+
 function Rules({ project }: { project: Project }) {
   const { data: rules, error, refetch } = useCoverageRules(project.key);
   const { data: types } = useTypes(project.key);
@@ -145,11 +155,17 @@ function Rules({ project }: { project: Project }) {
   if (!rules) return <Skeleton />;
   const everyRule = rules.find((r) => r.typeId === null);
   const open = (types ?? []).filter((type) => !type.retired && !rules.some((r) => r.typeId === type.id));
-  const set = (rule: Pick<CoverageRule, "typeId" | Dimension>) =>
-    save.mutate({ typeId: rule.typeId ?? undefined, decomposed: rule.decomposed, implemented: rule.implemented, verified: rule.verified });
-  const rows: Array<Pick<CoverageRule, "typeId" | "typeName" | Dimension> & { id?: string }> = everyRule
+  const set = (rule: Pick<CoverageRule, "typeId" | "verifiedFrom" | Dimension>) =>
+    save.mutate({
+      typeId: rule.typeId ?? undefined,
+      decomposed: rule.decomposed,
+      implemented: rule.implemented,
+      verified: rule.verified,
+      verifiedFrom: rule.verifiedFrom,
+    });
+  const rows: Array<Pick<CoverageRule, "typeId" | "typeName" | "verifiedFrom" | Dimension> & { id?: string }> = everyRule
     ? rules
-    : [{ typeId: null, typeName: "", decomposed: false, implemented: false, verified: false }, ...rules];
+    : [{ typeId: null, typeName: "", decomposed: false, implemented: false, verified: false, verifiedFrom: ["links"] }, ...rules];
   return (
     <Card className="space-y-3 p-4" data-coverage-rules="">
       <SectionTitle>{t.coverage.rulesTitle}</SectionTitle>
@@ -172,6 +188,26 @@ function Rules({ project }: { project: Project }) {
                   onChange={(event) => set({ ...rule, [d]: event.target.checked })}
                 />
               ))}
+              {rule.verified && (
+                <div className="min-w-40">
+                  <Select
+                    label={t.evidence.sources.legend}
+                    aria-label={`${t.evidence.sources.legend}: ${name}`}
+                    title={t.evidence.sources.hint}
+                    value={sourcesOf(rule.verifiedFrom)}
+                    disabled={!mayKeep || save.isPending}
+                    controlSize="sm"
+                    onChange={(event) => set({ ...rule, verifiedFrom: VERIFIED_SOURCES[event.target.value as SourcesChoice] })}
+                    data-verified-from={name}
+                  >
+                    {(Object.keys(VERIFIED_SOURCES) as SourcesChoice[]).map((choice) => (
+                      <option key={choice} value={choice}>
+                        {VERIFIED_SOURCES[choice].map((source) => t.evidence.sources[source]).join(" + ")}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
               {mayKeep && rule.id && rule.typeId !== null && (
                 <IconButton
                   label={t.coverage.removeRule(name)}
