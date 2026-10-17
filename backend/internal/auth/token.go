@@ -48,8 +48,11 @@ func IsAPIToken(secret string) bool {
 
 // ParseAPIToken checks that a personal access token has the shape GenerateAPIToken gives one, so a malformed
 // one costs no database round trip.
-func ParseAPIToken(secret string) error {
-	body, ok := strings.CutPrefix(secret, APITokenPrefix)
+func ParseAPIToken(secret string) error { return ParsePrefixed(secret, APITokenPrefix) }
+
+// ParsePrefixed checks that a secret is the prefix and a token GenerateToken gives, as each kind of token is.
+func ParsePrefixed(secret, prefix string) error {
+	body, ok := strings.CutPrefix(secret, prefix)
 	if !ok {
 		return ErrInvalidToken
 	}

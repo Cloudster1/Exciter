@@ -105,7 +105,7 @@ describe("the shell", () => {
 
 describe("the installation in the shell", () => {
   it("names the installation at the head of the sidebar and the start of the trail, with no switcher", async () => {
-    await renderAt("/settings/members", { me: { ...signedIn, installation: { name: "Acme Rockets" } } });
+    await renderAt("/settings/members", { me: { ...signedIn, installation: { name: "Acme Rockets", oauthConnections: true } } });
     expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme Rockets");
     expect(screen.getByRole("link", { name: "Acme Rockets" })).toHaveAttribute("href", "/");
     expect(document.querySelector('[data-action="switch-org"]')).toBeNull();

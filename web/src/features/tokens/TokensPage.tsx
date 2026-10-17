@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
-import { useProjects } from "@/api/projects";
 import { useCreateToken, useRevokeToken, useTokens, type ApiToken } from "@/api/tokens";
-import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, Field, PageHeader, Select, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, EmptyState, ErrorBanner, Field, PageHeader, Select, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import {
   COPY_FEEDBACK_MS,
@@ -11,12 +10,12 @@ import {
   MCP_SERVER_NAME,
   TOKEN_DEFAULT_EXPIRY_DAYS,
   TOKEN_EXPIRY_DAYS,
-  TOKEN_MAX_PROJECTS,
   TOKEN_NAME_MAX_LENGTH,
   TOKEN_READ_SCOPE,
 } from "@/config";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { ProjectPicker } from "./ProjectPicker";
 
 // Stator's tokens page, where a token is limited to projects rather than spaces.
 
@@ -165,7 +164,6 @@ function ConnectAssistant() {
 
 function CreateTokenForm({ onCreated }: { onCreated: (token: ApiToken) => void }) {
   const create = useCreateToken();
-  const { data: choosable = [] } = useProjects();
   const [name, setName] = useState("");
   const [readOnly, setReadOnly] = useState(false);
   const [days, setDays] = useState<number>(TOKEN_DEFAULT_EXPIRY_DAYS);
@@ -235,29 +233,7 @@ function CreateTokenForm({ onCreated }: { onCreated: (token: ApiToken) => void }
           </div>
         </div>
         {fields.scopes && <ErrorBanner>{fields.scopes}</ErrorBanner>}
-        {choosable.length > 0 && (
-          <fieldset aria-describedby="tokens-projects-hint" data-token-projects-picker>
-            <legend className="text-sm font-medium text-ink">{t.tokens.projects}</legend>
-            <p id="tokens-projects-hint" className="mb-2 text-xs text-ink-muted">
-              {projects.length === 0 ? t.tokens.projectsAll : t.tokens.projectsSome}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {choosable.map((project) => (
-                <Chip
-                  key={project.key}
-                  pressed={projects.includes(project.key)}
-                  disabled={!projects.includes(project.key) && projects.length >= TOKEN_MAX_PROJECTS}
-                  data-project={project.key}
-                  onClick={() => setProjects((picked) => (picked.includes(project.key) ? picked.filter((k) => k !== project.key) : [...picked, project.key]))}
-                >
-                  {project.name}
-                  <span className="text-xs">{project.key}</span>
-                </Chip>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        {fields.projects && <ErrorBanner>{fields.projects}</ErrorBanner>}
+        <ProjectPicker id="tokens-projects" picked={projects} onChange={setProjects} some={t.tokens.projectsSome} error={fields.projects} />
         <Button type="submit" icon={<Icon.Plus />} loading={create.isPending} data-action="create-token">
           {t.tokens.create}
         </Button>

@@ -99,6 +99,10 @@ const (
 	ActionProjectSignaturesSet = "project.signatures_set"
 	// ActionProjectLibrarySet is a project marked a library whose requirements other projects reuse, or no longer (#49).
 	ActionProjectLibrarySet = "project.library_set"
+	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
+	ActionOAuthGranted = "oauth.granted"
+	// ActionInstallationOAuthSwitched is OAuth connections switched on or off for the installation (#188).
+	ActionInstallationOAuthSwitched = "installation.oauth_switched"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -113,7 +117,8 @@ var Actions = []string{
 	ActionApprovalRuleSaved, ActionApprovalRuleRemoved, ActionReviewWithdrawn, ActionBaselineTaken, ActionBaselineLocked,
 	ActionBaselineDeleted, ActionCoverageRuleSaved, ActionCoverageRuleRemoved, ActionStatorConnected, ActionStatorDisconnected,
 	ActionSpecificationExported, ActionProjectSignaturesSet, ActionWebhookCreated, ActionWebhookUpdated, ActionWebhookDeleted,
-	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved,
+	ActionWebhookSecretRotated, ActionWebhookDisabled, ActionProjectLibrarySet, ActionTraceModelSaved, ActionOAuthGranted,
+	ActionInstallationOAuthSwitched,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

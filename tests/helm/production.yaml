@@ -94,6 +94,10 @@ data:
             client_max_body_size 0;
             proxy_pass http://exciter_api;
         }
+        # The OAuth metadata sits at the root, where the RFCs put it, and the api answers it (#188).
+        location ^~ /.well-known/oauth- {
+            proxy_pass http://exciter_api;
+        }
         location = /healthz {
             proxy_pass http://exciter_api;
         }
@@ -312,7 +316,7 @@ spec:
         app.kubernetes.io/instance: r
         app.kubernetes.io/component: web
       annotations:
-        checksum/nginx: 9f222e2eb5dd19cd3eedf0596b4387109434af00b7a0ffcc5d2d5ffa43414dd5
+        checksum/nginx: e0be82dfd01fafd39a380cb5ca51085e7a46178ca73e0fc31810a05f76b42f48
     spec:
       serviceAccountName: r-exciter
       # Stock nginx as its own nginx user rather than root, which is why it
@@ -485,6 +489,21 @@ spec:
       http:
         paths:
           - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-api
+                port:
+                  name: http
+          # The OAuth metadata sits at the root, where the RFCs put it (#188).
+          - path: /.well-known/oauth-authorization-server
+            pathType: Prefix
+            backend:
+              service:
+                name: r-exciter-api
+                port:
+                  name: http
+          - path: /.well-known/oauth-protected-resource
             pathType: Prefix
             backend:
               service:

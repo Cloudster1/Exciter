@@ -152,7 +152,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		principal, err := s.Auth.Authenticate(r.Context(), secret)
+		principal, err := s.principalOf(r, secret)
 		if err == nil && principal.Role == "" {
 			// Everybody signed in belongs to the installation; somebody who no longer does is not let past here.
 			err = auth.ErrSwitchedOff

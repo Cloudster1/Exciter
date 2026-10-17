@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useInstallation, useRenameInstallation, type Installation } from "@/api/installation";
-import { Button, Card, ErrorBanner, Field, Skeleton } from "@/components/ui";
+import { useSwitchOAuthConnections } from "@/api/oauth";
+import { Button, Card, ErrorBanner, Field, Skeleton, Switch } from "@/components/ui";
 import { t } from "@/i18n";
 
-/** The installation's name, for administrators to change. */
+/** The installation's name and whether assistants connect with OAuth, for administrators to change. */
 export function InstallationSettings() {
   const { data, isLoading, error } = useInstallation();
   // Held here rather than in the form: a rename remounts the form, and what it
@@ -13,7 +14,37 @@ export function InstallationSettings() {
   const [notice, setNotice] = useState("");
   if (isLoading) return <Skeleton />;
   if (error || !data) return <ErrorBanner>{error?.message}</ErrorBanner>;
-  return <NameForm key={data.name} installation={data} rename={rename} notice={notice} setNotice={setNotice} />;
+  return (
+    <div className="space-y-6">
+      <NameForm key={data.name} installation={data} rename={rename} notice={notice} setNotice={setNotice} />
+      <OAuthConnections installation={data} />
+    </div>
+  );
+}
+
+/** Whether assistants may connect with OAuth (#188); off, every app connected that way is refused until it is on. */
+function OAuthConnections({ installation }: { installation: Installation }) {
+  const switching = useSwitchOAuthConnections();
+  const on = switching.data?.oauthConnections ?? installation.oauthConnections;
+  return (
+    <Card className="space-y-3 p-4" data-oauth-connections={on ? "on" : "off"}>
+      <div className="flex items-center gap-3">
+        <Switch
+          label={t.oauth.switchLabel}
+          checked={on}
+          disabled={switching.isPending}
+          onChange={(next) => switching.mutate(next)}
+          data-action="switch-oauth"
+        />
+        <span className="text-sm font-medium text-ink">{t.oauth.switchLabel}</span>
+      </div>
+      <p className="text-sm text-ink-muted">{t.oauth.switchIntro}</p>
+      {switching.error && <ErrorBanner>{switching.error.message}</ErrorBanner>}
+      <p role="status" className="text-sm text-ink-muted empty:hidden">
+        {switching.isSuccess ? (on ? t.oauth.switchedOn : t.oauth.switchedOff) : ""}
+      </p>
+    </Card>
+  );
 }
 
 function NameForm({

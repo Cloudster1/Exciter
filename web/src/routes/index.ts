@@ -12,6 +12,7 @@ import { auditRoute } from "./audit";
 import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { installationRoute } from "./installation";
+import { consentRoute } from "./consent";
 import { labelRoute } from "./labels";
 import { loginRoute } from "./login";
 import { notificationSettingsRoute, notificationsRoute, watchingRoute } from "./notifications";
@@ -75,6 +76,7 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     settingsRoute,
     installationRoute,
+    consentRoute,
     membersRoute,
     linkTypesRoute,
     ssoRoute,

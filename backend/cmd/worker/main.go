@@ -25,6 +25,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/notify"
+	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
@@ -145,6 +146,7 @@ func run() error {
 	} else {
 		files := attachment.NewService(cluster, store, nil).WithLogger(log)
 		go attachment.NewReaper(files, log, attachment.DefaultReapInterval).Run(ctx)
+		go oauth.NewSweeper(cluster, log).Run(ctx)
 	}
 
 	build := version.Current()

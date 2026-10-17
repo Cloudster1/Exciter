@@ -14,10 +14,10 @@ describe("the installation page", () => {
   it("renames the installation, and the sidebar head follows", async () => {
     let name = "Demo";
     const sent = stubApi({
-      "GET /installation": () => ({ status: 200, body: { installation: { name } } }),
+      "GET /installation": () => ({ status: 200, body: { installation: { name, oauthConnections: true } } }),
       "PUT /installation": async (request) => {
         name = ((await request.json()) as { name: string }).name;
-        return { status: 200, body: { installation: { name } } };
+        return { status: 200, body: { installation: { name, oauthConnections: true } } };
       },
       "GET /auth/me": () => ({ status: 200, body: { ...signedIn, installation: { name } } }),
     });
@@ -37,9 +37,24 @@ describe("the installation page", () => {
     await waitFor(() => expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme requirements"));
   });
 
+  it("switches OAuth connections off and says so", async () => {
+    const sent = stubApi({
+      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
+      "PUT /installation/oauth-connections": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: false } } }),
+    });
+    const user = userEvent.setup();
+    await renderAt(INSTALLATION_PATH);
+    const toggle = await screen.findByRole("switch", { name: "Let assistants connect with OAuth" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    await user.click(toggle);
+    expect(await screen.findByText("OAuth connections are off.")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(sent.find((r) => r.path === "/installation/oauth-connections")?.body).toEqual({ enabled: false });
+  });
+
   it("shows the refusal beside the field", async () => {
     stubApi({
-      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo" } } }),
+      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
       "PUT /installation": () => ({
         status: 422,
         body: { error: { code: "validation_failed", message: "Check the fields.", fields: { name: "Give the installation a name." } } },

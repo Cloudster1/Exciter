@@ -27,6 +27,7 @@ import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
 import { queryEn } from "./query.en";
 import { webhooksEn } from "./webhooks.en";
+import { oauthEn } from "./oauth.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
@@ -300,6 +301,8 @@ export const en = {
       "webhook.secret_rotated": "Webhook secret rotated",
       "webhook.disabled": "Webhook turned off for failing",
       "installation.renamed": "Installation renamed",
+      "installation.oauth_switched": "OAuth connections switched on or off",
+      "oauth.granted": "Assistant connected",
       "comment.deleted": "Comment deleted",
       "approval_rule.saved": "Approval rule saved",
       "approval_rule.removed": "Approval rule removed",
@@ -325,6 +328,7 @@ export const en = {
       requirement: "Requirement",
       workflow: "Workflow",
       api_token: "Access token",
+      oauth_grant: "Connected app",
       armature_connection: "Armature connection",
       stator_connection: "Stator connection",
       installation: "Installation",
@@ -364,6 +368,7 @@ export const en = {
   grid: gridEn,
   query: queryEn,
   webhooks: webhooksEn,
+  oauth: oauthEn,
   themes: themesEn,
   notFound: {
     title: "Page not found",

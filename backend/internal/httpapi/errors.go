@@ -194,6 +194,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := tokenError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := oauthError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := importError(err); apiErr != nil {
 			return apiErr
 		}

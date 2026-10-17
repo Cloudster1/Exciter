@@ -1,7 +1,8 @@
 {{- if .Values.ingress.enabled }}
 {{/*
 One host: the SPA calls /api/v1 on its own origin, so the session cookie stays
-first-party and CORS never enters into it. /api goes to the api directly.
+first-party and CORS never enters into it. /api goes to the api directly, and
+so does the OAuth metadata the RFCs put at the root.
 */}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -34,6 +35,16 @@ spec:
                 name: {{ include "exciter.fullname" . }}-api
                 port:
                   name: http
+          # The OAuth metadata sits at the root, where the RFCs put it (#188).
+          {{- range list "/.well-known/oauth-authorization-server" "/.well-known/oauth-protected-resource" }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "exciter.fullname" $ }}-api
+                port:
+                  name: http
+          {{- end }}
           - path: /
             pathType: Prefix
             backend:

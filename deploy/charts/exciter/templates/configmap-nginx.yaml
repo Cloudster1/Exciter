@@ -40,6 +40,10 @@ data:
             client_max_body_size 0;
             proxy_pass http://exciter_api;
         }
+        # The OAuth metadata sits at the root, where the RFCs put it, and the api answers it (#188).
+        location ^~ /.well-known/oauth- {
+            proxy_pass http://exciter_api;
+        }
         location = /healthz {
             proxy_pass http://exciter_api;
         }

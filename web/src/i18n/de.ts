@@ -25,6 +25,7 @@ import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
 import { queryDe } from "./query.de";
 import { webhooksDe } from "./webhooks.de";
+import { oauthDe } from "./oauth.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
@@ -301,6 +302,8 @@ export const de: Messages = {
       "webhook.secret_rotated": "Webhook-Geheimnis erneuert",
       "webhook.disabled": "Webhook wegen Fehlern abgeschaltet",
       "installation.renamed": "Installation umbenannt",
+      "installation.oauth_switched": "OAuth-Verbindungen ein- oder ausgeschaltet",
+      "oauth.granted": "Assistent verbunden",
       "comment.deleted": "Kommentar gelöscht",
       "approval_rule.saved": "Freigaberegel gespeichert",
       "approval_rule.removed": "Freigaberegel entfernt",
@@ -326,6 +329,7 @@ export const de: Messages = {
       requirement: "Anforderung",
       workflow: "Workflow",
       api_token: "Zugriffstoken",
+      oauth_grant: "Verbundene App",
       armature_connection: "Armature-Verbindung",
       stator_connection: "Stator-Verbindung",
       installation: "Installation",
@@ -365,6 +369,7 @@ export const de: Messages = {
   grid: gridDe,
   query: queryDe,
   webhooks: webhooksDe,
+  oauth: oauthDe,
   themes: themesDe,
   notFound: {
     title: "Seite nicht gefunden",

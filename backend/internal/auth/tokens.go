@@ -57,9 +57,22 @@ type NewAPIToken struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
-// CallingToken is the token a request rides on, as GET /auth/me reports it.
+// TokenKind is what a request's token is: a person's own, or one a client was given through OAuth (#188).
+type TokenKind string
+
+const (
+	TokenPersonal TokenKind = "personal"
+	TokenOAuth    TokenKind = "oauth"
+)
+
+// TokenKinds lists every TokenKind, for the API document.
+var TokenKinds = []TokenKind{TokenPersonal, TokenOAuth}
+
+// CallingToken is the token a request rides on, as GET /auth/me reports it; an OAuth one is its grant, named
+// after its client.
 type CallingToken struct {
 	ID     uuid.UUID `json:"id"`
+	Kind   TokenKind `json:"kind"`
 	Name   string    `json:"name"`
 	Scopes []string  `json:"scopes"`
 	// Projects are the keys of the projects it is limited to; AllProjects says it is not limited.
@@ -287,7 +300,7 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 	if !active {
 		return nil, ErrSwitchedOff
 	}
-	tok.AllProjects = !only
+	tok.AllProjects, tok.Kind = !only, TokenPersonal
 	p.Token = &tok
 	if lastUsed == nil || s.now().Sub(*lastUsed) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
