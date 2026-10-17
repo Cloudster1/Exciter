@@ -64,7 +64,8 @@ SELECT p.id, p.key, p.name, p.description, p.settings, p.template, p.created_at,
        perm_project_holds(p.id, $1, 'view'), perm_project_holds(p.id, $1, 'comment'),
        perm_project_holds(p.id, $1, 'edit'), perm_project_holds(p.id, $1, 'approve'),
        perm_project_holds(p.id, $1, 'administer'),
-       EXISTS (SELECT 1 FROM watch w WHERE w.user_id = $1 AND w.project_id = p.id)
+       EXISTS (SELECT 1 FROM watch w WHERE w.user_id = $1 AND w.project_id = p.id),
+       COALESCE(perm_project_roles(p.id, $1), '{}')
 FROM project p
 LEFT JOIN app_user a ON a.id = p.archived_by`
 
@@ -79,7 +80,7 @@ func scan(row pgx.Row) (*Project, error) {
 	)
 	err := row.Scan(&p.ID, &p.Key, &p.Name, &p.Description, &settings, &p.Template, &p.CreatedAt, &p.UpdatedAt,
 		&p.ArchivedAt, &p.ArchivedByName, &p.FormerKeys,
-		&p.Can.View, &p.Can.Comment, &p.Can.Edit, &p.Can.Approve, &p.Can.Administer, &p.Watching)
+		&p.Can.View, &p.Can.Comment, &p.Can.Edit, &p.Can.Approve, &p.Can.Administer, &p.Watching, &p.Roles)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

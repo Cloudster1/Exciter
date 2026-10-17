@@ -6,6 +6,7 @@ import {
   useAttributes,
   useTypes,
   type Attribute,
+  type FieldPermit,
   type Kind,
   type OptionChange,
   type RequirementType,
@@ -14,6 +15,8 @@ import type { Project } from "@/api/projects";
 import { Button, Card, Checkbox, ErrorBanner, Field, IconButton, Input, Select, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
+import { useStatuses } from "@/api/workflows";
+import { PermitsEditor, RequiredFrom } from "./FieldRuleControls";
 
 /** The table's columns, which an attribute opened for editing spans. */
 const ATTRIBUTE_COLUMNS = 4;
@@ -151,6 +154,15 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
   // Each existing option keeps its id, so a rename is the same option; a new one has none yet.
   const [options, setOptions] = useState<OptionChange[]>(attribute?.options.map((o) => ({ id: o.id, name: o.name, retired: o.retired })) ?? []);
   const [newOption, setNewOption] = useState("");
+  // The field rules (#206): from which status on it is required, the select it depends on, and who changes it.
+  const { data: statuses } = useStatuses(projectKey);
+  const { data: others } = useAttributes(projectKey);
+  const [requiredFrom, setRequiredFrom] = useState<string | null>(attribute?.requiredFrom ?? null);
+  const [dependsOn, setDependsOn] = useState(attribute?.dependsOn?.attributeId ?? "");
+  const [choices, setChoices] = useState<Record<string, string[]>>(attribute?.dependsOn?.choices ?? {});
+  const [permits, setPermits] = useState<FieldPermit[]>(attribute?.editableBy ?? []);
+  const parent = (others ?? []).find((each) => each.id === dependsOn);
+  const named = options.filter((option): option is OptionChange & { id: string } => Boolean(option.id));
   const fields = save.error instanceof ApiError ? save.error.fields : {};
 
   function addOption() {
@@ -161,7 +173,17 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const body = { name, required, typeIds, options: hasOptions(kind) ? options : undefined };
+    // The rules go along only where they changed, as every other field of the form leaves the rest alone.
+    const dependency = hasOptions(kind) && dependsOn ? { attributeId: dependsOn, choices } : null;
+    const body = {
+      name,
+      required,
+      typeIds,
+      options: hasOptions(kind) ? options : undefined,
+      requiredFrom: requiredFrom !== (attribute?.requiredFrom ?? null) ? requiredFrom : undefined,
+      editableBy: JSON.stringify(permits) !== JSON.stringify(attribute?.editableBy ?? []) ? permits : undefined,
+      dependsOn: JSON.stringify(dependency) !== JSON.stringify(attribute?.dependsOn ?? null) ? dependency : undefined,
+    };
     if (attribute) actions.update.mutate({ id: attribute.id, ...body }, { onSuccess: onDone });
     else actions.create.mutate({ ...body, kind }, { onSuccess: onDone });
   }
@@ -244,6 +266,58 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
           {fields.options && <p className="text-sm text-danger">{fields.options}</p>}
         </fieldset>
       )}
+      <RequiredFrom id="attribute-required-from" statuses={statuses ?? []} value={requiredFrom} onChange={setRequiredFrom} error={fields.requiredFrom} />
+      {hasOptions(kind) && (
+        <fieldset className="space-y-2" data-depends-on>
+          <Select
+            label={t.fieldRules.dependsOn}
+            id="attribute-depends-on"
+            value={dependsOn}
+            error={fields.dependsOn}
+            onChange={(event) => {
+              setDependsOn(event.target.value);
+              setChoices({});
+            }}
+          >
+            <option value="">{t.fieldRules.dependsOnNone}</option>
+            {(others ?? [])
+              .filter((each) => each.kind === "select" && each.id !== attribute?.id && !each.retired)
+              .map((each) => (
+                <option key={each.id} value={each.id}>
+                  {each.name}
+                </option>
+              ))}
+          </Select>
+          {parent && (
+            <>
+              <p className="text-xs text-ink-subtle">{t.fieldRules.dependsOnHint}</p>
+              {parent.options
+                .filter((option) => !option.retired)
+                .map((option) => (
+                  <fieldset key={option.id} className="flex flex-wrap gap-x-4 gap-y-1" data-choices-for={option.name}>
+                    <legend className="text-xs font-medium text-ink-muted">{t.fieldRules.choicesFor(option.name)}</legend>
+                    {named.map((own) => {
+                      const picked = choices[option.id] ?? [];
+                      return (
+                        <Checkbox
+                          key={own.id}
+                          label={own.name}
+                          checked={picked.includes(own.id)}
+                          onChange={(event) => {
+                            const next = event.target.checked ? [...picked, own.id] : picked.filter((each) => each !== own.id);
+                            const rest = Object.fromEntries(Object.entries(choices).filter(([key]) => key !== option.id));
+                            setChoices(next.length > 0 ? { ...rest, [option.id]: next } : rest);
+                          }}
+                        />
+                      );
+                    })}
+                  </fieldset>
+                ))}
+            </>
+          )}
+        </fieldset>
+      )}
+      <PermitsEditor id="attribute-permits" statuses={statuses ?? []} permits={permits} onChange={setPermits} error={fields.editableBy} />
       <div className="flex gap-2">
         <Button type="submit" size="sm" loading={save.isPending} data-action="save-attribute">
           {attribute ? t.attributes.save : t.attributes.create}

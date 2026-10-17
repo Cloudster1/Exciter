@@ -266,7 +266,7 @@ export function ruleLabel(type: string, catalogue: RuleType[]): string {
 }
 
 /** A rule as one line for the inspector, with its configuration spelled out. */
-export function describeRule(rule: DraftRule, catalogue: RuleType[]): string {
+export function describeRule(rule: DraftRule, catalogue: RuleType[], linkTypes: { id: string; name: string }[] = []): string {
   const type = catalogue.find((each) => each.type === rule.type);
   if (!type) return rule.type;
   const parts = type.options
@@ -274,7 +274,10 @@ export function describeRule(rule: DraftRule, catalogue: RuleType[]): string {
       const value = rule.config[option.name];
       const label = optionLabel(option.name, option.label);
       if (Array.isArray(value)) return value.length ? `${label}: ${value.map((each) => roleWord(String(each))).join(", ")}` : "";
-      return value ? `${label}: ${String(value)}` : "";
+      if (!value) return "";
+      const named = option.kind === "linkType" ? linkTypes.find((each) => each.id === value)?.name : undefined;
+      const word = named ?? (t.workflows.optionChoices as Record<string, string | undefined>)[String(value)] ?? String(value);
+      return `${label}: ${word}`;
     })
     .filter(Boolean);
   const label = ruleLabel(rule.type, catalogue);

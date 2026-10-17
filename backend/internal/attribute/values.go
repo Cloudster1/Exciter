@@ -84,6 +84,9 @@ func Merge(defs []Def, typeID *uuid.UUID, typeChanged bool, current, changes map
 		}
 		out[key] = value
 	}
+	if err := CheckChoices(defs, current, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 

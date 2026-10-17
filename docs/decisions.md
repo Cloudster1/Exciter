@@ -28,8 +28,8 @@ tell whether the reason still holds.
   open threads are validators, so the transition is offered and a refusal
   names the requirement and what to do, in the dialog and per requirement of
   a bulk transition; role conditions still hide what is not the caller's.
-  They count what the requirement has, not what the caller can see, so a
-  transition means the same for everybody.
+  They count what the taker sees, and coverage as the coverage report
+  judges it, so a condition reads the trace the taker reads.
 - **Rules are checked twice.** The service checks first for the sentence
   that names the field; the database checks again where revisions, moves,
   links and values are written, so a lock or a field rule holds for every

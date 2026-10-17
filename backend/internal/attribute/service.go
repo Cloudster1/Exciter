@@ -128,17 +128,35 @@ func reorder(ctx context.Context, tx db.DBTX, table string, projectID, id uuid.U
 const selectDef = `
 SELECT a.id, a.name, a.description, a.kind, a.required, a.options, a.position, a.retired, a.created_at, a.updated_at,
        COALESCE((SELECT array_agg(dt.type_id ORDER BY t.position) FROM attribute_def_type dt
-                 JOIN requirement_type t ON t.id = dt.type_id WHERE dt.attribute_id = a.id), '{}')
+                 JOIN requirement_type t ON t.id = dt.type_id WHERE dt.attribute_id = a.id), '{}'),
+       a.required_from, a.depends_on, a.choices, a.editable_by
 FROM attribute_def a`
 
 func scanDef(row pgx.CollectableRow) (Def, error) {
 	var (
-		d       Def
-		options []byte
+		d                         Def
+		options, choices, permits []byte
+		dependsOn                 *uuid.UUID
 	)
-	err := row.Scan(&d.ID, &d.Name, &d.Description, &d.Kind, &d.Required, &options, &d.Position, &d.Retired, &d.CreatedAt, &d.UpdatedAt, &d.TypeIDs)
+	err := row.Scan(&d.ID, &d.Name, &d.Description, &d.Kind, &d.Required, &options, &d.Position, &d.Retired, &d.CreatedAt, &d.UpdatedAt, &d.TypeIDs,
+		&d.RequiredFrom, &dependsOn, &choices, &permits)
 	if err != nil {
 		return d, err
+	}
+	if dependsOn != nil {
+		d.DependsOn = &Dependency{AttributeID: *dependsOn}
+		if err := json.Unmarshal(choices, &d.DependsOn.Choices); err != nil {
+			return d, fmt.Errorf("read the choices of %s: %w", d.Name, err)
+		}
+		if d.DependsOn.Choices == nil {
+			d.DependsOn.Choices = map[string][]uuid.UUID{}
+		}
+	}
+	if err := json.Unmarshal(permits, &d.EditableBy); err != nil {
+		return d, fmt.Errorf("read who changes %s: %w", d.Name, err)
+	}
+	if d.EditableBy == nil {
+		d.EditableBy = []Permit{}
 	}
 	if err := json.Unmarshal(options, &d.Options); err != nil {
 		return d, fmt.Errorf("read the options of %s: %w", d.Name, err)
@@ -332,6 +350,12 @@ func (s *Service) CreateAttribute(ctx context.Context, actor uuid.UUID, projectK
 				return err
 			}
 		}
+		if out, err = defByID(ctx, tx, p.ID, id); err != nil {
+			return err
+		}
+		if err := setRules(ctx, tx, actor, p.ID, p.Key, out, in); err != nil {
+			return err
+		}
 		out, err = defByID(ctx, tx, p.ID, id)
 		return err
 	})
@@ -395,6 +419,12 @@ func (s *Service) UpdateAttribute(ctx context.Context, actor uuid.UUID, projectK
 			if err := reorder(ctx, tx, "attribute_def", p.ID, id, *in.Position); err != nil {
 				return err
 			}
+		}
+		if out, err = defByID(ctx, tx, p.ID, id); err != nil {
+			return err
+		}
+		if err := setRules(ctx, tx, actor, p.ID, p.Key, out, in); err != nil {
+			return err
 		}
 		out, err = defByID(ctx, tx, p.ID, id)
 		return err

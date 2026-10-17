@@ -23,6 +23,7 @@ import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
+import { useFieldAccess } from "@/features/types/fieldAccess";
 import { LockAction, LockBanner } from "./LockBanner";
 import { RequirementEdit } from "./RequirementEdit";
 
@@ -122,7 +123,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       ) : (
         <Content project={project} requirement={requirement} />
       )}
-      {!section && <Facts requirement={requirement} />}
+      {!section && <Facts project={project} requirement={requirement} />}
       {!section && <ReviewPanel requirement={requirement} />}
       <RequirementLabels requirement={requirement} />
       <LinksPanel requirement={requirement} />
@@ -160,9 +161,15 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
 }
 
 /** The owner and the priority, which are not what the requirement says and change at once, without a revision. */
-function Facts({ requirement }: { requirement: Requirement }) {
+function Facts({ project, requirement }: { project: Project; requirement: Requirement }) {
   const update = useUpdateRequirement(requirement.key);
-  const mayEdit = requirement.can.edit;
+  // A lock keeps what the requirement says, not who owns it or its priority (#205); the field rules may (#206).
+  const editor = project.can.edit && !project.archivedAt && !requirement.trashedAt;
+  const access = useFieldAccess(project, requirement.status);
+  const owner = access("owner");
+  const priority = access("priority");
+  const mayOwn = editor && owner.edit;
+  const mayPrioritize = editor && priority.edit;
   const fields = update.error instanceof ApiError ? update.error.fields : {};
   return (
     <Card className="grid gap-4 p-4 sm:grid-cols-2" data-requirement-facts>
@@ -170,7 +177,7 @@ function Facts({ requirement }: { requirement: Requirement }) {
         <SectionTitle>{t.requirements.owner}</SectionTitle>
         <p className="flex items-center gap-2 text-sm text-ink" data-owner>
           {requirement.owner?.name ?? <span className="text-ink-subtle">{t.requirements.noOwner}</span>}
-          {mayEdit && requirement.owner && (
+          {mayOwn && requirement.owner && (
             <IconButton
               icon={<Icon.X />}
               label={t.requirements.removeOwner}
@@ -180,14 +187,19 @@ function Facts({ requirement }: { requirement: Requirement }) {
             />
           )}
         </p>
-        {mayEdit && <SubjectPicker label={t.requirements.pickOwner} peopleOnly onPick={(person) => update.mutate({ ownerId: person.id })} />}
+        {mayOwn && <SubjectPicker label={t.requirements.pickOwner} peopleOnly onPick={(person) => update.mutate({ ownerId: person.id })} />}
+        {editor && !owner.edit && (
+          <p className="text-xs text-ink-muted" data-read-only-why="owner">
+            {owner.why}
+          </p>
+        )}
         {fields.ownerId && <p className="text-sm text-danger">{fields.ownerId}</p>}
       </div>
       <div className="space-y-2">
         <SectionTitle>{t.requirements.priority}</SectionTitle>
         <SelectInput
           value={requirement.priority ?? ""}
-          disabled={!mayEdit || update.isPending}
+          disabled={!mayPrioritize || update.isPending}
           aria-label={t.requirements.priority}
           onChange={(event) => update.mutate({ priority: event.target.value === "" ? null : (event.target.value as Priority) })}
           data-priority-select
@@ -199,6 +211,11 @@ function Facts({ requirement }: { requirement: Requirement }) {
             </option>
           ))}
         </SelectInput>
+        {editor && !priority.edit && (
+          <p className="text-xs text-ink-muted" data-read-only-why="priority">
+            {priority.why}
+          </p>
+        )}
         {update.error && !fields.ownerId && <ErrorBanner>{update.error.message}</ErrorBanner>}
       </div>
     </Card>
