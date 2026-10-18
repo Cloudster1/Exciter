@@ -94,11 +94,18 @@ func TestATestExecutionRunsAPlanStepByStep(t *testing.T) {
 		t.Error("the file came back changed")
 	}
 	refuse(t, "somebody else deletes the file", owner.delete(t, "/api/v1/test-execution-files/"+file["id"].(string)), http.StatusForbidden, "forbidden")
+	spare := obj(t, want(t, plain.uploadAs(t, "/api/v1/test-executions/"+s.execution+"/cases/"+s.key+"-R2/files?iteration=1", "spare.png", "image/png", aPicture(t)),
+		http.StatusCreated, "put a file on the case"), "file")
+	want(t, plain.delete(t, "/api/v1/test-execution-files/"+spare["id"].(string)), http.StatusNoContent, "the uploader deletes a file")
 	refuse422(t, "an issue for a case that did not fail", plain.post(t, "/api/v1/test-executions/"+s.execution+"/cases/"+s.key+"-R2/issues",
 		map[string]any{"iteration": 2, "armatureProject": "CP"}), "iteration")
 
 	refuse(t, "a tester changes the execution", plain.patch(t, "/api/v1/test-executions/"+s.execution, map[string]any{"version": "2.4"}), http.StatusForbidden, "forbidden")
 	want(t, owner.patch(t, "/api/v1/test-executions/"+s.execution, map[string]any{"version": "2.4"}), http.StatusOK, "the manager changes the version")
+	if open := list(t, want(t, guest.get(t, "/api/v1/projects/"+s.key+"/test-executions?state=open"), http.StatusOK, "a reader lists the open executions"),
+		"executions"); len(open) != 1 || open[0].(map[string]any)["id"] != s.execution {
+		t.Errorf("the project's open executions are %v", open)
+	}
 	mine := list(t, want(t, plain.get(t, "/api/v1/test-executions/mine"), http.StatusOK, "the tester's executions"), "executions")
 	if len(mine) == 0 || mine[0].(map[string]any)["id"] != s.execution {
 		t.Errorf("the tester's own list: %v", mine)
@@ -165,6 +172,13 @@ func TestATestPlanHoldsTestCases(t *testing.T) {
 	id := byQuery["id"].(string)
 	refuse422(t, "cases set on a plan by query", owner.put(t, "/api/v1/test-plans/"+id+"/cases", map[string]any{"cases": []string{s.key + "-R2"}}), "cases")
 	want(t, owner.patch(t, "/api/v1/test-plans/"+id, map[string]any{"title": "Every case"}), http.StatusOK, "rename it")
+	picked := obj(t, want(t, owner.post(t, "/api/v1/projects/"+s.key+"/test-plans", map[string]any{"title": "Picked", "scope": "cases"}),
+		http.StatusCreated, "a plan of picked cases"), "plan")["id"].(string)
+	want(t, owner.put(t, "/api/v1/test-plans/"+picked+"/cases", map[string]any{"cases": []string{s.key + "-R2"}}), http.StatusOK, "pick its cases")
+	if cases := obj(t, want(t, s.f.guest.get(t, "/api/v1/test-plans/"+picked), http.StatusOK, "a reader reads it"), "plan")["cases"].([]any); len(cases) != 1 {
+		t.Errorf("the picked plan holds %v", cases)
+	}
+	want(t, owner.delete(t, "/api/v1/test-plans/"+picked), http.StatusNoContent, "delete the picked plan")
 	refuse(t, "somebody outside reads it", s.f.outside.get(t, "/api/v1/test-plans/"+id), http.StatusNotFound, "not_found")
 	refuse(t, "somebody who does not edit changes it", s.f.guest.patch(t, "/api/v1/test-plans/"+id, map[string]any{"title": "Mine"}), http.StatusForbidden, "forbidden")
 	plans := list(t, want(t, s.f.guest.get(t, "/api/v1/projects/"+s.key+"/test-plans"), http.StatusOK, "a reader lists the plans"), "plans")

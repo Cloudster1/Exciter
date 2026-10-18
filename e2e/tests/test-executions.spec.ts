@@ -64,11 +64,8 @@ test.describe("test executions", { tag: "@desktop" }, () => {
     await page.locator('[data-action="start-execution"]').click();
     const start = page.locator("[data-start-execution]");
     await start.getByLabel("Version").fill("2.3");
-    await start.getByRole("combobox", { name: "Add a tester" }).fill(me.name.split(" ")[0]!);
-    await page
-      .getByRole("option", { name: new RegExp(me.name) })
-      .first()
-      .click();
+    await start.getByRole("combobox", { name: "Add a tester" }).pressSequentially(me.email.split("@")[0]!);
+    await page.getByRole("option", { name: new RegExp(me.name) }).click();
     await start.locator('[data-action="start-execution-send"]').click();
     await expect(page.locator("[data-execution-page]")).toBeVisible();
     await expect(page.locator("[data-execution-progress]")).toContainText("0 of 1 run");
