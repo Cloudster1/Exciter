@@ -9,6 +9,7 @@ func TestARequirementIsJudgedAsTheContractsTableSays(t *testing.T) {
 	all := Asks{Decomposed: true, Implemented: true, Verified: true}
 	tests := Asks{Verified: true, VerifiedFrom: []Source{SourceTests}}
 	both := Asks{Verified: true, VerifiedFrom: []Source{SourceLinks, SourceTests}}
+	code := Asks{Implemented: true, ImplementedFrom: []Source{SourceCode}}
 	cases := []struct {
 		name    string
 		asks    Asks
@@ -33,6 +34,12 @@ func TestARequirementIsJudgedAsTheContractsTableSays(t *testing.T) {
 		{"passing tests beside a suspect link", both, Counted{VerifyingLinks: 1, VerifyingLinksSuspect: 1, Tests: 1, TestsWhole: 1},
 			[3]Level{LevelNA, LevelNA, LevelPartial}},
 		{"neither source holds anything", both, Counted{}, [3]Level{LevelNA, LevelNA, LevelNone}},
+		{"implemented by current code", code, Counted{CodeImplementing: 2, CodeImplementingWhole: 2}, [3]Level{LevelNA, LevelFull, LevelNA}},
+		{"implemented by outdated code", code, Counted{CodeImplementing: 2, CodeImplementingWhole: 1}, [3]Level{LevelNA, LevelPartial, LevelNA}},
+		{"code does not implement unless asked", Asks{Implemented: true}, Counted{CodeImplementing: 1, CodeImplementingWhole: 1},
+			[3]Level{LevelNA, LevelNone, LevelNA}},
+		{"verified by code that verifies", Asks{Verified: true, VerifiedFrom: []Source{SourceCode}}, Counted{CodeVerifying: 1, CodeVerifyingWhole: 1},
+			[3]Level{LevelNA, LevelNA, LevelFull}},
 	}
 	for _, c := range cases {
 		d, i, v := Judge(c.asks, c.counted)

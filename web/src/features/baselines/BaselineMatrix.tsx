@@ -3,7 +3,7 @@ import { baselineMatrixHref, NOW, useBaselineMatrix, useBaselines, type Baseline
 import type { MatrixColumns } from "@/api/coverage";
 
 /** The columns a baseline's matrix lays out from what it recorded; test results are on its requirements. */
-type RecordedColumns = Exclude<MatrixColumns, "tests">;
+type RecordedColumns = Exclude<MatrixColumns, "tests" | "code">;
 import type { Project } from "@/api/projects";
 import { useStatorPages } from "@/api/stator";
 import { ButtonLink, EmptyState, ErrorBanner, Segmented, Select, Skeleton, cx } from "@/components/ui";

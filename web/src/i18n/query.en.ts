@@ -46,6 +46,8 @@ export const queryEn = {
     verified: "none, partial, full or na",
     testResult: "the worst latest result on the counting branch: errored, failed, skipped, passed or none",
     testOutdated: "how many tests ran against an older revision",
+    codeLink: "how many code tags on the counting branch implement or verify it",
+    codeOutdated: "how many code tags name an older revision",
   } as Record<string, string>,
   attributeTakes: "an attribute of the project, by its name in quotes",
   linkName: "a link type",

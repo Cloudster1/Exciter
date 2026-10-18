@@ -468,6 +468,61 @@ uploads.
 - The project's settings gain the tag words; the coverage rules gain
   "implemented from" and "code" for verified.
 
+### As built (#201)
+
+- **Migration**: `00980_code_tags.sql` adds:
+  - the tables `code_tag_words`, `code_scan` and `code_tag`
+  - the functions `code_tag_relation`, `requirement_code_counts` and
+    `code_scan_replace`
+  - `implemented_from` on `coverage_rule`, and `code` among what verified
+    counts
+  - code in `baseline_evidence`, with `baseline_evidence_line` writing its
+    line
+  - `notification.code_scan_id` and the two new kinds
+  - the `code` level kind
+- **A scan replaces its branch's scan before** through `code_scan_replace`.
+  The scan before keeps its row, marked `replaced_at`, so the notifications
+  that name it still lead somewhere; only its tags go.
+  - The app role writes a scan's tags and counts only in the transaction
+    that made it.
+  - A tag's revision lies between 1 and the requirement's current one,
+    held by `code_tag_writers`.
+  - Retention drops replaced scans and the scans of idle branches that do
+    not count, after `IdleBranchDays`.
+- **Revisions carry forward** in `codetrace.Upload`: `previous` reads the
+  tags of the scan before by path, word and key, so a tag that moved lines
+  keeps the revision it had. The same read says whether each tag was
+  already outdated when that scan came, so a new scan tells owners only of
+  what turned outdated since.
+- **A tag of a word the project does not use** is kept and reported back,
+  and links once the word is set. A tag naming a section is reported and
+  not kept.
+- **The notifications** are about the scan, not a requirement:
+  - `code_outdated` goes to the followers of each requirement a scan of
+    the counting branch brought newly outdated tags for.
+  - `code_orphaned` goes to the followers of a trashed requirement, and to
+    the project's administrators for a key that names none.
+  - Each person is told once per scan, and is led to
+    `/p/{projectKey}/code-tags`.
+- **The scanner** is `internal/codescan`, apart from `internal/codetrace`
+  so that `exciter-ci` carries no database code. It knows comment styles by
+  file extension and reads every style in a file it does not know.
+  `exciter-ci scan` lists files with `git ls-files` and falls back to a walk.
+  `make code-scan` sets git's `safe.directory` for the mounted checkout.
+- **The matrix** takes `columns=code`, a column per file, each cell a tag
+  by its relation and line. A trace model ends in `code` by implements or
+  verifies, and a chain ending in an outdated tag is broken there.
+- **The trace check** fails on `orphaned` tags of the branch, whatever the
+  filter keeps, and counts outdated tags of the requirements kept among
+  `outdated`.
+- **The web**:
+  - the code panel on the requirement page
+  - `/p/{projectKey}/code-tags`, in the project's navigation
+  - the tag words card on the trace settings tab
+  - the coverage rules choose what counts for implemented and verified as
+    chips
+  - the notification row of a scan
+
 ## What is left for later
 
 - The trace graph that shows tests and code as nodes is #211's.

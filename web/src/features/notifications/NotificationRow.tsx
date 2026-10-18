@@ -9,7 +9,8 @@ const when = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
 /** A notification in the reader's words; the server sends only what happened. */
 export function sentence(n: Notification): string {
-  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? n.session?.title ?? "");
+  const scan = n.codeScan ? `${n.codeScan.repository} ${n.codeScan.branch}` : undefined;
+  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? n.session?.title ?? scan ?? "");
 }
 
 /** One notification, leading to its requirement at its thread when it has one; following it marks it read. */
@@ -24,6 +25,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
         <span className={cx("block text-sm", unread && "font-medium")}>{sentence(n)}</span>
         {n.requirement && <span className="block truncate text-xs text-ink-muted">{n.requirement.title}</span>}
         {n.session && <span className="block truncate text-xs text-ink-muted">{n.session.projectKey}</span>}
+        {n.codeScan && <span className="block truncate text-xs text-ink-muted">{n.codeScan.projectKey}</span>}
         {n.excerpt && <span className="mt-0.5 block truncate text-xs text-ink-muted italic">{n.excerpt}</span>}
         <span className="mt-0.5 block text-xs text-ink-subtle">{when.format(new Date(n.createdAt))}</span>
       </span>
@@ -34,6 +36,21 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
     if (unread) markRead.mutate({ ids: [n.id] });
     onFollow?.();
   };
+  // A code scan's leads to the project's outdated and orphaned tags (#201).
+  if (n.codeScan) {
+    return (
+      <Link
+        to="/p/$projectKey/code-tags"
+        params={{ projectKey: n.codeScan.projectKey }}
+        onClick={follow}
+        className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
+        data-notification={n.kind}
+        data-unread={unread || undefined}
+      >
+        {words}
+      </Link>
+    );
+  }
   // A review session's leads to its page (#204).
   if (n.session) {
     return (

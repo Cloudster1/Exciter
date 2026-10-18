@@ -116,15 +116,18 @@ func actorOf(ctx context.Context) (uuid.UUID, error) {
 const selectNotifications = `
 SELECT n.id, n.kind, COALESCE(u.name, ''), r.id, p.key, COALESCE(r.number, 0), COALESCE(r.kind, ''), COALESCE(r.title, ''),
        COALESCE(r.revision, 0), st.id, COALESCE(st.name, ''), COALESCE(st.category, ''), n.revision, n.thread_id, n.comment_id,
-       n.review_id, n.link_id, n.excerpt, n.created_at, n.read_at, rs.id, COALESCE(rs.title, '')
+       n.review_id, n.link_id, n.excerpt, n.created_at, n.read_at, rs.id, COALESCE(rs.title, ''), cs.id, COALESCE(cs.repository, ''),
+       COALESCE(cs.branch, '')
 FROM notification n
 LEFT JOIN requirement r ON r.id = n.requirement_id
 LEFT JOIN review_session rs ON rs.id = n.session_id
-JOIN project p ON p.id = COALESCE(r.project_id, rs.project_id)
+LEFT JOIN code_scan cs ON cs.id = n.code_scan_id
+JOIN project p ON p.id = COALESCE(r.project_id, rs.project_id, cs.project_id)
 LEFT JOIN req_status st ON st.id = r.status_id
 LEFT JOIN app_user u ON u.id = n.actor_id
 WHERE n.user_id = $1 AND ((r.id IS NOT NULL AND r.trashed_at IS NULL AND perm_requirement_viewable(r.id, $1::uuid))
-                          OR (r.id IS NULL AND rs.id IS NOT NULL AND perm_project_holds(rs.project_id, $1::uuid, 'view')))`
+                          OR (r.id IS NULL AND rs.id IS NOT NULL AND perm_project_holds(rs.project_id, $1::uuid, 'view'))
+                          OR (r.id IS NULL AND cs.id IS NOT NULL AND perm_project_holds(cs.project_id, $1::uuid, 'view')))`
 
 func scanNotifications(rows pgx.Rows) ([]Notification, error) {
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Notification, error) {
@@ -137,12 +140,19 @@ func scanNotifications(rows pgx.Rows) ([]Notification, error) {
 			status     requirement.StatusRef
 			sessionID  *uuid.UUID
 			session    SessionLink
+			scanID     *uuid.UUID
+			scan       CodeScanLink
 			projectKey string
 		)
 		if err := row.Scan(&n.ID, &n.Kind, &n.ActorName, &refID, &projectKey, &number, &ref.Kind, &ref.Title, &ref.Revision,
 			&statusID, &status.Name, &status.Category, &n.Revision, &n.ThreadID, &n.CommentID, &n.ReviewID, &n.LinkID,
-			&n.Excerpt, &n.CreatedAt, &n.ReadAt, &sessionID, &session.Title); err != nil {
+			&n.Excerpt, &n.CreatedAt, &n.ReadAt, &sessionID, &session.Title, &scanID, &scan.Repository, &scan.Branch); err != nil {
 			return n, err
+		}
+		if refID == nil && scanID != nil {
+			scan.ID, scan.ProjectKey = *scanID, projectKey
+			n.CodeScan = &scan
+			return n, nil
 		}
 		if refID == nil && sessionID != nil {
 			session.ID, session.ProjectKey = *sessionID, projectKey

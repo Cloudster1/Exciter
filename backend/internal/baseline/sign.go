@@ -535,7 +535,7 @@ func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID 
 		sql  string
 		args []any
 	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-		{takeEvidence, []any{id}}} {
+		{takeEvidence, []any{id}}, {takeCode, []any{id}}} {
 		if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 			return uuid.Nil, fmt.Errorf("take the session's baseline: %w", err)
 		}

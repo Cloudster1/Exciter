@@ -58,7 +58,7 @@ func told(t *testing.T, c *client, reqID string) []map[string]any {
 	var out []map[string]any
 	for _, each := range list(t, want(t, c.get(t, "/api/v1/notifications?limit="+strconv.Itoa(notify.MaxLimit)), http.StatusOK, "list notifications"), "notifications") {
 		n := each.(map[string]any)
-		if n["requirement"].(map[string]any)["id"] == reqID {
+		if r, ok := n["requirement"].(map[string]any); ok && r["id"] == reqID {
 			out = append(out, n)
 		}
 	}

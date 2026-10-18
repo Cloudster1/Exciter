@@ -20,7 +20,8 @@ import (
 var Topics = []string{"project.key_changed", "project.deleted", "requirement.created", "requirement.revised", "requirement.changed",
 	"requirement.trashed", "requirement.restored", "requirement.moved", "link.created", "link.removed", "import.requested", "armature.links",
 	"comment.created", "comment.edited", "thread.resolved", "thread.reopened", "review.requested", "review.decided", "review.closed", "link.cleared", "baseline.taken", "reqif.requested",
-	"stator.links", "test_run.requested", "test_run.finished", "evidence_settings.saved"}
+	"stator.links", "test_run.requested", "test_run.finished", "evidence_settings.saved",
+	"code_scan.uploaded", "code_tag_words.saved"}
 
 // Event is one committed domain event.
 type Event struct {

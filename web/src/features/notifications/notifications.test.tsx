@@ -42,6 +42,7 @@ function aNotification(over: Partial<Notification> = {}): Notification {
     createdAt: "2026-10-01T08:00:00Z",
     readAt: null,
     session: null,
+    codeScan: null,
     ...over,
   };
 }

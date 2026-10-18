@@ -3,9 +3,11 @@ package trace
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -179,8 +181,13 @@ func (s *Service) Check(ctx context.Context, reader uuid.UUID, projectKey string
 		if err := checkTests(ctx, tx, kept, out); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `SELECT count(*) FROM test_run WHERE project_id = $1 AND branch = $2 AND state = 'done'`,
-			p.ID, out.Branch).Scan(&out.Evidence.Runs)
+		if err := checkCode(ctx, tx, p, kept, out); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, `
+			SELECT (SELECT count(*) FROM test_run WHERE project_id = $1 AND branch = $2 AND state = 'done'),
+			       (SELECT count(*) FROM code_scan WHERE project_id = $1 AND branch = $2 AND replaced_at IS NULL)`,
+			p.ID, out.Branch).Scan(&out.Evidence.Runs, &out.Evidence.Scans)
 	})
 	if err != nil {
 		return nil, err
@@ -202,6 +209,8 @@ func (s *Service) Check(ctx context.Context, reader uuid.UUID, projectKey string
 		}
 		if len(line.Nodes) < len(chains.Levels) {
 			b.Missing = chains.Levels[len(line.Nodes)].Name
+		} else if last := line.Nodes[len(line.Nodes)-1]; last.Code != nil {
+			b.Missing = "current code"
 		} else {
 			b.Missing = "passing test"
 		}
@@ -295,6 +304,56 @@ func checkTests(ctx context.Context, tx db.DBTX, kept []search.Kept, out *Check)
 	return rows.Err()
 }
 
+// checkCode finds the outdated tags of the requirements kept, and the orphaned tags of the branch: those naming a
+// requirement in the trash, kept or not, and those naming none, which no filter can keep.
+func checkCode(ctx context.Context, tx db.DBTX, p *project.Project, kept []search.Kept, out *Check) error {
+	ids := make([]uuid.UUID, len(kept))
+	refs := map[uuid.UUID]requirement.Ref{}
+	for i, k := range kept {
+		ids[i], refs[k.Ref.ID] = k.Ref.ID, k.Ref
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT t.requirement_id, s.repository, t.path, t.line, t.key, t.revision, s.file_url, s.commit_sha,
+		       CASE WHEN q.id IS NULL THEN 'unknown' WHEN q.trashed_at IS NOT NULL THEN 'trashed' END,
+		       q.id IS NOT NULL AND q.trashed_at IS NULL AND t.revision < q.revision AND q.id = ANY ($3)
+		FROM code_scan s JOIN code_tag t ON t.scan_id = s.id LEFT JOIN requirement q ON q.id = t.requirement_id
+		WHERE s.project_id = $1 AND s.branch = $2 AND code_tag_relation(s.project_id, t.word) IS NOT NULL
+		  AND (q.id IS NULL OR q.trashed_at IS NOT NULL OR (t.revision < q.revision AND q.id = ANY ($3)))
+		ORDER BY s.repository, t.path, t.line`, p.ID, out.Branch, ids)
+	if err != nil {
+		return fmt.Errorf("read the outdated and orphaned tags: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			id                              *uuid.UUID
+			repository, path, key, template string
+			commit                          string
+			line, revision                  int
+			problem                         *string
+			outdated                        bool
+		)
+		if err := rows.Scan(&id, &repository, &path, &line, &key, &revision, &template, &commit, &problem, &outdated); err != nil {
+			return err
+		}
+		link := codetrace.FileLink(template, commit, path, line)
+		switch {
+		case problem != nil:
+			out.Totals.Orphaned++
+			if len(out.Orphaned) < MaxCheckItems {
+				out.Orphaned = append(out.Orphaned, CheckOrphan{Key: key, Problem: *problem, Repository: repository, Path: path, Line: line, URL: link})
+			}
+		case outdated && id != nil:
+			out.Totals.Outdated++
+			if len(out.Outdated) < MaxCheckItems {
+				out.Outdated = append(out.Outdated, CheckEvidence{Requirement: refs[*id], Kind: EvidenceCode, Name: path + ":" + strconv.Itoa(line),
+					Repository: repository, Revision: revision, Commit: commit, URL: link})
+			}
+		}
+	}
+	return rows.Err()
+}
+
 // nodeKey names a chain's node as a pipeline prints it: a requirement's or an issue's key, a page's address.
 func nodeKey(n ChainNode) string {
 	switch {
@@ -304,6 +363,8 @@ func nodeKey(n ChainNode) string {
 		return n.Page.URL
 	case n.Test != nil:
 		return n.Test.Name + " " + n.Test.Outcome
+	case n.Code != nil:
+		return n.Code.Path + ":" + strconv.Itoa(n.Code.Line)
 	}
 	return n.IssueKey
 }

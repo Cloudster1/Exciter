@@ -41,6 +41,7 @@ const every: CoverageRule = {
   implemented: true,
   verified: false,
   verifiedFrom: ["links"],
+  implementedFrom: ["links"],
 };
 
 const noteType = { id: "0195f000-0000-7000-8000-0000000000d1", name: "Note", retired: false };
@@ -79,7 +80,13 @@ describe("a project's coverage", () => {
     const rules = await screen.findByRole("list", { name: "Rules" });
     await userEvent.click(within(rules).getByLabelText("Verified"));
     await waitFor(() =>
-      expect(sent.find((each) => each.method === "PUT")?.body).toEqual({ decomposed: true, implemented: true, verified: true, verifiedFrom: ["links"] }),
+      expect(sent.find((each) => each.method === "PUT")?.body).toEqual({
+        decomposed: true,
+        implemented: true,
+        verified: true,
+        verifiedFrom: ["links"],
+        implementedFrom: ["links"],
+      }),
     );
     await userEvent.selectOptions(screen.getByLabelText("Add a rule for"), "Note");
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -93,27 +100,33 @@ describe("a project's coverage", () => {
     );
   });
 
-  it("lets a rule that asks for verified count test results instead of links, or both (#200)", async () => {
+  it("lets a rule count test results and code beside links, never nothing (#200, #201)", async () => {
     const sent = stubApi({
       "GET /projects/CHK": { status: 200, body: { project: aProject() } },
       "GET /projects/CHK/coverage": { status: 200, body: { summary, rows, total: rows.length, limit: 50, offset: 0 } },
       "GET /projects/CHK/coverage-rules": { status: 200, body: { rules: [{ ...every, verified: true }] } },
       "GET /projects/CHK/types": { status: 200, body: { types: [noteType] } },
-      "PUT /projects/CHK/coverage-rules": { status: 200, body: { rule: { ...every, verified: true, verifiedFrom: ["links", "tests"] } } },
+      "PUT /projects/CHK/coverage-rules": { status: 200, body: { rule: { ...every, verified: true } } },
     });
     await renderAt("/p/CHK/coverage");
-    const from = await screen.findByRole("combobox", { name: "Verified from: Every other type" });
-    expect(from).toHaveValue("links");
+    const verified = await screen.findByRole("group", { name: "Verified from: Every other type" });
+    expect(within(verified).getByRole("button", { name: "Links" })).toHaveAttribute("aria-pressed", "true");
     expect(await axeViolations()).toEqual([]);
-    await userEvent.selectOptions(from, "both");
+    await userEvent.click(within(verified).getByRole("button", { name: "Links" }));
+    expect(sent.some((each) => each.method === "PUT")).toBe(false);
+    await userEvent.click(within(verified).getByRole("button", { name: "Test results" }));
     await waitFor(() =>
       expect(sent.find((each) => each.method === "PUT")?.body).toEqual({
         decomposed: true,
         implemented: true,
         verified: true,
         verifiedFrom: ["links", "tests"],
+        implementedFrom: ["links"],
       }),
     );
+    const implemented = screen.getByRole("group", { name: "Implemented from: Every other type" });
+    await userEvent.click(within(implemented).getByRole("button", { name: "Code" }));
+    await waitFor(() => expect(sent.filter((each) => each.method === "PUT").at(-1)?.body).toMatchObject({ implementedFrom: ["links", "code"] }));
   });
 
   it("shows a reader the rules without letting them change them", async () => {

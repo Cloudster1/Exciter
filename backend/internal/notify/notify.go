@@ -42,11 +42,16 @@ const (
 	KindSessionRound    Kind = "session_round"
 	KindSessionReminder Kind = "session_reminder"
 	KindSessionClosed   Kind = "session_closed"
+	// KindCodeOutdated and KindCodeOrphaned are a code scan's tags naming an older revision of requirements one owns or
+	// watches, or naming one in the trash or none (#201), told about the scan.
+	KindCodeOutdated Kind = "code_outdated"
+	KindCodeOrphaned Kind = "code_orphaned"
 )
 
 // Kinds lists every Kind, the order deciding which one a person named twice by one event gets.
 var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindSourceRevised, KindReplied, KindCommented,
-	KindResolved, KindRevised, KindTransitioned, KindSessionInvited, KindSessionRound, KindSessionReminder, KindSessionClosed}
+	KindResolved, KindRevised, KindTransitioned, KindSessionInvited, KindSessionRound, KindSessionReminder, KindSessionClosed,
+	KindCodeOrphaned, KindCodeOutdated}
 
 // Digest is how mail is sent: each notification at once, or gathered every hour or day.
 type Digest string
@@ -68,6 +73,8 @@ type Notification struct {
 	// Requirement is what it is about, null for one about a review session, which Session names then (#204).
 	Requirement *requirement.Ref `json:"requirement"`
 	Session     *SessionLink     `json:"session"`
+	// CodeScan is the code scan it is about instead of a requirement (#201).
+	CodeScan *CodeScanLink `json:"codeScan"`
 	// Revision is the requirement's revision the notification is about.
 	Revision  int        `json:"revision"`
 	ThreadID  *uuid.UUID `json:"threadId"`
@@ -83,6 +90,14 @@ type Notification struct {
 type SessionLink struct {
 	ID         uuid.UUID `json:"id"`
 	Title      string    `json:"title"`
+	ProjectKey string    `json:"projectKey"`
+}
+
+// CodeScanLink is the code scan a notification is about: its repository and branch, in a project.
+type CodeScanLink struct {
+	ID         uuid.UUID `json:"id"`
+	Repository string    `json:"repository"`
+	Branch     string    `json:"branch"`
 	ProjectKey string    `json:"projectKey"`
 }
 

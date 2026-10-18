@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -145,7 +146,7 @@ func (c *Chains) lay(below []map[uuid.UUID][]ChainNode, q ChainQuery) error {
 				return false
 			}
 			// A chain that ends in a test failing, skipped or outdated breaks there: the test does not hold.
-			broken := len(path) < len(below) || (last.Test != nil && !last.Test.holds())
+			broken := len(path) < len(below) || (last.Test != nil && !last.Test.holds()) || (last.Code != nil && last.Code.Outdated)
 			lines = append(lines, ChainLine{Root: root, Nodes: slices.Clone(path), Broken: broken})
 			return true
 		}
@@ -278,6 +279,33 @@ func step(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 				return nil, err
 			}
 			add(from, ChainNode{Test: &test, Via: TestRelations[0], Suspect: test.Outdated})
+		}
+		return found, rows.Err()
+	case LevelCode:
+		rows, err := tx.Query(ctx, `
+			SELECT t.requirement_id, s.repository, t.path, t.line, code_tag_relation(s.project_id, t.word), t.revision < r.revision,
+			       s.file_url, s.commit_sha
+			FROM code_tag t
+			JOIN code_scan s ON s.id = t.scan_id AND s.branch = evidence_branch(s.project_id)
+			JOIN requirement r ON r.id = t.requirement_id
+			WHERE t.requirement_id = ANY ($1) AND code_tag_relation(s.project_id, t.word) = ANY ($2)
+			ORDER BY s.repository, t.path, t.line`, frontier, relationsOf(level))
+		if err != nil {
+			return nil, fmt.Errorf("follow the trace level %s: %w", level.Name, err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var (
+				from             uuid.UUID
+				code             ChainCode
+				via              string
+				template, commit string
+			)
+			if err := rows.Scan(&from, &code.Repository, &code.Path, &code.Line, &via, &code.Outdated, &template, &commit); err != nil {
+				return nil, err
+			}
+			code.URL = codetrace.FileLink(template, commit, code.Path, code.Line)
+			add(from, ChainNode{Code: &code, Via: via, Suspect: code.Outdated})
 		}
 		return found, rows.Err()
 	default:

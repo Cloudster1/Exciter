@@ -1,5 +1,5 @@
-// Command exciter-ci is what a pipeline runs against Exciter (#200): results uploads JUnit reports and waits for
-// them to land, and check asks the trace check for a verdict. Its exit code is the pipeline's to stop on.
+// Command exciter-ci is what a pipeline runs against Exciter (#200, #201): results uploads JUnit reports, scan the
+// requirement tags of a checkout, and check asks the trace check for a verdict; its exit code is the pipeline's.
 package main
 
 import (
@@ -23,6 +23,7 @@ const usage = `exciter-ci talks to Exciter from a pipeline.
 
   exciter-ci results [flags] FILE...   upload JUnit XML reports and wait until they land
   exciter-ci check [flags]             ask for the trace check's verdict; exit 1 when it fails
+  exciter-ci scan [flags] [DIR]        upload the requirement tags in a checkout's source comments
 
 Every command reads EXCITER_URL, EXCITER_TOKEN (a token with the evidence scope) and EXCITER_PROJECT, and takes the
 repository, commit, branch and run address from GitHub Actions, GitLab CI or Gitea Actions when they are not given.
@@ -50,6 +51,8 @@ func run(ctx context.Context, args []string, env func(string) string, out, errOu
 		code, err = results(ctx, args[1:], env, out)
 	case "check":
 		code, err = check(ctx, args[1:], env, out)
+	case "scan":
+		code, err = scan(ctx, args[1:], env, out)
 	case "-h", "--help", "help":
 		fmt.Fprint(out, usage)
 		return exitPass

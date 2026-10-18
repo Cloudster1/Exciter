@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -115,6 +116,8 @@ type Server struct {
 	Imports *csvio.Service
 	// TestResults keeps the test results CI uploads (#200); nil answers their routes that they are not set up.
 	TestResults *testresult.Service
+	// Code keeps the tags code scans found (#201); nil answers their routes that they are not set up.
+	Code *codetrace.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -387,6 +390,17 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/evidence-settings", s.handleGetEvidenceSettings)
 			r.Put("/projects/{projectKey}/evidence-settings", s.handleSaveEvidenceSettings)
 			r.Get("/projects/{projectKey}/trace-check", s.handleTraceCheck)
+		})
+
+		// Code tags (#201): scans uploaded by a project's editors, read by its readers, words set by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.codeOn)
+			r.Post("/projects/{projectKey}/code-scans", s.handleUploadCodeScan)
+			r.Get("/code-scans/{scanID}", s.handleGetCodeScan)
+			r.Get("/requirements/{reqKey}/code-links", s.handleListCodeLinks)
+			r.Get("/projects/{projectKey}/code-tags", s.handleListCodeTags)
+			r.Get("/projects/{projectKey}/code-tag-words", s.handleGetCodeTagWords)
+			r.Put("/projects/{projectKey}/code-tag-words", s.handleSaveCodeTagWords)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

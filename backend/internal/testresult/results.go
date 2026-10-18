@@ -99,7 +99,7 @@ func matchCommit(known map[string]CommitLink, sha string) *CommitLink {
 const RetentionInterval = time.Hour
 
 // Retention prunes old runs as the admin role: beyond KeptRuns per repository, branch and job, never the latest, and
-// every run of a branch that does not count once it was idle for IdleBranchDays.
+// every run and code scan of a branch that does not count once it was idle for IdleBranchDays.
 type Retention struct {
 	db  *db.Cluster
 	log *slog.Logger
@@ -147,6 +147,16 @@ func (r *Retention) Once(ctx context.Context) (int64, error) {
 			WHERE t.branch <> evidence_counting_branch(t.project_id)
 			  AND NOT EXISTS (SELECT 1 FROM test_run n WHERE n.project_id = t.project_id AND n.repository = t.repository
 			                  AND n.branch = t.branch AND n.uploaded_at > now() - make_interval(days => $1))`, IdleBranchDays)
+		n += tag.RowsAffected()
+		if err != nil {
+			return err
+		}
+		// A replaced scan holds no tags and stays for the notifications that name it, until it is as old as an idle
+		// branch; a branch that does not count goes once it is idle (#201).
+		tag, err = tx.Exec(ctx, `
+			DELETE FROM code_scan s
+			WHERE s.uploaded_at < now() - make_interval(days => $1)
+			  AND (s.replaced_at IS NOT NULL OR s.branch <> evidence_counting_branch(s.project_id))`, IdleBranchDays)
 		n += tag.RowsAffected()
 		return err
 	})

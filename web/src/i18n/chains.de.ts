@@ -11,7 +11,7 @@ export const chainsDe: typeof chainsEn = {
   level: (n) => `Ebene ${n}`,
   name: "Name",
   kind: "Enthält",
-  kinds: { requirements: "Anforderungen", issues: "Armature-Issues", pages: "Stator-Seiten", tests: "Testergebnisse" },
+  kinds: { requirements: "Anforderungen", issues: "Armature-Issues", pages: "Stator-Seiten", tests: "Testergebnisse", code: "Code" },
   types: "Typen",
   steps: "Erreicht von der Ebene davor über",
   addLevel: "Ebene hinzufügen",

@@ -118,7 +118,7 @@ func TestCompileRefusesWhatTheCatalogDoesNotKnow(t *testing.T) {
 		want string
 	}{
 		{`ownr = x`, 1, `Unknown field "ownr". Write owner if you mean that one.`},
-		{`bogus IN (1)`, 1, "The fields are approval, author, category, created, decomposed, derivedInto, derivesFrom, gatedBy, gates, implemented"},
+		{`bogus IN (1)`, 1, "The fields are approval, author, category, codeLink, codeOutdated, created, decomposed, derivedInto, derivesFrom, gatedBy, gates, implemented"},
 		{`priority ~ high`, 1, `"~" does not apply to priority. Use =, !=, <, <=, >, >=, IN or IS EMPTY.`},
 		{`labels < a`, 1, `"<" does not apply to labels`},
 		{`revision = big`, 12, "revision is a number, and big is not one"},

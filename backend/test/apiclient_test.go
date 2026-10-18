@@ -24,6 +24,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/codetrace"
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
@@ -111,6 +112,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		TestResults:   testresult.NewService(h.cluster).WithCommits(h.armature(t)),
+		Code:          codetrace.NewService(h.cluster),
 		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
 		Renderer:      h.renderer(),
