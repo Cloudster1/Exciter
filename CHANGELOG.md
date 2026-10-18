@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M12, Test management (#253):
+  `docs/api-contract-m12.md` agrees how a requirement type marked as test
+  cases gives its requirements preconditions, steps and parameters, how
+  test plans group them and test executions run them against a baseline, a
+  version and a configuration with testers recording each step, how a
+  failure is filed in Armature, and how results from CI and executed test
+  cases count in coverage, the matrix, the chains and queries. The
+  operations it adds answer 501 until they are built.
 - Exports through Word templates, and as an HTML site (#214). A project's
   administrators upload a Word file whose styles, cover, headers and
   footers an export takes, with `{{content}}` where the requirements go and

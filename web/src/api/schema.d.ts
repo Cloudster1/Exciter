@@ -2539,6 +2539,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/test-executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's test executions, open ones first, with their progress. */
+        get: operations["listTestExecutions"];
+        put?: never;
+        /** Start an execution of a plan against an optional baseline, a version and a configuration, with testers; its cases are pinned at once, at the revisions the baseline holds or their current ones. The caller manages it. */
+        post: operations["startTestExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/test-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's test plans, by title. */
+        get: operations["listTestPlans"];
+        put?: never;
+        /** Make a test plan of test cases picked in order, or found by a query when an execution starts; at most 500 cases. */
+        post: operations["createTestPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/test-runs": {
         parameters: {
             query?: never;
@@ -3529,6 +3565,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requirements/{reqKey}/test-executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A test case's results in every execution, newest first. */
+        get: operations["listTestCaseResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requirements/{reqKey}/test-results": {
         parameters: {
             query?: never;
@@ -4043,6 +4096,231 @@ export interface paths {
         /** The requirements the caller may read that use a term, by its name, a synonym or an explicit link, and whether its definition changed since their owners confirmed it. */
         get: operations["listTermUses"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-execution-files/{fileID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The bytes of a file recorded in an execution. */
+        get: operations["downloadTestExecutionFile"];
+        put?: never;
+        post?: never;
+        /** Delete a file its uploader recorded, while the execution is open. */
+        delete: operations["deleteTestExecutionFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The executions the caller tests or manages, across projects, open ones first. */
+        get: operations["listMyTestExecutions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A test execution, its testers, its cases with their outcomes, and its progress. */
+        get: operations["getTestExecution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change an open execution's title, version, configuration or due date; its manager's. */
+        patch: operations["updateTestExecution"];
+        trace?: never;
+    };
+    "/test-executions/{executionID}/cases/{reqKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One case iteration of an execution: its preconditions and steps at the pinned revision, and what was recorded, with files and issues. */
+        get: operations["getTestExecutionCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/cases/{reqKey}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a file on a step or a case iteration, sent as a multipart part named file; at most 50 MB. */
+        post: operations["uploadTestExecutionFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/cases/{reqKey}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** File a failed case iteration as an issue in Armature with the caller's token, linked with relates to the case and the requirements it verifies. */
+        post: operations["fileTestFailureIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/cases/{reqKey}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Record a case iteration: each step's outcome and actual result, and the case's own, which follows from its steps when absent. For the manager and testers who may comment, while it is open. */
+        put: operations["recordTestResult"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close an execution, or abort it so it counts for nothing; it never changes again. Its manager's. */
+        post: operations["closeTestExecution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An execution's report: its target, testers, counts by outcome, and each case with its steps, outcomes, notes, files and issues. */
+        get: operations["getTestExecutionReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/report.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An execution's report as a Word file, through a template of the project when one is named. */
+        get: operations["testExecutionReportDocx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-executions/{executionID}/report.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An execution's report as a PDF, printed by the render service as the reader. */
+        get: operations["testExecutionReportPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-plans/{planID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A test plan and its cases: those picked, or what its query finds now. */
+        get: operations["getTestPlan"];
+        put?: never;
+        post?: never;
+        /** Delete a test plan; the executions it started keep its title. */
+        delete: operations["deleteTestPlan"];
+        options?: never;
+        head?: never;
+        /** Rename a test plan, describe it, or change its query. */
+        patch: operations["updateTestPlan"];
+        trace?: never;
+    };
+    "/test-plans/{planID}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the cases a plan picks, in order; each a test case of its project. */
+        put: operations["setTestPlanCases"];
         post?: never;
         delete?: never;
         options?: never;
@@ -7654,6 +7932,215 @@ export interface components {
             seenRevision: number;
             suspect: boolean;
         };
+        TestCaseCIResult: {
+            commit: string;
+            name: string;
+            suite: string;
+            /** Format: date-time */
+            uploadedAt: string;
+        };
+        TestCaseRef: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            title: string;
+            trashed: boolean;
+        };
+        TestCaseResult: {
+            configuration: string;
+            /** Format: uuid */
+            executionId: string;
+            executionTitle: string;
+            iteration: number;
+            outcome: ("passed" | "failed" | "blocked" | "skipped") | null;
+            /** Format: date-time */
+            recordedAt: string | null;
+            revision: number;
+            source: ("tester" | "ci") | null;
+            /** @enum {string} */
+            state: "open" | "closed" | "aborted";
+            version: string;
+        };
+        TestCaseRun: {
+            case: components["schemas"]["TestCaseRef"];
+            ci: components["schemas"]["TestCaseCIResult"] | null;
+            iteration: number;
+            note: string;
+            outcome: ("passed" | "failed" | "blocked" | "skipped") | null;
+            /** Format: date-time */
+            recordedAt: string | null;
+            recordedBy: components["schemas"]["PersonRef"] | null;
+            revision: number;
+            source: ("tester" | "ci") | null;
+            values: {
+                [key: string]: string;
+            };
+        };
+        TestExecution: {
+            baseline: components["schemas"]["TestExecutionBaseline"] | null;
+            can: components["schemas"]["TestExecutionCan"];
+            cases?: components["schemas"]["TestCaseRun"][];
+            closeComment: string;
+            /** Format: date-time */
+            closedAt: string | null;
+            configuration: string;
+            /** Format: date-time */
+            dueAt: string | null;
+            excluded: components["schemas"]["TestExecutionExcluded"][];
+            /** Format: uuid */
+            id: string;
+            manager: components["schemas"]["PersonRef"];
+            /** Format: date-time */
+            openedAt: string;
+            /** Format: uuid */
+            planId: string | null;
+            planTitle: string;
+            progress: components["schemas"]["TestExecutionProgress"];
+            projectKey: string;
+            /** @enum {string} */
+            state: "open" | "closed" | "aborted";
+            testers: components["schemas"]["Approver"][];
+            title: string;
+            version: string;
+        };
+        TestExecutionBaseline: {
+            /** Format: uuid */
+            id: string | null;
+            name: string;
+        };
+        TestExecutionCan: {
+            manage: boolean;
+            record: boolean;
+        };
+        TestExecutionCase: {
+            files: components["schemas"]["TestExecutionFile"][];
+            issues: components["schemas"]["TestExecutionIssue"][];
+            iterations: number;
+            parameters: components["schemas"]["TestParameter"][];
+            /** @description A JSON value. */
+            preconditions: unknown;
+            results: components["schemas"]["TestStepResult"][];
+            run: components["schemas"]["TestCaseRun"];
+            steps: components["schemas"]["TestStep"][];
+        };
+        TestExecutionCloseInput: {
+            abort?: boolean;
+            comment?: string;
+        };
+        TestExecutionExcluded: {
+            key: string;
+            reason: string;
+        };
+        TestExecutionFile: {
+            contentType: string;
+            /** Format: date-time */
+            createdAt: string;
+            fileName: string;
+            /** Format: uuid */
+            id: string;
+            size: number;
+            step: number | null;
+            uploadedBy: components["schemas"]["PersonRef"];
+        };
+        TestExecutionInput: {
+            /** Format: uuid */
+            baselineId?: string;
+            configuration?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: uuid */
+            planId: string;
+            testers: components["schemas"]["Approver"][];
+            title: string;
+            version?: string;
+        };
+        TestExecutionIssue: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["PersonRef"];
+            key: string;
+            step: number | null;
+        };
+        TestExecutionPatch: {
+            configuration?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            title?: string;
+            version?: string;
+        };
+        TestExecutionProgress: {
+            blocked: number;
+            failed: number;
+            notRun: number;
+            passed: number;
+            skipped: number;
+            total: number;
+        };
+        TestExecutionReport: {
+            cases: components["schemas"]["TestExecutionReportCase"][];
+            execution: components["schemas"]["TestExecution"];
+        };
+        TestExecutionReportCase: {
+            files: string[];
+            issues: string[];
+            results: components["schemas"]["TestStepResult"][];
+            run: components["schemas"]["TestCaseRun"];
+            steps: components["schemas"]["TestStep"][];
+        };
+        TestFailureIssueInput: {
+            armatureProject: string;
+            iteration: number;
+            step?: number;
+            summary?: string;
+            typeId?: string;
+        };
+        TestParameter: {
+            name: string;
+            values: string[];
+        };
+        TestPlan: {
+            can: components["schemas"]["TestPlanCan"];
+            cases: components["schemas"]["TestCaseRef"][];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["PersonRef"];
+            description: string;
+            /** Format: uuid */
+            id: string;
+            projectKey: string;
+            query: string;
+            /** @enum {string} */
+            scope: "cases" | "query";
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TestPlanCan: {
+            edit: boolean;
+        };
+        TestPlanCasesInput: {
+            cases: string[];
+        };
+        TestPlanInput: {
+            cases?: string[];
+            description?: string;
+            query?: string;
+            /** @enum {string} */
+            scope: "cases" | "query";
+            title: string;
+        };
+        TestPlanPatch: {
+            description?: string;
+            query?: string;
+            title?: string;
+        };
+        TestRecordInput: {
+            iteration: number;
+            note?: string;
+            /** @enum {string} */
+            outcome?: "passed" | "failed" | "blocked" | "skipped";
+            steps?: components["schemas"]["TestStepInput"][];
+        };
         TestResult: {
             armature: components["schemas"]["TestResultCommit"] | null;
             /** Format: date-time */
@@ -7714,6 +8201,26 @@ export interface components {
             /** @enum {string} */
             problem: "unknown" | "trashed" | "section";
             test: string;
+        };
+        TestStep: {
+            /** @description A JSON value. */
+            action: unknown;
+            /** @description A JSON value. */
+            expected: unknown;
+        };
+        TestStepInput: {
+            note?: string;
+            /** @enum {string} */
+            outcome: "passed" | "failed" | "blocked" | "skipped";
+            step: number;
+        };
+        TestStepResult: {
+            note: string;
+            outcome: ("passed" | "failed" | "blocked" | "skipped") | null;
+            /** Format: date-time */
+            recordedAt: string | null;
+            recordedBy: components["schemas"]["PersonRef"] | null;
+            step: number;
         };
         Theme: {
             active: boolean;
@@ -17383,6 +17890,239 @@ export interface operations {
             };
         };
     };
+    listTestExecutions: {
+        parameters: {
+            query?: {
+                /** @description Only executions in this state; every state when absent. */
+                state?: "open" | "closed" | "aborted";
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        executions: components["schemas"]["TestExecution"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    startTestExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestExecutionInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        execution: components["schemas"]["TestExecution"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listTestPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plans: components["schemas"]["TestPlan"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createTestPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plan: components["schemas"]["TestPlan"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     uploadTestRun: {
         parameters: {
             query?: never;
@@ -20973,6 +21713,48 @@ export interface operations {
             };
         };
     };
+    listTestCaseResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        results: components["schemas"]["TestCaseResult"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listTestResults: {
         parameters: {
             query?: {
@@ -22612,6 +23394,957 @@ export interface operations {
                         total: number;
                         uses: components["schemas"]["TermUse"][];
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    downloadTestExecutionFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteTestExecutionFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listMyTestExecutions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        executions: components["schemas"]["TestExecution"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTestExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        execution: components["schemas"]["TestExecution"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateTestExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestExecutionPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        execution: components["schemas"]["TestExecution"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTestExecutionCase: {
+        parameters: {
+            query?: {
+                /** @description The iteration, from 1; 1 when absent. */
+                iteration?: number;
+            };
+            header?: never;
+            path: {
+                executionID: string;
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        case: components["schemas"]["TestExecutionCase"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    uploadTestExecutionFile: {
+        parameters: {
+            query?: {
+                /** @description The iteration, from 1; 1 when absent. */
+                iteration?: number;
+                /** @description The step, from 1; the case itself when absent. */
+                step?: number;
+            };
+            header?: never;
+            path: {
+                executionID: string;
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        file: components["schemas"]["TestExecutionFile"];
+                    };
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    fileTestFailureIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestFailureIssueInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        issue: components["schemas"]["TestExecutionIssue"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    recordTestResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestRecordInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        case: components["schemas"]["TestExecutionCase"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    closeTestExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestExecutionCloseInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        execution: components["schemas"]["TestExecution"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTestExecutionReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        report: components["schemas"]["TestExecutionReport"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    testExecutionReportDocx: {
+        parameters: {
+            query?: {
+                /** @description A template the project may use; none when absent. */
+                template?: string;
+            };
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    testExecutionReportPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTestPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plan: components["schemas"]["TestPlan"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteTestPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateTestPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestPlanPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plan: components["schemas"]["TestPlan"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    setTestPlanCases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestPlanCasesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        plan: components["schemas"]["TestPlan"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

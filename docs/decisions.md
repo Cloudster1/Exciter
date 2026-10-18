@@ -3,6 +3,31 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-18: A test case is a requirement of a test-case type, run in test executions (#253)
+
+- **A test case is a requirement whose type has the test-case role.** A
+  kind of its own would meet about seventy places in the database, the
+  server and the web client that tell a requirement from a section, and a
+  table of its own would rebuild revisions, links, suspect, baselines,
+  workflow, attributes, labels, search, the trace model, CSV and ReqIF. As
+  a requirement of a marked type it has all of those, and carries
+  preconditions, steps and parameters besides, hashed only when present so
+  every other requirement keeps its hash.
+- **A run is called a test execution.** A test run is already an upload
+  from CI (#200), with its table, paths and events; two things of one name
+  would be read for each other.
+- **Results from CI fill open executions.** An execution says what was run
+  for a release; a test case that CI runs belongs in it as much as one a
+  person runs. A result a tester recorded is never overwritten, since a
+  person chose it.
+- **A defect links with `relates`.** An Armature issue linked with
+  `verifies` counts as verification evidence; an issue that says a test
+  failed must not make its requirement look verified.
+- **A tester records when assigned and able to comment.** A recorded result
+  becomes verification evidence, so being able to read a project is not
+  enough; being able to edit requirements is more than running a test
+  needs.
+
 ## 2026-10-18: Analysis reads as the reader, and computed values stay outside revisions (#242)
 
 - **Up is what a requirement derives from.** A link reads from its source,

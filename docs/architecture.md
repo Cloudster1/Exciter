@@ -44,8 +44,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m7.md` for the MCP integration (#182),
   `docs/api-contract-m8.md` for review sessions and control (#216),
   `docs/api-contract-m9.md` for verification evidence (#224),
-  `docs/api-contract-m10.md` for authoring quality (#233), and
-  `docs/api-contract-m11.md` for analysis and reporting (#242).
+  `docs/api-contract-m10.md` for authoring quality (#233),
+  `docs/api-contract-m11.md` for analysis and reporting (#242), and
+  `docs/api-contract-m12.md` for test management (#253).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -290,6 +291,11 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Test management** (M12, `docs/api-contract-m12.md`, planned): a test
+  case is a requirement of a type whose role is test cases, carrying
+  preconditions, steps and parameters in its revisions; `internal/testexec`
+  keeps test plans and executions, pinned at start, recorded by assigned
+  testers and filled from CI, whose last results count as verification.
 - **Analysis and reporting** (M11, `docs/api-contract-m11.md`): a
   trace graph walks a requirement's links up and down across projects,
   counting what the reader may not see without naming it; computed

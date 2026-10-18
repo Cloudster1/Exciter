@@ -106,6 +106,9 @@
       "name": "stator"
     },
     {
+      "name": "tests"
+    },
+    {
       "name": "themes"
     },
     {
@@ -14348,6 +14351,337 @@
         }
       }
     },
+    "/projects/{projectKey}/test-executions": {
+      "get": {
+        "operationId": "listTestExecutions",
+        "summary": "The project's test executions, open ones first, with their progress.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only executions in this state; every state when absent.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "closed",
+                "aborted"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "executions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestExecution"
+                      }
+                    }
+                  },
+                  "required": [
+                    "executions"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "startTestExecution",
+        "summary": "Start an execution of a plan against an optional baseline, a version and a configuration, with testers; its cases are pinned at once, at the revisions the baseline holds or their current ones. The caller manages it.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execution": {
+                      "$ref": "#/components/schemas/TestExecution"
+                    }
+                  },
+                  "required": [
+                    "execution"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/test-plans": {
+      "get": {
+        "operationId": "listTestPlans",
+        "summary": "The project's test plans, by title.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestPlan"
+                      }
+                    }
+                  },
+                  "required": [
+                    "plans"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createTestPlan",
+        "summary": "Make a test plan of test cases picked in order, or found by a query when an execution starts; at most 500 cases.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPlanInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/TestPlan"
+                    }
+                  },
+                  "required": [
+                    "plan"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/test-runs": {
       "post": {
         "operationId": "uploadTestRun",
@@ -20269,6 +20603,68 @@
         }
       }
     },
+    "/requirements/{reqKey}/test-executions": {
+      "get": {
+        "operationId": "listTestCaseResults",
+        "summary": "A test case's results in every execution, newest first.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestCaseResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/requirements/{reqKey}/test-results": {
       "get": {
         "operationId": "listTestResults",
@@ -22747,6 +23143,1333 @@
                     "total",
                     "uses"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-execution-files/{fileID}": {
+      "delete": {
+        "operationId": "deleteTestExecutionFile",
+        "summary": "Delete a file its uploader recorded, while the execution is open.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "fileID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "downloadTestExecutionFile",
+        "summary": "The bytes of a file recorded in an execution.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "fileID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/mine": {
+      "get": {
+        "operationId": "listMyTestExecutions",
+        "summary": "The executions the caller tests or manages, across projects, open ones first.",
+        "tags": [
+          "tests"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "executions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestExecution"
+                      }
+                    }
+                  },
+                  "required": [
+                    "executions"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}": {
+      "get": {
+        "operationId": "getTestExecution",
+        "summary": "A test execution, its testers, its cases with their outcomes, and its progress.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execution": {
+                      "$ref": "#/components/schemas/TestExecution"
+                    }
+                  },
+                  "required": [
+                    "execution"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTestExecution",
+        "summary": "Change an open execution's title, version, configuration or due date; its manager's.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execution": {
+                      "$ref": "#/components/schemas/TestExecution"
+                    }
+                  },
+                  "required": [
+                    "execution"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/cases/{reqKey}": {
+      "get": {
+        "operationId": "getTestExecutionCase",
+        "summary": "One case iteration of an execution: its preconditions and steps at the pinned revision, and what was recorded, with files and issues.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "iteration",
+            "in": "query",
+            "description": "The iteration, from 1; 1 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/TestExecutionCase"
+                    }
+                  },
+                  "required": [
+                    "case"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/cases/{reqKey}/files": {
+      "post": {
+        "operationId": "uploadTestExecutionFile",
+        "summary": "Record a file on a step or a case iteration, sent as a multipart part named file; at most 50 MB.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "iteration",
+            "in": "query",
+            "description": "The iteration, from 1; 1 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "step",
+            "in": "query",
+            "description": "The step, from 1; the case itself when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "$ref": "#/components/schemas/TestExecutionFile"
+                    }
+                  },
+                  "required": [
+                    "file"
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/cases/{reqKey}/issues": {
+      "post": {
+        "operationId": "fileTestFailureIssue",
+        "summary": "File a failed case iteration as an issue in Armature with the caller's token, linked with relates to the case and the requirements it verifies.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestFailureIssueInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issue": {
+                      "$ref": "#/components/schemas/TestExecutionIssue"
+                    }
+                  },
+                  "required": [
+                    "issue"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/cases/{reqKey}/result": {
+      "put": {
+        "operationId": "recordTestResult",
+        "summary": "Record a case iteration: each step's outcome and actual result, and the case's own, which follows from its steps when absent. For the manager and testers who may comment, while it is open.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestRecordInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/TestExecutionCase"
+                    }
+                  },
+                  "required": [
+                    "case"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/close": {
+      "post": {
+        "operationId": "closeTestExecution",
+        "summary": "Close an execution, or abort it so it counts for nothing; it never changes again. Its manager's.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExecutionCloseInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execution": {
+                      "$ref": "#/components/schemas/TestExecution"
+                    }
+                  },
+                  "required": [
+                    "execution"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/report": {
+      "get": {
+        "operationId": "getTestExecutionReport",
+        "summary": "An execution's report: its target, testers, counts by outcome, and each case with its steps, outcomes, notes, files and issues.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "report": {
+                      "$ref": "#/components/schemas/TestExecutionReport"
+                    }
+                  },
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/report.docx": {
+      "get": {
+        "operationId": "testExecutionReportDocx",
+        "summary": "An execution's report as a Word file, through a template of the project when one is named.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-executions/{executionID}/report.pdf": {
+      "get": {
+        "operationId": "testExecutionReportPDF",
+        "summary": "An execution's report as a PDF, printed by the render service as the reader.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "executionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-plans/{planID}": {
+      "delete": {
+        "operationId": "deleteTestPlan",
+        "summary": "Delete a test plan; the executions it started keep its title.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "planID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getTestPlan",
+        "summary": "A test plan and its cases: those picked, or what its query finds now.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "planID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/TestPlan"
+                    }
+                  },
+                  "required": [
+                    "plan"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTestPlan",
+        "summary": "Rename a test plan, describe it, or change its query.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "planID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPlanPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/TestPlan"
+                    }
+                  },
+                  "required": [
+                    "plan"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-plans/{planID}/cases": {
+      "put": {
+        "operationId": "setTestPlanCases",
+        "summary": "Set the cases a plan picks, in order; each a test case of its project.",
+        "tags": [
+          "tests"
+        ],
+        "parameters": [
+          {
+            "name": "planID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPlanCasesInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/TestPlan"
+                    }
+                  },
+                  "required": [
+                    "plan"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -37296,6 +39019,870 @@
           "suspect"
         ]
       },
+      "TestCaseCIResult": {
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "suite": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "suite",
+          "name",
+          "commit",
+          "uploadedAt"
+        ]
+      },
+      "TestCaseRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "title",
+          "trashed"
+        ]
+      },
+      "TestCaseResult": {
+        "type": "object",
+        "properties": {
+          "configuration": {
+            "type": "string"
+          },
+          "executionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "executionTitle": {
+            "type": "string"
+          },
+          "iteration": {
+            "type": "integer"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "blocked",
+                  "skipped"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recordedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "tester",
+                  "ci"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "aborted"
+            ]
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "executionId",
+          "executionTitle",
+          "state",
+          "version",
+          "configuration",
+          "iteration",
+          "revision",
+          "outcome",
+          "source",
+          "recordedAt"
+        ]
+      },
+      "TestCaseRun": {
+        "type": "object",
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/TestCaseRef"
+          },
+          "ci": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestCaseCIResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "iteration": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "blocked",
+                  "skipped"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recordedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "recordedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "tester",
+                  "ci"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case",
+          "iteration",
+          "revision",
+          "values",
+          "outcome",
+          "note",
+          "source",
+          "recordedBy",
+          "recordedAt",
+          "ci"
+        ]
+      },
+      "TestExecution": {
+        "type": "object",
+        "properties": {
+          "baseline": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionBaseline"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can": {
+            "$ref": "#/components/schemas/TestExecutionCan"
+          },
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestCaseRun"
+            }
+          },
+          "closeComment": {
+            "type": "string"
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "configuration": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "excluded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionExcluded"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "manager": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "planId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "planTitle": {
+            "type": "string"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TestExecutionProgress"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed",
+              "aborted"
+            ]
+          },
+          "testers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Approver"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "title",
+          "planId",
+          "planTitle",
+          "baseline",
+          "version",
+          "configuration",
+          "manager",
+          "dueAt",
+          "state",
+          "testers",
+          "excluded",
+          "progress",
+          "closeComment",
+          "openedAt",
+          "closedAt",
+          "can"
+        ]
+      },
+      "TestExecutionBaseline": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TestExecutionCan": {
+        "type": "object",
+        "properties": {
+          "manage": {
+            "type": "boolean"
+          },
+          "record": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "manage",
+          "record"
+        ]
+      },
+      "TestExecutionCase": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionFile"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionIssue"
+            }
+          },
+          "iterations": {
+            "type": "integer"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestParameter"
+            }
+          },
+          "preconditions": {
+            "description": "A JSON value."
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStepResult"
+            }
+          },
+          "run": {
+            "$ref": "#/components/schemas/TestCaseRun"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStep"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "preconditions",
+          "steps",
+          "results",
+          "files",
+          "issues",
+          "iterations",
+          "parameters"
+        ]
+      },
+      "TestExecutionCloseInput": {
+        "type": "object",
+        "properties": {
+          "abort": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "TestExecutionExcluded": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "reason"
+        ]
+      },
+      "TestExecutionFile": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "step": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "uploadedBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          }
+        },
+        "required": [
+          "id",
+          "step",
+          "fileName",
+          "contentType",
+          "size",
+          "uploadedBy",
+          "createdAt"
+        ]
+      },
+      "TestExecutionInput": {
+        "type": "object",
+        "properties": {
+          "baselineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "configuration": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "testers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Approver"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "planId",
+          "testers"
+        ]
+      },
+      "TestExecutionIssue": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "key": {
+            "type": "string"
+          },
+          "step": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "step",
+          "createdBy",
+          "createdAt"
+        ]
+      },
+      "TestExecutionPatch": {
+        "type": "object",
+        "properties": {
+          "configuration": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "TestExecutionProgress": {
+        "type": "object",
+        "properties": {
+          "blocked": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "notRun": {
+            "type": "integer"
+          },
+          "passed": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "passed",
+          "failed",
+          "blocked",
+          "skipped",
+          "notRun"
+        ]
+      },
+      "TestExecutionReport": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionReportCase"
+            }
+          },
+          "execution": {
+            "$ref": "#/components/schemas/TestExecution"
+          }
+        },
+        "required": [
+          "execution",
+          "cases"
+        ]
+      },
+      "TestExecutionReportCase": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStepResult"
+            }
+          },
+          "run": {
+            "$ref": "#/components/schemas/TestCaseRun"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStep"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "steps",
+          "results",
+          "files",
+          "issues"
+        ]
+      },
+      "TestFailureIssueInput": {
+        "type": "object",
+        "properties": {
+          "armatureProject": {
+            "type": "string"
+          },
+          "iteration": {
+            "type": "integer"
+          },
+          "step": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "typeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "iteration",
+          "armatureProject"
+        ]
+      },
+      "TestParameter": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "values"
+        ]
+      },
+      "TestPlan": {
+        "type": "object",
+        "properties": {
+          "can": {
+            "$ref": "#/components/schemas/TestPlanCan"
+          },
+          "cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestCaseRef"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "cases",
+              "query"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "title",
+          "description",
+          "scope",
+          "query",
+          "cases",
+          "createdBy",
+          "createdAt",
+          "updatedAt",
+          "can"
+        ]
+      },
+      "TestPlanCan": {
+        "type": "object",
+        "properties": {
+          "edit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "edit"
+        ]
+      },
+      "TestPlanCasesInput": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "cases"
+        ]
+      },
+      "TestPlanInput": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "cases",
+              "query"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "scope"
+        ]
+      },
+      "TestPlanPatch": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "TestRecordInput": {
+        "type": "object",
+        "properties": {
+          "iteration": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "blocked",
+              "skipped"
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStepInput"
+            }
+          }
+        },
+        "required": [
+          "iteration"
+        ]
+      },
       "TestResult": {
         "type": "object",
         "properties": {
@@ -37541,6 +40128,96 @@
           "key",
           "test",
           "problem"
+        ]
+      },
+      "TestStep": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "A JSON value."
+          },
+          "expected": {
+            "description": "A JSON value."
+          }
+        },
+        "required": [
+          "action",
+          "expected"
+        ]
+      },
+      "TestStepInput": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "blocked",
+              "skipped"
+            ]
+          },
+          "step": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "step",
+          "outcome"
+        ]
+      },
+      "TestStepResult": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "blocked",
+                  "skipped"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recordedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "recordedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "step": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "step",
+          "outcome",
+          "note",
+          "recordedBy",
+          "recordedAt"
         ]
       },
       "Theme": {
