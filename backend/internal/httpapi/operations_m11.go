@@ -27,6 +27,9 @@ var graphQuery = []param{
 // templateQuery names the Word template an export goes through.
 var templateQuery = param{name: "template", schema: uuidParam, description: "A template the project may use; none when absent."}
 
+// sinceQuery names the baseline a template's change marks count from.
+var sinceQuery = param{name: "since", schema: uuidParam, description: "A baseline of the project whose changes since are marked, when the template includes change marks."}
+
 var analysisOperations = []operation{
 	// The trace graph (#211).
 	{method: "GET", path: "/requirements/{reqKey}/graph", handler: "handleTraceGraph", tag: "coverage",
@@ -90,33 +93,33 @@ var analysisOperations = []operation{
 		responses: ok(env{"templates": []dashboard.Template{}, "kinds": []dashboard.KindInfo{}})},
 
 	// Word templates and the static HTML site (#214).
-	{method: "GET", path: "/projects/{projectKey}/export-templates", handler: "handleListExportTemplates", tag: "documents", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/export-templates", handler: "handleListExportTemplates", tag: "documents",
 		summary:   "The Word templates the project may export through: its own, and those other projects share.",
 		responses: ok(env{"templates": []exporttemplate.Template{}})},
-	{method: "POST", path: "/projects/{projectKey}/export-templates", handler: "handleUploadExportTemplate", tag: "documents", pending: true,
+	{method: "POST", path: "/projects/{projectKey}/export-templates", handler: "handleUploadExportTemplate", tag: "documents",
 		summary: "Upload a Word template, sent as a multipart part named file, whose styles, cover, headers and footers exports take. A template that cannot be used is refused with what is wrong. For the project's administrators; at most " +
 			strconv.Itoa(exporttemplate.MaxFileMB) + " MB.",
 		multipart: true, request: exporttemplate.Form{},
 		responses: map[int]any{http.StatusCreated: env{"template": exporttemplate.Template{}}, http.StatusForbidden: errorEnvelope{}, http.StatusConflict: errorEnvelope{},
 			http.StatusRequestEntityTooLarge: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
-	{method: "GET", path: "/export-templates/{templateID}", handler: "handleGetExportTemplate", tag: "documents", pending: true,
+	{method: "GET", path: "/export-templates/{templateID}", handler: "handleGetExportTemplate", tag: "documents",
 		summary:   "One Word template, the fields it shows and what it includes.",
 		responses: ok(env{"template": exporttemplate.Template{}})},
-	{method: "PATCH", path: "/export-templates/{templateID}", handler: "handleUpdateExportTemplate", tag: "documents", pending: true,
+	{method: "PATCH", path: "/export-templates/{templateID}", handler: "handleUpdateExportTemplate", tag: "documents",
 		summary: "Rename a template, choose its fields and what it includes, or share it with every project; its project's administrators'.",
 		request: exporttemplate.Patch{}, responses: with(http.StatusOK, env{"template": exporttemplate.Template{}})},
-	{method: "DELETE", path: "/export-templates/{templateID}", handler: "handleDeleteExportTemplate", tag: "documents", pending: true,
+	{method: "DELETE", path: "/export-templates/{templateID}", handler: "handleDeleteExportTemplate", tag: "documents",
 		summary:   "Delete a template; its project's administrators'. Exports made with it stay as they are.",
 		responses: map[int]any{http.StatusNoContent: nil, http.StatusForbidden: errorEnvelope{}, http.StatusConflict: errorEnvelope{}}},
-	{method: "GET", path: "/export-templates/{templateID}/file", handler: "handleDownloadExportTemplate", tag: "documents", pending: true,
+	{method: "GET", path: "/export-templates/{templateID}/file", handler: "handleDownloadExportTemplate", tag: "documents",
 		summary: "The template's Word file as it was uploaded.",
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
-	{method: "GET", path: "/projects/{projectKey}/document.html.zip", handler: "handleProjectSite", tag: "documents", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/document.html.zip", handler: "handleProjectSite", tag: "documents",
 		summary: "The specification as a static HTML site in a zip that opens offline: linked pages with its contents, trace links between them and a search. Printed by the render service as the reader; 503 render_unavailable when the server has none.",
-		query:   []param{documentSection, templateQuery},
+		query:   []param{documentSection, templateQuery, sinceQuery},
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusServiceUnavailable: errorEnvelope{}}},
-	{method: "GET", path: "/baselines/{baselineID}/document.html.zip", handler: "handleBaselineSite", tag: "documents", pending: true,
+	{method: "GET", path: "/baselines/{baselineID}/document.html.zip", handler: "handleBaselineSite", tag: "documents",
 		summary: "A baseline's document as a static HTML site in a zip.",
-		query:   []param{templateQuery},
+		query:   []param{templateQuery, sinceQuery},
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}, http.StatusServiceUnavailable: errorEnvelope{}}},
 }

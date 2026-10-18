@@ -17,6 +17,7 @@ import { coverageDe } from "./coverage.de";
 import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
 import { dashboardDe } from "./dashboard.de";
+import { templatesDe } from "./templates.de";
 import { graphDe } from "./graph.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
@@ -345,6 +346,9 @@ export const de: Messages = {
       "dashboard.created": "Geteiltes Dashboard angelegt",
       "dashboard.shared": "Dashboard geteilt",
       "dashboard.deleted": "Geteiltes Dashboard gelöscht",
+      "export_template.uploaded": "Word-Vorlage hochgeladen",
+      "export_template.changed": "Word-Vorlage geändert",
+      "export_template.deleted": "Word-Vorlage gelöscht",
       "term.deleted": "Begriff gelöscht",
       "glossaries.chosen": "Glossare gewählt",
       "project.language_set": "Projektsprache festgelegt",
@@ -407,6 +411,7 @@ export const de: Messages = {
   matrix: matrixDe,
   chains: chainsDe,
   dashboard: dashboardDe,
+  templates: templatesDe,
   graph: graphDe,
   imports: importsDe,
   reqif: reqifDe,

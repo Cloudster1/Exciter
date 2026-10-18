@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Exports through Word templates, and as an HTML site (#214). A project's
+  administrators upload a Word file whose styles, cover, headers and
+  footers an export takes, with `{{content}}` where the requirements go and
+  placeholders for the project, title, section, baseline, date, exporter
+  and signers; one that cannot be used is refused with what is wrong. A
+  template chooses which fields a requirement shows and in which order,
+  whether its links and open comments come along, and may mark what changed
+  since a baseline as tracked changes. Shared, a template is offered in
+  every project. Exporting a specification, a section, a baseline or a
+  review report asks which template to use. A specification or a baseline
+  also downloads as a static HTML site in a zip, with linked pages, its
+  pictures and a search, that opens offline.
 - Dashboards over a project's requirements (#212). A dashboard is a person's
   own until shared with everybody who may read the project; its link is its
   address. Widgets break the requirements down by status, category, type,

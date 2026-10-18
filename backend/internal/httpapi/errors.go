@@ -215,6 +215,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := dashboardError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := templateError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := duplicatesError(err); apiErr != nil {
 			return apiErr
 		}

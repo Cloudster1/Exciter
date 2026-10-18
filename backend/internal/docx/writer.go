@@ -65,10 +65,18 @@ type writer struct {
 	// termAnchor is the bookmark of a term's entry in the glossary chapter, which words linked to it link to;
 	// nil, or not ok, writes them as plain words.
 	termAnchor func(termID string) (bookmark string, ok bool)
+	// layout is the Word template written into (#214), nil for the export's own page; fill is what its
+	// placeholders say, and the merged styles and numbering are what pack writes in place of the export's.
+	layout          *Template
+	fill            Fill
+	revision        int
+	lang            string
+	mergedStyles    []byte
+	mergedNumbering []byte
 }
 
 func newWriter(ctx context.Context, lang string, r Reader) *writer {
-	return &writer{ctx: ctx, read: r, words: wordsFor(lang), embedded: map[string]*picture{}}
+	return &writer{ctx: ctx, read: r, words: wordsFor(lang), embedded: map[string]*picture{}, lang: lang}
 }
 
 // fail keeps the first error; what follows is still written, and thrown away.
@@ -193,9 +201,12 @@ type runProps struct {
 	strike bool
 	color  string
 	shade  string
+	// change marks words inserted or deleted since a baseline (#214), written as Word's tracked changes.
+	change string
 }
 
 func (rp runProps) write(b *strings.Builder) {
+	rp.change = ""
 	if rp == (runProps{}) {
 		return
 	}
@@ -230,12 +241,22 @@ func (w *writer) text(s string, rp runProps) {
 	if s == "" {
 		return
 	}
+	switch rp.change {
+	case changeInserted, changeDeleted:
+		w.revision++
+		w.b.WriteString(`<w:` + rp.change + ` w:id="` + itoa(w.revision) + `" w:author="Exciter">`)
+		defer w.b.WriteString(`</w:` + rp.change + `>`)
+	}
+	tag := "w:t"
+	if rp.change == changeDeleted {
+		tag = "w:delText"
+	}
 	w.b.WriteString("<w:r>")
 	rp.write(&w.b)
 	start := 0
 	flush := func(end int) {
 		if end > start {
-			w.b.WriteString(`<w:t xml:space="preserve">` + escape(s[start:end]) + `</w:t>`)
+			w.b.WriteString(`<` + tag + ` xml:space="preserve">` + escape(s[start:end]) + `</` + tag + `>`)
 		}
 	}
 	for i, c := range s {

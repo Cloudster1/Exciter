@@ -92,3 +92,17 @@ export function wordDocument(blocks: DocxBlock[]): Buffer {
     "word/document.xml": `${xml}<w:document xmlns:w="${W}"><w:body>${blocks.map(block).join("")}<w:sectPr/></w:body></w:document>`,
   });
 }
+
+const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+/** A Word template: cover is the line before {{content}}, header the header's line; both may hold placeholders. */
+export function wordTemplate(cover: string, header: string): Buffer {
+  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  return storedZip({
+    "[Content_Types].xml": `${xml}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/></Types>`,
+    "_rels/.rels": `${xml}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`,
+    "word/_rels/document.xml.rels": `${xml}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>`,
+    "word/header1.xml": `${xml}<w:hdr xmlns:w="${W}"><w:p>${run(header)}</w:p></w:hdr>`,
+    "word/document.xml": `${xml}<w:document xmlns:w="${W}" xmlns:r="${R}"><w:body><w:p>${run(cover)}</w:p><w:p>${run("{{content}}")}</w:p><w:sectPr><w:headerReference w:type="default" r:id="rId7"/></w:sectPr></w:body></w:document>`,
+  });
+}

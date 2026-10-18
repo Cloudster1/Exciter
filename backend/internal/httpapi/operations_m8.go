@@ -88,6 +88,7 @@ var controlOperations = []operation{
 		responses: ok(env{"report": review.Report{}})},
 	{method: "GET", path: "/review-sessions/{sessionID}/report.docx", handler: "handleReviewSessionReportDocx", tag: "reviews",
 		summary: "A session's report as a Word file.",
+		query:   []param{templateQuery},
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusNotFound: errorEnvelope{}}},
 	{method: "GET", path: "/review-sessions/{sessionID}/report.pdf", handler: "handleReviewSessionReportPDF", tag: "reviews",
 		summary: "A session's report as a PDF, printed by the render service as the reader.",

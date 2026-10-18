@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
+	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
@@ -136,6 +137,8 @@ type Server struct {
 	OAuth *oauth.Service
 	// Documents reads specifications and baselines as documents to sign and send (#45).
 	Documents *specdoc.Service
+	// ExportTemplates are the Word templates exports go through (#214); nil answers their routes that they are not set up.
+	ExportTemplates *exporttemplate.Service
 	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
 	Renderer render.Renderer
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -674,6 +677,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/baselines/{baselineID}/document.docx", s.handleBaselineDocx)
 			r.Get("/baselines/{baselineID}/document.pdf", s.handleBaselinePDF)
 			r.Get("/baselines/{baselineID}/document.md", s.handleBaselineMarkdown)
+			r.Get("/projects/{projectKey}/document.html.zip", s.handleProjectSite)
+			r.Get("/baselines/{baselineID}/document.html.zip", s.handleBaselineSite)
+		})
+
+		// Word templates (#214): read by the project's readers, or by everybody once shared; kept by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.templatesOn)
+			r.Get("/projects/{projectKey}/export-templates", s.handleListExportTemplates)
+			r.Post("/projects/{projectKey}/export-templates", s.handleUploadExportTemplate)
+			r.Get("/export-templates/{templateID}", s.handleGetExportTemplate)
+			r.Patch("/export-templates/{templateID}", s.handleUpdateExportTemplate)
+			r.Delete("/export-templates/{templateID}", s.handleDeleteExportTemplate)
+			r.Get("/export-templates/{templateID}/file", s.handleDownloadExportTemplate)
 		})
 
 		// What the caller may do across the installation, and the people and groups a grant names.

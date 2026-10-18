@@ -1,6 +1,9 @@
 package docx
 
-import "github.com/cloudster1/exciter/backend/internal/document"
+import (
+	"github.com/cloudster1/exciter/backend/internal/document"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+)
 
 type inlineWriter func(w *writer, n document.Node, rp runProps)
 
@@ -17,7 +20,16 @@ var markStyles = map[string]func(*runProps){
 	"link":   func(rp *runProps) { rp.style = "Hyperlink" },
 	// A term reads as the words around it.
 	document.MarkTerm: func(*runProps) {},
+	// Changes since a baseline are tracked changes (#214).
+	requirement.MarkDiffInsert: func(rp *runProps) { rp.change = changeInserted },
+	requirement.MarkDiffDelete: func(rp *runProps) { rp.change = changeDeleted },
 }
+
+// The elements Word wraps an inserted and a deleted run in.
+const (
+	changeInserted = "ins"
+	changeDeleted  = "del"
+)
 
 func init() {
 	inlineWriters = map[string]inlineWriter{

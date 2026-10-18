@@ -515,3 +515,8 @@ export const LINE_AXIS_LABELS = 6;
 /** What a new list widget shows and how far a widget over time looks back, until set: the API's own. */
 export const DASHBOARD_DEFAULT_ROWS = 10;
 export const DASHBOARD_DEFAULT_DAYS = 90;
+/** The largest Word template an upload takes, and the lengths of its name and description: the API's exporttemplate limits. */
+export const TEMPLATE_MAX_MB = 20;
+export const TEMPLATE_MAX_BYTES = TEMPLATE_MAX_MB * 1024 * 1024;
+export const TEMPLATE_NAME_MAX_LENGTH = 80;
+export const TEMPLATE_DESCRIPTION_MAX_LENGTH = 500;

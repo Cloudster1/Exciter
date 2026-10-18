@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type ReactNode } from "react";
-import { useBaselineDocument, useProjectDocument, type DocumentEntry, type DocumentProperty, type SpecDocument } from "@/api/documents";
+import { useBaselineDocument, useProjectDocument, type DocumentEntry, type DocumentProperty, type DocumentShape, type SpecDocument } from "@/api/documents";
 import { DOCUMENT_CONTENTS_DEPTH } from "@/config";
 import { DocView } from "@/features/editor/DocView";
 import { TermAnchors } from "@/features/glossary/TermButton";
@@ -28,14 +28,14 @@ export function useLightScheme(): void {
 }
 
 /** A project's document, or a section's, as printed. */
-export function PrintProjectDocument({ projectKey, section }: { projectKey: string; section?: string }) {
-  const { data, error } = useProjectDocument(projectKey, section);
+export function PrintProjectDocument({ projectKey, section, shape }: { projectKey: string; section?: string; shape?: DocumentShape }) {
+  const { data, error } = useProjectDocument(projectKey, section, shape);
   return <PrintFrame doc={data} failed={error?.message} />;
 }
 
 /** A baseline's document, as printed. */
-export function PrintBaselineDocument({ baselineId }: { baselineId: string }) {
-  const { data, error } = useBaselineDocument(baselineId);
+export function PrintBaselineDocument({ baselineId, shape }: { baselineId: string; shape?: DocumentShape }) {
+  const { data, error } = useBaselineDocument(baselineId, shape);
   return <PrintFrame doc={data} failed={error?.message} />;
 }
 
@@ -88,6 +88,7 @@ export function DocumentView({ doc }: { doc: SpecDocument }) {
   // A document of a server older than the glossary has none.
   const glossary = useMemo(() => doc.glossary ?? [], [doc.glossary]);
   // Words linked to a term lead to its entry in the glossary chapter, and read as plain words when it holds none.
+  const held = useMemo(() => new Set(doc.entries.map((e) => e.key)), [doc.entries]);
   const anchors = useMemo(() => {
     const held = new Set(glossary.map((term) => term.id));
     return (termId: string) => (held.has(termId) ? `#term-${termId}` : null);
@@ -110,6 +111,7 @@ export function DocumentView({ doc }: { doc: SpecDocument }) {
             {b?.description && <p>{b.description}</p>}
             <p>{t.documents.exported(doc.exportedBy, day.format(new Date(doc.exportedAt)))}</p>
             <p>{t.documents.holds(doc.entries.length)}</p>
+            {doc.changesSince && <p data-print-changes-since="">{t.documents.changesSince(doc.changesSince)}</p>}
           </div>
         </section>
         <nav className="print-contents" aria-label={t.documents.contents} data-print-contents="">
@@ -135,7 +137,7 @@ export function DocumentView({ doc }: { doc: SpecDocument }) {
           </ol>
         </nav>
         {doc.entries.map((e) => (
-          <Entry key={e.id} entry={e} />
+          <Entry key={e.id} entry={e} held={held} />
         ))}
         {doc.entries.length < doc.total && <p className="mt-6 text-sm italic text-ink-muted">{t.documents.truncated(doc.entries.length, doc.total)}</p>}
         {glossary.length > 0 && <Glossary doc={doc} terms={glossary} />}
@@ -209,15 +211,22 @@ function Heading({ depth, id, children }: { depth: number; id: string; children:
   }
 }
 
-function Entry({ entry: e }: { entry: DocumentEntry }) {
+function Entry({ entry: e, held }: { entry: DocumentEntry; held: Set<string> }) {
   return (
-    <section className="print-entry space-y-2" data-print-entry={e.key}>
+    <section className="print-entry space-y-2" data-print-entry={e.key} data-entry-depth={e.depth}>
       <Heading depth={e.depth} id={`entry-${e.key}`}>
         <span className="mr-2 tabular-nums">{e.outline}</span>
         {e.title}
       </Heading>
       <p className="text-xs text-ink-muted">{t.documents.keyAndRevision(e.key, e.revision)}</p>
-      <DocView doc={e.statement as Doc} />
+      {e.changes ? (
+        <div data-print-changes="">
+          <p className="text-xs text-ink-muted">{e.changedFrom ? t.documents.changedFrom(e.changedFrom) : t.documents.newSince}</p>
+          <DocView doc={e.changes as Doc} />
+        </div>
+      ) : (
+        <DocView doc={e.statement as Doc} />
+      )}
       {e.rationale != null && (
         <div>
           <p className="text-xs font-semibold uppercase text-ink-muted">{t.documents.rationale}</p>
@@ -246,7 +255,29 @@ function Entry({ entry: e }: { entry: DocumentEntry }) {
           <ul className="list-disc pl-5 text-sm" data-print-links="">
             {e.links.map((l, i) => (
               <li key={i}>
-                {l.phrase} <strong>{l.key}</strong> {l.title}
+                {l.phrase}{" "}
+                {held.has(l.key) ? (
+                  <a href={`#entry-${l.key}`} className="text-ink">
+                    <strong>{l.key}</strong> {l.title}
+                  </a>
+                ) : (
+                  <>
+                    <strong>{l.key}</strong> {l.title}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {e.comments && e.comments.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase text-ink-muted">{t.documents.comments}</p>
+          <ul className="space-y-1 text-sm" data-print-comments="">
+            {e.comments.map((c, i) => (
+              <li key={i}>
+                <span className="text-xs text-ink-muted">{t.documents.commentBy(c.author, day.format(new Date(c.at)))}</span>
+                <p>{c.text}</p>
               </li>
             ))}
           </ul>

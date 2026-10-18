@@ -21,11 +21,13 @@ const propertyShare = 30
 
 // document is word/document.xml: the cover, the contents, then every entry.
 func (w *writer) document(doc *specdoc.Document) ([]byte, error) {
-	w.b.WriteString(xml.Header)
-	w.b.WriteString(`<w:document xmlns:w="` + nsW + `" xmlns:r="` + nsR + `" xmlns:wp="` + nsWP + `" xmlns:a="` + nsA + `" xmlns:pic="` + nsPic + `"><w:body>`)
-	root := frame{width: textWidth}
+	root := frame{width: w.pageText()}
 	w.linkTerms(doc.Glossary)
-	w.cover(doc, root)
+	if w.layout == nil {
+		w.b.WriteString(xml.Header)
+		w.b.WriteString(`<w:document xmlns:w="` + nsW + `" xmlns:r="` + nsR + `" xmlns:wp="` + nsWP + `" xmlns:a="` + nsA + `" xmlns:pic="` + nsPic + `"><w:body>`)
+		w.cover(doc, root)
+	}
 	w.contents(doc, root)
 	for i, e := range doc.Entries {
 		w.entry(i, e, root)
@@ -34,13 +36,21 @@ func (w *writer) document(doc *specdoc.Document) ([]byte, error) {
 		w.note(root, w.words.truncated(len(doc.Entries), doc.Total))
 	}
 	w.glossary(doc.Glossary, root)
-	w.b.WriteString(`<w:sectPr><w:pgSz w:w="` + itoa(pageWidth) + `" w:h="` + itoa(pageHeight) + `"/>`)
-	w.b.WriteString(`<w:pgMar w:top="` + itoa(margin) + `" w:right="` + itoa(margin) + `" w:bottom="` + itoa(margin) + `" w:left="` + itoa(margin) + `" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`)
-	w.b.WriteString(`</w:body></w:document>`)
 	if w.err != nil {
 		return nil, w.err
 	}
+	if w.layout != nil {
+		return w.framed(w.b.String()), nil
+	}
+	w.b.WriteString(defaultSectPr())
+	w.b.WriteString(`</w:body></w:document>`)
 	return []byte(w.b.String()), nil
+}
+
+// defaultSectPr is the export's own page: A4 with even margins.
+func defaultSectPr() string {
+	return `<w:sectPr><w:pgSz w:w="` + itoa(pageWidth) + `" w:h="` + itoa(pageHeight) + `"/>` +
+		`<w:pgMar w:top="` + itoa(margin) + `" w:right="` + itoa(margin) + `" w:bottom="` + itoa(margin) + `" w:left="` + itoa(margin) + `" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`
 }
 
 // cover is the first page: what the document is of, the baseline it was taken as, who exported it and when.
@@ -156,7 +166,14 @@ func (w *writer) entry(i int, e specdoc.Entry, f frame) {
 		w.bookmarked(entryBookmark(i), func() { w.text(e.Outline+" "+e.Title, runProps{}) })
 	})
 	w.para(f, paraProps{style: "EntryMeta"}, func() { w.text(w.words.keyAndRevision(e.Key, e.Revision), runProps{}) })
-	w.body(e.Statement, f)
+	if e.ChangedFrom != nil {
+		w.para(f, paraProps{style: "EntryMeta"}, func() { w.text(w.words.changedFrom(*e.ChangedFrom), runProps{italic: true}) })
+	}
+	if len(e.Changes) > 0 {
+		w.body(e.Changes, f)
+	} else {
+		w.body(e.Statement, f)
+	}
 	if len(e.Rationale) > 0 {
 		w.para(f, paraProps{style: "Label", keepNext: true}, func() { w.text(w.words.rationale, runProps{}) })
 		w.body(e.Rationale, f)
@@ -178,6 +195,23 @@ func (w *writer) entry(i int, e specdoc.Entry, f frame) {
 			})
 		}
 	}
+	if len(e.Comments) > 0 {
+		w.para(f, paraProps{style: "Label", keepNext: true}, func() { w.text(w.words.pick("Open comments", "Offene Kommentare"), runProps{}) })
+		for _, c := range e.Comments {
+			w.para(f, paraProps{}, func() {
+				w.text(c.Author+", "+w.words.day(c.At)+": ", runProps{bold: true})
+				w.text(c.Text, runProps{})
+			})
+		}
+	}
+}
+
+// changedFrom says which revision a baseline held that an entry's change marks are counted from.
+func (w words) changedFrom(revision int) string {
+	if revision == 0 {
+		return w.pick("New since the baseline.", "Neu seit der Baseline.")
+	}
+	return w.pick("Changes since revision ", "Änderungen seit Revision ") + itoa(revision) + "."
 }
 
 // body writes a stored document; one that does not parse is left out rather than written half.
