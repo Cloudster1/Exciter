@@ -27,6 +27,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
@@ -188,6 +189,7 @@ func run() error {
 		Code:            codetrace.NewService(cluster),
 		Quality:         quality.NewService(cluster, requirement.LocateForQuality),
 		Glossary:        glossary.NewService(cluster),
+		Duplicates:      duplicates.NewService(cluster),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

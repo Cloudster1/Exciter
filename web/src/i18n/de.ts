@@ -21,6 +21,7 @@ import { controlDe } from "./control.de";
 import { evidenceDe } from "./evidence.de";
 import { qualityDe } from "./quality.de";
 import { glossaryDe } from "./glossary.de";
+import { duplicatesDe } from "./duplicates.de";
 import { fieldRulesDe } from "./fieldRules.de";
 import { sessionsDe } from "./sessions.de";
 import { statorDe } from "./stator.de";
@@ -337,6 +338,7 @@ export const de: Messages = {
       "review_session.round_started": "Runde einer Review-Sitzung begonnen",
       "review_session.closed": "Review-Sitzung geschlossen",
       "evidence_settings.saved": "Zählender Branch benannt",
+      "duplicate_settings.saved": "Schwelle für Duplikate festgelegt",
       "term.deleted": "Begriff gelöscht",
       "glossaries.chosen": "Glossare gewählt",
       "project.language_set": "Projektsprache festgelegt",
@@ -386,6 +388,7 @@ export const de: Messages = {
   evidence: evidenceDe,
   quality: qualityDe,
   glossary: glossaryDe,
+  duplicates: duplicatesDe,
   fieldRules: fieldRulesDe,
   sessions: sessionsDe,
   comments: commentsDe,

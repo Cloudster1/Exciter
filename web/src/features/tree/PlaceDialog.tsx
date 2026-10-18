@@ -30,11 +30,14 @@ export interface Placed {
 export function PlaceDialog({
   placed,
   mode,
+  into,
   onClose,
   onDone,
 }: {
   placed: Placed;
   mode: "move" | "copy" | "reuse";
+  /** The project chosen first, when the reader came from one of them. */
+  into?: string;
   onClose: () => void;
   onDone: (r: Requirement) => void;
 }) {
@@ -44,7 +47,7 @@ export function PlaceDialog({
   const targets = (projects ?? []).filter((p) =>
     reusing ? p.key !== placed.projectKey && p.can.edit && !p.archivedAt : p.key === placed.projectKey || (p.can.edit && !p.archivedAt),
   );
-  const [chosen, setProjectKey] = useState(reusing ? "" : placed.projectKey);
+  const [chosen, setProjectKey] = useState(into ?? (reusing ? "" : placed.projectKey));
   const projectKey = chosen || (reusing ? (targets[0]?.key ?? "") : placed.projectKey);
   const { data: nodes, isLoading } = useTree(projectKey);
   const [parentId, setParentId] = useState(TOP);

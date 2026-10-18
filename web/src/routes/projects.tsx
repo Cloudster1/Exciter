@@ -27,6 +27,7 @@ import { CodeTagsPage } from "@/features/evidence/CodeTagsPage";
 import { QualityPage } from "@/features/quality/QualityPage";
 import { GlossaryPage } from "@/features/glossary/GlossaryPage";
 import { TermPage } from "@/features/glossary/TermPage";
+import { DuplicatesPage } from "@/features/duplicates/DuplicatesPage";
 import { readMatrixAddress } from "@/features/matrix/address";
 import { readChainsAddress } from "@/features/matrix/chainsAddress";
 import { ChainsPage } from "@/features/matrix/ChainsPage";
@@ -50,6 +51,7 @@ type ProjectPath =
   | "/p/$projectKey/code-tags"
   | "/p/$projectKey/quality"
   | "/p/$projectKey/glossary"
+  | "/p/$projectKey/duplicates"
   | "/p/$projectKey/matrix"
   | "/p/$projectKey/chains";
 
@@ -236,6 +238,16 @@ export const glossaryRoute = createRoute({
   component: function ProjectGlossaryPage() {
     const { projectKey } = glossaryRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/glossary" render={(project) => <GlossaryPage key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's likely duplicates (#208), to dismiss, link or merge. */
+export const duplicatesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/duplicates",
+  component: function ProjectDuplicatesPage() {
+    const { projectKey } = duplicatesRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/duplicates" render={(project) => <DuplicatesPage key={project.id} project={project} />} />;
   },
 });
 

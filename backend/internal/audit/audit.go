@@ -107,6 +107,8 @@ const (
 	// a project uses set (#210).
 	ActionTermDeleted      = "term.deleted"
 	ActionGlossariesChosen = "glossaries.chosen"
+	// ActionDuplicateSettingsSaved is how alike two requirements must be for a project to list them set (#208).
+	ActionDuplicateSettingsSaved = "duplicate_settings.saved"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -154,7 +156,7 @@ var Actions = []string{
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
 	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
 	ActionCodeTagWordsSaved, ActionProjectLanguageSet, ActionQualitySettingsSaved,
-	ActionTermDeleted, ActionGlossariesChosen,
+	ActionTermDeleted, ActionGlossariesChosen, ActionDuplicateSettingsSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

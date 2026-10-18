@@ -11,6 +11,8 @@ import { Editor, type EditorControls } from "@/features/editor/Editor";
 import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { FindingsList } from "@/features/quality/FindingsList";
 import { useDraftQuality } from "@/features/quality/draft";
+import { SimilarHint } from "@/features/duplicates/SimilarHint";
+import { PlaceDialog, type Placed } from "@/features/tree/PlaceDialog";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
 
@@ -63,6 +65,8 @@ export function RequirementCreate({
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
   const editorControls = useRef<EditorControls>(null);
   const written = title.trim() !== "" || !isEmptyDoc(statement);
+  // A library's requirement the draft is like may be reused in its place (#208, #49).
+  const [reusing, setReusing] = useState<Placed | null>(null);
   const quality = useDraftQuality(
     project,
     { title, statement: statement ?? emptyDoc, ...(kind === "requirement" && typeId ? { typeId } : {}) },
@@ -96,93 +100,106 @@ export function RequirementCreate({
   }
 
   return (
-    <form onSubmit={submit} onKeyDown={keys} className="space-y-4" noValidate data-requirement-create>
-      {general && <ErrorBanner>{create.error.message}</ErrorBanner>}
-      <Segmented
-        label={t.requirements.kind}
-        value={kind}
-        onChange={setKind}
-        options={[
-          { value: "requirement", label: t.requirements.kinds.requirement, attrs: { "data-kind": "requirement" } },
-          { value: "section", label: t.requirements.kinds.section, attrs: { "data-kind": "section" } },
-        ]}
-      />
-      {kind === "section" && <p className="text-sm text-ink-muted">{t.requirements.sectionHint}</p>}
-      <Field
-        label={t.requirements.name}
-        value={title}
-        maxLength={REQUIREMENT_TITLE_MAX_LENGTH}
-        onChange={(event) => setTitle(event.target.value)}
-        error={fields.title}
-        autoFocus
-        required
-      />
-      <Labelled id="new-statement" label={t.requirements.statement} error={fields.statement}>
-        <Editor
-          id="new-statement"
-          value={statement}
-          onChange={setStatement}
-          mentions={findPeople}
-          findings={quality.marks}
-          terms={quality.terms}
-          glossary={project.key}
-          controls={editorControls}
-          aria-label={t.requirements.statement}
+    <>
+      <form onSubmit={submit} onKeyDown={keys} className="space-y-4" noValidate data-requirement-create>
+        {general && <ErrorBanner>{create.error.message}</ErrorBanner>}
+        <Segmented
+          label={t.requirements.kind}
+          value={kind}
+          onChange={setKind}
+          options={[
+            { value: "requirement", label: t.requirements.kinds.requirement, attrs: { "data-kind": "requirement" } },
+            { value: "section", label: t.requirements.kinds.section, attrs: { "data-kind": "section" } },
+          ]}
         />
-      </Labelled>
-      {quality.on && (
-        <FindingsList
-          findings={quality.check?.findings ?? []}
-          sentences={quality.check?.sentences}
-          score={quality.check?.score}
-          checking={!quality.current && !quality.failed}
-          failed={quality.failed}
-          onShow={(finding) => editorControls.current?.showFinding(finding)}
+        {kind === "section" && <p className="text-sm text-ink-muted">{t.requirements.sectionHint}</p>}
+        <Field
+          label={t.requirements.name}
+          value={title}
+          maxLength={REQUIREMENT_TITLE_MAX_LENGTH}
+          onChange={(event) => setTitle(event.target.value)}
+          error={fields.title}
+          autoFocus
+          required
         />
-      )}
-      {kind === "requirement" && (
-        <Select
-          label={t.types.type}
-          value={typeId ?? ""}
-          onChange={(event) => {
-            const next = event.target.value || null;
-            setTypeId(next);
-            setValues(valuesFor(attributes ?? [], next, values));
-          }}
-          error={fields.typeId}
-          data-type-select
-        >
-          {(types ?? [])
-            .filter((type) => !type.retired)
-            .map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-        </Select>
-      )}
-      {kind === "requirement" && (
-        <Labelled id="new-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
-          <Editor id="new-rationale" value={rationale} onChange={setRationale} mentions={findPeople} aria-label={t.requirements.rationale} />
+        <Labelled id="new-statement" label={t.requirements.statement} error={fields.statement}>
+          <Editor
+            id="new-statement"
+            value={statement}
+            onChange={setStatement}
+            mentions={findPeople}
+            findings={quality.marks}
+            terms={quality.terms}
+            glossary={project.key}
+            controls={editorControls}
+            aria-label={t.requirements.statement}
+          />
         </Labelled>
-      )}
-      {kind === "requirement" && attributes && <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />}
-      <Field
-        label={t.requirements.comment}
-        hint={t.requirements.commentHint}
-        value={comment}
-        maxLength={REVISION_COMMENT_MAX_LENGTH}
-        onChange={(event) => setComment(event.target.value)}
-        error={fields.comment}
-      />
-      <div className="flex gap-2">
-        <Button type="submit" loading={create.isPending} data-action="create-requirement">
-          {t.requirements.create}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          {t.requirements.cancel}
-        </Button>
-      </div>
-    </form>
+        {quality.on && (
+          <FindingsList
+            findings={quality.check?.findings ?? []}
+            sentences={quality.check?.sentences}
+            score={quality.check?.score}
+            checking={!quality.current && !quality.failed}
+            failed={quality.failed}
+            onShow={(finding) => editorControls.current?.showFinding(finding)}
+          />
+        )}
+        <SimilarHint
+          project={project}
+          title={title}
+          statement={statement ?? emptyDoc}
+          enabled={kind === "requirement" && written}
+          onReuse={(hit) => setReusing({ ...hit.requirement })}
+        />
+        {kind === "requirement" && (
+          <Select
+            label={t.types.type}
+            value={typeId ?? ""}
+            onChange={(event) => {
+              const next = event.target.value || null;
+              setTypeId(next);
+              setValues(valuesFor(attributes ?? [], next, values));
+            }}
+            error={fields.typeId}
+            data-type-select
+          >
+            {(types ?? [])
+              .filter((type) => !type.retired)
+              .map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+          </Select>
+        )}
+        {kind === "requirement" && (
+          <Labelled id="new-rationale" label={t.requirements.rationale} hint={t.requirements.rationaleHint} error={fields.rationale}>
+            <Editor id="new-rationale" value={rationale} onChange={setRationale} mentions={findPeople} aria-label={t.requirements.rationale} />
+          </Labelled>
+        )}
+        {kind === "requirement" && attributes && (
+          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
+        )}
+        <Field
+          label={t.requirements.comment}
+          hint={t.requirements.commentHint}
+          value={comment}
+          maxLength={REVISION_COMMENT_MAX_LENGTH}
+          onChange={(event) => setComment(event.target.value)}
+          error={fields.comment}
+        />
+        <div className="flex gap-2">
+          <Button type="submit" loading={create.isPending} data-action="create-requirement">
+            {t.requirements.create}
+          </Button>
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            {t.requirements.cancel}
+          </Button>
+        </div>
+      </form>
+      {/* Outside the form, whose submit and keys a dialog's own would otherwise reach through the portal. */}
+      {reusing && <PlaceDialog placed={reusing} mode="reuse" into={project.key} onClose={() => setReusing(null)} onDone={onCreated} />}
+    </>
   );
 }

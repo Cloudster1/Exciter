@@ -23,25 +23,28 @@ const (
 
 // Trash moves a requirement to its project's trash; one already there stays as it is.
 func (s *Service) Trash(ctx context.Context, actor uuid.UUID, key string) (db.LSN, error) {
-	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		cur, err := changing(ctx, tx, actor, key)
-		if err != nil || cur.TrashedAt != nil {
-			return err
-		}
-		// Everything below it goes along as one item, keeping its parent and rank for the restore.
-		below, err := subtree(ctx, tx, cur.projectID, cur.ID)
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `
-			UPDATE requirement SET trashed_at = now(), trashed_by = $2, trash_id = $3, updated_by = $2 WHERE id = ANY ($1)`, below, actor, cur.ID); err != nil {
-			return fmt.Errorf("trash %s: %w", cur.Key, err)
-		}
-		if err := logChange(ctx, tx, actor, cur.ID, ChangeTrash, "", trashedNote); err != nil {
-			return err
-		}
-		return events.Emit(ctx, tx, TopicTrashed, map[string]any{"actorId": actor, "requirementId": cur.ID})
-	})
+	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error { return TrashIn(ctx, tx, actor, key) })
+}
+
+// TrashIn trashes a requirement in the caller's transaction, as merging a duplicate does (#208).
+func TrashIn(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string) error {
+	cur, err := changing(ctx, tx, actor, key)
+	if err != nil || cur.TrashedAt != nil {
+		return err
+	}
+	// Everything below it goes along as one item, keeping its parent and rank for the restore.
+	below, err := subtree(ctx, tx, cur.projectID, cur.ID)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE requirement SET trashed_at = now(), trashed_by = $2, trash_id = $3, updated_by = $2 WHERE id = ANY ($1)`, below, actor, cur.ID); err != nil {
+		return fmt.Errorf("trash %s: %w", cur.Key, err)
+	}
+	if err := logChange(ctx, tx, actor, cur.ID, ChangeTrash, "", trashedNote); err != nil {
+		return err
+	}
+	return events.Emit(ctx, tx, TopicTrashed, map[string]any{"actorId": actor, "requirementId": cur.ID})
 }
 
 // trashOf reads a project for its trash, which its editors open and its administrators empty.

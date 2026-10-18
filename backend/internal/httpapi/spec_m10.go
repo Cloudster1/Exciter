@@ -71,6 +71,7 @@ func authoringSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(quality.Pattern(""))] = enumStrings(quality.Patterns)
 	b.Enums[reflect.TypeOf(glossary.Status(""))] = enumStrings(glossary.Statuses)
 	b.Enums[reflect.TypeOf(duplicates.Kind(""))] = enumStrings(duplicates.Kinds)
+	b.Enums[reflect.TypeOf(duplicates.SkipReason(""))] = enumStrings(duplicates.SkipReasons)
 	b.Enums[reflect.TypeOf(reqifio.WordMatch(""))] = enumStrings(reqifio.WordMatches)
 	b.Enums[reflect.TypeOf(reqifio.NodeKind(""))] = enumStrings(reqifio.NodeKinds)
 }

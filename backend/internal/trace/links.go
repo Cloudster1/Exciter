@@ -151,59 +151,65 @@ func checkLinkInput(in *LinkInput) error {
 
 // Link links the requirement key names to another, from it unless the direction says to it.
 func (s *Service) Link(ctx context.Context, actor uuid.UUID, key string, in LinkInput) (*Link, db.LSN, error) {
-	if err := checkLinkInput(&in); err != nil {
-		return nil, 0, err
-	}
 	var out *Link
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		here, err := requirement.FindEndpoint(ctx, tx, actor, key)
-		if err != nil {
-			return err
-		}
-		switch {
-		case here.Kind == requirement.KindSection:
-			return ErrSection
-		case here.Trashed:
-			return requirement.ErrTrashed
-		case !here.Linkable:
-			return requirement.ErrForbidden
-		}
-		other, err := linkEnd(ctx, tx, actor, here, in.OtherKey)
-		if err != nil {
-			return err
-		}
-		source, target := here, other
-		if in.Direction == Incoming {
-			source, target = other, here
-		}
-		t, err := linkTypeFor(ctx, tx, source, target, in)
-		if err != nil {
-			return err
-		}
-		if err := refuseCycle(ctx, tx, t, source, target); err != nil {
-			return err
-		}
-		var id uuid.UUID
-		err = tx.QueryRow(ctx, `
-			INSERT INTO trace_link (type_id, source_id, target_id, created_by)
-			VALUES ($1, $2, $3, $4) RETURNING id`, t.ID, source.ID, target.ID, actor).Scan(&id)
-		if err != nil {
-			return linkRefusal(err, here, other)
-		}
-		if err := requirement.EmitLink(ctx, tx, requirement.TopicLinkCreated, actor, id, source.ID, target.ID); err != nil {
-			return err
-		}
-		links, err := readLinks(ctx, tx, here.ID, &id)
-		if err != nil {
-			return err
-		}
-		if len(links) == 0 {
-			return ErrLinkNotFound
-		}
-		out = &links[0]
-		return nil
+		var err error
+		out, err = LinkIn(ctx, tx, actor, key, in)
+		return err
 	})
 	return out, lsn, err
+}
+
+// LinkIn links a requirement in the caller's transaction, as linking a pair of duplicates does (#208).
+func LinkIn(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string, in LinkInput) (*Link, error) {
+	if err := checkLinkInput(&in); err != nil {
+		return nil, err
+	}
+	here, err := requirement.FindEndpoint(ctx, tx, actor, key)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case here.Kind == requirement.KindSection:
+		return nil, ErrSection
+	case here.Trashed:
+		return nil, requirement.ErrTrashed
+	case !here.Linkable:
+		return nil, requirement.ErrForbidden
+	}
+	other, err := linkEnd(ctx, tx, actor, here, in.OtherKey)
+	if err != nil {
+		return nil, err
+	}
+	source, target := here, other
+	if in.Direction == Incoming {
+		source, target = other, here
+	}
+	t, err := linkTypeFor(ctx, tx, source, target, in)
+	if err != nil {
+		return nil, err
+	}
+	if err := refuseCycle(ctx, tx, t, source, target); err != nil {
+		return nil, err
+	}
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, `
+		INSERT INTO trace_link (type_id, source_id, target_id, created_by)
+		VALUES ($1, $2, $3, $4) RETURNING id`, t.ID, source.ID, target.ID, actor).Scan(&id)
+	if err != nil {
+		return nil, linkRefusal(err, here, other)
+	}
+	if err := requirement.EmitLink(ctx, tx, requirement.TopicLinkCreated, actor, id, source.ID, target.ID); err != nil {
+		return nil, err
+	}
+	links, err := readLinks(ctx, tx, here.ID, &id)
+	if err != nil {
+		return nil, err
+	}
+	if len(links) == 0 {
+		return nil, ErrLinkNotFound
+	}
+	return &links[0], nil
 }
 
 // linkEnd reads the far end of a new link, which must be another requirement the actor views, out of the trash.

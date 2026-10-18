@@ -20,6 +20,7 @@ import { EvidenceSettingsCard } from "@/features/evidence/EvidenceSettingsCard";
 import { CodeTagWordsCard } from "@/features/evidence/CodeTagWordsCard";
 import { QualityRulesCard, QualityWordsCard } from "@/features/quality/QualitySettingsCards";
 import { GlossariesCard } from "@/features/glossary/GlossariesCard";
+import { DuplicateSettingsCard } from "@/features/duplicates/DuplicateSettingsCard";
 
 const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "quality", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -98,6 +99,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
             <QualityRulesCard project={project} />
             <QualityWordsCard project={project} />
             <GlossariesCard project={project} />
+            <DuplicateSettingsCard project={project} />
           </div>
         )}
         {tab === "import" && <ImportPanel project={project} />}

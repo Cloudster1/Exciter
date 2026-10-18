@@ -78,6 +78,9 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}/glossary`} icon="Book" rail={false} onNavigate={onNavigate}>
           {t.glossary.title}
         </NavItem>
+        <NavItem to={`/p/${project.key}/duplicates`} icon="Copy" rail={false} onNavigate={onNavigate}>
+          {t.duplicates.page.title}
+        </NavItem>
         <NavItem to={`/p/${project.key}/suspects`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.suspect.listTitle}
         </NavItem>
