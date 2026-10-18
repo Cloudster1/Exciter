@@ -53,6 +53,9 @@ func nodeName(n trace.ChainNode) string {
 		name = n.Requirement.Key + " " + n.Requirement.Title
 	case n.Page != nil:
 		name = columnHeading(trace.MatrixColumn{Page: n.Page})
+	case n.Test != nil:
+		name = columnHeading(trace.MatrixColumn{Test: &trace.MatrixTest{Repository: n.Test.Repository, Suite: n.Test.Suite, Name: n.Test.Name}}) +
+			" " + n.Test.Outcome
 	}
 	if n.Suspect {
 		name += suspectMark

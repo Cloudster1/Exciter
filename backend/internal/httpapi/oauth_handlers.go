@@ -263,7 +263,8 @@ func (s *Server) handleSwitchOAuthConnections(w http.ResponseWriter, r *http.Req
 	respondJSON(w, r, http.StatusOK, map[string]any{"installation": inst})
 }
 
-// principalOf reads who a credential acts for: an access token only at MCP and for the calls it carries.
+// principalOf reads who a credential acts for: an access token only at MCP and for the calls it carries, or an
+// evidence one at the routes evidenceToken lets it reach.
 func (s *Server) principalOf(r *http.Request, secret string) (*auth.Principal, error) {
 	if !oauth.IsAccessToken(secret) {
 		return s.Auth.Authenticate(r.Context(), secret)
@@ -271,12 +272,12 @@ func (s *Server) principalOf(r *http.Request, secret string) (*auth.Principal, e
 	if s.OAuth == nil {
 		return nil, auth.ErrInvalidToken
 	}
-	if r.URL.Path != mcpPath && !inProcessCall(r.Context()) {
-		return nil, errMCPOnly
-	}
 	p, err := s.OAuth.Authenticate(r.Context(), secret)
 	if errors.Is(err, oauth.ErrSwitchedOff) {
 		return nil, errOAuthSwitchedOff
+	}
+	if err == nil && r.URL.Path != mcpPath && !inProcessCall(r.Context()) && !p.Evidence() {
+		return nil, errMCPOnly
 	}
 	return p, err
 }

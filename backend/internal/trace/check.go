@@ -1,6 +1,16 @@
 package trace
 
-import "github.com/cloudster1/exciter/backend/internal/requirement"
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/search"
+)
 
 // MaxCheckItems bounds each list a trace check answers; the rest are counted (#224).
 const MaxCheckItems = 500
@@ -111,4 +121,189 @@ type Check struct {
 	Totals   CheckTotals       `json:"totals"`
 	Evidence CheckEvidenceSeen `json:"evidence"`
 	Checked  int               `json:"checked"`
+}
+
+// CheckQuery is what a trace check judges: the requirements the grid's filter keeps, on a branch, failing on the
+// reasons asked; the counting branch and DefaultCheckFail when they are empty.
+type CheckQuery struct {
+	Filter search.Filter
+	Branch string
+	Fail   []CheckReason
+}
+
+// MaxCheckChainLines bounds the chain lines a check follows, as an export bounds its rows.
+const MaxCheckChainLines = 20000
+
+// Check judges the trace of the requirements a filter keeps for a pipeline: broken chains, coverage gaps and failing
+// or outdated test results, each a reason to fail when asked.
+func (s *Service) Check(ctx context.Context, reader uuid.UUID, projectKey string, q CheckQuery) (*Check, error) {
+	fail := q.Fail
+	if len(fail) == 0 {
+		fail = DefaultCheckFail
+	}
+	out := &Check{Fail: fail, Broken: []CheckBroken{}, Gaps: []CheckGap{}, Failing: []CheckEvidence{}, Outdated: []CheckEvidence{},
+		Orphaned: []CheckOrphan{}}
+	err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
+		p, err := project.Find(ctx, tx, reader, projectKey)
+		if err != nil {
+			return err
+		}
+		if err := evidenceOn(ctx, tx, q.Branch); err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx, `SELECT evidence_branch($1)`, p.ID).Scan(&out.Branch); err != nil {
+			return err
+		}
+		kept, err := search.Keep(ctx, tx, reader, p, q.Filter, search.Sort{})
+		if err != nil {
+			return err
+		}
+		out.Checked = len(kept)
+		rows, err := judge(ctx, tx, p.ID, kept)
+		if err != nil {
+			return err
+		}
+		for _, r := range rows {
+			for _, d := range []struct {
+				dim   Dimension
+				level Level
+			}{{Decomposed, r.Decomposed}, {Implemented, r.Implemented}, {Verified, r.Verified}} {
+				if d.level == LevelNone || d.level == LevelPartial {
+					out.Totals.Gaps++
+					if len(out.Gaps) < MaxCheckItems {
+						out.Gaps = append(out.Gaps, CheckGap{Requirement: r.Requirement, Dimension: d.dim, Level: d.level})
+					}
+				}
+			}
+		}
+		if err := checkTests(ctx, tx, kept, out); err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx, `SELECT count(*) FROM test_run WHERE project_id = $1 AND branch = $2 AND state = 'done'`,
+			p.ID, out.Branch).Scan(&out.Evidence.Runs)
+	})
+	if err != nil {
+		return nil, err
+	}
+	chains, err := s.Chains(ctx, reader, projectKey, ChainQuery{Filter: q.Filter, Branch: q.Branch, OnlyBroken: true,
+		Limit: MaxCheckChainLines, MaxLines: MaxCheckChainLines, Truncate: true})
+	if err != nil {
+		return nil, err
+	}
+	out.Chains = len(chains.Levels) > 0
+	for _, line := range chains.Lines {
+		out.Totals.Broken++
+		if len(out.Broken) == MaxCheckItems {
+			continue
+		}
+		b := CheckBroken{Root: chains.Roots[line.Root], Path: make([]string, 0, len(line.Nodes))}
+		for _, n := range line.Nodes {
+			b.Path = append(b.Path, nodeKey(n))
+		}
+		if len(line.Nodes) < len(chains.Levels) {
+			b.Missing = chains.Levels[len(line.Nodes)].Name
+		} else {
+			b.Missing = "passing test"
+		}
+		out.Broken = append(out.Broken, b)
+	}
+	out.Verdict = Pass
+	for _, reason := range fail {
+		if out.Totals.of(reason) > 0 {
+			out.Verdict = Fail
+		}
+	}
+	return out, nil
+}
+
+// of is the count of what fails for one reason.
+func (t CheckTotals) of(r CheckReason) int {
+	switch r {
+	case FailBroken:
+		return t.Broken
+	case FailGaps:
+		return t.Gaps
+	case FailFailing:
+		return t.Failing
+	case FailOutdated:
+		return t.Outdated
+	case FailOrphaned:
+		return t.Orphaned
+	}
+	return 0
+}
+
+// evidenceOn has the transaction read evidence on a branch other than the counting one.
+func evidenceOn(ctx context.Context, tx db.DBTX, branch string) error {
+	if branch == "" {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `SELECT set_config('app.evidence_branch', $1, true)`, branch)
+	return err
+}
+
+// checkTests finds the latest results of the requirements kept that failed or were made against an older revision.
+func checkTests(ctx context.Context, tx db.DBTX, kept []search.Kept, out *Check) error {
+	if len(kept) == 0 {
+		return nil
+	}
+	ids := make([]uuid.UUID, len(kept))
+	refs := map[uuid.UUID]requirement.Ref{}
+	for i, k := range kept {
+		ids[i], refs[k.Ref.ID] = k.Ref.ID, k.Ref
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT tr.requirement_id, tr.suite, tr.name, l.repository, tr.outcome, tr.revision, tr.revision < r.revision, t.commit_sha, t.run_url
+		FROM unnest($1::uuid[]) WITH ORDINALITY AS k (id, place)
+		JOIN requirement r ON r.id = k.id
+		JOIN test_run_latest l ON l.project_id = r.project_id AND l.branch = evidence_branch(r.project_id)
+		JOIN test_result tr ON tr.run_id = l.run_id AND tr.requirement_id = r.id
+		JOIN test_run t ON t.id = tr.run_id
+		WHERE tr.outcome IN ('failed', 'errored') OR tr.revision < r.revision
+		ORDER BY k.place, l.repository, tr.suite, tr.name`, ids)
+	if err != nil {
+		return fmt.Errorf("read the failing and outdated tests: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			id          uuid.UUID
+			suite, name string
+			e           CheckEvidence
+			outdated    bool
+		)
+		if err := rows.Scan(&id, &suite, &name, &e.Repository, &e.Outcome, &e.Revision, &outdated, &e.Commit, &e.URL); err != nil {
+			return err
+		}
+		e.Requirement, e.Kind, e.Name = refs[id], EvidenceTest, name
+		if suite != "" && suite != name {
+			e.Name = suite + " " + name
+		}
+		if e.Outcome == "failed" || e.Outcome == "errored" {
+			out.Totals.Failing++
+			if len(out.Failing) < MaxCheckItems {
+				out.Failing = append(out.Failing, e)
+			}
+		}
+		if outdated {
+			out.Totals.Outdated++
+			if len(out.Outdated) < MaxCheckItems {
+				out.Outdated = append(out.Outdated, e)
+			}
+		}
+	}
+	return rows.Err()
+}
+
+// nodeKey names a chain's node as a pipeline prints it: a requirement's or an issue's key, a page's address.
+func nodeKey(n ChainNode) string {
+	switch {
+	case n.Requirement != nil:
+		return n.Requirement.Key
+	case n.Page != nil:
+		return n.Page.URL
+	case n.Test != nil:
+		return n.Test.Name + " " + n.Test.Outcome
+	}
+	return n.IssueKey
 }

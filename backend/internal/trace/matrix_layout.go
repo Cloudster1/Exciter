@@ -130,6 +130,50 @@ func issueLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, relations []s
 	return l, nil
 }
 
+// testLinks reads the latest results on the counting branch of the tests that verify the rows; the tests are the
+// columns, by repository, suite and name, one test's jobs sharing its column.
+func testLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, repository string) (*laid, error) {
+	l := &laid{}
+	if len(rows) == 0 {
+		return l, nil
+	}
+	found, err := tx.Query(ctx, `
+		SELECT tr.requirement_id, l.repository, tr.suite, tr.name, tr.outcome, tr.revision < r.revision
+		FROM test_result tr
+		JOIN test_run_latest l ON l.run_id = tr.run_id AND l.branch = evidence_branch(l.project_id)
+		JOIN requirement r ON r.id = tr.requirement_id
+		WHERE tr.requirement_id = ANY ($1) AND ($2 = '' OR l.repository = $2)
+		ORDER BY l.repository, tr.suite, tr.name, l.job`, rows, repository)
+	if err != nil {
+		return nil, fmt.Errorf("read the matrix's test results: %w", err)
+	}
+	type testLink struct {
+		test MatrixTest
+		laidLink
+	}
+	all, err := pgx.CollectRows(found, func(row pgx.CollectableRow) (testLink, error) {
+		x := testLink{laidLink: laidLink{link: MatrixLink{Kind: KindTest, Direction: Incoming}}}
+		err := row.Scan(&x.row, &x.test.Repository, &x.test.Suite, &x.test.Name, &x.link.Name, &x.link.Outdated)
+		return x, err
+	})
+	if err != nil {
+		return nil, err
+	}
+	at := map[MatrixTest]int{}
+	for _, x := range all {
+		column, ok := at[x.test]
+		if !ok {
+			column = len(l.columns)
+			at[x.test] = column
+			test := x.test
+			l.columns = append(l.columns, MatrixColumn{Test: &test})
+		}
+		x.column = column
+		l.links = append(l.links, x.laidLink)
+	}
+	return l, nil
+}
+
 // pageLinks reads the Stator page links of the rows, neither broken nor detached, of the relations given or every
 // one, suspect as the requirement page judges them; the pages they reach are the columns, by space, then id.
 func pageLinks(ctx context.Context, tx db.DBTX, rows []uuid.UUID, relations []string) (*laid, error) {

@@ -379,6 +379,21 @@ services:
       start_period: 120s
       start_interval: 1s
 
+  # What a pipeline runs (#200), on the stack's network for make test-results and make trace-check; up never starts it.
+  ci:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ci
+      args: *build-stamp
+    image: ${COMPOSE_PROJECT_NAME:-exciter}-ci
+    profiles: ["tools"]
+    environment:
+      EXCITER_URL: http://api:8080
+      EXCITER_TOKEN: ${EXCITER_TOKEN:-}
+      EXCITER_PROJECT: ${EXCITER_PROJECT:-}
+    volumes:
+      - ..:/work:ro
+
 volumes:
   primary-data:
   replica-data:

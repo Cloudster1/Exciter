@@ -16,6 +16,7 @@ import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { TraceModelCard } from "@/features/matrix/TraceModelCard";
+import { EvidenceSettingsCard } from "@/features/evidence/EvidenceSettingsCard";
 
 const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -81,7 +82,12 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
           </>
         )}
         {tab === "links" && <ProjectLinkTypes project={project} />}
-        {tab === "trace" && <TraceModelCard project={project} />}
+        {tab === "trace" && (
+          <div className="space-y-5">
+            <TraceModelCard project={project} />
+            <EvidenceSettingsCard project={project} />
+          </div>
+        )}
         {tab === "import" && <ImportPanel project={project} />}
         {tab === "reqif" && <ReqIFPanel project={project} />}
       </TabPanel>

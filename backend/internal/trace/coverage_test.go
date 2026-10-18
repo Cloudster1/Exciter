@@ -7,6 +7,8 @@ import (
 
 func TestARequirementIsJudgedAsTheContractsTableSays(t *testing.T) {
 	all := Asks{Decomposed: true, Implemented: true, Verified: true}
+	tests := Asks{Verified: true, VerifiedFrom: []Source{SourceTests}}
+	both := Asks{Verified: true, VerifiedFrom: []Source{SourceLinks, SourceTests}}
 	cases := []struct {
 		name    string
 		asks    Asks
@@ -23,6 +25,14 @@ func TestARequirementIsJudgedAsTheContractsTableSays(t *testing.T) {
 		{"a verifying issue still open", all, Counted{VerifyingLinks: 1, VerifyingIssues: 2, VerifyingIssuesDone: 1},
 			[3]Level{LevelNone, LevelNone, LevelPartial}},
 		{"verified by a trace link alone", Asks{Verified: true}, Counted{VerifyingLinks: 1}, [3]Level{LevelNA, LevelNA, LevelFull}},
+		{"tests do not count unless asked", Asks{Verified: true}, Counted{Tests: 2, TestsWhole: 2}, [3]Level{LevelNA, LevelNA, LevelNone}},
+		{"verified by passing tests", tests, Counted{Tests: 2, TestsWhole: 2}, [3]Level{LevelNA, LevelNA, LevelFull}},
+		{"a test failing or outdated", tests, Counted{Tests: 2, TestsWhole: 1}, [3]Level{LevelNA, LevelNA, LevelPartial}},
+		{"links alone do not count for tests", tests, Counted{VerifyingLinks: 1}, [3]Level{LevelNA, LevelNA, LevelNone}},
+		{"a link with nothing tested yet", both, Counted{VerifyingLinks: 1}, [3]Level{LevelNA, LevelNA, LevelFull}},
+		{"passing tests beside a suspect link", both, Counted{VerifyingLinks: 1, VerifyingLinksSuspect: 1, Tests: 1, TestsWhole: 1},
+			[3]Level{LevelNA, LevelNA, LevelPartial}},
+		{"neither source holds anything", both, Counted{}, [3]Level{LevelNA, LevelNA, LevelNone}},
 	}
 	for _, c := range cases {
 		d, i, v := Judge(c.asks, c.counted)

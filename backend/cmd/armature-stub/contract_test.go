@@ -239,6 +239,14 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	if n := len(c.expect("GET", "/issues/CP-1/remote-links", alice, nil, 200)["remoteLinks"].([]any)); n != 1 {
 		t.Errorf("CP-1 has %d links, want 1", n)
 	}
+	// A commit a repository told Armature of shows on the issue's development panel (#200).
+	c.expect("POST", stubPrefix+"/acme/issues/CP-1/commits", "", map[string]any{"repository": "acme/checkout", "sha": "4f2c9a1e7b3d",
+		"url": "https://git.example/acme/checkout/commit/4f2c9a1e7b3d", "message": "Brake within 100 ms"}, 204)
+	dev := c.expect("GET", "/issues/CP-1/development", alice, nil, 200)
+	if commits := dev["commits"].([]any); len(commits) != 1 || commits[0].(map[string]any)["sha"] != "4f2c9a1e7b3d" {
+		t.Errorf("CP-1's development reads %v", dev)
+	}
+	c.expect("GET", "/issues/SEC-1/development", alice, nil, 404)
 	held := c.expect("GET", stubPrefix+"/acme/remote-links", "", nil, 200)["remoteLinks"].([]any)
 	if len(held) != 1 || held[0].(map[string]any)["issueKey"] != "CP-1" || held[0].(map[string]any)["source"] != armature.LinkSource {
 		t.Errorf("the stub holds %v", held)

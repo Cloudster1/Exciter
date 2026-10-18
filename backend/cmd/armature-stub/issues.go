@@ -250,6 +250,22 @@ func (s *stub) getIssue(c *call) {
 	respond(c.w, http.StatusOK, map[string]any{"issue": issueView(is)})
 }
 
+// development is an issue's development panel; the stub knows only the commits a test told it of.
+func (s *stub) development(c *call) {
+	is := c.tenant.lookup(c.person, c.r.PathValue("issueKey"))
+	if is == nil {
+		refuse(c.w, http.StatusNotFound, "not_found", "That issue was not found.")
+		return
+	}
+	commits := []map[string]any{}
+	for _, cm := range is.Commits {
+		commits = append(commits, map[string]any{"id": cm.ID, "repository": cm.Repository, "sha": cm.SHA, "message": cm.Message,
+			"url": cm.URL, "committedAt": cm.CommittedAt, "ci": map[string]any{"status": "none", "checks": []any{}}})
+	}
+	respond(c.w, http.StatusOK, map[string]any{"branchName": strings.ToLower(is.Key), "branches": []any{}, "pullRequests": []any{},
+		"commits": commits, "runs": []any{}})
+}
+
 func linkView(l *remoteLink) map[string]any {
 	return map[string]any{
 		"id": l.ID, "url": l.URL, "title": l.Title, "source": l.Source, "relation": l.Relation, "iconUrl": l.IconURL,
@@ -366,6 +382,27 @@ func (s *stub) deleteLink(c *call) {
 }
 
 // The controls under /_stub/ a test steers the stub with.
+
+// addCommit tells an issue's development panel of a commit, as a repository's webhook would.
+func (s *stub) addCommit(c *call) {
+	var req struct {
+		Repository string `json:"repository"`
+		SHA        string `json:"sha"`
+		URL        string `json:"url"`
+		Message    string `json:"message"`
+	}
+	if !decode(c, &req) {
+		return
+	}
+	is := c.tenant.issues[strings.ToUpper(c.r.PathValue("issueKey"))]
+	if is == nil || req.SHA == "" {
+		refuse(c.w, http.StatusNotFound, "not_found", "Name an issue the tenant has, and the commit's sha.")
+		return
+	}
+	is.Commits = append(is.Commits, commit{ID: uuid.New(), Repository: req.Repository, SHA: req.SHA, Message: req.Message, URL: req.URL,
+		CommittedAt: time.Now().UTC()})
+	c.w.WriteHeader(http.StatusNoContent)
+}
 
 func (s *stub) setReads(c *call) {
 	var req struct {

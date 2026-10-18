@@ -203,13 +203,13 @@ func checkModel(in *ModelInput) error {
 		}
 		seenNames[strings.ToLower(level.Name)] = true
 		if !slices.Contains(LevelKinds, level.Kind) {
-			return &FieldError{Field: levelField(i, "kind"), Message: "A level holds requirements, Armature issues or Stator pages."}
+			return &FieldError{Field: levelField(i, "kind"), Message: "A level holds requirements, Armature issues, Stator pages or tests."}
 		}
 		if i == 0 && level.Kind != LevelRequirements {
 			return &FieldError{Field: levelField(i, "kind"), Message: "The first level holds requirements, which the chains start from."}
 		}
 		if level.Kind != LevelRequirements && i != len(in.Levels)-1 {
-			return &FieldError{Field: levelField(i, "kind"), Message: "Issues and pages end a model; move this level to the end."}
+			return &FieldError{Field: levelField(i, "kind"), Message: "Issues, pages and tests end a model; move this level to the end."}
 		}
 		if err := checkLevelTypes(i, level, seenTypes); err != nil {
 			return err
@@ -260,10 +260,13 @@ func checkSteps(i int, level *ModelLevelInput) error {
 			if !slices.Contains(Directions, step.Direction) {
 				return &FieldError{Field: field + ".direction", Message: "Read the link type outgoing or incoming from the level before."}
 			}
-		case LevelIssues, LevelPages:
+		case LevelIssues, LevelPages, LevelTests:
 			allowed := IssueRelations
-			if level.Kind == LevelPages {
+			switch level.Kind {
+			case LevelPages:
 				allowed = PageRelations
+			case LevelTests:
+				allowed = TestRelations
 			}
 			if step.TypeID != nil || step.Direction != "" || !slices.Contains(allowed, step.Relation) {
 				return &FieldError{Field: field + ".relation", Message: "Pick " + strings.Join(allowed, ", ") + " as the relation."}

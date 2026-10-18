@@ -104,6 +104,8 @@ type operation struct {
 	// orgWide routes concern the installation as a whole, which a token
 	// limited to projects is refused.
 	orgWide bool
+	// evidence routes are what a token of the evidence scope reaches (#200); it is refused every other.
+	evidence bool
 }
 
 // operations is the table. Order is by area, then by path; paths are relative
@@ -137,7 +139,7 @@ var operations = []operation{
 		summary: "Sends a signed-in person to the identity provider to sign in again, prompt=login and max_age=0, for an electronic signature (#46); the browser comes back to next with signature, the re-authentication to sign with, or signature_error.",
 		public:  true, redirect: true, query: []param{{name: "next", description: "Where in the web client to come back to."}}, responses: map[int]any{}},
 	{method: "POST", path: "/auth/logout", handler: "handleLogout", tag: "auth", summary: "End the session.", responses: none()},
-	{method: "GET", path: "/auth/me", handler: "handleMe", tag: "auth", summary: "Who is signed in, and how they stand in the installation.",
+	{method: "GET", path: "/auth/me", handler: "handleMe", tag: "auth", summary: "Who is signed in, and how they stand in the installation.", evidence: true,
 		tool: "whoami", toolHelp: "Who the caller is and the role they have.", responses: ok(meResponse{})},
 	{method: "PATCH", path: "/auth/me", handler: "handleUpdateMe", tag: "auth", summary: "Change the caller's own settings, such as the interface language.",
 		request: updateMeRequest{}, responses: ok(meResponse{})},
@@ -1057,7 +1059,8 @@ var levelQuery = []param{
 
 // matrixQuery says what a traceability matrix's columns are.
 var matrixQuery = []param{
-	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, issues, or Stator pages."},
+	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, issues, Stator pages, or the tests whose latest results on the counting branch verify the rows."},
+	{name: "columnRepository", description: "For test columns, the repository they come from; every one when absent."},
 	{name: "columnProject", description: "For requirement columns, the project they come from; the same project when absent."},
 	{name: "linkType", repeated: true, description: "For requirement columns, keys of the link types to count; every type when absent."},
 	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixDirections)},

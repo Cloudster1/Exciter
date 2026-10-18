@@ -38,8 +38,14 @@ while read -r name repository; do
     [[ -n "${name}" ]] || continue
     check "the chart pulls ${name} from where release.yml pushes it" "${repository}" "${prefix}-${name}"
 done <<<"${released}"
-check "release.yml pushes exactly the images the chart runs at its appVersion" \
-    "${pushed}" "$(cut -d' ' -f1 <<<"${released}" | sort | paste -sd' ')"
+# A tool image is one a pipeline runs, not the chart, such as exciter-ci (#200).
+TOOL_IMAGES="ci"
+run=$(tr ' ' '\n' <<<"${pushed}" | grep -vxF -f <(tr ' ' '\n' <<<"${TOOL_IMAGES}") | paste -sd' ')
+check "release.yml pushes exactly the images the chart runs at its appVersion, and the tools" \
+    "${run}" "$(cut -d' ' -f1 <<<"${released}" | sort | paste -sd' ')"
+for tool in ${TOOL_IMAGES}; do
+    grep -qE "^  ${tool}: " "${VALUES}" && fail "the chart runs ${tool}, which is a pipeline's tool" || pass "the chart leaves ${tool} to a pipeline"
+done
 check "the release summary lists the same images" \
     "$(sed -n 's/^ *for image in \(.*\); do$/\1/p' "${WF}" | tr ' ' '\n' | sort | paste -sd' ')" "${pushed}"
 

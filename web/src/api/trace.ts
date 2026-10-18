@@ -20,7 +20,7 @@ export type TraceChainNode = Wire["TraceChainNode"];
 export type ChainParams = Omit<NonNullable<operations["traceChains"]["parameters"]["query"]>, "limit" | "offset">;
 
 /** Every kind a level holds, in the order the picker offers them. */
-export const LEVEL_KINDS: LevelKind[] = ["requirements", "issues", "pages"];
+export const LEVEL_KINDS: LevelKind[] = ["requirements", "issues", "pages", "tests"];
 
 // Under the coverage key, so a link made anywhere asks the chains again with the matrix.
 const modelKey = (projectKey: string) => ["coverage", projectKey.toUpperCase(), "model"] as const;

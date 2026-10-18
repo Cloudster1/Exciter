@@ -34,6 +34,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/webhook"
@@ -107,7 +108,8 @@ func run() error {
 	handlers := events.NewMux(nil).Route(csvio.TopicRequested, csvio.Handler(imports)).
 		Route(reqifio.TopicRequested, reqifio.Handler(exchanges)).
 		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log)).
-		Route(stator.TopicLinks, stator.NewLinkSync(stators, log))
+		Route(stator.TopicLinks, stator.NewLinkSync(stators, log)).
+		Route(testresult.TopicRequested, testresult.Handler(testresult.NewService(cluster)))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
 		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")
@@ -143,6 +145,7 @@ func run() error {
 	go webhook.NewSender(hooks, log).Run(ctx)
 	go events.NewWorker(cluster, handlers, log).Run(ctx)
 	go audit.NewRetention(cluster, cfg.RetainAudit, log).Run(ctx)
+	go testresult.NewRetention(cluster, log).Run(ctx)
 	if objectstore.IsUnavailable(store) {
 		log.Warn("files are not removed: EXCITER_S3_ENDPOINT is not set")
 	} else {

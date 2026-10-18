@@ -232,10 +232,15 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
         <a href={node.page.url} target="_blank" rel="noopener noreferrer" className="text-ink hover:text-accent hover:underline">
           {title ?? `${node.page.spaceKey}/${node.page.id}`}
         </a>
+      ) : node.test ? (
+        <span className="text-ink" data-chain-test={node.test.name}>
+          {node.test.name} <Tag>{t.evidence.results.outcome[node.test.outcome] ?? node.test.outcome}</Tag>
+        </span>
       ) : (
         <span className="font-mono text-xs text-ink">{node.issueKey}</span>
       )}
-      {node.suspect && <Icon.Warning className="size-3.5 text-warning" label={t.coverage.suspect} />}
+      {node.test?.outdated && <Icon.Warning className="size-3.5 text-warning" label={t.evidence.matrix.outdated} />}
+      {node.suspect && !node.test && <Icon.Warning className="size-3.5 text-warning" label={t.coverage.suspect} />}
     </span>
   );
 }

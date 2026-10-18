@@ -41,6 +41,11 @@ func (p *Principal) ReadOnly() bool {
 	return p != nil && p.Token != nil && slices.Contains(p.Token.Scopes, ScopeRead)
 }
 
+// Evidence reports whether the caller came with a token that only uploads evidence and runs the trace check.
+func (p *Principal) Evidence() bool {
+	return p != nil && p.Token != nil && slices.Contains(p.Token.Scopes, ScopeEvidence)
+}
+
 // InProjectsOnly reports whether the caller came with a token limited to some projects.
 func (p *Principal) InProjectsOnly() bool { return p != nil && p.Token != nil && !p.Token.AllProjects }
 

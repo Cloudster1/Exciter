@@ -14,12 +14,13 @@ afterEach(() => {
 });
 
 const id = "0195f000-0000-4000-8000-0000000000aa";
-const asked = (readOnly: boolean) => ({
+const asked = (readOnly: boolean, evidence = false) => ({
   request: {
     id,
     client: { id: "c1", name: "Desk assistant", uri: "https://assistant.example", kind: "registered" },
     redirectHost: "127.0.0.1:33418",
     readOnly,
+    evidence,
     expiresAt: "2026-10-17T12:10:00Z",
   },
 });
@@ -67,6 +68,14 @@ describe("the consent page", () => {
     await user.click(screen.getByRole("button", { name: "Deny" }));
     expect(sent.find((r) => r.method === "POST")?.body).toEqual({ allow: false, readOnly: false });
     expect(leaveTo).toHaveBeenCalledWith("http://127.0.0.1:33418/cb?error=access_denied");
+  });
+
+  it("says what an app that asked for evidence reaches, and offers no reading to narrow it to (#200)", async () => {
+    stubApi({ [`GET /oauth/requests/${id}`]: () => ({ status: 200, body: asked(false, true) }) });
+    await renderAt(`${OAUTH_CONSENT_PATH}?request=${id}`);
+    expect(await screen.findByText(/It asked only to upload test results and run the trace check/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Read only")).toBeNull();
+    expect(await axeViolations()).toEqual([]);
   });
 
   it("says when the request ran out, and why an app was refused before it came here", async () => {

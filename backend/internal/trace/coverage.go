@@ -1,6 +1,8 @@
 package trace
 
 import (
+	"slices"
+
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -31,6 +33,21 @@ const (
 // Dimensions lists every Dimension, in report order.
 var Dimensions = []Dimension{Decomposed, Implemented, Verified}
 
+// Source is what counts for a dimension: links, as before #200, test results or code tags.
+type Source string
+
+const (
+	SourceLinks Source = "links"
+	SourceTests Source = "tests"
+)
+
+// VerifiedSources lists every Source verified may count, for the API document; DefaultSources is a rule's without
+// one.
+var (
+	VerifiedSources = []Source{SourceLinks, SourceTests}
+	DefaultSources  = []Source{SourceLinks}
+)
+
 // Level is how far a requirement is covered in one dimension; na when its type's rule does not ask for it.
 type Level string
 
@@ -52,6 +69,8 @@ type CoverageRule struct {
 	Decomposed  bool       `json:"decomposed"`
 	Implemented bool       `json:"implemented"`
 	Verified    bool       `json:"verified"`
+	// VerifiedFrom are the sources that count for verified, at least one.
+	VerifiedFrom []Source `json:"verifiedFrom"`
 }
 
 // CoverageRuleInput sets one type's rule, or the project's rule for every other type when TypeID is absent.
@@ -60,6 +79,8 @@ type CoverageRuleInput struct {
 	Decomposed  bool       `json:"decomposed"`
 	Implemented bool       `json:"implemented"`
 	Verified    bool       `json:"verified"`
+	// VerifiedFrom are the sources that count for verified; links alone when absent.
+	VerifiedFrom []Source `json:"verifiedFrom,omitempty"`
 }
 
 // Totals count the requirements a dimension applies to by level.
@@ -85,9 +106,10 @@ type CoverageRow struct {
 	Verified    Level           `json:"verified"`
 }
 
-// Asks is which dimensions a requirement's rule asks for.
+// Asks is which dimensions a requirement's rule asks for, and what counts for verified; links when none is named.
 type Asks struct {
 	Decomposed, Implemented, Verified bool
+	VerifiedFrom                      []Source
 }
 
 // Counted are the links that judge one requirement: trace links where it is the target of a type counting
@@ -97,6 +119,9 @@ type Counted struct {
 	Implementing, ImplementingDone, ImplementingSuspect          int
 	VerifyingLinks, VerifyingLinksSuspect                        int
 	VerifyingIssues, VerifyingIssuesDone, VerifyingIssuesSuspect int
+	// Tests are the latest results on the branch evidence is read on; TestsWhole those passed against the current
+	// revision (#200).
+	Tests, TestsWhole int
 }
 
 // Judge answers a requirement's level in each dimension, as the contract's table says.
@@ -109,10 +134,35 @@ func Judge(asks Asks, c Counted) (decomposed, implemented, verified Level) {
 		implemented = level(c.Implementing > 0, c.ImplementingDone > 0 && c.ImplementingSuspect == 0)
 	}
 	if asks.Verified {
-		verified = level(c.VerifyingLinks+c.VerifyingIssues > 0,
-			c.VerifyingLinksSuspect+c.VerifyingIssuesSuspect == 0 && c.VerifyingIssuesDone == c.VerifyingIssues)
+		from := asks.VerifiedFrom
+		if len(from) == 0 {
+			from = DefaultSources
+		}
+		verified = judgeSources([]held{
+			{slices.Contains(from, SourceLinks) && c.VerifyingLinks+c.VerifyingIssues > 0,
+				c.VerifyingLinksSuspect+c.VerifyingIssuesSuspect == 0 && c.VerifyingIssuesDone == c.VerifyingIssues},
+			{slices.Contains(from, SourceTests) && c.Tests > 0, c.TestsWhole == c.Tests},
+		})
 	}
 	return decomposed, implemented, verified
+}
+
+// held is what one source a rule counts holds: anything, and all of it whole.
+type held struct {
+	any, whole bool
+}
+
+// judgeSources is none when no source holds anything and full when each that holds something holds it whole, so a
+// source with nothing in it does not keep another from making a requirement full.
+func judgeSources(sources []held) Level {
+	linked, whole := false, true
+	for _, s := range sources {
+		if s.any {
+			linked = true
+			whole = whole && s.whole
+		}
+	}
+	return level(linked, whole)
 }
 
 func level(linked, whole bool) Level {
