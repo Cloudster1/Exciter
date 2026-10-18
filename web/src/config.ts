@@ -477,3 +477,19 @@ export const TERM_COMMENT_MAX_LENGTH = 500;
 export const TERM_COMMENT_ROWS = 3;
 /** How many library projects a project takes glossaries from, the API's MaxLibraries. */
 export const GLOSSARY_MAX_LIBRARIES = 20;
+
+/** The size of a node of a requirement's trace graph, how far apart its nodes and levels are drawn, how far from
+ * the edge of the canvas, and how much two links between the same nodes bow apart (#211). */
+export const GRAPH_NODE_WIDTH = 220;
+export const GRAPH_NODE_HEIGHT = 68;
+export const GRAPH_COLUMN_GAP = 28;
+export const GRAPH_ROW_GAP = 64;
+export const GRAPH_MARGIN = 24;
+export const GRAPH_BEND_STEP = 24;
+/** How tall the canvas is drawn, and how far it zooms each way. */
+export const GRAPH_CANVAS_HEIGHT = 560;
+export const GRAPH_MIN_ZOOM = 0.25;
+export const GRAPH_MAX_ZOOM = 1.5;
+/** How deep a graph looks unless asked, and at most: the API's own. */
+export const GRAPH_DEFAULT_DEPTH = 2;
+export const GRAPH_MAX_DEPTH = 6;

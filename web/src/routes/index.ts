@@ -42,7 +42,7 @@ import {
   sessionRoute,
   workflowDesignRoute,
 } from "./projects";
-import { historyRoute, permalinkRoute, requirementRoute } from "./requirements";
+import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from "./requirements";
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
 import { linkTypesRoute, membersRoute, settingsRoute } from "./settings";
@@ -88,6 +88,7 @@ const routeTree = rootRoute.addChildren([
     requirementRoute,
     permalinkRoute,
     historyRoute,
+    traceGraphRoute,
     labelRoute,
     searchRoute,
     settingsRoute,

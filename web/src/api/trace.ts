@@ -62,3 +62,29 @@ export function useChains(projectKey: string, params: ChainParams, offset: numbe
 export function chainsHref(projectKey: string, params: ChainParams, format: ExportFormat = "csv"): string {
   return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/trace-chains.${format}${queryString(params)}`;
 }
+
+// A requirement's trace graph and the impact of changing it (#211).
+
+export type TraceGraph = Wire["TraceGraph"];
+export type TraceGraphNode = Wire["TraceGraphNode"];
+export type TraceGraphEdge = Wire["TraceGraphEdge"];
+export type GraphDirection = TraceGraph["direction"];
+/** What a graph is asked for, as its query string takes it. */
+export type GraphParams = NonNullable<operations["traceGraph"]["parameters"]["query"]>;
+
+/** Every relation the graph reaches below a requirement, in the order the picker offers them. */
+export const GRAPH_RELATIONS = ["implements", "verifies", "specifies", "describes", "relates"] as const;
+
+/** Everything a requirement traces to, as far as the params ask; a link made anywhere asks it again. */
+export function useTraceGraph(reqKey: string, params: GraphParams) {
+  return useQuery({
+    queryKey: ["coverage", "graph", reqKey.toUpperCase(), params],
+    queryFn: async (): Promise<TraceGraph> => (await api.GET("/requirements/{reqKey}/graph", { params: { path: { reqKey }, query: params } })).data!.graph,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Where the impact list of a graph downloads as a CSV file. */
+export function graphHref(reqKey: string, params: GraphParams): string {
+  return `${API_BASE}/requirements/${encodeURIComponent(reqKey)}/graph.csv${queryString(params)}`;
+}

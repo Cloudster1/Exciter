@@ -155,6 +155,25 @@ says what a change affects before it is made.
 - Every node is reached by keyboard, and "List" shows the same graph as a
   nested list for a screen reader.
 
+### As built (#211)
+
+- **Migration**: `01100_trace_graph.sql` adds `trace_hidden_links(ids,
+  directions, types)`, SECURITY DEFINER, counting for `current_actor_id()`
+  alone and only around requirements that person may view.
+- **Code**: `trace/graph_walk.go` walks level by level behind a small
+  reader, so the walk is tested over a fixture; `trace/graph_service.go`
+  reads the steps, the gaps (the coverage judge per project) and the
+  hidden counts; `csvio/impact.go` writes the CSV.
+- **Refusals**: a direction, depth, link type or relation that cannot be
+  walked is 400 `bad_request` with the field named.
+- **Evidence branch**: `branch` reads the centre's project's tests and code
+  on that branch, and judges that project's gaps on it too; every other
+  project's on its counting branch.
+- **Web**: `features/trace`, at `/p/{projectKey}/r/{reqKey}/trace`, its
+  search holding the direction, depth, types, relations and the list view.
+  React Flow pans, zooms by buttons and walks the nodes by keyboard; the
+  layout is ours, a row per level.
+
 ## #213 Computed attributes
 
 | Operation | Needs | Answers |

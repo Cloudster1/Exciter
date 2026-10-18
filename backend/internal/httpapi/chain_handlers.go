@@ -18,8 +18,13 @@ import (
 
 // chainError maps the trace model's and the chain report's refusals; nil when err is none of theirs.
 func chainError(err error) *APIError {
-	var many *trace.TooManyLinesError
+	var (
+		many  *trace.TooManyLinesError
+		query *trace.QueryError
+	)
 	switch {
+	case errors.As(err, &query):
+		return &APIError{Status: http.StatusBadRequest, Code: "bad_request", Message: query.Message, Fields: map[string]string{query.Field: query.Message}}
 	case errors.As(err, &many):
 		return &APIError{Status: http.StatusUnprocessableEntity, Code: "validation_failed", Message: many.Error()}
 	case errors.Is(err, trace.ErrNotModelKeeper):

@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A requirement's trace graph (#211). From a requirement's page, "Trace graph"
+  draws everything it traces to: up to what it derives from, refines,
+  satisfies or verifies, and down to what derives from it, the Armature
+  issues and Stator pages linked to it, the tests that verify it and the
+  code that tags it, to a depth of up to six levels and across projects.
+  Link types and relations narrow it. Suspect and broken links, coverage
+  gaps, failing tests and outdated evidence are marked. A requirement the
+  reader may not see is counted on its neighbour and never named. Choosing
+  a node says what it is and centres the graph on it or opens it; every
+  node is reached by keyboard, and the graph reads as a nested list too.
+  Beside it, the impact list names everything a change reaches, level by
+  level, and downloads as CSV. The MCP tool `get_trace_graph` reads it.
 - The API contract for M11, Analysis and reporting (#242):
   `docs/api-contract-m11.md` agrees how a requirement's trace graph shows
   everything it traces to and what a change would affect, how attributes

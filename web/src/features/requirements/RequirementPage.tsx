@@ -74,6 +74,17 @@ export function RequirementPage({ project, requirement }: { project: Project; re
             >
               {t.history.link}
             </Link>
+            {!section && (
+              <Link
+                to="/p/$projectKey/r/$reqKey/trace"
+                params={{ projectKey: project.key, reqKey: requirement.key }}
+                search={{}}
+                className="hover:text-accent hover:underline"
+                data-graph-link=""
+              >
+                {t.graph.link}
+              </Link>
+            )}
           </span>
         }
         actions={

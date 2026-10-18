@@ -18,6 +18,7 @@ import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
 import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
+import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
 import { evidenceEn } from "./evidence.en";
@@ -400,6 +401,7 @@ export const en = {
   coverage: coverageEn,
   matrix: matrixEn,
   chains: chainsEn,
+  graph: graphEn,
   imports: importsEn,
   reqif: reqifEn,
   word: wordEn,
