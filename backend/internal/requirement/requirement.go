@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
@@ -143,6 +144,8 @@ type Requirement struct {
 	Approval Approval `json:"approval"`
 	// Lock says why it takes no new revision, move, link or trash (#205), null when nothing locks it.
 	Lock *Lock `json:"lock"`
+	// Quality is its score by the writing rules (#207).
+	Quality quality.Quality `json:"quality"`
 }
 
 // Approval is a requirement's standing for the workflow and the page: the review now open, and the latest revision
@@ -277,6 +280,8 @@ type TreeNode struct {
 	Status   *StatusRef `json:"status"`
 	Revision int        `json:"revision"`
 	Children int        `json:"children"`
+	// Quality is its score by the writing rules (#207), null for a section or one not checked yet.
+	Quality *int `json:"quality"`
 }
 
 // SpecEntry is one node of the specification view with its content.

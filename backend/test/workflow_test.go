@@ -62,8 +62,8 @@ func TestWorkflowsOverTheAPI(t *testing.T) {
 		if n := len(list(t, want(t, editor.get(t, "/api/v1/requirements/"+wfKey+"-R2/transitions"), http.StatusOK, "a section's transitions"), "transitions")); n != 0 {
 			t.Errorf("a section is offered %d transitions", n)
 		}
-		if n := len(list(t, want(t, editor.get(t, "/api/v1/workflow-rule-types"), http.StatusOK, "list rule types"), "ruleTypes")); n != 13 {
-			t.Errorf("%d rule types, want 13, four of them asking for trace (#206)", n)
+		if n := len(list(t, want(t, editor.get(t, "/api/v1/workflow-rule-types"), http.StatusOK, "list rule types"), "ruleTypes")); n != 14 {
+			t.Errorf("%d rule types, want 14, four of them asking for trace (#206) and one for a score (#207)", n)
 		}
 		refuse(t, "nobody asks for rule types", f.api.anonymous().get(t, "/api/v1/workflow-rule-types"), http.StatusUnauthorized, "unauthorized")
 		refuse(t, "a guest reads the statuses", f.guest.get(t, "/api/v1/projects/"+wfKey+"/statuses"), http.StatusNotFound, "not_found")

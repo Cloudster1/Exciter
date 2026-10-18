@@ -26,7 +26,7 @@ func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
 // Columns the grid sorts by besides an attribute's id, and the ones it only shows.
 var (
-	SortColumns = []string{"key", "title", "type", "status", "owner", "priority", "updated"}
+	SortColumns = []string{"key", "title", "type", "status", "owner", "priority", "updated", "quality"}
 	ShowColumns = []string{"labels", "outline"}
 )
 
@@ -274,6 +274,8 @@ func sortKey(column string, defs []attribute.Def, bind func(any) string) string 
 		return `array_position(ARRAY['must', 'should', 'could', 'wont'], r.priority)`
 	case "updated":
 		return `r.updated_at`
+	case "quality":
+		return requirement.QualityScore
 	}
 	d := defOf(column, defs)
 	if d == nil {

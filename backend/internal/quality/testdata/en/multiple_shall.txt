@@ -1,0 +1,8 @@
+- The system shall sign in the user and ⟦shall⟧ show the dashboard.
+- The pump must start and ⟦must⟧ stop on demand.
+- The valve shall open, and the pump ⟦must⟧ start.
+- The pump shall start and ⟦shall⟧ not stop.
++ The system shall sign in the user. The system shall show the dashboard.
++ The system shall sign in the user; the system shall show the dashboard.
++ The system shall sign in the user and show the dashboard.
++ The marshal shall sign the form.

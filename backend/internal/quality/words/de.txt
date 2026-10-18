@@ -1,0 +1,122 @@
+# The words the writing rules find in German requirements, by rule. A word or phrase matches on word
+# boundaries in any case and with the endings of an adjective (e, er, es, en, em); one written in capitals,
+# such as TBD, matches only in capitals.
+
+[vague]
+benutzerfreundlich
+nutzerfreundlich
+bedienerfreundlich
+einfach
+leicht
+schnell
+zügig
+schnellstmöglich
+möglichst schnell
+so schnell wie möglich
+effizient
+angemessen
+ausreichend
+hinreichend
+flexibel
+flexible
+robust
+modern
+intuitiv
+nahtlos
+komfortabel
+bequem
+performant
+geeignet
+sinnvoll
+akzeptabel
+zeitnah
+gut
+normal
+üblich
+typisch
+signifikant
+deutlich
+relativ
+ziemlich
+optimal
+minimal
+ungefähr
+etwa
+circa
+ca.
+mehrere
+einige
+viele
+wenige
+groß
+gross
+klein
+hoch
+hohe
+niedrig
+Stand der Technik
+
+[unbounded]
+alle
+jede
+sämtliche
+jegliche
+immer
+stets
+jederzeit
+mindestens
+unbegrenzt
+unendlich
+beliebig
+usw.
+usw
+und so weiter
+etc.
+etc
+
+[escape]
+wenn möglich
+falls möglich
+soweit möglich
+sofern möglich
+nach Möglichkeit
+möglichst
+bei Bedarf
+gegebenenfalls
+ggf.
+ggf
+falls nötig
+wenn nötig
+falls erforderlich
+wenn erforderlich
+soweit erforderlich
+idealerweise
+normalerweise
+üblicherweise
+in der Regel
+im Allgemeinen
+grundsätzlich
+weitgehend
+möglicherweise
+eventuell
+evtl.
+es muss möglich sein
+es soll möglich sein
+muss es möglich sein
+soll es möglich sein
+könnte
+sollte
+
+[placeholder]
+TBD
+TBC
+TBA
+TODO
+FIXME
+XXX
+???
+OFFEN
+noch offen
+noch zu klären
+noch festzulegen
+noch zu definieren

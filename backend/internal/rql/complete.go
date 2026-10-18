@@ -78,7 +78,7 @@ func (cat *Catalog) Values(f Field) []string {
 	}
 	dates := withParens(dateFunctions)
 	switch def.kind {
-	case fkEnum, fkPriority:
+	case fkEnum, fkPriority, fkEnumSet:
 		return append([]string{}, def.enum...)
 	case fkUser:
 		return []string{"currentUser()"}

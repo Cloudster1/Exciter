@@ -175,10 +175,12 @@ const (
 	OptionLinkType  OptionKind = "linkType"
 	OptionDirection OptionKind = "direction"
 	OptionDimension OptionKind = "dimension"
+	// OptionNumber is a whole number from Min to Max (#207).
+	OptionNumber OptionKind = "number"
 )
 
 // OptionKinds lists every OptionKind, for the API document.
-var OptionKinds = []OptionKind{OptionText, OptionRoles, OptionLinkType, OptionDirection, OptionDimension}
+var OptionKinds = []OptionKind{OptionText, OptionRoles, OptionLinkType, OptionDirection, OptionDimension, OptionNumber}
 
 // Option is one setting a rule type takes in its config.
 type Option struct {
@@ -187,6 +189,9 @@ type Option struct {
 	Kind     OptionKind `json:"kind"`
 	Required bool       `json:"required"`
 	Choices  []string   `json:"choices"`
+	// Min and Max bound a number.
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
 }
 
 // RuleType is one entry of the registry the designer offers.

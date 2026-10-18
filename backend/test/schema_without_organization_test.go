@@ -195,6 +195,8 @@ func TestTheUpgradeKeepsEveryRowAndStepsBack(t *testing.T) {
 	delete(upgraded, "org")
 	delete(upgraded, "org_join_request")
 	delete(upgraded, "org_member")
+	// Writing rules (#207) ask the worker to check each project's requirements.
+	upgraded["outbox_event"] += before["project"]
 	if after := rowCounts(t, super); !sameCounts(t, "the upgrade", upgraded, after) {
 		return
 	}

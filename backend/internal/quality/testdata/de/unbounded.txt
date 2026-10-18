@@ -1,0 +1,12 @@
+- Das System muss ⟦alle⟧ Fehler protokollieren.
+- Das System muss ⟦jeden⟧ Bericht exportieren.
+- Das Gerät muss USB, Bluetooth ⟦usw.⟧ unterstützen.
+- Die Pumpe muss den Druck ⟦immer⟧ halten.
+- Der Speicher muss ⟦mindestens⟧ 100 Einträge halten.
+- Das Formular muss ⟦beliebig⟧ große Anhänge annehmen.
+- Die Anzeige muss Name, Datum ⟦und so weiter⟧ zeigen.
+# Eine Zahl begrenzt alle und jede.
++ Das System muss den Sensor alle 5 Sekunden abfragen.
++ Das System muss den Ball zeigen.
++ Die Steuerung muss die drei Sensoren lesen.
++ Das System muss das Zimmer heizen.

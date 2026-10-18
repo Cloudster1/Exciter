@@ -56,6 +56,25 @@ type Settings struct {
 	SignedApprovals bool `json:"signedApprovals"`
 	// Library offers the project's requirements for reuse in other projects (#49).
 	Library bool `json:"library"`
+	// Language is what the project's requirements are written in, en or de, which picks the writing rules' words
+	// (#207); empty reads as en.
+	Language string `json:"language,omitempty"`
+}
+
+// Languages a project's requirements may be written in; DefaultLanguage until an administrator chooses.
+var Languages = []string{"en", "de"}
+
+const DefaultLanguage = "en"
+
+// TopicQualityRecheck asks the worker to check a project's requirements again, as a changed language needs (#207).
+const TopicQualityRecheck = "quality.recheck"
+
+// LanguageOf is the language a project's requirements are written in.
+func (s Settings) LanguageOf() string {
+	if s.Language == "" {
+		return DefaultLanguage
+	}
+	return s.Language
 }
 
 // SettingsInput changes settings; nil leaves one alone. The workflow is
@@ -65,6 +84,7 @@ type SettingsInput struct {
 	RequireRevisionComment *bool      `json:"requireRevisionComment,omitempty"`
 	SignedApprovals        *bool      `json:"signedApprovals,omitempty"`
 	Library                *bool      `json:"library,omitempty"`
+	Language               *string    `json:"language,omitempty"`
 }
 
 // CreateInput is a new project as the form sends it.

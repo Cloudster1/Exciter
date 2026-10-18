@@ -6,6 +6,7 @@ import type { SuggestionOptions } from "@tiptap/suggestion";
 import type { UploadFile } from "@/api/attachments";
 import { EDITOR_HEADING_LEVELS } from "@/config";
 import { AttachmentChip, FileUpload, Image } from "./files";
+import { QualityMarks } from "./quality";
 import { safeHref } from "./schema";
 
 /** Who an at sign names, as the mention list offers them. */
@@ -42,6 +43,7 @@ export function editorExtensions(suggestion?: Omit<SuggestionOptions<Mentionable
     Image,
     AttachmentChip,
     FileUpload.configure({ upload }),
+    QualityMarks,
   ];
 }
 

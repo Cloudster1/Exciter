@@ -1,0 +1,14 @@
+# Each line is a one-paragraph statement. + finds nothing of the rule; - finds exactly what the brackets hold.
+- Die Oberfläche muss ⟦benutzerfreundlich⟧ sein.
+- Das System muss ⟦schnell⟧ antworten.
+- Das System muss eine ⟦schnelle⟧ Antwort liefern.
+- Die Pumpe muss ⟦etwa⟧ 5 Minuten laufen.
+- Das System muss eine ⟦angemessene⟧ Verschlüsselung verwenden.
+- Der Dienst muss ⟦so schnell wie möglich⟧ starten.
+- Das Gerät muss dem ⟦Stand der Technik⟧ entsprechen.
+- Das Protokoll muss ⟦mehrere⟧ Einträge halten.
++ Das System muss innerhalb von 200 ms antworten.
++ Das System muss Großbuchstaben erkennen.
++ Das System muss den Hochladen-Knopf zeigen.
++ Das Frühstück muss um 7 Uhr bereitstehen.
++ Die Einfachheit der Bedienung muss gemessen werden.

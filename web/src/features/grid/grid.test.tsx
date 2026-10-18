@@ -33,7 +33,7 @@ const risk: Attribute = {
   updatedAt: "2026-10-01T08:00:00Z",
 };
 const pay = aRequirement({ revision: 2, status: { id: draft.id, name: "Draft", category: "draft" } });
-const row: RequirementRow = { ...pay, outline: "1", trashed: false, attributes: { [risk.id]: low.id }, labels: ["checkout"], suspectLinks: 0 };
+const row: RequirementRow = { ...pay, outline: "1", trashed: false, attributes: { [risk.id]: low.id }, labels: ["checkout"], suspectLinks: 0, quality: null };
 const team: View = {
   id: "0195f000-0000-7000-8000-000000000f01",
   projectKey: "CHK",

@@ -147,7 +147,12 @@ describe("editing in the document", () => {
     expect(within(adding).getByText("New, after CHK-R2")).toBeInTheDocument();
     await userEvent.type(within(adding).getByLabelText("Title"), "Refund");
     await userEvent.click(within(adding).getByRole("button", { name: "New requirement" }));
-    await waitFor(() => expect(sent.find((r) => r.method === "POST")?.body).toMatchObject({ title: "Refund", place: { parentId: "s", afterId: "p" } }));
+    await waitFor(() =>
+      expect(sent.find((r) => r.method === "POST" && r.path.endsWith("/requirements"))?.body).toMatchObject({
+        title: "Refund",
+        place: { parentId: "s", afterId: "p" },
+      }),
+    );
     await waitFor(() => expect(document.body.querySelector("[data-spec-announced]")).toHaveTextContent("CHK-R4 added."));
   });
 

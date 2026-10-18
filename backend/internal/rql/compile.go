@@ -245,6 +245,8 @@ func (c *compiler) empty(e Empty) (string, error) {
 	switch def.kind {
 	case fkLabels:
 		clause = "NOT EXISTS (SELECT 1 FROM requirement_label l WHERE l.requirement_id = r.id)"
+	case fkEnumSet:
+		clause = "(cardinality(" + def.column + ") = 0)"
 	case fkDocument:
 		clause = "(COALESCE(btrim(requirement_plain_text(" + def.column + ")), '') = '')"
 	case fkLink:
@@ -300,6 +302,12 @@ func (c *compiler) match(def fieldDef, f Field, values []Value) (string, error) 
 			return "", err
 		}
 		return "(" + def.column + " = ANY(" + c.bind(members) + "::text[]))", nil
+	case fkEnumSet:
+		members, err := c.members(def, values)
+		if err != nil {
+			return "", err
+		}
+		return "(" + def.column + " && " + c.bind(members) + "::text[])", nil
 	case fkUser:
 		return c.users(def.column, def.name, values)
 	case fkLabels:

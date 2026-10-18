@@ -46,6 +46,17 @@ type LockInput struct {
 }
 
 // lockSQL reads what locks the requirement aliased r, whose status is joined as st; scannedLock takes it.
+// qualitySQL reads a requirement's score by the writing rules (#207) as one value: in the select list it runs for
+// the rows answered alone, where a lateral join had the planner run it for every requirement first.
+const (
+	qualitySQL = `, (SELECT to_jsonb(q) - 'rules' FROM requirement_quality_of(r.id) q)`
+	// QualityScores scores a whole project at once for a query over its requirements r, whose $1 is the project;
+	// QualityScore is then each one's score, for the tree, the grid and its order.
+	QualityScores = `
+LEFT JOIN project_quality_scores($1) qs ON qs.requirement_id = r.id`
+	QualityScore = `qs.score`
+)
+
 const lockSQL = `, COALESCE(st.locks, false), r.locked_at, r.lock_reason,
        COALESCE((SELECT u.name FROM app_user u WHERE u.id = r.locked_by), '')`
 

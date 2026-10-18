@@ -99,6 +99,10 @@ const (
 	ActionProjectSignaturesSet = "project.signatures_set"
 	// ActionProjectLibrarySet is a project marked a library whose requirements other projects reuse, or no longer (#49).
 	ActionProjectLibrarySet = "project.library_set"
+	// ActionProjectLanguageSet is a project naming the language its requirements are written in (#207).
+	ActionProjectLanguageSet = "project.language_set"
+	// ActionQualitySettingsSaved is a project's writing rules and word lists set (#207).
+	ActionQualitySettingsSaved = "quality_settings.saved"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -145,7 +149,7 @@ var Actions = []string{
 	ActionInstallationOAuthSwitched, ActionOAuthRevoked, ActionBaselineSigned, ActionBaselineSigningSaved, ActionBaselineSigningRemoved,
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
 	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
-	ActionCodeTagWordsSaved,
+	ActionCodeTagWordsSaved, ActionProjectLanguageSet, ActionQualitySettingsSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

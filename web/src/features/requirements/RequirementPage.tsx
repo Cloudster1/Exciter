@@ -4,6 +4,7 @@ import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { PRIORITIES, useTrashRequirement, useUpdateRequirement, type Priority, type Requirement } from "@/api/requirements";
 import { useAttributes } from "@/api/attributes";
+import { useQuality } from "@/api/quality";
 import { Button, Card, ErrorBanner, IconButton, PageHeader, SectionTitle, SelectInput, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { DocView } from "@/features/editor/DocView";
@@ -16,6 +17,8 @@ import { AttachmentPanel } from "@/features/attachments/AttachmentPanel";
 import { ArmatureLinks } from "@/features/armature/ArmatureLinks";
 import { StatorLinks } from "@/features/stator/StatorLinks";
 import { TestResults } from "@/features/evidence/TestResults";
+import { FindingsList, findingMarks } from "@/features/quality/FindingsList";
+import { QualityBadge } from "@/features/quality/QualityBadge";
 import { CodeLinks } from "@/features/evidence/CodeLinks";
 import { CommentsSection } from "@/features/comments/CommentsSection";
 import { ReviewPanel } from "@/features/reviews/ReviewPanel";
@@ -58,6 +61,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
               </span>
             )}
             <span data-revision={requirement.revision}>{t.requirements.revision(requirement.revision)}</span>
+            {!section && <QualityBadge score={requirement.quality.score} stale={requirement.quality.stale} />}
             {requirement.outline && <span data-outline={requirement.outline}>{requirement.outline}</span>}
             <Link
               to="/p/$projectKey/r/$reqKey/history"
@@ -143,11 +147,27 @@ export function RequirementPage({ project, requirement }: { project: Project; re
 
 function Content({ project, requirement }: { project: Project; requirement: Requirement }) {
   const { data: attributes } = useAttributes(project.key);
+  // Findings are read only when asked for, so a requirement read for its words reads nothing more (#207).
+  const [showFindings, setShowFindings] = useState(false);
+  const checked = requirement.kind === "requirement";
+  const { data: quality, error } = useQuality(requirement.key, requirement.revision, checked && showFindings);
+  const may = requirement.can.edit && !project.archivedAt && !requirement.trashedAt;
   return (
     <Card className="space-y-4 p-4">
       <section aria-labelledby="statement-title" className="space-y-2">
-        <SectionTitle id="statement-title">{t.requirements.statement}</SectionTitle>
-        <DocView doc={requirement.statement as Doc} data-statement="" />
+        <div className="flex items-center justify-between gap-2">
+          <SectionTitle id="statement-title">{t.requirements.statement}</SectionTitle>
+          {checked && (
+            <Button variant="ghost" size="sm" aria-pressed={showFindings} onClick={() => setShowFindings(!showFindings)} data-action="show-findings">
+              {t.quality.showFindings}
+            </Button>
+          )}
+        </div>
+        <DocView doc={requirement.statement as Doc} findings={showFindings && quality ? findingMarks(quality.findings) : undefined} data-statement="" />
+        {showFindings && error && <ErrorBanner>{error.message}</ErrorBanner>}
+        {showFindings && quality && (
+          <FindingsList findings={quality.findings} sentences={quality.sentences} accept={{ reqKey: requirement.key, revision: quality.revision, may }} />
+        )}
       </section>
       {requirement.kind === "requirement" && (
         <section aria-labelledby="rationale-title" className="space-y-2">

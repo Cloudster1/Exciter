@@ -13,6 +13,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/workflow"
 )
 
@@ -347,5 +348,5 @@ func revisionOf(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, number int
 		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor); err != nil {
 		return fmt.Errorf("write revision %d: %w", number, err)
 	}
-	return nil
+	return quality.Record(ctx, tx, id, number)
 }

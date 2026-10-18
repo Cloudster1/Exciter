@@ -18,8 +18,9 @@ import { t } from "@/i18n";
 import { TraceModelCard } from "@/features/matrix/TraceModelCard";
 import { EvidenceSettingsCard } from "@/features/evidence/EvidenceSettingsCard";
 import { CodeTagWordsCard } from "@/features/evidence/CodeTagWordsCard";
+import { QualityRulesCard, QualityWordsCard } from "@/features/quality/QualitySettingsCards";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "import", "reqif"] as const;
+const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "quality", "import", "reqif"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -51,6 +52,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "approval", label: t.review.rulesTab, attrs: { "data-tab": "approval" } },
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
               { value: "trace", label: t.chains.tab, attrs: { "data-tab": "trace" } },
+              { value: "quality", label: t.quality.tab, attrs: { "data-tab": "quality" } },
               { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
               { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
             ]}
@@ -90,6 +92,12 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
             <CodeTagWordsCard project={project} />
           </div>
         )}
+        {tab === "quality" && (
+          <div className="space-y-5">
+            <QualityRulesCard project={project} />
+            <QualityWordsCard project={project} />
+          </div>
+        )}
         {tab === "import" && <ImportPanel project={project} />}
         {tab === "reqif" && <ReqIFPanel project={project} />}
       </TabPanel>
@@ -105,6 +113,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [signedApprovals, setSignedApprovals] = useState(project.settings.signedApprovals);
   const [library, setLibrary] = useState(project.settings.library);
   const [defaultType, setDefaultType] = useState(project.settings.defaultTypeId ?? "");
+  const [language, setLanguage] = useState(project.settings.language === "de" ? "de" : "en");
   const { data: types } = useTypes(project.key);
   const [notice, setNotice] = useState("");
   const fields = update.error instanceof ApiError ? update.error.fields : {};
@@ -114,6 +123,8 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
     setNotice("");
     const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals, library };
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
+    // The language is sent only when it changes, since a change checks every requirement again (#207).
+    if (language !== (project.settings.language ?? "en")) settings.language = language;
     update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
   }
 
@@ -154,6 +165,21 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
                 {type.name}
               </option>
             ))}
+        </Select>
+        <Select
+          label={t.quality.language.label}
+          hint={t.quality.language.hint}
+          value={language}
+          disabled={readOnly}
+          onChange={(event) => setLanguage(event.target.value === "de" ? "de" : "en")}
+          error={fields["settings.language"] ?? fields.language}
+          data-setting="language"
+        >
+          {(["en", "de"] as const).map((each) => (
+            <option key={each} value={each} lang={each}>
+              {t.quality.language.names[each]}
+            </option>
+          ))}
         </Select>
         <div>
           <Checkbox

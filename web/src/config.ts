@@ -420,3 +420,18 @@ export const PRINT_SETTLE_MS = 300;
 export const PRINT_PENDING_SELECTOR = '[data-skeleton], [aria-busy="true"]';
 /** How deep a document's contents list its entries, sections and the two levels below them, as the Word file does. */
 export const DOCUMENT_CONTENTS_DEPTH = 3;
+
+/** How long typing pauses before the draft is checked against the writing rules (#207). */
+export const QUALITY_CHECK_DEBOUNCE_MS = 500;
+/** How many requirements a page of the quality page lists, the API's grid default. */
+export const QUALITY_PAGE_SIZE = 50;
+/** The longest reason an accepted finding takes, the API's quality.MaxReasonChars. */
+export const QUALITY_REASON_MAX_LENGTH = 500;
+/** The words a project adds to or excepts from one rule, and the longest, the API's MaxCustomWords and MaxWordLength. */
+export const QUALITY_MAX_WORDS = 200;
+export const QUALITY_WORD_MAX_LENGTH = 60;
+/** From these scores up a badge reads good, then fair; below fair it reads poor. */
+export const QUALITY_GOOD_FROM = 80;
+export const QUALITY_FAIR_FROM = 50;
+/** The lines the reason of an accepted finding starts with. */
+export const QUALITY_REASON_ROWS = 3;

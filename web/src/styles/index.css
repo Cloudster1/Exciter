@@ -455,6 +455,30 @@
     text-transform: uppercase;
     color: var(--color-ink-muted);
   }
+  /* A writing rule's finding (#207): a wavy line under the words, its colour the severity's and its style
+   * telling them apart too, so colour is never the only sign; the list below the text says the rest. */
+  .doc-content .finding {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    text-decoration-skip-ink: none;
+  }
+  .doc-content .finding-error {
+    text-decoration-color: var(--color-danger);
+  }
+  .doc-content .finding-warning {
+    text-decoration-color: var(--color-warning);
+  }
+  .doc-content .finding-hint {
+    text-decoration-style: dotted;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--color-accent);
+  }
+  .doc-content .finding-accepted {
+    text-decoration-style: dashed;
+    text-decoration-color: var(--color-border-strong);
+  }
   /* The editing surface: a field's frame around the document, tall enough to write in. */
   .doc-editor {
     min-height: 6rem;

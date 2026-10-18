@@ -1,0 +1,12 @@
+- ⟦Es⟧ speichert die Daten.
+- ⟦Sie⟧ muss innerhalb von 5 Sekunden neu starten.
+- Wenn die Tür sich öffnet, muss ⟦sie⟧ nach 10 Sekunden schließen.
+- Wenn der Tank voll ist, muss ⟦es⟧ die Pumpe stoppen.
+- Die Pumpe muss stoppen; ⟦dies⟧ ist aus Sicherheitsgründen nötig.
+- ⟦Er⟧ muss sich mit einem Token anmelden.
++ Die Pumpe muss innerhalb von 5 Sekunden neu starten.
++ Diese Funktion muss die Pumpe starten.
++ Es muss sichergestellt werden, dass die Pumpe stoppt.
+# Es muss möglich sein ist eine Ausweichklausel und wird als solche gefunden.
++ Es muss möglich sein, den Bericht zu exportieren.
++ Wenn die Tür sich öffnet, muss die Steuerung sie schließen.

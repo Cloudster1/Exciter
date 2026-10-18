@@ -1,0 +1,14 @@
+- The system shall encrypt the file ⟦if possible⟧.
+- ⟦Where possible⟧, the system shall cache results.
+- The system shall retry ⟦as far as practicable⟧.
+- The display ⟦should⟧ show the time.
+- The user ⟦may⟧ cancel the upload.
+- The pump shall ⟦normally⟧ run at 50 rpm.
+- The app shall notify the user ⟦as appropriate⟧.
+- ⟦It shall be possible⟧ to export the report.
+- The data shall be archived ⟦if necessary⟧.
++ The system shall encrypt the file before it is sent.
++ The user shall cancel the upload with one click.
++ The service shall run on the possible hosts the table lists.
+# May the month is found as well; a project that writes dates that way excepts the word.
++ The system shall show the current month.

@@ -39,6 +39,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -184,6 +185,7 @@ func run() error {
 		Imports:         csvio.NewService(cluster, requirements, links, finder),
 		TestResults:     testresult.NewService(cluster).WithCommits(armatures),
 		Code:            codetrace.NewService(cluster),
+		Quality:         quality.NewService(cluster, requirement.LocateForQuality),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

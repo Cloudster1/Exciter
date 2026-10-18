@@ -184,7 +184,8 @@ Each finds words or the shape of a sentence, in the project's language:
 
 - **`POST /projects/{projectKey}/quality-check`** takes a draft:
   `{title, statement, typeId?, requirementKey?}`, the statement a document
-  of the shared editor. It answers what saving it would find: `score`,
+  of the shared editor, or `statementMarkdown` in its place, as an
+  assistant writes it. It answers what saving it would find: `score`,
   `findings`, `sentences` with their shapes, and `terms`, the glossary
   terms it uses (#210). Nothing is written. `requirementKey` names the
   requirement being revised, so findings accepted on it come with the
@@ -224,11 +225,12 @@ Each finds words or the shape of a sentence, in the project's language:
 
 ### Where the score shows
 
-- `Requirement`, `TreeNode` and the grid's rows gain `quality`:
-  `{score, active, accepted, stale}`. The grid sorts by it.
+- `Requirement` gains `quality`: `{score, active, accepted, stale}`.
+  `TreeNode` and the grid's rows gain `quality`, the score alone, and the
+  grid sorts by it (`sort=quality`).
 - **`GET /projects/{projectKey}/quality`** answers how many requirements
-  score in each band of 20, how many are not checked, the average, the
-  active findings per rule, and the requirements lowest first, a window at
+  score in each band of 20, how many are not checked, the average, how
+  many requirements break each rule, and the requirements lowest first, a window at
   a time, narrowed as the grid is.
 - The project gains a quality page with the bands, the rules found most and
   the list; the specification and the grid show each score.
@@ -275,7 +277,7 @@ All of it is held by the database and proven straight through SQL as
 | 403 | `forbidden` | settings by somebody who does not administer the project |
 | 409 | `stale_revision` | accepting or taking back on a revision that is not current |
 | 409 | `project_archived` | any write in an archived project |
-| 422 | `invalid` | a draft that is not a document, an unknown rule, key or type, a word or list too long, a reason empty or too long |
+| 422 | `validation_failed` | a draft that is not a document, an unknown rule, key or type, a word or list too long, a reason empty or too long |
 
 ### MCP
 
@@ -293,6 +295,40 @@ All of it is held by the database and proven straight through SQL as
 - The project's settings gain a quality tab: the rules, their severities
   and types, and the word lists; the language is chosen with the project's
   details.
+
+### As built (#207)
+
+- **Migration**: `01000_quality.sql` adds:
+  - the CHECK on `project.settings->>'language'`
+  - the tables `quality_rule`, `quality_rule_setting` (word lists as its
+    `add_words` and `except_words`), `project_quality`,
+    `requirement_quality`, `quality_finding` and `quality_acceptance`
+  - the functions `quality_rule_state`, `requirement_quality_of`,
+    `quality_weight` and `quality_words_fit`
+  - one `quality.recheck` event per project, which scores what is there
+- **Packages**: the rules engine, `Record` and the service are in
+  `internal/quality`. It finds a requirement by key through a `Locator`
+  the requirement package gives it (`requirement.LocateForQuality`), since
+  the requirement package calls it. The project's quality page is
+  `search.Quality`, which narrows as the grid does.
+- **Where it runs**: `quality.Record` follows every insert of a revision in
+  `internal/requirement`: create, save, move, copy, restore, reuse and the
+  template's sections. A section is not checked.
+- **What the database judges**: `requirement_quality_of` answers the score,
+  the counts, the rules that count and whether it is stale; the
+  requirement, the tree, the grid, the query language and the workflow
+  read it. Go judges a revision the same way, and a test holds the two to
+  each other.
+- **Rechecks** run as the admin role, which alone writes `project_quality`.
+  An event for one carries the actor, as every event of the outbox does.
+- **Limits**: a revision keeps at most `quality.MaxFindings` = 500
+  findings. A finding's key holds spaces and slashes; a client encodes it
+  in the path.
+- **Positions**: `document.TextBlocks` writes `api/document-textblocks.json`
+  in `make openapi`, which the web test reads.
+- **Word lists**: German "kann" is not an escape word, since it states a
+  capability; "may" also finds the month, which a project excepts if it
+  needs to.
 
 ## #210 The glossary
 
@@ -407,7 +443,7 @@ All of it is held by the database and proven straight through SQL as
 | 403 | `forbidden` | deleting a term or choosing libraries without administer |
 | 409 | `term_exists` | a name or synonym another term of the glossary has |
 | 409 | `stale_revision` | a change or confirmation against a revision that is not current |
-| 422 | `invalid` | a name empty or too long, too many synonyms or words, a definition that is not a document, a library that cannot be chosen |
+| 422 | `validation_failed` | a name empty or too long, too many synonyms or words, a definition that is not a document, a library that cannot be chosen |
 
 ### MCP
 
@@ -497,7 +533,7 @@ Each decision names both sides at the revisions they were read at, 409
 |---|---|---|
 | 403 | `forbidden` | the threshold without administer |
 | 409 | `stale_revision` | a side was revised since it was read |
-| 422 | `invalid` | a side that is not a requirement of the project, the same requirement twice, a reason too long, an unknown link type, a threshold out of range |
+| 422 | `validation_failed` | a side that is not a requirement of the project, the same requirement twice, a reason too long, an unknown link type, a threshold out of range |
 
 ### MCP
 

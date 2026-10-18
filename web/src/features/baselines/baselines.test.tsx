@@ -45,6 +45,7 @@ const section: TreeNode = {
   status: null,
   revision: 1,
   children: 1,
+  quality: null,
 };
 
 const ref = (key: string, title: string, revision = 1, kind: "requirement" | "section" = "requirement") => ({

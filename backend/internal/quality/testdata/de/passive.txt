@@ -1,0 +1,17 @@
+- Die Daten müssen ⟦verschlüsselt werden⟧.
+- Die Daten ⟦werden verschlüsselt⟧.
+- Die Datei ⟦wird an das Archiv gesendet⟧.
+- Der Bericht ⟦wird eingegeben⟧ und geprüft.
+- Das Passwort muss ⟦gespeichert werden⟧.
+- Der Zugang ⟦wird protokolliert⟧.
+- Die Daten ⟦werden hochgeladen⟧.
+- Die Werte müssen ⟦übertragen werden⟧.
++ Die Daten müssen vom Gateway verschlüsselt werden.
++ Die Daten müssen durch das Gateway verschlüsselt werden.
+# Das Futur nimmt einen Infinitiv, kein Partizip.
++ Das System wird die Daten senden.
++ Das System wird die Daten verschlüsseln.
++ Das Gateway muss die Daten verschlüsseln.
++ Wenn die Datei hochgeladen wird, muss das System die Datei prüfen.
++ Das Gerät wird gelb.
++ Die Anzeige wird bereit sein.

@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Writing rules check every requirement as it is written (#207). In
+  English or German, as a project chooses, they find vague and unbounded
+  words, escape clauses, open placeholders, and/or, more than one shall,
+  negative statements, the passive voice without who acts, pronouns
+  without a referent and sentences that fit no EARS pattern. The editor
+  marks each finding as one types and says how to fix it; an author accepts
+  one with a reason, which stays with the revision. Every requirement has a
+  score, shown in the specification, the grid and a project quality page,
+  and the query language gains `quality` and `qualityFinding`. A project's
+  administrators switch rules on and off, set their severity and the types
+  they apply to, and add their own words. A workflow transition can ask for
+  a least score, and assistants check a draft over MCP.
 - The API contract for M10, Authoring quality (#233):
   `docs/api-contract-m10.md` agrees how writing rules check a requirement
   as it is written and score it, how a project's glossary marks the terms

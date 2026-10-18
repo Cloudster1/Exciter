@@ -137,6 +137,8 @@ type Row struct {
 	Can        requirement.Can            `json:"can"`
 	// SuspectLinks counts its links waiting to be checked since an end moved on (#36).
 	SuspectLinks int `json:"suspectLinks"`
+	// Quality is its score by the writing rules (#207), null for a section or one not checked yet.
+	Quality *int `json:"quality"`
 }
 
 // ViewKind says what a view is of: the grid, the traceability matrix or the chain report (#152).

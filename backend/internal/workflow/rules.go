@@ -6,6 +6,8 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/quality"
 )
 
 // Subject is the requirement a transition is weighed against, as its rules read it.
@@ -26,6 +28,8 @@ type Subject struct {
 	OpenThreads int
 	// Coverage is its level in each dimension, as the coverage report judges it.
 	Coverage map[string]string
+	// Quality is its score by the writing rules (#207), nil until it is checked.
+	Quality *int
 }
 
 // LinkCount is how many live links of one type a requirement has from it and to it.
@@ -138,6 +142,22 @@ func readDimension(raw json.RawMessage) (string, error) {
 		return "", fmt.Errorf("pick decomposed, implemented or verified as its dimension")
 	}
 	return c.Dimension, nil
+}
+
+// The bounds of the score a transition may ask for (#207).
+var (
+	scoreFloor   = 0
+	scoreCeiling = quality.FullScore
+)
+
+func readMinimum(raw json.RawMessage) (int, error) {
+	var c struct {
+		Minimum *int `json:"minimum"`
+	}
+	if (len(raw) > 0 && json.Unmarshal(raw, &c) != nil) || c.Minimum == nil || *c.Minimum < scoreFloor || *c.Minimum > scoreCeiling {
+		return 0, fmt.Errorf("give the least score as a whole number from %d to %d", scoreFloor, scoreCeiling)
+	}
+	return *c.Minimum, nil
 }
 
 // count says how many of a thing, as a sentence names them.
@@ -260,6 +280,26 @@ var registry = []rule{
 			}
 			if level := s.Coverage[dimension]; level == "none" || level == "partial" {
 				return &FieldError{"transition", fmt.Sprintf("%s is not fully %s yet. Cover it, then take this transition.", s.Key, dimension)}
+			}
+			return nil
+		},
+	},
+	{
+		RuleType: RuleType{Kind: KindValidator, Type: "validator.quality_min", Label: "Quality score",
+			Description: "The requirement needs at least this score by the project's writing rules.",
+			Options:     []Option{{Name: "minimum", Label: "Least score", Kind: OptionNumber, Required: true, Min: &scoreFloor, Max: &scoreCeiling}}},
+		check: func(raw json.RawMessage) error { _, err := readMinimum(raw); return err },
+		validate: func(raw json.RawMessage, s Subject, _ Input) error {
+			least, err := readMinimum(raw)
+			if err != nil {
+				return err
+			}
+			switch {
+			case s.Quality == nil:
+				return &FieldError{"transition", fmt.Sprintf("%s is not checked yet. Wait a moment, then take the transition again.", s.Key)}
+			case *s.Quality < least:
+				return &FieldError{"transition", fmt.Sprintf("%s scores %d; this transition asks for %d. Fix or accept its findings, then take it again.",
+					s.Key, *s.Quality, least)}
 			}
 			return nil
 		},

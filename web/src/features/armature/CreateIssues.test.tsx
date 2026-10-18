@@ -52,6 +52,7 @@ const node = (over: Partial<TreeNode>): TreeNode => ({
   status: null,
   revision: 1,
   children: 0,
+  quality: null,
   ...over,
 });
 const scope = node({ id: "s", key: "CHK-R1", kind: "section", title: "Scope", children: 2 });
@@ -225,6 +226,7 @@ describe("picking requirements for Armature issues", () => {
       attributes: {},
       labels: [],
       suspectLinks: 0,
+      quality: null,
     };
     const two: RequirementRow = {
       ...aRequirement({ key: "CHK-R4", title: "Refund", id: "0195f000-0000-7000-8000-0000000000f4" }),
@@ -233,6 +235,7 @@ describe("picking requirements for Armature issues", () => {
       attributes: {},
       labels: [],
       suspectLinks: 0,
+      quality: null,
     };
     stubApi({
       "GET /projects/CHK": { status: 200, body: { project } },

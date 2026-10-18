@@ -1,0 +1,6 @@
+- Der Benutzer muss mit Karte ⟦und/oder⟧ Gutschein zahlen.
+- Der Benutzer muss mit Karte ⟦und / oder⟧ Gutschein zahlen.
+- Die Liste muss Fehler ⟦Und/Oder⟧ Warnungen zeigen.
++ Der Benutzer muss mit Karte und Gutschein zahlen.
++ Der Benutzer muss mit Karte oder Gutschein zahlen.
++ Der Benutzer muss den Grund angeben.

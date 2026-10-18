@@ -21,6 +21,7 @@ import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
 import { evidenceEn } from "./evidence.en";
+import { qualityEn } from "./quality.en";
 import { fieldRulesEn } from "./fieldRules.en";
 import { sessionsEn } from "./sessions.en";
 import { statorEn } from "./stator.en";
@@ -334,6 +335,8 @@ export const en = {
       "review_session.round_started": "Review session round started",
       "review_session.closed": "Review session closed",
       "evidence_settings.saved": "Counting branch named",
+      "project.language_set": "Project language set",
+      "quality_settings.saved": "Writing rules set",
       "code_tag_words.saved": "Code tag words set",
     } as Record<AuditAction, string>,
     targetTypes: {
@@ -377,6 +380,7 @@ export const en = {
   reuse: reuseEn,
   control: controlEn,
   evidence: evidenceEn,
+  quality: qualityEn,
   fieldRules: fieldRulesEn,
   sessions: sessionsEn,
   comments: commentsEn,

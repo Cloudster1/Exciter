@@ -1,0 +1,15 @@
+# Each line is a one-paragraph statement. + finds nothing of the rule; - finds exactly what the brackets hold.
+- The interface shall be ⟦user-friendly⟧.
+- The system shall respond ⟦fast⟧ to a request.
+- The report shall load ⟦quickly⟧.
+- The pump shall run for ⟦about⟧ 5 minutes.
+- The system shall use an ⟦appropriate⟧ cipher.
+- The cache shall be ⟦large⟧ enough for the data.
+- The service shall restart ⟦as soon as possible⟧ after a crash.
+- The design shall follow ⟦state of the art⟧ methods.
++ The system shall respond within 200 ms.
+# About is vague only before a number.
++ The manual shall hold a chapter about safety.
++ The breakfast shall be served at 7:00.
++ The editor shall highlight the selected row.
++ The pump shall run for at most 5 minutes.
