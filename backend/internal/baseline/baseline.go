@@ -33,6 +33,8 @@ type Baseline struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	// Detail is how much it recorded: DetailLinks before #153, DetailFull since.
 	Detail int `json:"detail"`
+	// ComputedStale says computed values were still being worked out when it was taken, so some it holds may lag (#213).
+	ComputedStale bool `json:"computedStale"`
 	// Signing is where its signing stands (#205), null while nobody signs the project's baselines and none signed it.
 	Signing *Signing `json:"signing"`
 }

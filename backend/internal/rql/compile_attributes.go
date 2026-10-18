@@ -6,20 +6,29 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 )
 
-// An attribute's value lives in r.attributes under its id, in the shape its kind keeps (#14); these compare it as the
-// grid's attribute conditions do, so the two agree.
+// An attribute's value lives in r.attributes under its id, in the shape its kind keeps (#14), a computed one's in
+// requirement_computed (#213); these compare it as the grid's attribute conditions do, so the two agree.
+
+// Store is where a requirement r keeps an attribute's values: its own attributes, or what was computed for it.
+func Store(a *attribute.Def) string {
+	if a.Computed() {
+		return "requirement_computed_of(r.id)"
+	}
+	return "r.attributes"
+}
 
 // attributeMatch is the positive form of = and IN on an attribute.
 func (c *compiler) attributeMatch(def fieldDef, values []Value) (string, error) {
 	a := def.attr
 	id := c.bind(a.ID.String())
+	src := Store(a)
 	switch a.Kind {
 	case attribute.Text, attribute.URL:
 		texts, err := c.texts(def, values, strings.ToLower)
 		if err != nil {
 			return "", err
 		}
-		return "(lower(r.attributes ->> " + id + ") = ANY(" + c.bind(texts) + "::text[]))", nil
+		return "(lower(" + src + " ->> " + id + ") = ANY(" + c.bind(texts) + "::text[]))", nil
 	case attribute.Number:
 		var numbers []float64
 		for _, v := range values {
@@ -29,7 +38,7 @@ func (c *compiler) attributeMatch(def fieldDef, values []Value) (string, error) 
 			}
 			numbers = append(numbers, n)
 		}
-		return "(" + numeric(id) + " = ANY(" + c.bind(numbers) + "::numeric[]))", nil
+		return "(" + numeric(src, id) + " = ANY(" + c.bind(numbers) + "::numeric[]))", nil
 	case attribute.Date:
 		var days []string
 		for _, v := range values {
@@ -39,7 +48,7 @@ func (c *compiler) attributeMatch(def fieldDef, values []Value) (string, error) 
 			}
 			days = append(days, day)
 		}
-		return "(r.attributes ->> " + id + " = ANY(" + c.bind(days) + "::text[]))", nil
+		return "(" + src + " ->> " + id + " = ANY(" + c.bind(days) + "::text[]))", nil
 	case attribute.Boolean:
 		text, err := plainText(a.Name, values[0])
 		if err != nil {
@@ -49,63 +58,65 @@ func (c *compiler) attributeMatch(def fieldDef, values []Value) (string, error) 
 		if text != "true" && text != "false" {
 			return "", errAt(values[0].Pos, "%s is true or false, and %q is neither.", a.Name, values[0].Text)
 		}
-		return "(r.attributes -> " + id + " = to_jsonb(" + c.bind(text == "true") + "::boolean))", nil
+		return "(" + src + " -> " + id + " = to_jsonb(" + c.bind(text == "true") + "::boolean))", nil
 	case attribute.Select, attribute.MultiSelect:
 		ids, err := c.options(a, values)
 		if err != nil {
 			return "", err
 		}
 		if a.Kind == attribute.MultiSelect {
-			return "((r.attributes -> " + id + ") ?| " + c.bind(ids) + "::text[])", nil
+			return "((" + src + " -> " + id + ") ?| " + c.bind(ids) + "::text[])", nil
 		}
-		return "(r.attributes ->> " + id + " = ANY(" + c.bind(ids) + "::text[]))", nil
+		return "(" + src + " ->> " + id + " = ANY(" + c.bind(ids) + "::text[]))", nil
 	case attribute.User:
 		// A person is kept as their id; the guard leaves a value of another shape no person rather than an error.
-		person := "(CASE WHEN r.attributes ->> " + id + " ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN (r.attributes ->> " + id + ")::uuid END)"
+		person := "(CASE WHEN " + src + " ->> " + id + " ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN (" + src + " ->> " + id + ")::uuid END)"
 		return c.users(person, a.Name, values)
 	}
 	return "", errAt(values[0].Pos, "%s cannot be compared with =. Use ~.", a.Name)
 }
 
 // numeric reads a number attribute, guarded so that a value of another shape is no number rather than an error.
-func numeric(id string) string {
-	return "(CASE WHEN jsonb_typeof(r.attributes -> " + id + ") = 'number' THEN (r.attributes ->> " + id + ")::numeric END)"
+func numeric(src, id string) string {
+	return "(CASE WHEN jsonb_typeof(" + src + " -> " + id + ") = 'number' THEN (" + src + " ->> " + id + ")::numeric END)"
 }
 
 // textOf is the words of a text value, the plain text of a rich text one.
-func textOf(kind attribute.Kind, id string) string {
+func textOf(src string, kind attribute.Kind, id string) string {
 	if kind == attribute.RichText {
-		return "COALESCE(requirement_plain_text(r.attributes -> " + id + "), '')"
+		return "COALESCE(requirement_plain_text(" + src + " -> " + id + "), '')"
 	}
-	return "COALESCE(r.attributes ->> " + id + ", '')"
+	return "COALESCE(" + src + " ->> " + id + ", '')"
 }
 
 // attributeContains is ~ on an attribute: a piece of the text, or words of rich text.
 func (c *compiler) attributeContains(def fieldDef, text string) string {
 	id := c.bind(def.attr.ID.String())
+	src := Store(def.attr)
 	if def.attr.Kind == attribute.RichText {
-		return "(to_tsvector('exciter_search'::regconfig, " + textOf(def.attr.Kind, id) + ") @@ plainto_tsquery('exciter_search'::regconfig, " + c.bind(text) + "))"
+		return "(to_tsvector('exciter_search'::regconfig, " + textOf(src, def.attr.Kind, id) + ") @@ plainto_tsquery('exciter_search'::regconfig, " + c.bind(text) + "))"
 	}
-	return "(" + textOf(def.attr.Kind, id) + " ILIKE '%' || " + c.bind(escapeLike(text)) + " || '%')"
+	return "(" + textOf(src, def.attr.Kind, id) + " ILIKE '%' || " + c.bind(escapeLike(text)) + " || '%')"
 }
 
 // attributeOrdered is < <= > >= on a number or date attribute.
 func (c *compiler) attributeOrdered(def fieldDef, op string, v Value) (string, error) {
 	a := def.attr
+	src := Store(a)
 	switch a.Kind {
 	case attribute.Number:
 		n, err := number(a.Name, v)
 		if err != nil {
 			return "", err
 		}
-		return "(" + numeric(c.bind(a.ID.String())) + " " + op + " " + c.bind(n) + "::numeric)", nil
+		return "(" + numeric(src, c.bind(a.ID.String())) + " " + op + " " + c.bind(n) + "::numeric)", nil
 	case attribute.Date:
 		day, err := c.day(a.Name, v)
 		if err != nil {
 			return "", err
 		}
 		// Days are kept as 2026-10-15, which compare as text in calendar order.
-		return "(r.attributes ->> " + c.bind(a.ID.String()) + " " + op + " " + c.bind(day) + "::text)", nil
+		return "(" + src + " ->> " + c.bind(a.ID.String()) + " " + op + " " + c.bind(day) + "::text)", nil
 	}
 	return "", errAt(v.Pos, "%q does not apply to %s. Use %s.", op, a.Name, describeOperators(def.operators()))
 }
@@ -156,23 +167,24 @@ func (c *compiler) options(a *attribute.Def, values []Value) ([]string, error) {
 func (c *compiler) attributeOrder(def fieldDef) string {
 	a := def.attr
 	id := c.bind(a.ID.String())
+	src := Store(a)
 	switch a.Kind {
 	case attribute.Number:
-		return numeric(id)
+		return numeric(src, id)
 	case attribute.Select:
 		options := make([]string, len(a.Options))
 		for i, o := range a.Options {
 			options[i] = o.ID.String()
 		}
-		return "array_position(" + c.bind(options) + "::text[], r.attributes ->> " + id + ")"
+		return "array_position(" + c.bind(options) + "::text[], " + src + " ->> " + id + ")"
 	case attribute.User:
-		return "(SELECT lower(u.name) FROM app_user u WHERE u.id::text = r.attributes ->> " + id + ")"
+		return "(SELECT lower(u.name) FROM app_user u WHERE u.id::text = " + src + " ->> " + id + ")"
 	case attribute.Text, attribute.URL, attribute.RichText:
-		return "lower(NULLIF(" + textOf(a.Kind, id) + ", ''))"
+		return "lower(NULLIF(" + textOf(src, a.Kind, id) + ", ''))"
 	case attribute.Date:
-		return "(r.attributes ->> " + id + ")"
+		return "(" + src + " ->> " + id + ")"
 	case attribute.Boolean:
-		return "(r.attributes -> " + id + ")"
+		return "(" + src + " -> " + id + ")"
 	}
 	return ""
 }

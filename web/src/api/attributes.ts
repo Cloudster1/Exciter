@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RECOMPUTE_POLL_MS } from "@/config";
 import { api } from "./client";
 import { projectQueryKey } from "./projects";
 import type { components } from "./schema";
@@ -153,4 +154,32 @@ export function permittedRoles(permits: FieldPermit[], statusId: string | null |
     for (const role of permit.roles) if (!who.includes(role)) who.push(role);
   }
   return who;
+}
+
+// Computed attributes (#213).
+
+export type FormulaCheck = Wire["FormulaCheck"];
+export type FormulaCheckInput = Wire["FormulaCheckInput"];
+export type Recompute = Wire["AttributeRecompute"];
+
+/** How far a project's recompute has got after a formula changed, asked again while one runs; null when none does. */
+export function useRecompute(projectKey: string) {
+  return useQuery({
+    queryKey: [...attributesKey(projectKey), "recompute"],
+    queryFn: async (): Promise<Recompute | null> =>
+      (await api.GET("/projects/{projectKey}/attributes", { params: { path: { projectKey } } })).data!.recompute ?? null,
+    refetchInterval: (query) => (query.state.data ? RECOMPUTE_POLL_MS : false),
+    enabled: Boolean(projectKey),
+  });
+}
+
+/** Checks a formula as it is written; nothing is asked for an empty one. */
+export function useFormulaCheck(projectKey: string, input: FormulaCheckInput) {
+  return useQuery({
+    queryKey: [...attributesKey(projectKey), "check", input],
+    queryFn: async (): Promise<FormulaCheck> =>
+      (await api.POST("/projects/{projectKey}/formula-check", { params: { path: { projectKey } }, body: input })).data!.check,
+    enabled: Boolean(projectKey) && input.formula.trim() !== "",
+    placeholderData: (previous) => previous,
+  });
 }

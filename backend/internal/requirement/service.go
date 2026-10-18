@@ -95,7 +95,7 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
                  WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `, requirement_computed_of(r.id)
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -134,6 +134,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		reused               scannedReuse
 		locked               scannedLock
 		qualityJSON          []byte
+		computedJSON         []byte
 	)
 	r := &l.Requirement
 	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
@@ -142,7 +143,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
 		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(append(reused.targets(), locked.targets()...),
-		&qualityJSON)...)...)
+		&qualityJSON, &computedJSON)...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -161,6 +162,12 @@ func scan(row pgx.Row) (*loaded, error) {
 	}
 	if err := json.Unmarshal(attrs, &r.Attributes); err != nil {
 		return nil, fmt.Errorf("read the attributes of %s: %w", r.Key, err)
+	}
+	r.Computed = map[string]json.RawMessage{}
+	if len(computedJSON) > 0 {
+		if err := json.Unmarshal(computedJSON, &r.Computed); err != nil {
+			return nil, fmt.Errorf("read the computed values of %s: %w", r.Key, err)
+		}
 	}
 	if ownerID != nil {
 		r.Owner = &PersonRef{ID: *ownerID, Name: ownerName}

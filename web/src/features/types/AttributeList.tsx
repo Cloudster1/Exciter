@@ -3,6 +3,7 @@ import { ApiError } from "@/api/client";
 import {
   useAttributeActions,
   useAttributeKinds,
+  useRecompute,
   useAttributes,
   useTypes,
   type Attribute,
@@ -17,6 +18,7 @@ import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { useStatuses } from "@/api/workflows";
 import { PermitsEditor, RequiredFrom } from "./FieldRuleControls";
+import { FormulaEditor } from "./FormulaEditor";
 
 /** The table's columns, which an attribute opened for editing spans. */
 const ATTRIBUTE_COLUMNS = 4;
@@ -28,6 +30,7 @@ export function AttributeList({ project }: { project: Project }) {
   const { data: attributes, error, refetch } = useAttributes(project.key);
   const { data: types } = useTypes(project.key);
   const { data: kinds } = useAttributeKinds();
+  const { data: recompute } = useRecompute(project.key);
   const actions = useAttributeActions(project.key);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -41,6 +44,11 @@ export function AttributeList({ project }: { project: Project }) {
   return (
     <div className="space-y-4" data-attribute-list>
       <p className="text-sm text-ink-muted">{t.attributes.intro}</p>
+      {recompute && (
+        <p role="status" className="text-sm text-ink" data-recompute={`${recompute.done}/${recompute.total}`}>
+          {t.attributes.recomputing(recompute.done, recompute.total)}
+        </p>
+      )}
       {failed && <ErrorBanner>{failed.message}</ErrorBanner>}
       {attributes.length === 0 ? (
         <p className="text-sm text-ink-subtle">{t.attributes.empty}</p>
@@ -72,8 +80,10 @@ export function AttributeList({ project }: { project: Project }) {
                     <span className="flex flex-wrap items-center gap-2 font-medium text-ink">
                       {attribute.name}
                       {attribute.required && <Tag>{t.attributes.required}</Tag>}
+                      {attribute.formula !== null && <Tag data-computed-tag="">{t.attributes.computed}</Tag>}
                       {attribute.retired && <Tag>{t.attributes.retired}</Tag>}
                     </span>
+                    {attribute.formula !== null && <code className="mt-1 block font-mono text-xs break-all text-ink-muted">{attribute.formula}</code>}
                     {attribute.options.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {attribute.options.map((option) => (
@@ -149,6 +159,10 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
   const save = attribute ? actions.update : actions.create;
   const [name, setName] = useState(attribute?.name ?? "");
   const [kind, setKind] = useState<Kind>(attribute?.kind ?? "text");
+  // A computed attribute (#213) is made so and stays so; its kind follows from the formula.
+  const [computed, setComputed] = useState(attribute ? attribute.formula !== null : false);
+  const [formula, setFormula] = useState(attribute?.formula ?? "");
+  const [onSections, setOnSections] = useState(attribute?.onSections ?? false);
   const [required, setRequired] = useState(attribute?.required ?? false);
   const [typeIds, setTypeIds] = useState<string[]>(attribute?.typeIds ?? []);
   // Each existing option keeps its id, so a rename is the same option; a new one has none yet.
@@ -175,6 +189,12 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
     event.preventDefault();
     // The rules go along only where they changed, as every other field of the form leaves the rest alone.
     const dependency = hasOptions(kind) && dependsOn ? { attributeId: dependsOn, choices } : null;
+    if (computed) {
+      const body = { name, typeIds, formula, onSections };
+      if (attribute) actions.update.mutate({ id: attribute.id, ...body }, { onSuccess: onDone });
+      else actions.create.mutate(body, { onSuccess: onDone });
+      return;
+    }
     const body = {
       name,
       required,
@@ -193,22 +213,45 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
       {save.error && Object.keys(fields).length === 0 && <ErrorBanner>{save.error.message}</ErrorBanner>}
       <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
         <Field label={t.attributes.name} value={name} onChange={(event) => setName(event.target.value)} error={fields.name} autoFocus required />
-        <Select
-          label={t.attributes.kind}
-          value={kind}
-          disabled={Boolean(attribute)}
-          hint={attribute ? t.attributes.kindFixed : undefined}
-          onChange={(event) => setKind(event.target.value as Kind)}
-          error={fields.kind}
-        >
-          {(kinds ?? []).map((each) => (
-            <option key={each.kind} value={each.kind}>
-              {each.title}
-            </option>
-          ))}
-        </Select>
+        {!computed && (
+          <Select
+            label={t.attributes.kind}
+            value={kind}
+            disabled={Boolean(attribute)}
+            hint={attribute ? t.attributes.kindFixed : undefined}
+            onChange={(event) => setKind(event.target.value as Kind)}
+            error={fields.kind}
+          >
+            {(kinds ?? []).map((each) => (
+              <option key={each.kind} value={each.kind}>
+                {each.title}
+              </option>
+            ))}
+          </Select>
+        )}
       </div>
-      <Checkbox label={t.attributes.requiredLabel} checked={required} onChange={(event) => setRequired(event.target.checked)} />
+      <Checkbox
+        label={t.attributes.computedLabel}
+        checked={computed}
+        disabled={Boolean(attribute)}
+        onChange={(event) => setComputed(event.target.checked)}
+        data-computed-toggle=""
+      />
+      {computed && (
+        <>
+          <p className="text-xs text-ink-subtle">{t.attributes.computedHint}</p>
+          <FormulaEditor
+            projectKey={projectKey}
+            attributeId={attribute?.id}
+            value={formula}
+            onChange={setFormula}
+            onSections={onSections}
+            error={fields.formula}
+          />
+          <Checkbox label={t.attributes.onSections} checked={onSections} onChange={(event) => setOnSections(event.target.checked)} />
+        </>
+      )}
+      {!computed && <Checkbox label={t.attributes.requiredLabel} checked={required} onChange={(event) => setRequired(event.target.checked)} />}
       <fieldset className="space-y-1">
         <legend className="text-sm font-medium text-ink-muted">{t.attributes.showsOn}</legend>
         <p className="text-xs text-ink-subtle">{t.attributes.showsOnHint}</p>
@@ -226,7 +269,7 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
         </div>
         {fields.typeIds && <p className="text-sm text-danger">{fields.typeIds}</p>}
       </fieldset>
-      {hasOptions(kind) && (
+      {!computed && hasOptions(kind) && (
         <fieldset className="space-y-2" data-option-editor>
           <legend className="text-sm font-medium text-ink-muted">{t.attributes.options}</legend>
           {options.map((option, i) => (
@@ -266,8 +309,10 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
           {fields.options && <p className="text-sm text-danger">{fields.options}</p>}
         </fieldset>
       )}
-      <RequiredFrom id="attribute-required-from" statuses={statuses ?? []} value={requiredFrom} onChange={setRequiredFrom} error={fields.requiredFrom} />
-      {hasOptions(kind) && (
+      {!computed && (
+        <RequiredFrom id="attribute-required-from" statuses={statuses ?? []} value={requiredFrom} onChange={setRequiredFrom} error={fields.requiredFrom} />
+      )}
+      {!computed && hasOptions(kind) && (
         <fieldset className="space-y-2" data-depends-on>
           <Select
             label={t.fieldRules.dependsOn}
@@ -317,7 +362,7 @@ function AttributeForm({ projectKey, types, attribute, onDone }: { projectKey: s
           )}
         </fieldset>
       )}
-      <PermitsEditor id="attribute-permits" statuses={statuses ?? []} permits={permits} onChange={setPermits} error={fields.editableBy} />
+      {!computed && <PermitsEditor id="attribute-permits" statuses={statuses ?? []} permits={permits} onChange={setPermits} error={fields.editableBy} />}
       <div className="flex gap-2">
         <Button type="submit" size="sm" loading={save.isPending} data-action="save-attribute">
           {attribute ? t.attributes.save : t.attributes.create}

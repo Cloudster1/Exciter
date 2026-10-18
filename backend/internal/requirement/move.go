@@ -59,6 +59,8 @@ func newMatcher(ctx context.Context, tx db.DBTX, fromProject uuid.UUID, to *proj
 	if m.to, err = attribute.Defs(ctx, tx, to.ID); err != nil {
 		return nil, err
 	}
+	// A computed attribute of the same name takes no value carried in; its formula works one out (#213).
+	m.to = slices.DeleteFunc(m.to, attribute.Def.Computed)
 	rows, err := tx.Query(ctx, `SELECT id, lower(name) FROM requirement_type WHERE project_id = $1 AND NOT retired`, to.ID)
 	if err != nil {
 		return nil, err

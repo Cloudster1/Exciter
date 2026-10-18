@@ -54,7 +54,8 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 		return nil, err
 	}
 	for _, d := range defs {
-		if !d.Retired {
+		// A computed attribute is worked out, never typed (#213), so no column fills it.
+		if !d.Retired && !d.Computed() {
 			w.defs = append(w.defs, d)
 		}
 	}

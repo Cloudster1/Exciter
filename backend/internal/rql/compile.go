@@ -254,7 +254,7 @@ func (c *compiler) empty(e Empty) (string, error) {
 	case fkLink:
 		clause = "NOT " + c.linked(def, "")
 	case fkAttribute:
-		clause = "NOT (r.attributes ? " + c.bind(def.attr.ID.String()) + ")"
+		clause = "NOT (" + Store(def.attr) + " ? " + c.bind(def.attr.ID.String()) + ")"
 	default:
 		clause = "(" + def.column + " IS NULL)"
 	}

@@ -28,6 +28,8 @@ const risk: Attribute = {
   retired: false,
   requiredFrom: null,
   dependsOn: null,
+  formula: null,
+  onSections: false,
   editableBy: [],
   createdAt: "2026-10-01T08:00:00Z",
   updatedAt: "2026-10-01T08:00:00Z",

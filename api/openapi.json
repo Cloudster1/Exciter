@@ -7496,7 +7496,7 @@
     "/projects/{projectKey}/attributes": {
       "get": {
         "operationId": "listAttributes",
-        "summary": "A project's attributes in order, retired ones included.",
+        "summary": "A project's attributes in order, retired ones included, and how far a recompute of its computed attributes has got while one runs.",
         "tags": [
           "types"
         ],
@@ -7523,10 +7523,21 @@
                       "items": {
                         "$ref": "#/components/schemas/Attribute"
                       }
+                    },
+                    "recompute": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/AttributeRecompute"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
-                    "attributes"
+                    "attributes",
+                    "recompute"
                   ]
                 }
               }
@@ -10745,16 +10756,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -26055,6 +26056,12 @@
               "$ref": "#/components/schemas/FieldPermit"
             }
           },
+          "formula": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -26075,6 +26082,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "onSections": {
+            "type": "boolean"
           },
           "options": {
             "type": "array",
@@ -26123,6 +26133,8 @@
           "requiredFrom",
           "dependsOn",
           "editableBy",
+          "formula",
+          "onSections",
           "createdAt",
           "updatedAt"
         ]
@@ -26244,6 +26256,9 @@
               "$ref": "#/components/schemas/FieldPermit"
             }
           },
+          "formula": {
+            "type": "string"
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -26260,6 +26275,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "onSections": {
+            "type": "boolean"
           },
           "options": {
             "type": "array",
@@ -26363,6 +26381,26 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "AttributeRecompute": {
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total",
+          "startedAt"
         ]
       },
       "AuditActor": {
@@ -26668,6 +26706,9 @@
       "Baseline": {
         "type": "object",
         "properties": {
+          "computedStale": {
+            "type": "boolean"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -26737,6 +26778,7 @@
           "createdByName",
           "createdAt",
           "detail",
+          "computedStale",
           "signing"
         ]
       },
@@ -33757,6 +33799,12 @@
           "comments": {
             "$ref": "#/components/schemas/CommentCounts"
           },
+          "computed": {
+            "type": "object",
+            "additionalProperties": {
+              "description": "A JSON value."
+            }
+          },
           "copiedFrom": {
             "oneOf": [
               {
@@ -33932,6 +33980,7 @@
           "rationale",
           "type",
           "attributes",
+          "computed",
           "revision",
           "status",
           "owner",

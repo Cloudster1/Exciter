@@ -493,3 +493,10 @@ export const GRAPH_MAX_ZOOM = 1.5;
 /** How deep a graph looks unless asked, and at most: the API's own. */
 export const GRAPH_DEFAULT_DEPTH = 2;
 export const GRAPH_MAX_DEPTH = 6;
+
+/** How often a project's recompute is asked again while one runs, and how long a formula waits after typing to be
+ * checked (#213). */
+export const RECOMPUTE_POLL_MS = 1000;
+export const FORMULA_CHECK_DEBOUNCE_MS = 400;
+/** How many lines a formula is given to be written in. */
+export const FORMULA_ROWS = 3;

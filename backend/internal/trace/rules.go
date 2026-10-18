@@ -18,6 +18,15 @@ type FieldError struct {
 
 func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
+// InFormulaError refuses letting a link type cycle while a computed attribute reads itself along it (#213).
+type InFormulaError struct {
+	Attribute string
+}
+
+func (e *InFormulaError) Error() string {
+	return "the formula of " + e.Attribute + " follows the type round"
+}
+
 var keyRe = regexp.MustCompile(`^[a-z][a-z0-9_]{1,39}$`)
 
 // KeyFromName is the key a type gets when its maker names none: its name in lower case, words joined by _.

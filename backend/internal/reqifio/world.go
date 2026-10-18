@@ -2,6 +2,7 @@ package reqifio
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -79,6 +80,8 @@ func loadWorld(ctx context.Context, tx db.DBTX, p *project.Project) (*world, err
 	if w.defs, err = attribute.Defs(ctx, tx, p.ID); err != nil {
 		return nil, err
 	}
+	// A computed attribute is worked out, never imported (#213); a ReqIF attribute of its name is a loss.
+	w.defs = slices.DeleteFunc(w.defs, attribute.Def.Computed)
 	for _, read := range []func(context.Context, db.DBTX) error{w.readNamed, w.readLinkTypes, w.readWorkflows, w.readRequirements, w.readOldKeys, w.readLinks, w.readTies} {
 		if err := read(ctx, tx); err != nil {
 			return nil, err

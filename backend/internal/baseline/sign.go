@@ -383,6 +383,8 @@ type Content struct {
 	External, Pages       []uuid.UUID
 	// Evidence is what the baseline recorded of each requirement's test results (#200).
 	Evidence []ContentEvidence
+	// Computed are the computed values it recorded (#213), each line as baseline_computed_line writes it.
+	Computed []ContentEvidence
 }
 
 // ContentEvidence is one piece of evidence a baseline recorded, its line as baseline_evidence_line writes it.
@@ -453,6 +455,13 @@ func ContentHash(c Content) string {
 	for _, e := range evidence {
 		fmt.Fprintf(&b, "evidence %s %s\n", e.RequirementID, e.Line)
 	}
+	computed := slices.Clone(c.Computed)
+	slices.SortFunc(computed, func(x, y ContentEvidence) int {
+		return cmp.Or(strings.Compare(x.RequirementID.String(), y.RequirementID.String()), strings.Compare(x.Line, y.Line))
+	})
+	for _, v := range computed {
+		fmt.Fprintf(&b, "%s %s\n", v.RequirementID, v.Line)
+	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return hex.EncodeToString(sum[:])
 }
@@ -496,6 +505,8 @@ func readContent(ctx context.Context, tx db.DBTX, f *found) (Content, error) {
 			c.Pages = append(c.Pages, a)
 		case "evidence":
 			c.Evidence = append(c.Evidence, ContentEvidence{RequirementID: a, Line: *hash})
+		case "computed":
+			c.Computed = append(c.Computed, ContentEvidence{RequirementID: a, Line: *hash})
 		}
 	}
 	return c, rows.Err()
@@ -526,8 +537,8 @@ func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID 
 	}
 	var id uuid.UUID
 	err = tx.QueryRow(ctx, `
-		INSERT INTO baseline (project_id, name, description, created_by, detail, session_id)
-		VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, projectID, name, description, actor, DetailFull, sessionID).Scan(&id)
+		INSERT INTO baseline (project_id, name, description, created_by, detail, session_id, computed_stale)
+		VALUES ($1, $2, $3, $4, $5, $6, computed_pending($1)) RETURNING id`, projectID, name, description, actor, DetailFull, sessionID).Scan(&id)
 	if err != nil {
 		return uuid.Nil, nameRefusal(err)
 	}
@@ -535,7 +546,7 @@ func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID 
 		sql  string
 		args []any
 	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-		{takeEvidence, []any{id}}, {takeCode, []any{id}}} {
+		{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeComputed, []any{id}}} {
 		if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 			return uuid.Nil, fmt.Errorf("take the session's baseline: %w", err)
 		}

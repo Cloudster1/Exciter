@@ -121,9 +121,25 @@ type Def struct {
 	// DependsOn narrows a select's options by another select's option, null when it depends on none.
 	DependsOn *Dependency `json:"dependsOn"`
 	// EditableBy empty leaves it to whoever may edit the requirement.
-	EditableBy []Permit  `json:"editableBy"`
+	EditableBy []Permit `json:"editableBy"`
+	// Formula makes it computed (#213), spelled with today's names; null for an attribute people type.
+	Formula *string `json:"formula"`
+	// OnSections works a computed attribute out for sections too.
+	OnSections bool      `json:"onSections"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	// stored is the formula as kept, attributes and link types named by id.
+	stored string
+}
+
+// Computed says the attribute is worked out from a formula, never typed.
+func (d Def) Computed() bool { return d.Formula != nil }
+
+// Recompute is how far a project's recompute has got after a formula changed.
+type Recompute struct {
+	Done      int       `json:"done"`
+	Total     int       `json:"total"`
+	StartedAt time.Time `json:"startedAt"`
 }
 
 // DefInput makes an attribute, or changes one where nil leaves a field alone;
@@ -142,4 +158,7 @@ type DefInput struct {
 	RequiredFrom json.RawMessage `json:"requiredFrom,omitempty"`
 	DependsOn    json.RawMessage `json:"dependsOn,omitempty"`
 	EditableBy   *[]Permit       `json:"editableBy,omitempty"`
+	// Formula makes a new attribute computed, or changes a computed one's formula (#213).
+	Formula    *string `json:"formula,omitempty"`
+	OnSections *bool   `json:"onSections,omitempty"`
 }

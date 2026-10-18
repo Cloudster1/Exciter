@@ -1659,7 +1659,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A project's attributes in order, retired ones included. */
+        /** A project's attributes in order, retired ones included, and how far a recompute of its computed attributes has got while one runs. */
         get: operations["listAttributes"];
         put?: never;
         /** Define an attribute. For the project's administrators. */
@@ -4860,11 +4860,13 @@ export interface components {
             dependsOn: components["schemas"]["AttributeDependency"] | null;
             description: string;
             editableBy: components["schemas"]["FieldPermit"][];
+            formula: string | null;
             /** Format: uuid */
             id: string;
             /** @enum {string} */
             kind: "text" | "richText" | "number" | "select" | "multiSelect" | "date" | "user" | "boolean" | "url";
             name: string;
+            onSections: boolean;
             options: components["schemas"]["AttributeOption"][];
             position: number;
             required: boolean;
@@ -4906,9 +4908,11 @@ export interface components {
             dependsOn?: components["schemas"]["AttributeDependency"] | null;
             description?: string;
             editableBy?: components["schemas"]["FieldPermit"][];
+            formula?: string;
             /** @enum {string} */
             kind?: "text" | "richText" | "number" | "select" | "multiSelect" | "date" | "user" | "boolean" | "url";
             name?: string;
+            onSections?: boolean;
             options?: components["schemas"]["AttributeOptionInput"][];
             position?: number;
             required?: boolean;
@@ -4938,6 +4942,12 @@ export interface components {
             id?: string;
             name: string;
             retired?: boolean;
+        };
+        AttributeRecompute: {
+            done: number;
+            /** Format: date-time */
+            startedAt: string;
+            total: number;
         };
         AuditActor: {
             /** Format: uuid */
@@ -4981,6 +4991,7 @@ export interface components {
             fit: string;
         };
         Baseline: {
+            computedStale: boolean;
             /** Format: date-time */
             createdAt: string;
             createdByName: string;
@@ -6742,6 +6753,9 @@ export interface components {
             };
             can: components["schemas"]["RequirementCan"];
             comments: components["schemas"]["CommentCounts"];
+            computed: {
+                [key: string]: unknown;
+            };
             copiedFrom: components["schemas"]["RequirementRef"] | null;
             /** Format: date-time */
             createdAt: string;
@@ -13639,6 +13653,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         attributes: components["schemas"]["Attribute"][];
+                        recompute: components["schemas"]["AttributeRecompute"] | null;
                     };
                 };
             };
@@ -15669,15 +15684,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

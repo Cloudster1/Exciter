@@ -114,6 +114,8 @@ type Requirement struct {
 	Type *TypeRef `json:"type"`
 	// Attributes are the values by attribute id, shaped by each attribute's kind.
 	Attributes map[string]json.RawMessage `json:"attributes"`
+	// Computed are the values of its computed attributes (#213), worked out beside its revisions, never typed.
+	Computed map[string]json.RawMessage `json:"computed"`
 	// Revision is the number of the latest revision, from 1.
 	Revision int        `json:"revision"`
 	Status   *StatusRef `json:"status"`

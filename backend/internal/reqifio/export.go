@@ -164,7 +164,7 @@ func (snap *snapshot) read(ctx context.Context, tx db.DBTX, actor uuid.UUID, pro
 func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.UUID) error {
 	snap.contents = map[uuid.UUID]content{}
 	rows, err := tx.Query(ctx, `
-		SELECT r.id, r.statement, r.rationale, r.attributes, r.status_id, COALESCE(lower(u.email::text), ''), r.priority, r.updated_at,
+		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), r.status_id, COALESCE(lower(u.email::text), ''), r.priority, r.updated_at,
 		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}')
 		FROM requirement r LEFT JOIN app_user u ON u.id = r.owner_id
 		WHERE r.id = ANY($1)`, ids)

@@ -120,7 +120,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 		limitAt, offsetAt := bind(limit), bind(offset)
 		rows, err := tx.Query(ctx, requirement.WalkTree+`
 			SELECT r.id, r.number, r.kind, r.title, r.revision, w.path, r.owner_id, COALESCE(o.name, ''), r.priority, r.updated_at,
-			       r.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.attributes,
+			       r.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), r.attributes || requirement_computed_of(r.id),
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
 			       perm_project_holds(r.project_id, $2, 'edit'), perm_project_holds(r.project_id, $2, 'approve'),
 			       perm_project_holds(r.project_id, $2, 'comment'),

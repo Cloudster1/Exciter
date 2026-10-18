@@ -20,7 +20,8 @@ import { t } from "@/i18n";
 import { useFieldAccess } from "@/features/types/fieldAccess";
 
 /** What an edit starts from, which a requirement's page and a specification entry both hold. */
-export type Editable = Pick<Requirement, "key" | "kind" | "title" | "statement" | "rationale" | "type" | "attributes" | "revision" | "reuse" | "status">;
+export type Editable = Pick<Requirement, "key" | "kind" | "title" | "statement" | "rationale" | "type" | "attributes" | "revision" | "reuse" | "status"> &
+  Partial<Pick<Requirement, "computed">>;
 
 /** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
 export function RequirementEdit({
@@ -240,7 +241,15 @@ export function RequirementEdit({
           </Labelled>
         )}
         {requirement.kind === "requirement" && attributes && (
-          <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} readOnly={readOnly} />
+          <AttributeFields
+            attributes={attributes}
+            typeId={typeId}
+            values={values}
+            onChange={setValues}
+            errors={fields}
+            readOnly={readOnly}
+            computed={requirement.computed as Values}
+          />
         )}
         <Field
           label={t.requirements.comment}

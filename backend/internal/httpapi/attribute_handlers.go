@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/cloudster1/exciter/backend/internal/attribute"
+	"github.com/cloudster1/exciter/backend/internal/attribute/formula"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
 // Types and attributes (#14): what kinds of requirement a project tells apart, and what it records about them.
@@ -93,7 +95,32 @@ func (s *Server) handleListAttributes(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"attributes": defs})
+	progress, err := s.Attributes.Progress(r.Context(), userFrom(r), projectKeyParam(r))
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"attributes": defs, "recompute": progress})
+}
+
+// handleFormulaCheck checks a computed attribute's formula as it is written (#213).
+func (s *Server) handleFormulaCheck(w http.ResponseWriter, r *http.Request) {
+	var req formula.CheckInput
+	if err := decodeJSON(w, r, &req); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	check, err := s.Attributes.CheckFormula(r.Context(), userFrom(r), projectKeyParam(r), req)
+	if errors.Is(err, attribute.ErrNoSuchRequirement) {
+		respondError(w, r, ErrValidation(map[string]string{"requirementKey": "There is no such requirement in this project. Name one of its keys, such as " +
+			requirement.NormalizedProjectKey(projectKeyParam(r)) + "-R1."}))
+		return
+	}
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"check": check})
 }
 
 func (s *Server) handleCreateAttribute(w http.ResponseWriter, r *http.Request) {
@@ -149,10 +176,14 @@ func (s *Server) handleDeleteAttribute(w http.ResponseWriter, r *http.Request) {
 // attributeError maps the types' and attributes' refusals; nil when err is none of theirs.
 func attributeError(err error) *APIError {
 	var (
-		field *attribute.FieldError
-		inUse *attribute.InUseError
+		field     *attribute.FieldError
+		inUse     *attribute.InUseError
+		inFormula *attribute.InFormulaError
 	)
 	switch {
+	case errors.As(err, &inFormula):
+		return &APIError{Status: http.StatusConflict, Code: "attribute_in_formula", Message: fmt.Sprintf(
+			"The formula of %s reads this attribute. Take it out of that formula first.", inFormula.Name)}
 	case errors.As(err, &field):
 		return ErrValidation(map[string]string{field.Field: field.Message})
 	case errors.As(err, &inUse):

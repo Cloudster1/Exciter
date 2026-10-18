@@ -27,10 +27,14 @@ func (s *Server) traceOn(next http.Handler) http.Handler {
 // traceError maps the links' refusals; nil when err is none of theirs.
 func traceError(err error) *APIError {
 	var (
-		field *trace.FieldError
-		inUse *trace.InUseError
+		field     *trace.FieldError
+		inUse     *trace.InUseError
+		inFormula *trace.InFormulaError
 	)
 	switch {
+	case errors.As(err, &inFormula):
+		return &APIError{Status: http.StatusConflict, Code: "type_in_formula", Message: fmt.Sprintf(
+			"The formula of %s reads itself along this link type, which is only safe while the type is acyclic. Change that formula first.", inFormula.Attribute)}
 	case errors.As(err, &field):
 		return ErrValidation(map[string]string{field.Field: field.Message})
 	case errors.As(err, &inUse):

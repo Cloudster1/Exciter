@@ -41,7 +41,7 @@ var analysisOperations = []operation{
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusNotFound: errorEnvelope{}}},
 
 	// Computed attributes (#213).
-	{method: "POST", path: "/projects/{projectKey}/formula-check", handler: "handleFormulaCheck", tag: "types", pending: true,
+	{method: "POST", path: "/projects/{projectKey}/formula-check", handler: "handleFormulaCheck", tag: "types",
 		summary: "Check a computed attribute's formula as it is written: what is wrong and where, what kind of value it gives, what it reads, and its value for a requirement. The project's administrators'.",
 		request: formula.CheckInput{}, responses: with(http.StatusOK, env{"check": formula.Check{}})},
 

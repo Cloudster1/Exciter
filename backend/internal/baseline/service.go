@@ -71,7 +71,7 @@ func checkDescription(description string) (string, error) {
 const selectBaseline = `
 SELECT b.id, p.key, b.name, b.description, b.root_id, b.root_number, COALESCE(r.kind, 'section'), COALESCE(r.title, ''),
        COALESCE(r.revision, 0), r.trashed_at IS NOT NULL, (SELECT count(*)::int FROM baseline_item i WHERE i.baseline_id = b.id),
-       b.locked_at, COALESCE(u.name, ''), b.created_at, b.detail, b.project_id,
+       b.locked_at, COALESCE(u.name, ''), b.created_at, b.detail, b.computed_stale, b.project_id,
        (SELECT count(*)::int FROM baseline_signature s WHERE s.baseline_id = b.id), bs.required, rr.required,
        p.archived_at IS NULL AND NOT EXISTS (SELECT 1 FROM baseline_signature s WHERE s.baseline_id = b.id AND s.signer_id = current_actor_id())
        AND CASE WHEN bs.baseline_id IS NOT NULL THEN baseline_signer_named(b.id, current_actor_id())
@@ -101,7 +101,7 @@ func scanBaseline(row pgx.CollectableRow) (found, error) {
 		root       requirement.Ref
 	)
 	err := row.Scan(&f.ID, &f.ProjectKey, &f.Name, &f.Description, &rootID, &rootNumber, &root.Kind, &root.Title, &root.Revision,
-		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.Detail, &f.projectID,
+		&root.Trashed, &f.Items, &f.LockedAt, &f.CreatedByName, &f.CreatedAt, &f.Detail, &f.ComputedStale, &f.projectID,
 		&f.signatures, &f.frozen, &f.rule, &f.maySign)
 	if rootID != nil && rootNumber != nil {
 		root.ID, root.ProjectKey, root.Key = *rootID, f.ProjectKey, requirement.Key(f.ProjectKey, *rootNumber)
@@ -251,6 +251,14 @@ JOIN requirement r ON r.id = i.requirement_id
 JOIN code_scan s ON s.project_id = r.project_id AND s.branch = evidence_counting_branch(r.project_id)
 JOIN code_tag t ON t.scan_id = s.id AND t.requirement_id = i.requirement_id
 WHERE i.baseline_id = $1 AND code_tag_relation(s.project_id, t.word) IS NOT NULL`
+	// takeComputed records each item's computed values as worked out when taken, with the attribute's name then (#213).
+	takeComputed = `
+INSERT INTO baseline_computed (baseline_id, requirement_id, attribute_id, name, kind, value)
+SELECT $1, i.requirement_id, d.id, d.name, d.kind, rc."values" -> d.id::text
+FROM baseline_item i
+JOIN requirement_computed rc ON rc.requirement_id = i.requirement_id
+JOIN attribute_def d ON d.project_id = rc.project_id AND d.formula IS NOT NULL AND rc."values" ? d.id::text
+WHERE i.baseline_id = $1`
 )
 
 // Take records a baseline of the project, or of one section's subtree, in one transaction that reads the database as
@@ -276,8 +284,8 @@ func (s *Service) Take(ctx context.Context, actor uuid.UUID, projectKey string, 
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO baseline (project_id, name, description, root_id, root_number, created_by, detail)
-			VALUES ($1, $2, $3, $4, (SELECT number FROM requirement WHERE id = $4), $5, $6) RETURNING id`,
+			INSERT INTO baseline (project_id, name, description, root_id, root_number, created_by, detail, computed_stale)
+			VALUES ($1, $2, $3, $4, (SELECT number FROM requirement WHERE id = $4), $5, $6, computed_pending($1)) RETURNING id`,
 			p.ID, name, description, root, actor, DetailFull).Scan(&id)
 		if err != nil {
 			return nameRefusal(err)
@@ -286,7 +294,7 @@ func (s *Service) Take(ctx context.Context, actor uuid.UUID, projectKey string, 
 			sql  string
 			args []any
 		}{{takeItems, []any{p.ID, id, root}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-			{takeEvidence, []any{id}}, {takeCode, []any{id}}} {
+			{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeComputed, []any{id}}} {
 			if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 				return fmt.Errorf("take the baseline: %w", err)
 			}
