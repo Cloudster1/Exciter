@@ -29,6 +29,13 @@ type analysis struct {
 	byRef     map[string]*objectPlan
 	relations []*relationPlan
 	lossSeen  map[string]bool
+	// lossesAt counts the losses by where they are, for the preview's tree.
+	lossesAt map[string]int
+
+	// word is the build of a Word document (#209); top is the section it goes below, uuid.Nil the project's top.
+	word      *wordBuild
+	top       uuid.UUID
+	wordFound map[string]wordFound
 }
 
 // objectPlan is what one object becomes: a new requirement or section, or a change to one the project has.
@@ -59,6 +66,8 @@ type objectPlan struct {
 	KeepPlace bool
 	// Specification is the identifier of the specification a section stands for.
 	Specification string
+	// MatchedBy is how a Word import found Existing.
+	MatchedBy WordMatch
 }
 
 // relationPlan is a link a relation asks for.
@@ -70,19 +79,28 @@ type relationPlan struct {
 
 // analyze reads a file against the project with the choices made.
 func analyze(f *File, w *world, choices map[string]string) *analysis {
+	return analyzeWith(f, w, choices, nil, uuid.Nil)
+}
+
+// analyzeWith reads a file, or what a Word document was built into, against the project.
+func analyzeWith(f *File, w *world, choices map[string]string, word *wordBuild, top uuid.UUID) *analysis {
 	a := &analysis{file: f, index: indexOf(f), world: w, choices: choices, images: map[string]Image{}, byRef: map[string]*objectPlan{},
-		lossSeen: map[string]bool{}}
+		lossSeen: map[string]bool{}, lossesAt: map[string]int{}, word: word, top: top}
 	for _, img := range f.Images {
 		a.images[img.Path] = img
 	}
 	a.preview = Preview{Title: f.Title, SourceTool: f.SourceTool, Specifications: []string{}, Objects: len(f.Objects),
-		Relations: len(f.Relations), Images: len(f.Images), Schema: []SchemaItem{}, Losses: []Loss{}, Problems: []Problem{}}
+		Relations: len(f.Relations), Images: len(f.Images), Schema: []SchemaItem{}, Losses: []Loss{}, Problems: []Problem{},
+		Tree: []PreviewNode{}, Styles: []StyleUse{}}
 	for _, s := range f.Specifications {
 		if !isGlossary(s) {
 			a.preview.Specifications = append(a.preview.Specifications, nameOf(s.Identity))
 		}
 	}
 	a.resolveSchema()
+	if word != nil {
+		a.readWord()
+	}
 	a.planObjects()
 	a.planRelations()
 	for _, item := range a.schema.items {
@@ -98,6 +116,7 @@ func analyze(f *File, w *world, choices map[string]string) *analysis {
 			a.preview.Sections++
 		}
 	}
+	a.preview.Tree = a.tree()
 	return a
 }
 
@@ -107,6 +126,7 @@ func (a *analysis) lose(kind LossKind, where, format string, args ...any) {
 		return
 	}
 	a.lossSeen[where+"\x00"+message] = true
+	a.lossesAt[where]++
 	a.preview.LostCount++
 	if len(a.preview.Losses) < MaxLosses {
 		a.preview.Losses = append(a.preview.Losses, Loss{Kind: kind, Where: where, Message: message})
@@ -250,16 +270,26 @@ func (a *analysis) planObject(o *Object, parent string) {
 	if a.isSection(o) {
 		p.Kind = requirement.KindSection
 	}
-	if tie, ok := a.world.tied("object", o.Identifier, prefixObject); ok {
-		if e := a.world.existing[tie.Target]; e != nil {
-			p.Existing = e
-			if e.Kind != p.Kind && e.Kind == requirement.KindSection {
-				a.lose(LossValue, where, "It is a section in the project, so its type and attributes are left out.")
-			}
-			p.Kind = e.Kind
+	var found *existing
+	if a.word != nil {
+		if f, ok := a.wordFound[o.Identifier]; ok {
+			found, p.MatchedBy = a.world.existing[f.target], f.by
 		}
+		for _, l := range a.word.parts[o.Identifier].losses {
+			a.lose(LossKind(l.Kind), where, "%s", l.Message)
+		}
+	} else if tie, ok := a.world.tied("object", o.Identifier, prefixObject); ok {
+		found = a.world.existing[tie.Target]
 	}
-	p.KeepPlace = p.Existing != nil && parent == ""
+	if e := found; e != nil {
+		p.Existing = e
+		if e.Kind != p.Kind && e.Kind == requirement.KindSection {
+			a.lose(LossValue, where, "It is a section in the project, so its type and attributes are left out.")
+		}
+		p.Kind = e.Kind
+	}
+	// A Word document's parts follow its order wherever an earlier import left them.
+	p.KeepPlace = p.Existing != nil && parent == "" && a.word == nil
 	if p.Kind == requirement.KindRequirement {
 		if t := a.schema.types[o.Type]; t != nil {
 			p.TypeRef, p.TypeID = o.Type, t.id

@@ -189,6 +189,12 @@ type Preview struct {
 	Losses    []Loss       `json:"losses"`
 	LostCount int          `json:"lostCount"`
 	Problems  []Problem    `json:"problems"`
+	// Tree is each part of the file as the import would make it, in order, at most MaxPreviewNodes (#209).
+	Tree []PreviewNode `json:"tree"`
+	// Styles are the paragraph styles of a Word document and how often each is used, for its choices.
+	Styles []StyleUse `json:"styles"`
+	// Tables counts a Word document's tables, which its choices name by number from 1.
+	Tables int `json:"tables"`
 }
 
 // Refusal is an object or a relation the worker could not write, and why.

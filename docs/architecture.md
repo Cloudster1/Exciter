@@ -287,7 +287,7 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
-- **Authoring quality** (M10, `docs/api-contract-m10.md`, planned): writing
+- **Authoring quality** (M10, `docs/api-contract-m10.md`): writing
   rules in `internal/quality` check a requirement's title and statement as
   it is written and keep their findings with each revision, judged when
   read; a project's glossary marks the terms requirements use and makes

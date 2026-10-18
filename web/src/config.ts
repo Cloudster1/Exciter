@@ -348,6 +348,14 @@ export const IMPORT_POLL_MS = 1000;
 export const IMPORT_MAX_BYTES = 8 * 1024 * 1024;
 /** The largest ReqIF file or archive an import takes, the API's reqifio.MaxImportBytes. */
 export const REQIF_MAX_BYTES = 64 * 1024 * 1024;
+/** The largest Word document an import takes, the API's reqifio.MaxImportMB. */
+export const WORD_MAX_BYTES = 64 * 1024 * 1024;
+/** The parts of a document a Word import's preview shows at most, the API's reqifio.MaxPreviewNodes. */
+export const WORD_PREVIEW_MAX_NODES = 2000;
+/** How long typing in a Word import's choices pauses before the preview is asked for again. */
+export const WORD_CHOICES_DEBOUNCE_MS = 500;
+/** The words that make a paragraph a requirement until an administrator says otherwise, by the project's language. */
+export const WORD_DEFAULT_KEYWORDS: Record<string, string> = { en: "shall, must", de: "muss, soll" };
 
 /** Where a person reads what they were told, chooses how they are told, and sees what they watch (#34). */
 export const NOTIFICATIONS_PATH = "/notifications";

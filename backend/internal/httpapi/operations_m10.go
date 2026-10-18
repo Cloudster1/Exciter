@@ -141,7 +141,7 @@ var authoringOperations = []operation{
 		request: duplicates.SettingsInput{}, responses: with(http.StatusOK, env{"settings": duplicates.Settings{}})},
 
 	// Word import (#209).
-	{method: "POST", path: "/projects/{projectKey}/word-imports", handler: "handleUploadWord", tag: "reqif", pending: true,
+	{method: "POST", path: "/projects/{projectKey}/word-imports", handler: "handleUploadWord", tag: "reqif",
 		summary:   "Upload a Word document, sent as a multipart part named file, to import into the project or below a section, and see the tree it would make. Nothing is written yet; it continues as a ReqIF import does. For the project's administrators.",
 		multipart: true, request: reqifio.WordForm{},
 		responses: map[int]any{http.StatusCreated: env{"import": reqifio.Import{}}, http.StatusForbidden: errorEnvelope{}, http.StatusConflict: errorEnvelope{},

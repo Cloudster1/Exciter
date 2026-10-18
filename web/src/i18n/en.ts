@@ -29,6 +29,7 @@ import { sessionsEn } from "./sessions.en";
 import { statorEn } from "./stator.en";
 import { importsEn } from "./imports.en";
 import { reqifEn } from "./reqif.en";
+import { wordEn } from "./word.en";
 import { documentsEn } from "./documents.en";
 import { linksEn, linkTypesEn } from "./links.en";
 import { gridEn, searchEn } from "./search.en";
@@ -401,6 +402,7 @@ export const en = {
   chains: chainsEn,
   imports: importsEn,
   reqif: reqifEn,
+  word: wordEn,
   documents: documentsEn,
   search: searchEn,
   grid: gridEn,

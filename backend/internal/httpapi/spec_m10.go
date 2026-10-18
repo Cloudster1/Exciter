@@ -60,6 +60,7 @@ func authoringSchemas(b *openapi.Builder) {
 		reflect.TypeFor[duplicates.SettingsInput](): "DuplicateSettingsInput",
 		reflect.TypeFor[reqifio.WordForm]():         "WordImportForm",
 		reflect.TypeFor[reqifio.PreviewNode]():      "ImportPreviewNode",
+		reflect.TypeFor[reqifio.StyleUse]():         "ImportStyleUse",
 	}
 	for t, name := range names {
 		b.Names[t] = name

@@ -220,6 +220,6 @@ describe("a requirement's Stator pages", () => {
     await renderAt("/p/CHK/r/CHK-R1");
     await user.click(await screen.findByRole("button", { name: "Remove Brake timing, Specified by the page" }));
     expect(await screen.findByText(/No page yet/)).toBeInTheDocument();
-    expect(screen.getByText("The link to Brake timing was removed.")).toBeInTheDocument();
+    expect(await screen.findByText("The link to Brake timing was removed.")).toBeInTheDocument();
   });
 });

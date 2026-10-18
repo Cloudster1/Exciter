@@ -7,6 +7,11 @@ import (
 // tableStart opens a table of the given column widths at the frame's indent;
 // a plain table draws no borders, as a layout of columns or pictures.
 func (w *writer) tableStart(f frame, widths []int, bordered bool) {
+	w.titledTable(f, widths, bordered, "")
+}
+
+// titledTable opens a table with a title for whoever cannot see it, by which a reader also tells it apart.
+func (w *writer) titledTable(f frame, widths []int, bordered bool, title string) {
 	total := 0
 	for _, c := range widths {
 		total += c
@@ -21,7 +26,11 @@ func (w *writer) tableStart(f frame, widths []int, bordered bool) {
 	if f.indent > 0 {
 		w.b.WriteString(`<w:tblInd w:w="` + itoa(f.indent) + `" w:type="dxa"/>`)
 	}
-	w.b.WriteString(`<w:tblLayout w:type="fixed"/><w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/></w:tblPr><w:tblGrid>`)
+	w.b.WriteString(`<w:tblLayout w:type="fixed"/><w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/>`)
+	if title != "" {
+		w.b.WriteString(`<w:tblCaption w:val="` + escape(title) + `"/>`)
+	}
+	w.b.WriteString(`</w:tblPr><w:tblGrid>`)
 	for _, c := range widths {
 		w.b.WriteString(`<w:gridCol w:w="` + itoa(c) + `"/>`)
 	}

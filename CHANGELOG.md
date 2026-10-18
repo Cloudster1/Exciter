@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A Word document is imported as a specification (#209). A project's
+  administrators upload a `.docx` into the project or below a section; its
+  headings become sections, and its paragraphs, lists, tables and pictures
+  become requirements, one per paragraph or one per heading, as styles, a
+  numbering pattern or keywords such as shall decide. A table becomes one
+  requirement or one per row, its columns mapped to fields and attributes.
+  A preview shows the tree with every choice and loss before anything is
+  written, and the worker imports it with its progress, as a ReqIF import
+  does. Importing the same document into the same place again updates what
+  the first import made as new revisions.
 - Requirements that say the same thing are found (#208). While writing, a
   hint lists the requirements of the project and of library projects most
   like the draft, above a similarity the administrators set. A project page

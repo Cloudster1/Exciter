@@ -5440,6 +5440,17 @@ export interface components {
             rows: number;
             words: components["schemas"]["ImportWord"][];
         };
+        ImportPreviewNode: {
+            depth: number;
+            existingKey?: string;
+            /** @enum {string} */
+            kind: "section" | "requirement" | "informative" | "skipped";
+            losses: number;
+            /** @enum {string} */
+            matchedBy?: "key" | "number" | "paragraph" | "path";
+            source: string;
+            title: string;
+        };
         ImportProblem: {
             column: string;
             message: string;
@@ -5448,6 +5459,11 @@ export interface components {
         ImportRefusal: {
             reason: string;
             row: number;
+        };
+        ImportStyleUse: {
+            count: number;
+            id: string;
+            name: string;
         };
         ImportWord: {
             count: number;
@@ -6248,7 +6264,7 @@ export interface components {
             /** Format: date-time */
             finishedAt: string | null;
             /** @enum {string} */
-            format: "reqif" | "reqifz";
+            format: "reqif" | "reqifz" | "docx";
             /** Format: uuid */
             id: string;
             imported: string[];
@@ -6279,7 +6295,10 @@ export interface components {
             sections: number;
             sourceTool: string;
             specifications: string[];
+            styles: components["schemas"]["ImportStyleUse"][];
+            tables: number;
             title: string;
+            tree: components["schemas"]["ImportPreviewNode"][];
             updates: number;
         };
         ReqIFProblem: {
@@ -16972,15 +16991,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };

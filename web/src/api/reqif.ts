@@ -15,7 +15,8 @@ export type ReqIFState = ReqIFImport["state"];
 export const CHOICE_CREATE = "create";
 export const CHOICE_SKIP = "skip";
 
-const reqifKey = (id: string) => ["reqif-imports", id] as const;
+/** Where an import is kept, whichever file it came from. */
+export const reqifKey = (id: string) => ["reqif-imports", id] as const;
 
 /** Whether an import has stopped moving, so nothing more is worth asking. */
 export function reqifEnded(state: ReqIFState): boolean {
