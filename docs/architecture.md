@@ -41,8 +41,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-backlog.md` for what came after the first release,
   `docs/api-contract-m5.md` for traceability (#146),
   `docs/api-contract-m6.md` for the document view (#167),
-  `docs/api-contract-m7.md` for the MCP integration (#182), and
-  `docs/api-contract-m8.md` for review sessions and control (#216).
+  `docs/api-contract-m7.md` for the MCP integration (#182),
+  `docs/api-contract-m8.md` for review sessions and control (#216), and
+  `docs/api-contract-m9.md` for verification evidence (#224).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -285,6 +286,13 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Verification evidence** (M9, `docs/api-contract-m9.md`, planned): CI
+  uploads JUnit results and the requirement tags a scan found in the source,
+  with a token carrying the `evidence` scope; each names the revision it was
+  made against and turns outdated past it. Coverage counts tests and code
+  where a type asks, on the project's counting branch, and
+  `GET /projects/{projectKey}/trace-check` answers pass or fail for a
+  pipeline, wrapped by `exciter-ci`.
 - **Review sessions and control** (M8, `docs/api-contract-m8.md`):
   baselines signed by the people a project names, with #46's
   proof; requirements locked by a status or by hand, which the database

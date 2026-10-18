@@ -697,6 +697,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/code-scans/{scanID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One scan and the tags it carried that link nothing. */
+        get: operations["getCodeScan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/comment-threads/{threadID}/resolution": {
         parameters: {
             query?: never;
@@ -1568,6 +1585,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/code-scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload the tags a scan found in a repository at a commit; it replaces the branch's scan before. Needs edit; at most 50000 tags. */
+        post: operations["uploadCodeScan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/code-tag-words": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The words the project's tags use for implements and verifies, and the keys a tag may carry, for the scanner. */
+        get: operations["getCodeTagWords"];
+        /** Set the words the project's tags use; the project's administrators'. Tags are read by the words of the day, so nothing is scanned again. */
+        put: operations["saveCodeTagWords"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/code-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's code tags in one state, outdated or orphaned, on one branch. */
+        get: operations["listCodeTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/coverage": {
         parameters: {
             query?: never;
@@ -1664,6 +1733,24 @@ export interface paths {
         /** The same document as a PDF, printed by the render service as the reader; 503 render_unavailable when the server has none. */
         get: operations["projectPDF"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/evidence-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The branch whose results and code tags count for the project's coverage, matrix and queries. */
+        get: operations["getEvidenceSettings"];
+        /** Name the branch whose evidence counts; the project's administrators'. */
+        put: operations["saveEvidenceSettings"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2051,6 +2138,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/test-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a CI run's JUnit files, naming the repository, the commit, the branch and the run; the worker reads them and the run answers what it found. Needs edit; at most 100 files of 20 MB together. */
+        post: operations["uploadTestRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/trace-chains": {
         parameters: {
             query?: never;
@@ -2094,6 +2198,23 @@ export interface paths {
         };
         /** The chain report as an Excel workbook, every root the filter keeps, its breaks coloured. */
         get: operations["traceChainsXLSX"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/trace-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pass or fail for a pipeline: the broken chains, coverage gaps and failing or outdated evidence of the requirements the filter keeps, on one branch. */
+        get: operations["traceCheck"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2508,6 +2629,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requirements/{reqKey}/code-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The files and lines that implement or verify the requirement, per repository and branch, linking to them at their commit. */
+        get: operations["listCodeLinks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requirements/{reqKey}/comments": {
         parameters: {
             query?: never;
@@ -2797,6 +2935,23 @@ export interface paths {
         put?: never;
         /** Link a requirement to a Stator page the caller may read, as specified by, described by or related to it. */
         post: operations["createStatorLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/test-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest result of each test that verifies the requirement, per repository, branch and job, each saying whether a newer revision outdated it. */
+        get: operations["listTestResults"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3231,6 +3386,23 @@ export interface paths {
          * @description Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.
          */
         post: operations["statorWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/test-runs/{runID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One upload: where the worker has it, its counts and the keys that verify nothing. */
+        get: operations["getTestRun"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4314,6 +4486,95 @@ export interface components {
             /** Format: uuid */
             themeId: string | null;
         };
+        CodeLink: {
+            branch: string;
+            commit: string;
+            counts: boolean;
+            line: number;
+            outdated: boolean;
+            path: string;
+            /** @enum {string} */
+            relation: "implements" | "verifies";
+            repository: string;
+            revision: number;
+            /** Format: date-time */
+            scannedAt: string;
+            url: string;
+            word: string;
+        };
+        CodeScan: {
+            branch: string;
+            commit: string;
+            fileUrl: string;
+            /** Format: uuid */
+            id: string;
+            linked: number;
+            projectKey: string;
+            reported: components["schemas"]["CodeScanReported"][];
+            repository: string;
+            tags: number;
+            unreported: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: components["schemas"]["PersonRef"];
+            via: components["schemas"]["Via"] | null;
+        };
+        CodeScanInput: {
+            branch: string;
+            commit: string;
+            fileUrl?: string;
+            repository: string;
+            tags: components["schemas"]["CodeScanTag"][];
+        };
+        CodeScanReported: {
+            key: string;
+            line: number;
+            path: string;
+            /** @enum {string} */
+            problem: "unknown" | "trashed" | "section" | "word" | "revision";
+            revision?: number;
+            word: string;
+        };
+        CodeScanTag: {
+            key: string;
+            line: number;
+            path: string;
+            revision?: number;
+            word: string;
+        };
+        CodeTag: {
+            branch: string;
+            commit: string;
+            counts: boolean;
+            key: string;
+            line: number;
+            outdated: boolean;
+            path: string;
+            /** @enum {string} */
+            problem?: "unknown" | "trashed" | "section" | "word" | "revision";
+            /** @enum {string} */
+            relation: "implements" | "verifies";
+            repository: string;
+            requirement: components["schemas"]["RequirementRef"] | null;
+            revision: number;
+            /** Format: date-time */
+            scannedAt: string;
+            /** @enum {string} */
+            state: "current" | "outdated" | "orphaned";
+            url: string;
+            word: string;
+        };
+        CodeTagWords: {
+            implements: string[];
+            projectKeys: string[];
+            /** Format: date-time */
+            updatedAt: string | null;
+            verifies: string[];
+        };
+        CodeTagWordsInput: {
+            implements: string[];
+            verifies: string[];
+        };
         Comment: {
             /** Format: uuid */
             authorId: string | null;
@@ -4539,6 +4800,14 @@ export interface components {
         };
         ErrorEnvelope: {
             error: components["schemas"]["APIError"];
+        };
+        EvidenceSettings: {
+            countingBranch: string;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        EvidenceSettingsInput: {
+            countingBranch: string;
         };
         Example: {
             description: string;
@@ -6146,6 +6415,67 @@ export interface components {
             comment?: string;
             revision: number;
         };
+        TestResult: {
+            armature: components["schemas"]["TestResultCommit"] | null;
+            /** Format: date-time */
+            at: string;
+            branch: string;
+            commit: string;
+            counts: boolean;
+            durationMs: number;
+            job: string;
+            message: string;
+            /** @enum {string} */
+            outcome: "errored" | "failed" | "skipped" | "passed";
+            outdated: boolean;
+            repository: string;
+            revision: number;
+            /** Format: uuid */
+            runId: string;
+            runUrl: string;
+            suite: string;
+            test: string;
+        };
+        TestResultCommit: {
+            issueKey: string;
+            url: string;
+        };
+        TestRun: {
+            branch: string;
+            cases: number;
+            commit: string;
+            counts: components["schemas"]["TestRunCounts"];
+            error: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /** Format: uuid */
+            id: string;
+            job?: string;
+            matched: number;
+            projectKey: string;
+            reported: components["schemas"]["TestRunReported"][];
+            repository: string;
+            runUrl?: string;
+            /** @enum {string} */
+            state: "queued" | "running" | "done" | "failed";
+            unreported: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: components["schemas"]["PersonRef"];
+            via: components["schemas"]["Via"] | null;
+        };
+        TestRunCounts: {
+            errored: number;
+            failed: number;
+            passed: number;
+            skipped: number;
+        };
+        TestRunReported: {
+            key: string;
+            /** @enum {string} */
+            problem: "unknown" | "trashed" | "section";
+            test: string;
+        };
         Theme: {
             active: boolean;
             assets: components["schemas"]["Asset"][];
@@ -6184,6 +6514,64 @@ export interface components {
             offset: number;
             roots: components["schemas"]["RequirementRef"][];
             total: number;
+        };
+        TraceCheck: {
+            branch: string;
+            broken: components["schemas"]["TraceCheckBroken"][];
+            chains: boolean;
+            checked: number;
+            evidence: components["schemas"]["TraceCheckEvidenceSeen"];
+            fail: ("broken" | "gaps" | "failing" | "outdated" | "orphaned")[];
+            failing: components["schemas"]["TraceCheckEvidence"][];
+            gaps: components["schemas"]["TraceCheckGap"][];
+            orphaned: components["schemas"]["TraceCheckOrphan"][];
+            outdated: components["schemas"]["TraceCheckEvidence"][];
+            totals: components["schemas"]["TraceCheckTotals"];
+            /** @enum {string} */
+            verdict: "pass" | "fail";
+        };
+        TraceCheckBroken: {
+            missing: string;
+            path: string[];
+            root: components["schemas"]["RequirementRef"];
+        };
+        TraceCheckEvidence: {
+            commit: string;
+            /** @enum {string} */
+            kind: "test" | "code";
+            name: string;
+            /** @enum {string} */
+            outcome?: "errored" | "failed" | "skipped" | "passed";
+            repository: string;
+            requirement: components["schemas"]["RequirementRef"];
+            revision: number;
+            url: string;
+        };
+        TraceCheckEvidenceSeen: {
+            runs: number;
+            scans: number;
+        };
+        TraceCheckGap: {
+            dimension: string;
+            /** @enum {string} */
+            level: "none" | "partial" | "full" | "na";
+            requirement: components["schemas"]["RequirementRef"];
+        };
+        TraceCheckOrphan: {
+            key: string;
+            line: number;
+            path: string;
+            /** @enum {string} */
+            problem: "unknown" | "trashed" | "section" | "word" | "revision";
+            repository: string;
+            url: string;
+        };
+        TraceCheckTotals: {
+            broken: number;
+            failing: number;
+            gaps: number;
+            orphaned: number;
+            outdated: number;
         };
         TraceLink: {
             /** Format: date-time */
@@ -8725,6 +9113,48 @@ export interface operations {
                         offset: number;
                         total: number;
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getCodeScan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scanID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scan: components["schemas"]["CodeScan"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -11541,6 +11971,266 @@ export interface operations {
             };
         };
     };
+    uploadCodeScan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeScanInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scan: components["schemas"]["CodeScan"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getCodeTagWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        words: components["schemas"]["CodeTagWords"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveCodeTagWords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeTagWordsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        words: components["schemas"]["CodeTagWords"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listCodeTags: {
+        parameters: {
+            query?: {
+                /** @description The branch whose evidence counts; the project's counting branch when absent. */
+                branch?: string;
+                /** @description outdated or orphaned; both when absent. */
+                state?: "current" | "outdated" | "orphaned";
+                /** @description 1 to 500; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        limit: number;
+                        offset: number;
+                        tags: components["schemas"]["CodeTag"][];
+                        total: number;
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     projectCoverage: {
         parameters: {
             query?: {
@@ -11895,6 +12585,121 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getEvidenceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["EvidenceSettings"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveEvidenceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["EvidenceSettings"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13432,6 +14237,95 @@ export interface operations {
             };
         };
     };
+    uploadTestRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    branch: string;
+                    commit: string;
+                    file: string[];
+                    job?: string;
+                    repository: string;
+                    runUrl?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: components["schemas"]["TestRun"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     traceChains: {
         parameters: {
             query?: {
@@ -13660,6 +14554,97 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceCheck: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description The branch whose evidence counts; the project's counting branch when absent. */
+                branch?: string;
+                /** @description What fails the check; broken chains, coverage gaps and failing tests when absent. */
+                fail?: ("broken" | "gaps" | "failing" | "outdated" | "orphaned")[];
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        check: components["schemas"]["TraceCheck"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15189,6 +16174,52 @@ export interface operations {
             };
         };
     };
+    listCodeLinks: {
+        parameters: {
+            query?: {
+                /** @description The branch whose evidence counts; the project's counting branch when absent. */
+                branch?: string;
+            };
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        countingBranch: string;
+                        links: components["schemas"]["CodeLink"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listComments: {
         parameters: {
             query?: {
@@ -16224,6 +17255,52 @@ export interface operations {
             };
             /** @description Bad Gateway */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listTestResults: {
+        parameters: {
+            query?: {
+                /** @description The branch whose evidence counts; the project's counting branch when absent. */
+                branch?: string;
+            };
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        countingBranch: string;
+                        results: components["schemas"]["TestResult"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17583,6 +18660,48 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTestRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: components["schemas"]["TestRun"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

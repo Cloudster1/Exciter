@@ -37,6 +37,9 @@
       "name": "documents"
     },
     {
+      "name": "evidence"
+    },
+    {
       "name": "health"
     },
     {
@@ -3090,6 +3093,66 @@
                     "offset",
                     "total"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/code-scans/{scanID}": {
+      "get": {
+        "operationId": "getCodeScan",
+        "summary": "One scan and the tags it carried that link nothing.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "scanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scan": {
+                      "$ref": "#/components/schemas/CodeScan"
+                    }
+                  },
+                  "required": [
+                    "scan"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -7047,6 +7110,392 @@
         }
       }
     },
+    "/projects/{projectKey}/code-scans": {
+      "post": {
+        "operationId": "uploadCodeScan",
+        "summary": "Upload the tags a scan found in a repository at a commit; it replaces the branch's scan before. Needs edit; at most 50000 tags.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeScanInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scan": {
+                      "$ref": "#/components/schemas/CodeScan"
+                    }
+                  },
+                  "required": [
+                    "scan"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/code-tag-words": {
+      "get": {
+        "operationId": "getCodeTagWords",
+        "summary": "The words the project's tags use for implements and verifies, and the keys a tag may carry, for the scanner.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "words": {
+                      "$ref": "#/components/schemas/CodeTagWords"
+                    }
+                  },
+                  "required": [
+                    "words"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveCodeTagWords",
+        "summary": "Set the words the project's tags use; the project's administrators'. Tags are read by the words of the day, so nothing is scanned again.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeTagWordsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "words": {
+                      "$ref": "#/components/schemas/CodeTagWords"
+                    }
+                  },
+                  "required": [
+                    "words"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/code-tags": {
+      "get": {
+        "operationId": "listCodeTags",
+        "summary": "The project's code tags in one state, outdated or orphaned, on one branch.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "in": "query",
+            "description": "The branch whose evidence counts; the project's counting branch when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "outdated or orphaned; both when absent.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "current",
+                "outdated",
+                "orphaned"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 500; 50 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CodeTag"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "limit",
+                    "offset",
+                    "tags",
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/coverage": {
       "get": {
         "operationId": "projectCoverage",
@@ -7716,6 +8165,162 @@
           },
           "503": {
             "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/evidence-settings": {
+      "get": {
+        "operationId": "getEvidenceSettings",
+        "summary": "The branch whose results and code tags count for the project's coverage, matrix and queries.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "settings": {
+                      "$ref": "#/components/schemas/EvidenceSettings"
+                    }
+                  },
+                  "required": [
+                    "settings"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveEvidenceSettings",
+        "summary": "Name the branch whose evidence counts; the project's administrators'.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceSettingsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "settings": {
+                      "$ref": "#/components/schemas/EvidenceSettings"
+                    }
+                  },
+                  "required": [
+                    "settings"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10901,6 +11506,145 @@
         }
       }
     },
+    "/projects/{projectKey}/test-runs": {
+      "post": {
+        "operationId": "uploadTestRun",
+        "summary": "Upload a CI run's JUnit files, naming the repository, the commit, the branch and the run; the worker reads them and the run answers what it found. Needs edit; at most 100 files of 20 MB together.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string"
+                  },
+                  "commit": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "job": {
+                    "type": "string"
+                  },
+                  "repository": {
+                    "type": "string"
+                  },
+                  "runUrl": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit",
+                  "branch",
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "run": {
+                      "$ref": "#/components/schemas/TestRun"
+                    }
+                  },
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/trace-chains": {
       "get": {
         "operationId": "traceChains",
@@ -11590,6 +12334,259 @@
           },
           "422": {
             "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/trace-check": {
+      "get": {
+        "operationId": "traceCheck",
+        "summary": "Pass or fail for a pipeline: the broken chains, coverage gaps and failing or outdated evidence of the requirements the filter keeps, on one branch.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "branch",
+            "in": "query",
+            "description": "The branch whose evidence counts; the project's counting branch when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fail",
+            "in": "query",
+            "description": "What fails the check; broken chains, coverage gaps and failing tests when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "broken",
+                  "gaps",
+                  "failing",
+                  "outdated",
+                  "orphaned"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "check": {
+                      "$ref": "#/components/schemas/TraceCheck"
+                    }
+                  },
+                  "required": [
+                    "check"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -13852,6 +14849,80 @@
         }
       }
     },
+    "/requirements/{reqKey}/code-links": {
+      "get": {
+        "operationId": "listCodeLinks",
+        "summary": "The files and lines that implement or verify the requirement, per repository and branch, linking to them at their commit.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "in": "query",
+            "description": "The branch whose evidence counts; the project's counting branch when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "countingBranch": {
+                      "type": "string"
+                    },
+                    "links": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CodeLink"
+                      }
+                    }
+                  },
+                  "required": [
+                    "countingBranch",
+                    "links"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/requirements/{reqKey}/comments": {
       "get": {
         "operationId": "listComments",
@@ -15453,6 +16524,80 @@
           },
           "502": {
             "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requirements/{reqKey}/test-results": {
+      "get": {
+        "operationId": "listTestResults",
+        "summary": "The latest result of each test that verifies the requirement, per repository, branch and job, each saying whether a newer revision outdated it.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "in": "query",
+            "description": "The branch whose evidence counts; the project's counting branch when absent.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "countingBranch": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TestResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "countingBranch",
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -17485,6 +18630,66 @@
           },
           "422": {
             "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test-runs/{runID}": {
+      "get": {
+        "operationId": "getTestRun",
+        "summary": "One upload: where the worker has it, its counts and the keys that verify nothing.",
+        "tags": [
+          "evidence"
+        ],
+        "parameters": [
+          {
+            "name": "runID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "run": {
+                      "$ref": "#/components/schemas/TestRun"
+                    }
+                  },
+                  "required": [
+                    "run"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -21933,6 +23138,380 @@
           "themeId"
         ]
       },
+      "CodeLink": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "boolean"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "implements",
+              "verifies"
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "scannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          },
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "branch",
+          "commit",
+          "path",
+          "line",
+          "word",
+          "relation",
+          "revision",
+          "outdated",
+          "counts",
+          "url",
+          "scannedAt"
+        ]
+      },
+      "CodeScan": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linked": {
+            "type": "integer"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "reported": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodeScanReported"
+            }
+          },
+          "repository": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "integer"
+          },
+          "unreported": {
+            "type": "integer"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uploadedBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "repository",
+          "commit",
+          "branch",
+          "fileUrl",
+          "tags",
+          "linked",
+          "reported",
+          "unreported",
+          "uploadedBy",
+          "via",
+          "uploadedAt"
+        ]
+      },
+      "CodeScanInput": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodeScanTag"
+            }
+          }
+        },
+        "required": [
+          "repository",
+          "commit",
+          "branch",
+          "tags"
+        ]
+      },
+      "CodeScanReported": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "trashed",
+              "section",
+              "word",
+              "revision"
+            ]
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "line",
+          "word",
+          "key",
+          "problem"
+        ]
+      },
+      "CodeScanTag": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "line",
+          "word",
+          "key"
+        ]
+      },
+      "CodeTag": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "trashed",
+              "section",
+              "word",
+              "revision"
+            ]
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "implements",
+              "verifies"
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "requirement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "scannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "current",
+              "outdated",
+              "orphaned"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "word": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "branch",
+          "commit",
+          "path",
+          "line",
+          "word",
+          "relation",
+          "revision",
+          "outdated",
+          "counts",
+          "url",
+          "scannedAt",
+          "key",
+          "requirement",
+          "state"
+        ]
+      },
+      "CodeTagWords": {
+        "type": "object",
+        "properties": {
+          "implements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "projectKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "verifies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "implements",
+          "verifies",
+          "projectKeys",
+          "updatedAt"
+        ]
+      },
+      "CodeTagWordsInput": {
+        "type": "object",
+        "properties": {
+          "implements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verifies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "implements",
+          "verifies"
+        ]
+      },
       "Comment": {
         "type": "object",
         "properties": {
@@ -22781,6 +24360,36 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "EvidenceSettings": {
+        "type": "object",
+        "properties": {
+          "countingBranch": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "countingBranch",
+          "updatedAt"
+        ]
+      },
+      "EvidenceSettingsInput": {
+        "type": "object",
+        "properties": {
+          "countingBranch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "countingBranch"
         ]
       },
       "Example": {
@@ -29113,6 +30722,253 @@
           "revision"
         ]
       },
+      "TestResult": {
+        "type": "object",
+        "properties": {
+          "armature": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestResultCommit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "boolean"
+          },
+          "durationMs": {
+            "type": "integer"
+          },
+          "job": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "errored",
+              "failed",
+              "skipped",
+              "passed"
+            ]
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "runUrl": {
+            "type": "string"
+          },
+          "suite": {
+            "type": "string"
+          },
+          "test": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "test",
+          "suite",
+          "repository",
+          "branch",
+          "job",
+          "outcome",
+          "message",
+          "durationMs",
+          "revision",
+          "outdated",
+          "counts",
+          "commit",
+          "runId",
+          "runUrl",
+          "at",
+          "armature"
+        ]
+      },
+      "TestResultCommit": {
+        "type": "object",
+        "properties": {
+          "issueKey": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "issueKey",
+          "url"
+        ]
+      },
+      "TestRun": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "cases": {
+            "type": "integer"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TestRunCounts"
+          },
+          "error": {
+            "type": "string"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job": {
+            "type": "string"
+          },
+          "matched": {
+            "type": "integer"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "reported": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestRunReported"
+            }
+          },
+          "repository": {
+            "type": "string"
+          },
+          "runUrl": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ]
+          },
+          "unreported": {
+            "type": "integer"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uploadedBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "repository",
+          "commit",
+          "branch",
+          "state",
+          "cases",
+          "matched",
+          "counts",
+          "reported",
+          "unreported",
+          "error",
+          "uploadedBy",
+          "via",
+          "uploadedAt",
+          "finishedAt"
+        ]
+      },
+      "TestRunCounts": {
+        "type": "object",
+        "properties": {
+          "errored": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "passed": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "passed",
+          "failed",
+          "skipped",
+          "errored"
+        ]
+      },
+      "TestRunReported": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "trashed",
+              "section"
+            ]
+          },
+          "test": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "test",
+          "problem"
+        ]
+      },
       "Theme": {
         "type": "object",
         "properties": {
@@ -29278,6 +31134,265 @@
           "total",
           "limit",
           "offset"
+        ]
+      },
+      "TraceCheck": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "broken": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCheckBroken"
+            }
+          },
+          "chains": {
+            "type": "boolean"
+          },
+          "checked": {
+            "type": "integer"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/TraceCheckEvidenceSeen"
+          },
+          "fail": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "broken",
+                "gaps",
+                "failing",
+                "outdated",
+                "orphaned"
+              ]
+            }
+          },
+          "failing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCheckEvidence"
+            }
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCheckGap"
+            }
+          },
+          "orphaned": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCheckOrphan"
+            }
+          },
+          "outdated": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCheckEvidence"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TraceCheckTotals"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ]
+          }
+        },
+        "required": [
+          "verdict",
+          "branch",
+          "fail",
+          "chains",
+          "broken",
+          "gaps",
+          "failing",
+          "outdated",
+          "orphaned",
+          "totals",
+          "evidence",
+          "checked"
+        ]
+      },
+      "TraceCheckBroken": {
+        "type": "object",
+        "properties": {
+          "missing": {
+            "type": "string"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "root": {
+            "$ref": "#/components/schemas/RequirementRef"
+          }
+        },
+        "required": [
+          "root",
+          "path",
+          "missing"
+        ]
+      },
+      "TraceCheckEvidence": {
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "test",
+              "code"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "errored",
+              "failed",
+              "skipped",
+              "passed"
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/RequirementRef"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requirement",
+          "kind",
+          "name",
+          "repository",
+          "revision",
+          "commit",
+          "url"
+        ]
+      },
+      "TraceCheckEvidenceSeen": {
+        "type": "object",
+        "properties": {
+          "runs": {
+            "type": "integer"
+          },
+          "scans": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "scans"
+        ]
+      },
+      "TraceCheckGap": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "none",
+              "partial",
+              "full",
+              "na"
+            ]
+          },
+          "requirement": {
+            "$ref": "#/components/schemas/RequirementRef"
+          }
+        },
+        "required": [
+          "requirement",
+          "dimension",
+          "level"
+        ]
+      },
+      "TraceCheckOrphan": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "trashed",
+              "section",
+              "word",
+              "revision"
+            ]
+          },
+          "repository": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "problem",
+          "repository",
+          "path",
+          "line",
+          "url"
+        ]
+      },
+      "TraceCheckTotals": {
+        "type": "object",
+        "properties": {
+          "broken": {
+            "type": "integer"
+          },
+          "failing": {
+            "type": "integer"
+          },
+          "gaps": {
+            "type": "integer"
+          },
+          "orphaned": {
+            "type": "integer"
+          },
+          "outdated": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "broken",
+          "gaps",
+          "failing",
+          "outdated",
+          "orphaned"
         ]
       },
       "TraceLink": {

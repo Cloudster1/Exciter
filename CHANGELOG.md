@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M9, Verification evidence (#224):
+  `docs/api-contract-m9.md` agrees how CI uploads test results and the
+  requirement tags found in source code with a token of the new evidence
+  scope, how evidence names the revision it was made against and turns
+  outdated, how coverage, the matrix, the chains and queries count it on the
+  project's counting branch, and how a trace check passes or fails a
+  pipeline. The operations it adds answer 501 until they are built.
 - Review sessions (#204). A project's editors send a section, a baseline's
   requirements or a query's, optionally only what changed since the last
   approval or a baseline, to approvers and reviewers as one review with a
