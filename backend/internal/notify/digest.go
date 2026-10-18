@@ -150,6 +150,11 @@ func (d *Digester) send(ctx context.Context, userID uuid.UUID) (bool, error) {
 				words[i] = mailed{kind: n.Kind, key: n.CodeScan.ProjectKey, title: n.CodeScan.Repository + " " + n.CodeScan.Branch, scan: &id}
 				continue
 			}
+			if n.Execution != nil {
+				id := n.Execution.ID
+				words[i] = mailed{kind: n.Kind, actor: n.ActorName, key: n.Execution.ProjectKey, title: n.Execution.Title, execution: &id}
+				continue
+			}
 			if n.Session != nil {
 				id := n.Session.ID
 				words[i] = mailed{kind: n.Kind, actor: n.ActorName, key: n.Session.ProjectKey, title: n.Session.Title, session: &id}

@@ -91,6 +91,12 @@ export const notificationsEn = {
         return `A scan of ${key} brought code tags naming requirements in the trash or none`;
       case "term_changed":
         return `A term ${key} uses has a new definition from ${who}`;
+      case "execution_assigned":
+        return `${who} asks you to test in the execution ${key}`;
+      case "execution_reminder":
+        return `The test execution ${key} is due soon`;
+      case "execution_closed":
+        return `${who} closed the test execution ${key}`;
     }
   },
   preferencesTitle: "Notifications",
@@ -117,6 +123,9 @@ export const notificationsEn = {
     code_outdated: "A code scan brings tags naming an older revision of a requirement you own or watch",
     code_orphaned: "A code scan brings tags naming a requirement in the trash, or none in a project you administer",
     term_changed: "The definition of a glossary term a requirement you own uses changes",
+    execution_assigned: "Somebody asks you to test in a test execution",
+    execution_reminder: "A test execution you test is due soon",
+    execution_closed: "A test execution you test or manage is closed",
   } as Record<NotificationKind, string>,
   inAppFor: (kind: string) => `In the app: ${kind}`,
   emailFor: (kind: string) => `By email: ${kind}`,

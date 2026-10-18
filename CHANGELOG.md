@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Test plans and test executions (#251). A project's editors group test
+  cases into plans, picked in order or found by a query, and start an
+  execution of a plan against a baseline, a version and a configuration,
+  naming its testers, who are told and reminded. A tester runs each case
+  step by step, records passed, failed, blocked or skipped with the actual
+  result and files, and files a failure as an Armature issue linked to the
+  case and the requirements it verifies. The manager closes or aborts it;
+  a closed execution never changes, and its report downloads as PDF or
+  Word. MCP tools read and record them.
 - Test cases with steps (#250). A project's administrators mark a
   requirement type as test cases; its requirements carry preconditions,
   ordered steps with an action and an expected result each, and parameters

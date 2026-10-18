@@ -90,6 +90,12 @@ export const notificationsDe: typeof notificationsEn = {
         return `Ein Scan von ${key} bringt Code-Tags, die Anforderungen im Papierkorb oder gar keine nennen`;
       case "term_changed":
         return `Ein Begriff, den ${key} verwendet, hat eine neue Definition von ${who}`;
+      case "execution_assigned":
+        return `${who} bittet Sie, in der Testdurchführung ${key} zu testen`;
+      case "execution_reminder":
+        return `Die Testdurchführung ${key} ist bald fällig`;
+      case "execution_closed":
+        return `${who} hat die Testdurchführung ${key} abgeschlossen`;
     }
   },
   preferencesTitle: "Benachrichtigungen",
@@ -116,6 +122,9 @@ export const notificationsDe: typeof notificationsEn = {
     code_outdated: "Ein Code-Scan bringt Tags, die eine ältere Revision einer Anforderung nennen, die Ihnen gehört oder die Sie beobachten",
     code_orphaned: "Ein Code-Scan bringt Tags, die eine Anforderung im Papierkorb nennen, oder keine in einem Projekt, das Sie verwalten",
     term_changed: "Die Definition eines Glossarbegriffs ändert sich, den eine Ihrer Anforderungen verwendet",
+    execution_assigned: "Jemand bittet Sie, in einer Testdurchführung zu testen",
+    execution_reminder: "Eine Testdurchführung, in der Sie testen, ist bald fällig",
+    execution_closed: "Eine Testdurchführung, in der Sie testen oder die Sie verantworten, ist abgeschlossen",
   },
   inAppFor: (kind: string) => `In der App: ${kind}`,
   emailFor: (kind: string) => `Per E-Mail: ${kind}`,

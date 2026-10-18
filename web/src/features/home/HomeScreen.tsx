@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { NEW_PROJECT_PATH } from "@/config";
 import { ProjectTable } from "@/features/projects/ProjectTable";
 import { t } from "@/i18n";
+import { MyExecutions } from "@/features/tests/MyExecutions";
 
 /** Where the reader lands: their projects, or what Exciter is for and the way to the first project. */
 export function HomeScreen() {
@@ -32,6 +33,7 @@ export function HomeScreen() {
           }
         />
       )}
+      <MyExecutions />
       {projects && projects.length > 0 && (
         <section aria-labelledby="home-projects">
           <h2 id="home-projects" className="mb-2 text-base font-semibold text-ink">

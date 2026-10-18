@@ -520,3 +520,11 @@ export const TEMPLATE_MAX_MB = 20;
 export const TEMPLATE_MAX_BYTES = TEMPLATE_MAX_MB * 1024 * 1024;
 export const TEMPLATE_NAME_MAX_LENGTH = 80;
 export const TEMPLATE_DESCRIPTION_MAX_LENGTH = 500;
+/** The lengths of a test plan's or execution's title and description, the API's testexec limits (#251). */
+export const TEST_TITLE_MAX_LENGTH = 100;
+export const TEST_DESCRIPTION_MAX_LENGTH = 500;
+export const TEST_VERSION_MAX_LENGTH = 200;
+export const TEST_CONFIGURATION_MAX_LENGTH = 500;
+export const TEST_NOTE_MAX_LENGTH = 4000;
+/** How many test cases the plan's picker offers at most, one page of the grid. */
+export const TEST_CASE_PICKER_LIMIT = 100;

@@ -66,6 +66,9 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}/baselines`} icon="Archive" rail={false} onNavigate={onNavigate}>
           {t.baseline.title}
         </NavItem>
+        <NavItem to={`/p/${project.key}/tests`} icon="Check" rail={false} onNavigate={onNavigate}>
+          {t.tests.nav}
+        </NavItem>
         <NavItem to={`/p/${project.key}/sessions`} icon="Check" rail={false} onNavigate={onNavigate}>
           {t.sessions.title}
         </NavItem>

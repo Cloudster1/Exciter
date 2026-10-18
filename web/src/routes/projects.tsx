@@ -49,6 +49,7 @@ type ProjectPath =
   | "/p/$projectKey/suspects"
   | "/p/$projectKey/baselines"
   | "/p/$projectKey/sessions"
+  | "/p/$projectKey/tests"
   | "/p/$projectKey/coverage"
   | "/p/$projectKey/code-tags"
   | "/p/$projectKey/quality"

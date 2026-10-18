@@ -41,6 +41,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -139,6 +140,8 @@ type Server struct {
 	Documents *specdoc.Service
 	// ExportTemplates are the Word templates exports go through (#214); nil answers their routes that they are not set up.
 	ExportTemplates *exporttemplate.Service
+	// Tests keeps test plans and executions (#251); nil answers their routes that they are not set up.
+	Tests *testexec.Service
 	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
 	Renderer render.Renderer
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -690,6 +693,34 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Patch("/export-templates/{templateID}", s.handleUpdateExportTemplate)
 			r.Delete("/export-templates/{templateID}", s.handleDeleteExportTemplate)
 			r.Get("/export-templates/{templateID}/file", s.handleDownloadExportTemplate)
+		})
+
+		// Test plans and executions (#251): read by the project's readers; plans kept by its editors, an execution by
+		// its manager, results by its testers.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.testsOn)
+			r.Get("/projects/{projectKey}/test-plans", s.handleListTestPlans)
+			r.Post("/projects/{projectKey}/test-plans", s.handleCreateTestPlan)
+			r.Get("/test-plans/{planID}", s.handleGetTestPlan)
+			r.Patch("/test-plans/{planID}", s.handleUpdateTestPlan)
+			r.Put("/test-plans/{planID}/cases", s.handleSetTestPlanCases)
+			r.Delete("/test-plans/{planID}", s.handleDeleteTestPlan)
+			r.Get("/projects/{projectKey}/test-executions", s.handleListTestExecutions)
+			r.Post("/projects/{projectKey}/test-executions", s.handleStartTestExecution)
+			r.Get("/test-executions/mine", s.handleListMyTestExecutions)
+			r.Get("/test-executions/{executionID}", s.handleGetTestExecution)
+			r.Patch("/test-executions/{executionID}", s.handleUpdateTestExecution)
+			r.Post("/test-executions/{executionID}/close", s.handleCloseTestExecution)
+			r.Get("/test-executions/{executionID}/cases/{reqKey}", s.handleGetTestExecutionCase)
+			r.Put("/test-executions/{executionID}/cases/{reqKey}/result", s.handleRecordTestResult)
+			r.Post("/test-executions/{executionID}/cases/{reqKey}/files", s.handleUploadTestExecutionFile)
+			r.Post("/test-executions/{executionID}/cases/{reqKey}/issues", s.handleFileTestFailureIssue)
+			r.Get("/test-execution-files/{fileID}", s.handleDownloadTestExecutionFile)
+			r.Delete("/test-execution-files/{fileID}", s.handleDeleteTestExecutionFile)
+			r.Get("/test-executions/{executionID}/report", s.handleGetTestExecutionReport)
+			r.Get("/test-executions/{executionID}/report.docx", s.handleTestExecutionReportDocx)
+			r.Get("/test-executions/{executionID}/report.pdf", s.handleTestExecutionReportPDF)
+			r.Get("/requirements/{reqKey}/test-executions", s.handleListTestCaseResults)
 		})
 
 		// What the caller may do across the installation, and the people and groups a grant names.

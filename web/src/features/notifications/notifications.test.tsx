@@ -43,6 +43,7 @@ function aNotification(over: Partial<Notification> = {}): Notification {
     readAt: null,
     session: null,
     codeScan: null,
+    execution: null,
     ...over,
   };
 }

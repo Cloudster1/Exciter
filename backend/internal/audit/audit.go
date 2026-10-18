@@ -119,6 +119,11 @@ const (
 	ActionExportTemplateUploaded = "export_template.uploaded"
 	ActionExportTemplateChanged  = "export_template.changed"
 	ActionExportTemplateDeleted  = "export_template.deleted"
+	// ActionTestExecutionStarted, Recorded, IssueFiled and Closed keep how a test execution went (#251).
+	ActionTestExecutionStarted    = "test_execution.started"
+	ActionTestExecutionRecorded   = "test_execution.recorded"
+	ActionTestExecutionIssueFiled = "test_execution.issue_filed"
+	ActionTestExecutionClosed     = "test_execution.closed"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -169,6 +174,7 @@ var Actions = []string{
 	ActionTermDeleted, ActionGlossariesChosen, ActionDuplicateSettingsSaved,
 	ActionDashboardCreated, ActionDashboardShared, ActionDashboardDeleted,
 	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
+	ActionTestExecutionStarted, ActionTestExecutionRecorded, ActionTestExecutionIssueFiled, ActionTestExecutionClosed,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

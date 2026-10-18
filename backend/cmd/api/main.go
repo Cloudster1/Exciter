@@ -52,6 +52,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -197,6 +198,7 @@ func run() error {
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),
 		ExportTemplates: exporttemplate.NewService(cluster, store),
+		Tests:           testexec.NewService(cluster, store).WithIssues(armatures, cfg.AppBaseURL),
 		OAuth: oauth.NewService(cluster, cfg.AppBaseURL, httpapi.APIPrefix,
 			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))),
 		Renderer:       renderer(cfg, log),

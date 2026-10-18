@@ -531,3 +531,36 @@ func planTermRevised(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, er
 	}
 	return plan, rows.Err()
 }
+
+// executionEvent is what an execution's event names.
+type executionEvent struct {
+	ActorID     uuid.UUID `json:"actorId"`
+	ExecutionID uuid.UUID `json:"executionId"`
+}
+
+// planExecution tells everybody who tests an execution, in person or through a group and able to comment in its
+// project, of what happened to it; a closing tells its manager too.
+func planExecution(kind Kind) Planner {
+	return func(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+		var in executionEvent
+		if err := json.Unmarshal(e.Payload, &in); err != nil || in.ExecutionID == uuid.Nil {
+			return nil, nil
+		}
+		execution := in.ExecutionID
+		plan := &Plan{Actor: in.ActorID, Subject: Subject{ExecutionID: &execution}}
+		reached, err := people(ctx, tx, `
+			WITH people AS (
+				SELECT t.user_id AS person FROM test_execution_tester t WHERE t.execution_id = $1 AND t.user_id IS NOT NULL
+				UNION
+				SELECT m.user_id FROM test_execution_tester t JOIN group_member m ON m.group_id = t.group_id WHERE t.execution_id = $1
+				UNION
+				SELECT e.manager_id FROM test_execution e WHERE e.id = $1 AND $2 AND e.manager_id IS NOT NULL
+			)
+			SELECT DISTINCT person FROM people JOIN test_execution e ON e.id = $1
+			WHERE perm_project_holds(e.project_id, person, 'comment')`, in.ExecutionID, kind == KindExecutionClosed)
+		for _, id := range reached {
+			plan.Tells = append(plan.Tells, Tell{UserID: id, Kind: kind})
+		}
+		return plan, err
+	}
+}

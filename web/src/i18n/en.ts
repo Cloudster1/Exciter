@@ -21,6 +21,7 @@ import { chainsEn } from "./chains.en";
 import { dashboardEn } from "./dashboard.en";
 import { templatesEn } from "./templates.en";
 import { testcasesEn } from "./testcases.en";
+import { testsEn } from "./tests.en";
 import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
@@ -349,6 +350,10 @@ export const en = {
       "export_template.uploaded": "Word template uploaded",
       "export_template.changed": "Word template changed",
       "export_template.deleted": "Word template deleted",
+      "test_execution.started": "Test execution started",
+      "test_execution.recorded": "Test result recorded",
+      "test_execution.issue_filed": "Issue filed from a failed test",
+      "test_execution.closed": "Test execution closed",
       "term.deleted": "Term deleted",
       "glossaries.chosen": "Glossaries chosen",
       "project.language_set": "Project language set",
@@ -413,6 +418,7 @@ export const en = {
   dashboard: dashboardEn,
   templates: templatesEn,
   testcases: testcasesEn,
+  tests: testsEn,
   graph: graphEn,
   imports: importsEn,
   reqif: reqifEn,

@@ -1,6 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { PrintBaselineDocument, PrintProjectDocument } from "@/features/print/PrintDocument";
 import { PrintSessionReport } from "@/features/print/PrintSessionReport";
+import { PrintExecutionReport } from "@/features/print/PrintExecutionReport";
 import { PrintDashboard } from "@/features/dashboard/DashboardPages";
 import type { DocumentShape } from "@/api/documents";
 import { rootRoute } from "./root";
@@ -56,5 +57,14 @@ export const printDashboardRoute = createRoute({
   component: function PrintDashboardPage() {
     const { dashboardId } = printDashboardRoute.useParams();
     return <PrintDashboard dashboardId={dashboardId} />;
+  },
+});
+
+export const printExecutionReportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/print/executions/$executionId",
+  component: function PrintExecutionReportPage() {
+    const { executionId } = printExecutionReportRoute.useParams();
+    return <PrintExecutionReport executionId={executionId} />;
   },
 });
