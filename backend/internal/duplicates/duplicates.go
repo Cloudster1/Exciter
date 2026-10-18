@@ -108,6 +108,23 @@ type Decision struct {
 	DecidedAt time.Time             `json:"decidedAt"`
 }
 
+// SkipReason says why a link of the trashed side was not made again on the side kept.
+type SkipReason string
+
+const (
+	// SkipSelf would link the side kept to itself.
+	SkipSelf SkipReason = "self"
+	// SkipDuplicate is a link the side kept has already.
+	SkipDuplicate SkipReason = "duplicate"
+	// SkipRetired is a link of a retired type.
+	SkipRetired SkipReason = "retired"
+	// SkipRefused is a link the type's rules refuse on the side kept.
+	SkipRefused SkipReason = "refused"
+)
+
+// SkipReasons lists every SkipReason, for the API document.
+var SkipReasons = []SkipReason{SkipSelf, SkipDuplicate, SkipRetired, SkipRefused}
+
 // MovedLink is a link of the trashed side that the kept side now holds, or why it does not.
 type MovedLink struct {
 	LinkTypeKey string `json:"linkTypeKey"`
@@ -115,7 +132,7 @@ type MovedLink struct {
 	// Outgoing says the kept side is the link's source.
 	Outgoing bool `json:"outgoing"`
 	// Skipped says why the link was not moved, empty when it was.
-	Skipped string `json:"skipped,omitempty"`
+	Skipped SkipReason `json:"skipped,omitempty"`
 }
 
 // Merge is what merging a pair did.

@@ -14,6 +14,7 @@ import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { ComparisonView } from "@/features/history/RequirementHistory";
 import { FindingsList } from "@/features/quality/FindingsList";
 import { useDraftQuality } from "@/features/quality/draft";
+import { SimilarHint } from "@/features/duplicates/SimilarHint";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
 import { useFieldAccess } from "@/features/types/fieldAccess";
@@ -193,6 +194,7 @@ export function RequirementEdit({
             accept={{ reqKey: requirement.key, revision: requirement.revision, keys: savedKeys, may: Boolean(saved) }}
           />
         )}
+        <SimilarHint project={project} title={title} statement={statement} excludeKey={requirement.key} enabled={checked} />
         {requirement.kind === "requirement" && (
           <Select
             label={t.types.type}

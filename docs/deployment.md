@@ -26,7 +26,11 @@ Three things come from outside the chart:
   takes writes and whose `-ro` service takes reads, or a database of your own
   at `database.host`, with read replicas at `database.replicaHosts`. The roles
   Job makes `exciter_app` and `exciter_admin`, the migrate Job runs the
-  migrations as the owner before every upgrade.
+  migrations as the owner before every upgrade. They create the extensions
+  `citext`, `unaccent` and `pg_trgm`, all shipped with Postgres and trusted,
+  so the owner needs no superuser for them. The upgrade that brings duplicate
+  finding (#208) adds a column to every requirement and compares each with
+  its project's others once, which takes a while on a large installation.
 - **Valkey**, at `valkey.host`. More than one api pod with read replicas needs
   it, and the chart refuses that layout without it.
 - **An S3 bucket**, under `s3`, for attachments and theme files. Without one

@@ -438,6 +438,18 @@ export const QUALITY_FAIR_FROM = 50;
 /** The lines the reason of an accepted finding starts with. */
 export const QUALITY_REASON_ROWS = 3;
 
+/** How many pairs of likely duplicates a page lists before "More" asks for the next. */
+export const DUPLICATES_PAGE_SIZE = 20;
+/** The longest reason a pair is dismissed with or comment a merge takes, the API's duplicates.MaxReasonChars. */
+export const DUPLICATE_REASON_MAX_LENGTH = 500;
+/** The lines the reason of a dismissal and the comment of a merge start with. */
+export const DUPLICATE_REASON_ROWS = 3;
+/** How alike two requirements must be for a project to list them: the API's MinThreshold and MaxThreshold, and the
+ * step the setting moves in. */
+export const DUPLICATE_THRESHOLD_MIN = 0.3;
+export const DUPLICATE_THRESHOLD_MAX = 0.95;
+export const DUPLICATE_THRESHOLD_STEP = 0.05;
+
 /** How many terms a page of the glossary lists, the API's glossary.DefaultLimit. */
 export const GLOSSARY_PAGE_SIZE = 50;
 /** How many requirements a page of a term's uses lists. */

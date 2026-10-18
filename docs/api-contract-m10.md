@@ -575,6 +575,31 @@ tool decides.
   differences, each with Dismiss, Link and Merge.
 - The threshold is set in the project's quality settings.
 
+### As built (#208)
+
+- **Migration**: `01040_similarity.sql` creates `pg_trgm` and adds:
+  - `requirement.similarity_text`, the compared words, with a trigram GIN
+    index over requirements
+  - the tables `requirement_similarity`, `duplicate_decision` and
+    `duplicate_settings`
+  - the functions `requirement_similarity_refresh`, run after every
+    revision by a trigger, `duplicate_pair_settled` and the guard
+    `duplicate_decision_holds`
+  - one refresh of every requirement there is
+- **The index is GIN**, filtered by the `%` operator at the threshold, rather
+  than GiST nearest-neighbour ordering: a project narrows the candidates
+  first, which a nearest-neighbour scan of the whole installation would not.
+- **A decision holds** while a dismissal's sides keep their revisions or a
+  link lasts; any decision that holds keeps a pair away. A merge needs none,
+  since its trashed side is left out anyway.
+- **Merging** moves each live link of the side that goes in a savepoint of
+  its own, so a link the database refuses on the side kept is skipped with
+  the reason; then that side goes to the trash, and the decision is kept,
+  in one transaction. Linking uses the link rules of #36 in the same way.
+- **The pairs page** pages with `next`, an opaque cursor.
+- **The threshold** is a table of its own rather than a project setting, so
+  its writes are guarded and audited like the other settings of M10.
+
 ## #209 Word import
 
 | Operation | Needs | Answers |

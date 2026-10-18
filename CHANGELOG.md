@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Requirements that say the same thing are found (#208). While writing, a
+  hint lists the requirements of the project and of library projects most
+  like the draft, above a similarity the administrators set. A project page
+  lists likely duplicate pairs, most alike first, narrowed by type, section
+  or query. A pair is dismissed with a reason until either side is revised,
+  linked with a link type, or merged: one side goes to the trash and its
+  links are made again on the other. Assistants read the similar
+  requirements of one over MCP.
 - A glossary of terms, marked where requirements use them (#210). A
   project's editors define terms with a definition, synonyms, words not to
   use instead and a status, kept in revisions, and a project uses the

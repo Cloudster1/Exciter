@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
@@ -124,6 +125,8 @@ type Server struct {
 	Quality *quality.Service
 	// Glossary keeps projects' terms and the requirements that use them (#210).
 	Glossary *glossary.Service
+	// Duplicates finds requirements that say the same thing (#208).
+	Duplicates *duplicates.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -437,6 +440,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/requirements/{reqKey}/terms/{termID}/clear", s.handleClearTermUse)
 			r.Get("/projects/{projectKey}/glossaries", s.handleGetGlossaries)
 			r.Put("/projects/{projectKey}/glossaries", s.handleSaveGlossaries)
+		})
+
+		// Duplicates (#208): pairs read by a project's readers, decided by its editors, the threshold its administrators'.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.duplicatesOn)
+			r.Post("/projects/{projectKey}/similar", s.handleSimilarToDraft)
+			r.Get("/requirements/{reqKey}/similar", s.handleListSimilar)
+			r.Get("/projects/{projectKey}/duplicates", s.handleListDuplicates)
+			r.Post("/projects/{projectKey}/duplicates/dismiss", s.handleDismissDuplicate)
+			r.Post("/projects/{projectKey}/duplicates/merge", s.handleMergeDuplicate)
+			r.Post("/projects/{projectKey}/duplicates/link", s.handleLinkDuplicate)
+			r.Get("/projects/{projectKey}/duplicate-settings", s.handleGetDuplicateSettings)
+			r.Put("/projects/{projectKey}/duplicate-settings", s.handleSaveDuplicateSettings)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

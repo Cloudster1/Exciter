@@ -1,0 +1,107 @@
+/** The strings of duplicates (#208): the hint while writing, a requirement's similar ones, the project's page of
+ * likely duplicates and the threshold. */
+export const duplicatesEn = {
+  alike: (percent: string) => `${percent} alike`,
+  library: "Library",
+  libraryOf: (projectKey: string) => `From the library ${projectKey}`,
+  newTab: "(opens in a new tab)",
+
+  hint: {
+    title: "Similar requirements",
+    intro: "Already written? These say much the same.",
+    count: (n: number) => (n === 0 ? "" : n === 1 ? "1 similar requirement." : `${n} similar requirements.`),
+    reuse: "Reuse instead...",
+    reuseLabel: (key: string) => `Reuse ${key} instead`,
+  },
+
+  panel: {
+    title: "Similar requirements",
+    none: "No requirement is as alike as the project's threshold asks.",
+  },
+
+  page: {
+    title: "Duplicates",
+    intro: "Requirements of this project that say much the same thing, most alike first. Dismiss a pair, link the two, or merge them into one.",
+    threshold: (percent: string) => `Listed from ${percent} alike, as the project's quality settings set it.`,
+    filters: "Narrow the pairs",
+    type: "Type",
+    anyType: "Any type",
+    section: "Section",
+    sectionHint: "The key of a section either side is below.",
+    filter: "Filter",
+    queryLabel: "Query either side matches",
+    count: (n: number) => (n === 0 ? "No pairs." : n === 1 ? "1 pair shown." : `${n} pairs shown.`),
+    none: "No likely duplicates.",
+    noneHint: "No two requirements are as alike as the threshold asks, or every pair is decided.",
+    more: "More",
+    pair: (a: string, b: string) => `${a} and ${b}`,
+    revision: (n: number) => `Revision ${n}`,
+    differences: "What differs",
+    onlyIn: (key: string) => `Only in ${key}:`,
+    same: "The statements read the same.",
+    noStatement: "No statement.",
+    readOnly: "You can read the pairs. Deciding about them needs the right to edit the project.",
+    stale: "One of the two changed since the pairs were read. Read them again, then decide.",
+    readAgain: "Read the pairs again",
+  },
+
+  dismiss: {
+    action: "Dismiss...",
+    label: (a: string, b: string) => `Dismiss ${a} and ${b}`,
+    title: "Dismiss the pair",
+    intro: (a: string, b: string) => `${a} and ${b} do not say the same thing. The pair comes back once either of them is revised.`,
+    reason: "Reason",
+    reasonHint: "Say why the two are not the same. It is kept with the decision.",
+    send: "Dismiss",
+    done: (a: string, b: string) => `${a} and ${b} are no longer listed as duplicates.`,
+  },
+
+  link: {
+    action: "Link...",
+    label: (a: string, b: string) => `Link ${a} and ${b}`,
+    title: "Link the two",
+    intro: "The two are related rather than the same. The pair stays away while the link lasts.",
+    way: "Link",
+    reads: (a: string, phrase: string, b: string) => `${a} ${phrase} ${b}`,
+    none: "The project uses no link type. Choose the ones it uses in its settings.",
+    send: "Link",
+    done: (a: string, b: string) => `${a} and ${b} are linked.`,
+  },
+
+  merge: {
+    action: "Merge...",
+    label: (a: string, b: string) => `Merge ${a} and ${b}`,
+    title: "Merge the two",
+    intro: "The one not kept goes to the trash, and each of its links is made again on the one kept. Restoring it from the trash brings its own links back.",
+    keep: "Keep",
+    trashed: (key: string) => `${key} goes to the trash.`,
+    comment: "Comment",
+    commentHint: "Optional. It is kept with the decision.",
+    send: "Merge",
+    done: (kept: string, trashed: string) => `${trashed} is in the trash, and ${kept} is kept.`,
+    links: "Its links",
+    noLinks: "It had no links to move.",
+    outgoing: (type: string, other: string) => `${type} to ${other}`,
+    incoming: (type: string, other: string) => `${type} from ${other}`,
+    moved: "Made again on the one kept.",
+    skipped: "Skipped:",
+    reasons: {
+      self: "It would link the requirement kept to itself.",
+      duplicate: "The requirement kept has that link already.",
+      retired: "Its link type is retired.",
+      refused: "The link's type does not allow it on the requirement kept.",
+    },
+    close: "Done",
+  },
+
+  settings: {
+    title: "Duplicates",
+    intro:
+      "How alike two requirements must be for the duplicates page and the hint while writing to list them. Lower lists more pairs, higher only the closest.",
+    threshold: "Similarity threshold in percent",
+    range: (min: string, max: string) => `From ${min} to ${max}, in steps of 5.`,
+    save: "Save threshold",
+    saved: "The threshold is saved.",
+    readOnly: "Only the project's administrators set the threshold.",
+  },
+};
