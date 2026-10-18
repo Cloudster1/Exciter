@@ -1,7 +1,8 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useBaselineDocument, useProjectDocument, type DocumentEntry, type DocumentProperty, type SpecDocument } from "@/api/documents";
 import { DOCUMENT_CONTENTS_DEPTH } from "@/config";
 import { DocView } from "@/features/editor/DocView";
+import { TermAnchors } from "@/features/glossary/TermButton";
 import type { Doc } from "@/features/editor/schema";
 import { t } from "@/i18n";
 import { cx } from "@/components/ui";
@@ -81,47 +82,92 @@ function of(doc: SpecDocument): string {
   }
 }
 
-/** A document: its cover, its contents, then every entry. */
+/** A document: its cover, its contents, every entry, then the glossary of the terms it uses. */
 export function DocumentView({ doc }: { doc: SpecDocument }) {
   const b = doc.baseline;
+  // A document of a server older than the glossary has none.
+  const glossary = useMemo(() => doc.glossary ?? [], [doc.glossary]);
+  // Words linked to a term lead to its entry in the glossary chapter, and read as plain words when it holds none.
+  const anchors = useMemo(() => {
+    const held = new Set(glossary.map((term) => term.id));
+    return (termId: string) => (held.has(termId) ? `#term-${termId}` : null);
+  }, [glossary]);
   return (
-    <article className="print-document" data-print-document={doc.kind}>
-      <section className="print-cover" data-print-cover="">
-        <h1 className="text-4xl font-semibold text-ink">{doc.title}</h1>
-        <p className="text-lg text-ink-muted">{of(doc)}</p>
-        <div className="space-y-1 text-sm text-ink-muted">
-          {b && <p>{t.documents.taken(day.format(new Date(b.takenAt)), b.takenBy)}</p>}
-          {b && (b.lockedAt ? <p className="font-semibold text-ink">{t.documents.locked(day.format(new Date(b.lockedAt)))}</p> : <p>{t.documents.unlocked}</p>)}
-          {b && b.signatures > 0 && (
-            <p className={b.signed ? "font-semibold text-ink" : undefined} data-print-signing={b.signed ? "signed" : "signing"}>
-              {b.signed ? t.control.signed(b.signatures, b.signaturesRequired) : t.control.signing(b.signatures, b.signaturesRequired)}
-            </p>
-          )}
-          {b?.description && <p>{b.description}</p>}
-          <p>{t.documents.exported(doc.exportedBy, day.format(new Date(doc.exportedAt)))}</p>
-          <p>{t.documents.holds(doc.entries.length)}</p>
-        </div>
-      </section>
-      <nav className="print-contents" aria-label={t.documents.contents} data-print-contents="">
-        <h2 className="mb-3 text-xl font-semibold text-ink">{t.documents.contents}</h2>
-        <ol className="space-y-1 text-sm">
-          {doc.entries
-            .filter((e) => e.depth < DOCUMENT_CONTENTS_DEPTH)
-            .map((e) => (
-              <li key={e.id} style={{ paddingLeft: `${e.depth * 1.25}rem` }}>
-                <a href={`#entry-${e.key}`} className="text-ink">
-                  <span className="mr-3 tabular-nums text-ink-muted">{e.outline}</span>
-                  {e.title}
+    <TermAnchors.Provider value={anchors}>
+      <article className="print-document" data-print-document={doc.kind}>
+        <section className="print-cover" data-print-cover="">
+          <h1 className="text-4xl font-semibold text-ink">{doc.title}</h1>
+          <p className="text-lg text-ink-muted">{of(doc)}</p>
+          <div className="space-y-1 text-sm text-ink-muted">
+            {b && <p>{t.documents.taken(day.format(new Date(b.takenAt)), b.takenBy)}</p>}
+            {b &&
+              (b.lockedAt ? <p className="font-semibold text-ink">{t.documents.locked(day.format(new Date(b.lockedAt)))}</p> : <p>{t.documents.unlocked}</p>)}
+            {b && b.signatures > 0 && (
+              <p className={b.signed ? "font-semibold text-ink" : undefined} data-print-signing={b.signed ? "signed" : "signing"}>
+                {b.signed ? t.control.signed(b.signatures, b.signaturesRequired) : t.control.signing(b.signatures, b.signaturesRequired)}
+              </p>
+            )}
+            {b?.description && <p>{b.description}</p>}
+            <p>{t.documents.exported(doc.exportedBy, day.format(new Date(doc.exportedAt)))}</p>
+            <p>{t.documents.holds(doc.entries.length)}</p>
+          </div>
+        </section>
+        <nav className="print-contents" aria-label={t.documents.contents} data-print-contents="">
+          <h2 className="mb-3 text-xl font-semibold text-ink">{t.documents.contents}</h2>
+          <ol className="space-y-1 text-sm">
+            {doc.entries
+              .filter((e) => e.depth < DOCUMENT_CONTENTS_DEPTH)
+              .map((e) => (
+                <li key={e.id} style={{ paddingLeft: `${e.depth * 1.25}rem` }}>
+                  <a href={`#entry-${e.key}`} className="text-ink">
+                    <span className="mr-3 tabular-nums text-ink-muted">{e.outline}</span>
+                    {e.title}
+                  </a>
+                </li>
+              ))}
+            {glossary.length > 0 && (
+              <li>
+                <a href="#glossary" className="text-ink">
+                  {t.glossary.print.title}
                 </a>
               </li>
-            ))}
-        </ol>
-      </nav>
-      {doc.entries.map((e) => (
-        <Entry key={e.id} entry={e} />
-      ))}
-      {doc.entries.length < doc.total && <p className="mt-6 text-sm italic text-ink-muted">{t.documents.truncated(doc.entries.length, doc.total)}</p>}
-    </article>
+            )}
+          </ol>
+        </nav>
+        {doc.entries.map((e) => (
+          <Entry key={e.id} entry={e} />
+        ))}
+        {doc.entries.length < doc.total && <p className="mt-6 text-sm italic text-ink-muted">{t.documents.truncated(doc.entries.length, doc.total)}</p>}
+        {glossary.length > 0 && <Glossary doc={doc} terms={glossary} />}
+      </article>
+    </TermAnchors.Provider>
+  );
+}
+
+/** The glossary chapter (#210): each term the document's reader may read, with an anchor its linked words lead to. */
+function Glossary({ doc, terms }: { doc: SpecDocument; terms: SpecDocument["glossary"] }) {
+  const l = t.glossary.print;
+  return (
+    <section className="print-entry space-y-3" data-print-glossary="">
+      <h2 id="glossary" className="print-entry-heading text-2xl font-semibold text-ink">
+        {l.title}
+      </h2>
+      <dl className="space-y-3">
+        {terms.map((term) => (
+          <div key={term.id} data-print-term={term.name}>
+            <dt id={`term-${term.id}`} className="font-semibold text-ink">
+              {term.name}
+            </dt>
+            <dd className="space-y-1">
+              <DocView doc={term.definition as Doc} />
+              {term.synonyms.length > 0 && <p className="text-sm text-ink-muted">{l.synonyms(term.synonyms.join(", "))}</p>}
+              {term.avoid.length > 0 && <p className="text-sm text-ink-muted">{l.avoid(term.avoid.join(", "))}</p>}
+              {term.projectKey !== doc.projectKey && <p className="text-xs text-ink-muted">{l.from(`${term.projectName} (${term.projectKey})`)}</p>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 

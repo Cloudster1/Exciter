@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useProjects } from "@/api/projects";
+import type { TermHit } from "@/api/glossary";
 import { useSearch, type Hit, type SearchRequest } from "@/api/search";
 import { STATUS_CATEGORIES, type StatusCategory } from "@/api/workflows";
 import { Button, EmptyState, ErrorBanner, Field, Input, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
@@ -110,6 +111,7 @@ export function SearchScreen({ address, onChange }: { address: SearchAddress; on
       <div className="grid gap-6 shell:grid-cols-[14rem_minmax(0,1fr)]">
         <Filters address={address} onFilter={filter} filtered={filtered} />
         <section aria-label={t.search.title} className="min-w-0" data-search-results>
+          {!error && page === 1 && data?.terms && data.terms.length > 0 && <TermHits terms={data.terms} />}
           {error ? (
             <ErrorBanner onRetry={() => void refetch()}>
               <span data-search-error>{problem(error)}</span>
@@ -156,6 +158,36 @@ export function SearchScreen({ address, onChange }: { address: SearchAddress; on
         </section>
       </div>
     </>
+  );
+}
+
+/** The glossary terms the words find (#210), above the requirements, each leading to its term. */
+function TermHits({ terms }: { terms: TermHit[] }) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={headingId} className="mb-4 space-y-1 rounded-control border border-border p-3" data-search-terms>
+      <h2 id={headingId} className="text-2xs font-medium tracking-wide text-ink-subtle uppercase">
+        {t.glossary.hits.title}
+      </h2>
+      <ul className="divide-y divide-border">
+        {terms.map((term) => (
+          <li key={term.id} className="py-1.5" data-search-term={term.name}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                to="/p/$projectKey/glossary/$termId"
+                params={{ projectKey: term.projectKey, termId: term.id }}
+                className="font-medium text-accent hover:underline"
+              >
+                {term.name}
+              </Link>
+              <span className="font-mono text-xs text-ink-muted">{term.projectKey}</span>
+              {term.status !== "approved" && <Tag>{t.glossary.statuses[term.status]}</Tag>}
+            </div>
+            {term.snippet && <p className="mt-0.5 text-sm text-ink-muted">{term.snippet}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

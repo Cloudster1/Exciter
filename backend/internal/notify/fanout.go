@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
@@ -33,7 +34,9 @@ type Subject struct {
 	SessionID *uuid.UUID
 	// CodeScanID names a code scan the event is about instead of a requirement (#201).
 	CodeScanID *uuid.UUID
-	Excerpt    string
+	// TermID names the glossary term whose definition changed (#210), beside the requirement that uses it.
+	TermID  *uuid.UUID
+	Excerpt string
 }
 
 // Tell is one person to tell, and why. About, when set, is what they are told about instead of the plan's subject.
@@ -106,6 +109,7 @@ func NewFanOut(cluster *db.Cluster, mailer mail.Mailer, appURL string, log *slog
 		review.TopicSessionReminder: planSession(KindSessionReminder, true),
 		review.TopicSessionClosed:   planSession(KindSessionClosed, false),
 		codetrace.TopicUploaded:     planCodeScan,
+		glossary.TopicRevised:       planTermRevised,
 	}}
 }
 
@@ -199,12 +203,12 @@ func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t T
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
 			INSERT INTO notification (user_id, event_id, kind, actor_id, requirement_id, revision, thread_id, comment_id,
-			                          review_id, link_id, excerpt, session_id, code_scan_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			                          review_id, link_id, excerpt, session_id, code_scan_id, term_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 			ON CONFLICT (event_id, user_id) DO NOTHING
 			RETURNING id`,
 			t.UserID, eventID, t.Kind, nullable(plan.Actor), nullable(subject.RequirementID), subject.Revision, subject.ThreadID,
-			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID, subject.CodeScanID).Scan(&id)
+			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID, subject.CodeScanID, subject.TermID).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}

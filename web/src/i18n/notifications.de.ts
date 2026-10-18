@@ -88,6 +88,8 @@ export const notificationsDe: typeof notificationsEn = {
         return `Ein Scan von ${key} bringt Code-Tags, die ältere Revisionen von Anforderungen nennen, denen Sie folgen`;
       case "code_orphaned":
         return `Ein Scan von ${key} bringt Code-Tags, die Anforderungen im Papierkorb oder gar keine nennen`;
+      case "term_changed":
+        return `Ein Begriff, den ${key} verwendet, hat eine neue Definition von ${who}`;
     }
   },
   preferencesTitle: "Benachrichtigungen",
@@ -113,6 +115,7 @@ export const notificationsDe: typeof notificationsEn = {
     session_closed: "Eine Review-Sitzung, an der Sie teilnehmen, ist geschlossen",
     code_outdated: "Ein Code-Scan bringt Tags, die eine ältere Revision einer Anforderung nennen, die Ihnen gehört oder die Sie beobachten",
     code_orphaned: "Ein Code-Scan bringt Tags, die eine Anforderung im Papierkorb nennen, oder keine in einem Projekt, das Sie verwalten",
+    term_changed: "Die Definition eines Glossarbegriffs ändert sich, den eine Ihrer Anforderungen verwendet",
   },
   inAppFor: (kind: string) => `In der App: ${kind}`,
   emailFor: (kind: string) => `Per E-Mail: ${kind}`,

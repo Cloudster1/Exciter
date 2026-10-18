@@ -46,12 +46,6 @@ func RuleOf(id RuleID) (RuleInfo, bool) {
 	return Rules[i], true
 }
 
-// AvoidTerm is a word a glossary says not to use, and the term to use instead.
-type AvoidTerm struct {
-	Word string
-	Use  string
-}
-
 // The shortest words a participle's shape is read from; shorter ones, such as red, erst or geht, are other words.
 const (
 	minParticipleEN  = 4
@@ -77,6 +71,8 @@ type raw struct {
 	span
 	// unit is the sentence it was found in, which names a structural rule's key.
 	unit *unit
+	// use is the term to write instead of a word to avoid.
+	use string
 }
 
 // checker holds a language's rules and a project's word lists for one check.
@@ -86,12 +82,11 @@ type checker struct {
 	words    map[RuleID]*matcher
 	andOr    *matcher
 	negative *matcher
-	avoid    *matcher
 }
 
 var andOrWords = []string{"and/or", "and / or", "und/oder", "und / oder"}
 
-func newChecker(lang Language, words map[RuleID]Words, avoid []AvoidTerm) *checker {
+func newChecker(lang Language, words map[RuleID]Words) *checker {
 	c := &checker{lang: lang, g: grammars[lang], words: map[RuleID]*matcher{}}
 	german := lang == German
 	for _, rule := range WordRules {
@@ -99,11 +94,6 @@ func newChecker(lang Language, words map[RuleID]Words, avoid []AvoidTerm) *check
 	}
 	c.andOr = newMatcher(andOrWords, false, nil)
 	c.negative = newMatcher(c.g.negatives, false, nil)
-	var avoided []string
-	for _, a := range avoid {
-		avoided = append(avoided, a.Word)
-	}
-	c.avoid = newMatcher(avoided, false, nil)
 	return c
 }
 
@@ -126,7 +116,7 @@ func (c *checker) hit(u *unit, rule RuleID, from, to int) raw {
 	return raw{rule: rule, field: u.field, block: u.block, span: span{from, to}, unit: u}
 }
 
-// wordHits are the findings of the word lists, of and/or and of the glossary's words to avoid.
+// wordHits are the findings of the word lists and of and/or; the glossary's words to avoid are its own.
 func (c *checker) wordHits(u *unit) []raw {
 	var out []raw
 	for _, rule := range WordRules {
@@ -144,14 +134,8 @@ func (c *checker) wordHits(u *unit) []raw {
 	for _, s := range c.andOr.find(u.text, u.from, u.to) {
 		out = append(out, c.hit(u, RuleAndOr, s.from, s.to))
 	}
-	for _, s := range findAvoided(c.avoid, u) {
-		out = append(out, c.hit(u, RuleAvoidTerm, s.from, s.to))
-	}
 	return out
 }
-
-// findAvoided is where a draft uses a word the glossary says not to; #210 matches inflections here.
-func findAvoided(m *matcher, u *unit) []span { return m.find(u.text, u.from, u.to) }
 
 func (c *checker) modal(t token) bool { return c.g.modals[t.lower] }
 

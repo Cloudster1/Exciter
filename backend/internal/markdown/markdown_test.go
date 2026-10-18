@@ -189,3 +189,19 @@ func TestWhatWouldNotComeAcrossIsRefusedWithASentence(t *testing.T) {
 		t.Errorf("nothing reads as the empty document: %v %+v", err, got)
 	}
 }
+
+// A link to a glossary term is no Markdown: a writer is not offered Markdown that would drop it, a reader gets
+// its words.
+func TestATermsWordsAreReadAndNotWrittenBack(t *testing.T) {
+	const id = "0190a8f0-0000-7000-8000-0000000000cc"
+	raw := mustJSON(t, doc(t, `{"type":"paragraph","content":[{"type":"text","text":"Press the "},
+		{"type":"text","text":"brake","marks":[{"type":"bold"},{"type":"term","attrs":{"termId":"`+id+`"}}]},
+		{"type":"text","text":" pedal","marks":[{"type":"term","attrs":{"termId":"`+id+`"}}]},{"type":"text","text":"."}]}`))
+	if Of(raw) != nil {
+		t.Error("Markdown that drops a term's link is offered for writing back")
+	}
+	got := ForReading(raw)
+	if got == nil || strings.TrimSpace(*got) != "Press the **brake** pedal." {
+		t.Errorf("for reading: %v", got)
+	}
+}

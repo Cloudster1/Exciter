@@ -49,8 +49,9 @@ func Score(findings []Judged) int {
 	return max(score, 0)
 }
 
-// ConfigHash names what a check depended on beyond the text: Version, language, word lists, avoid words. Hex sha256.
-func ConfigHash(lang Language, words map[RuleID]Words, avoid []AvoidTerm) string {
+// ConfigHash names what a check depended on beyond the text: Version, language, word lists and the glossaries'
+// terms, in any order. Hex sha256.
+func ConfigHash(lang Language, words map[RuleID]Words, terms []Term) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "version %d\nlanguage %s\n", Version, language(lang))
 	rules := make([]RuleID, 0, len(words))
@@ -64,13 +65,15 @@ func ConfigHash(lang Language, words map[RuleID]Words, avoid []AvoidTerm) string
 			fmt.Fprintf(&b, "rule %q add %q except %q\n", rule, add, except)
 		}
 	}
-	terms := make([]string, 0, len(avoid))
-	for _, a := range avoid {
-		terms = append(terms, fmt.Sprintf("%q %q", listed([]string{a.Word}, false), strings.TrimSpace(a.Use)))
-	}
-	slices.Sort(terms)
+	// A use names its term by id, and the rank picks the term two glossaries share a word with.
+	lines := make([]string, 0, len(terms))
 	for _, t := range terms {
-		fmt.Fprintf(&b, "avoid %s\n", t)
+		lines = append(lines, fmt.Sprintf("term %s rank %d name %q synonyms %q avoid %q", t.ID, t.Rank,
+			strings.Join(strings.Fields(t.Name), " "), listed(t.Synonyms, false), listed(t.Avoid, false)))
+	}
+	slices.Sort(lines)
+	for _, line := range lines {
+		b.WriteString(line + "\n")
 	}
 	sum := sha256.Sum256([]byte(b.String()))
 	return hex.EncodeToString(sum[:])

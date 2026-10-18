@@ -2,8 +2,9 @@ package quality
 
 import "strings"
 
-// Explain is the English message and fix of a rule's hit, for the API and MCP.
-func Explain(rule RuleID, match string) (message, fix string) {
+// Explain is the English message and fix of a rule's hit, for the API and MCP; use is the term to write
+// instead of a word to avoid.
+func Explain(rule RuleID, match, use string) (message, fix string) {
 	quoted := `"` + match + `"`
 	switch rule {
 	case RuleVague:
@@ -41,8 +42,10 @@ func Explain(rule RuleID, match string) (message, fix string) {
 		return quoted + " fits none of the EARS shapes.",
 			"Write The <system> shall <response>, with any condition first: When, While, If ... then or Where."
 	case RuleAvoidTerm:
-		return "The glossary says not to use " + quoted + ".",
-			"Use the term the glossary names instead."
+		if use == "" {
+			return quoted + " is a word the glossary says not to use.", "Use the term the glossary names instead."
+		}
+		return quoted + " is a word the glossary says not to use.", `Use "` + use + `" instead.`
 	}
 	return quoted + " breaks a writing rule.", "Rewrite it."
 }

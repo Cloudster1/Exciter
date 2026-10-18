@@ -22,6 +22,7 @@ import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
 import { evidenceEn } from "./evidence.en";
 import { qualityEn } from "./quality.en";
+import { glossaryEn } from "./glossary.en";
 import { fieldRulesEn } from "./fieldRules.en";
 import { sessionsEn } from "./sessions.en";
 import { statorEn } from "./stator.en";
@@ -335,6 +336,8 @@ export const en = {
       "review_session.round_started": "Review session round started",
       "review_session.closed": "Review session closed",
       "evidence_settings.saved": "Counting branch named",
+      "term.deleted": "Term deleted",
+      "glossaries.chosen": "Glossaries chosen",
       "project.language_set": "Project language set",
       "quality_settings.saved": "Writing rules set",
       "code_tag_words.saved": "Code tag words set",
@@ -381,6 +384,7 @@ export const en = {
   control: controlEn,
   evidence: evidenceEn,
   quality: qualityEn,
+  glossary: glossaryEn,
   fieldRules: fieldRulesEn,
   sessions: sessionsEn,
   comments: commentsEn,

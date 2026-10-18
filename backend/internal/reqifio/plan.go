@@ -78,7 +78,9 @@ func analyze(f *File, w *world, choices map[string]string) *analysis {
 	a.preview = Preview{Title: f.Title, SourceTool: f.SourceTool, Specifications: []string{}, Objects: len(f.Objects),
 		Relations: len(f.Relations), Images: len(f.Images), Schema: []SchemaItem{}, Losses: []Loss{}, Problems: []Problem{}}
 	for _, s := range f.Specifications {
-		a.preview.Specifications = append(a.preview.Specifications, nameOf(s.Identity))
+		if !isGlossary(s) {
+			a.preview.Specifications = append(a.preview.Specifications, nameOf(s.Identity))
+		}
 	}
 	a.resolveSchema()
 	a.planObjects()
@@ -160,19 +162,38 @@ func (a *analysis) whereOf(o *Object) string {
 // whereLength bounds how much of a title names an object in a loss or a problem.
 const whereLength = 80
 
+// isGlossary says a specification is the glossary an export wrote, which an import leaves out (#210).
+func isGlossary(spec *Specification) bool { return spec.Type == glossarySpecType }
+
+// isTerm says an object is a term of an export's glossary.
+func isTerm(o *Object) bool { return o.Type == glossaryTermType }
+
 func (a *analysis) planObjects() {
 	placed := map[string]bool{}
+	specs, glossary := 0, false
 	for _, spec := range a.file.Specifications {
+		if isGlossary(spec) {
+			glossary = true
+			continue
+		}
+		specs++
 		a.walk(spec.Children, a.container(spec), placed)
 	}
 	loose := 0
 	for _, o := range a.file.Objects {
+		if isTerm(o) {
+			glossary = true
+			continue
+		}
 		if !placed[o.Identifier] {
 			loose++
 			a.planObject(o, "")
 		}
 	}
-	if loose > 0 && len(a.file.Specifications) > 0 {
+	if glossary {
+		a.lose(LossPlace, "", "The glossary of the file is left out; terms are not imported.")
+	}
+	if loose > 0 && specs > 0 {
 		a.lose(LossPlace, "", "%d objects are in no specification, so they go at the top of the project.", loose)
 	}
 }
@@ -182,6 +203,9 @@ func (a *analysis) walk(nodes []*Node, parent string, placed map[string]bool) {
 		o := a.index.objects[n.Object]
 		if o == nil {
 			a.lose(LossPlace, "", "The hierarchy names the object %s, which the file does not hold.", n.Object)
+			continue
+		}
+		if isTerm(o) {
 			continue
 		}
 		if placed[o.Identifier] {

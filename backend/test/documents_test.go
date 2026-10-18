@@ -203,3 +203,104 @@ func TestADocumentPrintsAsPDFThroughTheRenderService(t *testing.T) {
 	off := newAPIServerWith(t, s.f.h, func(_ *apiServer, server *httpapi.Server) { server.Renderer = render.Unavailable{} })
 	refuse(t, "a server without the render service", off.as(t, s.f.owner.user).get(t, "/api/v1/projects/"+s.key+"/document.pdf"), http.StatusServiceUnavailable, "render_unavailable")
 }
+
+// glossaryNames are the names of the terms a document defines, in its order.
+func glossaryNames(t *testing.T, doc map[string]any) []string {
+	t.Helper()
+	terms, ok := doc["glossary"].([]any)
+	if !ok {
+		t.Fatalf("the document has no glossary list: %v", doc["glossary"])
+	}
+	var names []string
+	for _, each := range terms {
+		names = append(names, each.(map[string]any)["name"].(string))
+	}
+	return names
+}
+
+// A project's exports carry its glossary out of deprecation, a section's the terms its requirements use, and a
+// baseline's none (#210); in Word a linked word links to its term's entry.
+func TestExportsCarryTheGlossary(t *testing.T) {
+	f := newProjectFixture(t)
+	owner := f.owner
+	key := projectKey(t, "GLX")
+	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Brakes"}), http.StatusCreated, "make the project")
+	term := func(body map[string]any) string {
+		made := obj(t, want(t, owner.post(t, "/api/v1/projects/"+key+"/terms", body), http.StatusCreated, "define "+body["name"].(string)), "term")
+		return made["id"].(string)
+	}
+	pedal := term(map[string]any{"name": "Brake pedal", "synonyms": []string{"foot brake"}, "avoid": []string{"stopper"},
+		"definition": docOf("The lever the driver presses to slow the car.")})
+	term(map[string]any{"name": "horn", "definition": docOf("What sounds a warning.")})
+	term(map[string]any{"name": "Retarder", "status": "deprecated", "definition": docOf("An old word for an engine brake.")})
+	term(map[string]any{"name": "Axle", "definition": docOf("The rod the wheels turn on.")})
+	reqs := "/api/v1/projects/" + key + "/requirements"
+	section := obj(t, want(t, owner.post(t, reqs, map[string]any{"kind": "section", "title": "Braking"}), http.StatusCreated, "write the section"), "requirement")
+	want(t, owner.post(t, reqs, map[string]any{"title": "Stop", "statement": markedDoc("Press the ", "pedal", " and the retarder holds.", pedal),
+		"place": map[string]any{"parentId": section["id"], "afterId": nil}}), http.StatusCreated, "write "+key+"-R2")
+	want(t, owner.post(t, reqs, map[string]any{"title": "Warn", "statement": docOf("A horn sounds.")}), http.StatusCreated, "write "+key+"-R3")
+	if got := termsUsed(t, owner, key+"-R2"); got["Brake pedal"] == "" || got["Retarder"] == "" {
+		t.Fatalf("R2 uses %v", got)
+	}
+	bookmark := "term_" + strings.ReplaceAll(pedal, "-", "")
+
+	t.Run("the document of a project defines its terms by name, those of a section the terms it uses", func(t *testing.T) {
+		doc := obj(t, want(t, f.plain.get(t, "/api/v1/projects/"+key+"/document"), http.StatusOK, "read the document"), "document")
+		sameList(t, "the project's glossary", glossaryNames(t, doc), "Axle", "Brake pedal", "horn")
+		first := doc["glossary"].([]any)[1].(map[string]any)
+		if first["projectKey"] != key || first["projectName"] != "Brakes" || toStrings(first["synonyms"])[0] != "foot brake" ||
+			toStrings(first["avoid"])[0] != "stopper" || !strings.Contains(string(mustJSON(t, first["definition"])), "The lever the driver presses") {
+			t.Errorf("Brake pedal reads %v", first)
+		}
+		part := obj(t, want(t, owner.get(t, "/api/v1/projects/"+key+"/document?section="+key+"-R1"), http.StatusOK, "read the section"), "document")
+		sameList(t, "the section's glossary", glossaryNames(t, part), "Brake pedal")
+		taken := obj(t, want(t, owner.post(t, "/api/v1/projects/"+key+"/baselines", map[string]any{"name": "Release 1"}), http.StatusCreated, "take a baseline"), "baseline")
+		baseline := obj(t, want(t, owner.get(t, "/api/v1/baselines/"+taken["id"].(string)+"/document"), http.StatusOK, "read the baseline"), "document")
+		if names := glossaryNames(t, baseline); len(names) != 0 {
+			t.Errorf("a baseline's document defines %v", names)
+		}
+	})
+
+	t.Run("Word adds a glossary chapter the linked words link to", func(t *testing.T) {
+		body := string(unzipped(t, want(t, f.plain.get(t, "/api/v1/projects/"+key+"/document.docx"), http.StatusOK, "export Word").Raw)["word/document.xml"])
+		for _, s := range []string{`w:name="` + bookmark + `"`, `w:anchor="` + bookmark + `"`, "The lever the driver presses to slow the car.",
+			"Synonyms: foot brake", "Not to use: stopper", "What sounds a warning."} {
+			if !strings.Contains(body, s) {
+				t.Errorf("the Word document lacks %q", s)
+			}
+		}
+		if strings.Contains(body, "An old word for an engine brake.") {
+			t.Errorf("the Word document defines a deprecated term")
+		}
+	})
+
+	t.Run("Markdown adds a glossary part", func(t *testing.T) {
+		md := string(want(t, f.plain.get(t, "/api/v1/projects/"+key+"/document.md"), http.StatusOK, "export Markdown").Raw)
+		at := strings.Index(md, "\n## Glossary\n")
+		if at < 0 || at < strings.Index(md, "A horn sounds.") || !strings.Contains(md[at:], "**Brake pedal**\n\nThe lever the driver presses to slow the car.") ||
+			strings.Contains(md, "Retarder**") {
+			t.Errorf("the Markdown reads\n%s", md)
+		}
+		part := string(want(t, owner.get(t, "/api/v1/projects/"+key+"/document.md?section="+key+"-R1"), http.StatusOK, "export the section").Raw)
+		if !strings.Contains(part, "**Brake pedal**") || strings.Contains(part, "**horn**") || strings.Contains(part, "**Axle**") {
+			t.Errorf("the section's Markdown reads\n%s", part)
+		}
+	})
+
+	t.Run("ReqIF adds the terms as objects of their own type in a specification of their own", func(t *testing.T) {
+		file := string(want(t, f.plain.get(t, "/api/v1/projects/"+key+"/export.reqif"), http.StatusOK, "export ReqIF").Raw)
+		for _, s := range []string{`SPEC-OBJECT-TYPE IDENTIFIER="exciter-glossary-term"`, `IDENTIFIER="exciter-term-` + pedal + `"`, `LONG-NAME="Glossary"`,
+			"The lever the driver presses to slow the car.", `THE-VALUE="foot brake"`} {
+			if !strings.Contains(file, s) {
+				t.Errorf("the ReqIF lacks %q", s)
+			}
+		}
+		if strings.Contains(file, "An old word for an engine brake.") {
+			t.Errorf("the ReqIF defines a deprecated term")
+		}
+		part := string(want(t, owner.get(t, "/api/v1/projects/"+key+"/export.reqif?section="+key+"-R1"), http.StatusOK, "export the section").Raw)
+		if !strings.Contains(part, `IDENTIFIER="exciter-term-`+pedal+`"`) || strings.Contains(part, "What sounds a warning.") {
+			t.Errorf("the section's ReqIF defines other terms than it uses")
+		}
+	})
+}

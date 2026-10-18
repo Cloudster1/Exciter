@@ -124,6 +124,8 @@ export function RequirementCreate({
           onChange={setStatement}
           mentions={findPeople}
           findings={quality.marks}
+          terms={quality.terms}
+          glossary={project.key}
           controls={editorControls}
           aria-label={t.requirements.statement}
         />

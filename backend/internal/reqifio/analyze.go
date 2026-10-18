@@ -104,6 +104,9 @@ func (a *analysis) resolveSchema() {
 	used := map[string]int{}
 	sectionsOf := map[string]int{}
 	for _, o := range a.file.Objects {
+		if isTerm(o) {
+			continue
+		}
 		if a.isSection(o) {
 			sectionsOf[o.Type]++
 		} else {

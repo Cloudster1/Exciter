@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/cloudster1/exciter/backend/internal/document"
 )
 
@@ -25,7 +27,7 @@ func TestRulesFollowRuleIDs(t *testing.T) {
 		if got, ok := RuleOf(r.ID); !ok || got.ID != r.ID {
 			t.Errorf("RuleOf(%s) = %v %v", r.ID, got, ok)
 		}
-		if message, fix := Explain(r.ID, "x"); message == "" || fix == "" {
+		if message, fix := Explain(r.ID, "x", "y"); message == "" || fix == "" {
 			t.Errorf("%s is not explained", r.ID)
 		}
 	}
@@ -156,7 +158,8 @@ func TestProjectWordsAndAvoidedTerms(t *testing.T) {
 	in := Input{
 		Statement: paragraphs("The client shall get a snappy and fast reply from the end  user."),
 		Words:     map[RuleID]Words{RuleVague: {Add: []string{"snappy"}, Except: []string{"FAST"}}},
-		Avoid:     []AvoidTerm{{Word: "client", Use: "customer"}, {Word: "end user", Use: "operator"}},
+		Terms: []Term{{ID: uuid.New(), Name: "customer", Avoid: []string{"client"}},
+			{ID: uuid.New(), Name: "operator", Avoid: []string{"end user"}}},
 	}
 	var vague, avoided []string
 	for _, h := range Examine(in).Hits {
@@ -164,13 +167,13 @@ func TestProjectWordsAndAvoidedTerms(t *testing.T) {
 		case RuleVague:
 			vague = append(vague, h.Match)
 		case RuleAvoidTerm:
-			avoided = append(avoided, h.Match)
+			avoided = append(avoided, h.Match+" > "+h.Use)
 		}
 	}
 	if !slices.Equal(vague, []string{"snappy"}) {
 		t.Errorf("vague = %q", vague)
 	}
-	if !slices.Equal(avoided, []string{"client", "end  user"}) {
+	if !slices.Equal(avoided, []string{"client > customer", "end  user > operator"}) {
 		t.Errorf("avoided = %q", avoided)
 	}
 }
@@ -226,7 +229,7 @@ func TestConfigHashChangesWithWords(t *testing.T) {
 	}
 	same := []string{
 		ConfigHash(English, map[RuleID]Words{}, nil),
-		ConfigHash(English, map[RuleID]Words{RuleVague: {}}, []AvoidTerm{}),
+		ConfigHash(English, map[RuleID]Words{RuleVague: {}}, []Term{}),
 		ConfigHash("fr", nil, nil),
 	}
 	for _, h := range same {
@@ -239,12 +242,22 @@ func TestConfigHashChangesWithWords(t *testing.T) {
 	if ConfigHash(English, words, nil) != ConfigHash(English, reordered, nil) {
 		t.Error("the order of a list changes the hash")
 	}
+	customer := Term{ID: uuid.New(), Name: "customer", Avoid: []string{"client"}}
+	pedal := Term{ID: uuid.New(), Name: "brake pedal", Synonyms: []string{"pedal", "foot brake"}}
+	shuffled := Term{ID: pedal.ID, Name: " brake  pedal", Synonyms: []string{"foot brake", "pedal"}}
+	if ConfigHash(English, nil, []Term{customer, pedal}) != ConfigHash(English, nil, []Term{shuffled, customer}) {
+		t.Error("the order of the terms or their words changes the hash")
+	}
 	differ := []string{
 		ConfigHash(German, nil, nil),
 		ConfigHash(English, words, nil),
 		ConfigHash(English, map[RuleID]Words{RuleEscape: words[RuleVague]}, nil),
 		ConfigHash(English, map[RuleID]Words{RuleVague: {Except: []string{"fast"}}}, nil),
-		ConfigHash(English, nil, []AvoidTerm{{Word: "client", Use: "customer"}}),
+		ConfigHash(English, nil, []Term{customer}),
+		ConfigHash(English, nil, []Term{{ID: customer.ID, Name: "customer", Synonyms: []string{"buyer"}, Avoid: []string{"client"}}}),
+		ConfigHash(English, nil, []Term{{ID: customer.ID, Name: "customer", Avoid: []string{"client", "user"}}}),
+		ConfigHash(English, nil, []Term{{ID: customer.ID, Name: "customer", Avoid: []string{"client"}, Rank: 1}}),
+		ConfigHash(English, nil, []Term{{ID: uuid.New(), Name: "customer", Avoid: []string{"client"}}}),
 	}
 	seen := map[string]bool{base: true}
 	for i, h := range differ {
@@ -256,10 +269,13 @@ func TestConfigHashChangesWithWords(t *testing.T) {
 }
 
 func TestExplainSaysWhatToDo(t *testing.T) {
-	if m, _ := Explain(RuleVague, "fast"); m != `"fast" means what each reader wants it to mean.` {
+	if m, fix := Explain(RuleAvoidTerm, "client", "customer"); m != `"client" is a word the glossary says not to use.` || fix != `Use "customer" instead.` {
+		t.Errorf("avoid_term = %q, %q", m, fix)
+	}
+	if m, _ := Explain(RuleVague, "fast", ""); m != `"fast" means what each reader wants it to mean.` {
 		t.Errorf("message = %q", m)
 	}
-	if m, _ := Explain(RuleEARS, "If"); !strings.Contains(m, "then") {
+	if m, _ := Explain(RuleEARS, "If", ""); !strings.Contains(m, "then") {
 		t.Errorf("an If without then is not said so: %q", m)
 	}
 }

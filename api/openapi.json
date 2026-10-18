@@ -1521,7 +1521,9 @@
                 "evidence_settings.saved",
                 "code_tag_words.saved",
                 "project.language_set",
-                "quality_settings.saved"
+                "quality_settings.saved",
+                "term.deleted",
+                "glossaries.chosen"
               ]
             }
           },
@@ -1709,7 +1711,9 @@
                 "evidence_settings.saved",
                 "code_tag_words.saved",
                 "project.language_set",
-                "quality_settings.saved"
+                "quality_settings.saved",
+                "term.deleted",
+                "glossaries.chosen"
               ]
             }
           },
@@ -9392,16 +9396,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -9481,16 +9475,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -12889,16 +12873,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -12978,16 +12952,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -18527,16 +18491,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -18627,16 +18581,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -19975,6 +19919,12 @@
                     "offset": {
                       "type": "integer"
                     },
+                    "terms": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TermHit"
+                      }
+                    },
                     "total": {
                       "type": "integer"
                     }
@@ -19983,6 +19933,7 @@
                     "hits",
                     "limit",
                     "offset",
+                    "terms",
                     "total"
                   ]
                 }
@@ -20796,16 +20747,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -20850,16 +20791,6 @@
                   "required": [
                     "term"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -20952,16 +20883,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -21011,16 +20932,6 @@
                   "required": [
                     "revisions"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -21079,16 +20990,6 @@
                   "required": [
                     "revision"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -21170,16 +21071,6 @@
                     "total",
                     "uses"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -24613,7 +24504,9 @@
               "evidence_settings.saved",
               "code_tag_words.saved",
               "project.language_set",
-              "quality_settings.saved"
+              "quality_settings.saved",
+              "term.deleted",
+              "glossaries.chosen"
             ]
           },
           "actorId": {
@@ -24750,7 +24643,9 @@
                 "evidence_settings.saved",
                 "code_tag_words.saved",
                 "project.language_set",
-                "quality_settings.saved"
+                "quality_settings.saved",
+                "term.deleted",
+                "glossaries.chosen"
               ]
             }
           },
@@ -28906,7 +28801,8 @@
               "session_reminder",
               "session_closed",
               "code_orphaned",
-              "code_outdated"
+              "code_outdated",
+              "term_changed"
             ]
           },
           "linkId": {
@@ -33799,6 +33695,12 @@
           "exportedBy": {
             "type": "string"
           },
+          "glossary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecificationGlossaryTerm"
+            }
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -33833,7 +33735,54 @@
           "exportedAt",
           "exportedBy",
           "entries",
-          "total"
+          "total",
+          "glossary"
+        ]
+      },
+      "SpecificationGlossaryTerm": {
+        "type": "object",
+        "properties": {
+          "avoid": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "definition": {
+            "description": "A JSON value."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "synonyms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "definition",
+          "synonyms",
+          "avoid",
+          "status",
+          "projectKey",
+          "projectName"
         ]
       },
       "StatorAccount": {
@@ -34631,6 +34580,39 @@
         "required": [
           "termRevision",
           "comment"
+        ]
+      },
+      "TermHit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "approved",
+              "deprecated"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectKey",
+          "name",
+          "status",
+          "snippet"
         ]
       },
       "TermInput": {

@@ -34,6 +34,25 @@ const (
 	priorityEnum      = "exciter-dt-priority"
 )
 
+// The glossary an export carries (#210): a spec type of terms, one object per term, and a specification of its own,
+// which an import leaves out.
+const (
+	glossaryTermType = "exciter-glossary-term"
+	glossarySpecType = "exciter-type-glossary"
+	prefixGlossary   = "exciter-glossary-"
+	prefixTerm       = "exciter-term-"
+	prefixTermNode   = "exciter-node-term-"
+)
+
+// The attributes of a term, each defined as the glossary spec type's.
+const (
+	termName       = prefixGlossary + "name"
+	termDefinition = prefixGlossary + "definition"
+	termSynonyms   = prefixGlossary + "synonyms"
+	termAvoid      = prefixGlossary + "avoid"
+	termStatus     = prefixGlossary + "status"
+)
+
 // The fields every requirement has, which an attribute of the file may fill instead of an attribute.
 const (
 	fieldKey       = "key"

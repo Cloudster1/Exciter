@@ -57,6 +57,21 @@ type Document struct {
 	Entries    []Entry       `json:"entries"`
 	// Total counts the requirements there are; past MaxEntries the document holds the first of them.
 	Total int `json:"total"`
+	// Glossary is the terms the document defines (#210): a project's, and its libraries' the reader may read, out
+	// of deprecation; a section's, those its requirements use; a baseline's, none yet.
+	Glossary []GlossaryTerm `json:"glossary"`
+}
+
+// GlossaryTerm is a term as a document defines it, by name.
+type GlossaryTerm struct {
+	ID          uuid.UUID       `json:"id"`
+	Name        string          `json:"name"`
+	Definition  json.RawMessage `json:"definition"`
+	Synonyms    []string        `json:"synonyms"`
+	Avoid       []string        `json:"avoid"`
+	Status      string          `json:"status"`
+	ProjectKey  string          `json:"projectKey"`
+	ProjectName string          `json:"projectName"`
 }
 
 // BaselineInfo is what a baseline's document says of the baseline on its cover.

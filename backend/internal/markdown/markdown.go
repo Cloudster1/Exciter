@@ -68,6 +68,38 @@ func Of(raw json.RawMessage) *string {
 	return &out
 }
 
+// ForReading is a stored document as Markdown for a reader rather than for writing back: words linked to a
+// glossary term are its words. Nil where there is none or where Markdown cannot hold it.
+func ForReading(raw json.RawMessage) *string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	var root document.Node
+	if json.Unmarshal(raw, &root) != nil {
+		return nil
+	}
+	root = withoutTerms(root)
+	if !Holds(root) {
+		return nil
+	}
+	out := Render(root)
+	return &out
+}
+
+func withoutTerms(n document.Node) document.Node {
+	if len(n.Marks) > 0 {
+		n.Marks = slices.DeleteFunc(slices.Clone(n.Marks), func(m document.Mark) bool { return m.Type == document.MarkTerm })
+	}
+	if len(n.Content) > 0 {
+		content := make([]document.Node, len(n.Content))
+		for i, c := range n.Content {
+			content[i] = withoutTerms(c)
+		}
+		n.Content = content
+	}
+	return n
+}
+
 // Members answers whether an id is somebody in the installation, whom a mention may name.
 func Members(ctx context.Context, tx db.DBTX) func(string) bool {
 	return func(id string) bool {

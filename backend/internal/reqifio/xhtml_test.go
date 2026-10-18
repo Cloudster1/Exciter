@@ -136,3 +136,16 @@ func TestFromDocumentLeavesOutFilesTheExportDoesNotCarry(t *testing.T) {
 		return true
 	})
 }
+
+func TestFromDocumentWritesATermsWords(t *testing.T) {
+	doc := `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Press the "},{"type":"text","text":"brake pedal","marks":[{"type":"bold"},{"type":"term","attrs":{"termId":"` + placed + `"}}]}]}]}`
+	var buf bytes.Buffer
+	w := &writer{w: bufioWriter(&buf)}
+	w.xhtml(*FromDocument(json.RawMessage(doc), nil))
+	if err := w.w.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if got := buf.String(); !strings.Contains(got, "Press the <xhtml:strong>brake pedal</xhtml:strong>") || strings.Contains(got, placed) {
+		t.Errorf("wrote %s", got)
+	}
+}

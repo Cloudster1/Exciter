@@ -21,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/notify"
@@ -121,6 +122,8 @@ type Server struct {
 	Code *codetrace.Service
 	// Quality checks requirements against writing rules (#207).
 	Quality *quality.Service
+	// Glossary keeps projects' terms and the requirements that use them (#210).
+	Glossary *glossary.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -417,6 +420,23 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/quality-settings", s.handleGetQualitySettings)
 			r.Put("/projects/{projectKey}/quality-settings", s.handleSaveQualitySettings)
 			r.Get("/quality-rules", s.handleListQualityRules)
+		})
+
+		// The glossary (#210): terms defined by a project's editors, deleted and their glossaries chosen by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.glossaryOn)
+			r.Get("/projects/{projectKey}/terms", s.handleListTerms)
+			r.Post("/projects/{projectKey}/terms", s.handleCreateTerm)
+			r.Get("/terms/{termID}", s.handleGetTerm)
+			r.Patch("/terms/{termID}", s.handleUpdateTerm)
+			r.Delete("/terms/{termID}", s.handleDeleteTerm)
+			r.Get("/terms/{termID}/revisions", s.handleListTermRevisions)
+			r.Get("/terms/{termID}/revisions/{revisionNumber}", s.handleGetTermRevision)
+			r.Get("/terms/{termID}/uses", s.handleListTermUses)
+			r.Get("/requirements/{reqKey}/terms", s.handleListRequirementTerms)
+			r.Post("/requirements/{reqKey}/terms/{termID}/clear", s.handleClearTermUse)
+			r.Get("/projects/{projectKey}/glossaries", s.handleGetGlossaries)
+			r.Put("/projects/{projectKey}/glossaries", s.handleSaveGlossaries)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

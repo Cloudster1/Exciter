@@ -193,7 +193,9 @@ const SuspectLinks = `
            WHERE al.requirement_id = r.id AND r.trashed_at IS NULL AND r.revision > al.reviewed_rev)
         + (SELECT count(*) FROM stator_page_link sp
            WHERE sp.requirement_id = r.id AND r.trashed_at IS NULL AND sp.broken_at IS NULL AND sp.detached_at IS NULL
-             AND sp.page_version > sp.page_version_seen))::int`
+             AND sp.page_version > sp.page_version_seen)
+        + (SELECT count(*) FROM term_use tu JOIN glossary_term gt ON gt.id = tu.term_id
+           WHERE tu.requirement_id = r.id AND r.trashed_at IS NULL AND gt.definition_revision > tu.seen_revision))::int`
 
 // Place is where a node goes in a tree: below a parent, after a sibling.
 type Place struct {

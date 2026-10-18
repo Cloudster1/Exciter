@@ -455,6 +455,7 @@ var blockNames = map[string]string{
 	"table": "table", "tableRow": "tr", "tableCell": "td", "tableHeader": "th",
 }
 
+// markNames are the elements of the marks XHTML writes; a link to a glossary term is written as its words.
 var markNames = map[string]string{"bold": "strong", "italic": "em", "strike": "del", "code": "code", "link": "a"}
 
 func fromNodes(nodes []document.Node, file FileRef) []XNode {

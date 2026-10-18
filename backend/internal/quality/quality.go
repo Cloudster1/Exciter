@@ -17,6 +17,8 @@ const (
 	MaxCustomWords = 200
 	MaxWordLength  = 60
 	MaxReasonChars = 500
+	// TermPreviewChars bounds the definition a marked term shows (#210).
+	TermPreviewChars = 300
 	// MaxFindings bounds the findings one revision keeps.
 	MaxFindings = 500
 	// MaxMatchChars bounds the text a finding quotes.
@@ -168,6 +170,23 @@ type TermMatch struct {
 	// Explicit says an author linked the words to the term.
 	Explicit          bool   `json:"explicit"`
 	DefinitionPreview string `json:"definitionPreview"`
+}
+
+// Term is a glossary term as the matcher reads it (#210); Rank orders the glossaries, the project's own first.
+type Term struct {
+	ID       uuid.UUID
+	Name     string
+	Synonyms []string
+	Avoid    []string
+	Rank     int
+}
+
+// TermUse is where a requirement uses a term: by its words, or by an author's explicit link.
+type TermUse struct {
+	TermID uuid.UUID
+	Span
+	Words    string
+	Explicit bool
 }
 
 // CheckInput is a draft to check as it is written, before it is saved.

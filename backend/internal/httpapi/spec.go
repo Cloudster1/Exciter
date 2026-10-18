@@ -156,6 +156,7 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[reqifio.Refusal]():          "ReqIFRefusal",
 		reflect.TypeFor[reqifio.ChoicesInput]():     "ReqIFChoices",
 		reflect.TypeFor[specdoc.Document]():         "SpecificationDocument",
+		reflect.TypeFor[specdoc.GlossaryTerm]():     "SpecificationGlossaryTerm",
 		reflect.TypeFor[specdoc.Entry]():            "DocumentEntry",
 		reflect.TypeFor[specdoc.Property]():         "DocumentProperty",
 		reflect.TypeFor[specdoc.Link]():             "DocumentLink",

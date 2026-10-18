@@ -67,6 +67,8 @@ func Sentence(kind Kind, actor, key, title string) string {
 		return fmt.Sprintf(`%s closed the review session "%s" of %s`, actor, title, key)
 	case KindCodeOutdated:
 		return fmt.Sprintf("A scan of %s in %s brought code tags naming older revisions of requirements you follow", title, key)
+	case KindTermChanged:
+		return fmt.Sprintf("A term %s uses has a new definition from %s", named, actor)
 	case KindCodeOrphaned:
 		return fmt.Sprintf("A scan of %s in %s brought code tags naming requirements in the trash or none", title, key)
 	}

@@ -1,0 +1,30 @@
+# How German words stem: "word -> stem", then words that must meet ("a = b") and must not ("a != b").
+# Both sides of a term are stemmed alike, so a stem need not be a word.
+
+Zug -> zug
+Züge -> zug
+Zügen -> zug
+Zuges -> zug
+Bremse -> brem
+Bremsen -> brem
+sicher -> sich
+sicheren -> sich
+sicheres -> sich
+Straße -> stras
+Leser -> les
+Lesern -> les
+der -> der
+den -> den
+ABS -> ABS
+ECUs -> ECU
+
+Bremse = Bremsen
+Zug = Züge
+sicherer Zustand = sicheren Zustands
+Bremspedal = Bremspedale
+Steuergerät = Steuergeräte
+Fahrzeug = Fahrzeuges
+
+ABS != abs
+Bremse != Brücke
+Zug != Zeug

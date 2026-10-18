@@ -62,6 +62,9 @@ type writer struct {
 	spent    int64
 	err      error
 	bookmark int
+	// termAnchor is the bookmark of a term's entry in the glossary chapter, which words linked to it link to;
+	// nil, or not ok, writes them as plain words.
+	termAnchor func(termID string) (bookmark string, ok bool)
 }
 
 func newWriter(ctx context.Context, lang string, r Reader) *writer {

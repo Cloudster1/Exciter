@@ -72,7 +72,7 @@ func NewService(cluster *db.Cluster, locate Locator) *Service {
 type setup struct {
 	lang   Language
 	words  map[RuleID]Words
-	avoid  []AvoidTerm
+	terms  []Term
 	config string
 }
 
@@ -102,7 +102,21 @@ func setupOf(ctx context.Context, tx db.DBTX, projectID uuid.UUID) (*setup, erro
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	out.config = ConfigHash(out.lang, out.words, out.avoid)
+	// The terms are those the writer may read; a library they may not read marks nothing for them (#210).
+	terms, err := tx.Query(ctx, `
+		SELECT t.id, t.name, t.synonyms, t.avoid, g.rank FROM glossary_terms_of($1) g JOIN glossary_term t ON t.id = g.term_id
+		ORDER BY g.rank, t.id`, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("read the glossary: %w", err)
+	}
+	out.terms, err = pgx.CollectRows(terms, func(row pgx.CollectableRow) (Term, error) {
+		var t Term
+		return t, row.Scan(&t.ID, &t.Name, &t.Synonyms, &t.Avoid, &t.Rank)
+	})
+	if err != nil {
+		return nil, err
+	}
+	out.config = ConfigHash(out.lang, out.words, out.terms)
 	return out, nil
 }
 
@@ -134,7 +148,7 @@ func record(ctx context.Context, tx db.DBTX, id uuid.UUID, revision int, s *setu
 			return err
 		}
 	}
-	result := Examine(Input{Language: s.lang, Title: title, Statement: parsed(statement), Words: s.words, Avoid: s.avoid})
+	result := Examine(Input{Language: s.lang, Title: title, Statement: parsed(statement), Words: s.words, Terms: s.terms})
 	if again {
 		if _, err := tx.Exec(ctx, `DELETE FROM quality_finding WHERE requirement_id = $1 AND revision = $2`, id, revision); err != nil {
 			return err
@@ -149,6 +163,9 @@ func record(ctx context.Context, tx db.DBTX, id uuid.UUID, revision int, s *setu
 		return fmt.Errorf("note the check: %w", err)
 	}
 	if err := writeHits(ctx, tx, id, revision, result.Hits); err != nil {
+		return err
+	}
+	if err := writeUses(ctx, tx, id, result.Uses); err != nil {
 		return err
 	}
 	if again || revision < 2 || len(result.Hits) == 0 {
@@ -175,20 +192,47 @@ func writeHits(ctx context.Context, tx db.DBTX, id uuid.UUID, revision int, hits
 	// A hostile statement finds without end; what is past the limit would only repeat the lesson.
 	hits = hits[:min(len(hits), MaxFindings)]
 	var (
-		keys, rules, fields, matches []string
-		blocks, froms, tos           []int
+		keys, rules, fields, matches, uses []string
+		blocks, froms, tos                 []int
 	)
 	for _, h := range hits {
 		keys, rules, fields = append(keys, h.Key), append(rules, string(h.Rule)), append(fields, string(h.Field))
 		blocks, froms, tos = append(blocks, h.Block), append(froms, h.From), append(tos, h.To)
-		matches = append(matches, cut(h.Match, MaxMatchChars))
+		matches, uses = append(matches, cut(h.Match, MaxMatchChars)), append(uses, cut(h.Use, MaxMatchChars))
 	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO quality_finding (requirement_id, revision, key, rule, field, block, start_at, end_at, match)
-		SELECT $1, $2, k, r, f, b, s, e, m
-		FROM unnest($3::text[], $4::text[], $5::text[], $6::int[], $7::int[], $8::int[], $9::text[]) AS x(k, r, f, b, s, e, m)`,
-		id, revision, keys, rules, fields, blocks, froms, tos, matches); err != nil {
+		INSERT INTO quality_finding (requirement_id, revision, key, rule, field, block, start_at, end_at, match, use_instead)
+		SELECT $1, $2, k, r, f, b, s, e, m, u
+		FROM unnest($3::text[], $4::text[], $5::text[], $6::int[], $7::int[], $8::int[], $9::text[], $10::text[]) AS x(k, r, f, b, s, e, m, u)`,
+		id, revision, keys, rules, fields, blocks, froms, tos, matches, uses); err != nil {
 		return fmt.Errorf("keep the findings: %w", err)
+	}
+	return nil
+}
+
+// writeUses keeps the terms a requirement's current revision uses: a use that stays keeps the revision of the term
+// it has seen, a new one sees the term as it is, and one gone goes (#210).
+func writeUses(ctx context.Context, tx db.DBTX, id uuid.UUID, uses []TermUse) error {
+	explicit := map[uuid.UUID]bool{}
+	for _, u := range uses {
+		explicit[u.TermID] = explicit[u.TermID] || u.Explicit
+	}
+	terms, flags := make([]uuid.UUID, 0, len(explicit)), make([]bool, 0, len(explicit))
+	for term, e := range explicit {
+		terms, flags = append(terms, term), append(flags, e)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM term_use WHERE requirement_id = $1 AND NOT (term_id = ANY ($2))`, id, terms); err != nil {
+		return fmt.Errorf("drop the terms no longer used: %w", err)
+	}
+	if len(terms) == 0 {
+		return nil
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO term_use (requirement_id, term_id, explicit, seen_revision)
+		SELECT $1, t, e, 1 FROM unnest($2::uuid[], $3::boolean[]) AS x(t, e)
+		ON CONFLICT (requirement_id, term_id) DO UPDATE SET explicit = EXCLUDED.explicit
+		WHERE term_use.explicit IS DISTINCT FROM EXCLUDED.explicit`, id, terms, flags); err != nil {
+		return fmt.Errorf("keep the terms used: %w", err)
 	}
 	return nil
 }
@@ -266,7 +310,7 @@ func judge(hits []Hit, states map[RuleID]state, accepted map[string]*Acceptance)
 			info, _ := RuleOf(h.Rule)
 			st = state{enabled: info.DefaultEnabled, severity: info.DefaultSeverity}
 		}
-		message, fix := Explain(h.Rule, h.Match)
+		message, fix := Explain(h.Rule, h.Match, h.Use)
 		f := Finding{Key: h.Key, Rule: h.Rule, Severity: st.severity, Span: h.Span, Match: h.Match, Message: message, Fix: fix,
 			Accepted: accepted[h.Key]}
 		f.Active = st.enabled && f.Accepted == nil
@@ -318,12 +362,53 @@ func (s *Service) CheckDraft(ctx context.Context, reader uuid.UUID, projectKey s
 		if err != nil {
 			return err
 		}
-		result := Examine(Input{Language: set.lang, Title: in.Title, Statement: statement, Words: set.words, Avoid: set.avoid})
+		result := Examine(Input{Language: set.lang, Title: in.Title, Statement: statement, Words: set.words, Terms: set.terms})
 		findings, score := judge(result.Hits, states, accepted)
-		out = &Check{Score: &score, Language: set.lang, Findings: findings, Sentences: orEmpty(result.Sentences), Terms: []TermMatch{}}
+		terms, err := termMatches(ctx, tx, result.Uses)
+		if err != nil {
+			return err
+		}
+		out = &Check{Score: &score, Language: set.lang, Findings: findings, Sentences: orEmpty(result.Sentences), Terms: terms}
 		return nil
 	})
 	return out, err
+}
+
+// termMatches names the terms a draft uses, for the editor to mark and explain (#210).
+func termMatches(ctx context.Context, tx db.DBTX, uses []TermUse) ([]TermMatch, error) {
+	out := []TermMatch{}
+	if len(uses) == 0 {
+		return out, nil
+	}
+	ids := make([]uuid.UUID, len(uses))
+	for i, u := range uses {
+		ids[i] = u.TermID
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT t.id, t.name, p.key, left(requirement_plain_text(t.definition), $2)
+		FROM glossary_term t JOIN project p ON p.id = t.project_id WHERE t.id = ANY ($1)`, ids, TermPreviewChars)
+	if err != nil {
+		return nil, fmt.Errorf("read the terms used: %w", err)
+	}
+	defer rows.Close()
+	known := map[uuid.UUID]TermMatch{}
+	for rows.Next() {
+		var m TermMatch
+		if err := rows.Scan(&m.TermID, &m.Name, &m.ProjectKey, &m.DefinitionPreview); err != nil {
+			return nil, err
+		}
+		known[m.TermID] = m
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for _, u := range uses {
+		if m, ok := known[u.TermID]; ok {
+			m.Span, m.Explicit = u.Span, u.Explicit
+			out = append(out, m)
+		}
+	}
+	return out, nil
 }
 
 // draftStatement reads a draft's statement, as a document or as Markdown.
@@ -443,7 +528,7 @@ func findingsOf(ctx context.Context, tx db.DBTX, r *Located, revision *int) (*Fi
 // hitsOf are the findings kept for a revision, title first and in the order of the text.
 func hitsOf(ctx context.Context, tx db.DBTX, id uuid.UUID, revision int) ([]Hit, error) {
 	rows, err := tx.Query(ctx, `
-		SELECT key, rule, field, block, start_at, end_at, match FROM quality_finding
+		SELECT key, rule, field, block, start_at, end_at, match, use_instead FROM quality_finding
 		WHERE requirement_id = $1 AND revision = $2`, id, revision)
 	if err != nil {
 		return nil, fmt.Errorf("read the findings: %w", err)
@@ -453,7 +538,7 @@ func hitsOf(ctx context.Context, tx db.DBTX, id uuid.UUID, revision int) ([]Hit,
 	for rows.Next() {
 		var h Hit
 		var rule, field string
-		if err := rows.Scan(&h.Key, &rule, &field, &h.Block, &h.From, &h.To, &h.Match); err != nil {
+		if err := rows.Scan(&h.Key, &rule, &field, &h.Block, &h.From, &h.To, &h.Match, &h.Use); err != nil {
 			return nil, err
 		}
 		h.Rule, h.Field = RuleID(rule), Field(field)

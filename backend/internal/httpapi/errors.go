@@ -209,6 +209,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := qualityError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := glossaryError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := attachmentError(err); apiErr != nil {
 			return apiErr
 		}

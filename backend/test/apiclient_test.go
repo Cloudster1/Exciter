@@ -29,6 +29,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
@@ -115,6 +116,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		TestResults:   testresult.NewService(h.cluster).WithCommits(h.armature(t)),
 		Code:          codetrace.NewService(h.cluster),
 		Quality:       quality.NewService(h.cluster, requirement.LocateForQuality),
+		Glossary:      glossary.NewService(h.cluster),
 		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
 		Renderer:      h.renderer(),

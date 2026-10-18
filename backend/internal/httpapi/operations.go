@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/notify"
@@ -524,7 +525,7 @@ var operations = []operation{
 	{method: "GET", path: "/search", handler: "handleSearch", tag: "search",
 		tool: "search_requirements", toolHelp: "Requirements across projects whose key, title, statement, rationale or text values match words, with snippets, narrowed by project, status category, label, owner or the day of their latest change.",
 		summary: "Requirements whose key, title, statement or rationale match, among what the caller may view.",
-		query:   searchQuery, responses: map[int]any{http.StatusOK: env{"hits": []search.Hit{}, "total": 0, "limit": 0, "offset": 0}, http.StatusUnprocessableEntity: errorEnvelope{}}},
+		query:   searchQuery, responses: map[int]any{http.StatusOK: env{"hits": []search.Hit{}, "terms": []glossary.Hit{}, "total": 0, "limit": 0, "offset": 0}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/search/quick", handler: "handleQuickSearch", tag: "search",
 		summary: "Requirements whose key or title start with what was typed, for the command palette.",
 		query: []param{

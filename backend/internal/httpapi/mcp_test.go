@@ -27,7 +27,7 @@ var contractTools = []string{
 	"link_stator_page", "list_armature_links", "list_armature_projects", "list_attributes", "list_audit_log",
 	"list_baselines", "list_bulk_transitions", "list_comments", "list_labels", "list_links", "list_people",
 	"list_project_link_types", "list_projects", "list_requirements", "list_review_sessions", "list_reviews", "list_revisions",
-	"list_stator_links", "list_statuses", "list_suspect_links", "list_trace_chains", "list_transitions", "list_types",
+	"list_stator_links", "list_statuses", "list_suspect_links", "list_terms", "list_trace_chains", "list_transitions", "list_types",
 	"list_waiting_reviews", "move_requirement", "reply_to_comment", "request_review", "request_reviews",
 	"resolve_comment_thread", "run_trace_check", "search_armature_issues", "search_requirements", "search_stator_pages", "server_info",
 	"take_baseline", "transition_requirement", "transition_requirements", "update_comment", "update_requirement",

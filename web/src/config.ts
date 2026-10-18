@@ -16,6 +16,8 @@ export const API_BASE = "/api/v1";
 export const HTTP_UNAUTHORIZED = 401;
 /** The status the API answers somebody who may not see a page, such as a member on an administrator's settings. */
 export const HTTP_FORBIDDEN = 403;
+/** The status the API answers for what is not there, or not there for the reader. */
+export const HTTP_NOT_FOUND = 404;
 
 /** The sidebar, open and as the icon rail it folds to. */
 export const SIDEBAR_WIDTH = 232;
@@ -435,3 +437,23 @@ export const QUALITY_GOOD_FROM = 80;
 export const QUALITY_FAIR_FROM = 50;
 /** The lines the reason of an accepted finding starts with. */
 export const QUALITY_REASON_ROWS = 3;
+
+/** How many terms a page of the glossary lists, the API's glossary.DefaultLimit. */
+export const GLOSSARY_PAGE_SIZE = 50;
+/** How many requirements a page of a term's uses lists. */
+export const TERM_USES_PAGE_SIZE = 50;
+/** How many terms "Link to term" offers for what was typed. */
+export const TERM_PICKER_LIMIT = 20;
+/** How long typing in the glossary's search or the term picker pauses before the server is asked. */
+export const TERM_SEARCH_DEBOUNCE_MS = 250;
+/** The longest name, synonym or word to avoid, the API's glossary.MaxNameLength. */
+export const TERM_NAME_MAX_LENGTH = 120;
+/** How many synonyms and words to avoid a term holds, the API's MaxSynonyms and MaxAvoid. */
+export const TERM_MAX_SYNONYMS = 20;
+export const TERM_MAX_AVOID = 20;
+/** The longest comment on a change of a term or a confirmation of a use, the API's MaxCommentChars. */
+export const TERM_COMMENT_MAX_LENGTH = 500;
+/** The lines a comment of a confirmation starts with. */
+export const TERM_COMMENT_ROWS = 3;
+/** How many library projects a project takes glossaries from, the API's MaxLibraries. */
+export const GLOSSARY_MAX_LIBRARIES = 20;

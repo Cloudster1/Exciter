@@ -32,7 +32,7 @@ func (s *Service) Project(ctx context.Context, reader uuid.UUID, projectKey, sec
 	if err != nil {
 		return nil, err
 	}
-	doc := &Document{Kind: KindProject, ExportedAt: time.Now().UTC(), Entries: []Entry{}}
+	doc := &Document{Kind: KindProject, ExportedAt: time.Now().UTC(), Entries: []Entry{}, Glossary: []GlossaryTerm{}}
 	if section != "" {
 		start := -1
 		for i := range nodes {
@@ -84,7 +84,15 @@ func (s *Service) Project(ctx context.Context, reader uuid.UUID, projectKey, sec
 		if err := r.contents(doc, ids); err != nil {
 			return err
 		}
-		return r.links(doc, ids, liveLinks)
+		if err := r.links(doc, ids, liveLinks); err != nil {
+			return err
+		}
+		if doc.Kind == KindSection {
+			doc.Glossary, err = UsedGlossary(ctx, tx, ids)
+		} else {
+			doc.Glossary, err = ProjectGlossary(ctx, tx, p.ID)
+		}
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -100,6 +108,7 @@ func (s *Service) Baseline(ctx context.Context, reader, id uuid.UUID) (*Document
 		return nil, err
 	}
 	doc := &Document{Kind: KindBaseline, Title: b.Name, ProjectKey: b.ProjectKey, ExportedAt: time.Now().UTC(), Entries: []Entry{}, Total: b.Items,
+		Glossary: []GlossaryTerm{},
 		Baseline: &BaselineInfo{ID: b.ID, Name: b.Name, Description: b.Description, TakenAt: b.CreatedAt, TakenBy: b.CreatedByName, LockedAt: b.LockedAt}}
 	if g := b.Signing; g != nil && g.Signatures > 0 {
 		doc.Baseline.Signatures, doc.Baseline.SignaturesRequired, doc.Baseline.Signed = g.Signatures, g.Required, g.Signed

@@ -175,6 +175,8 @@ export function RequirementEdit({
               mentions={findPeople}
               upload={files.upload}
               findings={quality.marks}
+              terms={quality.terms}
+              glossary={project.key}
               controls={editorControls}
               aria-label={t.requirements.statement}
             />

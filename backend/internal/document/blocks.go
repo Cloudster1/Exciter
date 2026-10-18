@@ -3,6 +3,7 @@ package document
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"sort"
 	"strings"
 	"unicode/utf16"
@@ -17,8 +18,17 @@ type TextBlock struct {
 	Offsets []int
 	// Code says it is a code block, whose words are not prose.
 	Code bool
+	// Marks are the marked ranges of text, in bytes of Text; neighbouring text with the same mark is one range.
+	Marks []MarkRange
 	// mentions are the byte ranges of Text that name a person.
 	mentions [][2]int
+}
+
+// MarkRange is one mark over a range of a block's text, from From to To in bytes of its Text.
+type MarkRange struct {
+	Type     string
+	Attrs    map[string]any
+	From, To int
 }
 
 // TextBlocks lists every paragraph, heading and code block in document order, at any depth and empty ones
@@ -48,10 +58,12 @@ func textBlock(n Node) TextBlock {
 	var b strings.Builder
 	var offsets []int
 	var mentions [][2]int
+	var marks []MarkRange
 	pos := 0
 	for _, c := range n.Content {
 		switch c.Type {
 		case "text":
+			marks = addMarks(marks, c.Marks, b.Len(), b.Len()+len(c.Text))
 			for i := 0; i < len(c.Text); {
 				r, size := utf8.DecodeRuneInString(c.Text[i:])
 				for range size {
@@ -79,7 +91,25 @@ func textBlock(n Node) TextBlock {
 		}
 	}
 	offsets = append(offsets, pos)
-	return TextBlock{Text: b.String(), Offsets: offsets, Code: n.Type == "codeBlock", mentions: mentions}
+	return TextBlock{Text: b.String(), Offsets: offsets, Code: n.Type == "codeBlock", Marks: marks, mentions: mentions}
+}
+
+// addMarks adds a text's marks, extending a range of the same mark that ends where the text starts.
+func addMarks(ranges []MarkRange, marks []Mark, from, to int) []MarkRange {
+	for _, m := range marks {
+		extended := false
+		for i := range ranges {
+			if ranges[i].To == from && ranges[i].Type == m.Type && reflect.DeepEqual(ranges[i].Attrs, m.Attrs) {
+				ranges[i].To = to
+				extended = true
+				break
+			}
+		}
+		if !extended {
+			ranges = append(ranges, MarkRange{Type: m.Type, Attrs: m.Attrs, From: from, To: to})
+		}
+	}
+	return ranges
 }
 
 // Position is the editor's offset within the block of a byte offset into Text.

@@ -22,9 +22,10 @@ const (
 )
 
 // Attr is what one attribute may hold. Min and Max bound each integer; MaxLength counts a string's characters
-// or a list's items.
+// or a list's items; Required refuses it left out.
 type Attr struct {
 	Kind      AttrKind `json:"kind"`
+	Required  bool     `json:"required,omitempty"`
 	Nullable  bool     `json:"nullable,omitempty"`
 	Enum      []string `json:"enum,omitempty"`
 	Min       int      `json:"min,omitempty"`
@@ -86,6 +87,9 @@ const (
 	NodeImage      = "image"
 	NodeAttachment = "attachment"
 )
+
+// MarkTerm links words to a glossary term (#210) by its termId, for words the matcher would not find.
+const MarkTerm = "term"
 
 // UUIDPattern is an id as the API writes it, in lower case.
 const UUIDPattern = `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
@@ -170,6 +174,9 @@ var Allowed = Allowlist{
 			"rel":    {Kind: KindString, Nullable: true, Enum: []string{"noopener noreferrer nofollow"}},
 			"class":  {Kind: KindNull},
 			"title":  {Kind: KindString, Nullable: true, MaxLength: maxLabelLength},
+		}},
+		MarkTerm: {Attrs: map[string]Attr{
+			"termId": {Kind: KindString, Required: true, Pattern: UUIDPattern},
 		}},
 	},
 }

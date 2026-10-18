@@ -8,6 +8,7 @@ import { EDITOR_HEADING_LEVELS } from "@/config";
 import { AttachmentChip, FileUpload, Image } from "./files";
 import { QualityMarks } from "./quality";
 import { safeHref } from "./schema";
+import { TermLink, TermMarks } from "./terms";
 
 /** Who an at sign names, as the mention list offers them. */
 export interface Mentionable {
@@ -44,6 +45,8 @@ export function editorExtensions(suggestion?: Omit<SuggestionOptions<Mentionable
     AttachmentChip,
     FileUpload.configure({ upload }),
     QualityMarks,
+    TermLink,
+    TermMarks,
   ];
 }
 

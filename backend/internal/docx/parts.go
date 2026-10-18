@@ -151,6 +151,8 @@ func styles(lang string) []byte {
 		`<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="E2E8F0"/><w:left w:val="single" w:sz="4" w:space="4" w:color="E2E8F0"/><w:bottom w:val="single" w:sz="4" w:space="4" w:color="E2E8F0"/><w:right w:val="single" w:sz="4" w:space="4" w:color="E2E8F0"/></w:pBdr><w:shd w:val="clear" w:color="auto" w:fill="F8FAFC"/><w:spacing w:before="120" w:after="200" w:line="240" w:lineRule="auto"/><w:ind w:left="113" w:right="113"/>`,
 		mono+`<w:noProof/><w:sz w:val="19"/><w:szCs w:val="19"/>`, `<w:qFormat/>`)
 	para("Note", "Note", "", `<w:i/><w:iCs/>`+muted, `<w:qFormat/>`)
+	para("TermName", "Term Name", `<w:keepNext/><w:spacing w:before="200" w:after="40"/>`, `<w:b/><w:bCs/>`, `<w:qFormat/>`)
+	para("TermWords", "Term Words", `<w:spacing w:after="80"/>`, muted+`<w:sz w:val="18"/><w:szCs w:val="18"/>`, `<w:qFormat/>`)
 	para("TOCHeading", "TOC Heading", `<w:keepNext/><w:spacing w:before="240" w:after="120"/>`, `<w:b/><w:color w:val="`+inkText+`"/><w:sz w:val="28"/><w:szCs w:val="28"/>`, `<w:uiPriority w:val="39"/>`)
 	para("Spacer", "Spacer", `<w:spacing w:after="0" w:line="160" w:lineRule="exact"/>`, `<w:sz w:val="8"/><w:szCs w:val="8"/>`, `<w:semiHidden/>`)
 	for level := 1; level <= contentsDepth; level++ {

@@ -247,6 +247,8 @@ func (c *compiler) empty(e Empty) (string, error) {
 		clause = "NOT EXISTS (SELECT 1 FROM requirement_label l WHERE l.requirement_id = r.id)"
 	case fkEnumSet:
 		clause = "(cardinality(" + def.column + ") = 0)"
+	case fkTerm:
+		clause = "NOT EXISTS (SELECT 1 FROM term_use tu WHERE tu.requirement_id = r.id)"
 	case fkDocument:
 		clause = "(COALESCE(btrim(requirement_plain_text(" + def.column + ")), '') = '')"
 	case fkLink:
@@ -310,6 +312,14 @@ func (c *compiler) match(def fieldDef, f Field, values []Value) (string, error) 
 		return "(" + def.column + " && " + c.bind(members) + "::text[])", nil
 	case fkUser:
 		return c.users(def.column, def.name, values)
+	case fkTerm:
+		words, err := c.texts(def, values, strings.ToLower)
+		if err != nil {
+			return "", err
+		}
+		bound := c.bind(words)
+		return "EXISTS (SELECT 1 FROM term_use tu JOIN glossary_term gt ON gt.id = tu.term_id WHERE tu.requirement_id = r.id" +
+			" AND (lower(gt.name) = ANY(" + bound + "::text[]) OR EXISTS (SELECT 1 FROM unnest(gt.synonyms) sy WHERE lower(sy) = ANY(" + bound + "::text[]))))", nil
 	case fkLabels:
 		names, err := c.texts(def, values, strings.ToLower)
 		if err != nil {

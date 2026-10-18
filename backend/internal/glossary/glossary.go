@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
@@ -22,7 +23,7 @@ const (
 	// MaxLibraries bounds the library projects whose glossaries one project uses.
 	MaxLibraries = 20
 	// PreviewChars bounds the definition a mark shows on hover.
-	PreviewChars = 300
+	PreviewChars = quality.TermPreviewChars
 	DefaultLimit = 50
 	MaxLimit     = 500
 )

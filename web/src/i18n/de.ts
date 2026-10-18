@@ -20,6 +20,7 @@ import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
 import { evidenceDe } from "./evidence.de";
 import { qualityDe } from "./quality.de";
+import { glossaryDe } from "./glossary.de";
 import { fieldRulesDe } from "./fieldRules.de";
 import { sessionsDe } from "./sessions.de";
 import { statorDe } from "./stator.de";
@@ -336,6 +337,8 @@ export const de: Messages = {
       "review_session.round_started": "Runde einer Review-Sitzung begonnen",
       "review_session.closed": "Review-Sitzung geschlossen",
       "evidence_settings.saved": "Zählender Branch benannt",
+      "term.deleted": "Begriff gelöscht",
+      "glossaries.chosen": "Glossare gewählt",
       "project.language_set": "Projektsprache festgelegt",
       "quality_settings.saved": "Schreibregeln festgelegt",
       "code_tag_words.saved": "Code-Tag-Wörter festgelegt",
@@ -382,6 +385,7 @@ export const de: Messages = {
   control: controlDe,
   evidence: evidenceDe,
   quality: qualityDe,
+  glossary: glossaryDe,
   fieldRules: fieldRulesDe,
   sessions: sessionsDe,
   comments: commentsDe,
