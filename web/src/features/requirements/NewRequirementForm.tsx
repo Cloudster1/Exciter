@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
@@ -7,8 +7,10 @@ import type { Place } from "@/api/tree";
 import { useAttributes, useTypes } from "@/api/attributes";
 import { Button, ErrorBanner, Field, Labelled, PageHeader, Segmented, Select } from "@/components/ui";
 import { REQUIREMENT_TITLE_MAX_LENGTH, REVISION_COMMENT_MAX_LENGTH } from "@/config";
-import { Editor } from "@/features/editor/Editor";
-import { isEmptyDoc, type Doc } from "@/features/editor/schema";
+import { Editor, type EditorControls } from "@/features/editor/Editor";
+import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
+import { FindingsList } from "@/features/quality/FindingsList";
+import { useDraftQuality } from "@/features/quality/draft";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
 
@@ -59,6 +61,13 @@ export function RequirementCreate({
   const general = create.error && Object.keys(fields).length === 0;
   const dirty = title !== "" || comment !== "" || statement !== null || rationale !== null || Object.keys(values).length > 0;
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
+  const editorControls = useRef<EditorControls>(null);
+  const written = title.trim() !== "" || !isEmptyDoc(statement);
+  const quality = useDraftQuality(
+    project,
+    { title, statement: statement ?? emptyDoc, ...(kind === "requirement" && typeId ? { typeId } : {}) },
+    kind === "requirement" && written,
+  );
 
   function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -109,8 +118,26 @@ export function RequirementCreate({
         required
       />
       <Labelled id="new-statement" label={t.requirements.statement} error={fields.statement}>
-        <Editor id="new-statement" value={statement} onChange={setStatement} mentions={findPeople} aria-label={t.requirements.statement} />
+        <Editor
+          id="new-statement"
+          value={statement}
+          onChange={setStatement}
+          mentions={findPeople}
+          findings={quality.marks}
+          controls={editorControls}
+          aria-label={t.requirements.statement}
+        />
       </Labelled>
+      {quality.on && (
+        <FindingsList
+          findings={quality.check?.findings ?? []}
+          sentences={quality.check?.sentences}
+          score={quality.check?.score}
+          checking={!quality.current && !quality.failed}
+          failed={quality.failed}
+          onShow={(finding) => editorControls.current?.showFinding(finding)}
+        />
+      )}
       {kind === "requirement" && (
         <Select
           label={t.types.type}

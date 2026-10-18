@@ -7,6 +7,11 @@ import { describeRule, optionLabel, roleWord, ruleLabel, type DraftRule } from "
 
 const KINDS: RuleKind[] = ["condition", "validator", "postfunction"];
 
+/** A whole number within an option's bounds, either of which may be open. */
+function inRange(value: number, min?: number, max?: number): boolean {
+  return Number.isInteger(value) && (min === undefined || value >= min) && (max === undefined || value <= max);
+}
+
 /** The rules on one transition, grouped the way the engine asks them: whether the move is offered, whether
  * what comes with it passes, and what happens afterwards; a rule is picked from the server's list, never typed. */
 export function RuleEditor({
@@ -31,6 +36,7 @@ export function RuleEditor({
     chosen.options.every((option) => {
       if (!option.required) return true;
       const value = config[option.name];
+      if (option.kind === "number") return typeof value === "number" && inRange(value, option.min, option.max);
       return Array.isArray(value) ? value.length > 0 : typeof value === "string" && value.trim() !== "";
     });
 
@@ -142,6 +148,23 @@ export function RuleEditor({
                     </option>
                   ))}
             </Select>
+          ) : option.kind === "number" ? (
+            <Field
+              key={option.name}
+              label={optionLabel(option.name, option.label)}
+              id={`field-rule-${option.name}`}
+              type="number"
+              inputMode="numeric"
+              step={1}
+              min={option.min}
+              max={option.max}
+              value={typeof config[option.name] === "number" ? String(config[option.name]) : ""}
+              onChange={(event) => {
+                const { [option.name]: _, ...rest } = config;
+                const typed = event.target.value.trim();
+                setConfig(typed === "" ? rest : { ...rest, [option.name]: Number(typed) });
+              }}
+            />
           ) : (
             <Field
               key={option.name}

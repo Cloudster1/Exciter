@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 )
 
 // Topics of trace links (#18), here so a copy that carries links emits them as internal/trace does.
@@ -121,4 +122,14 @@ func linkRefusal(err error) error {
 		return &FieldError{"links", "A requirement the copy links to already holds as many links as a requirement may. Copy without links, or remove some first."}
 	}
 	return err
+}
+
+// LocateForQuality finds a requirement as the writing rules need it (#207), which cannot ask this package itself.
+func LocateForQuality(ctx context.Context, tx db.DBTX, reader uuid.UUID, key string) (*quality.Located, error) {
+	e, err := FindEndpoint(ctx, tx, reader, key)
+	if err != nil {
+		return nil, err
+	}
+	return &quality.Located{ID: e.ID, ProjectID: e.ProjectID, TypeID: e.TypeID, Key: e.Key, Revision: e.Revision,
+		Section: e.Kind == KindSection, Editable: e.Linkable, Archived: e.Archived}, nil
 }

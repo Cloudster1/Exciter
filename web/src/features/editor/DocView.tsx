@@ -3,15 +3,73 @@ import { cx } from "@/components/ui";
 import { attachmentUrl } from "@/api/attachments";
 import { t } from "@/i18n";
 import { imageAlt, imageWidth } from "./files";
+import type { FindingMark } from "./quality";
 import { safeHref, type DocMark, type DocNode } from "./schema";
 
-/** A document read without its editor, as Stator's DocView draws a page; what the allowlist does not name is left out. */
-export function DocView({ doc, className, ...rest }: { doc: DocNode | null; className?: string; [attr: `data-${string}`]: string | undefined }) {
+/** A document read without its editor, as Stator's DocView draws a page; what the allowlist does not name is left out.
+ * Findings of the writing rules, when given, are marked in its text (#207). */
+export function DocView({
+  doc,
+  className,
+  findings,
+  ...rest
+}: {
+  doc: DocNode | null;
+  className?: string;
+  findings?: FindingMark[];
+  [attr: `data-${string}`]: string | undefined;
+}) {
+  const shown = findings?.length && doc ? markFindings(doc, findings) : doc;
   return (
     <div className={cx("doc-content", className)} {...rest}>
-      {(doc?.content ?? []).map((node, i) => block(node, i))}
+      {(shown?.content ?? []).map((node, i) => block(node, i))}
     </div>
   );
+}
+
+// The editor's text blocks, the ones a finding's block counts.
+const TEXTBLOCKS = new Set(["paragraph", "heading", "codeBlock"]);
+
+/** The document with each finding's words carrying a finding mark, the way a comparison carries its diff marks. */
+export function markFindings(doc: DocNode, findings: FindingMark[]): DocNode {
+  let index = 0;
+  const walk = (node: DocNode): DocNode => {
+    if (TEXTBLOCKS.has(node.type)) {
+      const here = findings.filter((f) => f.block === index && f.to > f.from);
+      index++;
+      return here.length ? { ...node, content: splitText(node.content ?? [], here) } : node;
+    }
+    return node.content ? { ...node, content: node.content.map(walk) } : node;
+  };
+  return walk(doc);
+}
+
+// Text is counted in UTF-16 code units and every other inline node as one, as the editor counts them.
+function splitText(content: DocNode[], findings: FindingMark[]): DocNode[] {
+  const out: DocNode[] = [];
+  let at = 0;
+  for (const child of content) {
+    if (child.type !== "text") {
+      out.push(child);
+      at++;
+      continue;
+    }
+    const text = child.text ?? "";
+    const end = at + text.length;
+    const cuts = [at, end, ...findings.flatMap((f) => [f.from, f.to]).filter((cut) => cut > at && cut < end)].sort((a, b) => a - b);
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const [from, to] = [cuts[i]!, cuts[i + 1]!];
+      if (to <= from) continue;
+      const covering = findings.filter((f) => f.from <= from && f.to >= to);
+      const marks = [
+        ...(child.marks ?? []),
+        ...covering.map((f) => ({ type: "finding", attrs: { key: f.key, severity: f.accepted ? "accepted" : f.severity, title: f.title ?? "" } })),
+      ];
+      out.push({ ...child, text: text.slice(from - at, to - at), marks });
+    }
+    at = end;
+  }
+  return out;
 }
 
 /** One block of a comparison and what happened to it. */
@@ -78,7 +136,7 @@ function block(node: DocNode, key: number): ReactNode {
     case "codeBlock":
       return (
         <pre key={key}>
-          <code>{(node.content ?? []).map((c) => c.text ?? "").join("")}</code>
+          <code>{inline(node)}</code>
         </pre>
       );
     case "horizontalRule":
@@ -168,6 +226,18 @@ function marked(mark: DocMark, inner: ReactNode, key: number): ReactNode {
           {inner}
           <span className="sr-only">{t.history.deletedEnd}</span>
         </del>
+      );
+    // Only a requirement read with its findings shown carries this one (#207).
+    case "finding":
+      return (
+        <span
+          key={key}
+          className={`finding finding-${String(mark.attrs?.severity ?? "hint")}`}
+          data-finding={String(mark.attrs?.key ?? "")}
+          title={String(mark.attrs?.title ?? "") || undefined}
+        >
+          {inner}
+        </span>
       );
     case "link": {
       const href = safeHref(mark.attrs?.href);

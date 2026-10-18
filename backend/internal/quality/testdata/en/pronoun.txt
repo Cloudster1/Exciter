@@ -1,0 +1,12 @@
+- ⟦It⟧ shall restart within 5 seconds.
+- ⟦They⟧ must sign in with a token.
+- When the door opens, ⟦it⟧ shall close after 10 seconds.
+- If the tank is full, then ⟦it⟧ shall stop the pump.
+- The pump shall stop; ⟦this⟧ is needed for safety.
+- ⟦Its⟧ display shall show the time.
++ The pump shall restart within 5 seconds.
++ This function shall restart the pump.
++ When the door opens, the controller shall close it after 10 seconds.
+# It shall be possible is an escape clause, found once as that.
++ It shall be possible to export the report.
++ The system shall show the item and its price.

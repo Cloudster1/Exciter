@@ -28,6 +28,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
@@ -109,7 +110,8 @@ func run() error {
 		Route(reqifio.TopicRequested, reqifio.Handler(exchanges)).
 		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log)).
 		Route(stator.TopicLinks, stator.NewLinkSync(stators, log)).
-		Route(testresult.TopicRequested, testresult.Handler(testresult.NewService(cluster)))
+		Route(testresult.TopicRequested, testresult.Handler(testresult.NewService(cluster))).
+		Route(quality.TopicRecheck, quality.Handler(quality.NewService(cluster, requirement.LocateForQuality)))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
 		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")

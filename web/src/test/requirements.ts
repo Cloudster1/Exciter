@@ -32,6 +32,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     updatedByName: "Ada Lovelace",
     trashedAt: null,
     lock: null,
+    quality: { score: null, active: 0, accepted: 0, stale: false },
     can: { edit: true, transition: true, delete: true, link: true, comment: true },
     ...overrides,
   };

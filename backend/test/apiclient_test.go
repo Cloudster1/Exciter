@@ -38,6 +38,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -113,6 +114,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
 		TestResults:   testresult.NewService(h.cluster).WithCommits(h.armature(t)),
 		Code:          codetrace.NewService(h.cluster),
+		Quality:       quality.NewService(h.cluster, requirement.LocateForQuality),
 		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
 		Renderer:      h.renderer(),

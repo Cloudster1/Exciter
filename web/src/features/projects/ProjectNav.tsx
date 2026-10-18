@@ -72,6 +72,9 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}/coverage`} icon="Link" rail={false} onNavigate={onNavigate}>
           {t.coverage.title}
         </NavItem>
+        <NavItem to={`/p/${project.key}/quality`} icon="Check" rail={false} onNavigate={onNavigate}>
+          {t.quality.pageTitle}
+        </NavItem>
         <NavItem to={`/p/${project.key}/suspects`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.suspect.listTitle}
         </NavItem>

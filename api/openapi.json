@@ -1519,7 +1519,9 @@
                 "review_session.round_started",
                 "review_session.closed",
                 "evidence_settings.saved",
-                "code_tag_words.saved"
+                "code_tag_words.saved",
+                "project.language_set",
+                "quality_settings.saved"
               ]
             }
           },
@@ -1705,7 +1707,9 @@
                 "review_session.round_started",
                 "review_session.closed",
                 "evidence_settings.saved",
-                "code_tag_words.saved"
+                "code_tag_words.saved",
+                "project.language_set",
+                "quality_settings.saved"
               ]
             }
           },
@@ -11201,16 +11205,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -11300,16 +11294,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -11355,16 +11339,6 @@
                   "required": [
                     "settings"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -11448,16 +11422,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15647,16 +15611,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -17504,16 +17458,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -17603,16 +17547,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -17648,6 +17582,14 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "description": "The current revision, which the acceptance is on.",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -17692,16 +17634,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -24679,7 +24611,9 @@
               "review_session.round_started",
               "review_session.closed",
               "evidence_settings.saved",
-              "code_tag_words.saved"
+              "code_tag_words.saved",
+              "project.language_set",
+              "quality_settings.saved"
             ]
           },
           "actorId": {
@@ -24814,7 +24748,9 @@
                 "review_session.round_started",
                 "review_session.closed",
                 "evidence_settings.saved",
-                "code_tag_words.saved"
+                "code_tag_words.saved",
+                "project.language_set",
+                "quality_settings.saved"
               ]
             }
           },
@@ -27590,6 +27526,12 @@
           "projectKey": {
             "type": "string"
           },
+          "quality": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "revision": {
             "type": "integer"
           },
@@ -27644,7 +27586,8 @@
           "attributes",
           "updatedAt",
           "can",
-          "suspectLinks"
+          "suspectLinks",
+          "quality"
         ]
       },
       "Group": {
@@ -30128,6 +30071,9 @@
             ],
             "format": "uuid"
           },
+          "language": {
+            "type": "string"
+          },
           "library": {
             "type": "boolean"
           },
@@ -30159,6 +30105,9 @@
           "defaultTypeId": {
             "type": "string",
             "format": "uuid"
+          },
+          "language": {
+            "type": "string"
           },
           "library": {
             "type": "boolean"
@@ -30301,6 +30250,32 @@
           "callbackUrl"
         ]
       },
+      "Quality": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "integer"
+          },
+          "active": {
+            "type": "integer"
+          },
+          "score": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "score",
+          "active",
+          "accepted",
+          "stale"
+        ]
+      },
       "QualityAcceptInput": {
         "type": "object",
         "properties": {
@@ -30421,6 +30396,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "statementMarkdown": {
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -31525,6 +31503,9 @@
           "projectKey": {
             "type": "string"
           },
+          "quality": {
+            "$ref": "#/components/schemas/Quality"
+          },
           "rationale": {
             "description": "A JSON value."
           },
@@ -31621,7 +31602,8 @@
           "comments",
           "watching",
           "approval",
-          "lock"
+          "lock",
+          "quality"
         ]
       },
       "RequirementCan": {
@@ -33056,11 +33038,18 @@
               "roles",
               "linkType",
               "direction",
-              "dimension"
+              "dimension",
+              "number"
             ]
           },
           "label": {
             "type": "string"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer"
           },
           "name": {
             "type": "string"
@@ -36054,6 +36043,12 @@
             ],
             "format": "uuid"
           },
+          "quality": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "revision": {
             "type": "integer"
           },
@@ -36089,7 +36084,8 @@
           "typeId",
           "status",
           "revision",
-          "children"
+          "children",
+          "quality"
         ]
       },
       "UpdateMeRequest": {

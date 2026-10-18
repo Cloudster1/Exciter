@@ -1,0 +1,12 @@
+- The timeout shall be ⟦TBD⟧ seconds.
+- The limit shall be ⟦[value]⟧ items.
+- The system shall greet ⟦<name>⟧ on sign in.
+- The protocol is ⟦???⟧
+- ⟦TODO⟧ describe the alarm.
+- The format is ⟦to be defined⟧.
+- The interval shall be ⟦[...]⟧ ms.
+# Capitals only: tbd in small letters is a name.
++ The tbd column shall be hidden.
++ The list shall show [1] as a reference.
++ The value shall stay between 5 < 6 and 7 > 4.
++ The system shall export XXL files.

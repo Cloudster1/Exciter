@@ -17,10 +17,14 @@ const (
 	MaxCustomWords = 200
 	MaxWordLength  = 60
 	MaxReasonChars = 500
+	// MaxFindings bounds the findings one revision keeps.
+	MaxFindings = 500
 	// MaxMatchChars bounds the text a finding quotes.
 	MaxMatchChars = 200
 	// RecheckBatch is how many requirements one transaction of a recheck takes.
 	RecheckBatch = 200
+	// BandWidth is how many points one band of the project's quality page spans.
+	BandWidth = 20
 	// DefaultLimit and MaxLimit window the project's quality list.
 	DefaultLimit = 50
 	MaxLimit     = 500
@@ -170,6 +174,8 @@ type TermMatch struct {
 type CheckInput struct {
 	Title     string          `json:"title"`
 	Statement json.RawMessage `json:"statement"`
+	// StatementMarkdown is the statement written as Markdown, in place of the document, as an assistant writes it.
+	StatementMarkdown *string `json:"statementMarkdown,omitempty"`
 	// TypeID picks the rules that apply; the project's default type when absent.
 	TypeID *uuid.UUID `json:"typeId,omitempty"`
 	// RequirementKey names the requirement being revised, whose accepted findings the answer carries.

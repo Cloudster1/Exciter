@@ -1,0 +1,8 @@
+- The system ⟦shall not⟧ store passwords.
+- The pump ⟦must not⟧ exceed 5 bar.
+- The device shall ⟦never⟧ reboot during an update.
+- The system ⟦shall no longer⟧ accept version 1.
++ The system shall store passwords as hashes.
++ Nevertheless the system shall stop.
++ The system shall notify the user.
++ The system shall show a notice.

@@ -29,6 +29,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/perm"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/render"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -118,6 +119,8 @@ type Server struct {
 	TestResults *testresult.Service
 	// Code keeps the tags code scans found (#201); nil answers their routes that they are not set up.
 	Code *codetrace.Service
+	// Quality checks requirements against writing rules (#207).
+	Quality *quality.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -401,6 +404,19 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/code-tags", s.handleListCodeTags)
 			r.Get("/projects/{projectKey}/code-tag-words", s.handleGetCodeTagWords)
 			r.Put("/projects/{projectKey}/code-tag-words", s.handleSaveCodeTagWords)
+		})
+
+		// Writing rules (#207): drafts checked and findings accepted by a project's editors, rules set by its administrators.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.qualityOn)
+			r.Post("/projects/{projectKey}/quality-check", s.handleQualityCheck)
+			r.Get("/requirements/{reqKey}/quality", s.handleGetQuality)
+			r.Post("/requirements/{reqKey}/quality/accepted", s.handleAcceptFinding)
+			r.Delete("/requirements/{reqKey}/quality/accepted/{findingKey}", s.handleWithdrawAcceptance)
+			r.Get("/projects/{projectKey}/quality", s.handleProjectQuality)
+			r.Get("/projects/{projectKey}/quality-settings", s.handleGetQualitySettings)
+			r.Put("/projects/{projectKey}/quality-settings", s.handleSaveQualitySettings)
+			r.Get("/quality-rules", s.handleListQualityRules)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

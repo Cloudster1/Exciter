@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/attribute"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
@@ -29,6 +30,8 @@ const (
 	fkTimestamp
 	fkLink
 	fkAttribute
+	// fkEnumSet is a set of enum members a requirement holds, such as the rules it breaks.
+	fkEnumSet
 )
 
 // Link directions: the requirement is the link's source, its target, or either end of a link that reads the same
@@ -84,6 +87,20 @@ const reuseState = `(CASE
 // coverageLevels are the levels of trace.Level, repeated because trace imports search, which imports this.
 var coverageLevels = []string{"none", "partial", "full", "na"}
 
+// qualityScore is a requirement's score by the writing rules, and qualityRules the rules whose findings count (#207).
+const (
+	qualityScore = "(SELECT q.score FROM requirement_quality_of(r.id) q)"
+	qualityRules = "COALESCE((SELECT q.rules FROM requirement_quality_of(r.id) q), '{}')"
+)
+
+func qualityRuleIDs() []string {
+	out := make([]string, len(quality.RuleIDs))
+	for i, id := range quality.RuleIDs {
+		out[i] = string(id)
+	}
+	return out
+}
+
 // testOutcomes are a requirement's latest results summed up, worst first, as testresult.Outcomes and none (#200).
 var testOutcomes = []string{"errored", "failed", "skipped", "passed", "none"}
 
@@ -132,6 +149,8 @@ var fixed = []fieldDef{
 	{name: "testOutdated", kind: fkNumber, column: testOutdated, order: testOutdated},
 	{name: "codeLink", kind: fkNumber, column: codeLinks, order: codeLinks},
 	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
+	{name: "quality", kind: fkNumber, column: qualityScore, order: qualityScore, empty: true},
+	{name: "qualityFinding", kind: fkEnumSet, column: qualityRules, enum: qualityRuleIDs(), empty: true},
 }
 
 // LinkType is a link type a project's requirements may be joined by, with the phrases its ends read in.
@@ -222,7 +241,7 @@ var (
 func (d fieldDef) operators() []string {
 	var ops []string
 	switch d.kind {
-	case fkKey, fkEnum, fkName, fkUser, fkLabels, fkParent, fkLink:
+	case fkKey, fkEnum, fkName, fkUser, fkLabels, fkParent, fkLink, fkEnumSet:
 		ops = opsEquality
 	case fkTitle:
 		ops = opsText

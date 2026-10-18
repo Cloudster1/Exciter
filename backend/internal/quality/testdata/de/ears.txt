@@ -1,0 +1,15 @@
++ Das System muss jede Anfrage protokollieren.
++ Wenn die Tür sich öffnet, muss das Licht angehen.
++ Sobald die Tür sich öffnet, muss das Licht angehen.
++ Während die Pumpe läuft, muss die Anzeige den Druck zeigen.
++ Falls der Druck zu hoch ist, dann muss das Ventil öffnen.
++ Sofern ein Drucker installiert ist, muss das System den Bericht drucken.
++ Während des Betriebs muss die Anzeige den Druck zeigen.
++ Solange die Pumpe läuft, wenn die Tür sich öffnet, muss die Pumpe stoppen.
+- ⟦Nachdem⟧ die Tür sich geöffnet hat, muss das Licht angehen.
+- Wenn die Tür sich öffnet, ⟦das Licht muss⟧ angehen.
+- Die Pumpe muss stoppen, ⟦wenn⟧ der Tank voll ist.
+- ⟦Falls⟧ der Druck zu hoch ist, muss das Ventil öffnen.
+- ⟦Bei⟧ einem Fehler muss das System einen Alarm auslösen.
+# Eine Aussage ohne muss wird einmal gefunden, über ihrem ersten Satz.
+- ⟦Die Anzeige zeigt die Uhrzeit.⟧ Sie ist groß.

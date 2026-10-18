@@ -1,5 +1,5 @@
-// Command docallowlist writes the document allowlist as JSON to the path given, or to stdout, and the comment
-// allowlist to a second path, for the web editors' tests to hold their schemas to.
+// Command docallowlist writes the document allowlist as JSON to the path given, or to stdout, the comment
+// allowlist to a second path and the text blocks fixture to a third, for the web editors' tests.
 package main
 
 import (
@@ -28,6 +28,16 @@ func main() {
 		comment, err := document.CommentAllowed.JSON()
 		if err == nil {
 			err = os.WriteFile(os.Args[2], comment, fileMode)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+	if len(os.Args) > 3 {
+		blocks, err := document.TextBlocksFixture()
+		if err == nil {
+			err = os.WriteFile(os.Args[3], blocks, fileMode)
 		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

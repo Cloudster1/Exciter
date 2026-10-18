@@ -24,6 +24,7 @@ import { SessionList } from "@/features/sessions/SessionList";
 import { SessionPage } from "@/features/sessions/SessionPage";
 import { CoveragePage } from "@/features/coverage/CoveragePage";
 import { CodeTagsPage } from "@/features/evidence/CodeTagsPage";
+import { QualityPage } from "@/features/quality/QualityPage";
 import { readMatrixAddress } from "@/features/matrix/address";
 import { readChainsAddress } from "@/features/matrix/chainsAddress";
 import { ChainsPage } from "@/features/matrix/ChainsPage";
@@ -45,6 +46,7 @@ type ProjectPath =
   | "/p/$projectKey/sessions"
   | "/p/$projectKey/coverage"
   | "/p/$projectKey/code-tags"
+  | "/p/$projectKey/quality"
   | "/p/$projectKey/matrix"
   | "/p/$projectKey/chains";
 
@@ -211,6 +213,16 @@ export const codeTagsRoute = createRoute({
   component: function ProjectCodeTagsPage() {
     const { projectKey } = codeTagsRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/code-tags" render={(project) => <CodeTagsPage key={project.id} project={project} />} />;
+  },
+});
+
+/** How a project's requirements keep to the writing rules (#207). */
+export const qualityRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/quality",
+  component: function ProjectQualityPage() {
+    const { projectKey } = qualityRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/quality" render={(project) => <QualityPage key={project.id} project={project} />} />;
   },
 });
 

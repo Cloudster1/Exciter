@@ -1,0 +1,18 @@
+- The data shall ⟦be encrypted⟧.
+- The file shall ⟦be sent⟧ to the archive.
+- The log ⟦is written⟧ every hour.
+- The password shall ⟦be securely stored⟧.
+- The request shall ⟦be rejected⟧, and the user shall see a message.
+- The alarm shall ⟦be raised⟧ when the tank is full.
+- The results ⟦are not shown⟧ to guests.
+- The token shall ⟦be used⟧ to sign requests.
++ The data shall be encrypted by the gateway.
++ The gateway shall encrypt the data.
++ The sensor is located in the tank.
+# A condition may say what happens without who does it.
++ When the door is opened, the light shall turn on.
++ The system shall be ready within 5 seconds.
++ The system shall be able to restart.
++ The report is based on the daily totals.
++ The kit is composed of three parts.
++ The pump shall feed the tank.

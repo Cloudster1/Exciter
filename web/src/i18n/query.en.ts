@@ -48,6 +48,8 @@ export const queryEn = {
     testOutdated: "how many tests ran against an older revision",
     codeLink: "how many code tags on the counting branch implement or verify it",
     codeOutdated: "how many code tags name an older revision",
+    quality: "the score against the writing rules, from 0 to 100; empty for sections and requirements not checked yet",
+    qualityFinding: "the writing rules with an open finding, such as passive or vague",
   } as Record<string, string>,
   attributeTakes: "an attribute of the project, by its name in quotes",
   linkName: "a link type",

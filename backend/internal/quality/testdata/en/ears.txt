@@ -1,0 +1,15 @@
++ The system shall log each request.
++ When the door opens, the light shall turn on.
++ While the pump runs, the display shall show the pressure.
++ If the pressure is too high, then the valve shall open.
++ Where a printer is installed, the system shall print the report.
++ While the pump runs, when the door opens, the pump shall stop.
++ When the user presses A, B or C, the system shall beep.
+- ⟦Once⟧ the door opens, the light shall turn on.
+- ⟦As soon as⟧ the door opens, the light shall turn on.
+- ⟦If⟧ the pressure is too high, the valve shall open.
+- The pump shall stop ⟦when⟧ the tank is full.
+- ⟦Shall⟧ the system log requests?
+- ⟦For safety reasons⟧, the system shall log each request.
+# A statement that says nothing that shall be is found once, over its first sentence.
+- ⟦The display shows the time.⟧ It is large.

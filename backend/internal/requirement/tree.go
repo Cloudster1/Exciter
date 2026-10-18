@@ -54,8 +54,8 @@ func outline(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (string, 
 const selectNodes = walkTree + `
 SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
        (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
-       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, '')
-FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id
+       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), ` + QualityScore + `
+FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id` + QualityScores + `
 ORDER BY w.path`
 
 func scanNode(projectKey string) pgx.RowToFunc[TreeNode] {
@@ -68,7 +68,7 @@ func scanNode(projectKey string) pgx.RowToFunc[TreeNode] {
 			status   StatusRef
 		)
 		err := row.Scan(&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
-			&statusID, &status.Name, &status.Category)
+			&statusID, &status.Name, &status.Category, &n.Quality)
 		if statusID != nil {
 			status.ID = *statusID
 			n.Status = &status
@@ -182,13 +182,13 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			       pv.id, COALESCE(pv.revision, 0), COALESCE(pv.required, 0), COALESCE(review_approvals(pv.id), 0),
 			       (SELECT count(*)::int FROM review_decision d WHERE d.review_id = pv.id AND d.decision = 'reject'),
 			       COALESCE(review_names(pv.id, `+me+`), false), COALESCE(review_decidable(pv.id, `+me+`), false),
-			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`)`+approval+reuseSQL+lockSQL+`
+			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`), `+QualityScore+approval+reuseSQL+lockSQL+`
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN chg c ON c.id = r.id
 			LEFT JOIN requirement_review pv ON pv.requirement_id = r.id AND pv.state = 'pending'
 			LEFT JOIN requirement_type t ON t.id = r.type_id
 			LEFT JOIN req_status st ON st.id = r.status_id
-			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+where+`
+			LEFT JOIN app_user o ON o.id = r.owner_id`+reuseJoins+QualityScores+where+`
 			ORDER BY w.path`+window, args.values...)
 		if err != nil {
 			return fmt.Errorf("read the specification: %w", err)
@@ -218,7 +218,7 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				&e.Statement, &e.Rationale, &attrs, &e.Labels, &e.Comments.Threads, &e.Comments.Open, &e.SuspectLinks,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
 				&kind, &fromRev, &movedFrom, &reviewID, &review.Revision, &review.Required, &review.Approvals, &review.Rejections,
-				&review.Approver, &review.MayDecide, &review.Decision, &e.Approval.Pending, &e.Approval.ApprovedRevision},
+				&review.Approver, &review.MayDecide, &review.Decision, &n.Quality, &e.Approval.Pending, &e.Approval.ApprovedRevision},
 				append(reused.targets(), locked.targets()...)...)...)
 			if err != nil {
 				return e, err

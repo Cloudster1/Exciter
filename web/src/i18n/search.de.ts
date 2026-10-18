@@ -84,6 +84,7 @@ export const gridDe: typeof gridEn = {
     updated: "Geändert",
     labels: "Labels",
     outline: "Nummer",
+    quality: "Qualität",
   } as Record<string, string>,
   sortBy: (column: string) => `Nach ${column} sortieren`,
   sortedUp: "aufsteigend sortiert",

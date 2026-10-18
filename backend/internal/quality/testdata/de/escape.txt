@@ -1,0 +1,13 @@
+- Das System muss die Datei ⟦wenn möglich⟧ verschlüsseln.
+- Das System muss ⟦gegebenenfalls⟧ neu starten.
+- Das System muss ⟦ggf.⟧ eine Meldung zeigen.
+- Die Anzeige ⟦sollte⟧ die Uhrzeit zeigen.
+- Die Pumpe muss ⟦in der Regel⟧ mit 50 U/min laufen.
+- ⟦Es muss möglich sein⟧, den Bericht zu exportieren.
+- Das System muss Daten ⟦bei Bedarf⟧ archivieren.
+- Das System muss ⟦nach Möglichkeit⟧ zwischenspeichern.
++ Das System muss die Datei verschlüsseln, bevor es sie sendet.
+# Kann sagt, was jemand tun kann, und bleibt ungefunden.
++ Der Benutzer kann den Upload abbrechen.
++ Das System muss die möglichen Werte zeigen.
++ Das System muss den Bedarf ermitteln.

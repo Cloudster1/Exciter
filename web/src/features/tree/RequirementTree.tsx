@@ -5,6 +5,7 @@ import { useMoveRequirement, type Place, type TreeNode } from "@/api/tree";
 import { cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TREE_DROP_EDGE, TREE_INDENT_PX } from "@/config";
+import { QualityBadge } from "@/features/quality/QualityBadge";
 import { t } from "@/i18n";
 import { afterMove, outlines } from "./outline";
 
@@ -235,6 +236,7 @@ export function RequirementTree({
                 >
                   {node.title}
                 </Link>
+                {node.kind === "requirement" && node.quality !== null && <QualityBadge score={node.quality} className="shrink-0" />}
               </div>
             </div>
           );

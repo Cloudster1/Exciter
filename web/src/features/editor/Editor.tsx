@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor as TiptapEditor } from "@tiptap/react";
 import type { UploadFile } from "@/api/attachments";
 import { Button, Dialog, Field, IconButton, cx } from "@/components/ui";
@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { EDITOR_HEADING_LEVELS, NEW_TABLE_COLUMNS, NEW_TABLE_ROWS } from "@/config";
 import { t } from "@/i18n";
 import { commentExtensions, editorExtensions } from "./extensions";
+import type { FindingMark } from "./quality";
 import { emptyDoc, safeHref, type Doc } from "./schema";
 import { mentionSuggestion, type MentionSource } from "./suggestion";
 
@@ -20,11 +21,20 @@ export interface EditorProps {
   upload?: UploadFile;
   /** comment holds the editor to what a comment may say (#33): no rules, tables or files. */
   variant?: "requirement" | "comment";
+  /** The writing rules' findings to mark; undefined keeps the marks there are, moved with the text. */
+  findings?: FindingMark[];
+  /** What the findings list beside the editor reaches in: selecting a finding's words. */
+  controls?: Ref<EditorControls>;
   "aria-label": string;
 }
 
+/** What a form holding the editor may ask of it. */
+export interface EditorControls {
+  showFinding: (finding: Pick<FindingMark, "block" | "from" | "to">) => void;
+}
+
 /** The shared editor of statements, rationales and rich text values: Stator's, cut to what a requirement says. */
-export function Editor({ id, value, onChange, mentions, upload, variant = "requirement", "aria-label": label }: EditorProps) {
+export function Editor({ id, value, onChange, mentions, upload, variant = "requirement", findings, controls, "aria-label": label }: EditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const mentionsRef = useRef(mentions);
@@ -40,6 +50,10 @@ export function Editor({ id, value, onChange, mentions, upload, variant = "requi
     },
     onUpdate: ({ editor }) => onChangeRef.current(editor.getJSON() as Doc),
   });
+  useEffect(() => {
+    if (editor && findings && variant === "requirement") editor.commands.setFindings(findings);
+  }, [editor, findings, variant]);
+  useImperativeHandle(controls, () => ({ showFinding: (finding) => void editor?.chain().showFinding(finding).focus().run() }), [editor]);
   return (
     <div className="rounded-control border border-border-strong bg-surface focus-within:border-focus" data-editor-frame>
       {editor && <Toolbar editor={editor} files={variant === "requirement" && Boolean(upload)} tools={variant === "comment" ? COMMENT_TOOLS : TOOLS} />}

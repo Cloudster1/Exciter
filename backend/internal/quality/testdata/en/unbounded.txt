@@ -1,0 +1,13 @@
+- The system shall log ⟦all⟧ errors.
+- The user shall export ⟦any⟧ report.
+- The device shall support USB, Bluetooth ⟦etc.⟧
+- The system shall show the name, the date ⟦and so on⟧.
+- The pump shall ⟦always⟧ keep the pressure.
+- The display shall stay lit ⟦at all times⟧.
+- The cache shall hold ⟦at least⟧ 100 entries.
+- The form shall take ⟦any number of⟧ files.
+# A number bounds all and every.
++ The system shall poll the sensor every 5 seconds.
++ The controller shall read all 3 sensors.
++ The tally shall count each ballot once.
++ The system shall show the company name.

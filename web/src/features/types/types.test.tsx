@@ -138,7 +138,10 @@ describe("a requirement's attributes", () => {
     await userEvent.selectOptions(screen.getByLabelText("Verification (required)"), test.id);
     await userEvent.click(screen.getByRole("button", { name: "New requirement" }));
     await waitFor(() =>
-      expect(sent.find((r) => r.method === "POST")?.body).toMatchObject({ typeId: functional.id, attributes: { [verification.id]: test.id } }),
+      expect(sent.find((r) => r.method === "POST" && r.path.endsWith("/requirements"))?.body).toMatchObject({
+        typeId: functional.id,
+        attributes: { [verification.id]: test.id },
+      }),
     );
   });
 

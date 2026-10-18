@@ -1,0 +1,136 @@
+# The words the writing rules find in English requirements, by rule. A word or phrase matches on word
+# boundaries in any case; one written in capitals, such as TBD, matches only in capitals.
+
+[vague]
+user-friendly
+user friendly
+easy
+easily
+easy to use
+fast
+quick
+quickly
+efficient
+efficiently
+appropriate
+appropriately
+adequate
+adequately
+sufficient
+sufficiently
+flexible
+robust
+modern
+intuitive
+intuitively
+seamless
+seamlessly
+convenient
+simple
+reasonable
+reasonably
+normal
+typical
+significant
+significantly
+minimal
+optimal
+optimally
+maximize
+minimize
+approximately
+roughly
+nearly
+relatively
+fairly
+about
+several
+some
+many
+few
+large
+small
+high
+low
+good
+acceptable
+satisfactory
+timely
+in a timely manner
+as soon as possible
+state of the art
+state-of-the-art
+best practice
+best practices
+
+[unbounded]
+all
+any
+every
+everything
+anything
+always
+whatever
+arbitrary
+arbitrarily
+infinite
+unlimited
+etc.
+etc
+and so on
+and so forth
+including but not limited to
+not limited to
+at least
+at all times
+any number of
+
+[escape]
+if possible
+where possible
+wherever possible
+as far as possible
+as far as practicable
+if practicable
+where practicable
+if feasible
+where feasible
+as appropriate
+if appropriate
+where appropriate
+if necessary
+where necessary
+as necessary
+if applicable
+where applicable
+to the extent possible
+to the extent practicable
+as required
+if required
+as needed
+if needed
+ideally
+preferably
+normally
+usually
+generally
+typically
+possibly
+it shall be possible
+it must be possible
+should
+may
+might
+could
+
+[placeholder]
+TBD
+TBC
+TBA
+TODO
+FIXME
+XXX
+???
+to be defined
+to be determined
+to be confirmed

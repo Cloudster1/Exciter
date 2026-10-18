@@ -50,6 +50,8 @@ export const queryDe: typeof queryEn = {
     testOutdated: "wie viele Tests gegen eine ältere Revision liefen",
     codeLink: "wie viele Code-Tags auf dem zählenden Branch sie implementieren oder verifizieren",
     codeOutdated: "wie viele Code-Tags eine ältere Revision nennen",
+    quality: "die Bewertung nach den Schreibregeln, von 0 bis 100; leer für Abschnitte und noch nicht geprüfte Anforderungen",
+    qualityFinding: "die Schreibregeln mit einem offenen Befund, etwa passive oder vague",
   },
   attributeTakes: "ein Attribut des Projekts, mit seinem Namen in Anführungszeichen",
   linkName: "ein Verknüpfungstyp",

@@ -18,7 +18,7 @@ export const OPS_BY_KIND: Record<Kind, Op[]> = {
 export const VALUELESS: Op[] = ["set", "unset"];
 
 /** The columns the grid sorts by besides an attribute's id, and those it only shows, as search.SortColumns says. */
-export const SORT_COLUMNS = ["key", "title", "type", "status", "owner", "priority", "updated"] as const;
+export const SORT_COLUMNS = ["key", "title", "type", "status", "owner", "priority", "updated", "quality"] as const;
 export const SHOW_COLUMNS = ["labels", "outline"] as const;
 /** What a grid shows when nobody chose. */
 export const DEFAULT_COLUMNS = ["outline", "key", "title", "status", "owner", "priority", "updated"];

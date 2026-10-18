@@ -95,7 +95,7 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
                  WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + `
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -133,6 +133,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		copiedNumber         int
 		reused               scannedReuse
 		locked               scannedLock
+		qualityJSON          []byte
 	)
 	r := &l.Requirement
 	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
@@ -140,7 +141,8 @@ func scan(row pgx.Row) (*loaded, error) {
 		&r.TrashedAt, &l.projectID, &l.archived, &l.hash, &typeID, &typ.Name, &typ.Icon, &typ.Colour,
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
-		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(reused.targets(), locked.targets()...)...)...)
+		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(append(reused.targets(), locked.targets()...),
+		&qualityJSON)...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -148,6 +150,11 @@ func scan(row pgx.Row) (*loaded, error) {
 		return nil, err
 	}
 	r.Approval.Current = r.Approval.ApprovedRevision != nil && *r.Approval.ApprovedRevision == r.Revision
+	if len(qualityJSON) > 0 {
+		if err := json.Unmarshal(qualityJSON, &r.Quality); err != nil {
+			return nil, fmt.Errorf("read the quality of %s: %w", r.ID, err)
+		}
+	}
 	r.Key = Key(r.ProjectKey, r.Number)
 	if len(rationale) > 0 {
 		r.Rationale = rationale

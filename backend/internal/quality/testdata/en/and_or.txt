@@ -1,0 +1,7 @@
+- The user shall pay by card ⟦and/or⟧ voucher.
+- The user shall pay by card ⟦and / or⟧ voucher.
+- The report shall list errors ⟦And/Or⟧ warnings.
++ The user shall pay by card and voucher.
++ The user shall pay by card or voucher.
++ The system shall accept the land/order file.
++ The sander shall stop.

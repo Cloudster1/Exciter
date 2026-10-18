@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -310,7 +311,7 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 			return err
 		}
 		name, description, settings := p.Name, p.Description, p.Settings
-		signing, shelving := false, false
+		signing, shelving, speaking := false, false, false
 		if in.Name != nil {
 			if name, err = checkName(*in.Name); err != nil {
 				return err
@@ -344,6 +345,13 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 				settings.Library = *in.Settings.Library
 				shelving = true
 			}
+			if in.Settings.Language != nil && *in.Settings.Language != settings.LanguageOf() {
+				if !slices.Contains(Languages, *in.Settings.Language) {
+					return &FieldError{"settings.language", "Choose English or German as the language of the project's requirements."}
+				}
+				settings.Language = *in.Settings.Language
+				speaking = true
+			}
 		}
 		raw, err := json.Marshal(settings)
 		if err != nil {
@@ -364,7 +372,16 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 		}
 		// What other projects may follow is everybody's concern, so marking a library either way is audited.
 		if shelving {
-			return s.note(ctx, tx, reader, audit.ActionProjectLibrarySet, out, map[string]any{"library": settings.Library})
+			if err := s.note(ctx, tx, reader, audit.ActionProjectLibrarySet, out, map[string]any{"library": settings.Library}); err != nil {
+				return err
+			}
+		}
+		// Another language finds other words, so every requirement is checked again.
+		if speaking {
+			if err := s.note(ctx, tx, reader, audit.ActionProjectLanguageSet, out, map[string]any{"language": settings.Language}); err != nil {
+				return err
+			}
+			return events.Emit(ctx, tx, TopicQualityRecheck, map[string]any{"actorId": reader, "projectId": p.ID})
 		}
 		return nil
 	})

@@ -30,6 +30,8 @@ export const QUERY_FIELDS: Array<{ name: string; example: string }> = [
   { name: "testOutdated", example: "testOutdated > 0" },
   { name: "codeLink", example: "codeLink = 0" },
   { name: "codeOutdated", example: "codeOutdated > 0" },
+  { name: "quality", example: "quality < 60" },
+  { name: "qualityFinding", example: "qualityFinding = passive" },
 ];
 
 export const QUERY_ATTRIBUTE_EXAMPLE = '"Risk" = High';

@@ -80,6 +80,7 @@ export const gridEn = {
     updated: "Changed",
     labels: "Labels",
     outline: "Number",
+    quality: "Quality",
   } as Record<string, string>,
   sortBy: (column: string) => `Sort by ${column}`,
   sortedUp: "sorted A to Z",

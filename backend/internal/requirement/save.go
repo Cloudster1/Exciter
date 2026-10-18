@@ -16,6 +16,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/markdown"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 )
 
 // Create writes a requirement or a section as revision 1.
@@ -139,6 +140,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
 			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor); err != nil {
 			return fmt.Errorf("write revision 1: %w", err)
+		}
+		if err := quality.Record(ctx, tx, id, 1); err != nil {
+			return err
 		}
 		if err := putLabels(ctx, tx, actor, id, labels); err != nil {
 			return err
@@ -358,6 +362,9 @@ func (s *Service) recordRevision(ctx context.Context, tx db.DBTX, actor uuid.UUI
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor); err != nil {
 		return fmt.Errorf("write revision %d of %s: %w", number, cur.Key, err)
+	}
+	if err := quality.Record(ctx, tx, cur.ID, number); err != nil {
+		return err
 	}
 	if err := events.Emit(ctx, tx, TopicRevised, map[string]any{"actorId": actor, "requirementId": cur.ID, "revision": number}); err != nil {
 		return err

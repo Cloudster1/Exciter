@@ -12,6 +12,7 @@ import { LabelLink } from "@/features/labels/RequirementLabels";
 import { usePeopleNames } from "@/features/types/AttributeFields";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
+import { QualityBadge } from "@/features/quality/QualityBadge";
 import { t } from "@/i18n";
 import { useProject } from "@/api/projects";
 import { useAccess, type Access } from "@/features/types/fieldAccess";
@@ -191,6 +192,8 @@ function Cell({
       );
     case "updated":
       return <span className="text-ink-muted">{changedOn.format(new Date(row.updatedAt))}</span>;
+    case "quality":
+      return requirement ? <QualityBadge score={row.quality} /> : null;
     case "labels":
       return (
         <span className="flex flex-wrap gap-1">

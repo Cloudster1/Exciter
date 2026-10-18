@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useComparison } from "@/api/history";
 import type { Project } from "@/api/projects";
 import { findPeople, useUpdateRequirement, type Requirement, type RequirementChanges } from "@/api/requirements";
 import { useUploadAttachments } from "@/api/attachments";
+import { useQuality } from "@/api/quality";
 import { useAttributes, useTypes } from "@/api/attributes";
 import { Button, Card, ErrorBanner, Field, Labelled, SectionTitle, Select, Skeleton } from "@/components/ui";
 import { REQUIREMENT_TITLE_MAX_LENGTH, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { DocView } from "@/features/editor/DocView";
-import { Editor } from "@/features/editor/Editor";
+import { Editor, type EditorControls } from "@/features/editor/Editor";
 import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
 import { ComparisonView } from "@/features/history/RequirementHistory";
+import { FindingsList } from "@/features/quality/FindingsList";
+import { useDraftQuality } from "@/features/quality/draft";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
 import { useFieldAccess } from "@/features/types/fieldAccess";
@@ -75,6 +78,13 @@ export function RequirementEdit({
     JSON.stringify(rationale) !== JSON.stringify(opened.current.rationale) ||
     JSON.stringify(values) !== JSON.stringify(opened.current.values);
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
+
+  // The draft is checked as it is typed (#207); a finding the saved revision has too may be accepted from here.
+  const checked = requirement.kind === "requirement" && !locked && fixed.statement.edit;
+  const editorControls = useRef<EditorControls>(null);
+  const quality = useDraftQuality(project, { title, statement, ...(typeId ? { typeId } : {}), requirementKey: requirement.key }, checked);
+  const { data: saved } = useQuality(requirement.key, requirement.revision, quality.on);
+  const savedKeys = useMemo(() => new Set((saved?.findings ?? []).map((f) => f.key)), [saved]);
 
   function save(event?: FormEvent, over = base) {
     event?.preventDefault();
@@ -164,9 +174,22 @@ export function RequirementEdit({
               onChange={setStatement}
               mentions={findPeople}
               upload={files.upload}
+              findings={quality.marks}
+              controls={editorControls}
               aria-label={t.requirements.statement}
             />
           </Labelled>
+        )}
+        {quality.on && (
+          <FindingsList
+            findings={quality.check?.findings ?? []}
+            sentences={quality.check?.sentences}
+            score={quality.check?.score}
+            checking={!quality.current && !quality.failed}
+            failed={quality.failed}
+            onShow={(finding) => editorControls.current?.showFinding(finding)}
+            accept={{ reqKey: requirement.key, revision: requirement.revision, keys: savedKeys, may: Boolean(saved) }}
+          />
         )}
         {requirement.kind === "requirement" && (
           <Select

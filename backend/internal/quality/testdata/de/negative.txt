@@ -1,0 +1,10 @@
+- Das System ⟦darf nicht⟧ Passwörter speichern.
+- Das System darf Passwörter ⟦nicht⟧ speichern.
+- Das System darf ⟦keine⟧ Daten verlieren.
+- Das Gerät muss ⟦niemals⟧ neu starten.
+- Die Pumpe ⟦muss nicht⟧ laufen.
++ Das System muss Passwörter als Hash speichern.
+# Nicht nur ... sondern auch sagt mehr, nicht weniger.
++ Das System muss nicht nur Fehler, sondern auch Warnungen melden.
++ Die Anzeige zeigt keine Daten.
++ Das System muss den Niederdruck melden.

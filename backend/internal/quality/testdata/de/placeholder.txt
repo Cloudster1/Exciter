@@ -1,0 +1,10 @@
+- Das Zeitlimit beträgt ⟦TBD⟧ Sekunden.
+- Die Grenze muss ⟦[Wert]⟧ Einträge betragen.
+- Das System muss ⟦<Name>⟧ begrüßen.
+- Das Protokoll ist ⟦noch offen⟧.
+- Das Format ist ⟦???⟧
+- ⟦OFFEN⟧ Alarmverhalten beschreiben.
+# Offen in kleinen Buchstaben ist ein Zustand.
++ Die Tür muss offen bleiben.
++ Die Liste muss [1] als Verweis zeigen.
++ Der Wert muss kleiner als 5 sein.

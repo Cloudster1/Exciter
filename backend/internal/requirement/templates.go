@@ -11,6 +11,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/quality"
 )
 
 // Seed makes what a template holds in a project just made, in the transaction that made it (#24): types,
@@ -79,6 +80,9 @@ func seedSection(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, ti
 		INSERT INTO requirement_revision (requirement_id, number, title, statement, attributes, hash, comment, created_by)
 		VALUES ($1, 1, $2, $3, '{}', $4, $5, $6)`, id, title, document.Empty, hash, comment, actor); err != nil {
 		return fmt.Errorf("write revision 1 of %s: %w", title, err)
+	}
+	if err := quality.Record(ctx, tx, id, 1); err != nil {
+		return err
 	}
 	return events.Emit(ctx, tx, TopicCreated, map[string]any{"actorId": actor, "projectId": projectID, "requirementId": id, "revision": 1})
 }

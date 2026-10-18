@@ -110,7 +110,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN app_user o ON o.id = r.owner_id
 			LEFT JOIN requirement_type t ON t.id = r.type_id
-			LEFT JOIN req_status st ON st.id = r.status_id
+			LEFT JOIN req_status st ON st.id = r.status_id` + requirement.QualityScores + `
 			WHERE ` + strings.Join(where, ` AND `)
 		if err := tx.QueryRow(ctx, requirement.WalkTree+` SELECT count(*)::int`+from, args...).Scan(&total); err != nil {
 			return fmt.Errorf("count the requirements: %w", err)
@@ -124,7 +124,7 @@ func (s *Service) Grid(ctx context.Context, reader uuid.UUID, projectKey string,
 			       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''),
 			       perm_project_holds(r.project_id, $2, 'edit'), perm_project_holds(r.project_id, $2, 'approve'),
 			       perm_project_holds(r.project_id, $2, 'comment'),
-			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+requirement.SuspectLinks+from+`
+			       ARRAY(SELECT l.name FROM requirement_label l WHERE l.requirement_id = r.id ORDER BY l.name),`+requirement.SuspectLinks+`, `+requirement.QualityScore+from+`
 			ORDER BY `+order+` LIMIT `+limitAt+` OFFSET `+offsetAt, args...)
 		if err != nil {
 			return fmt.Errorf("list the requirements: %w", err)
@@ -156,7 +156,7 @@ func scanRow(projectKey string) pgx.RowToFunc[Row] {
 		)
 		err := row.Scan(&r.ID, &number, &r.Kind, &r.Title, &r.Revision, &path, &ownerID, &ownerName, &priority, &r.UpdatedAt,
 			&typeID, &typ.Name, &typ.Icon, &typ.Colour, &attrs, &statusID, &status.Name, &status.Category, &edit, &approve, &remark, &r.Labels,
-			&r.SuspectLinks)
+			&r.SuspectLinks, &r.Quality)
 		if err != nil {
 			return r, err
 		}
@@ -257,7 +257,7 @@ func Keep(ctx context.Context, tx db.DBTX, reader uuid.UUID, p *project.Project,
 		FROM walk w JOIN requirement r ON r.id = w.id
 		LEFT JOIN app_user o ON o.id = r.owner_id
 		LEFT JOIN requirement_type t ON t.id = r.type_id
-		LEFT JOIN req_status st ON st.id = r.status_id
+		LEFT JOIN req_status st ON st.id = r.status_id`+requirement.QualityScores+`
 		WHERE `+strings.Join(where, ` AND `)+`
 		ORDER BY `+order, args...)
 	if err != nil {

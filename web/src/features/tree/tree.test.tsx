@@ -22,6 +22,7 @@ const node = (over: Partial<TreeNode>): TreeNode => ({
   status: null,
   revision: 1,
   children: 0,
+  quality: null,
   ...over,
 });
 const scope = node({ id: "s", key: "CHK-R1", kind: "section", title: "Scope", children: 2 });

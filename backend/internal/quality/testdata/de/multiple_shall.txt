@@ -1,0 +1,7 @@
+- Das System muss den Benutzer anmelden und ⟦muss⟧ die Übersicht zeigen.
+- Das Ventil soll öffnen, und die Pumpe ⟦soll⟧ starten.
+- Die Pumpe muss starten und ⟦darf⟧ nicht überhitzen.
++ Das System muss den Benutzer anmelden. Das System muss die Übersicht zeigen.
++ Das System darf nicht überhitzen.
++ Das System muss den Benutzer anmelden und die Übersicht zeigen.
++ Die Mussbestimmung muss gelten.

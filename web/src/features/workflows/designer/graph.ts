@@ -274,7 +274,8 @@ export function describeRule(rule: DraftRule, catalogue: RuleType[], linkTypes: 
       const value = rule.config[option.name];
       const label = optionLabel(option.name, option.label);
       if (Array.isArray(value)) return value.length ? `${label}: ${value.map((each) => roleWord(String(each))).join(", ")}` : "";
-      if (!value) return "";
+      // A number option's 0 is a value, not a blank.
+      if (value === undefined || value === null || value === "" || value === false) return "";
       const named = option.kind === "linkType" ? linkTypes.find((each) => each.id === value)?.name : undefined;
       const word = named ?? (t.workflows.optionChoices as Record<string, string | undefined>)[String(value)] ?? String(value);
       return `${label}: ${word}`;

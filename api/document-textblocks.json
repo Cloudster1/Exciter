@@ -1,0 +1,491 @@
+[
+  {
+    "name": "plain text",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The pump shall stop."
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "The pump shall stop.",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ]
+  },
+  {
+    "name": "characters outside the basic plane",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Go 𝐀 now, äöü."
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "Go 𝐀 now, äöü.",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          3,
+          3,
+          3,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          13,
+          13,
+          14,
+          15
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a mention",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Ask "
+            },
+            {
+              "type": "mention",
+              "attrs": {
+                "id": "0195f000-0000-7000-8000-00000000000a",
+                "label": "Ada L"
+              }
+            },
+            {
+              "type": "text",
+              "text": " now"
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "Ask @Ada L now",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a line break",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "one"
+            },
+            {
+              "type": "hardBreak"
+            },
+            {
+              "type": "text",
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "one\ntwo",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "name": "an attached file",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "see "
+            },
+            {
+              "type": "attachment",
+              "attrs": {
+                "attachmentId": "0195f000-0000-7000-8000-00000000000a",
+                "fileName": "a.pdf"
+              }
+            },
+            {
+              "type": "text",
+              "text": " here"
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "see  here",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a nested list",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "bulletList",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "outer"
+                    }
+                  ]
+                },
+                {
+                  "type": "orderedList",
+                  "content": [
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "inner"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "after"
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "outer",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "text": "inner",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "text": "after",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "name": "a table",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "table",
+          "content": [
+            {
+              "type": "tableRow",
+              "content": [
+                {
+                  "type": "tableHeader",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "head"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "cell"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "head",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "text": "cell",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "text": "",
+        "offsets": [
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "name": "headings, quotes, code and empty paragraphs",
+    "doc": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Scope"
+            }
+          ]
+        },
+        {
+          "type": "paragraph"
+        },
+        {
+          "type": "horizontalRule"
+        },
+        {
+          "type": "blockquote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "quoted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "attrs": {
+            "attachmentId": "0195f000-0000-7000-8000-00000000000a"
+          }
+        },
+        {
+          "type": "codeBlock",
+          "content": [
+            {
+              "type": "text",
+              "text": "x := 1"
+            }
+          ]
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "text": "Scope",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "text": "",
+        "offsets": [
+          0
+        ]
+      },
+      {
+        "text": "quoted",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      {
+        "text": "x := 1",
+        "offsets": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    ]
+  }
+]

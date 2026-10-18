@@ -13,7 +13,7 @@ import { caretLine } from "./help";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const row: RequirementRow = { ...aRequirement(), outline: "1", trashed: false, attributes: {}, labels: [], suspectLinks: 0 };
+const row: RequirementRow = { ...aRequirement(), outline: "1", trashed: false, attributes: {}, labels: [], suspectLinks: 0, quality: null };
 
 /** The suggestions for a query typed so far: the fields while a field is typed, the statuses after status =. */
 function suggestions(q: string): Suggestions {
