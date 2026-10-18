@@ -109,7 +109,7 @@ func (s *Service) prepare(ctx context.Context, id uuid.UUID) (*job, *analysis, e
 		if err != nil {
 			return err
 		}
-		a = analyze(j.file, w, j.Choices)
+		a = j.analyze(w, j.Choices)
 		return nil
 	})
 	return j, a, err
@@ -184,19 +184,20 @@ func (r *run) write(p *objectPlan) progress {
 	if p.Specification != "" {
 		kind, identifier = "specification", p.Specification
 	}
-	note.ties = []tieRow{{kind: kind, identifier: identifier, target: self.ID}}
+	note.ties = []tieRow{{kind: kind, identifier: identifier, target: self.ID, word: r.a.word != nil}}
 	return note
 }
 
-// parentOf is where a plan goes: below the requirement its parent became, else at the top, with why.
+// parentOf is where a plan goes: below the requirement its parent became, else at the top, which for a Word
+// document is the section it is imported below, with why.
 func (r *run) parentOf(p *objectPlan) (uuid.UUID, string) {
 	if p.Parent == "" {
-		return uuid.Nil, ""
+		return r.a.top, ""
 	}
 	if m, ok := r.made[p.Parent]; ok {
 		return m.ID, ""
 	}
-	return uuid.Nil, "It stays at the top: what it sits below in the file was not imported."
+	return r.a.top, "It stays at the top: what it sits below in the file was not imported."
 }
 
 func ptr(id uuid.UUID) *uuid.UUID {

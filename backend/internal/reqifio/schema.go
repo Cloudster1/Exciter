@@ -24,6 +24,9 @@ type tieRow struct {
 	kind, identifier string
 	target           uuid.UUID
 	scope            *uuid.UUID
+	// word replaces the identity an earlier import of a Word document gave the same requirement, since a part's
+	// identity changes as the document is edited and a requirement keeps one.
+	word bool
 }
 
 // tie records ties as the import's maker, the latest for an identifier winning.
@@ -39,6 +42,12 @@ func (s *Service) tie(ctx context.Context, j *job, ties []tieRow) error {
 
 func writeTies(ctx context.Context, tx db.DBTX, j *job, ties []tieRow) error {
 	for _, t := range ties {
+		if t.word {
+			if err := writeWordTie(ctx, tx, j, t); err != nil {
+				return err
+			}
+			continue
+		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO reqif_identity (project_id, kind, identifier, target_id, scope_id) VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT (project_id, kind, identifier) DO UPDATE SET target_id = EXCLUDED.target_id, scope_id = EXCLUDED.scope_id,
@@ -46,6 +55,23 @@ func writeTies(ctx context.Context, tx db.DBTX, j *job, ties []tieRow) error {
 			j.projectID, t.kind, t.identifier, t.target, t.scope); err != nil {
 			return fmt.Errorf("remember what %s became: %w", t.identifier, err)
 		}
+	}
+	return nil
+}
+
+// writeWordTie ties a part of a Word document to its requirement, unless an exchange of another kind tied the
+// requirement first, which keeps its own.
+func writeWordTie(ctx context.Context, tx db.DBTX, j *job, t tieRow) error {
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM reqif_identity WHERE project_id = $1 AND kind = $2
+		AND ((target_id = $3 AND identifier LIKE 'word:%' AND identifier <> $4) OR (identifier = $4 AND target_id <> $3))`,
+		j.projectID, t.kind, t.target, t.identifier); err != nil {
+		return fmt.Errorf("forget what %s was: %w", t.identifier, err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO reqif_identity (project_id, kind, identifier, target_id) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+		j.projectID, t.kind, t.identifier, t.target); err != nil {
+		return fmt.Errorf("remember what %s became: %w", t.identifier, err)
 	}
 	return nil
 }

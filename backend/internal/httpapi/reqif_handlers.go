@@ -27,10 +27,15 @@ func (s *Server) reqifOn(next http.Handler) http.Handler {
 
 // reqifError maps the ReqIF imports' refusals; nil when err is none of theirs.
 func reqifError(err error) *APIError {
-	var file *reqifio.FileError
+	var (
+		file  *reqifio.FileError
+		field *reqifio.FieldError
+	)
 	switch {
 	case errors.As(err, &file):
 		return ErrValidation(map[string]string{"file": file.Message})
+	case errors.As(err, &field):
+		return ErrValidation(map[string]string{field.Field: field.Message})
 	case errors.Is(err, reqifio.ErrNotFound):
 		return ErrNotFound("That import was not found. It may have been discarded; upload the file again.")
 	case errors.Is(err, reqifio.ErrForbidden):

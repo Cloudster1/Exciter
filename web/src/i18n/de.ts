@@ -27,6 +27,7 @@ import { sessionsDe } from "./sessions.de";
 import { statorDe } from "./stator.de";
 import { importsDe } from "./imports.de";
 import { reqifDe } from "./reqif.de";
+import { wordDe } from "./word.de";
 import { documentsDe } from "./documents.de";
 import { linksDe, linkTypesDe } from "./links.de";
 import { gridDe, searchDe } from "./search.de";
@@ -402,6 +403,7 @@ export const de: Messages = {
   chains: chainsDe,
   imports: importsDe,
   reqif: reqifDe,
+  word: wordDe,
   documents: documentsDe,
   search: searchDe,
   grid: gridDe,

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/docx"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/project"
@@ -55,11 +56,15 @@ type job struct {
 	projectID uuid.UUID
 	createdBy uuid.UUID
 	file      *File
+	// source is a Word document as read, built into a file with the choices each time (#209); parentID is the
+	// section it goes below.
+	source   *docx.Source
+	parentID *uuid.UUID
 }
 
 const selectJob = `
 SELECT j.id, p.key, j.file_name, j.format, j.state, j.choices, j.preview, j.done, j.total, j.imported, j.updated, j.unchanged,
-       j.refused, j.error, COALESCE(u.name, ''), j.created_at, j.finished_at, j.project_id, j.created_by, j.content
+       j.refused, j.error, COALESCE(u.name, ''), j.created_at, j.finished_at, j.project_id, j.created_by, j.content, j.parent_id
 FROM reqif_import j
 JOIN project p ON p.id = j.project_id
 LEFT JOIN app_user u ON u.id = j.created_by`
@@ -70,7 +75,7 @@ func scanJob(row pgx.Row) (*job, error) {
 		choices, preview, refused, content []byte
 	)
 	err := row.Scan(&j.ID, &j.ProjectKey, &j.FileName, &j.Format, &j.State, &choices, &preview, &j.Done, &j.Total, &j.Imported, &j.Updated,
-		&j.Unchanged, &refused, &j.Error, &j.ByName, &j.Created, &j.Finished, &j.projectID, &j.createdBy, &content)
+		&j.Unchanged, &refused, &j.Error, &j.ByName, &j.Created, &j.Finished, &j.projectID, &j.createdBy, &content, &j.parentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -80,7 +85,7 @@ func scanJob(row pgx.Row) (*job, error) {
 	for _, part := range []struct {
 		raw  []byte
 		into any
-	}{{choices, &j.Choices}, {preview, &j.Preview}, {refused, &j.Refused}, {content, &j.file}} {
+	}{{choices, &j.Choices}, {preview, &j.Preview}, {refused, &j.Refused}, {content, j.content()}} {
 		if err := json.Unmarshal(part.raw, part.into); err != nil {
 			return nil, fmt.Errorf("read the import: %w", err)
 		}
@@ -91,8 +96,27 @@ func scanJob(row pgx.Row) (*job, error) {
 	if j.Refused == nil {
 		j.Refused = []Refusal{}
 	}
+	// A preview kept before #209 has no tree.
+	if j.Preview.Tree == nil {
+		j.Preview.Tree = []PreviewNode{}
+	}
+	if j.Preview.Styles == nil {
+		j.Preview.Styles = []StyleUse{}
+	}
 	return &j, nil
 }
+
+// content is what the import's file is kept as: a Word document as read, else the ReqIF file.
+func (j *job) content() any {
+	if j.Format == FormatDocx {
+		j.source = &docx.Source{}
+		return j.source
+	}
+	return &j.file
+}
+
+// objects counts what a file makes, as the import's total counts it.
+func (a *analysis) objects() int { return min(len(a.file.Objects), MaxObjects) }
 
 func findJob(ctx context.Context, tx db.DBTX, id uuid.UUID) (*job, error) {
 	return scanJob(tx.QueryRow(ctx, selectJob+` WHERE j.id = $1`, id))
@@ -203,8 +227,14 @@ func (s *Service) SetChoices(ctx context.Context, actor, id uuid.UUID, in Choice
 		if err != nil {
 			return err
 		}
-		preview := analyze(j.file, w, in.Choices).preview
-		if _, err := tx.Exec(ctx, `UPDATE reqif_import SET choices = $2, preview = $3 WHERE id = $1`, id, in.Choices, preview); err != nil {
+		if j.Format == FormatDocx {
+			// A Word choice that cannot be read is refused at once, where the person made it.
+			if _, problems := readWordChoices(in.Choices, w.project.Settings.LanguageOf(), j.source.Tables); len(problems) > 0 {
+				return &FieldError{Field: problems[0].Where, Message: problems[0].Message}
+			}
+		}
+		a := j.analyze(w, in.Choices)
+		if _, err := tx.Exec(ctx, `UPDATE reqif_import SET choices = $2, preview = $3, total = $4 WHERE id = $1`, id, in.Choices, a.preview, a.objects()); err != nil {
 			return fmt.Errorf("map the import: %w", err)
 		}
 		if j, err = findJob(ctx, tx, id); err == nil {
@@ -227,13 +257,14 @@ func (s *Service) Start(ctx context.Context, actor, id uuid.UUID) (*Import, db.L
 		if err != nil {
 			return err
 		}
-		preview := analyze(j.file, w, j.Choices).preview
+		a := j.analyze(w, j.Choices)
+		preview := a.preview
 		if problems = len(preview.Problems) > 0; problems {
 			// The problems found now are kept, so the next read shows why the start was refused.
-			_, err := tx.Exec(ctx, `UPDATE reqif_import SET preview = $2 WHERE id = $1`, id, preview)
+			_, err := tx.Exec(ctx, `UPDATE reqif_import SET preview = $2, total = $3 WHERE id = $1`, id, preview, a.objects())
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE reqif_import SET state = 'queued', preview = $2 WHERE id = $1`, id, preview); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE reqif_import SET state = 'queued', preview = $2, total = $3 WHERE id = $1`, id, preview, a.objects()); err != nil {
 			return fmt.Errorf("start the import: %w", err)
 		}
 		if err := events.Emit(ctx, tx, TopicRequested, map[string]any{"actorId": actor, "importId": id, "projectId": j.projectID}); err != nil {

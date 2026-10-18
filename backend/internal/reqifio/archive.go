@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/cloudster1/exciter/backend/internal/ziplimit"
 )
 
 // readArchive reads a .reqifz: one .reqif document, and the files beside it that its rich text shows.
@@ -19,7 +20,7 @@ func readArchive(data []byte) (*File, []Embedded, error) {
 	}
 	b := openBundle(zr)
 	var docs []string
-	for _, name := range b.names {
+	for _, name := range b.Names {
 		if strings.EqualFold(path.Ext(name), ".reqif") {
 			docs = append(docs, name)
 		}
@@ -46,7 +47,7 @@ func readArchive(data []byte) (*File, []Embedded, error) {
 			continue
 		}
 		seen[ref] = true
-		entry := b.files[path.Clean(path.Join(base, ref))]
+		entry := b.Files[path.Clean(path.Join(base, ref))]
 		if entry == nil || int64(entry.UncompressedSize64) > MaxImageBytes {
 			continue
 		}
@@ -138,11 +139,7 @@ func looksLikeImage(o *XNode) bool {
 
 // bundle is an archive's files by path, the one folder they may all sit in left out, read against
 // MaxUnpackedBytes whatever the archive's directory claims.
-type bundle struct {
-	files    map[string]*zip.File
-	names    []string
-	unpacked int64
-}
+type bundle struct{ *ziplimit.Bundle }
 
 // tooLargeError is a file of the archive past its limit; whole says the archive as a whole went past its own.
 type tooLargeError struct {
@@ -150,74 +147,23 @@ type tooLargeError struct {
 	whole bool
 }
 
-func openBundle(zr *zip.Reader) *bundle {
-	b := &bundle{files: map[string]*zip.File{}}
-	names := make([]string, 0, len(zr.File))
-	for _, f := range zr.File {
-		name := strings.ReplaceAll(f.Name, "\\", "/")
-		if strings.HasSuffix(name, "/") || name == "" {
-			continue
-		}
-		names = append(names, name)
-	}
-	prefix := commonFolder(names)
-	for _, f := range zr.File {
-		name := strings.ReplaceAll(f.Name, "\\", "/")
-		if strings.HasSuffix(name, "/") || name == "" {
-			continue
-		}
-		name = path.Clean(strings.TrimPrefix(name, prefix))
-		if strings.HasPrefix(name, "../") || name == "." || name == ".." {
-			continue
-		}
-		if _, dup := b.files[name]; dup {
-			continue
-		}
-		b.files[name] = f
-		b.names = append(b.names, name)
-	}
-	return b
-}
-
-// commonFolder is the one folder every file sits in, as an archive of a folder holds it, or nothing.
-func commonFolder(names []string) string {
-	if len(names) == 0 {
-		return ""
-	}
-	first, _, found := strings.Cut(names[0], "/")
-	if !found {
-		return ""
-	}
-	prefix := first + "/"
-	for _, n := range names[1:] {
-		if !strings.HasPrefix(n, prefix) {
-			return ""
-		}
-	}
-	return prefix
-}
+func openBundle(zr *zip.Reader) *bundle { return &bundle{ziplimit.Open(zr, MaxUnpackedBytes)} }
 
 func (b *bundle) read(name string, limit int64) ([]byte, error) {
-	return b.readFile(b.files[name], name, limit)
+	return b.readFile(b.Files[name], name, limit)
 }
 
 // readFile unpacks one file, refusing more than limit bytes of it.
 func (b *bundle) readFile(f *zip.File, name string, limit int64) ([]byte, error) {
-	rc, err := f.Open()
-	if err != nil {
-		return nil, invalid("The archive's %s could not be read. Export the .reqifz again and upload the new one.", name)
-	}
-	defer rc.Close()
-	data, err := io.ReadAll(io.LimitReader(rc, limit+1))
-	if err != nil {
-		return nil, invalid("The archive's %s could not be read. Export the .reqifz again and upload the new one.", name)
-	}
-	if int64(len(data)) > limit {
-		return nil, &tooLargeError{FileError: FileError{fmt.Sprintf("The archive's %s unpacks into more than %d MB, more than one import takes. Export the specifications in several files, and import them one after the other.", name, limit/megabyte)}}
-	}
-	b.unpacked += int64(len(data))
-	if b.unpacked > MaxUnpackedBytes {
+	data, err := b.ReadFile(f, name, limit)
+	var large *ziplimit.TooLargeError
+	switch {
+	case errors.As(err, &large) && large.Whole:
 		return nil, &tooLargeError{FileError: FileError{fmt.Sprintf("The archive unpacks into more than %d MB, more than one import takes. Export the specifications in several files, and import them one after the other.", MaxUnpackedMB)}, whole: true}
+	case errors.As(err, &large):
+		return nil, &tooLargeError{FileError: FileError{fmt.Sprintf("The archive's %s unpacks into more than %d MB, more than one import takes. Export the specifications in several files, and import them one after the other.", name, limit/megabyte)}}
+	case err != nil:
+		return nil, invalid("The archive's %s could not be read. Export the .reqifz again and upload the new one.", name)
 	}
 	return data, nil
 }

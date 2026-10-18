@@ -122,18 +122,7 @@ function SchemaStep({ found, projectKey, onAnother }: { found: ReqIFImport; proj
       </div>
       <SchemaCard projectKey={projectKey} items={preview.schema} choices={choices} onChange={choose} />
       <LossList losses={preview.losses} lostCount={preview.lostCount} />
-      <Card className="space-y-2 p-4" data-reqif-problems={preview.problems.length}>
-        <h3 className="text-sm font-medium text-ink">{t.reqif.problemsTitle}</h3>
-        {preview.problems.length === 0 ? (
-          <p className="text-sm text-ink-muted">{t.reqif.noProblems}</p>
-        ) : (
-          <ul className="list-disc space-y-1 pl-5 text-sm text-danger">
-            {preview.problems.map((problem, i) => (
-              <li key={i}>{problem.where ? `${problem.where}: ${problem.message}` : problem.message}</li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <ProblemList problems={preview.problems} />
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
       <div className="flex flex-wrap gap-2">
         <Button
@@ -153,7 +142,26 @@ function SchemaStep({ found, projectKey, onAnother }: { found: ReqIFImport; proj
   );
 }
 
-function Progress({ found, onAnother }: { found: ReqIFImport; onAnother: () => void }) {
+/** What keeps an import from starting, which the start button waits on. */
+export function ProblemList({ problems }: { problems: ReqIFImport["preview"]["problems"] }) {
+  return (
+    <Card className="space-y-2 p-4" data-reqif-problems={problems.length}>
+      <h3 className="text-sm font-medium text-ink">{t.reqif.problemsTitle}</h3>
+      {problems.length === 0 ? (
+        <p className="text-sm text-ink-muted">{t.reqif.noProblems}</p>
+      ) : (
+        <ul className="list-disc space-y-1 pl-5 text-sm text-danger">
+          {problems.map((problem, i) => (
+            <li key={i}>{problem.where ? `${problem.where}: ${problem.message}` : problem.message}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** An import the worker has or had: how far it is, then what it made, changed and refused. */
+export function Progress({ found, onAnother }: { found: ReqIFImport; onAnother: () => void }) {
   const actions = useReqIFActions(found.id);
   const percent = found.total > 0 ? Math.round((found.done / found.total) * 100) : 100;
   return (

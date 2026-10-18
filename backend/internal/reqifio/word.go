@@ -14,6 +14,9 @@ type WordForm struct {
 	ParentKey string `json:"parentKey,omitempty"`
 }
 
+// Formats a Word import is, beside the ReqIF ones.
+var WordFormats = []Format{FormatDocx}
+
 // The choices a Word import takes beside the schema's, as keys of ChoicesInput.Choices.
 const (
 	// ChoiceWordUnit is paragraph or heading: one requirement per paragraph, or one per heading with what is below it.
@@ -70,6 +73,13 @@ const (
 
 // NodeKinds lists every NodeKind, for the API document.
 var NodeKinds = []NodeKind{NodeSection, NodeRequirement, NodeInformative, NodeSkipped}
+
+// StyleUse is a paragraph style of a Word document and how many paragraphs use it.
+type StyleUse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
 
 // PreviewNode is one part of the document as the import would make it, in the order of the document.
 type PreviewNode struct {

@@ -40,6 +40,9 @@ function anImport(overrides: Partial<ReqIFImport> = {}): ReqIFImport {
       ],
       losses: [{ kind: "formatting", where: "Warn the driver", message: "Subscript and superscript are not kept; the words are." }],
       lostCount: 1,
+      tree: [],
+      styles: [],
+      tables: 0,
       problems: [
         {
           where: "Weight",

@@ -216,7 +216,7 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(search.Op(""))] = enumStrings(search.Ops)
 	b.Enums[reflect.TypeOf(csvio.State(""))] = enumStrings(csvio.States)
 	b.Enums[reflect.TypeOf(reqifio.State(""))] = enumStrings(reqifio.States)
-	b.Enums[reflect.TypeOf(reqifio.Format(""))] = enumStrings(reqifio.Formats)
+	b.Enums[reflect.TypeOf(reqifio.Format(""))] = enumStrings(append(append([]reqifio.Format{}, reqifio.Formats...), reqifio.WordFormats...))
 	b.Enums[reflect.TypeOf(reqifio.SchemaKind(""))] = enumStrings(reqifio.SchemaKinds)
 	b.Enums[reflect.TypeOf(reqifio.MatchBy(""))] = enumStrings(reqifio.MatchBys)
 	b.Enums[reflect.TypeOf(reqifio.LossKind(""))] = enumStrings(reqifio.LossKinds)

@@ -193,7 +193,7 @@ func (w *writer) body(raw json.RawMessage, f frame) {
 func (w *writer) properties(props []specdoc.Property, f frame) {
 	names := f.width * propertyShare / 100
 	widths := []int{names, f.width - names}
-	w.tableStart(f, widths, true)
+	w.titledTable(f, widths, true, w.words.properties)
 	for _, p := range props {
 		w.b.WriteString("<w:tr>")
 		w.cell(widths[0], 1, "", neutralFill, func(inner frame) {

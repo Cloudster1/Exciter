@@ -628,6 +628,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth, s.reqifOn)
 			r.Post("/projects/{projectKey}/reqif-imports", s.handleUploadReqIF)
+			r.Post("/projects/{projectKey}/word-imports", s.handleUploadWord)
 			r.Get("/reqif-imports/{importID}", s.handleGetReqIF)
 			r.Put("/reqif-imports/{importID}/choices", s.handleChooseReqIF)
 			r.Post("/reqif-imports/{importID}/start", s.handleStartReqIF)

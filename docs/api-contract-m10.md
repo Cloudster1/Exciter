@@ -686,6 +686,44 @@ is used, the pattern, the keywords and each table's; the schema step for
 tables by row; the preview tree; the progress and the losses, as ReqIF
 shows them.
 
+### As built (#209)
+
+- **Migration**: `01060_word_import.sql` lets `reqif_import.format` be
+  `docx`, adds `parent_id`, the section an import goes below, held to a
+  section of the same project, and lets `total` follow the choices until the
+  import starts.
+- **Packages**: the reader is `docx.Read`, beside the writer; the bounded
+  reading of an archive moved from `reqifio` into `internal/ziplimit`,
+  which both use. `reqifio` keeps the document as read and builds what it
+  becomes from the choices at every analysis, so the preview, the schema
+  step, the run, the ties and the progress are the ReqIF import's.
+- **Choices**: an empty `word.styles` or `word.pattern` sets none, and an
+  empty `word.keywords` clears the keywords; with all three empty every
+  paragraph is a requirement, and with none given the keywords of the
+  project's language apply. A choice that cannot hold, such as a pattern
+  that is no regular expression, is 422 on its key from the choices.
+- **What becomes what**:
+  - A first paragraph in Word's "Title" style names the document rather
+    than heading it.
+  - Numbering of letters, such as `REQ-%1`, stays with its paragraph and
+    gives the title and the number identity; numbering of numbers alone is
+    a list.
+  - A table imported whole is a requirement, or joins a paragraph before it
+    that ends with a colon. Informative text is the statement of the section
+    above it.
+  - Re-reading Exciter's own export leaves out its cover, contents,
+    glossary, notes, properties tables and link lists, and its "Rationale"
+    label fills the rationale.
+- **Identities**: a requirement keeps one identity of a Word import, which
+  holds every way to find the part again
+  (`word:<document>@<target>:key:..|number:..|paragraph:..|path:..`); a
+  second import tries each in turn, and never takes over a part a ReqIF
+  import made. A long path is hashed to fit. A second import moves the parts
+  back into the document's order.
+- **Known gaps**: a part with a picture counts as changed on every second
+  import, since its picture is attached again; a mention read back from an
+  export is plain text.
+
 ## What is left for later
 
 - A query language over the terms themselves.

@@ -15072,16 +15072,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -27715,6 +27705,51 @@
           "problems"
         ]
       },
+      "ImportPreviewNode": {
+        "type": "object",
+        "properties": {
+          "depth": {
+            "type": "integer"
+          },
+          "existingKey": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "section",
+              "requirement",
+              "informative",
+              "skipped"
+            ]
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "matchedBy": {
+            "type": "string",
+            "enum": [
+              "key",
+              "number",
+              "paragraph",
+              "path"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "depth",
+          "kind",
+          "title",
+          "source",
+          "losses"
+        ]
+      },
       "ImportProblem": {
         "type": "object",
         "properties": {
@@ -27747,6 +27782,25 @@
         "required": [
           "row",
           "reason"
+        ]
+      },
+      "ImportStyleUse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "count"
         ]
       },
       "ImportWord": {
@@ -30910,7 +30964,8 @@
             "type": "string",
             "enum": [
               "reqif",
-              "reqifz"
+              "reqifz",
+              "docx"
             ]
           },
           "id": {
@@ -31055,8 +31110,23 @@
               "type": "string"
             }
           },
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportStyleUse"
+            }
+          },
+          "tables": {
+            "type": "integer"
+          },
           "title": {
             "type": "string"
+          },
+          "tree": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportPreviewNode"
+            }
           },
           "updates": {
             "type": "integer"
@@ -31075,7 +31145,10 @@
           "schema",
           "losses",
           "lostCount",
-          "problems"
+          "problems",
+          "tree",
+          "styles",
+          "tables"
         ]
       },
       "ReqIFProblem": {

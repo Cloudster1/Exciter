@@ -39,6 +39,19 @@ export function Checkbox({ label, className, ...rest }: InputHTMLAttributes<HTML
   );
 }
 
+/** One of a few options sharing a name, with its words and an optional sentence under them, one click target. */
+export function Radio({ label, hint, className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; hint?: ReactNode }) {
+  return (
+    <label className={cx("flex items-start gap-2 text-sm text-ink", rest.disabled && "text-ink-disabled", className)}>
+      <input {...rest} type="radio" className="mt-0.5 size-4 shrink-0 accent-accent" />
+      <span>
+        {label}
+        {hint && <span className="block text-xs text-ink-subtle">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 /** An on or off that takes effect at once, which is what tells it from a checkbox. */
 export function Switch({
   checked,

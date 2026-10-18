@@ -66,18 +66,20 @@ type world struct {
 	// links are the live links of the project, by type, source and target.
 	links map[linkKey]bool
 	ties  map[string]map[string]tie
+	// keys find the project's requirements by key, the keys they and the project had before included.
+	keys map[string]uuid.UUID
 }
 
 // loadWorld reads the project as actor sees it, in the transaction tx.
 func loadWorld(ctx context.Context, tx db.DBTX, p *project.Project) (*world, error) {
 	w := &world{project: p, types: map[uuid.UUID]named{}, linkTypes: map[uuid.UUID]linkType{}, statuses: map[uuid.UUID]named{},
 		workflow: map[uuid.UUID]map[uuid.UUID]bool{}, members: map[string]uuid.UUID{}, existing: map[uuid.UUID]*existing{},
-		children: map[uuid.UUID][]uuid.UUID{}, links: map[linkKey]bool{}, ties: map[string]map[string]tie{}}
+		children: map[uuid.UUID][]uuid.UUID{}, links: map[linkKey]bool{}, ties: map[string]map[string]tie{}, keys: map[string]uuid.UUID{}}
 	var err error
 	if w.defs, err = attribute.Defs(ctx, tx, p.ID); err != nil {
 		return nil, err
 	}
-	for _, read := range []func(context.Context, db.DBTX) error{w.readNamed, w.readLinkTypes, w.readWorkflows, w.readRequirements, w.readLinks, w.readTies} {
+	for _, read := range []func(context.Context, db.DBTX) error{w.readNamed, w.readLinkTypes, w.readWorkflows, w.readRequirements, w.readOldKeys, w.readLinks, w.readTies} {
 		if err := read(ctx, tx); err != nil {
 			return nil, err
 		}
@@ -178,6 +180,9 @@ func (w *world) readRequirements(ctx context.Context, tx db.DBTX) error {
 			return err
 		}
 		e.Key = requirement.Key(w.project.Key, number)
+		for _, former := range w.project.FormerKeys {
+			w.keys[requirement.Key(former, number)] = e.ID
+		}
 		e.Files = map[uuid.UUID]bool{}
 		for _, f := range files {
 			e.Files[f] = true
@@ -188,6 +193,34 @@ func (w *world) readRequirements(ctx context.Context, tx db.DBTX) error {
 			parent = *e.Parent
 		}
 		w.children[parent] = append(w.children[parent], e.ID)
+	}
+	return rows.Err()
+}
+
+// readOldKeys reads the keys requirements left on a move, which an export may still name; the current ones win.
+func (w *world) readOldKeys(ctx context.Context, tx db.DBTX) error {
+	for _, e := range w.existing {
+		w.keys[e.Key] = e.ID
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT k.key, k.requirement_id FROM requirement_old_key k
+		JOIN requirement r ON r.id = k.requirement_id
+		WHERE r.project_id = $1 AND r.trashed_at IS NULL`, w.project.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			key string
+			id  uuid.UUID
+		)
+		if err := rows.Scan(&key, &id); err != nil {
+			return err
+		}
+		if _, current := w.keys[key]; !current {
+			w.keys[key] = id
+		}
 	}
 	return rows.Err()
 }

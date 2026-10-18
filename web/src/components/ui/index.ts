@@ -9,7 +9,7 @@ export { Skeleton } from "./Skeleton";
 export { Avatar, type AvatarSize } from "./Avatar";
 export { Tooltip } from "./Tooltip";
 export { Menu, type MenuItem } from "./Menu";
-export { Input, Textarea, Checkbox, Switch, Select, SelectInput, Labelled, control, controlClass, fieldId, type InputProps } from "./controls";
+export { Input, Textarea, Checkbox, Radio, Switch, Select, SelectInput, Labelled, control, controlClass, fieldId, type InputProps } from "./controls";
 export { Field } from "./Field";
 export { ColorField } from "./ColorField";
 export { Card } from "./Card";

@@ -14,15 +14,17 @@ type words struct {
 	contents, rationale, links, unlocked, somebody, yes, no string
 	// glossary heads the chapter of terms (#210), synonyms and avoid name its lists of words.
 	glossary, synonyms, avoid string
-	fields                    map[string]string
-	priorities                map[string]string
-	months                    [12]string
-	german                    bool
+	// properties titles a requirement's table of fields and attributes, which a reader of the export leaves out.
+	properties string
+	fields     map[string]string
+	priorities map[string]string
+	months     [12]string
+	german     bool
 }
 
 var english = words{
 	contents: "Contents", rationale: "Rationale", links: "Links", unlocked: "The baseline is not locked; it may still be renamed or deleted.",
-	somebody: "somebody", yes: "Yes", no: "No", glossary: "Glossary", synonyms: "Synonyms", avoid: "Not to use",
+	somebody: "somebody", yes: "Yes", no: "No", glossary: "Glossary", synonyms: "Synonyms", avoid: "Not to use", properties: "Properties",
 	fields:     map[string]string{specdoc.FieldType: "Type", specdoc.FieldStatus: "Status", specdoc.FieldOwner: "Owner", specdoc.FieldPriority: "Priority", specdoc.FieldLabels: "Labels"},
 	priorities: map[string]string{"must": "Must", "should": "Should", "could": "Could", "wont": "Won't"},
 	months:     [12]string{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"},
@@ -30,7 +32,7 @@ var english = words{
 
 var german = words{
 	contents: "Inhalt", rationale: "Begründung", links: "Verknüpfungen", unlocked: "Die Baseline ist nicht gesperrt; sie kann noch umbenannt oder gelöscht werden.",
-	somebody: "jemand", yes: "Ja", no: "Nein", glossary: "Glossar", synonyms: "Synonyme", avoid: "Nicht verwenden",
+	somebody: "jemand", yes: "Ja", no: "Nein", glossary: "Glossar", synonyms: "Synonyme", avoid: "Nicht verwenden", properties: "Eigenschaften",
 	fields:     map[string]string{specdoc.FieldType: "Typ", specdoc.FieldStatus: "Status", specdoc.FieldOwner: "Verantwortlich", specdoc.FieldPriority: "Priorität", specdoc.FieldLabels: "Labels"},
 	priorities: map[string]string{"must": "Muss", "should": "Soll", "could": "Kann", "wont": "Nicht"},
 	months:     [12]string{"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"},
