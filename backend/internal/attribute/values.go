@@ -68,6 +68,9 @@ func Merge(defs []Def, typeID *uuid.UUID, typeChanged bool, current, changes map
 		if !ok {
 			return nil, &FieldError{"attributes." + key, "This project has no such attribute. Pick one from its attributes."}
 		}
+		if d.Computed() {
+			return nil, valueError(d, "%s is worked out from its formula, so it takes no value. Leave it out.", d.Name)
+		}
 		value, err := normalize(d, changes[key], current[key], viewer)
 		if err != nil {
 			return nil, err

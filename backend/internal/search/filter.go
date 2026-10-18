@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/label"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/rql"
 )
 
 // FieldError is a query refused on one parameter, with the sentence to show beside it.
@@ -168,13 +169,14 @@ func condition(c AttributeCondition, defs []attribute.Def, bind func(any) string
 		return "", &FieldError{"attr", fmt.Sprintf("Whether %s is set takes no value. Leave it empty.", d.Name)}
 	}
 	id := bind(d.ID.String())
+	src := rql.Store(d)
 	switch c.Op {
 	case OpSet:
-		return `r.attributes ? ` + id, nil
+		return src + ` ? ` + id, nil
 	case OpUnset:
-		return `NOT (r.attributes ? ` + id + `)`, nil
+		return `NOT (` + src + ` ? ` + id + `)`, nil
 	case OpContains:
-		return `to_tsvector('exciter_search'::regconfig, ` + textOf(d.Kind, id) + `) @@ plainto_tsquery('exciter_search'::regconfig, ` + bind(value) + `)`, nil
+		return `to_tsvector('exciter_search'::regconfig, ` + textOf(src, d.Kind, id) + `) @@ plainto_tsquery('exciter_search'::regconfig, ` + bind(value) + `)`, nil
 	}
 	compared, err := comparable(d, value)
 	if err != nil {
@@ -184,23 +186,23 @@ func condition(c AttributeCondition, defs []attribute.Def, bind func(any) string
 	var equal string
 	switch d.Kind {
 	case attribute.Text, attribute.URL, attribute.RichText:
-		equal = `lower(` + textOf(d.Kind, id) + `) = lower(` + v + `)`
+		equal = `lower(` + textOf(src, d.Kind, id) + `) = lower(` + v + `)`
 	case attribute.Number:
 		if c.Op == OpGte || c.Op == OpLte {
-			return `(r.attributes ->> ` + id + `)::numeric ` + map[Op]string{OpGte: ">=", OpLte: "<="}[c.Op] + ` ` + v + `::numeric`, nil
+			return `(` + src + ` ->> ` + id + `)::numeric ` + map[Op]string{OpGte: ">=", OpLte: "<="}[c.Op] + ` ` + v + `::numeric`, nil
 		}
-		equal = `(r.attributes ->> ` + id + `)::numeric = ` + v + `::numeric`
+		equal = `(` + src + ` ->> ` + id + `)::numeric = ` + v + `::numeric`
 	case attribute.Date:
 		if c.Op == OpGte || c.Op == OpLte {
-			return `r.attributes ->> ` + id + ` ` + map[Op]string{OpGte: ">=", OpLte: "<="}[c.Op] + ` ` + v, nil
+			return src + ` ->> ` + id + ` ` + map[Op]string{OpGte: ">=", OpLte: "<="}[c.Op] + ` ` + v, nil
 		}
-		equal = `r.attributes ->> ` + id + ` = ` + v
+		equal = src + ` ->> ` + id + ` = ` + v
 	case attribute.MultiSelect:
-		equal = `(r.attributes -> ` + id + `) ? ` + v
+		equal = `(` + src + ` -> ` + id + `) ? ` + v
 	case attribute.Boolean:
-		equal = `r.attributes -> ` + id + ` = to_jsonb(` + v + `::boolean)`
+		equal = src + ` -> ` + id + ` = to_jsonb(` + v + `::boolean)`
 	default:
-		equal = `r.attributes ->> ` + id + ` = ` + v
+		equal = src + ` ->> ` + id + ` = ` + v
 	}
 	if c.Op == OpNot {
 		// Not equal takes in what has no value at all.
@@ -210,11 +212,11 @@ func condition(c AttributeCondition, defs []attribute.Def, bind func(any) string
 }
 
 // textOf is the words of a text value, the plain text of a rich text one.
-func textOf(kind attribute.Kind, id string) string {
+func textOf(src string, kind attribute.Kind, id string) string {
 	if kind == attribute.RichText {
-		return `COALESCE(requirement_plain_text(r.attributes -> ` + id + `), '')`
+		return `COALESCE(requirement_plain_text(` + src + ` -> ` + id + `), '')`
 	}
-	return `COALESCE(r.attributes ->> ` + id + `, '')`
+	return `COALESCE(` + src + ` ->> ` + id + `, '')`
 }
 
 // comparable checks a value has the shape its attribute's kind compares, and answers it as SQL compares it.
@@ -282,19 +284,20 @@ func sortKey(column string, defs []attribute.Def, bind func(any) string) string 
 		return ``
 	}
 	id := bind(d.ID.String())
+	src := rql.Store(d)
 	switch d.Kind {
 	case attribute.Number:
-		return `(r.attributes ->> ` + id + `)::numeric`
+		return `(` + src + ` ->> ` + id + `)::numeric`
 	case attribute.Select:
 		options := make([]string, len(d.Options))
 		for i, o := range d.Options {
 			options[i] = o.ID.String()
 		}
-		return `array_position(` + bind(options) + `::text[], r.attributes ->> ` + id + `)`
+		return `array_position(` + bind(options) + `::text[], ` + src + ` ->> ` + id + `)`
 	case attribute.User:
-		return `(SELECT lower(u.name) FROM app_user u WHERE u.id::text = r.attributes ->> ` + id + `)`
+		return `(SELECT lower(u.name) FROM app_user u WHERE u.id::text = ` + src + ` ->> ` + id + `)`
 	case attribute.Text, attribute.URL, attribute.RichText:
-		return `lower(NULLIF(` + textOf(d.Kind, id) + `, ''))`
+		return `lower(NULLIF(` + textOf(src, d.Kind, id) + `, ''))`
 	}
-	return `r.attributes -> ` + id
+	return src + ` -> ` + id
 }

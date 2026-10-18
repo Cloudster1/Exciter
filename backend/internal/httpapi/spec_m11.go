@@ -3,6 +3,7 @@ package httpapi
 import (
 	"reflect"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/attribute/formula"
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
@@ -17,6 +18,7 @@ func analysisSchemas(b *openapi.Builder) {
 		reflect.TypeFor[trace.GraphNode]():         "TraceGraphNode",
 		reflect.TypeFor[trace.GraphEdge]():         "TraceGraphEdge",
 		reflect.TypeFor[trace.Graph]():             "TraceGraph",
+		reflect.TypeFor[attribute.Recompute]():     "AttributeRecompute",
 		reflect.TypeFor[formula.Error]():           "FormulaError",
 		reflect.TypeFor[formula.CheckInput]():      "FormulaCheckInput",
 		reflect.TypeFor[formula.Check]():           "FormulaCheck",

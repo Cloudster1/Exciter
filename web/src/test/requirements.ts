@@ -13,6 +13,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     rationale: null,
     type: null,
     attributes: {},
+    computed: {},
     revision: 1,
     status: null,
     owner: null,

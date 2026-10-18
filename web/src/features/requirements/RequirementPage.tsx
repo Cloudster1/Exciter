@@ -194,7 +194,7 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
           )}
         </section>
       )}
-      {attributes && <AttributeValues attributes={attributes} values={requirement.attributes as Values} />}
+      {attributes && <AttributeValues attributes={attributes} values={{ ...(requirement.attributes as Values), ...(requirement.computed as Values) }} />}
     </Card>
   );
 }

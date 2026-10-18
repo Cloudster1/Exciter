@@ -129,7 +129,7 @@ const selectDef = `
 SELECT a.id, a.name, a.description, a.kind, a.required, a.options, a.position, a.retired, a.created_at, a.updated_at,
        COALESCE((SELECT array_agg(dt.type_id ORDER BY t.position) FROM attribute_def_type dt
                  JOIN requirement_type t ON t.id = dt.type_id WHERE dt.attribute_id = a.id), '{}'),
-       a.required_from, a.depends_on, a.choices, a.editable_by
+       a.required_from, a.depends_on, a.choices, a.editable_by, a.formula, a.on_sections
 FROM attribute_def a`
 
 func scanDef(row pgx.CollectableRow) (Def, error) {
@@ -138,10 +138,14 @@ func scanDef(row pgx.CollectableRow) (Def, error) {
 		options, choices, permits []byte
 		dependsOn                 *uuid.UUID
 	)
+	var stored *string
 	err := row.Scan(&d.ID, &d.Name, &d.Description, &d.Kind, &d.Required, &options, &d.Position, &d.Retired, &d.CreatedAt, &d.UpdatedAt, &d.TypeIDs,
-		&d.RequiredFrom, &dependsOn, &choices, &permits)
+		&d.RequiredFrom, &dependsOn, &choices, &permits, &stored, &d.OnSections)
 	if err != nil {
 		return d, err
+	}
+	if stored != nil {
+		d.stored, d.Formula = *stored, stored
 	}
 	if dependsOn != nil {
 		d.DependsOn = &Dependency{AttributeID: *dependsOn}
@@ -173,19 +177,37 @@ func Defs(ctx context.Context, tx db.DBTX, projectID uuid.UUID) ([]Def, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pgx.CollectRows(rows, scanDef)
-}
-
-func defByID(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (*Def, error) {
-	rows, err := tx.Query(ctx, selectDef+` WHERE a.project_id = $1 AND a.id = $2`, projectID, id)
+	defs, err := pgx.CollectRows(rows, scanDef)
 	if err != nil {
 		return nil, err
 	}
-	d, err := pgx.CollectExactlyOneRow(rows, scanDef)
-	if errors.Is(err, pgx.ErrNoRows) {
+	return defs, spell(ctx, tx, projectID, defs)
+}
+
+func defByID(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (*Def, error) {
+	defs, err := Defs(ctx, tx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	i := slices.IndexFunc(defs, func(d Def) bool { return d.ID == id })
+	if i < 0 {
 		return nil, ErrNotFound
 	}
-	return &d, err
+	return &defs[i], nil
+}
+
+// Progress answers how far a project's recompute has got after a formula changed, nil when none is running.
+func (s *Service) Progress(ctx context.Context, reader uuid.UUID, projectKey string) (*Recompute, error) {
+	var out *Recompute
+	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
+		p, err := project.Find(ctx, tx, reader, projectKey)
+		if err != nil {
+			return err
+		}
+		out, err = progressOf(ctx, tx, p.ID)
+		return err
+	})
+	return out, err
 }
 
 // Attributes answers a project's attributes in order, retired ones included.
@@ -283,6 +305,18 @@ func setTypes(ctx context.Context, tx db.DBTX, projectID, attributeID uuid.UUID,
 
 // CreateAttribute defines an attribute, last in the project's order unless a position says otherwise.
 func (s *Service) CreateAttribute(ctx context.Context, actor uuid.UUID, projectKey string, in DefInput) (*Def, db.LSN, error) {
+	computed := in.Formula != nil
+	if computed {
+		if err := checkComputed(in); err != nil {
+			return nil, 0, err
+		}
+		// The formula decides the kind, once it is checked.
+		if in.Kind == "" {
+			in.Kind = Number
+		}
+	} else if in.OnSections != nil && *in.OnSections {
+		return nil, 0, &FieldError{"onSections", "Only a computed attribute is worked out for sections."}
+	}
 	if !slices.Contains(Kinds, in.Kind) {
 		return nil, 0, &FieldError{"kind", "Pick what kind of value the attribute holds."}
 	}
@@ -329,11 +363,21 @@ func (s *Service) CreateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		if count >= MaxAttributes {
 			return &FieldError{"name", fmt.Sprintf("A project has at most %d attributes. Retire or delete one first.", MaxAttributes)}
 		}
-		var id uuid.UUID
+		id := uuid.Must(uuid.NewV7())
+		var stored *string
+		if computed {
+			prog, err := compileFor(ctx, tx, p.ID, Def{ID: id, Name: name, Kind: in.Kind}, *in.Formula)
+			if err != nil {
+				return err
+			}
+			text := prog.Stored()
+			stored, in.Kind = &text, kindOf(prog.Kind)
+		}
 		err = tx.QueryRow(ctx, `
-			INSERT INTO attribute_def (project_id, name, description, kind, required, options, position)
-			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-			p.ID, name, description, in.Kind, in.Required != nil && *in.Required, encoded, count).Scan(&id)
+			INSERT INTO attribute_def (id, project_id, name, description, kind, required, options, position, formula, on_sections)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+			id, p.ID, name, description, in.Kind, in.Required != nil && *in.Required, encoded, count, stored,
+			computed && in.OnSections != nil && *in.OnSections).Scan(&id)
 		if nameTaken(err) {
 			return &FieldError{"name", "Another attribute of this project is called that. Pick another name."}
 		}
@@ -356,6 +400,11 @@ func (s *Service) CreateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		if err := setRules(ctx, tx, actor, p.ID, p.Key, out, in); err != nil {
 			return err
 		}
+		if computed {
+			if err := recompute(ctx, tx, p.ID); err != nil {
+				return err
+			}
+		}
 		out, err = defByID(ctx, tx, p.ID, id)
 		return err
 	})
@@ -376,6 +425,40 @@ func (s *Service) UpdateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		}
 		if in.Kind != "" && in.Kind != d.Kind {
 			return &FieldError{"kind", "The kind is set when an attribute is made. Make a new attribute for another kind."}
+		}
+		changedFormula := false
+		switch {
+		case d.Computed():
+			if err := checkComputed(in); err != nil {
+				return err
+			}
+			if in.Formula != nil {
+				prog, err := compileFor(ctx, tx, p.ID, *d, *in.Formula)
+				if err != nil {
+					return err
+				}
+				if kindOf(prog.Kind) != d.Kind {
+					return &FieldError{"formula", fmt.Sprintf("This formula gives %s, and %s holds %s. Make a new attribute for the other kind.", prog.Kind, d.Name, d.Kind)}
+				}
+				changedFormula = prog.Stored() != d.stored
+				d.stored = prog.Stored()
+			}
+			if in.OnSections != nil && *in.OnSections != d.OnSections {
+				d.OnSections, changedFormula = *in.OnSections, true
+			}
+		case in.Formula != nil:
+			return &FieldError{"formula", "A typed attribute stays typed. Make a new computed attribute instead."}
+		case in.OnSections != nil && *in.OnSections:
+			return &FieldError{"onSections", "Only a computed attribute is worked out for sections."}
+		}
+		if in.Retired != nil && *in.Retired && !d.Retired {
+			name, err := readBy(ctx, tx, p.ID, id)
+			if err != nil {
+				return err
+			}
+			if name != "" {
+				return &InFormulaError{Name: name}
+			}
 		}
 		if in.Name != nil {
 			if d.Name, err = checkName(*in.Name); err != nil {
@@ -402,8 +485,13 @@ func (s *Service) UpdateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec(ctx, `UPDATE attribute_def SET name = $2, description = $3, required = $4, retired = $5, options = $6 WHERE id = $1`,
-			id, d.Name, d.Description, d.Required, d.Retired, encoded)
+		var stored *string
+		if d.Computed() {
+			stored = &d.stored
+		}
+		_, err = tx.Exec(ctx, `UPDATE attribute_def SET name = $2, description = $3, required = $4, retired = $5, options = $6, formula = $7,
+			on_sections = $8 WHERE id = $1`,
+			id, d.Name, d.Description, d.Required, d.Retired, encoded, stored, d.OnSections)
 		if nameTaken(err) {
 			return &FieldError{"name", "Another attribute of this project is called that. Pick another name."}
 		}
@@ -414,6 +502,7 @@ func (s *Service) UpdateAttribute(ctx context.Context, actor uuid.UUID, projectK
 			if err := setTypes(ctx, tx, p.ID, id, *in.TypeIDs); err != nil {
 				return err
 			}
+			changedFormula = changedFormula || d.Computed()
 		}
 		if in.Position != nil {
 			if err := reorder(ctx, tx, "attribute_def", p.ID, id, *in.Position); err != nil {
@@ -425,6 +514,11 @@ func (s *Service) UpdateAttribute(ctx context.Context, actor uuid.UUID, projectK
 		}
 		if err := setRules(ctx, tx, actor, p.ID, p.Key, out, in); err != nil {
 			return err
+		}
+		if changedFormula {
+			if err := recompute(ctx, tx, p.ID); err != nil {
+				return err
+			}
 		}
 		out, err = defByID(ctx, tx, p.ID, id)
 		return err
@@ -439,8 +533,16 @@ func (s *Service) DeleteAttribute(ctx context.Context, actor uuid.UUID, projectK
 		if err != nil {
 			return err
 		}
-		if _, err := defByID(ctx, tx, p.ID, id); err != nil {
+		d, err := defByID(ctx, tx, p.ID, id)
+		if err != nil {
 			return err
+		}
+		name, err := readBy(ctx, tx, p.ID, id)
+		if err != nil {
+			return err
+		}
+		if name != "" {
+			return &InFormulaError{Name: name}
 		}
 		var used int
 		if err := tx.QueryRow(ctx, `SELECT attribute_usage($1)`, id).Scan(&used); err != nil {
@@ -451,6 +553,11 @@ func (s *Service) DeleteAttribute(ctx context.Context, actor uuid.UUID, projectK
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM attribute_def WHERE id = $1`, id); err != nil {
 			return err
+		}
+		if d.Computed() {
+			if err := recompute(ctx, tx, p.ID); err != nil {
+				return err
+			}
 		}
 		return reorder(ctx, tx, "attribute_def", p.ID, uuid.Nil, 0)
 	})

@@ -192,6 +192,8 @@ The attribute operations of #14 gain, on `Def` and `DefInput`:
 
 - **A value of four kinds**: `number`, `text`, `boolean` or `date`. The kind
   follows from the formula and is fixed with it.
+- **Quotes**: an attribute is named in double quotes, `"Weight"`; text is
+  written in single quotes, `'approved'`.
 - **A requirement's own fields**: `title`, `status`, `category` (of the
   status), `type`, `owner`, `priority`, `revision`, `created`, `updated`,
   `quality` (#207) and `testResult` (`passed`, `failed` or `none` on the
@@ -205,7 +207,7 @@ The attribute operations of #14 gain, on `Def` and `DefInput`:
 - **Aggregates** read many requirements: `count`, `sum`, `min`, `max`,
   `avg`, `any` and `all`, over `children` or over
   `links("<link type key>", out)` or `links(..., in)`, with an optional
-  condition: `count(children where category = "approved") / count(children)`.
+  condition: `count(children where category = 'approved') / count(children)`.
   `out` follows the links the requirement is the source of. A link type is
   named by its key, never by its phrase, which can be the same both ways
   and can change.
@@ -303,6 +305,37 @@ new tool.
   wrong where it is, and tries the formula on a requirement.
 - A line says how far a recompute has got.
 - The editor shows computed values read-only, marked "Computed".
+
+### As built (#213)
+
+- **Migration**: `01120_computed.sql` adds:
+  - `attribute_def.formula` (kept with `"@id"` and `'@id'` for attributes
+    and link types) and `on_sections`, and the trigger that keeps an
+    attribute computed or typed as it was made
+  - `requirement_computed`, written by the worker alone;
+    `requirement_computed_of(id)` reads it as the reader sees it
+  - `computed_dirty`, the queue the triggers on `requirement`,
+    `trace_link`, `test_result` and `quality_acceptance` fill, only in
+    projects with computed attributes; `computed_mark`,
+    `computed_recompute`, `computed_progress` and `computed_pending`
+  - `attribute_recompute`, how far a recompute after a formula changed has
+    got
+  - `baseline_computed` and `baseline.computed_stale`, with
+    `baseline_content_hash` and `baseline_content_rows` covering the new
+    lines after the others, so a baseline without them keeps its hash
+- **Code**: `attribute/formula` parses, checks, evaluates and finds cycles;
+  `attribute/compute.go` reads what formulas read; `attribute/recompute.go`
+  is the worker's loop, a batch of `RecomputeBatch` per transaction under a
+  lock per project. A value changing marks the parent and the requirements
+  whose links lead to it; a requirement's own change always does, since a
+  roll-up may read its typed values.
+- **Reading**: the query language and the grid read a computed attribute
+  from `requirement_computed_of(r.id)`; grid rows, documents, CSV and ReqIF
+  exports read typed and computed values together. A requirement answers
+  them apart, as `computed`.
+- **Imports and moves**: CSV and ReqIF imports, and a move or copy to
+  another project, leave computed attributes out; a CSV column mapped to one
+  is refused as no target.
 
 ## #212 Dashboards
 

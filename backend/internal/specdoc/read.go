@@ -84,7 +84,10 @@ func (r *reading) baselineItems(doc *Document, id uuid.UUID, projectKey string) 
 	rows, err := r.tx.Query(r.ctx, `
 		SELECT i.requirement_id, i.number, i.kind, i.revision, i.path,
 		       cardinality(i.path) - (SELECT min(cardinality(m.path)) FROM baseline_item m WHERE m.baseline_id = $1),
-		       COALESCE(v.title, ''), v.statement, v.rationale, v.attributes, COALESCE(t.name, ''), COALESCE(i.status_name, '')
+		       COALESCE(v.title, ''), v.statement, v.rationale,
+		       v.attributes || COALESCE((SELECT jsonb_object_agg(c.attribute_id::text, c.value) FROM baseline_computed c
+		                                 WHERE c.baseline_id = $1 AND c.requirement_id = i.requirement_id), '{}'::jsonb),
+		       COALESCE(t.name, ''), COALESCE(i.status_name, '')
 		FROM baseline_item i
 		LEFT JOIN requirement_revision v ON v.requirement_id = i.requirement_id AND v.number = i.revision
 		LEFT JOIN requirement_type t ON t.id = v.type_id

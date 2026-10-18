@@ -47,6 +47,7 @@ export function AttributeFields({
   onChange,
   errors,
   readOnly = {},
+  computed,
 }: {
   attributes: Attribute[];
   typeId: string | null | undefined;
@@ -55,6 +56,8 @@ export function AttributeFields({
   errors: Record<string, string>;
   /** Attributes the reader may not change here, by id, with why (#206). */
   readOnly?: Record<string, string>;
+  /** The requirement's computed values (#213), shown beside the fields and never typed. */
+  computed?: Values;
 }) {
   const { data: names } = usePeopleNames();
   // A change of an attribute another depends on clears the other's options it no longer allows (#206).
@@ -69,11 +72,13 @@ export function AttributeFields({
     }
     onChange(next);
   };
-  const shown = shownAttributes(attributes, typeId, values);
-  if (shown.length === 0) return null;
+  const shown = shownAttributes(attributes, typeId, values).filter((a) => a.formula === null);
+  const worked = attributes.filter((a) => a.formula !== null);
+  if (shown.length === 0 && !(computed && worked.length > 0)) return null;
   return (
     <fieldset className="space-y-3" data-attribute-fields>
       <legend className="text-sm font-semibold text-ink">{t.attributes.valuesTitle}</legend>
+      {computed && <AttributeValues attributes={worked} values={computed} />}
       {shown.map((a) => {
         const id = `attribute-${a.id}`;
         const value = values[a.id];
@@ -177,7 +182,10 @@ export function AttributeValues({ attributes, values }: { attributes: Attribute[
         const value = values[a.id];
         return (
           <div key={a.id} className="contents" data-attribute-value={a.name}>
-            <dt className="text-ink-muted">{a.name}</dt>
+            <dt className="text-ink-muted">
+              {a.name}
+              {a.formula !== null && <span className="ml-1.5 text-xs text-ink-subtle">({t.attributes.computed})</span>}
+            </dt>
             <dd className="min-w-0 text-ink">
               {a.kind === "richText" ? (
                 <DocView doc={value as Doc} />

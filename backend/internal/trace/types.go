@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
@@ -111,6 +112,19 @@ func pick(types []LinkType, id uuid.UUID, fallback *LinkType) *LinkType {
 
 // UpdateType changes or retires a type; a retired one keeps its links and takes no new ones.
 func (s *Service) UpdateType(ctx context.Context, actor, id uuid.UUID, in LinkTypeInput) (*LinkType, db.LSN, error) {
+	if in.Acyclic != nil && !*in.Acyclic {
+		// A formula that reads itself along the type is safe only while the type stays acyclic (#213), in any project.
+		var name string
+		if err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) (err error) {
+			name, err = attribute.FollowsAcyclic(ctx, tx, id)
+			return err
+		}); err != nil {
+			return nil, 0, err
+		}
+		if name != "" {
+			return nil, 0, &InFormulaError{Attribute: name}
+		}
+	}
 	var out *LinkType
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		t, err := managing(ctx, tx, actor, id)

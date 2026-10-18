@@ -28,6 +28,7 @@ function aBaseline(over: Partial<Baseline> = {}): Baseline {
     createdByName: "Ada Lovelace",
     createdAt: "2026-10-01T08:00:00Z",
     detail: 2,
+    computedStale: false,
     signing: null,
     ...over,
   };

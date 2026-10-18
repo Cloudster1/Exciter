@@ -157,7 +157,7 @@ type reading struct {
 
 func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 	rows, err := r.tx.Query(r.ctx, `
-		SELECT r.id, r.statement, r.rationale, r.attributes, COALESCE(t.name, ''), COALESCE(st.name, ''),
+		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), COALESCE(t.name, ''), COALESCE(st.name, ''),
 		       COALESCE(NULLIF(u.name, ''), u.email::text, ''), COALESCE(r.priority, ''),
 		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}')
 		FROM requirement r

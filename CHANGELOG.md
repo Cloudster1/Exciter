@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Computed attributes and roll-ups (#213). A project's administrators define
+  an attribute by a formula over a requirement's own fields and attributes,
+  with arithmetic, conditions, text and dates, and over its children or the
+  requirements its links lead to with count, sum, min, max, avg, any and
+  all: a priority score, a section's share of approved children, a status
+  rolled up from linked tests. The editor completes names, marks what is
+  wrong where it is and tries the formula on a requirement. A formula that
+  would read itself round is refused with the attributes named. The worker
+  works values out again whenever what they read changes, and the whole
+  project after a formula changes, saying how far it has got. Computed
+  values are read-only, are not revisions, are found, ordered and exported
+  like any attribute, and a baseline records the values it saw.
 - A requirement's trace graph (#211). From a requirement's page, "Trace graph"
   draws everything it traces to: up to what it derives from, refines,
   satisfies or verifies, and down to what derives from it, the Armature
