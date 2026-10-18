@@ -105,6 +105,8 @@ type ChainNode struct {
 	Code        *ChainCode       `json:"code,omitempty"`
 	Via         string           `json:"via,omitempty"`
 	Suspect     bool             `json:"suspect"`
+	// LastRun is a test case's last result (#252).
+	LastRun *LastRun `json:"lastRun,omitempty"`
 }
 
 // ChainTest is a test as a chain's node: its case, its latest outcome, and whether a newer revision outdated it.

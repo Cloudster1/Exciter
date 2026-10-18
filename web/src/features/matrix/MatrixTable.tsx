@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { columnKey, columnName } from "./address";
 import { CellPanel } from "./CellPanel";
+import { RunMark, runLabel } from "@/features/tests/RunMark";
 
 /** A row's or column's count of links, marked as a gap (#148) when it has none. */
 function Count({ n }: { n: number | undefined }) {
@@ -92,7 +93,13 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
               {t.matrix.links}
             </th>
             {matrix.columns.map((column) => (
-              <th key={columnKey(column)} scope="col" className="px-1 py-1 font-mono font-medium text-ink-muted [writing-mode:vertical-rl]">
+              <th
+                key={columnKey(column)}
+                scope="col"
+                className="px-1 py-1 font-mono font-medium text-ink-muted [writing-mode:vertical-rl]"
+                title={column.lastRun ? `${t.tests.lastRun}: ${runLabel(column.lastRun)}` : undefined}
+                data-last-run={column.lastRun?.outcome}
+              >
                 {nameOf(column)}
               </th>
             ))}
@@ -108,7 +115,8 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
                   className="text-ink hover:text-accent hover:underline"
                 >
                   <span className="font-mono text-ink-muted">{row.key}</span> {row.title}
-                </Link>
+                </Link>{" "}
+                <RunMark run={row.lastRun} />
               </th>
               <Count n={matrix.rowLinks[r]} />
               {matrix.columns.map((column, c) => {

@@ -55,6 +55,8 @@ export const testsEn = {
   state: { open: "Open", closed: "Closed", aborted: "Aborted" } as Record<string, string>,
   outcome: { passed: "Passed", failed: "Failed", blocked: "Blocked", skipped: "Skipped" } as Record<string, string>,
   notRun: "Not run",
+  lastRun: "Last result in a test execution",
+  runOutdated: "The last result ran an older revision",
   progress: (run: number, total: number, failed: number) => `${run} of ${total} run, ${failed} failed`,
   managedBy: (name: string) => `Managed by ${name}`,
   dueOn: (day: string) => `Due ${day}`,

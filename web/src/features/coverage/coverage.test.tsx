@@ -127,6 +127,9 @@ describe("a project's coverage", () => {
     const implemented = screen.getByRole("group", { name: "Implemented from: Every other type" });
     await userEvent.click(within(implemented).getByRole("button", { name: "Code" }));
     await waitFor(() => expect(sent.filter((each) => each.method === "PUT").at(-1)?.body).toMatchObject({ implementedFrom: ["links", "code"] }));
+    // Test cases by their last results in test executions count too (#252).
+    await userEvent.click(within(verified).getByRole("button", { name: "Test executions" }));
+    await waitFor(() => expect(sent.filter((each) => each.method === "PUT").at(-1)?.body).toMatchObject({ verifiedFrom: expect.arrayContaining(["runs"]) }));
   });
 
   it("shows a reader the rules without letting them change them", async () => {

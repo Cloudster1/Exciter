@@ -208,7 +208,7 @@ SELECT k.id,
        COALESCE(own.implemented_from, every.implemented_from, ARRAY['links']::text[]),
        t.decomposing, t.decomposing_suspect, a.implementing, a.implementing_done, a.implementing_suspect,
        t.verifying, t.verifying_suspect, a.verifying, a.verifying_done, a.verifying_suspect, e.tests, e.tests_whole,
-       cc.implementing, cc.implementing_whole, cc.verifying, cc.verifying_whole
+       cc.implementing, cc.implementing_whole, cc.verifying, cc.verifying_whole, x.cases, x.cases_whole
 FROM unnest($2::uuid[], $3::uuid[]) AS k (id, type_id)
 JOIN requirement r ON r.id = k.id
 LEFT JOIN coverage_rule own ON own.project_id = $1 AND own.type_id = k.type_id
@@ -239,7 +239,9 @@ CROSS JOIN LATERAL (
 -- The tests on the branch evidence is read on, as requirement_coverage counts them (#200).
 CROSS JOIN LATERAL requirement_test_counts(k.id) e
 -- And the code tags on it, as requirement_coverage counts them (#201).
-CROSS JOIN LATERAL requirement_code_counts(k.id) cc`
+CROSS JOIN LATERAL requirement_code_counts(k.id) cc
+-- And the test cases verifying it by their last results, as requirement_coverage counts them (#252).
+CROSS JOIN LATERAL requirement_case_counts(k.id) x`
 
 // judge answers the coverage row of each requirement kept, in their order.
 func judge(ctx context.Context, tx db.DBTX, projectID uuid.UUID, kept []search.Kept) ([]CoverageRow, error) {
@@ -265,7 +267,8 @@ func judge(ctx context.Context, tx db.DBTX, projectID uuid.UUID, kept []search.K
 		if err := rows.Scan(&id, &asks.Decomposed, &asks.Implemented, &asks.Verified, &from, &impl,
 			&c.Decomposing, &c.DecomposingSuspect, &c.Implementing, &c.ImplementingDone, &c.ImplementingSuspect,
 			&c.VerifyingLinks, &c.VerifyingLinksSuspect, &c.VerifyingIssues, &c.VerifyingIssuesDone, &c.VerifyingIssuesSuspect,
-			&c.Tests, &c.TestsWhole, &c.CodeImplementing, &c.CodeImplementingWhole, &c.CodeVerifying, &c.CodeVerifyingWhole); err != nil {
+			&c.Tests, &c.TestsWhole, &c.CodeImplementing, &c.CodeImplementingWhole, &c.CodeVerifying, &c.CodeVerifyingWhole,
+			&c.Cases, &c.CasesWhole); err != nil {
 			rows.Close()
 			return nil, err
 		}

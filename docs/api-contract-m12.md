@@ -395,6 +395,30 @@ branch. It is proven straight through SQL as `exciter_app`.
 - Coverage rules offer test executions as a source of verified.
 - The chain report and the matrix mark a test case with its last result.
 
+### As built (#252)
+
+- **Migration**: `01240_test_traceability.sql` adds `test_case_last_run`, a
+  case's last result with its execution and pinned revision;
+  `requirement_verifying_cases`, `requirement_case_counts` and
+  `requirement_cases_result` over the live test cases verifying a
+  requirement; and `test_execution_take_ci`, which the upload's landing
+  calls after it keeps the results. `coverage_rule.verified_from` may name
+  `runs`, `requirement_coverage` counts it, and `baseline_evidence` gains
+  kind `run` with `execution_id`, written as `run <execution> <revision>
+  <outcome>` in the content hash. The count functions declare that they
+  answer one row, so a coverage query's estimate stays below the cost at
+  which Postgres compiles it, which took longer than running it.
+- **Last results**: an iteration not run makes a case's last result `none`
+  unless another iteration failed or was blocked, as a case's outcome
+  follows from its steps.
+- **Code**: `trace.LastRun` marks a test case among the chain report's
+  nodes and the matrix's rows and requirement columns; `Counted` gains
+  `Cases` and `CasesWhole`. An upload that fills an execution audits it and
+  emits `test_execution.recorded` once per execution; that topic and
+  `test_execution.closed` clear the coverage cache.
+- **Web**: coverage rules offer "Test executions"; the chain report and the
+  matrix's rows show a case's last result, its columns in their title.
+
 ## What is left for later
 
 - An "automated" mark on a test case or step; labels serve meanwhile.

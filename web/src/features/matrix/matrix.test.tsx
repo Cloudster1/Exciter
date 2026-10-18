@@ -216,6 +216,24 @@ describe("the matrix's gaps", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
+  it("marks a test case's last result on its row and column (#252)", async () => {
+    const lastRun = { outcome: "passed" as const, executionId: "0195f000-0000-7000-8000-0000000003e1", outdated: false };
+    stubMatrix({
+      ...notes,
+      rows: [{ ...row(1, "Brake on a wet road"), lastRun }, row(2, "Brake lights follow the pedal")],
+      columns: [{ requirement: ref(4, "Warn on a wet road"), issueKey: "", page: null, lastRun: { ...lastRun, outcome: "none", executionId: null } }],
+    });
+    await renderAt("/p/CHK/matrix?columnQuery=type%20%3D%20Note");
+    const table = await screen.findByRole("table", { name: "Matrix" });
+    expect(
+      within(table)
+        .getByRole("rowheader", { name: /CHK-R1/ })
+        .querySelector("[data-last-run]"),
+    ).toHaveTextContent("Passed");
+    expect(table.querySelector('th[data-last-run="none"]')).toHaveAttribute("title", "Last result in a test execution: Not run");
+    expect(await axeViolations()).toEqual([]);
+  });
+
   it("keeps the column filter apart from the rows' and offers gaps in columns only with it", async () => {
     const asked = stubMatrix(notes);
     const router = await renderAt("/p/CHK/matrix");

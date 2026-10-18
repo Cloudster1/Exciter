@@ -291,7 +291,7 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
-- **Test management** (M12, `docs/api-contract-m12.md`, planned): a test
+- **Test management** (M12, `docs/api-contract-m12.md`): a test
   case is a requirement of a type whose role is test cases, carrying
   preconditions, steps and parameters in its revisions; `internal/testexec`
   keeps test plans and executions, pinned at start, recorded by assigned

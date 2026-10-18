@@ -18,6 +18,7 @@ export type Outcome = NonNullable<CaseRun["outcome"]>;
 export type ExecutionState = TestExecution["state"];
 export type ExecutionReport = Wire["TestExecutionReport"];
 export type CaseResult = Wire["TestCaseResult"];
+export type LastRun = Wire["TestCaseLastRun"];
 
 /** The outcomes a step or a case comes to, in the order a runner offers them. */
 export const OUTCOMES: Outcome[] = ["passed", "failed", "blocked", "skipped"];

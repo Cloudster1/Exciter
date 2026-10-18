@@ -7,6 +7,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/testexec"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // testSchemas names the types of test management (#253), whose short names would meet others', and spells their
@@ -44,6 +45,7 @@ func testSchemas(b *openapi.Builder) {
 		reflect.TypeFor[testexec.CaseResult]():        "TestCaseResult",
 		reflect.TypeFor[testexec.Report]():            "TestExecutionReport",
 		reflect.TypeFor[testexec.ReportCase]():        "TestExecutionReportCase",
+		reflect.TypeFor[trace.LastRun]():              "TestCaseLastRun",
 	}
 	for t, name := range names {
 		b.Names[t] = name
@@ -53,4 +55,5 @@ func testSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(testexec.State(""))] = enumStrings(testexec.States)
 	b.Enums[reflect.TypeOf(testexec.Scope(""))] = enumStrings(testexec.Scopes)
 	b.Enums[reflect.TypeOf(testexec.Source(""))] = enumStrings(testexec.Sources)
+	b.Enums[reflect.TypeOf(trace.RunOutcome(""))] = enumStrings(trace.RunOutcomes)
 }
