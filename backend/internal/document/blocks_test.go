@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -129,5 +130,27 @@ func TestTheEditorCountsTextBlocksAsGoDoes(t *testing.T) {
 	got, err := os.ReadFile(filepath.Join("..", "..", "..", "api", "document-textblocks.json"))
 	if err != nil || string(got) != string(want) {
 		t.Fatalf("api/document-textblocks.json is out of date; run make openapi and commit the result (%v)", err)
+	}
+}
+
+func TestMarksAreRangesOfTheBlocksText(t *testing.T) {
+	const pedal = `{"type":"term","attrs":{"termId":"0195f000-0000-7000-8000-00000000000b"}}`
+	const lever = `{"type":"term","attrs":{"termId":"0195f000-0000-7000-8000-00000000000c"}}`
+	b := blocksOf(t, `{"type":"doc","content":[{"type":"paragraph","content":[
+		{"type":"text","text":"Press "},
+		{"type":"text","text":"the ","marks":[`+pedal+`]},
+		{"type":"text","text":"brake","marks":[{"type":"bold"},`+pedal+`]},
+		{"type":"text","text":" pedal","marks":[`+pedal+`]},
+		{"type":"text","text":"\ud83d\ude42","marks":[`+lever+`]},
+		{"type":"mention","attrs":{"id":"0195f000-0000-7000-8000-00000000000a","label":"Ada"}},
+		{"type":"text","text":"lever","marks":[`+lever+`]}]}]}`)[0]
+	var got []string
+	for _, m := range b.Marks {
+		id, _ := m.Attrs["termId"].(string)
+		got = append(got, m.Type+" "+strings.TrimPrefix(id, "0195f000-0000-7000-8000-00000000000")+" "+b.Text[m.From:m.To])
+	}
+	want := []string{"term b the brake pedal", "bold  brake", "term c \U0001F642", "term c lever"}
+	if !slices.Equal(got, want) {
+		t.Errorf("marks = %q, want %q", got, want)
 	}
 }

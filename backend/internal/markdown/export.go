@@ -42,6 +42,11 @@ func holds(n document.Node, depth int) bool {
 				}
 			}
 		}
+	case "text":
+		// A link to a glossary term has no Markdown, and its words alone would read back unlinked.
+		if hasMark(n.Marks, document.MarkTerm) {
+			return false
+		}
 	case "paragraph", "heading":
 		last := len(n.Content) - 1
 		for i, c := range n.Content {

@@ -154,6 +154,11 @@ func checkAttrs(attrs map[string]any, allowed map[string]Attr, owner string) err
 			return invalid("This text gives %s the attribute %s=%s, which is not allowed; pick it again in the editor.", owner, name, shortJSON(value))
 		}
 	}
+	for name, rule := range allowed {
+		if _, ok := attrs[name]; rule.Required && !ok {
+			return invalid("This text gives %s no %s; pick it again in the editor.", owner, name)
+		}
+	}
 	return nil
 }
 

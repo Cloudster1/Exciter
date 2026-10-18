@@ -69,3 +69,33 @@ func TestABaselineSaysWhenItWasTakenAndLocked(t *testing.T) {
 		t.Errorf("the baseline's head reads %q, its tail %q", md.Head, md.Tail)
 	}
 }
+
+func TestTheGlossaryFollowsTheEntries(t *testing.T) {
+	doc := sample()
+	doc.Glossary = []GlossaryTerm{
+		{Name: "Brake pedal", Definition: paragraphOf("The pedal that slows the car."), Synonyms: []string{"pedal", "brake"}, Avoid: []string{"stopper"}},
+		{Name: "ABS", Definition: paragraphOf("Anti-lock braking."), Synonyms: []string{}, Avoid: []string{}},
+	}
+	md := doc.Markdown()
+	want := strings.Join([]string{
+		"## Glossary",
+		"**Brake pedal**",
+		"The pedal that slows the car.",
+		"- Synonyms: pedal, brake\n- Not to use: stopper",
+		"**ABS**",
+		"Anti-lock braking.",
+	}, "\n\n")
+	if md.Glossary != want {
+		t.Errorf("the glossary reads\n%s\nwant\n%s", md.Glossary, want)
+	}
+	if got := md.String(); !strings.HasSuffix(got, "Read a section to hold the rest.\n\n"+want+"\n") {
+		t.Errorf("the glossary does not end the document:\n%s", got)
+	}
+	if got := md.Upto(1, "Cut."); strings.Contains(got, "## Glossary") {
+		t.Errorf("a document cut short carries its glossary: %s", got)
+	}
+	doc.Glossary = []GlossaryTerm{}
+	if md := doc.Markdown(); md.Glossary != "" || strings.Contains(md.String(), "Glossary") {
+		t.Errorf("a document without terms has a glossary: %q", md.Glossary)
+	}
+}

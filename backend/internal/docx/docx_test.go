@@ -194,3 +194,76 @@ func TestFileNamesSayWhatAndWhen(t *testing.T) {
 		t.Errorf("a section is named %s", got)
 	}
 }
+
+func TestWordsLinkedToATermAreItsWords(t *testing.T) {
+	const id = "0195f000-0000-7000-8000-0000000000a1"
+	term := document.Mark{Type: document.MarkTerm, Attrs: map[string]any{"termId": id}}
+	nodes := []document.Node{
+		{Type: "text", Text: "Press "},
+		{Type: "text", Text: "the brake ", Marks: []document.Mark{term}},
+		{Type: "text", Text: "pedal", Marks: []document.Mark{{Type: "bold"}, term}},
+		{Type: "text", Text: "."},
+	}
+	plain := newWriter(context.Background(), "en", Reader{})
+	plain.inline(nodes, frame{})
+	if got := plain.b.String(); strings.Contains(got, "w:hyperlink") || !strings.Contains(got, "the brake ") {
+		t.Errorf("without a glossary chapter a term is not plain words: %s", got)
+	}
+	linked := newWriter(context.Background(), "en", Reader{})
+	linked.termAnchor = func(termID string) (string, bool) { return "term_" + termID[len(termID)-2:], termID == id }
+	linked.inline(nodes, frame{})
+	got := linked.b.String()
+	if strings.Count(got, `<w:hyperlink w:anchor="term_a1"`) != 1 || !strings.Contains(got, "pedal</w:t></w:r></w:hyperlink>") {
+		t.Errorf("a term's words are not one link to its entry: %s", got)
+	}
+}
+
+func TestTheGlossaryIsAChapterTheTermsLinkTo(t *testing.T) {
+	const id = "0195f000-0000-7000-8000-0000000000b2"
+	doc := aDocument()
+	doc.Entries[1].Statement = json.RawMessage(`{"type":"doc","content":[{"type":"paragraph","content":[` +
+		`{"type":"text","text":"Press the "},{"type":"text","text":"brake pedal","marks":[{"type":"term","attrs":{"termId":"` + id + `"}}]},` +
+		`{"type":"text","text":" or the "},{"type":"text","text":"horn","marks":[{"type":"term","attrs":{"termId":"0195f000-0000-7000-8000-0000000000c3"}}]}]}]}`)
+	doc.Glossary = []specdoc.GlossaryTerm{{ID: uuid.MustParse(id), Name: "Brake pedal",
+		Definition: json.RawMessage(`{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"The pedal that slows the car."}]}]}`),
+		Synonyms:   []string{"pedal", "brake"}, Avoid: []string{"stopper"}, Status: "approved"}}
+	for lang, words := range map[string][]string{
+		"en": {">Glossary<", "Synonyms: pedal, brake", "Not to use: stopper"},
+		"de": {">Glossar<", "Synonyme: pedal, brake", "Nicht verwenden: stopper"},
+	} {
+		data, err := Bytes(context.Background(), doc, lang, Reader{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		files := unzip(t, data)
+		body := files["word/document.xml"]
+		bookmark := "term_" + strings.ReplaceAll(id, "-", "")
+		want := append([]string{
+			`w:anchor="_Glossary"`, `w:name="_Glossary"`, `w:name="` + bookmark + `"`,
+			`<w:hyperlink w:anchor="` + bookmark + `"`, "brake pedal", "Brake pedal",
+			"The pedal that slows the car.", `w:pStyle w:val="TermWords"`,
+		}, words...)
+		for _, s := range want {
+			if !strings.Contains(body, s) {
+				t.Errorf("%s: word/document.xml lacks %q", lang, s)
+			}
+		}
+		if strings.Count(body, "w:hyperlink w:anchor=\"term_") != 1 {
+			t.Errorf("%s: a term out of the glossary links to it", lang)
+		}
+		if strings.Index(body, "The pedal that slows the car.") < strings.Index(body, "1.1 Stop within 40 m") {
+			t.Errorf("%s: the glossary comes before the entries", lang)
+		}
+		if !strings.Contains(files["word/styles.xml"], `w:styleId="TermWords"`) {
+			t.Errorf("%s: the muted style of a term's words is not defined", lang)
+		}
+	}
+	doc.Glossary = nil
+	data, err := Bytes(context.Background(), doc, "en", Reader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body := unzip(t, data)["word/document.xml"]; strings.Contains(body, "_Glossary") || strings.Contains(body, `w:anchor="term_`) {
+		t.Errorf("a document without terms has a glossary")
+	}
+}

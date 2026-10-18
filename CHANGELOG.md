@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A glossary of terms, marked where requirements use them (#210). A
+  project's editors define terms with a definition, synonyms, words not to
+  use instead and a status, kept in revisions, and a project uses the
+  glossaries of library projects too. The editor marks each term a
+  requirement uses, in any inflection, and shows its definition; an author
+  links words to a term on purpose. A word not to use is a finding of the
+  writing rules. Changing a definition makes the requirements that use the
+  term suspect and tells their owners, who confirm them. Terms are found by
+  search and the query language's `term`, and the Word, PDF, Markdown and
+  ReqIF exports carry the glossary.
 - Writing rules check every requirement as it is written (#207). In
   English or German, as a project chooses, they find vague and unbounded
   words, escape clauses, open placeholders, and/or, more than one shall,

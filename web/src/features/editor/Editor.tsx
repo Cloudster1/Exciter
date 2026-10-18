@@ -6,9 +6,12 @@ import { Icon, type IconName } from "@/components/icons";
 import { EDITOR_HEADING_LEVELS, NEW_TABLE_COLUMNS, NEW_TABLE_ROWS } from "@/config";
 import { t } from "@/i18n";
 import { commentExtensions, editorExtensions } from "./extensions";
+import { TermHint } from "@/features/glossary/TermHint";
+import { TermPickerDialog } from "@/features/glossary/TermPicker";
 import type { FindingMark } from "./quality";
 import { emptyDoc, safeHref, type Doc } from "./schema";
 import { mentionSuggestion, type MentionSource } from "./suggestion";
+import { termMarksKey, termUseAt, termUseAtSelection, type TermMark } from "./terms";
 
 export interface EditorProps {
   /** The id the label points at and the suite types into: the editable element's. */
@@ -23,6 +26,10 @@ export interface EditorProps {
   variant?: "requirement" | "comment";
   /** The writing rules' findings to mark; undefined keeps the marks there are, moved with the text. */
   findings?: FindingMark[];
+  /** The glossary terms the text uses (#210); undefined keeps the marks there are, moved with the text. */
+  terms?: TermMark[];
+  /** The project whose terms "Link to term" offers; without it the toolbar has no such tool. */
+  glossary?: string;
   /** What the findings list beside the editor reaches in: selecting a finding's words. */
   controls?: Ref<EditorControls>;
   "aria-label": string;
@@ -34,7 +41,19 @@ export interface EditorControls {
 }
 
 /** The shared editor of statements, rationales and rich text values: Stator's, cut to what a requirement says. */
-export function Editor({ id, value, onChange, mentions, upload, variant = "requirement", findings, controls, "aria-label": label }: EditorProps) {
+export function Editor({
+  id,
+  value,
+  onChange,
+  mentions,
+  upload,
+  variant = "requirement",
+  findings,
+  terms,
+  glossary,
+  controls,
+  "aria-label": label,
+}: EditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const mentionsRef = useRef(mentions);
@@ -53,13 +72,46 @@ export function Editor({ id, value, onChange, mentions, upload, variant = "requi
   useEffect(() => {
     if (editor && findings && variant === "requirement") editor.commands.setFindings(findings);
   }, [editor, findings, variant]);
+  useEffect(() => {
+    if (editor && terms && variant === "requirement") editor.commands.setTermUses(terms);
+  }, [editor, terms, variant]);
   useImperativeHandle(controls, () => ({ showFinding: (finding) => void editor?.chain().showFinding(finding).focus().run() }), [editor]);
+  // A term's definition shows where a pointer rests on its words, else where the caret is in them.
+  const [pointed, setPointed] = useState<string | null>(null);
+  const caret = useEditorState({ editor, selector: ({ editor: e }) => (e?.isFocused ? termUseAtSelection(e.state) : null) });
+  const hovered = editor && pointed ? pointedUse(editor, pointed) : null;
+  const shown = hovered ?? caret;
+  const anchor = editor && shown ? editor.view.dom.querySelector<HTMLElement>(`[data-term-use-at="${termUseAt(shown)}"]`) : null;
   return (
-    <div className="rounded-control border border-border-strong bg-surface focus-within:border-focus" data-editor-frame>
-      {editor && <Toolbar editor={editor} files={variant === "requirement" && Boolean(upload)} tools={variant === "comment" ? COMMENT_TOOLS : TOOLS} />}
+    // biome-ignore lint/a11y/noStaticElementInteractions: the pointer only shows what the caret in the words shows too
+    <div
+      className="rounded-control border border-border-strong bg-surface focus-within:border-focus"
+      onMouseOver={(event) => setPointed((event.target as HTMLElement).closest("[data-term-use-at]")?.getAttribute("data-term-use-at") ?? null)}
+      onMouseLeave={() => setPointed(null)}
+      data-editor-frame
+    >
+      {editor && (
+        <Toolbar
+          editor={editor}
+          files={variant === "requirement" && Boolean(upload)}
+          tools={variant === "comment" ? COMMENT_TOOLS : TOOLS}
+          glossary={variant === "requirement" ? glossary : undefined}
+        />
+      )}
       <EditorContent editor={editor} />
+      {shown && anchor && <TermHint key={termUseAt(shown)} use={shown} anchor={anchor} />}
+      <p role="status" className="sr-only" data-term-announce>
+        {caret ? t.glossary.editor.caretIn(caret.name, caret.preview) : ""}
+      </p>
     </div>
   );
+}
+
+/** The use whose words a pointer rests on, by the key its words carry. */
+function pointedUse(editor: TiptapEditor, at: string): TermMark | null {
+  const set = termMarksKey.getState(editor.state);
+  const found = set?.find(undefined, undefined, (spec) => Boolean(spec.term) && termUseAt(spec.term as TermMark) === at);
+  return (found?.[0]?.spec.term as TermMark | undefined) ?? null;
 }
 
 interface Tool {
@@ -122,11 +174,15 @@ const TOOLS: Tool[] = [
 /** What a comment's toolbar offers: everything but rules and tables, which a comment may not hold. */
 const COMMENT_TOOLS = TOOLS.filter((tool) => tool.action !== "rule" && tool.action !== "table");
 
-function Toolbar({ editor, files, tools }: { editor: TiptapEditor; files: boolean; tools: Tool[] }) {
+function Toolbar({ editor, files, tools, glossary }: { editor: TiptapEditor; files: boolean; tools: Tool[]; glossary?: string }) {
   const [linking, setLinking] = useState(false);
+  const [picking, setPicking] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
   // The toolbar redraws as the selection moves, so a pressed button says what the caret is in.
-  const active = useEditorState({ editor, selector: ({ editor: e }) => tools.map((tool) => tool.active(e)).concat(e.isActive("link")) });
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: e }) => tools.map((tool) => tool.active(e)).concat(e.isActive("link"), e.isActive("term")),
+  });
   return (
     <div role="toolbar" aria-label={t.editor.toolbar} className="flex flex-wrap gap-0.5 border-b border-border p-1" data-editor-toolbar>
       {tools.map((tool, i) => {
@@ -172,7 +228,19 @@ function Toolbar({ editor, files, tools }: { editor: TiptapEditor; files: boolea
           <IconButton icon={<Icon.Paperclip />} label={t.attachments.insert} size="sm" onClick={() => picker.current?.click()} data-action="format-attach" />
         </>
       )}
+      {glossary && (
+        <IconButton
+          icon={<Icon.Book />}
+          label={t.glossary.editor.link}
+          size="sm"
+          aria-pressed={active[tools.length + 1]}
+          className={cx(active[tools.length + 1] && "bg-surface-raised text-ink")}
+          onClick={() => setPicking(true)}
+          data-action="format-term"
+        />
+      )}
       {linking && <LinkDialog editor={editor} onClose={() => setLinking(false)} />}
+      {picking && glossary && <TermPickerDialog projectKey={glossary} editor={editor} onClose={() => setPicking(false)} />}
     </div>
   );
 }

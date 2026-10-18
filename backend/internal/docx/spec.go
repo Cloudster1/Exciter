@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"strconv"
+	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
@@ -23,6 +24,7 @@ func (w *writer) document(doc *specdoc.Document) ([]byte, error) {
 	w.b.WriteString(xml.Header)
 	w.b.WriteString(`<w:document xmlns:w="` + nsW + `" xmlns:r="` + nsR + `" xmlns:wp="` + nsWP + `" xmlns:a="` + nsA + `" xmlns:pic="` + nsPic + `"><w:body>`)
 	root := frame{width: textWidth}
+	w.linkTerms(doc.Glossary)
 	w.cover(doc, root)
 	w.contents(doc, root)
 	for i, e := range doc.Entries {
@@ -31,6 +33,7 @@ func (w *writer) document(doc *specdoc.Document) ([]byte, error) {
 	if doc.Truncated() {
 		w.note(root, w.words.truncated(len(doc.Entries), doc.Total))
 	}
+	w.glossary(doc.Glossary, root)
 	w.b.WriteString(`<w:sectPr><w:pgSz w:w="` + itoa(pageWidth) + `" w:h="` + itoa(pageHeight) + `"/>`)
 	w.b.WriteString(`<w:pgMar w:top="` + itoa(margin) + `" w:right="` + itoa(margin) + `" w:bottom="` + itoa(margin) + `" w:left="` + itoa(margin) + `" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`)
 	w.b.WriteString(`</w:body></w:document>`)
@@ -78,7 +81,66 @@ func (w *writer) contents(doc *specdoc.Document, f frame) {
 			w.internal(entryBookmark(i), func() { w.text(e.Outline+"\t"+e.Title, runProps{}) })
 		})
 	}
+	if len(doc.Glossary) > 0 {
+		w.para(f, paraProps{style: "TOC1"}, func() {
+			w.internal(glossaryBookmark, func() { w.text(w.words.glossary, runProps{}) })
+		})
+	}
 	w.pageBreak()
+}
+
+// glossaryBookmark is where the glossary chapter starts, hidden as the entries' bookmarks are.
+const glossaryBookmark = "_Glossary"
+
+// termBookmarkOf names a term's entry in the glossary chapter: a letter first and at most 40 characters, as Word
+// wants a bookmark's name.
+func termBookmarkOf(id string) string { return "term_" + strings.ReplaceAll(id, "-", "") }
+
+// linkTerms makes words linked to a term of the glossary a link to its entry; any other term's words stay plain.
+func (w *writer) linkTerms(terms []specdoc.GlossaryTerm) {
+	if len(terms) == 0 {
+		return
+	}
+	defined := make(map[string]bool, len(terms))
+	for _, t := range terms {
+		defined[t.ID.String()] = true
+	}
+	w.termAnchor = func(termID string) (string, bool) {
+		if !defined[strings.ToLower(termID)] {
+			return "", false
+		}
+		return termBookmarkOf(strings.ToLower(termID)), true
+	}
+}
+
+// glossary is the chapter after the entries: each term by name, its definition, and its words in a muted line.
+func (w *writer) glossary(terms []specdoc.GlossaryTerm, f frame) {
+	if len(terms) == 0 {
+		return
+	}
+	w.pageBreak()
+	w.para(f, paraProps{style: "Heading1"}, func() { w.bookmarked(glossaryBookmark, func() { w.text(w.words.glossary, runProps{}) }) })
+	for _, t := range terms {
+		w.para(f, paraProps{style: "TermName"}, func() {
+			w.bookmarked(termBookmarkOf(t.ID.String()), func() { w.text(t.Name, runProps{bold: true}) })
+		})
+		w.body(t.Definition, f)
+		if len(t.Synonyms) > 0 {
+			w.para(f, paraProps{style: "TermWords"}, func() { w.text(w.words.synonyms+": "+strings.Join(t.Synonyms, ", "), runProps{}) })
+		}
+		if len(t.Avoid) > 0 {
+			w.para(f, paraProps{style: "TermWords"}, func() { w.text(w.words.avoid+": "+strings.Join(t.Avoid, ", "), runProps{}) })
+		}
+	}
+}
+
+// bookmarked writes runs inside a bookmark, which internal links name.
+func (w *writer) bookmarked(name string, runs func()) {
+	id := itoa(w.bookmark)
+	w.bookmark++
+	w.b.WriteString(`<w:bookmarkStart w:id="` + id + `" w:name="` + name + `"/>`)
+	runs()
+	w.b.WriteString(`<w:bookmarkEnd w:id="` + id + `"/>`)
 }
 
 func entryBookmark(i int) string { return "_Entry" + strconv.Itoa(i+1) }
@@ -91,11 +153,7 @@ func (w *writer) pageBreak() {
 func (w *writer) entry(i int, e specdoc.Entry, f frame) {
 	level := min(e.Depth+1, maxHeadingStyle)
 	w.para(f, paraProps{style: "Heading" + itoa(level)}, func() {
-		id := itoa(w.bookmark)
-		w.bookmark++
-		w.b.WriteString(`<w:bookmarkStart w:id="` + id + `" w:name="` + entryBookmark(i) + `"/>`)
-		w.text(e.Outline+" "+e.Title, runProps{})
-		w.b.WriteString(`<w:bookmarkEnd w:id="` + id + `"/>`)
+		w.bookmarked(entryBookmark(i), func() { w.text(e.Outline+" "+e.Title, runProps{}) })
 	})
 	w.para(f, paraProps{style: "EntryMeta"}, func() { w.text(w.words.keyAndRevision(e.Key, e.Revision), runProps{}) })
 	w.body(e.Statement, f)

@@ -103,6 +103,10 @@ const (
 	ActionProjectLanguageSet = "project.language_set"
 	// ActionQualitySettingsSaved is a project's writing rules and word lists set (#207).
 	ActionQualitySettingsSaved = "quality_settings.saved"
+	// ActionTermDeleted is a term deleted from a project's glossary, and ActionGlossariesChosen the library glossaries
+	// a project uses set (#210).
+	ActionTermDeleted      = "term.deleted"
+	ActionGlossariesChosen = "glossaries.chosen"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -150,6 +154,7 @@ var Actions = []string{
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
 	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
 	ActionCodeTagWordsSaved, ActionProjectLanguageSet, ActionQualitySettingsSaved,
+	ActionTermDeleted, ActionGlossariesChosen,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

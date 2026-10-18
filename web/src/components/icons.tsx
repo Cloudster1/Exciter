@@ -117,6 +117,7 @@ export const Icon = {
   Bell: makeIcon("bell", ["M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z", "M6.5 13.5a1.5 1.5 0 0 0 3 0"]),
   Eye: makeIcon("eye", ["M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z", "M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"]),
   Info: makeIcon("info", ["M8 14.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z", "M8 7.5v4", "M8 5h.01"]),
+  Book: makeIcon("book", ["M8 4.5C6.5 3.3 4.5 3 2.5 3v9.5c2 0 4 .3 5.5 1.5 1.5-1.2 3.5-1.5 5.5-1.5V3c-2 0-4 .3-5.5 1.5Z", "M8 4.5V14"]),
 } as const;
 
 export type IconName = keyof typeof Icon;

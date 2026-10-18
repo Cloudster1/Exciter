@@ -486,3 +486,48 @@ func planCodeScan(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error
 	}
 	return plan, nil
 }
+
+// termEvent is what a term's event says of its change (#210).
+type termEvent struct {
+	ActorID           uuid.UUID `json:"actorId"`
+	TermID            uuid.UUID `json:"termId"`
+	Revision          int       `json:"revision"`
+	DefinitionChanged bool      `json:"definitionChanged"`
+}
+
+// planTermRevised tells the owner of each requirement that uses a term whose definition changed, once each, about
+// one of their requirements, the term named as the excerpt.
+func planTermRevised(ctx context.Context, tx db.DBTX, e events.Event) (*Plan, error) {
+	var in termEvent
+	if err := json.Unmarshal(e.Payload, &in); err != nil || in.TermID == uuid.Nil || !in.DefinitionChanged {
+		return nil, nil
+	}
+	var name string
+	if err := tx.QueryRow(ctx, `SELECT name FROM glossary_term WHERE id = $1`, in.TermID).Scan(&name); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT ON (r.owner_id) r.owner_id, r.id, r.revision
+		FROM term_use u JOIN requirement r ON r.id = u.requirement_id
+		WHERE u.term_id = $1 AND r.trashed_at IS NULL AND r.owner_id IS NOT NULL
+		ORDER BY r.owner_id, r.number`, in.TermID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	term := in.TermID
+	plan := &Plan{Actor: in.ActorID, Subject: Subject{TermID: &term, Excerpt: name}}
+	for rows.Next() {
+		var owner, id uuid.UUID
+		var revision int
+		if err := rows.Scan(&owner, &id, &revision); err != nil {
+			return nil, err
+		}
+		plan.Tells = append(plan.Tells, Tell{UserID: owner, Kind: KindTermChanged,
+			About: &Subject{RequirementID: id, Revision: revision, TermID: &term, Excerpt: name}})
+	}
+	return plan, rows.Err()
+}

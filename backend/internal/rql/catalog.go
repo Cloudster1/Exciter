@@ -32,6 +32,8 @@ const (
 	fkAttribute
 	// fkEnumSet is a set of enum members a requirement holds, such as the rules it breaks.
 	fkEnumSet
+	// fkTerm is a glossary term a requirement uses, named by its name or a synonym (#210).
+	fkTerm
 )
 
 // Link directions: the requirement is the link's source, its target, or either end of a link that reads the same
@@ -151,6 +153,7 @@ var fixed = []fieldDef{
 	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
 	{name: "quality", kind: fkNumber, column: qualityScore, order: qualityScore, empty: true},
 	{name: "qualityFinding", kind: fkEnumSet, column: qualityRules, enum: qualityRuleIDs(), empty: true},
+	{name: "term", kind: fkTerm, empty: true},
 }
 
 // LinkType is a link type a project's requirements may be joined by, with the phrases its ends read in.
@@ -241,7 +244,7 @@ var (
 func (d fieldDef) operators() []string {
 	var ops []string
 	switch d.kind {
-	case fkKey, fkEnum, fkName, fkUser, fkLabels, fkParent, fkLink, fkEnumSet:
+	case fkKey, fkEnum, fkName, fkUser, fkLabels, fkParent, fkLink, fkEnumSet, fkTerm:
 		ops = opsEquality
 	case fkTitle:
 		ops = opsText

@@ -462,6 +462,33 @@ answers the terms a draft uses.
   "Confirm".
 - The project's settings gain the library glossaries it uses.
 
+### As built (#210)
+
+- **Migration**: `01020_glossary.sql` adds:
+  - the tables `glossary_term`, `glossary_term_revision`, `project_glossary`,
+    `term_use` and `term_use_clearance`
+  - the functions `glossary_terms_of`, `glossary_users` and `term_use_clear`,
+    and the triggers that number a term's revisions and write them
+  - `quality_finding.use_instead`, the term an `avoid_term` finding names
+  - `notification.term_id` and the kind `term_changed`
+- **Revisions are the database's**: a change of a term is the next revision,
+  numbered by a trigger, which also writes the revision as the definer; the
+  app has no grant on the revisions at all. A change that changes nothing is
+  no revision.
+- **A confirmation** is kept in `term_use_clearance`, a table of its own,
+  rather than among the clearances of links, which name a link.
+- **Uses** are written with the findings, by `quality.Record`, as the terms
+  the writer may read; a library the writer may not read marks nothing for
+  them, and a use they may not see is neither written nor removed by them.
+  The matcher stems in the project's language without a library, matches
+  multi-word terms within a sentence, and lets a project's own term win
+  over a library's.
+- **Words to check again**: a term made, changed in its words or deleted, and
+  a project's glossaries chosen, have the worker check every project the
+  glossary marks again (`glossary_users`).
+- **A notification** of a changed definition names one requirement of each
+  owner, and the term as its excerpt.
+
 ## #208 Duplicates
 
 | Operation | Needs | Answers |

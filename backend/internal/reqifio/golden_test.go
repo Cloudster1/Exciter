@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,13 +15,14 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 )
 
 // goldenExport is testdata/export.reqif, which make reqif-schema holds to the ReqIF schema.
 var goldenExport = filepath.Join("testdata", "export.reqif")
 
 // goldenSnapshot is a project with a section, two requirements of two types, every kind of attribute, rich text with
-// a table, a list and a picture, a link, and identifiers an earlier exchange tied.
+// a table, a list and a picture, a link, identifiers an earlier exchange tied, and a term of its glossary.
 func goldenSnapshot() *snapshot {
 	at := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
 	id := func(n byte) uuid.UUID { return uuid.UUID{0x01, 0x93, 0, 0, 0, 0, 0x70, 0, 0x80, 0, 0, 0, 0, 0, 0, n} }
@@ -72,6 +75,8 @@ func goldenSnapshot() *snapshot {
 			"object": {r1: {{kind: "object", identifier: "_supplier_SR1", target: r1}}},
 			"type":   {typeA: {{kind: "type", identifier: "_supplier_interface", target: typeA}}},
 		},
+		glossary: []specdoc.GlossaryTerm{{ID: id(70), Name: "Brake pedal", Status: "approved", Synonyms: []string{"pedal", "brake"}, Avoid: []string{"stopper"},
+			Definition: json.RawMessage(`{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"The pedal that slows the car."}]}]}`)}},
 		now: at, exportID: "golden", tool: "Exciter test",
 	}
 }
@@ -103,8 +108,11 @@ func TestTheGoldenExportReadsBackAsTheProject(t *testing.T) {
 	if o := ix.objects["_supplier_SR1"]; o == nil || o.Type != "_supplier_interface" {
 		t.Fatalf("the tied identifiers were not written back: %+v", o)
 	}
-	if len(f.Specifications) != 1 || len(f.Specifications[0].Children) != 2 || len(f.Specifications[0].Children[0].Children) != 1 {
+	if len(f.Specifications) != 2 || len(f.Specifications[0].Children) != 2 || len(f.Specifications[0].Children[0].Children) != 1 {
 		t.Errorf("the hierarchy reads %+v", f.Specifications)
+	}
+	if g := f.Specifications[len(f.Specifications)-1]; g.Type != glossarySpecType || len(g.Children) != 1 || ix.objects[g.Children[0].Object].Type != glossaryTermType {
+		t.Errorf("the glossary reads %+v", g)
 	}
 	for _, d := range ix.types["_supplier_interface"].Attributes {
 		if d.Name == "Reviewer" && d.DataType != dataUser {
@@ -121,4 +129,33 @@ func must[T any](v T, err error) T {
 		panic(err)
 	}
 	return v
+}
+
+func TestAnImportLeavesTheGlossaryOut(t *testing.T) {
+	f, _, _, err := Read(must(os.ReadFile(goldenExport)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := analyze(f, brakes(), nil)
+	for _, p := range a.plans {
+		if strings.HasPrefix(p.Ref, prefixTerm) || p.Specification != "" {
+			t.Errorf("the import plans %s of the glossary", p.Ref)
+		}
+	}
+	for _, item := range a.preview.Schema {
+		if item.Identifier == glossaryTermType || strings.HasPrefix(item.Identifier, prefixGlossary) {
+			t.Errorf("the import maps %s of the glossary", item.Identifier)
+		}
+	}
+	if slices.Contains(a.preview.Specifications, "Glossary") {
+		t.Errorf("the preview lists the glossary among the specifications: %q", a.preview.Specifications)
+	}
+	if !slices.ContainsFunc(a.preview.Losses, func(l Loss) bool {
+		return l.Kind == LossPlace && l.Message == "The glossary of the file is left out; terms are not imported."
+	}) {
+		t.Errorf("the import does not say it leaves the glossary out: %+v", a.preview.Losses)
+	}
+	if slices.ContainsFunc(a.preview.Losses, func(l Loss) bool { return strings.Contains(l.Message, "in no specification") }) {
+		t.Errorf("the terms count as objects out of every specification: %+v", a.preview.Losses)
+	}
 }

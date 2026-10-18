@@ -19,6 +19,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/version"
 )
 
@@ -64,6 +65,8 @@ type snapshot struct {
 	ties     map[string]map[uuid.UUID][]tieRow
 	// root is the section a section export starts at, nil for the whole project.
 	root *requirement.TreeNode
+	// glossary is the terms the export defines: the project's, or those a section's requirements use.
+	glossary []specdoc.GlossaryTerm
 	// now, exportID and tool are what the export says of itself, set by Export and fixed by the golden test.
 	now      time.Time
 	exportID string
@@ -150,7 +153,12 @@ func (snap *snapshot) read(ctx context.Context, tx db.DBTX, actor uuid.UUID, pro
 			return err
 		}
 	}
-	return nil
+	if snap.root != nil {
+		snap.glossary, err = specdoc.UsedGlossary(ctx, tx, ids)
+	} else {
+		snap.glossary, err = specdoc.ProjectGlossary(ctx, tx, p.ID)
+	}
+	return err
 }
 
 func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.UUID) error {

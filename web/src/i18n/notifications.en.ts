@@ -89,6 +89,8 @@ export const notificationsEn = {
         return `A scan of ${key} brought code tags naming older revisions of requirements you follow`;
       case "code_orphaned":
         return `A scan of ${key} brought code tags naming requirements in the trash or none`;
+      case "term_changed":
+        return `A term ${key} uses has a new definition from ${who}`;
     }
   },
   preferencesTitle: "Notifications",
@@ -114,6 +116,7 @@ export const notificationsEn = {
     session_closed: "A review session you take part in is closed",
     code_outdated: "A code scan brings tags naming an older revision of a requirement you own or watch",
     code_orphaned: "A code scan brings tags naming a requirement in the trash, or none in a project you administer",
+    term_changed: "The definition of a glossary term a requirement you own uses changes",
   } as Record<NotificationKind, string>,
   inAppFor: (kind: string) => `In the app: ${kind}`,
   emailFor: (kind: string) => `By email: ${kind}`,

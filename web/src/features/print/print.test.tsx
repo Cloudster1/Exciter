@@ -38,6 +38,7 @@ function aDocument(overrides: Partial<SpecDocument> = {}): SpecDocument {
     exportedAt: "2026-10-15T10:00:00Z",
     exportedBy: "Ada Lovelace",
     total: 2,
+    glossary: [],
     entries: [
       {
         id: "0195f000-0000-7000-8000-0000000008b1",

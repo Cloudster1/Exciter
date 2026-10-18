@@ -214,3 +214,61 @@ func (r *reading) person(id string) (string, error) {
 	r.people[id] = name
 	return name, nil
 }
+
+// projectTerms are the terms that mark a project, out of deprecation, the first by rank where two share a name.
+const projectTerms = `
+	SELECT id, name, definition, synonyms, avoid, status, key, project_name FROM (
+		SELECT DISTINCT ON (lower(t.name::text)) t.id, t.name::text AS name, t.definition, t.synonyms, t.avoid, t.status,
+		       p.key, p.name AS project_name
+		FROM glossary_terms_of($1) g
+		JOIN glossary_term t ON t.id = g.term_id
+		JOIN project p ON p.id = t.project_id
+		WHERE t.status <> 'deprecated'
+		ORDER BY lower(t.name::text), g.rank) terms
+	ORDER BY lower(name), name, id`
+
+// sectionTerms are the terms the requirements use, out of deprecation.
+const sectionTerms = `
+	SELECT t.id, t.name::text, t.definition, t.synonyms, t.avoid, t.status, p.key, p.name
+	FROM glossary_term t
+	JOIN project p ON p.id = t.project_id
+	WHERE t.status <> 'deprecated' AND t.id IN (SELECT u.term_id FROM term_use u WHERE u.requirement_id = ANY($1))
+	ORDER BY lower(t.name::text), t.name, t.id`
+
+// ProjectGlossary reads the terms a project's export defines, as the reader in tx may read them (#210); what the
+// reader may not read of a library stays out by its policies.
+func ProjectGlossary(ctx context.Context, tx db.DBTX, projectID uuid.UUID) ([]GlossaryTerm, error) {
+	return readTerms(ctx, tx, projectTerms, projectID)
+}
+
+// UsedGlossary reads the terms the requirements use, which a section's export defines.
+func UsedGlossary(ctx context.Context, tx db.DBTX, requirements []uuid.UUID) ([]GlossaryTerm, error) {
+	return readTerms(ctx, tx, sectionTerms, requirements)
+}
+
+func readTerms(ctx context.Context, tx db.DBTX, query string, arg any) ([]GlossaryTerm, error) {
+	rows, err := tx.Query(ctx, query, arg)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	terms := []GlossaryTerm{}
+	for rows.Next() {
+		var (
+			t          GlossaryTerm
+			definition []byte
+		)
+		if err := rows.Scan(&t.ID, &t.Name, &definition, &t.Synonyms, &t.Avoid, &t.Status, &t.ProjectKey, &t.ProjectName); err != nil {
+			return nil, err
+		}
+		t.Definition = document(definition)
+		if t.Synonyms == nil {
+			t.Synonyms = []string{}
+		}
+		if t.Avoid == nil {
+			t.Avoid = []string{}
+		}
+		terms = append(terms, t)
+	}
+	return terms, rows.Err()
+}

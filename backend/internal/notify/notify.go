@@ -46,12 +46,14 @@ const (
 	// watches, or naming one in the trash or none (#201), told about the scan.
 	KindCodeOutdated Kind = "code_outdated"
 	KindCodeOrphaned Kind = "code_orphaned"
+	// KindTermChanged is the definition of a glossary term changed that a requirement one owns uses (#210).
+	KindTermChanged Kind = "term_changed"
 )
 
 // Kinds lists every Kind, the order deciding which one a person named twice by one event gets.
 var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindSourceRevised, KindReplied, KindCommented,
 	KindResolved, KindRevised, KindTransitioned, KindSessionInvited, KindSessionRound, KindSessionReminder, KindSessionClosed,
-	KindCodeOrphaned, KindCodeOutdated}
+	KindCodeOrphaned, KindCodeOutdated, KindTermChanged}
 
 // Digest is how mail is sent: each notification at once, or gathered every hour or day.
 type Digest string

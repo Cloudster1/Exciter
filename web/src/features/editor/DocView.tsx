@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/components/ui";
 import { attachmentUrl } from "@/api/attachments";
+import { TermWords } from "@/features/glossary/TermButton";
 import { t } from "@/i18n";
 import { imageAlt, imageWidth } from "./files";
 import type { FindingMark } from "./quality";
@@ -239,6 +240,17 @@ function marked(mark: DocMark, inner: ReactNode, key: number): ReactNode {
           {inner}
         </span>
       );
+    // Words linked to a glossary term on purpose (#210).
+    case "term": {
+      const termId = typeof mark.attrs?.termId === "string" ? mark.attrs.termId : "";
+      return termId ? (
+        <TermWords key={key} termId={termId}>
+          {inner}
+        </TermWords>
+      ) : (
+        inner
+      );
+    }
     case "link": {
       const href = safeHref(mark.attrs?.href);
       return href ? (

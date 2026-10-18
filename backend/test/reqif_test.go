@@ -278,3 +278,43 @@ func TestReqIFImportAsksBeforeItWrites(t *testing.T) {
 	want(t, owner.delete(t, "/api/v1/reqif-imports/"+discarded), http.StatusNoContent, "discard it")
 	refuse(t, "a discarded import", owner.delete(t, "/api/v1/reqif-imports/"+discarded), http.StatusNotFound, "not_found")
 }
+
+// A project's glossary goes out as terms of their own type in a specification of their own, and an import of the
+// file leaves it out with a loss, making no type and no requirement of it (#210).
+func TestReqIFImportLeavesTheGlossaryOut(t *testing.T) {
+	fromKey, toKey := projectKey(t, "RQG"), projectKey(t, "RQH")
+	f := newProjectFixture(t)
+	owner := f.owner
+	for _, key := range []string{fromKey, toKey} {
+		want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
+	}
+	want(t, owner.post(t, "/api/v1/projects/"+fromKey+"/terms", map[string]any{"name": "Brake pedal", "definition": docOf("The lever the driver presses.")}),
+		http.StatusCreated, "define a term")
+	want(t, owner.post(t, "/api/v1/projects/"+fromKey+"/requirements", map[string]any{"title": "Stop", "statement": statementSaying("The brake pedal stops the car.")}),
+		http.StatusCreated, "write "+fromKey+"-R1")
+	exported := want(t, owner.get(t, "/api/v1/projects/"+fromKey+"/export.reqif"), http.StatusOK, "export").Raw
+	if !bytes.Contains(exported, []byte(`"exciter-glossary-term"`)) {
+		t.Fatalf("the export carries no glossary")
+	}
+	made := obj(t, want(t, owner.upload(t, "/api/v1/projects/"+toKey+"/reqif-imports", fromKey+".reqif", exported), http.StatusCreated, "upload it"), "import")
+	preview := made["preview"].(map[string]any)
+	var told bool
+	for _, each := range preview["losses"].([]any) {
+		if l := each.(map[string]any); l["message"] == "The glossary of the file is left out; terms are not imported." {
+			told = true
+		}
+	}
+	if !told || preview["new"] != float64(1) || strings.Contains(string(mustJSON(t, preview["schema"])), "exciter-glossary") {
+		t.Errorf("the preview: %v", preview)
+	}
+	want(t, owner.post(t, "/api/v1/reqif-imports/"+made["id"].(string)+"/start", nil), http.StatusAccepted, "start it")
+	if done := finishedReqIF(t, owner, made["id"].(string)); done["state"] != "done" || len(done["imported"].([]any)) != 1 {
+		t.Fatalf("the import: %v", done)
+	}
+	sameList(t, "the tree", treeOf(t, owner, toKey), "1 requirement Stop")
+	for _, each := range list(t, want(t, owner.get(t, "/api/v1/projects/"+toKey+"/types"), http.StatusOK, "its types"), "types") {
+		if name := each.(map[string]any)["name"]; name == "Glossary term" {
+			t.Errorf("the import made the type %v", name)
+		}
+	}
+}

@@ -25,6 +25,8 @@ import { SessionPage } from "@/features/sessions/SessionPage";
 import { CoveragePage } from "@/features/coverage/CoveragePage";
 import { CodeTagsPage } from "@/features/evidence/CodeTagsPage";
 import { QualityPage } from "@/features/quality/QualityPage";
+import { GlossaryPage } from "@/features/glossary/GlossaryPage";
+import { TermPage } from "@/features/glossary/TermPage";
 import { readMatrixAddress } from "@/features/matrix/address";
 import { readChainsAddress } from "@/features/matrix/chainsAddress";
 import { ChainsPage } from "@/features/matrix/ChainsPage";
@@ -47,6 +49,7 @@ type ProjectPath =
   | "/p/$projectKey/coverage"
   | "/p/$projectKey/code-tags"
   | "/p/$projectKey/quality"
+  | "/p/$projectKey/glossary"
   | "/p/$projectKey/matrix"
   | "/p/$projectKey/chains";
 
@@ -223,6 +226,28 @@ export const qualityRoute = createRoute({
   component: function ProjectQualityPage() {
     const { projectKey } = qualityRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/quality" render={(project) => <QualityPage key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's glossary (#210): its terms and its libraries'. */
+export const glossaryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/glossary",
+  component: function ProjectGlossaryPage() {
+    const { projectKey } = glossaryRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/glossary" render={(project) => <GlossaryPage key={project.id} project={project} />} />;
+  },
+});
+
+/** One term of a glossary, with its revisions and the requirements that use it. */
+export const termRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/glossary/$termId",
+  component: function ProjectTermPage() {
+    const { projectKey, termId } = termRoute.useParams();
+    return (
+      <ProjectPage projectKey={projectKey} to="/p/$projectKey/glossary" render={(project) => <TermPage key={termId} project={project} termId={termId} />} />
+    );
   },
 });
 

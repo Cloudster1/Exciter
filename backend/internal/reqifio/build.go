@@ -63,6 +63,7 @@ func (snap *snapshot) build(fileRef FileRef) *File {
 	}
 	b.relations()
 	b.specification()
+	b.glossary()
 	return b.file
 }
 
@@ -369,6 +370,38 @@ func (b *builder) specification() {
 		} else {
 			spec.Children = append(spec.Children, node)
 		}
+	}
+	b.file.Specifications = append(b.file.Specifications, spec)
+}
+
+// glossary writes the terms as objects of a spec type of their own, listed by a second specification.
+func (b *builder) glossary() {
+	if len(b.snap.glossary) == 0 {
+		return
+	}
+	defs := []*AttrDef{
+		{Identity: b.id(termName, "Name"), Kind: KindString, DataType: dataString},
+		{Identity: b.id(termDefinition, "Definition"), Kind: KindXHTML, DataType: dataXHTML},
+		{Identity: b.id(termSynonyms, "Synonyms"), Kind: KindString, DataType: dataString},
+		{Identity: b.id(termAvoid, "Avoid"), Kind: KindString, DataType: dataString},
+		{Identity: b.id(termStatus, "Status"), Kind: KindString, DataType: dataString},
+	}
+	b.file.Types = append(b.file.Types,
+		&SpecType{Identity: b.id(glossaryTermType, "Glossary term"), Kind: TypeObject, Attributes: defs},
+		&SpecType{Identity: b.id(glossarySpecType, "Glossary"), Kind: TypeSpecification})
+	spec := &Specification{Identity: b.id(prefixGlossary+b.snap.project.ID.String(), "Glossary"), Type: glossarySpecType}
+	for _, t := range b.snap.glossary {
+		o := &Object{Identity: b.id(prefixTerm+t.ID.String(), ""), Type: glossaryTermType}
+		o.Values = append(o.Values, Value{Def: termName, Text: t.Name}, Value{Def: termDefinition, XHTML: FromDocument(t.Definition, b.fileRef)})
+		if len(t.Synonyms) > 0 {
+			o.Values = append(o.Values, Value{Def: termSynonyms, Text: strings.Join(t.Synonyms, ", ")})
+		}
+		if len(t.Avoid) > 0 {
+			o.Values = append(o.Values, Value{Def: termAvoid, Text: strings.Join(t.Avoid, ", ")})
+		}
+		o.Values = append(o.Values, Value{Def: termStatus, Text: t.Status})
+		b.file.Objects = append(b.file.Objects, o)
+		spec.Children = append(spec.Children, &Node{Identity: b.id(prefixTermNode+t.ID.String(), ""), Object: o.Identifier})
 	}
 	b.file.Specifications = append(b.file.Specifications, spec)
 }

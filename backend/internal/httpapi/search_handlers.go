@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/search"
 )
 
@@ -41,7 +42,15 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"hits": hits, "total": total, "limit": limit, "offset": offset})
+	// Terms answer beside the first page, as a glossary's words are what a search often looks for (#210).
+	terms := []glossary.Hit{}
+	if s.Glossary != nil && offset == 0 {
+		if terms, err = s.Glossary.Hits(r.Context(), userFrom(r), r.URL.Query().Get("q"), searchTerms); err != nil {
+			respondError(w, r, err)
+			return
+		}
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"hits": hits, "terms": terms, "total": total, "limit": limit, "offset": offset})
 }
 
 func (s *Server) handleQuickSearch(w http.ResponseWriter, r *http.Request) {

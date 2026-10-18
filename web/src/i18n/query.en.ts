@@ -50,6 +50,7 @@ export const queryEn = {
     codeOutdated: "how many code tags name an older revision",
     quality: "the score against the writing rules, from 0 to 100; empty for sections and requirements not checked yet",
     qualityFinding: "the writing rules with an open finding, such as passive or vague",
+    term: "a glossary term the requirement uses, by its name or a synonym; IS EMPTY for those that use none",
   } as Record<string, string>,
   attributeTakes: "an attribute of the project, by its name in quotes",
   linkName: "a link type",

@@ -1,0 +1,43 @@
+# How English words stem: "word -> stem", then words that must meet ("a = b") and must not ("a != b").
+# Both sides of a term are stemmed alike, so a stem need not be a word.
+
+pedals -> pedal
+pedal -> pedal
+studies -> study
+studied -> study
+boxes -> box
+switches -> switch
+classes -> class
+buses -> bus
+bus -> bus
+axis -> axis
+status -> status
+stopped -> stop
+stopping -> stop
+called -> call
+adding -> add
+brake -> brak
+braked -> brak
+braking -> brak
+brakes -> brak
+driver's -> driver
+need -> need
+has -> has
+ECUs -> ECU
+ECU -> ECU
+ABS -> ABS
+Pedal -> pedal
+
+brake pedal = brake pedals
+Brake Pedal = brake pedal
+driver's seat = drivers seat
+switch = switches
+stop = stopped
+study = studies
+control unit = control units
+ECU = ECUs
+
+ABS != abs
+series != sery
+bus != bu
+stop != step

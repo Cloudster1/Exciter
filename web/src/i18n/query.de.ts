@@ -52,6 +52,7 @@ export const queryDe: typeof queryEn = {
     codeOutdated: "wie viele Code-Tags eine ältere Revision nennen",
     quality: "die Bewertung nach den Schreibregeln, von 0 bis 100; leer für Abschnitte und noch nicht geprüfte Anforderungen",
     qualityFinding: "die Schreibregeln mit einem offenen Befund, etwa passive oder vague",
+    term: "ein Glossarbegriff, den die Anforderung verwendet, mit seinem Namen oder einem Synonym; IS EMPTY für jene, die keinen verwenden",
   },
   attributeTakes: "ein Attribut des Projekts, mit seinem Namen in Anführungszeichen",
   linkName: "ein Verknüpfungstyp",

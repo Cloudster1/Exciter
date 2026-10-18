@@ -28,6 +28,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
+	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/label"
@@ -186,6 +187,7 @@ func run() error {
 		TestResults:     testresult.NewService(cluster).WithCommits(armatures),
 		Code:            codetrace.NewService(cluster),
 		Quality:         quality.NewService(cluster, requirement.LocateForQuality),
+		Glossary:        glossary.NewService(cluster),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

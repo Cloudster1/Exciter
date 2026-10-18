@@ -28,13 +28,19 @@ var markdownFields = map[string]string{
 type Markdown struct {
 	Head    string
 	Entries []string
+	// Glossary is the terms the document defines (#210), after the tail; a document cut short leaves it out.
+	Glossary string
 	// Tail says the document holds fewer requirements than there are, empty when it holds them all.
 	Tail string
 }
 
 // String is the whole document.
 func (m Markdown) String() string {
-	return m.Upto(len(m.Entries), m.Tail)
+	closing := m.Tail
+	if m.Glossary != "" {
+		closing = strings.TrimPrefix(closing+"\n\n"+m.Glossary, "\n\n")
+	}
+	return m.Upto(len(m.Entries), closing)
 }
 
 // Upto is the head and the first n entries, then the closing words.
@@ -52,6 +58,7 @@ func (d *Document) Markdown() Markdown {
 	for i, e := range d.Entries {
 		out.Entries[i] = e.markdown()
 	}
+	out.Glossary = d.markdownGlossary()
 	if d.Truncated() {
 		out.Tail = fmt.Sprintf("This document holds the first %d of the %d requirements and sections. Read a section to hold the rest.",
 			len(d.Entries), d.Total)
@@ -104,9 +111,37 @@ func (e Entry) markdown() string {
 	return strings.Join(parts, "\n\n")
 }
 
+// glossaryHeading is the heading of the glossary, at the level of an entry at the top.
+const glossaryHeading = "Glossary"
+
+// markdownGlossary writes each term by name, its definition, then the words that mean it and those not to use.
+func (d *Document) markdownGlossary() string {
+	if len(d.Glossary) == 0 {
+		return ""
+	}
+	parts := []string{markdown.Heading(entryHeading, glossaryHeading)}
+	for _, t := range d.Glossary {
+		parts = append(parts, "**"+markdown.Words(t.Name)+"**")
+		if s := written(t.Definition); s != "" {
+			parts = append(parts, s)
+		}
+		var words []string
+		if len(t.Synonyms) > 0 {
+			words = append(words, "- "+markdown.Words("Synonyms: "+strings.Join(t.Synonyms, ", ")))
+		}
+		if len(t.Avoid) > 0 {
+			words = append(words, "- "+markdown.Words("Not to use: "+strings.Join(t.Avoid, ", ")))
+		}
+		if len(words) > 0 {
+			parts = append(parts, strings.Join(words, "\n"))
+		}
+	}
+	return strings.Join(parts, "\n\n")
+}
+
 // written is a document as #186 writes it, or as its words where Markdown cannot hold it, marked so.
 func written(raw json.RawMessage) string {
-	if md := markdown.Of(raw); md != nil {
+	if md := markdown.ForReading(raw); md != nil {
 		return strings.TrimSpace(*md)
 	}
 	var root rich.Node

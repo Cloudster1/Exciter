@@ -20,7 +20,8 @@ type Input struct {
 	Statement document.Node
 	// Words are the project's own additions to and exceptions from the word rules' lists.
 	Words map[RuleID]Words
-	Avoid []AvoidTerm
+	// Terms are the glossaries' terms, whose words the requirement may use or must avoid.
+	Terms []Term
 }
 
 // Hit is what a rule found, before a project's settings judge it.
@@ -29,12 +30,16 @@ type Hit struct {
 	Rule RuleID
 	Span
 	Match string
+	// Use is the name of the term to write instead, for a word the glossary says not to use.
+	Use string
 }
 
-// Result is every hit in field, block and position order, and the shape of each sentence that says what shall be.
+// Result is every hit in field, block and position order, the shape of each sentence that says what shall be,
+// and the terms used in field, block and position order.
 type Result struct {
 	Hits      []Hit
 	Sentences []Sentence
+	Uses      []TermUse
 }
 
 const (
@@ -50,12 +55,16 @@ var wordRules = set(string(RuleVague), string(RuleUnbounded), string(RuleEscape)
 // Examine runs every rule over a title and statement; it reads nothing else and is the same every time.
 func Examine(in Input) Result {
 	lang := language(in.Language)
-	c := newChecker(lang, in.Words, in.Avoid)
+	c := newChecker(lang, in.Words)
+	g := newGlossary(lang, in.Terms)
 	var raws []raw
+	var uses []found
 	if title := strings.TrimSpace(in.Title); title != "" {
 		lead := strings.Index(in.Title, title)
 		u := newUnit(FieldTitle, 0, in.Title, span{lead, lead + len(title)})
 		raws = append(raws, c.sentenceHits(u, true, nil)...)
+		r, f := g.find(u, nil)
+		raws, uses = append(raws, r...), append(uses, f...)
 	}
 	blocks := document.TextBlocks(in.Statement)
 	var units []*unit
@@ -72,6 +81,8 @@ func Examine(in Input) Result {
 	modal := false
 	for i, u := range units {
 		raws = append(raws, c.sentenceHits(u, i == 0, &blocks[u.block])...)
+		r, f := g.find(u, &blocks[u.block])
+		raws, uses = append(raws, r...), append(uses, f...)
 		pattern, found, ok := c.ears(u)
 		if !ok {
 			continue
@@ -87,7 +98,7 @@ func Examine(in Input) Result {
 		u := units[0]
 		raws = append(raws, c.hit(u, RuleEARS, u.from, u.to))
 	}
-	return Result{Hits: hits(raws, in.Title, blocks), Sentences: sentences}
+	return Result{Hits: hits(raws, in.Title, blocks), Sentences: sentences, Uses: g.uses(uses, in.Title, blocks)}
 }
 
 // sentenceHits runs the rules that read one sentence at a time, and drops what a person's name or a longer
@@ -157,7 +168,7 @@ func hits(raws []raw, title string, blocks []document.TextBlock) []Hit {
 		}
 		match := text[r.from:r.to]
 		base := fmt.Sprintf("%s:%s:%s", r.rule, r.field, keyPart(r, match, digests))
-		out = append(out, Hit{Key: fmt.Sprintf("%s:%d", base, seen[base]), Rule: r.rule, Span: span, Match: clip(match, MaxMatchChars)})
+		out = append(out, Hit{Key: fmt.Sprintf("%s:%d", base, seen[base]), Rule: r.rule, Span: span, Match: clip(match, MaxMatchChars), Use: r.use})
 		seen[base]++
 	}
 	return out

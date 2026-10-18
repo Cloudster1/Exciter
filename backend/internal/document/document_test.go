@@ -13,7 +13,8 @@ func TestAcceptsWhatTheEditorWrites(t *testing.T) {
 		{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Scope"}]},
 		{"type":"paragraph","content":[{"type":"text","text":"The basket ","marks":[{"type":"bold"}]},
 			{"type":"mention","attrs":{"id":"0195f000-0000-7000-8000-00000000000a","label":"Ada"}},
-			{"type":"text","text":" pays","marks":[{"type":"link","attrs":{"href":"https://example.test/pay","target":"_blank","rel":"noopener noreferrer nofollow","class":null}}]}]},
+			{"type":"text","text":" pays","marks":[{"type":"link","attrs":{"href":"https://example.test/pay","target":"_blank","rel":"noopener noreferrer nofollow","class":null}}]},
+			{"type":"text","text":" the brake pedal","marks":[{"type":"term","attrs":{"termId":"0195f000-0000-7000-8000-00000000000b"}}]}]},
 		{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"one"}]}]}]},
 		{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableHeader","attrs":{"colspan":1,"rowspan":1,"colwidth":null},"content":[{"type":"paragraph"}]}]}]},
 		{"type":"codeBlock","attrs":{"language":"go"},"content":[{"type":"text","text":"x := 1"}]}]}`
@@ -37,6 +38,9 @@ func TestRefusesWhatTheEditorCannotShow(t *testing.T) {
 		"a block in text":    `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"paragraph"}]}]}`,
 		"a style twice":      `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"bold"},{"type":"bold"}]}]}]}`,
 		"two documents":      `{"type":"doc"}{"type":"doc"}`,
+		"a term without id":  `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"term"}]}]}]}`,
+		"a term of no id":    `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"term","attrs":{"termId":"pedal"}}]}]}]}`,
+		"a term of null":     `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"term","attrs":{"termId":null}}]}]}]}`,
 	} {
 		if _, err := Parse(json.RawMessage(doc)); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%s was not refused: %v", name, err)
@@ -54,6 +58,14 @@ func TestPlainTextReadsBlocksAndCells(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := PlainText(doc); got != "Pay @Ada\na\tb" {
+		t.Errorf("plain text = %q", got)
+	}
+	marked, err := Parse(json.RawMessage(`{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Pay "},
+		{"type":"text","text":"the pedal","marks":[{"type":"term","attrs":{"termId":"0195f000-0000-7000-8000-00000000000b"}}]}]}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := PlainText(marked); got != "Pay the pedal" {
 		t.Errorf("plain text = %q", got)
 	}
 }

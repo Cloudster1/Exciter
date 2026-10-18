@@ -20,6 +20,7 @@ import { TestResults } from "@/features/evidence/TestResults";
 import { FindingsList, findingMarks } from "@/features/quality/FindingsList";
 import { QualityBadge } from "@/features/quality/QualityBadge";
 import { CodeLinks } from "@/features/evidence/CodeLinks";
+import { TermsPanel } from "@/features/glossary/TermsPanel";
 import { CommentsSection } from "@/features/comments/CommentsSection";
 import { ReviewPanel } from "@/features/reviews/ReviewPanel";
 import { LinksPanel } from "@/features/links/LinksPanel";
@@ -133,6 +134,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       {!section && <ReviewPanel requirement={requirement} />}
       <RequirementLabels requirement={requirement} />
       <LinksPanel requirement={requirement} />
+      <TermsPanel project={project} requirement={requirement} />
       <ArmatureLinks requirement={requirement} />
       <StatorLinks requirement={requirement} />
       <TestResults requirement={requirement} />

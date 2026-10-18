@@ -7,13 +7,16 @@ type inlineWriter func(w *writer, n document.Node, rp runProps)
 // inlineWriters writes each inline node of the allowlist, held to it by a test as blockWriters is.
 var inlineWriters map[string]inlineWriter
 
-// markStyles are the marks that style a run; a link is written around its runs.
+// markStyles are the marks that style a run; a link, and a term's link to the glossary, is written around its
+// runs.
 var markStyles = map[string]func(*runProps){
 	"bold":   func(rp *runProps) { rp.bold = true },
 	"italic": func(rp *runProps) { rp.italic = true },
 	"strike": func(rp *runProps) { rp.strike = true },
 	"code":   func(rp *runProps) { rp.style = "InlineCode" },
 	"link":   func(rp *runProps) { rp.style = "Hyperlink" },
+	// A term reads as the words around it.
+	document.MarkTerm: func(*runProps) {},
 }
 
 func init() {
@@ -33,13 +36,18 @@ func init() {
 	}
 }
 
-// inline writes a block's inline content, its marks as run properties and each run of the same link as one
-// hyperlink.
+// inline writes a block's inline content, its marks as run properties and each run of the same link, or of the
+// same term's link to the glossary, as one hyperlink.
 func (w *writer) inline(nodes []document.Node, f frame) {
 	for i := 0; i < len(nodes); {
 		href := linkOf(nodes[i])
+		anchor := ""
+		if href == "" {
+			anchor = w.termBookmark(nodes[i])
+		}
 		j := i + 1
-		for j < len(nodes) && href != "" && linkOf(nodes[j]) == href {
+		for j < len(nodes) && ((href != "" && linkOf(nodes[j]) == href) ||
+			(anchor != "" && linkOf(nodes[j]) == "" && w.termBookmark(nodes[j]) == anchor)) {
 			j++
 		}
 		run := nodes[i:j]
@@ -61,13 +69,32 @@ func (w *writer) inline(nodes []document.Node, f frame) {
 				write(w, n, rp)
 			}
 		}
-		if href != "" {
+		switch {
+		case href != "":
 			w.hyperlink(href, write)
-		} else {
+		case anchor != "":
+			w.internal(anchor, write)
+		default:
 			write()
 		}
 		i = j
 	}
+}
+
+// termBookmark is where in the document the term a node is linked to is defined, or "" for none.
+func (w *writer) termBookmark(n document.Node) string {
+	if w.termAnchor == nil {
+		return ""
+	}
+	for _, m := range n.Marks {
+		if m.Type == document.MarkTerm {
+			id, _ := m.Attrs["termId"].(string)
+			if bookmark, ok := w.termAnchor(id); ok {
+				return bookmark
+			}
+		}
+	}
+	return ""
 }
 
 func linkOf(n document.Node) string {

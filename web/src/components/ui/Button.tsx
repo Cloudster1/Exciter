@@ -70,6 +70,17 @@ export function Button({
   );
 }
 
+/** A button that reads as words in running text and wraps with them, as a glossary term in a requirement does. */
+export function WordButton({ className, type = "button", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
+  return (
+    <button
+      {...rest}
+      type={type}
+      className={cx("inline cursor-pointer rounded-sm p-0 text-left font-[inherit] focus-visible:outline-2 focus-visible:outline-focus", className)}
+    />
+  );
+}
+
 /** A link drawn as a button, for a destination the browser handles itself: a download, a file. */
 export function ButtonLink({
   variant = "secondary",
