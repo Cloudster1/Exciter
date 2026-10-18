@@ -1508,7 +1508,8 @@
                 "field_rule.saved",
                 "review_session.opened",
                 "review_session.round_started",
-                "review_session.closed"
+                "review_session.closed",
+                "evidence_settings.saved"
               ]
             }
           },
@@ -1692,7 +1693,8 @@
                 "field_rule.saved",
                 "review_session.opened",
                 "review_session.round_started",
-                "review_session.closed"
+                "review_session.closed",
+                "evidence_settings.saved"
               ]
             }
           },
@@ -8222,16 +8224,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -8311,16 +8303,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9475,14 +9457,23 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, issues, or Stator pages.",
+            "description": "requirements, the default, issues, Stator pages, or the tests whose latest results on the counting branch verify the rows.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
                 "issues",
-                "pages"
+                "pages",
+                "tests"
               ]
+            }
+          },
+          {
+            "name": "columnRepository",
+            "in": "query",
+            "description": "For test columns, the repository they come from; every one when absent.",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -9820,14 +9811,23 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, issues, or Stator pages.",
+            "description": "requirements, the default, issues, Stator pages, or the tests whose latest results on the counting branch verify the rows.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
                 "issues",
-                "pages"
+                "pages",
+                "tests"
               ]
+            }
+          },
+          {
+            "name": "columnRepository",
+            "in": "query",
+            "description": "For test columns, the repository they come from; every one when absent.",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -10126,14 +10126,23 @@
           {
             "name": "columns",
             "in": "query",
-            "description": "requirements, the default, issues, or Stator pages.",
+            "description": "requirements, the default, issues, Stator pages, or the tests whose latest results on the counting branch verify the rows.",
             "schema": {
               "type": "string",
               "enum": [
                 "requirements",
                 "issues",
-                "pages"
+                "pages",
+                "tests"
               ]
+            }
+          },
+          {
+            "name": "columnRepository",
+            "in": "query",
+            "description": "For test columns, the repository they come from; every one when absent.",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -11622,16 +11631,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -12577,16 +12576,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -16596,16 +16585,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -18688,16 +18667,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -20708,7 +20677,8 @@
             "items": {
               "type": "string",
               "enum": [
-                "read"
+                "read",
+                "evidence"
               ]
             }
           },
@@ -22072,7 +22042,8 @@
               "field_rule.saved",
               "review_session.opened",
               "review_session.round_started",
-              "review_session.closed"
+              "review_session.closed",
+              "evidence_settings.saved"
             ]
           },
           "actorId": {
@@ -22205,7 +22176,8 @@
                 "field_rule.saved",
                 "review_session.opened",
                 "review_session.round_started",
-                "review_session.closed"
+                "review_session.closed",
+                "evidence_settings.saved"
               ]
             }
           },
@@ -22668,7 +22640,8 @@
             "enum": [
               "trace",
               "armature",
-              "stator"
+              "stator",
+              "test"
             ]
           },
           "name": {
@@ -23118,6 +23091,33 @@
           "projects",
           "allProjects",
           "expiresAt"
+        ]
+      },
+      "ChainTest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "suite": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "suite",
+          "name",
+          "outcome",
+          "outdated"
         ]
       },
       "ChooseThemeRequest": {
@@ -23917,6 +23917,16 @@
           },
           "verified": {
             "type": "boolean"
+          },
+          "verifiedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "links",
+                "tests"
+              ]
+            }
           }
         },
         "required": [
@@ -23925,7 +23935,8 @@
           "typeName",
           "decomposed",
           "implemented",
-          "verified"
+          "verified",
+          "verifiedFrom"
         ]
       },
       "CoverageRuleInput": {
@@ -23943,6 +23954,16 @@
           },
           "verified": {
             "type": "boolean"
+          },
+          "verifiedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "links",
+                "tests"
+              ]
+            }
           }
         },
         "required": [
@@ -25407,6 +25428,9 @@
                 "type": "null"
               }
             ]
+          },
+          "test": {
+            "$ref": "#/components/schemas/MatrixTest"
           }
         },
         "required": [
@@ -25434,11 +25458,15 @@
             "enum": [
               "trace",
               "armature",
-              "stator"
+              "stator",
+              "test"
             ]
           },
           "name": {
             "type": "string"
+          },
+          "outdated": {
+            "type": "boolean"
           },
           "suspect": {
             "type": "boolean"
@@ -25531,6 +25559,25 @@
           "status",
           "trashed",
           "canLink"
+        ]
+      },
+      "MatrixTest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "suite": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "suite",
+          "name"
         ]
       },
       "MeResponse": {
@@ -25742,7 +25789,8 @@
             "items": {
               "type": "string",
               "enum": [
-                "read"
+                "read",
+                "evidence"
               ]
             }
           }
@@ -26020,6 +26068,9 @@
           "client": {
             "$ref": "#/components/schemas/OAuthClient"
           },
+          "evidence": {
+            "type": "boolean"
+          },
           "expiresAt": {
             "type": "string",
             "format": "date-time"
@@ -26040,6 +26091,7 @@
           "client",
           "redirectHost",
           "readOnly",
+          "evidence",
           "expiresAt"
         ]
       },
@@ -31082,6 +31134,9 @@
           "suspect": {
             "type": "boolean"
           },
+          "test": {
+            "$ref": "#/components/schemas/ChainTest"
+          },
           "via": {
             "type": "string"
           }
@@ -31623,7 +31678,8 @@
             "enum": [
               "requirements",
               "issues",
-              "pages"
+              "pages",
+              "tests"
             ]
           },
           "name": {
@@ -31657,7 +31713,8 @@
             "enum": [
               "requirements",
               "issues",
-              "pages"
+              "pages",
+              "tests"
             ]
           },
           "name": {

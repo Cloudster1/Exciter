@@ -62,7 +62,7 @@ var chainQuery = []param{
 
 // baselineMatrixQuery says what a baseline's matrix is laid out against, and what it is compared with.
 var baselineMatrixQuery = []param{
-	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixColumnKinds)}, description: "requirements, the default, issues or pages."},
+	{name: "columns", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.RecordedColumnKinds)}, description: "requirements, the default, issues or pages."},
 	{name: "linkType", repeated: true, description: "Keys of the link types to count; every type when absent."},
 	{name: "direction", schema: &openapi.Schema{Type: "string", Enum: enumStrings(trace.MatrixDirections)}, description: "Which way a link must point from its row: outgoing, incoming, or both, the default."},
 	{name: "with", description: "Another baseline's id, or now, to mark each link added, removed or changed; unmarked when absent."},

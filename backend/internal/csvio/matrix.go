@@ -13,6 +13,8 @@ import (
 const (
 	// suspectMark follows a link's name in a matrix cell while it waits to be checked.
 	suspectMark = " (suspect)"
+	// outdatedMark follows a test's outcome in a cell when the requirement was revised past its result (#200).
+	outdatedMark = " (outdated)"
 	// linksHeading heads the column, and the line, of how many links each row and column has (#148).
 	linksHeading = "Links"
 	// matrixLead is the key, title and count before a matrix file's first column.
@@ -29,6 +31,10 @@ func columnHeading(c trace.MatrixColumn) string {
 		return c.Page.Title
 	case c.Page != nil:
 		return c.Page.SpaceKey + "/" + c.Page.ID.String()
+	case c.Test != nil && c.Test.Suite != "" && c.Test.Suite != c.Test.Name:
+		return c.Test.Suite + " " + c.Test.Name
+	case c.Test != nil:
+		return c.Test.Name
 	}
 	return c.IssueKey
 }
@@ -68,6 +74,9 @@ func WriteMatrix(w io.Writer, m *trace.Matrix) error {
 			names[i] = l.Name
 			if l.Suspect {
 				names[i] += suspectMark
+			}
+			if l.Outdated {
+				names[i] += outdatedMark
 			}
 		}
 		lines[cell.Row][cell.Column+matrixLead] = Cell(strings.Join(names, "; "))

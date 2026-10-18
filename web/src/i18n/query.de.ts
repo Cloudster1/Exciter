@@ -46,6 +46,8 @@ export const queryDe: typeof queryEn = {
     decomposed: "none, partial, full oder na",
     implemented: "none, partial, full oder na",
     verified: "none, partial, full oder na",
+    testResult: "das schlechteste letzte Ergebnis auf dem zählenden Branch: errored, failed, skipped, passed oder none",
+    testOutdated: "wie viele Tests gegen eine ältere Revision liefen",
   },
   attributeTakes: "ein Attribut des Projekts, mit seinem Namen in Anführungszeichen",
   linkName: "ein Verknüpfungstyp",

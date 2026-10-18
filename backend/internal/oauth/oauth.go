@@ -31,14 +31,16 @@ const (
 	MaxClientNameLength    = 100
 )
 
-// The scopes a client may ask for; the person may narrow the full one to reading at the consent page.
+// The scopes a client may ask for; the person may narrow the full one to reading at the consent page. Evidence is
+// asked alone and reaches the uploads and the trace check of #200 rather than MCP.
 const (
-	ScopeMCP     = "mcp"
-	ScopeMCPRead = "mcp:read"
+	ScopeMCP      = "mcp"
+	ScopeMCPRead  = "mcp:read"
+	ScopeEvidence = "evidence"
 )
 
 // Scopes lists every scope, for the metadata documents.
-var Scopes = []string{ScopeMCP, ScopeMCPRead}
+var Scopes = []string{ScopeMCP, ScopeMCPRead, ScopeEvidence}
 
 // ClientKind is how Exciter came to know a client.
 type ClientKind string
@@ -155,8 +157,9 @@ type AuthorizationRequest struct {
 	Client ClientRef `json:"client"`
 	// RedirectHost is where the browser goes back to, which the person should recognise.
 	RedirectHost string `json:"redirectHost"`
-	// ReadOnly says the client asked only to read.
+	// ReadOnly says the client asked only to read, Evidence only to upload evidence and run the trace check.
 	ReadOnly  bool      `json:"readOnly"`
+	Evidence  bool      `json:"evidence"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 

@@ -28,10 +28,16 @@ const (
 	ColumnsIssues       MatrixColumns = "issues"
 	// ColumnsPages are the Stator pages the rows are linked to (#150).
 	ColumnsPages MatrixColumns = "pages"
+	// ColumnsTests are the test cases whose latest results on the counting branch verify the rows (#200).
+	ColumnsTests MatrixColumns = "tests"
 )
 
-// MatrixColumnKinds lists every MatrixColumns, for the API document.
-var MatrixColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages}
+// MatrixColumnKinds lists every MatrixColumns, for the API document; RecordedColumnKinds are those a baseline's
+// matrix lays out from what it recorded.
+var (
+	MatrixColumnKinds   = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages, ColumnsTests}
+	RecordedColumnKinds = []MatrixColumns{ColumnsRequirements, ColumnsIssues, ColumnsPages}
+)
 
 // MatrixDirection says which way a link must point from its row to be counted.
 type MatrixDirection string
@@ -52,10 +58,12 @@ const (
 	KindTrace    LinkKind = "trace"
 	KindArmature LinkKind = "armature"
 	KindStator   LinkKind = "stator"
+	// KindTest is a test case's latest result for the row, named by its outcome (#200).
+	KindTest LinkKind = "test"
 )
 
 // LinkKinds lists every LinkKind, for the API document.
-var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator}
+var LinkKinds = []LinkKind{KindTrace, KindArmature, KindStator, KindTest}
 
 // Gaps says which rows or columns without a link a matrix keeps; empty keeps every one.
 type Gaps string
@@ -81,9 +89,11 @@ type MatrixQuery struct {
 	LinkTypes    []string
 	Direction    MatrixDirection
 	Relations    []string
-	Gaps         Gaps
-	Limit        int
-	Offset       int
+	// ColumnRepository keeps the test columns to one repository's.
+	ColumnRepository string
+	Gaps             Gaps
+	Limit            int
+	Offset           int
 	// ColumnLimit pages the columns; zero answers every one, and refuses more than MatrixMaxColumns.
 	ColumnLimit, ColumnOffset int
 }
@@ -94,11 +104,19 @@ type MatrixRow struct {
 	CanLink bool `json:"canLink"`
 }
 
-// MatrixColumn is a requirement, an Armature issue by its key, or a Stator page.
+// MatrixColumn is a requirement, an Armature issue by its key, a Stator page, or a test case.
 type MatrixColumn struct {
 	Requirement *requirement.Ref `json:"requirement"`
 	IssueKey    string           `json:"issueKey"`
 	Page        *MatrixPage      `json:"page"`
+	Test        *MatrixTest      `json:"test,omitempty"`
+}
+
+// MatrixTest is a test case as a column: its repository, suite and name.
+type MatrixTest struct {
+	Repository string `json:"repository"`
+	Suite      string `json:"suite"`
+	Name       string `json:"name"`
 }
 
 // MatrixCell is every link between one row and one column, by their places in the answer.
@@ -117,6 +135,8 @@ type MatrixLink struct {
 	TypeKey   string    `json:"typeKey,omitempty"`
 	Direction Direction `json:"direction"`
 	Suspect   bool      `json:"suspect"`
+	// Outdated says a test's result was made against an older revision of the row.
+	Outdated bool `json:"outdated,omitempty"`
 }
 
 // Matrix is a page of requirements against a page of the columns, and how many links each has in all.
@@ -156,7 +176,7 @@ func checkMatrix(q *MatrixQuery) error {
 		q.Columns = ColumnsRequirements
 	}
 	if !slices.Contains(MatrixColumnKinds, q.Columns) {
-		return &FieldError{Field: "columns", Message: "Show requirements, issues or pages as the columns."}
+		return &FieldError{Field: "columns", Message: "Show requirements, issues, pages or tests as the columns."}
 	}
 	if q.Direction == "" {
 		q.Direction = DirectionBoth
@@ -169,6 +189,12 @@ func checkMatrix(q *MatrixQuery) error {
 	}
 	if q.Columns != ColumnsRequirements && len(q.LinkTypes) > 0 {
 		return &FieldError{Field: "linkType", Message: "Link types narrow requirement columns. Show requirements as the columns, or leave the link types out."}
+	}
+	if q.Columns != ColumnsTests && q.ColumnRepository != "" {
+		return &FieldError{Field: "columnRepository", Message: "A repository narrows test columns. Show tests as the columns, or leave the repository out."}
+	}
+	if q.Columns == ColumnsTests && len(q.Relations) > 0 {
+		return &FieldError{Field: "relation", Message: "Relations narrow issue and page columns. Show those as the columns, or leave the relations out."}
 	}
 	if q.Columns != ColumnsRequirements && q.ColumnFilter != nil {
 		return &FieldError{Field: "columnQuery", Message: "A column filter keeps requirement columns. Show requirements as the columns, or leave the column filter out."}
@@ -220,6 +246,8 @@ func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey strin
 			l, err = issueLinks(ctx, tx, ids, q.Relations)
 		case ColumnsPages:
 			l, err = pageLinks(ctx, tx, ids, q.Relations)
+		case ColumnsTests:
+			l, err = testLinks(ctx, tx, ids, q.ColumnRepository)
 		default:
 			l, err = requirementLinks(ctx, tx, reader, other, ids, q)
 		}

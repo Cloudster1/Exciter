@@ -20,6 +20,7 @@ import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
+import { evidenceEn } from "./evidence.en";
 import { fieldRulesEn } from "./fieldRules.en";
 import { sessionsEn } from "./sessions.en";
 import { statorEn } from "./stator.en";
@@ -332,6 +333,7 @@ export const en = {
       "review_session.opened": "Review session opened",
       "review_session.round_started": "Review session round started",
       "review_session.closed": "Review session closed",
+      "evidence_settings.saved": "Counting branch named",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -373,6 +375,7 @@ export const en = {
   stator: statorEn,
   reuse: reuseEn,
   control: controlEn,
+  evidence: evidenceEn,
   fieldRules: fieldRulesEn,
   sessions: sessionsEn,
   comments: commentsEn,

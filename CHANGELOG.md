@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Test results from CI verify requirements (#200). A pipeline uploads its
+  JUnit reports with a token of the new evidence scope, through
+  `exciter-ci results`, and each test case that names a requirement, as
+  `[verifies CHK-R42]`, lands on it with the commit, the branch and the run.
+  A requirement shows its latest result per test and branch, and a newer
+  revision marks it outdated. A requirement type's coverage can count passing,
+  current tests as verified. The query language gains `testResult` and
+  `testOutdated`, the matrix takes tests as its columns, and a trace model
+  can end in tests. `exciter-ci check`, on the trace check, fails a pipeline
+  on broken chains, gaps and failing tests. The branch whose results count
+  is a project setting, and baselines record the results they held.
 - The API contract for M9, Verification evidence (#224):
   `docs/api-contract-m9.md` agrees how CI uploads test results and the
   requirement tags found in source code with a token of the new evidence

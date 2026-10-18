@@ -9,6 +9,8 @@ export const oauthDe: typeof oauthEn = {
   knownMetadata: "Exciter hat ihre Beschreibung von dieser Adresse gelesen.",
   goesBack: (host: string) => `Danach geht es zurück zu ${host}.`,
   askedToRead: "Sie hat nur ums Lesen gebeten.",
+  askedForEvidence:
+    "Sie hat nur darum gebeten, Testergebnisse hochzuladen und die Trace-Prüfung auszuführen, wie eine CI-Pipeline. Sonst liest und ändert sie nichts.",
   readOnly: "Nur lesen",
   readOnlyHint: "Sie liest alles, was Sie lesen können, und ändert nichts.",
   projectsSome: "Die App erreicht nur die hier gewählten Projekte, nie mehr als Sie, und nichts, was alle betrifft.",

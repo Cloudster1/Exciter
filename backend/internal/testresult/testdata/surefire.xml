@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.acme.BrakesTest" time="0.05" tests="2" errors="0" skipped="0" failures="1">
+  <properties>
+    <property name="java.version" value="21"/>
+  </properties>
+  <testcase name="engagesWithin100ms" classname="com.acme.BrakesTest" time="0.01">
+    <properties>
+      <property name="verifies" value="CHK-R42,CHK-R47"/>
+    </properties>
+  </testcase>
+  <testcase name="lightsFollowThePedal" classname="com.acme.BrakesTest" time="0.02">
+    <failure message="expected: &lt;true&gt; but was: &lt;false&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <true> but was: <false>]]></failure>
+    <system-out><![CDATA[[verifies CHK-R99] in the output does not count]]></system-out>
+  </testcase>
+</testsuite>

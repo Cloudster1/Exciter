@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="1" errors="0" time="0.8">
+    <testsuite name="src/brakes.test.ts" timestamp="2026-10-17T10:00:00.000Z" hostname="ci" tests="2" failures="1" errors="0" skipped="0" time="0.02">
+        <testcase classname="src/brakes.test.ts" name="brakes &gt; engage within 100 ms [Verifies CHK-R42]" time="0.004">
+        </testcase>
+        <testcase classname="src/brakes.test.ts" name="brakes &gt; lights [verifies CHK-R43]" time="0.003">
+            <failure message="expected false to be true" type="AssertionError">
+AssertionError: expected false to be true
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

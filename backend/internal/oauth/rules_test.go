@@ -88,12 +88,19 @@ func TestARegistrationIsHeldToTheRulesAndGivenItsDefaults(t *testing.T) {
 	}
 }
 
-func TestAScopeIsReadAsEverythingOrReading(t *testing.T) {
-	for scope, want := range map[string][2]bool{
-		"": {false, true}, "mcp": {false, true}, "mcp:read": {true, true}, "mcp mcp:read": {false, true}, "admin": {false, false}, "mcp offline_access": {false, false},
+func TestAScopeIsReadAsEverythingReadingOrEvidenceAlone(t *testing.T) {
+	for asked, want := range map[string][3]bool{
+		"": {false, false, true}, "mcp": {false, false, true}, "mcp:read": {true, false, true}, "mcp mcp:read": {false, false, true},
+		"evidence": {false, true, true}, "evidence mcp": {false, false, false}, "mcp:read evidence": {false, false, false},
+		"admin": {false, false, false}, "mcp offline_access": {false, false, false},
 	} {
-		if readOnly, ok := scopeReadOnly(scope); readOnly != want[0] || ok != want[1] {
-			t.Errorf("%q reads %v %v", scope, readOnly, ok)
+		if sc, ok := scopeAsked(asked); sc.readOnly != want[0] || sc.evidence != want[1] || ok != want[2] {
+			t.Errorf("%q reads %+v %v", asked, sc, ok)
+		}
+	}
+	for sc, name := range map[scope]string{{}: ScopeMCP, {readOnly: true}: ScopeMCPRead, {evidence: true}: ScopeEvidence} {
+		if sc.name() != name {
+			t.Errorf("%+v is named %s, want %s", sc, sc.name(), name)
 		}
 	}
 	if !IsMetadataClientID("https://client.example/oauth/metadata.json") || IsMetadataClientID("https://client.example") || IsMetadataClientID("0193") ||

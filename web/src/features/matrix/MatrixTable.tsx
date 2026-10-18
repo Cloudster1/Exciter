@@ -23,6 +23,32 @@ function Count({ n }: { n: number | undefined }) {
   );
 }
 
+/** A test's latest result for a row (#200): a mark, and the outcome said; results are not edited from the matrix. */
+function TestCell({ rowKey, name, links }: { rowKey: string; name: string; links: Matrix["cells"][number]["links"] | undefined }) {
+  const said = (links ?? []).map((l) => {
+    const outcome = t.evidence.results.outcome[l.name] ?? l.name;
+    return l.outdated ? `${outcome} (${t.evidence.matrix.outdated})` : outcome;
+  });
+  const label = links ? t.coverage.cell(rowKey, name, said.join(", ")) : "";
+  const failed = links?.some((l) => l.name === "failed" || l.name === "errored");
+  const doubtful = links?.some((l) => l.outdated || l.name === "skipped");
+  return (
+    <td className="border-l border-border p-0 text-center" data-cell={`${rowKey}:${name}`} title={label || undefined}>
+      {links && (
+        <span className="flex h-6 min-w-6 items-center justify-center" role="img" aria-label={label}>
+          {failed ? (
+            <Icon.X className="size-3.5 text-danger" />
+          ) : doubtful ? (
+            <Icon.Warning className="size-3.5 text-warning" />
+          ) : (
+            <Icon.Check className="size-3.5 text-success" />
+          )}
+        </span>
+      )}
+    </td>
+  );
+}
+
 /** A page of the matrix as a table: rows down, columns across, a mark in every cell with a link, and how many links
  * each row and column has, a gap marked. A cell opens its links in a panel (#149). */
 export function MatrixTable({ project, matrix }: { project: Project; matrix: Matrix }) {
@@ -75,6 +101,7 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
                 const names = (links ?? []).map((l) => (l.suspect ? `${l.name} (${t.coverage.suspect})` : l.name)).join(", ");
                 const label = links ? t.coverage.cell(row.key, nameOf(column), names) : t.matrix.openCell(row.key, nameOf(column));
                 const opened = open?.row === r && open.column === c;
+                if (column.test) return <TestCell key={columnKey(column)} rowKey={row.key} name={nameOf(column)} links={links} />;
                 return (
                   <td key={columnKey(column)} className="border-l border-border p-0 text-center" data-cell={`${row.key}:${nameOf(column)}`} title={label}>
                     {(links || row.canLink) && (

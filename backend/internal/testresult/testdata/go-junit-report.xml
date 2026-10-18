@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="1">
+	<testsuite name="example.com/checkout/brakes" tests="3" failures="1" errors="0" id="0" hostname="ci" time="0.012" timestamp="2026-10-17T10:00:00Z">
+		<properties>
+			<property name="go.version" value="go1.26.0 linux/amd64"></property>
+		</properties>
+		<testcase name="TestBrakesEngageWithin100ms [verifies CHK-R42]" classname="example.com/checkout/brakes" time="0.004"></testcase>
+		<testcase name="TestBrakeLightsFollowThePedal [verifies chk-r43, CHK-R44]" classname="example.com/checkout/brakes" time="0.006">
+			<failure message="Failed" type="">brakes_test.go:31: lights stayed off</failure>
+		</testcase>
+		<testcase name="TestNothingInParticular" classname="example.com/checkout/brakes" time="0.000"></testcase>
+	</testsuite>
+</testsuites>

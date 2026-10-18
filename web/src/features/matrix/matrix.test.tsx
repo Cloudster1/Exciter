@@ -72,6 +72,35 @@ describe("the traceability matrix", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
+  it("lays out the tests whose latest results verify the rows, failing and outdated ones marked (#200)", async () => {
+    const test = (name: string) => ({ requirement: null, issueKey: "", page: null, test: { repository: "acme/checkout", suite: "brakes", name } });
+    const result = (name: string, outdated = false) => ({
+      id: "00000000-0000-0000-0000-000000000000",
+      kind: "test" as const,
+      name,
+      direction: "incoming" as const,
+      suspect: false,
+      outdated,
+    });
+    stubMatrix({
+      ...issues,
+      columns: [test("engage"), test("lights")],
+      cells: [
+        { row: 0, column: 0, links: [result("passed", true)] },
+        { row: 1, column: 1, links: [result("failed")] },
+      ],
+      columnLinks: [1, 1],
+      columnTotal: 2,
+    });
+    await renderAt("/p/CHK/matrix?columns=tests");
+    const table = await screen.findByRole("table", { name: "Matrix" });
+    expect(within(table).getByRole("columnheader", { name: "engage" })).toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "CHK-R1 to engage: Passed (outdated)" })).toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "CHK-R2 to lights: Failed" })).toBeInTheDocument();
+    expect(table.querySelector('[data-action="open-cell"]')).toBeNull();
+    expect(await axeViolations()).toEqual([]);
+  });
+
   it("counts the link types and the direction picked, and keeps them in the address and the download", async () => {
     const asked = stubMatrix({ ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 });
     const router = await renderAt("/p/CHK/matrix");

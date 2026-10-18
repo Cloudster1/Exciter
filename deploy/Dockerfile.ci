@@ -1,0 +1,25 @@
+# exciter-ci alone, for a pipeline to run (#200): it uploads test results, scans a checkout and asks for the trace
+# check's verdict. The chart does not run it; a pipeline pulls it beside its own build.
+
+FROM golang:1.26-alpine AS builder
+WORKDIR /src
+ENV GOFLAGS=-buildvcs=false GOTOOLCHAIN=local CGO_ENABLED=0
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+COPY backend/ ./
+COPY VERSION /VERSION
+ARG VERSION=""
+ARG COMMIT=""
+RUN PKG=github.com/cloudster1/exciter/backend/internal/version && \
+    VERSION="${VERSION:-$(cat /VERSION)+dev}" && \
+    go build -trimpath -ldflags="-s -w -X $PKG.Version=$VERSION -X $PKG.Commit=$COMMIT -X $PKG.BuiltAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        -o /out/exciter-ci ./cmd/exciter-ci
+
+# Alpine for the certificates a pipeline's https needs, and git, which a scan reads the remote and commit with.
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates git && \
+    adduser -D -u 10001 exciter
+COPY --from=builder /out/exciter-ci /usr/local/bin/exciter-ci
+USER exciter
+WORKDIR /work
+ENTRYPOINT ["/usr/local/bin/exciter-ci"]

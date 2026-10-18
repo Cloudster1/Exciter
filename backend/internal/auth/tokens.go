@@ -24,6 +24,8 @@ const (
 	MaxTokenProjects   = 50
 	// ScopeRead limits a token to reading; no scope is every right its owner has.
 	ScopeRead = "read"
+	// ScopeEvidence limits a token to uploading evidence and running the trace check (#200).
+	ScopeEvidence = "evidence"
 )
 
 // APIToken is one personal access token, without its secret but on the answer that made it.
@@ -85,7 +87,7 @@ var (
 	// ErrTokenName is a token without a name, or with a long one.
 	ErrTokenName = errors.New("give the token a name of at most 100 characters")
 	// ErrTokenScope is a scope nobody enforces, so a token never carries a promise the API does not keep.
-	ErrTokenScope = errors.New("that is not a token scope; use read, or leave the scopes empty")
+	ErrTokenScope = errors.New("that is not a token scope; use read or evidence, or leave the scopes empty")
 	// ErrTokenExpiry is an expiry that has already passed.
 	ErrTokenExpiry = errors.New("the expiry has to be in the future")
 	// ErrNoSuchToken is a token that is not the caller's to revoke.
@@ -97,12 +99,16 @@ var (
 	ErrNoSuchProject = errors.New("a token can only name projects you can already see")
 )
 
-// ValidateScopes refuses any scope but read.
+// ValidateScopes refuses any scope but read or evidence, and both at once, which would promise two narrowings
+// that do not compose.
 func ValidateScopes(scopes []string) error {
 	for _, s := range scopes {
-		if s != ScopeRead {
+		if s != ScopeRead && s != ScopeEvidence {
 			return ErrTokenScope
 		}
+	}
+	if len(slices.Compact(slices.Sorted(slices.Values(scopes)))) > 1 {
+		return ErrTokenScope
 	}
 	return nil
 }

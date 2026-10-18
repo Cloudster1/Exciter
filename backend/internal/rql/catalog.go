@@ -84,6 +84,12 @@ const reuseState = `(CASE
 // coverageLevels are the levels of trace.Level, repeated because trace imports search, which imports this.
 var coverageLevels = []string{"none", "partial", "full", "na"}
 
+// testOutcomes are a requirement's latest results summed up, worst first, as testresult.Outcomes and none (#200).
+var testOutcomes = []string{"errored", "failed", "skipped", "passed", "none"}
+
+// testOutdated counts a requirement's tests whose latest result was made against an older revision.
+const testOutdated = "(SELECT c.tests_outdated FROM requirement_test_counts(r.id) c)"
+
 // priorityRank ranks a priority so that must is the highest, as the API orders them.
 const priorityRank = `array_position(ARRAY['wont', 'could', 'should', 'must'], r.priority)`
 
@@ -115,6 +121,8 @@ var fixed = []fieldDef{
 	{name: "decomposed", kind: fkEnum, column: "requirement_coverage(r.id, 'decomposed')", enum: coverageLevels},
 	{name: "implemented", kind: fkEnum, column: "requirement_coverage(r.id, 'implemented')", enum: coverageLevels},
 	{name: "verified", kind: fkEnum, column: "requirement_coverage(r.id, 'verified')", enum: coverageLevels},
+	{name: "testResult", kind: fkEnum, column: "requirement_test_result(r.id)", enum: testOutcomes},
+	{name: "testOutdated", kind: fkNumber, column: testOutdated, order: testOutdated},
 }
 
 // LinkType is a link type a project's requirements may be joined by, with the phrases its ends read in.

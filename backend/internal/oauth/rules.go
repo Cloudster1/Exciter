@@ -184,28 +184,45 @@ func IsMetadataClientID(id string) bool {
 	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path != "" && u.Path != "/" && u.Fragment == "" && u.User == nil
 }
 
-// scopeReadOnly reads a requested scope: mcp or nothing is everything, mcp:read is reading; ok is false otherwise.
-func scopeReadOnly(scope string) (readOnly, ok bool) {
-	fields := strings.Fields(scope)
+// scope is what a grant or a token may do: everything its person may, reading, or evidence alone.
+type scope struct {
+	readOnly, evidence bool
+}
+
+// scopeAsked reads a requested scope: mcp or nothing is everything, mcp:read is reading, evidence alone is evidence;
+// ok is false otherwise.
+func scopeAsked(asked string) (sc scope, ok bool) {
+	fields := strings.Fields(asked)
 	if len(fields) == 0 {
-		return false, true
+		return scope{}, true
 	}
-	readOnly = true
+	if slices.Contains(fields, ScopeEvidence) {
+		for _, f := range fields {
+			if f != ScopeEvidence {
+				return scope{}, false
+			}
+		}
+		return scope{evidence: true}, true
+	}
+	sc.readOnly = true
 	for _, f := range fields {
 		switch f {
 		case ScopeMCP:
-			readOnly = false
+			sc.readOnly = false
 		case ScopeMCPRead:
 		default:
-			return false, false
+			return scope{}, false
 		}
 	}
-	return readOnly, true
+	return sc, true
 }
 
-// scopeOf is the scope a grant holds, as a token answer names it.
-func scopeOf(readOnly bool) string {
-	if readOnly {
+// name is the scope as a token answer names it.
+func (sc scope) name() string {
+	switch {
+	case sc.evidence:
+		return ScopeEvidence
+	case sc.readOnly:
 		return ScopeMCPRead
 	}
 	return ScopeMCP

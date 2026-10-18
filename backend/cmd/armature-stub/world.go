@@ -100,6 +100,18 @@ type issue struct {
 	UpdatedAt time.Time
 	// ResolvedAt is when it was last done, nil while it is not.
 	ResolvedAt *time.Time
+	// Commits are those its development panel names, as a repository's webhook told Armature (#200).
+	Commits []commit
+}
+
+// commit is one commit an issue's development panel names.
+type commit struct {
+	ID          uuid.UUID
+	Repository  string
+	SHA         string
+	Message     string
+	URL         string
+	CommittedAt time.Time
 }
 
 type remoteLink struct {

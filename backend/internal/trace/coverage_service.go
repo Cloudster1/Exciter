@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -31,7 +32,7 @@ func (s *Service) WithCoverageCache(c *CoverageCache) *Service {
 }
 
 const selectCoverageRules = `
-SELECT c.id, c.type_id, COALESCE(t.name, ''), c.decomposed, c.implemented, c.verified
+SELECT c.id, c.type_id, COALESCE(t.name, ''), c.decomposed, c.implemented, c.verified, c.verified_from
 FROM coverage_rule c LEFT JOIN requirement_type t ON t.id = c.type_id`
 
 func readCoverageRules(ctx context.Context, tx db.DBTX, where string, args ...any) ([]CoverageRule, error) {
@@ -77,6 +78,10 @@ func (s *Service) SaveCoverageRule(ctx context.Context, actor uuid.UUID, project
 			return project.ErrArchived
 		}
 		projectID = p.ID
+		from, err := checkSources(in.VerifiedFrom, VerifiedSources, "verifiedFrom")
+		if err != nil {
+			return err
+		}
 		if in.TypeID != nil {
 			var found bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM requirement_type WHERE id = $1 AND project_id = $2)`,
@@ -89,11 +94,12 @@ func (s *Service) SaveCoverageRule(ctx context.Context, actor uuid.UUID, project
 		}
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO coverage_rule (project_id, type_id, decomposed, implemented, verified, updated_by) VALUES ($1, $2, $3, $4, $5, $6)
+			INSERT INTO coverage_rule (project_id, type_id, decomposed, implemented, verified, verified_from, updated_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (project_id, type_id) DO UPDATE
 			SET decomposed = EXCLUDED.decomposed, implemented = EXCLUDED.implemented, verified = EXCLUDED.verified,
-			    updated_by = EXCLUDED.updated_by, updated_at = now()
-			RETURNING id`, p.ID, in.TypeID, in.Decomposed, in.Implemented, in.Verified, actor).Scan(&id); err != nil {
+			    verified_from = EXCLUDED.verified_from, updated_by = EXCLUDED.updated_by, updated_at = now()
+			RETURNING id`, p.ID, in.TypeID, in.Decomposed, in.Implemented, in.Verified, from, actor).Scan(&id); err != nil {
 			return fmt.Errorf("save the coverage rule: %w", err)
 		}
 		rules, err := readCoverageRules(ctx, tx, `c.id = $1`, id)
@@ -104,7 +110,7 @@ func (s *Service) SaveCoverageRule(ctx context.Context, actor uuid.UUID, project
 		return audit.Write(ctx, tx, audit.Entry{
 			Action: audit.ActionCoverageRuleSaved, TargetType: "coverage_rule", TargetID: &id, Actor: actor,
 			Data: map[string]any{"projectKey": p.Key, "type": out.TypeName, "decomposed": out.Decomposed,
-				"implemented": out.Implemented, "verified": out.Verified},
+				"implemented": out.Implemented, "verified": out.Verified, "verifiedFrom": out.VerifiedFrom},
 		})
 	})
 	if err == nil {
@@ -152,6 +158,27 @@ func (s *Service) DeleteCoverageRule(ctx context.Context, actor, ruleID uuid.UUI
 	return lsn, err
 }
 
+// checkSources reads the sources a rule counts for one dimension, each once, links alone when none is named.
+func checkSources(in, allowed []Source, field string) ([]string, error) {
+	if len(in) == 0 {
+		in = DefaultSources
+	}
+	out := make([]string, 0, len(in))
+	for _, src := range in {
+		if !slices.Contains(allowed, src) {
+			names := make([]string, len(allowed))
+			for i, a := range allowed {
+				names[i] = string(a)
+			}
+			return nil, &FieldError{Field: field, Message: "Count " + strings.Join(names, ", ") + ", one of them at least."}
+		}
+		if !slices.Contains(out, string(src)) {
+			out = append(out, string(src))
+		}
+	}
+	return out, nil
+}
+
 // ParseLevelFilter reads the levels a coverage report keeps its rows at, one per dimension.
 func ParseLevelFilter(v url.Values) (LevelFilter, error) {
 	var f LevelFilter
@@ -172,9 +199,9 @@ func ParseLevelFilter(v url.Values) (LevelFilter, error) {
 const judgeLinks = `
 SELECT k.id,
        COALESCE(own.decomposed, every.decomposed, false), COALESCE(own.implemented, every.implemented, false),
-       COALESCE(own.verified, every.verified, false),
+       COALESCE(own.verified, every.verified, false), COALESCE(own.verified_from, every.verified_from, ARRAY['links']::text[]),
        t.decomposing, t.decomposing_suspect, a.implementing, a.implementing_done, a.implementing_suspect,
-       t.verifying, t.verifying_suspect, a.verifying, a.verifying_done, a.verifying_suspect
+       t.verifying, t.verifying_suspect, a.verifying, a.verifying_done, a.verifying_suspect, e.tests, e.tests_whole
 FROM unnest($2::uuid[], $3::uuid[]) AS k (id, type_id)
 JOIN requirement r ON r.id = k.id
 LEFT JOIN coverage_rule own ON own.project_id = $1 AND own.type_id = k.type_id
@@ -201,7 +228,9 @@ CROSS JOIN LATERAL (
     FROM (SELECT al.relation, al.status_category = 'done' AND NOT al.status_stale AS done, r.revision > al.reviewed_rev AS suspect
           FROM armature_issue_link al
           WHERE al.requirement_id = k.id AND al.broken_at IS NULL AND al.detached_at IS NULL) l
-) a`
+) a
+-- The tests on the branch evidence is read on, as requirement_coverage counts them (#200).
+CROSS JOIN LATERAL requirement_test_counts(k.id) e`
 
 // judge answers the coverage row of each requirement kept, in their order.
 func judge(ctx context.Context, tx db.DBTX, projectID uuid.UUID, kept []search.Kept) ([]CoverageRow, error) {
@@ -219,14 +248,19 @@ func judge(ctx context.Context, tx db.DBTX, projectID uuid.UUID, kept []search.K
 		var (
 			id   uuid.UUID
 			asks Asks
+			from []string
 			c    Counted
 			row  CoverageRow
 		)
-		if err := rows.Scan(&id, &asks.Decomposed, &asks.Implemented, &asks.Verified,
+		if err := rows.Scan(&id, &asks.Decomposed, &asks.Implemented, &asks.Verified, &from,
 			&c.Decomposing, &c.DecomposingSuspect, &c.Implementing, &c.ImplementingDone, &c.ImplementingSuspect,
-			&c.VerifyingLinks, &c.VerifyingLinksSuspect, &c.VerifyingIssues, &c.VerifyingIssuesDone, &c.VerifyingIssuesSuspect); err != nil {
+			&c.VerifyingLinks, &c.VerifyingLinksSuspect, &c.VerifyingIssues, &c.VerifyingIssuesDone, &c.VerifyingIssuesSuspect,
+			&c.Tests, &c.TestsWhole); err != nil {
 			rows.Close()
 			return nil, err
+		}
+		for _, f := range from {
+			asks.VerifiedFrom = append(asks.VerifiedFrom, Source(f))
 		}
 		row.Decomposed, row.Implemented, row.Verified = Judge(asks, c)
 		judged[id] = row

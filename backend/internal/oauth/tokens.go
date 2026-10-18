@@ -63,7 +63,7 @@ func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*
 		if in.GrantType == GrantRefreshToken {
 			redeem = turnRefresh
 		}
-		grant, readOnly, err := redeem(ctx, tx, c.ID, in)
+		grant, sc, err := redeem(ctx, tx, c.ID, in)
 		// A refusal still commits: a code or refresh token used twice has just ended its grant.
 		if errors.As(err, &refusal) {
 			return nil
@@ -71,7 +71,7 @@ func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*
 		if err != nil {
 			return err
 		}
-		out, err = s.issue(ctx, tx, grant, readOnly)
+		out, err = s.issue(ctx, tx, grant, sc)
 		return err
 	})
 	if err != nil {
@@ -106,75 +106,79 @@ func deleteGrant(ctx context.Context, tx db.DBTX, grant uuid.UUID, by string) er
 	return audit.Write(ctx, tx, endedEntry(grant, uuid.Nil, owner, client, by, ""))
 }
 
-func redeemCode(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, bool, error) {
+func redeemCode(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, scope, error) {
 	var (
 		grant                          uuid.UUID
 		owner, redirect, challenge, rs string
-		readOnly, expired              bool
+		sc                             scope
+		expired                        bool
 		used                           *time.Time
 	)
 	err := tx.QueryRow(ctx, `
-		SELECT g.id, g.client_id, g.read_only, c.redirect_uri, c.code_challenge, c.resource, c.used_at, c.expires_at <= now()
+		SELECT g.id, g.client_id, g.read_only, g.evidence, c.redirect_uri, c.code_challenge, c.resource, c.used_at, c.expires_at <= now()
 		FROM oauth_code c JOIN oauth_grant g ON g.id = c.grant_id
-		WHERE c.code_hash = $1 FOR UPDATE OF c`, auth.HashToken(in.Code)).Scan(&grant, &owner, &readOnly, &redirect, &challenge, &rs, &used, &expired)
+		WHERE c.code_hash = $1 FOR UPDATE OF c`, auth.HashToken(in.Code)).Scan(&grant, &owner, &sc.readOnly, &sc.evidence, &redirect, &challenge, &rs, &used, &expired)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	case err != nil:
-		return grant, false, err
+		return grant, sc, err
 	case owner != clientID:
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	case used != nil:
-		return grant, false, endGrant(ctx, tx, grant, refuse(ErrInvalidGrant, "The code was used already, so the grant it made is ended. Connect the client again."))
+		return grant, sc, endGrant(ctx, tx, grant, refuse(ErrInvalidGrant, "The code was used already, so the grant it made is ended. Connect the client again."))
 	case expired:
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	case in.RedirectURI != redirect:
-		return grant, false, refuse(ErrInvalidGrant, "Send the redirect_uri the code was asked for with.")
+		return grant, sc, refuse(ErrInvalidGrant, "Send the redirect_uri the code was asked for with.")
 	case !VerifyPKCE(challenge, in.CodeVerifier):
-		return grant, false, refuse(ErrInvalidGrant, "The code_verifier is not the one the code_challenge was made from.")
+		return grant, sc, refuse(ErrInvalidGrant, "The code_verifier is not the one the code_challenge was made from.")
 	}
 	if _, err := tx.Exec(ctx, `UPDATE oauth_code SET used_at = now() WHERE code_hash = $1`, auth.HashToken(in.Code)); err != nil {
-		return grant, false, err
+		return grant, sc, err
 	}
-	return grant, readOnly, nil
+	return grant, sc, nil
 }
 
-func turnRefresh(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, bool, error) {
+func turnRefresh(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, scope, error) {
 	var (
-		grant             uuid.UUID
-		owner             string
-		readOnly, expired bool
-		replaced          *time.Time
+		grant    uuid.UUID
+		owner    string
+		sc       scope
+		expired  bool
+		replaced *time.Time
 	)
 	err := tx.QueryRow(ctx, `
-		SELECT g.id, g.client_id, t.read_only, t.replaced_at, t.expires_at <= now()
+		SELECT g.id, g.client_id, t.read_only, g.evidence, t.replaced_at, t.expires_at <= now()
 		FROM oauth_token t JOIN oauth_grant g ON g.id = t.grant_id
-		WHERE t.token_hash = $1 AND t.kind = 'refresh' FOR UPDATE OF t`, auth.HashToken(in.RefreshToken)).Scan(&grant, &owner, &readOnly, &replaced, &expired)
+		WHERE t.token_hash = $1 AND t.kind = 'refresh' FOR UPDATE OF t`, auth.HashToken(in.RefreshToken)).Scan(&grant, &owner, &sc.readOnly, &sc.evidence, &replaced, &expired)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	case err != nil:
-		return grant, false, err
+		return grant, sc, err
 	case owner != clientID:
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	case replaced != nil:
-		return grant, false, endGrant(ctx, tx, grant,
+		return grant, sc, endGrant(ctx, tx, grant,
 			refuse(ErrInvalidGrant, "The refresh token was used already, so the grant is ended, as a stolen one would be. Connect the client again."))
 	case expired:
-		return grant, false, errGrant
+		return grant, sc, errGrant
 	}
-	asked, ok := scopeReadOnly(in.Scope)
-	if !ok || (readOnly && in.Scope != "" && !asked) {
-		return grant, false, refuse(ErrInvalidScope, "A refresh may only narrow the scope, to mcp:read.")
+	asked, ok := scopeAsked(in.Scope)
+	// An evidence grant refreshes as evidence alone; any other may only narrow to reading.
+	if !ok || (in.Scope != "" && asked.evidence != sc.evidence) || (sc.readOnly && in.Scope != "" && !asked.readOnly) {
+		return grant, sc, refuse(ErrInvalidScope, "A refresh may only narrow the scope, to mcp:read, and an evidence grant stays evidence.")
 	}
 	if _, err := tx.Exec(ctx, `UPDATE oauth_token SET replaced_at = now() WHERE token_hash = $1`, auth.HashToken(in.RefreshToken)); err != nil {
-		return grant, false, err
+		return grant, sc, err
 	}
-	return grant, readOnly || (in.Scope != "" && asked), nil
+	sc.readOnly = !sc.evidence && (sc.readOnly || (in.Scope != "" && asked.readOnly))
+	return grant, sc, nil
 }
 
 // issue hands a grant a new access and refresh token; only their digests are kept.
-func (s *Service) issue(ctx context.Context, tx db.DBTX, grant uuid.UUID, readOnly bool) (*TokenResponse, error) {
+func (s *Service) issue(ctx context.Context, tx db.DBTX, grant uuid.UUID, sc scope) (*TokenResponse, error) {
 	access, accessDigest, err := secret(AccessTokenPrefix)
 	if err != nil {
 		return nil, err
@@ -187,10 +191,10 @@ func (s *Service) issue(ctx context.Context, tx db.DBTX, grant uuid.UUID, readOn
 		INSERT INTO oauth_token (token_hash, grant_id, kind, read_only, expires_at) VALUES
 			($1, $3, 'access', $4, now() + make_interval(secs => $5)),
 			($2, $3, 'refresh', $4, now() + make_interval(secs => $6))`,
-		accessDigest, refreshDigest, grant, readOnly, AccessTTL.Seconds(), RefreshTTL.Seconds()); err != nil {
+		accessDigest, refreshDigest, grant, sc.readOnly, AccessTTL.Seconds(), RefreshTTL.Seconds()); err != nil {
 		return nil, err
 	}
-	return &TokenResponse{AccessToken: access, TokenType: "Bearer", ExpiresIn: expiresIn(AccessTTL), RefreshToken: refresh, Scope: scopeOf(readOnly)}, nil
+	return &TokenResponse{AccessToken: access, TokenType: "Bearer", ExpiresIn: expiresIn(AccessTTL), RefreshToken: refresh, Scope: sc.name()}, nil
 }
 
 // Revoke ends an access token, or a refresh token and with it the grant (RFC 7009); a token unknown, ended
@@ -239,10 +243,11 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 		only, on bool
 		active   bool
 		readOnly bool
+		evidence bool
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT g.id, c.name, g.read_only OR t.read_only, g.last_used_at, t.expires_at, g.projects_only,
+			SELECT g.id, c.name, g.read_only OR t.read_only, g.evidence, g.last_used_at, t.expires_at, g.projects_only,
 			       ARRAY(SELECT gp.project_id FROM oauth_grant_project gp WHERE gp.grant_id = g.id),
 			       ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id
 			             WHERE gp.grant_id = g.id ORDER BY p.key),
@@ -254,7 +259,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 			JOIN app_user u ON u.id = g.user_id AND u.role IS NOT NULL
 			CROSS JOIN installation i
 			WHERE t.token_hash = $1 AND t.kind = 'access' AND t.expires_at > now()`, auth.HashToken(secret)).Scan(
-			&tok.ID, &tok.Name, &readOnly, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
+			&tok.ID, &tok.Name, &readOnly, &evidence, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active, &p.InstallationName, &p.Role, &on)
 	})
 	switch {
@@ -268,7 +273,10 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 		return nil, auth.ErrSwitchedOff
 	}
 	tok.Kind, tok.AllProjects, tok.Scopes = auth.TokenOAuth, !only, []string{}
-	if readOnly {
+	switch {
+	case evidence:
+		tok.Scopes = []string{auth.ScopeEvidence}
+	case readOnly:
 		tok.Scopes = []string{auth.ScopeRead}
 	}
 	if tok.AllProjects {

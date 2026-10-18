@@ -12,10 +12,11 @@ import (
 )
 
 // CoverageTopics are the events that change what a project's coverage counts or how its rows read: a requirement
-// written, moved, trashed or restored, a link made, removed or cleared, an Armature link changed, a project rekeyed.
+// written, moved, trashed or restored, a link made, removed or cleared, an Armature link changed, a project rekeyed,
+// a test run done or the branch whose results count named (#200).
 var CoverageTopics = []string{"requirement.created", "requirement.revised", "requirement.changed", "requirement.trashed",
 	"requirement.restored", "requirement.moved", "link.created", "link.removed", TopicLinkCleared, "armature.links",
-	"project.key_changed"}
+	"project.key_changed", "test_run.finished", "evidence_settings.saved"}
 
 // CoverageForgetter clears the coverage of the projects an event touches. Clearing twice changes nothing, so it
 // runs ahead of each topic's other handlers.

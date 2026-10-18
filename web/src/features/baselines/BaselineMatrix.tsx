@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { baselineMatrixHref, NOW, useBaselineMatrix, useBaselines, type Baseline, type BaselineMatrixLink, type BaselineMatrixParams } from "@/api/baselines";
 import type { MatrixColumns } from "@/api/coverage";
+
+/** The columns a baseline's matrix lays out from what it recorded; test results are on its requirements. */
+type RecordedColumns = Exclude<MatrixColumns, "tests">;
 import type { Project } from "@/api/projects";
 import { useStatorPages } from "@/api/stator";
 import { ButtonLink, EmptyState, ErrorBanner, Segmented, Select, Skeleton, cx } from "@/components/ui";
@@ -27,7 +30,7 @@ function linkText(l: BaselineMatrixLink): string {
 
 /** A baseline's traceability matrix (#153), as it was taken or compared with now or another baseline. */
 export function BaselineMatrixView({ project, baseline }: { project: Project; baseline: Baseline }) {
-  const [columns, setColumns] = useState<MatrixColumns>("requirements");
+  const [columns, setColumns] = useState<RecordedColumns>("requirements");
   const [compare, setCompare] = useState("");
   const [offset, setOffset] = useState(0);
   const { data: all } = useBaselines(project.key);
@@ -42,7 +45,7 @@ export function BaselineMatrixView({ project, baseline }: { project: Project; ba
     <div className="space-y-3" data-baseline-matrix="">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap items-end gap-3">
-          <Segmented<MatrixColumns>
+          <Segmented<RecordedColumns>
             label={t.coverage.columns}
             value={columns}
             size="sm"

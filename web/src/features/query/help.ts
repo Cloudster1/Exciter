@@ -26,6 +26,8 @@ export const QUERY_FIELDS: Array<{ name: string; example: string }> = [
   { name: "decomposed", example: "decomposed = none" },
   { name: "implemented", example: "implemented != full" },
   { name: "verified", example: "verified IN (none, partial)" },
+  { name: "testResult", example: "testResult IN (failed, errored)" },
+  { name: "testOutdated", example: "testOutdated > 0" },
 ];
 
 export const QUERY_ATTRIBUTE_EXAMPLE = '"Risk" = High';

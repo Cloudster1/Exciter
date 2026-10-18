@@ -40,6 +40,7 @@ const every: CoverageRule = {
   decomposed: true,
   implemented: true,
   verified: false,
+  verifiedFrom: ["links"],
 };
 
 const noteType = { id: "0195f000-0000-7000-8000-0000000000d1", name: "Note", retired: false };
@@ -77,7 +78,9 @@ describe("a project's coverage", () => {
     await renderAt("/p/CHK/coverage");
     const rules = await screen.findByRole("list", { name: "Rules" });
     await userEvent.click(within(rules).getByLabelText("Verified"));
-    await waitFor(() => expect(sent.find((each) => each.method === "PUT")?.body).toEqual({ decomposed: true, implemented: true, verified: true }));
+    await waitFor(() =>
+      expect(sent.find((each) => each.method === "PUT")?.body).toEqual({ decomposed: true, implemented: true, verified: true, verifiedFrom: ["links"] }),
+    );
     await userEvent.selectOptions(screen.getByLabelText("Add a rule for"), "Note");
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() =>
@@ -86,6 +89,29 @@ describe("a project's coverage", () => {
         decomposed: false,
         implemented: false,
         verified: false,
+      }),
+    );
+  });
+
+  it("lets a rule that asks for verified count test results instead of links, or both (#200)", async () => {
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/coverage": { status: 200, body: { summary, rows, total: rows.length, limit: 50, offset: 0 } },
+      "GET /projects/CHK/coverage-rules": { status: 200, body: { rules: [{ ...every, verified: true }] } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [noteType] } },
+      "PUT /projects/CHK/coverage-rules": { status: 200, body: { rule: { ...every, verified: true, verifiedFrom: ["links", "tests"] } } },
+    });
+    await renderAt("/p/CHK/coverage");
+    const from = await screen.findByRole("combobox", { name: "Verified from: Every other type" });
+    expect(from).toHaveValue("links");
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.selectOptions(from, "both");
+    await waitFor(() =>
+      expect(sent.find((each) => each.method === "PUT")?.body).toEqual({
+        decomposed: true,
+        implemented: true,
+        verified: true,
+        verifiedFrom: ["links", "tests"],
       }),
     );
   });
