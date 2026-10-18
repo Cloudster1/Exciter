@@ -3,6 +3,7 @@
 package project
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,6 +60,8 @@ type Settings struct {
 	// Language is what the project's requirements are written in, en or de, which picks the writing rules' words
 	// (#207); empty reads as en.
 	Language string `json:"language,omitempty"`
+	// HomeDashboardID is the shared dashboard the project's home shows (#212), null for none.
+	HomeDashboardID *uuid.UUID `json:"homeDashboardId"`
 }
 
 // Languages a project's requirements may be written in; DefaultLanguage until an administrator chooses.
@@ -85,6 +88,8 @@ type SettingsInput struct {
 	SignedApprovals        *bool      `json:"signedApprovals,omitempty"`
 	Library                *bool      `json:"library,omitempty"`
 	Language               *string    `json:"language,omitempty"`
+	// HomeDashboardID names a shared dashboard of the project for its home; null clears it.
+	HomeDashboardID json.RawMessage `json:"homeDashboardId,omitempty"`
 }
 
 // CreateInput is a new project as the form sends it.

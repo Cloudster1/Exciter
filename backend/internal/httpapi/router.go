@@ -20,6 +20,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
@@ -127,6 +128,8 @@ type Server struct {
 	Glossary *glossary.Service
 	// Duplicates finds requirements that say the same thing (#208).
 	Duplicates *duplicates.Service
+	// Dashboards are widgets over a project's requirements, read as the reader (#212).
+	Dashboards *dashboard.Service
 	// ReqIF exchanges requirements with other tools (#44); nil answers its routes that it is not set up.
 	ReqIF *reqifio.Service
 	// OAuth is the authorization server of the MCP endpoint (#188); nil answers its routes that it is not set up.
@@ -457,6 +460,24 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Post("/projects/{projectKey}/duplicates/link", s.handleLinkDuplicate)
 			r.Get("/projects/{projectKey}/duplicate-settings", s.handleGetDuplicateSettings)
 			r.Put("/projects/{projectKey}/duplicate-settings", s.handleSaveDuplicateSettings)
+		})
+
+		// Dashboards (#212): a person's own, or shared with whoever reads the project; widgets read as the reader.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAuth, s.dashboardsOn)
+			r.Get("/projects/{projectKey}/dashboards", s.handleListDashboards)
+			r.Post("/projects/{projectKey}/dashboards", s.handleCreateDashboard)
+			r.Get("/dashboards/{dashboardID}", s.handleGetDashboard)
+			r.Patch("/dashboards/{dashboardID}", s.handleUpdateDashboard)
+			r.Delete("/dashboards/{dashboardID}", s.handleDeleteDashboard)
+			r.Post("/dashboards/{dashboardID}/widgets", s.handleAddWidget)
+			r.Put("/dashboards/{dashboardID}/order", s.handleOrderWidgets)
+			r.Get("/dashboards/{dashboardID}/dashboard.pdf", s.handleDashboardPDF)
+			r.Patch("/widgets/{widgetID}", s.handleUpdateWidget)
+			r.Delete("/widgets/{widgetID}", s.handleDeleteWidget)
+			r.Get("/widgets/{widgetID}/data", s.handleWidgetData)
+			r.Post("/projects/{projectKey}/widget-preview", s.handlePreviewWidget)
+			r.Get("/dashboard-templates", s.handleListDashboardTemplates)
 		})
 
 		// Attachments: seen with their requirements, uploaded and deleted by who edits them.

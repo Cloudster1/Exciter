@@ -28,6 +28,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
@@ -119,6 +120,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Quality:       quality.NewService(h.cluster, requirement.LocateForQuality),
 		Glossary:      glossary.NewService(h.cluster),
 		Duplicates:    duplicates.NewService(h.cluster),
+		Dashboards:    dashboard.NewService(h.cluster, finder, links),
 		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
 		Renderer:      h.renderer(),

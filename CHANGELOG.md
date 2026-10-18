@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Dashboards over a project's requirements (#212). A dashboard is a person's
+  own until shared with everybody who may read the project; its link is its
+  address. Widgets break the requirements down by status, category, type,
+  owner, priority, label or an attribute, computed ones included; count or
+  list what a query or a shared view keeps; and show coverage, review,
+  suspect links, changes over time and quality. Every widget is read live as
+  the reader, and a slice or a bar opens its requirements in the grid. A
+  dashboard starts from a template, is laid out by dragging or by buttons,
+  prints to PDF, and a project's administrators may show one on its home.
+  The MCP tools `list_dashboards` and `get_dashboard_widget` read them.
 - Computed attributes and roll-ups (#213). A project's administrators define
   an attribute by a formula over a requirement's own fields and attributes,
   with arithmetic, conditions, text and dates, and over its children or the

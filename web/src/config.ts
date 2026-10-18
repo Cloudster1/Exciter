@@ -500,3 +500,18 @@ export const RECOMPUTE_POLL_MS = 1000;
 export const FORMULA_CHECK_DEBOUNCE_MS = 400;
 /** How many lines a formula is given to be written in. */
 export const FORMULA_ROWS = 3;
+
+/** How often a dashboard's widgets are read again while open, so what they count stays current (#212). */
+export const DASHBOARD_REFETCH_MS = 60_000;
+/** The columns a dashboard is laid out in, as wide as the widest widget: the API's MaxWidth. */
+export const DASHBOARD_COLUMNS = 3;
+/** The size of a donut, its hole, and the unit box it is drawn in. */
+export const DONUT_UNIT = 100;
+export const DONUT_RADIUS = 48;
+export const DONUT_HOLE = 30;
+/** How tall a line over time is drawn, and how many of its dates are written under it. */
+export const LINE_HEIGHT_PX = 128;
+export const LINE_AXIS_LABELS = 6;
+/** What a new list widget shows and how far a widget over time looks back, until set: the API's own. */
+export const DASHBOARD_DEFAULT_ROWS = 10;
+export const DASHBOARD_DEFAULT_DAYS = 90;

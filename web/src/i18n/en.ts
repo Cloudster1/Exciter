@@ -18,6 +18,7 @@ import { baselineEn } from "./baselines.en";
 import { coverageEn } from "./coverage.en";
 import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
+import { dashboardEn } from "./dashboard.en";
 import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
@@ -340,6 +341,9 @@ export const en = {
       "review_session.closed": "Review session closed",
       "evidence_settings.saved": "Counting branch named",
       "duplicate_settings.saved": "Duplicate threshold set",
+      "dashboard.created": "Shared dashboard made",
+      "dashboard.shared": "Dashboard shared",
+      "dashboard.deleted": "Shared dashboard deleted",
       "term.deleted": "Term deleted",
       "glossaries.chosen": "Glossaries chosen",
       "project.language_set": "Project language set",
@@ -401,6 +405,7 @@ export const en = {
   coverage: coverageEn,
   matrix: matrixEn,
   chains: chainsEn,
+  dashboard: dashboardEn,
   graph: graphEn,
   imports: importsEn,
   reqif: reqifEn,

@@ -212,6 +212,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := glossaryError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := dashboardError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := duplicatesError(err); apiErr != nil {
 			return apiErr
 		}

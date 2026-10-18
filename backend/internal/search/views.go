@@ -301,3 +301,18 @@ func managed(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*View, *proj
 	}
 	return v, p, nil
 }
+
+// ErrViewPrivate is a widget reading a view its owner has not shared, which others of the dashboard could not read.
+var ErrViewPrivate = errors.New("the view is not shared")
+
+// SharedGridView reads a shared view of the project's grid as the reader sees it, for a dashboard's widget (#212).
+func SharedGridView(ctx context.Context, tx db.DBTX, reader, projectID, id uuid.UUID) (*View, error) {
+	v, err := scanView(tx.QueryRow(ctx, selectViews+` WHERE v.id = $2 AND v.project_id = $3 AND v.kind = 'grid'`, reader, id, projectID))
+	if err != nil {
+		return nil, err
+	}
+	if !v.Shared {
+		return nil, ErrViewPrivate
+	}
+	return v, nil
+}

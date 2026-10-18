@@ -109,6 +109,11 @@ const (
 	ActionGlossariesChosen = "glossaries.chosen"
 	// ActionDuplicateSettingsSaved is how alike two requirements must be for a project to list them set (#208).
 	ActionDuplicateSettingsSaved = "duplicate_settings.saved"
+	// ActionDashboardCreated, ActionDashboardShared and ActionDashboardDeleted are a dashboard made shared, shared later,
+	// and deleted while shared (#212); a person's own dashboards are theirs.
+	ActionDashboardCreated = "dashboard.created"
+	ActionDashboardShared  = "dashboard.shared"
+	ActionDashboardDeleted = "dashboard.deleted"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -157,6 +162,7 @@ var Actions = []string{
 	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
 	ActionCodeTagWordsSaved, ActionProjectLanguageSet, ActionQualitySettingsSaved,
 	ActionTermDeleted, ActionGlossariesChosen, ActionDuplicateSettingsSaved,
+	ActionDashboardCreated, ActionDashboardShared, ActionDashboardDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.
