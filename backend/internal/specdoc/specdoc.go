@@ -60,6 +60,8 @@ type Document struct {
 	// Glossary is the terms the document defines (#210): a project's, and its libraries' the reader may read, out
 	// of deprecation; a section's, those its requirements use; a baseline's, none yet.
 	Glossary []GlossaryTerm `json:"glossary"`
+	// ChangesSince names the baseline a template's change marks are counted from (#214).
+	ChangesSince string `json:"changesSince,omitempty"`
 }
 
 // GlossaryTerm is a term as a document defines it, by name.
@@ -102,6 +104,19 @@ type Entry struct {
 	Rationale  json.RawMessage `json:"rationale"`
 	Properties []Property      `json:"properties"`
 	Links      []Link          `json:"links"`
+	// Changes is the statement with what changed since a baseline marked, and ChangedFrom the revision the baseline
+	// held, 0 for a requirement it did not hold; both are absent unless a template asks for change marks (#214).
+	Changes     json.RawMessage `json:"changes,omitempty"`
+	ChangedFrom *int            `json:"changedFrom,omitempty"`
+	// Comments are the open threads' comments, when a template includes them.
+	Comments []EntryComment `json:"comments,omitempty"`
+}
+
+// EntryComment is one comment of an open thread on an entry.
+type EntryComment struct {
+	Author string    `json:"author"`
+	At     time.Time `json:"at"`
+	Text   string    `json:"text"`
 }
 
 // Property is one value of a requirement's table: a field, or an attribute by its name.

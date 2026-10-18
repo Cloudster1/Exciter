@@ -23,10 +23,18 @@ var (
 
 // ReportBytes writes a session's report as a .docx, its added words in lang.
 func ReportBytes(ctx context.Context, rep *review.Report, exportedBy string, at time.Time, lang string) ([]byte, error) {
+	return ReportBytesWith(ctx, rep, exportedBy, at, lang, nil, nil)
+}
+
+// ReportBytesWith writes a session's report into a Word template (#214); a nil template is the export's own page.
+func ReportBytesWith(ctx context.Context, rep *review.Report, exportedBy string, at time.Time, lang string, t *Template, values Fill) ([]byte, error) {
 	w := newWriter(ctx, lang, Reader{})
-	w.b.WriteString(xml.Header)
-	w.b.WriteString(`<w:document xmlns:w="` + nsW + `" xmlns:r="` + nsR + `" xmlns:wp="` + nsWP + `" xmlns:a="` + nsA + `" xmlns:pic="` + nsPic + `"><w:body>`)
-	f := frame{width: textWidth}
+	w.layout, w.fill = t, values
+	if t == nil {
+		w.b.WriteString(xml.Header)
+		w.b.WriteString(`<w:document xmlns:w="` + nsW + `" xmlns:r="` + nsR + `" xmlns:wp="` + nsWP + `" xmlns:a="` + nsA + `" xmlns:pic="` + nsPic + `"><w:body>`)
+	}
+	f := frame{width: w.pageText()}
 	s := rep.Session
 	w.para(f, paraProps{style: "Title"}, func() { w.text(s.Title, runProps{}) })
 	w.para(f, paraProps{style: "Subtitle"}, func() { w.text(w.words.pick("Review session of ", "Review-Sitzung von ")+s.ProjectKey, runProps{}) })
@@ -104,15 +112,20 @@ func ReportBytes(ctx context.Context, rep *review.Report, exportedBy string, at 
 			})
 		}
 	}
-	w.b.WriteString(`<w:sectPr><w:pgSz w:w="` + itoa(pageWidth) + `" w:h="` + itoa(pageHeight) + `"/>`)
-	w.b.WriteString(`<w:pgMar w:top="` + itoa(margin) + `" w:right="` + itoa(margin) + `" w:bottom="` + itoa(margin) + `" w:left="` + itoa(margin) + `" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`)
-	w.b.WriteString(`</w:body></w:document>`)
 	if w.err != nil {
 		return nil, w.err
 	}
+	body := []byte(nil)
+	if t != nil {
+		body = w.framed(w.b.String())
+	} else {
+		w.b.WriteString(defaultSectPr())
+		w.b.WriteString(`</w:body></w:document>`)
+		body = []byte(w.b.String())
+	}
 	var buf bytes.Buffer
 	core := coreProperties(&specdoc.Document{Title: s.Title, ProjectName: s.ProjectKey, ExportedBy: exportedBy, ExportedAt: at}, lang)
-	if err := w.pack(&buf, []byte(w.b.String()), at, core, lang); err != nil {
+	if err := w.pack(&buf, body, at, core, lang); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

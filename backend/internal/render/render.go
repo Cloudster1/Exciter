@@ -109,6 +109,24 @@ type wire struct {
 // PDF waits for a free slot, asks the service to print and reads the PDF back.
 // One deadline covers both, so a queue never makes a request outlive the api's.
 func (c *Client) PDF(ctx context.Context, req Request) ([]byte, error) {
+	return c.ask(ctx, "/pdf", req, func(answer []byte) bool { return bytes.HasPrefix(answer, []byte("%PDF-")) })
+}
+
+// HTMLRenderer takes a page of the web client as HTML, its styles inlined and its scripts left out, for a site that
+// opens offline (#214).
+type HTMLRenderer interface {
+	HTML(ctx context.Context, req Request) ([]byte, error)
+}
+
+// HTML waits for a free slot and asks the service for the page's HTML once it has drawn.
+func (c *Client) HTML(ctx context.Context, req Request) ([]byte, error) {
+	return c.ask(ctx, "/html", req, func(answer []byte) bool {
+		return bytes.Contains(answer[:min(len(answer), 64)], []byte("<!doctype html"))
+	})
+}
+
+// ask posts a request to one of the service's endpoints and reads back what holds.
+func (c *Client) ask(ctx context.Context, endpoint string, req Request, holds func([]byte) bool) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	select {
@@ -123,7 +141,7 @@ func (c *Client) PDF(ctx context.Context, req Request) ([]byte, error) {
 		return nil, ErrBusy
 	}
 	body, _ := json.Marshal(wire{Path: req.Path, Token: req.Token, Language: req.Language, BudgetMS: budget.Milliseconds()})
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+"/pdf", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+endpoint, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
@@ -150,8 +168,8 @@ func (c *Client) PDF(ctx context.Context, req Request) ([]byte, error) {
 	if int64(len(pdf)) > c.maxSize {
 		return nil, ErrTooLarge
 	}
-	if !bytes.HasPrefix(pdf, []byte("%PDF-")) {
-		return nil, fmt.Errorf("%w: the answer is no PDF", ErrFailed)
+	if !holds(pdf) {
+		return nil, fmt.Errorf("%w: the answer is not what %s gives", ErrFailed, endpoint)
 	}
 	return pdf, nil
 }

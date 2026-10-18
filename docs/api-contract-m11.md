@@ -582,6 +582,31 @@ No new tool: an assistant does not download files.
 - Exporting a specification, a section, a baseline or a review report
   offers the templates the project may use, and "HTML site (zip)".
 
+### As built (#214)
+
+- **Migration**: `01160_export_templates.sql` adds `export_template`, whose
+  object key a trigger names and whose file a deletion leaves to the
+  reaper as an attachment's; `export_template_project_key(id)` names a
+  template's project to whoever may read the template, since a shared one
+  is read from projects its own is hidden from. A new template brings
+  links.
+- **Code**: `internal/exporttemplate` keeps templates and their files;
+  `docx.ReadTemplate` checks a file and `docx.BytesWith` and
+  `ReportBytesWith` write through it; `specdoc.Options` choose the fields
+  and bring links, open comments and change marks; `internal/sitezip` cuts
+  the printed page into the site.
+- **The site**: one page for the cover and contents, one per top-level
+  entry, and the glossary; links between entries lead across pages, the
+  pictures the reader may open are under `media/`, and `search.js` holds the
+  search index. Links into the web client are dropped.
+- **Exports**: `template` and `since` are taken by the document itself,
+  `GET .../document`, as well, which the print view reads for the PDF and
+  the site. A review report through a template names the project as a
+  specification's export does.
+- **Web**: `features/templates` on the settings' Templates tab; the export
+  dialog asks for a template, and for the baseline when it marks changes,
+  once the project has any.
+
 ## What is left for later
 
 - Roll-ups across projects.

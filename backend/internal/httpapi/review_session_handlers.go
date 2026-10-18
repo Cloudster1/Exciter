@@ -188,7 +188,21 @@ func (s *Server) handleReviewSessionReportDocx(w http.ResponseWriter, r *http.Re
 		return
 	}
 	at := time.Now().UTC()
-	body, err := docx.ReportBytes(r.Context(), rep, s.nameOf(r), at, language(r))
+	f, err := s.framingOf(r, rep.Session.ProjectKey)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	var frame *docx.Template
+	fill := docx.Fill{"project": rep.Session.ProjectKey, "title": rep.Session.Title, "date": at.Format(time.DateOnly), "exportedBy": s.nameOf(r)}
+	if f != nil {
+		frame = f.frame
+		// A template names the project as an export of its specification does.
+		if p, err := s.Projects.Get(r.Context(), userFrom(r), rep.Session.ProjectKey); err == nil {
+			fill["project"] = p.Name + " (" + p.Key + ")"
+		}
+	}
+	body, err := docx.ReportBytesWith(r.Context(), rep, s.nameOf(r), at, language(r), frame, fill)
 	if err != nil {
 		respondError(w, r, err)
 		return

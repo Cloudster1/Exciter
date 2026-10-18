@@ -19,6 +19,7 @@ import { coverageEn } from "./coverage.en";
 import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
 import { dashboardEn } from "./dashboard.en";
+import { templatesEn } from "./templates.en";
 import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
@@ -344,6 +345,9 @@ export const en = {
       "dashboard.created": "Shared dashboard made",
       "dashboard.shared": "Dashboard shared",
       "dashboard.deleted": "Shared dashboard deleted",
+      "export_template.uploaded": "Word template uploaded",
+      "export_template.changed": "Word template changed",
+      "export_template.deleted": "Word template deleted",
       "term.deleted": "Term deleted",
       "glossaries.chosen": "Glossaries chosen",
       "project.language_set": "Project language set",
@@ -406,6 +410,7 @@ export const en = {
   matrix: matrixEn,
   chains: chainsEn,
   dashboard: dashboardEn,
+  templates: templatesEn,
   graph: graphEn,
   imports: importsEn,
   reqif: reqifEn,

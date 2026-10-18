@@ -11,24 +11,38 @@ export type SpecDocument = Wire["SpecificationDocument"];
 export type DocumentEntry = Wire["DocumentEntry"];
 export type DocumentProperty = Wire["DocumentProperty"];
 
-/** The files a document is exported as: a PDF to print and sign, a Word document to edit offline. */
-export type DocumentFormat = "pdf" | "docx";
+/** The files a document is exported as: a PDF to print and sign, a Word document to edit offline, a site to read offline. */
+export type DocumentFormat = "pdf" | "docx" | "html.zip";
+
+/** The template a printed document goes through, and the baseline its change marks count from (#214). */
+export interface DocumentShape {
+  template?: string;
+  since?: string;
+}
+
+function shapeQuery(shape: DocumentShape): DocumentShape {
+  return { ...(shape.template ? { template: shape.template } : {}), ...(shape.template && shape.since ? { since: shape.since } : {}) };
+}
 
 /** A project's document, or with section a requirement and what is below it. */
-export function useProjectDocument(projectKey: string, section?: string) {
+export function useProjectDocument(projectKey: string, section?: string, shape: DocumentShape = {}) {
   return useQuery({
-    queryKey: ["document", "project", projectKey, section ?? ""],
+    queryKey: ["document", "project", projectKey, section ?? "", shape.template ?? "", shape.since ?? ""],
     queryFn: async (): Promise<SpecDocument> =>
-      (await api.GET("/projects/{projectKey}/document", { params: { path: { projectKey }, query: section ? { section } : {} } })).data!.document,
+      (
+        await api.GET("/projects/{projectKey}/document", {
+          params: { path: { projectKey }, query: { ...(section ? { section } : {}), ...shapeQuery(shape) } },
+        })
+      ).data!.document,
   });
 }
 
 /** A baseline's document, as it was taken. */
-export function useBaselineDocument(baselineId: string) {
+export function useBaselineDocument(baselineId: string, shape: DocumentShape = {}) {
   return useQuery({
-    queryKey: ["document", "baseline", baselineId],
+    queryKey: ["document", "baseline", baselineId, shape.template ?? "", shape.since ?? ""],
     queryFn: async (): Promise<SpecDocument> =>
-      (await api.GET("/baselines/{baselineID}/document", { params: { path: { baselineID: baselineId } } })).data!.document,
+      (await api.GET("/baselines/{baselineID}/document", { params: { path: { baselineID: baselineId }, query: shapeQuery(shape) } })).data!.document,
   });
 }
 

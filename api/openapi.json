@@ -1530,7 +1530,10 @@
                 "duplicate_settings.saved",
                 "dashboard.created",
                 "dashboard.shared",
-                "dashboard.deleted"
+                "dashboard.deleted",
+                "export_template.uploaded",
+                "export_template.changed",
+                "export_template.deleted"
               ]
             }
           },
@@ -1724,7 +1727,10 @@
                 "duplicate_settings.saved",
                 "dashboard.created",
                 "dashboard.shared",
-                "dashboard.deleted"
+                "dashboard.deleted",
+                "export_template.uploaded",
+                "export_template.changed",
+                "export_template.deleted"
               ]
             }
           },
@@ -2370,6 +2376,24 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -2426,6 +2450,24 @@
             "name": "baselineID",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -2502,6 +2544,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -2528,16 +2579,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2634,6 +2675,24 @@
             "name": "baselineID",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -4239,16 +4298,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4293,16 +4342,6 @@
                   "required": [
                     "template"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -4395,16 +4434,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -4450,16 +4479,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8933,6 +8952,24 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -8999,6 +9036,24 @@
             "description": "The key of a requirement or section, which the document holds with everything below it; the whole project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -9079,6 +9134,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -9105,16 +9169,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9228,6 +9282,24 @@
             "description": "The key of a requirement or section, which the document holds with everything below it; the whole project when absent.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "A baseline of the project whose changes since are marked, when the template includes change marks.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -9978,16 +10050,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -10093,16 +10155,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20865,6 +20917,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -26375,7 +26436,10 @@
               "duplicate_settings.saved",
               "dashboard.created",
               "dashboard.shared",
-              "dashboard.deleted"
+              "dashboard.deleted",
+              "export_template.uploaded",
+              "export_template.changed",
+              "export_template.deleted"
             ]
           },
           "actorId": {
@@ -26518,7 +26582,10 @@
                 "duplicate_settings.saved",
                 "dashboard.created",
                 "dashboard.shared",
-                "dashboard.deleted"
+                "dashboard.deleted",
+                "export_template.uploaded",
+                "export_template.changed",
+                "export_template.deleted"
               ]
             }
           },
@@ -28850,6 +28917,18 @@
       "DocumentEntry": {
         "type": "object",
         "properties": {
+          "changedFrom": {
+            "type": "integer"
+          },
+          "changes": {
+            "description": "A JSON value."
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryComment"
+            }
+          },
           "depth": {
             "type": "integer"
           },
@@ -29175,6 +29254,26 @@
         "required": [
           "key",
           "revision"
+        ]
+      },
+      "EntryComment": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "author": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "author",
+          "at",
+          "text"
         ]
       },
       "ErrorEnvelope": {
@@ -36076,6 +36175,9 @@
                 "type": "null"
               }
             ]
+          },
+          "changesSince": {
+            "type": "string"
           },
           "entries": {
             "type": "array",

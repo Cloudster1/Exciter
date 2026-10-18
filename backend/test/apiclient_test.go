@@ -31,6 +31,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
+	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/installation"
@@ -115,25 +116,26 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Attributes: attribute.NewService(h.cluster),
 		Workflows:  workflow.NewService(h.cluster), Labels: label.NewService(h.cluster),
 		Trace: links, Attachments: a.files, Imports: csvio.NewService(h.cluster, requirements, links, finder),
-		TestResults:   testresult.NewService(h.cluster).WithCommits(h.armature(t)),
-		Code:          codetrace.NewService(h.cluster),
-		Quality:       quality.NewService(h.cluster, requirement.LocateForQuality),
-		Glossary:      glossary.NewService(h.cluster),
-		Duplicates:    duplicates.NewService(h.cluster),
-		Dashboards:    dashboard.NewService(h.cluster, finder, links),
-		ReqIF:         reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
-		Documents:     specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
-		Renderer:      h.renderer(),
-		Armature:      h.armature(t),
-		Stator:        h.stator(t),
-		Webhooks:      h.webhooks(t),
-		Comments:      comment.NewService(h.cluster),
-		Watches:       watch.NewService(h.cluster),
-		Notifications: notify.NewService(h.cluster),
-		Reviews:       review.NewService(h.cluster).WithPasswords(accounts),
-		Baselines:     baseline.NewService(h.cluster).WithPasswords(accounts),
-		OAuth:         oauth.NewService(h.cluster, "http://"+appHost, httpapi.APIPrefix, nil),
-		Fresh:         h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
+		TestResults:     testresult.NewService(h.cluster).WithCommits(h.armature(t)),
+		Code:            codetrace.NewService(h.cluster),
+		Quality:         quality.NewService(h.cluster, requirement.LocateForQuality),
+		Glossary:        glossary.NewService(h.cluster),
+		Duplicates:      duplicates.NewService(h.cluster),
+		Dashboards:      dashboard.NewService(h.cluster, finder, links),
+		ReqIF:           reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
+		Documents:       specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
+		ExportTemplates: exporttemplate.NewService(h.cluster, store),
+		Renderer:        h.renderer(),
+		Armature:        h.armature(t),
+		Stator:          h.stator(t),
+		Webhooks:        h.webhooks(t),
+		Comments:        comment.NewService(h.cluster),
+		Watches:         watch.NewService(h.cluster),
+		Notifications:   notify.NewService(h.cluster),
+		Reviews:         review.NewService(h.cluster).WithPasswords(accounts),
+		Baselines:       baseline.NewService(h.cluster).WithPasswords(accounts),
+		OAuth:           oauth.NewService(h.cluster, "http://"+appHost, httpapi.APIPrefix, nil),
+		Fresh:           h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {
 		configure(a, server)

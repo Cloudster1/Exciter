@@ -64,7 +64,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   as the reader, with a read-only token made for that print, and prints it.
   `EXCITER_RENDER_URL`, `_TIMEOUT`, `_CONCURRENCY` and `_MAX_SIZE` name and
   bound it; without a URL a PDF download says export is off, and Word, which
-  `internal/docx` writes in the api, works either way.
+  `internal/docx` writes in the api, works either way. Its `/html` hands the
+  print view over as one page, styles inlined and scripts gone, which
+  `internal/sitezip` cuts into the static HTML site (#214).
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### One installation
@@ -288,7 +290,7 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
-- **Analysis and reporting** (M11, `docs/api-contract-m11.md`, planned): a
+- **Analysis and reporting** (M11, `docs/api-contract-m11.md`): a
   trace graph walks a requirement's links up and down across projects,
   counting what the reader may not see without naming it; computed
   attributes in `internal/attribute/formula` are kept outside revisions and

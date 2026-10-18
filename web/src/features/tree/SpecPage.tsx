@@ -222,7 +222,12 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
         meta={t.projects.projectAndKey(project.name, project.key)}
         actions={
           <div className="flex flex-wrap gap-2">
-            <ExportMenu title={project.name} href={(format) => projectDocumentHref(project.key, format)} reqifHref={reqifExportHref(project.key, true)} />
+            <ExportMenu
+              title={project.name}
+              projectKey={project.key}
+              href={(format) => projectDocumentHref(project.key, format)}
+              reqifHref={reqifExportHref(project.key, true)}
+            />
             {onAddress && <ReviewModeButton address={address} onChange={onAddress} />}
             {mayWrite && (
               <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
@@ -501,6 +506,7 @@ function Entry({
           <ExportMenu
             size="sm"
             title={node.title}
+            projectKey={project.key}
             href={(format) => projectDocumentHref(project.key, format, node.key)}
             reqifHref={reqifExportHref(project.key, true, node.key)}
           />

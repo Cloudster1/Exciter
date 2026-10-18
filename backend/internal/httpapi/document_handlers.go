@@ -14,6 +14,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/docx"
 	"github.com/cloudster1/exciter/backend/internal/render"
+	"github.com/cloudster1/exciter/backend/internal/sitezip"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 )
 
@@ -85,7 +86,7 @@ func (s *Server) handleGetBaselineDocument(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) sendDocument(w http.ResponseWriter, r *http.Request) {
-	doc, err := s.documentOf(r)
+	doc, _, err := s.shapedDocument(r)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -106,18 +107,22 @@ func (s *Server) handleBaselineDocx(w http.ResponseWriter, r *http.Request) { s.
 
 // sendDocx writes the document as Word, with the pictures the reader may open, before anything is sent.
 func (s *Server) sendDocx(w http.ResponseWriter, r *http.Request) {
-	doc, err := s.documentOf(r)
+	doc, f, err := s.shapedDocument(r)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 	reader := docx.Reader{BaseURL: s.AppBaseURL, Picture: s.pictureFor(userFrom(r))}
-	body, err := docx.Bytes(r.Context(), doc, language(r), reader)
+	var frame *docx.Template
+	if f != nil {
+		frame = f.frame
+	}
+	body, err := docx.BytesWith(r.Context(), doc, language(r), reader, frame, s.fillOf(r, doc))
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-	if !s.noteDocument(w, r, doc, "docx") {
+	if !s.noteDocument(w, r, doc, "docx", f) {
 		return
 	}
 	sendFile(w, docx.ContentType, docx.FileName(doc, "docx"), body)
@@ -151,7 +156,7 @@ func (s *Server) sendMarkdown(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if !s.noteDocument(w, r, doc, "md") {
+	if !s.noteDocument(w, r, doc, "md", nil) {
 		return
 	}
 	sendFile(w, specdoc.MarkdownContentType, docx.FileName(doc, "md"), []byte(doc.Markdown().String()))
@@ -163,26 +168,66 @@ func (s *Server) handleBaselinePDF(w http.ResponseWriter, r *http.Request) { s.s
 // sendPDF has the render service print the document's print view as the reader, with a token made for that print
 // alone and deleted once the PDF is back.
 func (s *Server) sendPDF(w http.ResponseWriter, r *http.Request) {
-	doc, err := s.documentOf(r)
+	doc, f, err := s.shapedDocument(r)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-	pdf, ok := s.printed(w, r, printPath(doc))
-	if !ok || !s.noteDocument(w, r, doc, "pdf") {
+	pdf, ok := s.printed(w, r, printQuery(printPath(doc), f))
+	if !ok || !s.noteDocument(w, r, doc, "pdf", f) {
 		return
 	}
 	sendFile(w, "application/pdf", docx.FileName(doc, "pdf"), pdf)
 }
 
+func (s *Server) handleProjectSite(w http.ResponseWriter, r *http.Request)  { s.sendSite(w, r) }
+func (s *Server) handleBaselineSite(w http.ResponseWriter, r *http.Request) { s.sendSite(w, r) }
+
+// sendSite has the render service hand over the print view's HTML as the reader, and cuts it into a site that
+// opens offline (#214).
+func (s *Server) sendSite(w http.ResponseWriter, r *http.Request) {
+	doc, f, err := s.shapedDocument(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	page, ok := s.rendered(w, r, printQuery(printPath(doc), f), true)
+	if !ok {
+		return
+	}
+	site, err := sitezip.Build(r.Context(), page, doc.Title, siteLabels(language(r)), s.pictureFor(userFrom(r)))
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	if !s.noteDocument(w, r, doc, "html", f) {
+		return
+	}
+	sendFile(w, "application/zip", docx.FileName(doc, "html.zip"), site)
+}
+
+// siteLabels are the words a site adds, in the reader's language.
+func siteLabels(lang string) sitezip.Labels {
+	if lang == "de" {
+		return sitezip.Labels{Contents: "Inhalt", Search: "Suchen", NoMatch: "Nichts gefunden.", Previous: "Zurück", Next: "Weiter", Glossary: "Glossar"}
+	}
+	return sitezip.Labels{Contents: "Contents", Search: "Search", NoMatch: "Nothing found.", Previous: "Back", Next: "On", Glossary: "Glossary"}
+}
+
 // printed has the render service print a page of the web client as the reader, with a token only the print holds;
 // false when it answered the refusal itself.
 func (s *Server) printed(w http.ResponseWriter, r *http.Request, path string) ([]byte, bool) {
+	return s.rendered(w, r, path, false)
+}
+
+// rendered has the render service print a page, or hand its HTML over when asHTML says so.
+func (s *Server) rendered(w http.ResponseWriter, r *http.Request, path string, asHTML bool) ([]byte, bool) {
 	renderer := s.Renderer
 	if renderer == nil {
 		renderer = render.Unavailable{}
 	}
-	if _, off := renderer.(render.Unavailable); off {
+	pages, hasHTML := renderer.(render.HTMLRenderer)
+	if _, off := renderer.(render.Unavailable); off || (asHTML && !hasHTML) {
 		respondError(w, r, render.ErrUnavailable)
 		return nil, false
 	}
@@ -201,7 +246,13 @@ func (s *Server) printed(w http.ResponseWriter, r *http.Request, path string) ([
 	if s.Fresh != nil {
 		s.Fresh.Note(r.Context(), tokenFreshnessKey(tokenID), lsn)
 	}
-	pdf, err := renderer.PDF(r.Context(), render.Request{Path: path, Token: token, Language: language(r)})
+	req := render.Request{Path: path, Token: token, Language: language(r)}
+	var pdf []byte
+	if asHTML {
+		pdf, err = pages.HTML(r.Context(), req)
+	} else {
+		pdf, err = renderer.PDF(r.Context(), req)
+	}
 	if revokeErr := s.Accounts.RevokeRenderToken(context.WithoutCancel(r.Context()), tokenID); revokeErr != nil && s.Log != nil {
 		s.Log.Warn("a print's token could not be deleted; it expires by itself", "error", revokeErr)
 	}
@@ -225,8 +276,11 @@ func printPath(doc *specdoc.Document) string {
 }
 
 // noteDocument records a document about to leave; an export the log cannot record is refused.
-func (s *Server) noteDocument(w http.ResponseWriter, r *http.Request, doc *specdoc.Document, format string) bool {
+func (s *Server) noteDocument(w http.ResponseWriter, r *http.Request, doc *specdoc.Document, format string, f *framing) bool {
 	data := map[string]any{"project": doc.ProjectKey, "kind": string(doc.Kind), "format": format, "title": doc.Title}
+	if f != nil {
+		data["template"] = f.template.Name
+	}
 	entry := audit.Entry{Action: audit.ActionSpecificationExported, TargetType: "project", Data: data}
 	if doc.Baseline != nil {
 		id := doc.Baseline.ID

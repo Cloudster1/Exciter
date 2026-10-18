@@ -114,6 +114,11 @@ const (
 	ActionDashboardCreated = "dashboard.created"
 	ActionDashboardShared  = "dashboard.shared"
 	ActionDashboardDeleted = "dashboard.deleted"
+	// ActionExportTemplateUploaded, ActionExportTemplateChanged and ActionExportTemplateDeleted are a project's Word
+	// templates kept, changed or shared, and deleted (#214).
+	ActionExportTemplateUploaded = "export_template.uploaded"
+	ActionExportTemplateChanged  = "export_template.changed"
+	ActionExportTemplateDeleted  = "export_template.deleted"
 	// ActionOAuthGranted is a person connecting a client through OAuth, and what they let it do (#188).
 	ActionOAuthGranted = "oauth.granted"
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
@@ -163,6 +168,7 @@ var Actions = []string{
 	ActionCodeTagWordsSaved, ActionProjectLanguageSet, ActionQualitySettingsSaved,
 	ActionTermDeleted, ActionGlossariesChosen, ActionDuplicateSettingsSaved,
 	ActionDashboardCreated, ActionDashboardShared, ActionDashboardDeleted,
+	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

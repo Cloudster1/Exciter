@@ -8,6 +8,7 @@ import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, Section
 import { ImportPanel } from "@/features/import/ImportPanel";
 import { ReqIFPanel } from "@/features/reqif/ReqIFPanel";
 import { WordImportPanel } from "@/features/word/WordImportPanel";
+import { TemplateSettings } from "@/features/templates/TemplateSettings";
 import { ApprovalRules } from "@/features/reviews/ApprovalRules";
 import { SigningRuleCard } from "@/features/baselines/SigningRule";
 import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
@@ -24,7 +25,21 @@ import { QualityRulesCard, QualityWordsCard } from "@/features/quality/QualitySe
 import { GlossariesCard } from "@/features/glossary/GlossariesCard";
 import { DuplicateSettingsCard } from "@/features/duplicates/DuplicateSettingsCard";
 
-const SETTINGS_TABS = ["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "quality", "import", "reqif", "word"] as const;
+const SETTINGS_TABS = [
+  "details",
+  "types",
+  "attributes",
+  "fields",
+  "workflow",
+  "approval",
+  "links",
+  "trace",
+  "quality",
+  "import",
+  "reqif",
+  "word",
+  "templates",
+] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function isSettingsTab(value: unknown): value is SettingsTab {
@@ -60,6 +75,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
               { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
               { value: "word", label: t.word.tab, attrs: { "data-tab": "word" } },
+              { value: "templates", label: t.templates.tab, attrs: { "data-tab": "templates" } },
             ]}
           />
         }
@@ -108,6 +124,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "import" && <ImportPanel project={project} />}
         {tab === "reqif" && <ReqIFPanel project={project} />}
         {tab === "word" && <WordImportPanel project={project} />}
+        {tab === "templates" && <TemplateSettings project={project} />}
       </TabPanel>
     </div>
   );

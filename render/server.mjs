@@ -86,7 +86,7 @@ function margins(meta) {
   };
 }
 
-async function print({ path, token, language, budget }) {
+async function print({ path, token, language, budget }, as = "pdf") {
   const deadline = Date.now() + budget;
   // What is left of the budget, so no one step can spend it all.
   const left = () => {
@@ -124,6 +124,7 @@ async function print({ path, token, language, budget }) {
     const failed = await settled.evaluate((el) => (el.hasAttribute("data-print-failed") ? el.textContent || "the page could not be shown" : null));
     if (failed) throw new Error(failed.trim());
     await page.evaluate(() => document.fonts.ready);
+    if (as === "html") return Buffer.from(await snapshot(page), "utf8");
     const meta = await page.evaluate(() => {
       const el = document.querySelector("[data-print-meta]");
       const style = getComputedStyle(document.documentElement);
@@ -140,6 +141,31 @@ async function print({ path, token, language, budget }) {
   } finally {
     await context.close();
   }
+}
+
+/**
+ * The page as a file that opens without the web client: its stylesheets inlined, its scripts and fonts left out, so
+ * nothing it holds reaches back to the server (#214).
+ */
+async function snapshot(page) {
+  return page.evaluate(() => {
+    const rules = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules)) {
+          if (!(rule instanceof CSSFontFaceRule)) rules.push(rule.cssText);
+        }
+      } catch {
+        // A sheet of another origin cannot be read, and the page draws nothing from one.
+      }
+    }
+    for (const el of Array.from(document.querySelectorAll("script, link, style, noscript, [data-print-meta]"))) el.remove();
+    const style = document.createElement("style");
+    style.textContent = rules.join("\n");
+    document.head.appendChild(style);
+    document.documentElement.removeAttribute("data-print-ready");
+    return "<!doctype html>\n" + document.documentElement.outerHTML;
+  });
 }
 
 function readBody(req) {
@@ -176,7 +202,7 @@ const server = createServer(async (req, res) => {
     answer(res, connected ? 200 : 503, { status: connected ? "ok" : "the browser is gone" });
     return;
   }
-  if (req.method !== "POST" || req.url !== "/pdf") {
+  if (req.method !== "POST" || (req.url !== "/pdf" && req.url !== "/html")) {
     answer(res, 404, { error: "not found" });
     return;
   }
@@ -194,9 +220,10 @@ const server = createServer(async (req, res) => {
   }
   printing++;
   try {
-    const pdf = await print(asked);
-    res.writeHead(200, { "Content-Type": "application/pdf", "Content-Length": pdf.length });
-    res.end(pdf);
+    const html = req.url === "/html";
+    const answered = await print(asked, html ? "html" : "pdf");
+    res.writeHead(200, { "Content-Type": html ? "text/html; charset=utf-8" : "application/pdf", "Content-Length": answered.length });
+    res.end(answered);
   } catch (error) {
     // The path may hold a public link's token, so only the reason is logged.
     process.stderr.write(`render failed: ${error.message}\n`);

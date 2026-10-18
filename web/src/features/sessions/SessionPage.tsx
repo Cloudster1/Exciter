@@ -7,6 +7,7 @@ import { Button, ButtonLink, Checkbox, Dialog, ErrorBanner, Field, PageHeader, S
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
+import { FileExportDialog } from "@/features/print/FileExport";
 
 const on = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
@@ -21,6 +22,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
   const { data: session, error, refetch } = useSession(sessionId);
   const [asking, setAsking] = useState<"round" | "close" | null>(null);
   const [notice, setNotice] = useState("");
+  const [word, setWord] = useState(false);
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!session) return <Skeleton />;
   const s = session;
@@ -73,9 +75,12 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
         <ButtonLink variant="secondary" icon={<Icon.Download />} href={sessionReportHref(s.id, "pdf")} data-action="report-pdf">
           {t.sessions.reportPdf}
         </ButtonLink>
-        <ButtonLink variant="secondary" icon={<Icon.Download />} href={sessionReportHref(s.id, "docx")} data-action="report-docx">
+        <Button variant="secondary" icon={<Icon.Download />} onClick={() => setWord(true)} data-action="report-docx">
           {t.sessions.reportDocx}
-        </ButtonLink>
+        </Button>
+        {word && (
+          <FileExportDialog format="docx" href={sessionReportHref(s.id, "docx")} title={s.title} projectKey={project.key} onClose={() => setWord(false)} />
+        )}
       </div>
 
       <section aria-labelledby="session-requirements" className="space-y-2">

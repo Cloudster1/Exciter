@@ -5,6 +5,7 @@ export const documentsEn = {
   pdf: "PDF",
   docx: "Word",
   reqif: "ReqIF",
+  "html.zip": "HTML site",
   title: (format: string, title: string) => `${format} of ${title}`,
   making: "The document is being made. It is saved once it is ready.",
   note: "The document holds what you may read, as it reads now or as the baseline holds it.",
@@ -23,10 +24,18 @@ export const documentsEn = {
   keyAndRevision: (key: string, revision: number) => `${key} · revision ${revision}`,
   rationale: "Rationale",
   links: "Links",
-  fields: { type: "Type", status: "Status", owner: "Owner", priority: "Priority", labels: "Labels" } as Record<string, string | undefined>,
+  fields: { type: "Type", status: "Status", owner: "Owner", priority: "Priority", labels: "Labels", revision: "Revision" } as Record<
+    string,
+    string | undefined
+  >,
   yes: "Yes",
   no: "No",
   truncated: (n: number, total: number) => `This document holds the first ${n} of the ${total} requirements. Export a section to hold the rest.`,
   pages: "{page} / {pages}",
+  changesSince: (name: string) => `Changes since the baseline ${name} are marked.`,
+  newSince: "New since the baseline.",
+  changedFrom: (revision: number) => `Changed since revision ${revision}:`,
+  comments: "Open comments",
+  commentBy: (author: string, day: string) => `${author}, ${day}`,
   printFailed: "The document could not be shown.",
 };

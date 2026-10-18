@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -38,7 +39,14 @@ type Reader struct {
 
 // Write writes the document as a .docx, its added words in lang, "en" or "de".
 func Write(ctx context.Context, out io.Writer, doc *specdoc.Document, lang string, r Reader) error {
+	return WriteWith(ctx, out, doc, lang, r, nil, nil)
+}
+
+// WriteWith writes the document into a Word template (#214), its placeholders filled with what fill says; a nil
+// template is the export's own page.
+func WriteWith(ctx context.Context, out io.Writer, doc *specdoc.Document, lang string, r Reader, t *Template, values Fill) error {
 	w := newWriter(ctx, lang, r)
+	w.layout, w.fill = t, values
 	body, err := w.document(doc)
 	if err != nil {
 		return err
@@ -57,19 +65,38 @@ func (w *writer) pack(out io.Writer, body []byte, modified time.Time, core []byt
 		_, err = f.Write(data)
 		return err
 	}
+	types, styleXML, numberingXML := contentTypes(w.media), styles(lang), w.numbering()
+	if w.layout != nil {
+		types, styleXML, numberingXML = w.templateTypes(types), w.mergedStyles, w.mergedNumbering
+		w.rels = append(w.rels, w.layout.rels...)
+	}
 	parts := []struct {
 		name string
 		data []byte
 	}{
-		{"[Content_Types].xml", contentTypes(w.media)},
+		{"[Content_Types].xml", types},
 		{"_rels/.rels", []byte(packageRels)},
 		{"docProps/core.xml", core},
 		{"docProps/app.xml", []byte(appProperties)},
 		{"word/document.xml", body},
-		{"word/styles.xml", styles(lang)},
-		{"word/numbering.xml", w.numbering()},
+		{"word/styles.xml", styleXML},
+		{"word/numbering.xml", numberingXML},
 		{"word/settings.xml", []byte(settings)},
 		{"word/_rels/document.xml.rels", w.relationships()},
+	}
+	if w.layout != nil {
+		extra := w.templateParts()
+		names := make([]string, 0, len(extra))
+		for name := range extra {
+			names = append(names, name)
+		}
+		slices.Sort(names)
+		for _, name := range names {
+			parts = append(parts, struct {
+				name string
+				data []byte
+			}{name, extra[name]})
+		}
 	}
 	for _, m := range w.media {
 		parts = append(parts, struct {
@@ -87,8 +114,13 @@ func (w *writer) pack(out io.Writer, body []byte, modified time.Time, core []byt
 
 // Bytes is Write into memory, so a failure is known before anything is sent.
 func Bytes(ctx context.Context, doc *specdoc.Document, lang string, r Reader) ([]byte, error) {
+	return BytesWith(ctx, doc, lang, r, nil, nil)
+}
+
+// BytesWith is WriteWith into memory.
+func BytesWith(ctx context.Context, doc *specdoc.Document, lang string, r Reader, t *Template, values Fill) ([]byte, error) {
 	var buf bytes.Buffer
-	if err := Write(ctx, &buf, doc, lang, r); err != nil {
+	if err := WriteWith(ctx, &buf, doc, lang, r, t, values); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
