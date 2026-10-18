@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M10, Authoring quality (#233):
+  `docs/api-contract-m10.md` agrees how writing rules check a requirement
+  as it is written and score it, how a project's glossary marks the terms
+  requirements use and makes them suspect when a definition changes, how
+  requirements that say the same thing are found, dismissed, linked or
+  merged, and how a Word document is imported as a specification and
+  imported again. The operations it adds answer 501 until they are built.
 - Code traces to the requirements it implements and tests (#201). A source
   comment tags a requirement with `[implements CHK-R42]` or
   `[verifies CHK-R42@3]`, in words a project sets. `exciter-ci scan` uploads

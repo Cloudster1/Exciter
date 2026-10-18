@@ -42,8 +42,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m5.md` for traceability (#146),
   `docs/api-contract-m6.md` for the document view (#167),
   `docs/api-contract-m7.md` for the MCP integration (#182),
-  `docs/api-contract-m8.md` for review sessions and control (#216), and
-  `docs/api-contract-m9.md` for verification evidence (#224).
+  `docs/api-contract-m8.md` for review sessions and control (#216),
+  `docs/api-contract-m9.md` for verification evidence (#224), and
+  `docs/api-contract-m10.md` for authoring quality (#233).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -286,6 +287,13 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Authoring quality** (M10, `docs/api-contract-m10.md`, planned): writing
+  rules in `internal/quality` check a requirement's title and statement as
+  it is written and keep their findings with each revision, judged when
+  read; a project's glossary marks the terms requirements use and makes
+  them suspect when a definition changes; `pg_trgm` keeps the pairs of
+  requirements most alike; and a Word document is imported through the
+  ReqIF import's pipeline.
 - **Verification evidence** (M9, `docs/api-contract-m9.md`): CI uploads
   JUnit results (#200) and the requirement tags a scan found in the source
   (#201), with a token carrying the `evidence` scope. The worker lands a run's
