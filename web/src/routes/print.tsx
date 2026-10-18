@@ -1,6 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { PrintBaselineDocument, PrintProjectDocument } from "@/features/print/PrintDocument";
 import { PrintSessionReport } from "@/features/print/PrintSessionReport";
+import { PrintDashboard } from "@/features/dashboard/DashboardPages";
 import { rootRoute } from "./root";
 
 // What the render service opens to print a document as PDF: outside the shell and its sign-in guard, since the
@@ -32,5 +33,14 @@ export const printBaselineDocumentRoute = createRoute({
   component: function PrintBaselineDocumentPage() {
     const { baselineId } = printBaselineDocumentRoute.useParams();
     return <PrintBaselineDocument baselineId={baselineId} />;
+  },
+});
+
+export const printDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/print/dashboards/$dashboardId",
+  component: function PrintDashboardPage() {
+    const { dashboardId } = printDashboardRoute.useParams();
+    return <PrintDashboard dashboardId={dashboardId} />;
   },
 });

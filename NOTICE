@@ -534,6 +534,16 @@ Following Stator at 4afe5a1, for its remote links on pages (#42):
   keeping its maker, page.remote_link.removed sent whoever takes one off,
   and its sentences
 
+Adapted from Armature at e3dccd1, for dashboards (#212):
+- backend/internal/dashboard: the dashboards and widgets of
+  internal/report, the kinds offered with their widths, the built-in
+  templates and the reorder that names every widget, over a project's
+  requirements, owned by a person and shared with the project's readers
+- web/src/features/dashboard charts.tsx and DashboardGrid.tsx: the bars,
+  donut, legend, stat and lines drawn by hand of features/dashboard, and its
+  grid of widgets moved earlier and later, with each value opening its
+  requirements in the grid and widgets dragged into place
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

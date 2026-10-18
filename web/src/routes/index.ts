@@ -31,6 +31,8 @@ import {
   coverageRoute,
   codeTagsRoute,
   qualityRoute,
+  dashboardsRoute,
+  dashboardRoute,
   glossaryRoute,
   duplicatesRoute,
   termRoute,
@@ -51,13 +53,14 @@ import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
-import { printBaselineDocumentRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
+import { printBaselineDocumentRoute, printDashboardRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   printProjectDocumentRoute,
   printBaselineDocumentRoute,
+  printDashboardRoute,
   printSessionReportRoute,
   appRoute.addChildren([
     homeRoute,
@@ -74,6 +77,8 @@ const routeTree = rootRoute.addChildren([
     coverageRoute,
     codeTagsRoute,
     qualityRoute,
+    dashboardsRoute,
+    dashboardRoute,
     glossaryRoute,
     duplicatesRoute,
     termRoute,

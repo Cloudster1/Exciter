@@ -16,6 +16,7 @@ import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
 import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
+import { dashboardDe } from "./dashboard.de";
 import { graphDe } from "./graph.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
@@ -341,6 +342,9 @@ export const de: Messages = {
       "review_session.closed": "Review-Sitzung geschlossen",
       "evidence_settings.saved": "Zählender Branch benannt",
       "duplicate_settings.saved": "Schwelle für Duplikate festgelegt",
+      "dashboard.created": "Geteiltes Dashboard angelegt",
+      "dashboard.shared": "Dashboard geteilt",
+      "dashboard.deleted": "Geteiltes Dashboard gelöscht",
       "term.deleted": "Begriff gelöscht",
       "glossaries.chosen": "Glossare gewählt",
       "project.language_set": "Projektsprache festgelegt",
@@ -402,6 +406,7 @@ export const de: Messages = {
   coverage: coverageDe,
   matrix: matrixDe,
   chains: chainsDe,
+  dashboard: dashboardDe,
   graph: graphDe,
   imports: importsDe,
   reqif: reqifDe,

@@ -345,6 +345,11 @@ func (s *Service) Update(ctx context.Context, reader uuid.UUID, key string, in U
 				settings.Library = *in.Settings.Library
 				shelving = true
 			}
+			if raw := in.Settings.HomeDashboardID; len(raw) > 0 {
+				if settings.HomeDashboardID, err = homeDashboard(ctx, tx, p.ID, raw); err != nil {
+					return err
+				}
+			}
 			if in.Settings.Language != nil && *in.Settings.Language != settings.LanguageOf() {
 				if !slices.Contains(Languages, *in.Settings.Language) {
 					return &FieldError{"settings.language", "Choose English or German as the language of the project's requirements."}
@@ -472,4 +477,24 @@ func (s *Service) Delete(ctx context.Context, reader uuid.UUID, key string) (db.
 		}
 		return s.note(ctx, tx, reader, audit.ActionProjectDeleted, p, map[string]any{"key": p.Key, "name": p.Name})
 	})
+}
+
+// homeDashboard reads the dashboard a project's home is to show: a shared one of the project, or none.
+func homeDashboard(ctx context.Context, tx db.DBTX, projectID uuid.UUID, raw json.RawMessage) (*uuid.UUID, error) {
+	if string(raw) == "null" {
+		return nil, nil
+	}
+	var id uuid.UUID
+	refusal := &FieldError{"settings.homeDashboardId", "Pick a dashboard of this project that is shared with it."}
+	if err := json.Unmarshal(raw, &id); err != nil {
+		return nil, refusal
+	}
+	var shared bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM dashboard WHERE id = $1 AND project_id = $2 AND shared)`, id, projectID).Scan(&shared); err != nil {
+		return nil, err
+	}
+	if !shared {
+		return nil, refusal
+	}
+	return &id, nil
 }

@@ -3,6 +3,7 @@ import { createRoute, useNavigate } from "@tanstack/react-router";
 import { useProject, type Project } from "@/api/projects";
 import { ErrorBanner, Skeleton } from "@/components/ui";
 import { NEW_PROJECT_PATH, NEW_WORKFLOW, PROJECTS_PATH } from "@/config";
+import { DashboardPage, DashboardsPage, HomeDashboard } from "@/features/dashboard/DashboardPages";
 import { NewProjectForm } from "@/features/projects/NewProjectForm";
 import { ProjectDirectory } from "@/features/projects/ProjectDirectory";
 import { ProjectPermissions } from "@/features/permissions/ProjectPermissions";
@@ -42,6 +43,7 @@ type ProjectPath =
   | "/p/$projectKey/permissions"
   | "/p/$projectKey/new"
   | "/p/$projectKey/trash"
+  | "/p/$projectKey/dashboards"
   | "/p/$projectKey/spec"
   | "/p/$projectKey/grid"
   | "/p/$projectKey/suspects"
@@ -81,7 +83,12 @@ export const projectRoute = createRoute({
       <ProjectPage
         projectKey={projectKey}
         to="/p/$projectKey"
-        render={(project) => <RequirementList key={`${project.id}:${label ?? ""}`} project={project} label={label} />}
+        render={(project) => (
+          <>
+            <HomeDashboard project={project} />
+            <RequirementList key={`${project.id}:${label ?? ""}`} project={project} label={label} />
+          </>
+        )}
       />
     );
   },
@@ -218,6 +225,32 @@ export const codeTagsRoute = createRoute({
   component: function ProjectCodeTagsPage() {
     const { projectKey } = codeTagsRoute.useParams();
     return <ProjectPage projectKey={projectKey} to="/p/$projectKey/code-tags" render={(project) => <CodeTagsPage key={project.id} project={project} />} />;
+  },
+});
+
+/** A project's dashboards (#212). */
+export const dashboardsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/dashboards",
+  component: function ProjectDashboardsPage() {
+    const { projectKey } = dashboardsRoute.useParams();
+    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/dashboards" render={(project) => <DashboardsPage key={project.id} project={project} />} />;
+  },
+});
+
+/** One dashboard; its address is the link a shared one is passed on by. */
+export const dashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/p/$projectKey/dashboards/$dashboardId",
+  component: function ProjectDashboardPage() {
+    const { projectKey, dashboardId } = dashboardRoute.useParams();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/dashboards"
+        render={(project) => <DashboardPage key={dashboardId} project={project} dashboardId={dashboardId} />}
+      />
+    );
   },
 });
 

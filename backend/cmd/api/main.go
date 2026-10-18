@@ -26,6 +26,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/comment"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
@@ -190,6 +191,7 @@ func run() error {
 		Quality:         quality.NewService(cluster, requirement.LocateForQuality),
 		Glossary:        glossary.NewService(cluster),
 		Duplicates:      duplicates.NewService(cluster),
+		Dashboards:      dashboard.NewService(cluster, finder, links),
 		Attachments:     files,
 		ReqIF:           reqifio.NewService(cluster, requirements, attributes, links, files, store),
 		Documents:       specdoc.NewService(cluster, requirements, baselines),

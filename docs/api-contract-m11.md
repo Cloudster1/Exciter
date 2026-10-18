@@ -449,6 +449,28 @@ All of it is held by the database and proven straight through SQL as
 - The home of a project shows its home dashboard above its requirements.
 - "Export as PDF" prints the dashboard.
 
+### As built (#212)
+
+- **Migration**: `01140_dashboards.sql` adds `dashboard` and
+  `dashboard_widget`, guarded by `dashboard_kept(id)`, and
+  `project_clear_home_dashboard(project)`, which clears a project's home once
+  its dashboard is gone or no longer shared.
+- **Code**: `internal/dashboard` keeps dashboards and widgets
+  (`service.go`, `widgets.go`), reads widgets (`data.go`) through
+  `search.Keep`, `search.Grid`, `search.Quality` and `trace.Coverage` as the
+  reader, and holds the built-in templates in code.
+- **Buckets**: breakdowns group in SQL over the requirements the source
+  keeps; review and suspects count each state through the query language,
+  so a bucket's count is the grid's for its query. A bucket with no value
+  has an empty label and an `IS EMPTY` query; the tail past `MaxBuckets` has
+  an empty label and no query.
+- **Refusals**: a source whose query does not compile is 400 `bad_query`, as
+  the grid answers it.
+- **Web**: `features/dashboard`; `/p/{projectKey}/dashboards` and
+  `/p/{projectKey}/dashboards/{id}`; `/print/dashboards/{id}` for the PDF;
+  the home dashboard is chosen with the project's details and shown above
+  its requirements.
+
 ## #214 Word templates and the static HTML site
 
 | Operation | Needs | Answers |

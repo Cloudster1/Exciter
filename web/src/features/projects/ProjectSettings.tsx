@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
+import { useDashboards } from "@/api/dashboards";
 import { useTypes } from "@/api/attributes";
 import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
 import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
@@ -121,6 +122,8 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [library, setLibrary] = useState(project.settings.library);
   const [defaultType, setDefaultType] = useState(project.settings.defaultTypeId ?? "");
   const [language, setLanguage] = useState(project.settings.language === "de" ? "de" : "en");
+  const [home, setHome] = useState(project.settings.homeDashboardId ?? "");
+  const { data: dashboards } = useDashboards(project.key);
   const { data: types } = useTypes(project.key);
   const [notice, setNotice] = useState("");
   const fields = update.error instanceof ApiError ? update.error.fields : {};
@@ -132,6 +135,7 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
     // The language is sent only when it changes, since a change checks every requirement again (#207).
     if (language !== (project.settings.language ?? "en")) settings.language = language;
+    if (home !== (project.settings.homeDashboardId ?? "")) settings.homeDashboardId = home || null;
     update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
   }
 
@@ -187,6 +191,24 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
               {t.quality.language.names[each]}
             </option>
           ))}
+        </Select>
+        <Select
+          label={t.dashboard.home}
+          hint={t.dashboard.homeHint}
+          value={home}
+          disabled={readOnly}
+          onChange={(event) => setHome(event.target.value)}
+          error={fields["settings.homeDashboardId"]}
+          data-setting="home-dashboard"
+        >
+          <option value="">{t.dashboard.noHome}</option>
+          {(dashboards ?? [])
+            .filter((d) => d.shared)
+            .map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
         </Select>
         <div>
           <Checkbox
