@@ -43,8 +43,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m6.md` for the document view (#167),
   `docs/api-contract-m7.md` for the MCP integration (#182),
   `docs/api-contract-m8.md` for review sessions and control (#216),
-  `docs/api-contract-m9.md` for verification evidence (#224), and
-  `docs/api-contract-m10.md` for authoring quality (#233).
+  `docs/api-contract-m9.md` for verification evidence (#224),
+  `docs/api-contract-m10.md` for authoring quality (#233), and
+  `docs/api-contract-m11.md` for analysis and reporting (#242).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -287,6 +288,14 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Analysis and reporting** (M11, `docs/api-contract-m11.md`, planned): a
+  trace graph walks a requirement's links up and down across projects,
+  counting what the reader may not see without naming it; computed
+  attributes in `internal/attribute/formula` are kept outside revisions and
+  recomputed by the worker from a queue the database fills; dashboards in
+  `internal/dashboard` read their widgets live as the reader; and an export
+  goes through a project's Word template, or becomes an HTML site the render
+  service takes from the print view.
 - **Authoring quality** (M10, `docs/api-contract-m10.md`): writing
   rules in `internal/quality` check a requirement's title and statement as
   it is written and keep their findings with each revision, judged when
