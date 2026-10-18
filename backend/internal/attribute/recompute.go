@@ -99,27 +99,36 @@ type marked struct {
 }
 
 func (r *Recomputer) batch(ctx context.Context, tx db.DBTX, project uuid.UUID) (int, error) {
-	rows, err := tx.Query(ctx, `SELECT requirement_id, steps FROM computed_dirty WHERE project_id = $1 ORDER BY steps, since LIMIT $2
-		FOR UPDATE SKIP LOCKED`, project, RecomputeBatch)
+	// The marks taken go at once; a change marking a requirement meanwhile appends another, never waiting (#248).
+	rows, err := tx.Query(ctx, `
+		WITH picked AS (
+			SELECT requirement_id FROM computed_dirty WHERE project_id = $1
+			GROUP BY requirement_id ORDER BY min(steps), min(id) LIMIT $2)
+		DELETE FROM computed_dirty d USING picked p WHERE d.project_id = $1 AND d.requirement_id = p.requirement_id
+		RETURNING d.requirement_id, d.steps`, project, RecomputeBatch)
 	if err != nil {
 		return 0, err
 	}
-	batch, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (marked, error) {
+	taken, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (marked, error) {
 		var m marked
 		return m, row.Scan(&m.id, &m.steps)
 	})
-	if err != nil || len(batch) == 0 {
+	if err != nil || len(taken) == 0 {
 		return 0, err
 	}
-	ids := make([]uuid.UUID, len(batch))
-	stopped := map[uuid.UUID]bool{}
+	// A requirement marked more than once is worked out once, as far along as its freshest mark says.
 	steps := map[uuid.UUID]int{}
-	for i, m := range batch {
-		ids[i], steps[m.id] = m.id, m.steps
-		stopped[m.id] = m.steps >= formula.MaxSteps
+	var ids []uuid.UUID
+	for _, m := range taken {
+		if was, seen := steps[m.id]; !seen {
+			ids, steps[m.id] = append(ids, m.id), m.steps
+		} else if m.steps < was {
+			steps[m.id] = m.steps
+		}
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM computed_dirty WHERE requirement_id = ANY ($1)`, ids); err != nil {
-		return 0, err
+	stopped := map[uuid.UUID]bool{}
+	for _, id := range ids {
+		stopped[id] = steps[id] >= formula.MaxSteps
 	}
 	w, err := newWorld(ctx, tx, project, day(r.now()))
 	if err != nil {
@@ -127,7 +136,7 @@ func (r *Recomputer) batch(ctx context.Context, tx db.DBTX, project uuid.UUID) (
 	}
 	if w == nil {
 		_, err := tx.Exec(ctx, `DELETE FROM requirement_computed WHERE project_id = $1`, project)
-		return len(batch), err
+		return len(ids), err
 	}
 	results, err := w.work(ctx, ids, stopped)
 	if err != nil {
@@ -163,7 +172,7 @@ func (r *Recomputer) batch(ctx context.Context, tx db.DBTX, project uuid.UUID) (
 	}
 	_, err = tx.Exec(ctx, `UPDATE attribute_recompute SET finished_at = now()
 		WHERE project_id = $1 AND finished_at IS NULL AND NOT EXISTS (SELECT 1 FROM computed_dirty WHERE project_id = $1)`, project)
-	return len(batch), err
+	return len(ids), err
 }
 
 // mark marks again whatever reads the requirements given: their parents, and those whose links lead to them.
@@ -190,8 +199,7 @@ func (r *Recomputer) mark(ctx context.Context, tx db.DBTX, w *world, project uui
 	_, err := tx.Exec(ctx, `
 		INSERT INTO computed_dirty (requirement_id, project_id, steps)
 		SELECT t.id, $3, min(t.steps) FROM (`+reach+`) t JOIN requirement r ON r.id = t.id AND r.project_id = $3
-		GROUP BY t.id
-		ON CONFLICT (requirement_id) DO UPDATE SET steps = LEAST(computed_dirty.steps, EXCLUDED.steps)`, ids, steps, project)
+		GROUP BY t.id`, ids, steps, project)
 	return err
 }
 
