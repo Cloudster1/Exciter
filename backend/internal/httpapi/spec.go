@@ -87,6 +87,7 @@ func specBuilder() *openapi.Builder {
 	evidenceSchemas(b)
 	authoringSchemas(b)
 	analysisSchemas(b)
+	testSchemas(b)
 	b.Enums[reflect.TypeOf(search.ViewKind(""))] = enumStrings(search.ViewKinds)
 	return b
 }
