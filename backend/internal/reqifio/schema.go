@@ -89,7 +89,12 @@ func (s *Service) makeSchema(ctx context.Context, j *job, a *analysis) error {
 		}
 		if target.create != "" {
 			name, icon, colour := target.create, madeTypeIcon, madeTypeColour
-			made, _, err := s.attributes.CreateType(ctx, actor, key, attribute.TypeInput{Name: &name, Icon: &icon, Colour: &colour})
+			in := attribute.TypeInput{Name: &name, Icon: &icon, Colour: &colour}
+			if target.testCases {
+				role := attribute.RoleTestCase
+				in.Role = &role
+			}
+			made, _, err := s.attributes.CreateType(ctx, actor, key, in)
 			if err != nil {
 				return fmt.Errorf("make the type %s: %w", name, err)
 			}

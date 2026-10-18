@@ -140,12 +140,20 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 		mapped := copies[*l.ParentID]
 		parent, rank = &mapped, l.rank
 	}
-	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values}
+	test, err := testFor(ctx, tx, typeID, l.test)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test}
 	if err := pointAtFiles(&content, files); err != nil {
 		return uuid.Nil, err
 	}
 	hash := content.Hash()
 	attrs, err := json.Marshal(content.Attributes)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	pre, steps, params, err := content.Test.columns()
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -160,11 +168,13 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 	}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
-		                         parent_id, rank, copied_from, created_by, updated_by, reuse_source, reuse_revision, reuse_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15, $16, CASE WHEN $15::uuid IS NULL THEN NULL ELSE 'following' END)
+		                         parent_id, rank, copied_from, created_by, updated_by, reuse_source, reuse_revision, reuse_state,
+		                         preconditions, steps, parameters)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15, $16, CASE WHEN $15::uuid IS NULL THEN NULL ELSE 'following' END,
+		        $17, $18, $19)
 		RETURNING id`,
 		to.ID, l.Kind, l.Title, content.Statement, content.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor,
-		reuseFrom, reuseRev).Scan(&id)
+		reuseFrom, reuseRev, pre, steps, params).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound
 	}

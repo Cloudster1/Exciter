@@ -133,6 +133,14 @@ var requirementFields = []struct {
 	{fieldOwner, dataString, KindString}, {fieldLabels, dataString, KindString},
 }
 
+// testCaseFields are what the type of test cases writes besides (#250): the steps as a table of action and result.
+var testCaseFields = []struct {
+	field, dataType string
+	kind            DataKind
+}{
+	{fieldPreconditions, dataXHTML, KindXHTML}, {fieldSteps, dataXHTML, KindXHTML}, {fieldParameters, dataString, KindString},
+}
+
 func (b *builder) specTypes() {
 	used := map[uuid.UUID]bool{}
 	sections := false
@@ -169,7 +177,11 @@ func (b *builder) specTypes() {
 			t.Changed = at
 		}
 		b.typeIDs[typeID] = identifier
-		for _, f := range requirementFields {
+		fields := requirementFields
+		if b.snap.testTypes[typeID] {
+			fields = append(fields[:len(fields):len(fields)], testCaseFields...)
+		}
+		for _, f := range fields {
 			defs[f.field] = &AttrDef{Identity: b.id(fieldIdentifier(scope, f.field), fieldNames[f.field]), Kind: f.kind, DataType: f.dataType}
 			t.Attributes = append(t.Attributes, defs[f.field])
 		}
@@ -280,6 +292,15 @@ func (b *builder) object(n requirement.TreeNode) {
 		}
 		if len(c.Labels) > 0 {
 			put(fieldLabels, Value{Text: strings.Join(c.Labels, ", ")})
+		}
+		if len(c.Test.Preconditions) > 0 {
+			put(fieldPreconditions, Value{XHTML: FromDocument(c.Test.Preconditions, b.fileRef)})
+		}
+		if len(c.Test.Steps) > 0 {
+			put(fieldSteps, Value{XHTML: FromDocument(requirement.StepsTable(c.Test.Steps, "Action", "Expected result"), b.fileRef)})
+		}
+		if len(c.Test.Parameters) > 0 {
+			put(fieldParameters, Value{Text: requirement.ParametersText(c.Test.Parameters)})
 		}
 		for _, d := range b.snap.defs {
 			if v, ok := b.attributeValue(d, c.Attributes[d.ID.String()]); ok {

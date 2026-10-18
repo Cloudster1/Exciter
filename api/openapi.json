@@ -18518,7 +18518,7 @@
     "/requirements/{reqKey}/diff": {
       "get": {
         "operationId": "diffRevisions",
-        "summary": "What changed between two revisions of a requirement: statement, rationale, type and attributes.",
+        "summary": "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's preconditions, steps one by one, and parameters.",
         "tags": [
           "history"
         ],
@@ -27864,7 +27864,8 @@
               "equal",
               "inserted",
               "deleted",
-              "modified"
+              "modified",
+              "moved"
             ]
           },
           "from": {
@@ -29918,6 +29919,18 @@
           "from": {
             "$ref": "#/components/schemas/CompareSide"
           },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestParameterDiff"
+            }
+          },
+          "preconditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffBlock"
+            }
+          },
           "rationale": {
             "type": "array",
             "items": {
@@ -29928,6 +29941,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DiffBlock"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStepDiff"
             }
           },
           "title": {
@@ -29946,7 +29965,10 @@
           "title",
           "statement",
           "rationale",
-          "attributes"
+          "attributes",
+          "preconditions",
+          "steps",
+          "parameters"
         ]
       },
       "Completion": {
@@ -30500,7 +30522,8 @@
               "equal",
               "inserted",
               "deleted",
-              "modified"
+              "modified",
+              "moved"
             ]
           },
           "node": {
@@ -30692,6 +30715,9 @@
           },
           "statement": {
             "description": "A JSON value."
+          },
+          "testCase": {
+            "$ref": "#/components/schemas/TestCaseContent"
           },
           "title": {
             "type": "string"
@@ -32916,6 +32942,9 @@
           },
           "statementMarkdown": {
             "type": "string"
+          },
+          "testCase": {
+            "$ref": "#/components/schemas/TestCaseContent"
           },
           "title": {
             "type": "string"
@@ -35653,6 +35682,16 @@
               }
             ]
           },
+          "testCase": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestCaseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "title": {
             "type": "string"
           },
@@ -35696,6 +35735,7 @@
           "type",
           "attributes",
           "computed",
+          "testCase",
           "revision",
           "status",
           "owner",
@@ -35963,6 +36003,16 @@
           "retired": {
             "type": "boolean"
           },
+          "role": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "testCase"
+            ]
+          },
+          "roleHeld": {
+            "type": "boolean"
+          },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
@@ -35983,6 +36033,8 @@
           "colour",
           "position",
           "workflowId",
+          "role",
+          "roleHeld",
           "retired",
           "requirements",
           "createdAt",
@@ -36009,6 +36061,13 @@
           },
           "retired": {
             "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "requirement",
+              "testCase"
+            ]
           }
         }
       },
@@ -36085,6 +36144,9 @@
           },
           "statementMarkdown": {
             "type": "string"
+          },
+          "testCase": {
+            "$ref": "#/components/schemas/TestCaseContent"
           },
           "title": {
             "type": "string"
@@ -37037,6 +37099,16 @@
           "statementMarkdown": {
             "type": "string"
           },
+          "testCase": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestCaseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "title": {
             "type": "string"
           },
@@ -37074,7 +37146,8 @@
           "statement",
           "rationale",
           "type",
-          "attributes"
+          "attributes",
+          "testCase"
         ]
       },
       "RevisionEntry": {
@@ -37790,6 +37863,16 @@
           "suspectLinks": {
             "type": "integer"
           },
+          "testCase": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TestCaseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "type": {
             "oneOf": [
               {
@@ -37817,7 +37900,8 @@
           "approval",
           "change",
           "review",
-          "lock"
+          "lock",
+          "testCase"
         ]
       },
       "SpecRemoved": {
@@ -39043,6 +39127,34 @@
           "uploadedAt"
         ]
       },
+      "TestCaseContent": {
+        "type": "object",
+        "properties": {
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestParameter"
+            }
+          },
+          "preconditions": {
+            "description": "A JSON value."
+          },
+          "preconditionsMarkdown": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestStep"
+            }
+          }
+        },
+        "required": [
+          "preconditions",
+          "steps",
+          "parameters"
+        ]
+      },
       "TestCaseRef": {
         "type": "object",
         "properties": {
@@ -39723,6 +39835,42 @@
           "values"
         ]
       },
+      "TestParameterDiff": {
+        "type": "object",
+        "properties": {
+          "change": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "inserted",
+              "deleted",
+              "modified",
+              "moved"
+            ]
+          },
+          "from": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "change",
+          "from",
+          "to"
+        ]
+      },
       "TestPlan": {
         "type": "object",
         "properties": {
@@ -40136,11 +40284,63 @@
           "action": {
             "description": "A JSON value."
           },
+          "actionMarkdown": {
+            "type": "string"
+          },
           "expected": {
             "description": "A JSON value."
+          },
+          "expectedMarkdown": {
+            "type": "string"
           }
         },
         "required": [
+          "action",
+          "expected"
+        ]
+      },
+      "TestStepDiff": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffBlock"
+            }
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "inserted",
+              "deleted",
+              "modified",
+              "moved"
+            ]
+          },
+          "expected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffBlock"
+            }
+          },
+          "from": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "to": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "change",
+          "from",
+          "to",
           "action",
           "expected"
         ]

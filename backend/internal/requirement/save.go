@@ -62,6 +62,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 	if kind == KindSection && (in.TypeID != nil || len(in.Attributes) > 0) {
 		return nil, 0, &FieldError{"typeId", "A section has no type or attributes. Give them to the requirements in it."}
 	}
+	if kind == KindSection && in.TestCase != nil && !in.TestCase.Empty() {
+		return nil, 0, errNotTestCase
+	}
 	if kind == KindSection && (in.OwnerID != nil || in.Priority != nil) {
 		return nil, 0, &FieldError{"ownerId", "A section has no owner or priority. Give them to the requirements in it."}
 	}
@@ -109,9 +112,16 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			if err := attribute.Missing(defs, content.TypeID, content.Attributes); err != nil {
 				return err
 			}
+			if content.Test, err = testOf(ctx, tx, content.TypeID, in.TestCase, markdown.Resolve{Person: markdown.Members(ctx, tx)}); err != nil {
+				return err
+			}
 		}
 		hash := content.Hash()
 		attrs, err := json.Marshal(content.Attributes)
+		if err != nil {
+			return err
+		}
+		pre, steps, params, err := content.Test.columns()
 		if err != nil {
 			return err
 		}
@@ -131,14 +141,17 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
-			                         parent_id, rank, created_by, updated_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13) RETURNING id`,
-			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, parent, at, actor).Scan(&id); err != nil {
+			                         parent_id, rank, created_by, updated_by, preconditions, steps, parameters)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $14, $15, $16) RETURNING id`,
+			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, parent, at, actor,
+			pre, steps, params).Scan(&id); err != nil {
 			return fmt.Errorf("write the requirement: %w", treeRefusal(err))
 		}
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
-			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor); err != nil {
+			INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by,
+			                                  preconditions, steps, parameters)
+			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor,
+			pre, steps, params); err != nil {
 			return fmt.Errorf("write revision 1: %w", err)
 		}
 		if err := quality.Record(ctx, tx, id, 1); err != nil {
@@ -235,7 +248,7 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 				return err
 			}
 		}
-		next := Normative{Title: cur.Title, Statement: cur.Statement, Rationale: cur.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes}
+		next := Normative{Title: cur.Title, Statement: cur.Statement, Rationale: cur.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes, Test: cur.test}
 		if in.Title != nil {
 			if next.Title, err = checkTitle(*in.Title); err != nil {
 				return err
@@ -277,6 +290,24 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 				return err
 			}
 			if next.Attributes, err = attribute.Merge(defs, next.TypeID, typeChanged, cur.Attributes, in.Attributes, viewerIn(ctx, tx, cur.projectID)); err != nil {
+				return err
+			}
+		}
+		if in.TestCase != nil && cur.Kind == KindSection && !in.TestCase.Empty() {
+			return errNotTestCase
+		}
+		if in.TestCase != nil {
+			files, err := filesOf(ctx, tx, cur.ID)
+			if err != nil {
+				return err
+			}
+			merged := mergeTest(next.Test, *in.TestCase)
+			if next.Test, err = testOf(ctx, tx, next.TypeID, &merged, markdown.Resolve{File: files, Person: markdown.Members(ctx, tx)}); err != nil {
+				return err
+			}
+		} else if typeChanged(cur, next.TypeID) {
+			// A type that is not one of test cases takes nothing a test case carries.
+			if next.Test, err = testFor(ctx, tx, next.TypeID, next.Test); err != nil {
 				return err
 			}
 		}
@@ -342,10 +373,15 @@ func (s *Service) revise(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *
 	if err != nil {
 		return err
 	}
+	pre, steps, params, err := next.Test.columns()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
-		UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8
-		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, actor); err != nil {
-		return fmt.Errorf("change %s: %w", cur.Key, err)
+		UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
+		    preconditions = $9, steps = $10, parameters = $11
+		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, actor, pre, steps, params); err != nil {
+		return fmt.Errorf("change %s: %w", cur.Key, testCaseRefusal(err))
 	}
 	return s.recordRevision(ctx, tx, actor, cur, next, hash, comment)
 }
@@ -356,11 +392,16 @@ func (s *Service) recordRevision(ctx context.Context, tx db.DBTX, actor uuid.UUI
 	if err != nil {
 		return err
 	}
+	pre, steps, params, err := next.Test.columns()
+	if err != nil {
+		return err
+	}
 	number := cur.Revision + 1
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor); err != nil {
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by,
+		                                  preconditions, steps, parameters)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor, pre, steps, params); err != nil {
 		return fmt.Errorf("write revision %d of %s: %w", number, cur.Key, err)
 	}
 	if err := quality.Record(ctx, tx, cur.ID, number); err != nil {

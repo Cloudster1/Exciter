@@ -3,6 +3,7 @@ package httpapi
 import (
 	"reflect"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/testexec"
@@ -14,6 +15,9 @@ func testSchemas(b *openapi.Builder) {
 	names := map[reflect.Type]string{
 		reflect.TypeFor[requirement.Step]():           "TestStep",
 		reflect.TypeFor[requirement.Parameter]():      "TestParameter",
+		reflect.TypeFor[requirement.TestCase]():       "TestCaseContent",
+		reflect.TypeFor[requirement.StepDiff]():       "TestStepDiff",
+		reflect.TypeFor[requirement.ParameterDiff]():  "TestParameterDiff",
 		reflect.TypeFor[testexec.CaseRef]():           "TestCaseRef",
 		reflect.TypeFor[testexec.PlanCan]():           "TestPlanCan",
 		reflect.TypeFor[testexec.Plan]():              "TestPlan",
@@ -44,7 +48,7 @@ func testSchemas(b *openapi.Builder) {
 	for t, name := range names {
 		b.Names[t] = name
 	}
-	b.Enums[reflect.TypeOf(requirement.TypeRole(""))] = enumStrings(requirement.TypeRoles)
+	b.Enums[reflect.TypeOf(attribute.TypeRole(""))] = enumStrings(attribute.TypeRoles)
 	b.Enums[reflect.TypeOf(testexec.Outcome(""))] = enumStrings(testexec.Outcomes)
 	b.Enums[reflect.TypeOf(testexec.State(""))] = enumStrings(testexec.States)
 	b.Enums[reflect.TypeOf(testexec.Scope(""))] = enumStrings(testexec.Scopes)

@@ -87,7 +87,7 @@ func (r *reading) baselineItems(doc *Document, id uuid.UUID, projectKey string) 
 		       COALESCE(v.title, ''), v.statement, v.rationale,
 		       v.attributes || COALESCE((SELECT jsonb_object_agg(c.attribute_id::text, c.value) FROM baseline_computed c
 		                                 WHERE c.baseline_id = $1 AND c.requirement_id = i.requirement_id), '{}'::jsonb),
-		       COALESCE(t.name, ''), COALESCE(i.status_name, '')
+		       COALESCE(t.name, ''), COALESCE(i.status_name, ''), v.preconditions, v.steps, v.parameters
 		FROM baseline_item i
 		LEFT JOIN requirement_revision v ON v.requirement_id = i.requirement_id AND v.number = i.revision
 		LEFT JOIN requirement_type t ON t.id = v.type_id
@@ -104,8 +104,13 @@ func (r *reading) baselineItems(doc *Document, id uuid.UUID, projectKey string) 
 			path                             []int32
 			statement, rationale, attributes []byte
 			typeName, status                 string
+			pre, steps, params               []byte
 		)
-		if err := rows.Scan(&e.ID, &number, &e.Kind, &e.Revision, &path, &e.Depth, &e.Title, &statement, &rationale, &attributes, &typeName, &status); err != nil {
+		if err := rows.Scan(&e.ID, &number, &e.Kind, &e.Revision, &path, &e.Depth, &e.Title, &statement, &rationale, &attributes, &typeName, &status,
+			&pre, &steps, &params); err != nil {
+			return nil, err
+		}
+		if err := withTestCase(&e, pre, steps, params); err != nil {
 			return nil, err
 		}
 		e.Key, e.Outline = requirement.Key(projectKey, number), requirement.OutlineOf(path)
@@ -274,4 +279,14 @@ func readTerms(ctx context.Context, tx db.DBTX, query string, arg any) ([]Glossa
 		terms = append(terms, t)
 	}
 	return terms, rows.Err()
+}
+
+// withTestCase gives an entry what it carries as a test case, when it carries anything.
+func withTestCase(e *Entry, pre, steps, params []byte) error {
+	test, err := requirement.ReadTestCase(pre, steps, params)
+	if err != nil || test.Empty() {
+		return err
+	}
+	e.TestCase = &test
+	return nil
 }

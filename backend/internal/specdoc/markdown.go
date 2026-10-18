@@ -101,6 +101,17 @@ func (e Entry) markdown() string {
 	if s := written(e.Rationale); s != "" {
 		parts = append(parts, "**Rationale**", s)
 	}
+	if t := e.TestCase; t != nil {
+		if s := written(t.Preconditions); s != "" {
+			parts = append(parts, "**Preconditions**", s)
+		}
+		if len(t.Parameters) > 0 {
+			parts = append(parts, "**Parameters**", written(requirement.ParametersTable(*t, "Iteration")))
+		}
+		if len(t.Steps) > 0 {
+			parts = append(parts, "**Steps**", written(requirement.StepsTable(t.Steps, "Action", "Expected result")))
+		}
+	}
 	if len(e.Links) > 0 {
 		links := make([]string, len(e.Links))
 		for i, l := range e.Links {

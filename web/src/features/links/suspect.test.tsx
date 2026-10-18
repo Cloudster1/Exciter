@@ -28,6 +28,9 @@ const comparison: Comparison = {
   title: [{ change: "equal", node: { type: "paragraph", content: [{ type: "text", text: "Keep a ledger" }] } }],
   statement: [{ change: "modified", node: { type: "paragraph", content: [{ type: "text", text: "every payment", marks: [{ type: "diffInsert" }] }] } }],
   rationale: [],
+  preconditions: [],
+  steps: [],
+  parameters: [],
   attributes: [],
 };
 

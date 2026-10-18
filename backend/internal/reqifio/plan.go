@@ -46,17 +46,21 @@ type objectPlan struct {
 	Existing *existing
 	Kind     requirement.Kind
 	// Title is empty to leave an existing one's alone.
-	Title      string
-	Statement  json.RawMessage
-	Rationale  json.RawMessage
-	TypeRef    string
-	TypeID     *uuid.UUID
-	Attributes map[string]json.RawMessage
-	Status     *uuid.UUID
-	Owner      *uuid.UUID
-	OwnerSet   bool
-	Priority   *requirement.Priority
-	Labels     []string
+	Title     string
+	Statement json.RawMessage
+	Rationale json.RawMessage
+	// Preconditions, Steps and Parameters are what a test case carries (#250), Steps as a table read back later.
+	Preconditions json.RawMessage
+	Steps         json.RawMessage
+	Parameters    *string
+	TypeRef       string
+	TypeID        *uuid.UUID
+	Attributes    map[string]json.RawMessage
+	Status        *uuid.UUID
+	Owner         *uuid.UUID
+	OwnerSet      bool
+	Priority      *requirement.Priority
+	Labels        []string
 	// rich are the rich text values by field or attribute id, read again once the files they show are attachments.
 	rich   map[string]*XNode
 	Images bool
@@ -300,6 +304,7 @@ func (a *analysis) planObject(o *Object, parent string) {
 		a.planValue(p, o, &o.Values[i], &name, &chapter)
 	}
 	a.planTitle(p, o, name, chapter)
+	a.settleTestCase(p, where)
 	if p.Kind == requirement.KindRequirement && p.Existing == nil {
 		a.checkRequired(p)
 	}

@@ -43,6 +43,20 @@ func (a *analysis) planValue(p *objectPlan, o *Object, v *Value, name, chapter *
 			return
 		}
 		p.Rationale = a.document(p, fieldRationale, v)
+	case fieldPreconditions, fieldSteps, fieldParameters:
+		if section {
+			a.lose(LossValue, p.Where, "Sections are no test cases, so its %s is left out.", fieldNames[t.field])
+			return
+		}
+		switch t.field {
+		case fieldPreconditions:
+			p.Preconditions = a.document(p, fieldPreconditions, v)
+		case fieldSteps:
+			p.Steps = a.document(p, fieldSteps, v)
+		default:
+			text := textOf(v)
+			p.Parameters = &text
+		}
 	case fieldStatus:
 		if !section {
 			a.planStatus(p, v)
@@ -288,4 +302,29 @@ func (a *analysis) checkRequired(p *objectPlan) {
 			a.problem(p.Where, "It has no %s, which the project requires of its type. Map an attribute of the file to %s, or give it a value in the file.", d.Name, d.Name)
 		}
 	}
+}
+
+// settleTestCase leaves out what a test case carries when the object becomes no test case, as a loss.
+func (a *analysis) settleTestCase(p *objectPlan, where string) {
+	if p.Preconditions == nil && p.Steps == nil && p.Parameters == nil {
+		return
+	}
+	typeID := p.TypeID
+	if typeID == nil && p.Existing != nil {
+		typeID = p.Existing.TypeID
+	}
+	if typeID == nil && p.Existing == nil {
+		typeID = a.world.project.Settings.DefaultTypeID
+	}
+	if p.Kind == requirement.KindRequirement && typeID != nil && a.world.testTypes[*typeID] {
+		return
+	}
+	// A type the import makes for the file's type of test cases is one of test cases too.
+	if t := a.schema.types[p.TypeRef]; p.Kind == requirement.KindRequirement && p.TypeRef != "" && t != nil && t.create != "" && t.testCases {
+		return
+	}
+	a.lose(LossValue, where, "Its type here is not one of test cases, so its preconditions, steps and parameters are left out.")
+	p.Preconditions, p.Steps, p.Parameters = nil, nil, nil
+	delete(p.rich, fieldPreconditions)
+	delete(p.rich, fieldSteps)
 }

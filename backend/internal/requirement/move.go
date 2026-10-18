@@ -298,9 +298,17 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 	// In reading order, so each takes its number in the order a reader meets them and finds its parent moved.
 	for i, c := range plan {
 		l, id, typeID, values := c.l, c.l.ID, c.typeID, c.values
-		content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values}
+		test, err := testFor(ctx, tx, typeID, l.test)
+		if err != nil {
+			return err
+		}
+		content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test}
 		hash := content.Hash()
 		attrs, err := json.Marshal(values)
+		if err != nil {
+			return err
+		}
+		pre, steps, params, err := test.columns()
 		if err != nil {
 			return err
 		}
@@ -310,8 +318,9 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 		}
 		var number int
 		if err := tx.QueryRow(ctx, `
-			UPDATE requirement SET project_id = $2, parent_id = $3, rank = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8
-			WHERE id = $1 RETURNING number`, id, to.ID, parent, rank, typeID, attrs, hash, actor).Scan(&number); err != nil {
+			UPDATE requirement SET project_id = $2, parent_id = $3, rank = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
+			    preconditions = $9, steps = $10, parameters = $11
+			WHERE id = $1 RETURNING number`, id, to.ID, parent, rank, typeID, attrs, hash, actor, pre, steps, params).Scan(&number); err != nil {
 			return fmt.Errorf("move %s: %w", l.Key, treeRefusal(err))
 		}
 		moved := Key(to.Key, number)
@@ -344,10 +353,15 @@ func revisionOf(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, number int
 	if err != nil {
 		return err
 	}
+	pre, steps, params, err := content.Test.columns()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
-		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, restored_from, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor); err != nil {
+		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, restored_from, created_by,
+		                                  preconditions, steps, parameters)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor, pre, steps, params); err != nil {
 		return fmt.Errorf("write revision %d: %w", number, err)
 	}
 	return quality.Record(ctx, tx, id, number)

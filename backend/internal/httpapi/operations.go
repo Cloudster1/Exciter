@@ -292,7 +292,7 @@ var operations = []operation{
 	// Requirements, their trash (#13) and their place in the tree (#15).
 	{method: "POST", path: "/projects/{projectKey}/requirements", handler: "handleCreateRequirement", tag: "requirements",
 		summary: "Write a requirement or a section as revision 1, in the status the workflow starts in.",
-		tool:    "create_requirement", toolHelp: "Write a requirement or a section in a project, by its key, as revision 1; send its statement and rationale as Markdown, in statementMarkdown and rationaleMarkdown.",
+		tool:    "create_requirement", toolHelp: "Write a requirement or a section in a project, by its key, as revision 1; send its statement and rationale as Markdown, in statementMarkdown and rationaleMarkdown. A requirement of a type marked as test cases takes testCase: preconditions and steps, each step an actionMarkdown and an expectedMarkdown, and parameters.",
 		request: requirement.CreateInput{}, responses: map[int]any{http.StatusCreated: env{"requirement": requirement.Requirement{}}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/requirements/by-id/{requirementID}", handler: "handleGetRequirementByID", tag: "requirements",
 		summary:   "One requirement by its id, which never changes, for permalinks.",
@@ -303,7 +303,7 @@ var operations = []operation{
 		query: []param{formatQuery}, responses: ok(env{"requirement": requirement.Requirement{}})},
 	{method: "PATCH", path: "/requirements/{reqKey}", handler: "handleUpdateRequirement", tag: "requirements",
 		summary: "Change a requirement; a change to its normative content writes the next revision over baseRevision, else 409 revision_conflict. The status moves through transitions.",
-		tool:    "update_requirement", toolHelp: "Change a requirement; a change to its title, statement or rationale needs baseRevision, the revision it was made from. Send the text as Markdown, in statementMarkdown and rationaleMarkdown.",
+		tool:    "update_requirement", toolHelp: "Change a requirement; a change to its title, statement, rationale or test case needs baseRevision, the revision it was made from. Send the text as Markdown, in statementMarkdown and rationaleMarkdown; a test case's steps as actionMarkdown and expectedMarkdown, a field of testCase left out staying as it is.",
 		request: requirement.UpdateInput{}, responses: map[int]any{http.StatusOK: env{"requirement": requirement.Requirement{}}, http.StatusConflict: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "DELETE", path: "/requirements/{reqKey}", handler: "handleTrashRequirement", tag: "requirements",
 		summary:   "Move a requirement and everything below it to its project's trash.",
@@ -407,8 +407,8 @@ var operations = []operation{
 		summary: "Write an older revision's content again as the next revision, which records the one it restored.",
 		request: requirement.RestoreInput{}, responses: map[int]any{http.StatusOK: env{"requirement": requirement.Requirement{}, "revision": requirement.RevisionEntry{}}, http.StatusConflict: errorEnvelope{}}},
 	{method: "GET", path: "/requirements/{reqKey}/diff", handler: "handleDiffRevisions", tag: "history",
-		summary: "What changed between two revisions of a requirement: statement, rationale, type and attributes.",
-		tool:    "diff_revisions", toolHelp: "What changed between two revisions of a requirement: statement, rationale, type and attributes.",
+		summary: "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's preconditions, steps one by one, and parameters.",
+		tool:    "diff_revisions", toolHelp: "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's steps one by one.",
 		query: []param{
 			{name: "from", schema: intParam, description: "A revision number, 0 for the empty requirement; the one before to when absent."},
 			{name: "to", schema: intParam, description: "A revision number; the latest when absent."},

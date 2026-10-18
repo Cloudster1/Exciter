@@ -64,6 +64,10 @@ const (
 	fieldPriority  = "priority"
 	fieldOwner     = "owner"
 	fieldLabels    = "labels"
+	// fieldPreconditions, fieldSteps and fieldParameters are what a test case carries (#250).
+	fieldPreconditions = "preconditions"
+	fieldSteps         = "steps"
+	fieldParameters    = "parameters"
 )
 
 // The attribute names of the ReqIF Implementation Guide that most tools write, and what each fills.
@@ -78,6 +82,7 @@ var standardFields = map[string]string{
 var fieldNames = map[string]string{
 	fieldKey: "ReqIF.ForeignID", fieldTitle: "ReqIF.Name", fieldChapter: "ReqIF.ChapterName", fieldStatement: "ReqIF.Text",
 	fieldRationale: "Rationale", fieldStatus: "Status", fieldPriority: "Priority", fieldOwner: "Owner", fieldLabels: "Labels",
+	fieldPreconditions: "Preconditions", fieldSteps: "Steps", fieldParameters: "Parameters",
 }
 
 // fieldOf is the field an attribute definition fills, empty for an attribute of its own.

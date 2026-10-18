@@ -77,6 +77,8 @@ type loaded struct {
 	hash string
 	// requireComment is the project's ask for a comment on every new revision.
 	requireComment bool
+	// test is what it carries as a test case, empty for any other.
+	test TestCase
 }
 
 // selectRequirement reads requirements with what $1 may do to each.
@@ -95,7 +97,8 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
                  WHERE k.requirement_id = r.id), '{}')
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
-       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `, requirement_computed_of(r.id)
+       ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `, requirement_computed_of(r.id),
+       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -135,6 +138,8 @@ func scan(row pgx.Row) (*loaded, error) {
 		locked               scannedLock
 		qualityJSON          []byte
 		computedJSON         []byte
+		role                 TypeRole
+		pre, steps, params   []byte
 	)
 	r := &l.Requirement
 	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
@@ -143,7 +148,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
 		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(append(reused.targets(), locked.targets()...),
-		&qualityJSON, &computedJSON)...)...)
+		&qualityJSON, &computedJSON, &role, &pre, &steps, &params)...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -162,6 +167,13 @@ func scan(row pgx.Row) (*loaded, error) {
 	}
 	if err := json.Unmarshal(attrs, &r.Attributes); err != nil {
 		return nil, fmt.Errorf("read the attributes of %s: %w", r.Key, err)
+	}
+	if l.test, err = scanTestCase(pre, steps, params); err != nil {
+		return nil, err
+	}
+	if role == RoleTestCase && r.Kind == KindRequirement {
+		test := l.test
+		r.TestCase = &test
 	}
 	r.Computed = map[string]json.RawMessage{}
 	if len(computedJSON) > 0 {

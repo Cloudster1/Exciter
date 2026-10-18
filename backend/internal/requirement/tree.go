@@ -182,7 +182,8 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			       pv.id, COALESCE(pv.revision, 0), COALESCE(pv.required, 0), COALESCE(review_approvals(pv.id), 0),
 			       (SELECT count(*)::int FROM review_decision d WHERE d.review_id = pv.id AND d.decision = 'reject'),
 			       COALESCE(review_names(pv.id, `+me+`), false), COALESCE(review_decidable(pv.id, `+me+`), false),
-			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`), `+QualityScore+approval+reuseSQL+lockSQL+`
+			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`), `+QualityScore+approval+reuseSQL+lockSQL+`,
+			       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN chg c ON c.id = r.id
 			LEFT JOIN requirement_review pv ON pv.requirement_id = r.id AND pv.state = 'pending'
@@ -212,6 +213,10 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				reviewID  *uuid.UUID
 				review    SpecReview
 				locked    scannedLock
+				role      TypeRole
+				pre       []byte
+				steps     []byte
+				params    []byte
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
@@ -219,9 +224,16 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
 				&kind, &fromRev, &movedFrom, &reviewID, &review.Revision, &review.Required, &review.Approvals, &review.Rejections,
 				&review.Approver, &review.MayDecide, &review.Decision, &n.Quality, &e.Approval.Pending, &e.Approval.ApprovedRevision},
-				append(reused.targets(), locked.targets()...)...)...)
+				append(append(reused.targets(), locked.targets()...), &role, &pre, &steps, &params)...)...)
 			if err != nil {
 				return e, err
+			}
+			if role == RoleTestCase && n.Kind == KindRequirement {
+				test, err := scanTestCase(pre, steps, params)
+				if err != nil {
+					return e, err
+				}
+				e.TestCase = &test
 			}
 			e.Reuse = reused.reuse()
 			if n.TypeID != nil {

@@ -16,6 +16,8 @@ type Normative struct {
 	Rationale  json.RawMessage
 	TypeID     *uuid.UUID
 	Attributes map[string]json.RawMessage
+	// Test is what a test case carries besides (#250), hashed only when it holds anything.
+	Test TestCase
 }
 
 // Hash is the SHA-256 of the canonical JSON of the content: object keys sorted, runs of white space in text
@@ -29,11 +31,13 @@ func (n Normative) Hash() string {
 	if n.TypeID != nil {
 		typeID = n.TypeID.String()
 	}
-	// Marshal sorts the keys of every map, which is what makes the encoding canonical.
-	encoded, _ := json.Marshal(map[string]any{
+	content := map[string]any{
 		"title": collapse(n.Title), "statement": canonical(n.Statement), "rationale": canonical(n.Rationale),
 		"typeId": typeID, "attributes": attrs,
-	})
+	}
+	n.Test.hashed(content)
+	// Marshal sorts the keys of every map, which is what makes the encoding canonical.
+	encoded, _ := json.Marshal(content)
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:])
 }

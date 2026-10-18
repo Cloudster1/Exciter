@@ -3176,7 +3176,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** What changed between two revisions of a requirement: statement, rationale, type and attributes. */
+        /** What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's preconditions, steps one by one, and parameters. */
         get: operations["diffRevisions"];
         put?: never;
         post?: never;
@@ -5173,7 +5173,7 @@ export interface components {
             /** Format: uuid */
             attributeId: string;
             /** @enum {string} */
-            change: "equal" | "inserted" | "deleted" | "modified";
+            change: "equal" | "inserted" | "deleted" | "modified" | "moved";
             /** @description A JSON value. */
             from: unknown;
             fromText: string;
@@ -5638,8 +5638,11 @@ export interface components {
         Comparison: {
             attributes: components["schemas"]["AttributeDiff"][];
             from: components["schemas"]["CompareSide"];
+            parameters: components["schemas"]["TestParameterDiff"][];
+            preconditions: components["schemas"]["DiffBlock"][];
             rationale: components["schemas"]["DiffBlock"][];
             statement: components["schemas"]["DiffBlock"][];
+            steps: components["schemas"]["TestStepDiff"][];
             title: components["schemas"]["DiffBlock"][];
             to: components["schemas"]["CompareSide"];
         };
@@ -5783,7 +5786,7 @@ export interface components {
         };
         DiffBlock: {
             /** @enum {string} */
-            change: "equal" | "inserted" | "deleted" | "modified";
+            change: "equal" | "inserted" | "deleted" | "modified" | "moved";
             /** @description A JSON value. */
             node: unknown;
         };
@@ -5840,6 +5843,7 @@ export interface components {
             revision: number;
             /** @description A JSON value. */
             statement: unknown;
+            testCase?: components["schemas"]["TestCaseContent"];
             title: string;
         };
         DocumentLink: {
@@ -6415,6 +6419,7 @@ export interface components {
             /** @description A JSON value. */
             statement?: unknown;
             statementMarkdown?: string;
+            testCase?: components["schemas"]["TestCaseContent"];
             title: string;
             /** Format: uuid */
             typeId?: string;
@@ -7077,6 +7082,7 @@ export interface components {
             statement: unknown;
             statementMarkdown?: string;
             status: components["schemas"]["StatusRef"] | null;
+            testCase: components["schemas"]["TestCaseContent"] | null;
             title: string;
             /** Format: date-time */
             trashedAt: string | null;
@@ -7147,6 +7153,9 @@ export interface components {
             position: number;
             requirements: number;
             retired: boolean;
+            /** @enum {string} */
+            role: "requirement" | "testCase";
+            roleHeld: boolean;
             /** Format: date-time */
             updatedAt: string;
             /** Format: uuid */
@@ -7159,6 +7168,8 @@ export interface components {
             name?: string;
             position?: number;
             retired?: boolean;
+            /** @enum {string} */
+            role?: "requirement" | "testCase";
         };
         RequirementTypeRef: {
             colour: string;
@@ -7182,6 +7193,7 @@ export interface components {
             /** @description A JSON value. */
             statement?: unknown;
             statementMarkdown?: string;
+            testCase?: components["schemas"]["TestCaseContent"];
             title?: string;
             /** Format: uuid */
             typeId?: string;
@@ -7439,6 +7451,7 @@ export interface components {
             /** @description A JSON value. */
             statement: unknown;
             statementMarkdown?: string;
+            testCase: components["schemas"]["TestCaseContent"] | null;
             title: string;
             type: components["schemas"]["RequirementTypeRef"] | null;
             via: components["schemas"]["Via"] | null;
@@ -7619,6 +7632,7 @@ export interface components {
             statement: unknown;
             statementMarkdown?: string;
             suspectLinks: number;
+            testCase: components["schemas"]["TestCaseContent"] | null;
             type: components["schemas"]["RequirementTypeRef"] | null;
         };
         SpecRemoved: {
@@ -7939,6 +7953,13 @@ export interface components {
             /** Format: date-time */
             uploadedAt: string;
         };
+        TestCaseContent: {
+            parameters: components["schemas"]["TestParameter"][];
+            /** @description A JSON value. */
+            preconditions: unknown;
+            preconditionsMarkdown?: string;
+            steps: components["schemas"]["TestStep"][];
+        };
         TestCaseRef: {
             /** Format: uuid */
             id: string;
@@ -8098,6 +8119,13 @@ export interface components {
             name: string;
             values: string[];
         };
+        TestParameterDiff: {
+            /** @enum {string} */
+            change: "equal" | "inserted" | "deleted" | "modified" | "moved";
+            from: string[];
+            name: string;
+            to: string[];
+        };
         TestPlan: {
             can: components["schemas"]["TestPlanCan"];
             cases: components["schemas"]["TestCaseRef"][];
@@ -8205,8 +8233,18 @@ export interface components {
         TestStep: {
             /** @description A JSON value. */
             action: unknown;
+            actionMarkdown?: string;
             /** @description A JSON value. */
             expected: unknown;
+            expectedMarkdown?: string;
+        };
+        TestStepDiff: {
+            action: components["schemas"]["DiffBlock"][];
+            /** @enum {string} */
+            change: "equal" | "inserted" | "deleted" | "modified" | "moved";
+            expected: components["schemas"]["DiffBlock"][];
+            from: number | null;
+            to: number | null;
         };
         TestStepInput: {
             note?: string;

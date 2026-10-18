@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Test cases with steps (#250). A project's administrators mark a
+  requirement type as test cases; its requirements carry preconditions,
+  ordered steps with an action and an expected result each, and parameters
+  whose values line up into iterations. They are part of every revision:
+  history compares them step by step, a restore brings them back, and
+  baselines, the document, Word, Markdown, CSV and ReqIF carry them. The
+  editor adds, moves and removes steps; the MCP tools read and write them
+  as Markdown.
 - The API contract for M12, Test management (#253):
   `docs/api-contract-m12.md` agrees how a requirement type marked as test
   cases gives its requirements preconditions, steps and parameters, how

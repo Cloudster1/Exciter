@@ -76,6 +76,9 @@ describe("a requirement's history", () => {
         },
       ],
       rationale: [],
+      preconditions: [],
+      steps: [],
+      parameters: [],
       attributes: [
         { attributeId: "0195f000-0000-7000-8000-0000000000d1", name: "Risk", change: "modified", from: "a", to: "b", fromText: "Low", toText: "High" },
       ],

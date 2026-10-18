@@ -17,6 +17,8 @@ const functional: RequirementType = {
   position: 0,
   workflowId: null,
   retired: false,
+  role: "requirement",
+  roleHeld: false,
   requirements: 3,
   createdAt: "2026-10-01T08:00:00Z",
   updatedAt: "2026-10-01T08:00:00Z",
@@ -76,7 +78,13 @@ describe("a project's types", () => {
     await userEvent.selectOptions(screen.getByLabelText("Icon"), "constraint");
     await userEvent.click(screen.getByRole("button", { name: "New type" }));
     await waitFor(() =>
-      expect(sent.find((r) => r.method === "POST")?.body).toEqual({ name: "Constraint", description: "", icon: "constraint", colour: "#4f6bed" }),
+      expect(sent.find((r) => r.method === "POST")?.body).toEqual({
+        name: "Constraint",
+        description: "",
+        icon: "constraint",
+        colour: "#4f6bed",
+        role: "requirement",
+      }),
     );
   });
 });

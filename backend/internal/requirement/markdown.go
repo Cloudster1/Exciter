@@ -36,13 +36,28 @@ func (m *Markdown) fill(statement, rationale json.RawMessage) {
 }
 
 // WithMarkdown adds the statement and the rationale as Markdown.
-func (r *Requirement) WithMarkdown() { r.fill(r.Statement, r.Rationale) }
+func (r *Requirement) WithMarkdown() {
+	r.fill(r.Statement, r.Rationale)
+	if r.TestCase != nil {
+		r.TestCase.WithMarkdown()
+	}
+}
 
 // WithMarkdown adds the entry's statement and rationale as Markdown.
-func (e *SpecEntry) WithMarkdown() { e.fill(e.Statement, e.Rationale) }
+func (e *SpecEntry) WithMarkdown() {
+	e.fill(e.Statement, e.Rationale)
+	if e.TestCase != nil {
+		e.TestCase.WithMarkdown()
+	}
+}
 
 // WithMarkdown adds the revision's statement and rationale as Markdown.
-func (v *Revision) WithMarkdown() { v.fill(v.Statement, v.Rationale) }
+func (v *Revision) WithMarkdown() {
+	v.fill(v.Statement, v.Rationale)
+	if v.TestCase != nil {
+		v.TestCase.WithMarkdown()
+	}
+}
 
 // FromMarkdown reads what a writer sent as Markdown into the document its field takes, checked as one sent as a
 // document is; the refusal names the Markdown field. Sending both forms of one field is refused.

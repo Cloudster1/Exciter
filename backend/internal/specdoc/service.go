@@ -159,7 +159,8 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 	rows, err := r.tx.Query(r.ctx, `
 		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), COALESCE(t.name, ''), COALESCE(st.name, ''),
 		       COALESCE(NULLIF(u.name, ''), u.email::text, ''), COALESCE(r.priority, ''),
-		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}')
+		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}'),
+		       r.preconditions, r.steps, r.parameters
 		FROM requirement r
 		LEFT JOIN requirement_type t ON t.id = r.type_id
 		LEFT JOIN req_status st ON st.id = r.status_id
@@ -172,6 +173,7 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 		statement, rationale, attributes  []byte
 		typeName, status, owner, priority string
 		labels                            []string
+		pre, steps, params                []byte
 	}
 	byID := map[uuid.UUID]found{}
 	for rows.Next() {
@@ -179,7 +181,8 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 			id uuid.UUID
 			f  found
 		)
-		if err := rows.Scan(&id, &f.statement, &f.rationale, &f.attributes, &f.typeName, &f.status, &f.owner, &f.priority, &f.labels); err != nil {
+		if err := rows.Scan(&id, &f.statement, &f.rationale, &f.attributes, &f.typeName, &f.status, &f.owner, &f.priority, &f.labels,
+			&f.pre, &f.steps, &f.params); err != nil {
 			rows.Close()
 			return err
 		}
@@ -195,6 +198,9 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 		e.Statement, e.Rationale = document(f.statement), rationaleOf(f.rationale)
 		if e.Kind != requirement.KindRequirement {
 			continue
+		}
+		if err := withTestCase(e, f.pre, f.steps, f.params); err != nil {
+			return err
 		}
 		e.Properties = appendText(e.Properties, FieldType, f.typeName)
 		e.Properties = appendText(e.Properties, FieldStatus, f.status)

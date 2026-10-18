@@ -36,7 +36,8 @@ var viaRevision = via.Column("v")
 
 var selectRevision = `
 SELECT v.number, v.title, v.comment, v.created_by, COALESCE(u.name, ''), v.created_at, v.restored_from, v.hash, ` + viaRevision + `,
-       v.statement, v.rationale, v.attributes, v.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), t.project_id
+       v.statement, v.rationale, v.attributes, v.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), t.project_id,
+       COALESCE(t.role, 'requirement'), v.preconditions, v.steps, v.parameters
 FROM requirement_revision v
 LEFT JOIN app_user u ON u.id = v.created_by
 LEFT JOIN requirement_type t ON t.id = v.type_id`
@@ -45,6 +46,7 @@ LEFT JOIN requirement_type t ON t.id = v.type_id`
 type stored struct {
 	Revision
 	typeProject *uuid.UUID
+	test        TestCase
 }
 
 func scanRevision(row pgx.Row) (*stored, error) {
@@ -54,9 +56,13 @@ func scanRevision(row pgx.Row) (*stored, error) {
 		attrs     []byte
 		typeID    *uuid.UUID
 		typ       TypeRef
+		role      TypeRole
+		pre       []byte
+		steps     []byte
+		params    []byte
 	)
 	err := row.Scan(&v.Number, &v.Title, &v.Comment, &v.AuthorID, &v.AuthorName, &v.CreatedAt, &v.RestoredFrom, &v.Hash, &v.Via,
-		&v.Statement, &rationale, &attrs, &typeID, &typ.Name, &typ.Icon, &typ.Colour, &v.typeProject)
+		&v.Statement, &rationale, &attrs, &typeID, &typ.Name, &typ.Icon, &typ.Colour, &v.typeProject, &role, &pre, &steps, &params)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRevision
 	}
@@ -69,6 +75,13 @@ func scanRevision(row pgx.Row) (*stored, error) {
 	if typeID != nil {
 		typ.ID = *typeID
 		v.Type = &typ
+	}
+	if v.test, err = scanTestCase(pre, steps, params); err != nil {
+		return nil, err
+	}
+	if role == RoleTestCase || !v.test.Empty() {
+		test := v.test
+		v.TestCase = &test
 	}
 	return &v, json.Unmarshal(attrs, &v.Attributes)
 }
@@ -190,6 +203,18 @@ func comparison(ctx context.Context, tx db.DBTX, defs []attribute.Def, id uuid.U
 	}
 	if c.Attributes, err = attributeDiff(ctx, tx, defs, a.Attributes, b.Attributes); err != nil {
 		return nil, err
+	}
+	c.Preconditions, c.Steps, c.Parameters = []DiffBlock{}, []StepDiff{}, parameterDiff(a.test.Parameters, b.test.Parameters)
+	if len(a.test.Preconditions) > 0 || len(b.test.Preconditions) > 0 {
+		if c.Preconditions, err = Diff(orEmpty(a.test.Preconditions), orEmpty(b.test.Preconditions)); err != nil {
+			return nil, err
+		}
+	}
+	if c.Steps, err = stepDiff(a.test.Steps, b.test.Steps); err != nil {
+		return nil, err
+	}
+	if c.Steps == nil {
+		c.Steps = []StepDiff{}
 	}
 	return c, nil
 }
@@ -393,6 +418,9 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 				return err
 			}
 		}
+		if content.Test, err = testFor(ctx, tx, content.TypeID, old.test); err != nil {
+			return err
+		}
 		hash := content.Hash()
 		if hash == cur.hash {
 			return ErrNoChange
@@ -401,9 +429,14 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 		if err != nil {
 			return err
 		}
+		pre, steps, params, err := content.Test.columns()
+		if err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `
-			UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8
-			WHERE id = $1`, cur.ID, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, actor); err != nil {
+			UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
+			    preconditions = $9, steps = $10, parameters = $11
+			WHERE id = $1`, cur.ID, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, actor, pre, steps, params); err != nil {
 			return fmt.Errorf("restore revision %d of %s: %w", number, cur.Key, err)
 		}
 		next := cur.Revision + 1

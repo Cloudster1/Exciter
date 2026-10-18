@@ -1,0 +1,34 @@
+import type { testcasesEn } from "./testcases.en";
+
+/** Die Texte der Testfälle: Anforderungen eines als Testfälle markierten Typs, mit Schritten (#250). */
+export const testcasesDe: typeof testcasesEn = {
+  role: "Seine Anforderungen sind Testfälle",
+  roleHint: "Ein Testfall hat zusätzlich Vorbedingungen, Schritte mit je einem erwarteten Ergebnis und Parameter.",
+  roleHeld:
+    "Einige seiner Anforderungen haben Schritte, darum bleibt er ein Typ für Testfälle. Leeren Sie zuerst deren Schritte oder geben Sie ihnen einen anderen Testfall-Typ.",
+  typeTag: "Testfälle",
+  preconditions: "Vorbedingungen",
+  preconditionsHint: "Was vor dem ersten Schritt gilt, etwa der Zustand des Systems oder die Daten, die es braucht.",
+  steps: "Schritte",
+  step: (n: number) => `Schritt ${n}`,
+  action: "Aktion",
+  expected: "Erwartetes Ergebnis",
+  noSteps: "Noch keine Schritte.",
+  addStep: "Schritt hinzufügen",
+  moveUp: (n: number) => `Schritt ${n} nach oben`,
+  moveDown: (n: number) => `Schritt ${n} nach unten`,
+  remove: (n: number) => `Schritt ${n} entfernen`,
+  parameters: "Parameter",
+  parametersHint: "Die Werte der Parameter gehören nach ihrer Stelle zusammen: Die ersten Werte bilden die erste Iteration und so fort.",
+  parameterName: "Name",
+  parameterValues: "Werte, getrennt durch Semikolons",
+  addParameter: "Parameter hinzufügen",
+  removeParameter: (name: string) => `Parameter ${name || "ohne Namen"} entfernen`,
+  iteration: "Iteration",
+  iterations: (n: number) => (n === 1 ? "1 Iteration" : `${n} Iterationen`),
+  dropped: "Sein neuer Typ ist keiner für Testfälle, darum entfallen beim Speichern Vorbedingungen, Schritte und Parameter.",
+  stepMoved: (from: number, to: number) => `Von Schritt ${from} nach ${to} verschoben`,
+  stepAdded: "Hinzugefügt",
+  stepRemoved: "Entfernt",
+  stepChanged: "Geändert",
+};

@@ -116,6 +116,8 @@ type Requirement struct {
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	// Computed are the values of its computed attributes (#213), worked out beside its revisions, never typed.
 	Computed map[string]json.RawMessage `json:"computed"`
+	// TestCase is what a test case carries (#250), null unless its type is marked as test cases.
+	TestCase *TestCase `json:"testCase"`
 	// Revision is the number of the latest revision, from 1.
 	Revision int        `json:"revision"`
 	Status   *StatusRef `json:"status"`
@@ -221,6 +223,8 @@ type CreateInput struct {
 	OwnerID           *uuid.UUID                 `json:"ownerId,omitempty"`
 	Priority          *Priority                  `json:"priority,omitempty"`
 	Labels            []string                   `json:"labels,omitempty"`
+	// TestCase is what a test case carries (#250); only a requirement of a test-case type takes it.
+	TestCase *TestCase `json:"testCase,omitempty"`
 	// Place is where it goes; left out, it goes last at the top level.
 	Place *Place `json:"place,omitempty"`
 	// Comment goes with revision 1.
@@ -245,6 +249,8 @@ type UpdateInput struct {
 	// OwnerID and Priority set to null clear them.
 	OwnerID  json.RawMessage `json:"ownerId,omitempty"`
 	Priority json.RawMessage `json:"priority,omitempty"`
+	// TestCase changes what a test case carries (#250): a field left out stays, null or empty clears it.
+	TestCase *TestCase `json:"testCase,omitempty"`
 	// BaseRevision is the revision the change was made from; a newer one refuses it.
 	BaseRevision *int `json:"baseRevision,omitempty"`
 	// Comment goes with the revision the save writes, if it writes one.
@@ -314,6 +320,8 @@ type SpecEntry struct {
 	Review *SpecReview `json:"review"`
 	// Lock says why it takes no new revision, move, link or trash (#205), null when nothing locks it.
 	Lock *Lock `json:"lock"`
+	// TestCase is what a test case carries (#250), null unless its type is marked as test cases.
+	TestCase *TestCase `json:"testCase"`
 }
 
 // SpecReview is a requirement's pending review as the document shows it to its reader.
@@ -355,6 +363,8 @@ type Revision struct {
 	Markdown
 	Type       *TypeRef                   `json:"type"`
 	Attributes map[string]json.RawMessage `json:"attributes"`
+	// TestCase is what the revision of a test case carried (#250), null for any other.
+	TestCase *TestCase `json:"testCase"`
 }
 
 // RestoreInput writes an older revision's content as the next revision.
@@ -376,7 +386,7 @@ const (
 )
 
 // DiffChanges lists every DiffChange, for the API document.
-var DiffChanges = []DiffChange{DiffEqual, DiffInserted, DiffDeleted, DiffModified}
+var DiffChanges = []DiffChange{DiffEqual, DiffInserted, DiffDeleted, DiffModified, DiffMoved}
 
 // DiffBlock is one top-level block of a document in a comparison.
 type DiffBlock struct {
@@ -416,6 +426,10 @@ type Comparison struct {
 	Statement  []DiffBlock     `json:"statement"`
 	Rationale  []DiffBlock     `json:"rationale"`
 	Attributes []AttributeDiff `json:"attributes"`
+	// Preconditions, Steps and Parameters compare what a test case carries (#250); empty for any other.
+	Preconditions []DiffBlock     `json:"preconditions"`
+	Steps         []StepDiff      `json:"steps"`
+	Parameters    []ParameterDiff `json:"parameters"`
 }
 
 // ActivityKind says what an activity entry records.
