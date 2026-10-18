@@ -3,6 +3,47 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-18: Writing rules run once, in Go, and are judged when read (#233)
+
+- **The project's language.** Word lists and inflections differ between
+  English and German, and a requirement's few words are too short to guess
+  its language reliably. A project names one, English unless an
+  administrator chooses German; reconsider if projects mix languages.
+- **One copy of the rules, on the server.** The editor sends the draft once
+  typing pauses and marks what the answer finds. A second copy in the
+  browser would answer sooner, but two copies drift, and the findings saved
+  with a revision must be the ones the author saw.
+- **Findings are stored raw and judged when read.** Each revision keeps
+  what every rule found, switched on or not, with the word lists of the
+  time. Whether a rule is on, how much it weighs, which types it applies to
+  and what was accepted are applied when the score is read, in the
+  database, so a changed setting takes effect at once and the query
+  language, the workflow and every page agree. Only a changed word list or
+  language needs the requirements checked again, which the worker does.
+- **Findings are written with the revision.** Every writer of a revision,
+  the imports and the MCP tools included, goes through the requirement
+  package, which records the findings in the same transaction. A worker
+  after the fact would leave a moment in which the score, the workflow and
+  the editor disagree.
+- **The minimum score is a validator.** #207 asks for a condition, but a
+  condition hides a transition without a word, and an author held back by a
+  score needs to know what to fix. A validator offers the transition and
+  refuses it with the score and what it asks for, as the trace rules of
+  #206 do.
+- **A term named on purpose is a mark in the document.** A mark moves with
+  its words through every edit, copy and difference, leaves the plain text
+  the search and the rules read unchanged, and is read where the document
+  is. A table of anchors into the text would have to follow every edit.
+- **Similar pairs are stored.** Finding the pairs of a project on every
+  visit means a search per requirement; the database keeps each
+  requirement's most alike neighbours as its revisions are written, so the
+  page reads a table. Reconsider if pairs across projects are wanted.
+- **A Word document goes through the ReqIF import.** Both read a tree of
+  sections and requirements with rich text, pictures and attributes, show
+  it before writing, run in the worker and tie what they made for the next
+  import. The Word reader builds what a ReqIF file becomes, so the preview,
+  the mapping of table columns, the run and the ties are one.
+
 ## 2026-10-17: Evidence comes from CI with a scope of its own, and names the revision it was made against (#224)
 
 - **An evidence scope, not a new kind of token.** A pipeline needs to upload

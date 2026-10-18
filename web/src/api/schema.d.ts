@@ -1740,6 +1740,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/duplicate-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How alike two requirements must be for the project to list them. */
+        get: operations["getDuplicateSettings"];
+        /** Set how alike two requirements must be, from 0.30 to 0.95; the project's administrators'. */
+        put: operations["saveDuplicateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/duplicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's likely duplicate pairs, most alike first, narrowed by type, section or query on either side; a pair somebody decided about stays away until either side is revised. */
+        get: operations["listDuplicates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/duplicates/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Say a pair does not say the same thing, with a reason, at the revisions both sides were read at; it comes back once either is revised. Needs edit. */
+        post: operations["dismissDuplicate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/duplicates/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link the two sides of a pair with one of the project's link types, which settles the pair while the link lasts. Needs edit. */
+        post: operations["linkDuplicate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/duplicates/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep one side of a pair and put the other in the trash, its links moved to the side kept; restoring it brings its links back. Needs edit on both. */
+        post: operations["mergeDuplicate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/evidence-settings": {
         parameters: {
             query?: never;
@@ -1836,6 +1922,24 @@ export interface paths {
         get?: never;
         /** Set a fixed field's rule whole: the status it is required from and who changes it in which statuses. For the project's administrators. */
         put: operations["saveFieldRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/glossaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The library projects whose glossaries mark the project's requirements, first winning a word two share. */
+        get: operations["getGlossaries"];
+        /** Name the library projects whose glossaries the project uses, in order; the project's administrators', and only libraries they may read, at most 20. */
+        put: operations["saveGlossaries"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1981,6 +2085,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The quality of a project's requirements: how many score in each band, the rules they break most, and the requirements lowest first, narrowed like the grid. */
+        get: operations["projectQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/quality-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a draft's title and statement against the project's writing rules as it is written, before it is saved: each finding with where it is and how to fix it, the score, and the glossary terms it uses. Needs edit. */
+        post: operations["qualityCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/quality-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which writing rules the project uses, how much each weighs and for which types, and the words it adds to their lists or excepts. */
+        get: operations["getQualitySettings"];
+        /** Set every rule and word list at once; the project's administrators'. Switching a rule takes effect at once; a changed word list checks the requirements again in the worker, at most 200 words per list. */
+        put: operations["saveQualitySettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/reqif-imports": {
         parameters: {
             query?: never;
@@ -2068,6 +2224,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The requirements of the project, and of library projects the caller may read, most like a draft as it is written, above the project's threshold. Needs edit. */
+        post: operations["similarToDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/spec": {
         parameters: {
             query?: never;
@@ -2132,6 +2305,24 @@ export interface paths {
         get: operations["listSuspectLinks"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The terms of the project's glossary, and of the library glossaries it uses that the caller may read, by name. */
+        get: operations["listTerms"];
+        put?: never;
+        /** Define a term in the project's glossary. Needs edit; at most 5000 terms per project. */
+        post: operations["createTerm"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2400,6 +2591,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/word-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a Word document, sent as a multipart part named file, to import into the project or below a section, and see the tree it would make. Nothing is written yet; it continues as a ReqIF import does. For the project's administrators. */
+        post: operations["uploadWord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/workflow": {
         parameters: {
             query?: never;
@@ -2449,6 +2657,23 @@ export interface paths {
         post?: never;
         /** Delete a workflow neither the project nor a type follows. For the project's administrators. */
         delete: operations["deleteWorkflow"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quality-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every writing rule there is, what it finds, and how it starts out in a project. */
+        get: operations["listQualityRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2803,6 +3028,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requirements/{reqKey}/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the writing rules found in a revision of the requirement, which findings count and which an author accepted, and its score. */
+        get: operations["getQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/quality/accepted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a finding of the current revision with a reason, so it no longer counts; it stays with the revision and comes forward while the words do. Needs edit. */
+        post: operations["acceptFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/quality/accepted/{findingKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take back the acceptance of a finding of the current revision, so it counts again. Needs edit. */
+        delete: operations["withdrawAcceptance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requirements/{reqKey}/reuse": {
         parameters: {
             query?: never;
@@ -2923,6 +3199,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/requirements/{reqKey}/similar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The requirements most like this one, of its project and of library projects the caller may read, above the project's threshold, leaving out pairs decided while both sides stay as they were. */
+        get: operations["listSimilar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/requirements/{reqKey}/stator-links": {
         parameters: {
             query?: never;
@@ -2935,6 +3228,40 @@ export interface paths {
         put?: never;
         /** Link a requirement to a Stator page the caller may read, as specified by, described by or related to it. */
         post: operations["createStatorLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The glossary terms a requirement uses, each saying whether its definition changed since the requirement's owner confirmed it. */
+        get: operations["listRequirementTerms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/terms/{termID}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm that the requirement still holds under the term's current definition, with a comment, as a suspect link is cleared. Needs edit. */
+        post: operations["clearTermUse"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3386,6 +3713,76 @@ export interface paths {
          * @description Exciter reads envelope version 1 or 2, version 2 a CloudEvent 1.0 in structured mode whose type is the sender's prefix and the topic, and an envelope without a version from a sender before versions. Any other, in the header, the body, its specversion or its dataversion, is refused with 422 unknown_version, and the sender keeps the delivery. Unknown fields and topics are ignored.
          */
         post: operations["statorWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/terms/{termID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One term, its definition, synonyms and the words not to use instead. */
+        get: operations["getTerm"];
+        put?: never;
+        post?: never;
+        /** Delete a term and its revisions; the project's administrators'. Words linked to it stay as plain words. */
+        delete: operations["deleteTerm"];
+        options?: never;
+        head?: never;
+        /** Change a term as a new revision, against the revision it was read at; a changed name or definition makes the requirements that use it suspect. Needs edit on the term's project. */
+        patch: operations["updateTerm"];
+        trace?: never;
+    };
+    "/terms/{termID}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every revision of a term, newest first. */
+        get: operations["listTermRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/terms/{termID}/revisions/{revisionNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One revision of a term. */
+        get: operations["getTermRevision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/terms/{termID}/uses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The requirements the caller may read that use a term, by its name, a synonym or an explicit link, and whether its definition changed since their owners confirmed it. */
+        get: operations["listTermUses"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4823,6 +5220,63 @@ export interface components {
             name: string;
             text: string;
         };
+        DuplicateDecision: {
+            a: components["schemas"]["DuplicateSide"];
+            b: components["schemas"]["DuplicateSide"];
+            /** Format: date-time */
+            decidedAt: string;
+            decidedBy: components["schemas"]["PersonRef"];
+            /** Format: uuid */
+            id: string;
+            keptKey?: string;
+            /** @enum {string} */
+            kind: "dismissed" | "linked" | "merged";
+            /** Format: uuid */
+            linkId: string | null;
+            reason: string;
+        };
+        DuplicateDismissInput: {
+            a: components["schemas"]["DuplicateSide"];
+            b: components["schemas"]["DuplicateSide"];
+            reason: string;
+        };
+        DuplicateLinkInput: {
+            linkTypeKey: string;
+            source: components["schemas"]["DuplicateSide"];
+            target: components["schemas"]["DuplicateSide"];
+        };
+        DuplicateMerge: {
+            decision: components["schemas"]["DuplicateDecision"];
+            links: components["schemas"]["DuplicateMovedLink"][];
+        };
+        DuplicateMergeInput: {
+            comment?: string;
+            keep: components["schemas"]["DuplicateSide"];
+            trash: components["schemas"]["DuplicateSide"];
+        };
+        DuplicateMovedLink: {
+            linkTypeKey: string;
+            otherKey: string;
+            outgoing: boolean;
+            skipped?: string;
+        };
+        DuplicatePair: {
+            a: components["schemas"]["RequirementRef"];
+            b: components["schemas"]["RequirementRef"];
+            score: number;
+        };
+        DuplicateSettings: {
+            threshold: number;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        DuplicateSettingsInput: {
+            threshold: number;
+        };
+        DuplicateSide: {
+            key: string;
+            revision: number;
+        };
         ErrorEnvelope: {
             error: components["schemas"]["APIError"];
         };
@@ -4864,6 +5318,20 @@ export interface components {
         Fonts: {
             mono?: components["schemas"]["Font"];
             sans?: components["schemas"]["Font"];
+        };
+        Glossaries: {
+            libraries: components["schemas"]["GlossaryLibrary"][];
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        GlossariesInput: {
+            libraries: string[];
+        };
+        GlossaryLibrary: {
+            name: string;
+            position: number;
+            projectKey: string;
+            terms: number;
         };
         GridRow: {
             attributes: {
@@ -5581,6 +6049,159 @@ export interface components {
             callbackUrl: string;
             provider: components["schemas"]["Provider"] | null;
         };
+        QualityAcceptInput: {
+            key: string;
+            reason: string;
+            revision: number;
+        };
+        QualityAcceptance: {
+            /** Format: date-time */
+            at: string;
+            by: components["schemas"]["QualityPerson"];
+            carriedFrom: number | null;
+            reason: string;
+            revision: number;
+        };
+        QualityBand: {
+            count: number;
+            from: number;
+            to: number;
+        };
+        QualityCheck: {
+            findings: components["schemas"]["QualityFinding"][];
+            /** @enum {string} */
+            language: "en" | "de";
+            score: number | null;
+            sentences: components["schemas"]["QualitySentence"][];
+            terms: components["schemas"]["QualityTermMatch"][];
+        };
+        QualityCheckInput: {
+            requirementKey?: string;
+            /** @description A JSON value. */
+            statement: unknown;
+            title: string;
+            /** Format: uuid */
+            typeId?: string;
+        };
+        QualityFinding: {
+            accepted: components["schemas"]["QualityAcceptance"] | null;
+            active: boolean;
+            block: number;
+            /** @enum {string} */
+            field: "title" | "statement";
+            fix: string;
+            from: number;
+            key: string;
+            match: string;
+            message: string;
+            /** @enum {string} */
+            rule: "vague" | "unbounded" | "escape" | "placeholder" | "and_or" | "multiple_shall" | "negative" | "passive" | "pronoun" | "ears" | "avoid_term";
+            /** @enum {string} */
+            severity: "error" | "warning" | "hint";
+            to: number;
+        };
+        QualityFindings: {
+            accepted: number;
+            active: number;
+            findings: components["schemas"]["QualityFinding"][];
+            revision: number;
+            score: number | null;
+            sentences: components["schemas"]["QualitySentence"][];
+            stale: boolean;
+        };
+        QualityPerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        QualityRule: {
+            defaultEnabled: boolean;
+            /** @enum {string} */
+            defaultSeverity: "error" | "warning" | "hint";
+            description: string;
+            fields: ("title" | "statement")[];
+            /** @enum {string} */
+            id: "vague" | "unbounded" | "escape" | "placeholder" | "and_or" | "multiple_shall" | "negative" | "passive" | "pronoun" | "ears" | "avoid_term";
+            label: string;
+            words: boolean;
+        };
+        QualityRuleCount: {
+            count: number;
+            /** @enum {string} */
+            rule: "vague" | "unbounded" | "escape" | "placeholder" | "and_or" | "multiple_shall" | "negative" | "passive" | "pronoun" | "ears" | "avoid_term";
+        };
+        QualityRuleSetting: {
+            enabled: boolean;
+            /** @enum {string} */
+            rule: "vague" | "unbounded" | "escape" | "placeholder" | "and_or" | "multiple_shall" | "negative" | "passive" | "pronoun" | "ears" | "avoid_term";
+            /** @enum {string} */
+            severity: "error" | "warning" | "hint";
+            typeIds: string[];
+        };
+        QualityScored: {
+            accepted: number;
+            active: number;
+            /** Format: uuid */
+            id: string;
+            key: string;
+            rules: ("vague" | "unbounded" | "escape" | "placeholder" | "and_or" | "multiple_shall" | "negative" | "passive" | "pronoun" | "ears" | "avoid_term")[];
+            score: number | null;
+            stale: boolean;
+            title: string;
+        };
+        QualitySentence: {
+            block: number;
+            /** @enum {string} */
+            field: "title" | "statement";
+            from: number;
+            /** @enum {string} */
+            pattern: "ubiquitous" | "event" | "state" | "unwanted" | "optional" | "complex" | "none";
+            to: number;
+        };
+        QualitySettings: {
+            /** @enum {string} */
+            language: "en" | "de";
+            rules: components["schemas"]["QualityRuleSetting"][];
+            /** Format: date-time */
+            updatedAt: string | null;
+            words: {
+                [key: string]: components["schemas"]["QualityWords"];
+            };
+        };
+        QualitySettingsInput: {
+            rules: components["schemas"]["QualityRuleSetting"][];
+            words: {
+                [key: string]: components["schemas"]["QualityWords"];
+            };
+        };
+        QualitySummary: {
+            average: number | null;
+            bands: components["schemas"]["QualityBand"][];
+            checked: number;
+            limit: number;
+            offset: number;
+            requirements: components["schemas"]["QualityScored"][];
+            rules: components["schemas"]["QualityRuleCount"][];
+            total: number;
+            unchecked: number;
+        };
+        QualityTermMatch: {
+            block: number;
+            definitionPreview: string;
+            explicit: boolean;
+            /** @enum {string} */
+            field: "title" | "statement";
+            from: number;
+            name: string;
+            projectKey: string;
+            /** Format: uuid */
+            termId: string;
+            to: number;
+        };
+        QualityWords: {
+            add: string[];
+            except: string[];
+        };
         QuickSearchHit: {
             outline: string;
             projectName: string;
@@ -5762,6 +6383,13 @@ export interface components {
             status: components["schemas"]["StatusRef"] | null;
             title: string;
             trashed: boolean;
+        };
+        RequirementTerm: {
+            definitionRevision: number;
+            explicit: boolean;
+            seenRevision: number;
+            suspect: boolean;
+            term: components["schemas"]["TermRef"];
         };
         RequirementTransitions: {
             key: string;
@@ -6183,6 +6811,17 @@ export interface components {
             /** Format: date-time */
             signedAt: string;
         };
+        SimilarDraftInput: {
+            excludeKey?: string;
+            /** @description A JSON value. */
+            statement: unknown;
+            title: string;
+        };
+        SimilarRequirement: {
+            library: boolean;
+            requirement: components["schemas"]["RequirementRef"];
+            score: number;
+        };
         Spec: {
             backdrop?: components["schemas"]["Backdrop"];
             colors: components["schemas"]["Palette"];
@@ -6454,6 +7093,79 @@ export interface components {
         TakeInput: {
             comment?: string;
             revision: number;
+        };
+        Term: {
+            avoid: string[];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["PersonRef"];
+            /** @description A JSON value. */
+            definition: unknown;
+            definitionRevision: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            projectKey: string;
+            revision: number;
+            /** @enum {string} */
+            status: "proposed" | "approved" | "deprecated";
+            synonyms: string[];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: components["schemas"]["PersonRef"];
+            uses: number;
+        };
+        TermClearInput: {
+            comment: string;
+            termRevision: number;
+        };
+        TermInput: {
+            avoid: string[];
+            /** @description A JSON value. */
+            definition: unknown;
+            name: string;
+            /** @enum {string} */
+            status?: "proposed" | "approved" | "deprecated";
+            synonyms: string[];
+        };
+        TermPatch: {
+            avoid?: string[];
+            baseRevision: number;
+            comment?: string;
+            /** @description A JSON value. */
+            definition?: unknown;
+            name?: string;
+            /** @enum {string} */
+            status?: "proposed" | "approved" | "deprecated";
+            synonyms?: string[];
+        };
+        TermRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            projectKey: string;
+            /** @enum {string} */
+            status: "proposed" | "approved" | "deprecated";
+        };
+        TermRevision: {
+            avoid: string[];
+            comment: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["PersonRef"];
+            /** @description A JSON value. */
+            definition: unknown;
+            name: string;
+            number: number;
+            /** @enum {string} */
+            status: "proposed" | "approved" | "deprecated";
+            synonyms: string[];
+        };
+        TermUse: {
+            explicit: boolean;
+            requirement: components["schemas"]["RequirementRef"];
+            seenRevision: number;
+            suspect: boolean;
         };
         TestResult: {
             armature: components["schemas"]["TestResultCommit"] | null;
@@ -12600,6 +13312,413 @@ export interface operations {
             };
         };
     };
+    getDuplicateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["DuplicateSettings"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveDuplicateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["DuplicateSettings"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listDuplicates: {
+        parameters: {
+            query?: {
+                /** @description Requirement types either side has. */
+                type?: string[];
+                /** @description The key of a section either side is below. */
+                section?: string;
+                /** @description A query in the query language either side matches. */
+                query?: string;
+                /** @description Where the page before ended. */
+                cursor?: string;
+                /** @description 1 to 200; 50 when absent. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        next: string;
+                        pairs: components["schemas"]["DuplicatePair"][];
+                        threshold: number;
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    dismissDuplicate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateDismissInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        decision: components["schemas"]["DuplicateDecision"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    linkDuplicate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateLinkInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        decision: components["schemas"]["DuplicateDecision"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mergeDuplicate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DuplicateMergeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        merge: components["schemas"]["DuplicateMerge"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getEvidenceSettings: {
         parameters: {
             query?: never;
@@ -12932,6 +14051,121 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getGlossaries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        glossaries: components["schemas"]["Glossaries"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveGlossaries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GlossariesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        glossaries: components["schemas"]["Glossaries"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13560,6 +14794,285 @@ export interface operations {
             };
         };
     };
+    projectQuality: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description 1 to 500; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        quality: components["schemas"]["QualitySummary"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    qualityCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QualityCheckInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        check: components["schemas"]["QualityCheck"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getQualitySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["QualitySettings"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveQualitySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QualitySettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        settings: components["schemas"]["QualitySettings"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     uploadReqIF: {
         parameters: {
             query?: never;
@@ -13958,6 +15471,80 @@ export interface operations {
             };
         };
     };
+    similarToDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimilarDraftInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        similar: components["schemas"]["SimilarRequirement"][];
+                        threshold: number;
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getSpecification: {
         parameters: {
             query?: {
@@ -14209,6 +15796,135 @@ export interface operations {
                         offset: number;
                         total: number;
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listTerms: {
+        parameters: {
+            query?: {
+                /** @description Words of a term's name, synonyms or definition. */
+                q?: string;
+                /** @description Statuses; all when absent. */
+                status?: ("proposed" | "approved" | "deprecated")[];
+                /** @description The project's own terms alone, without its libraries'. */
+                own?: boolean;
+                /** @description 1 to 500; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        limit: number;
+                        offset: number;
+                        terms: components["schemas"]["Term"][];
+                        total: number;
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        term: components["schemas"]["Term"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -15295,6 +17011,92 @@ export interface operations {
             };
         };
     };
+    uploadWord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    parentKey?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        import: components["schemas"]["ReqIFImport"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     assignWorkflow: {
         parameters: {
             query?: never;
@@ -15531,6 +17333,46 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listQualityRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        rules: components["schemas"]["QualityRule"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16741,6 +18583,194 @@ export interface operations {
             };
         };
     };
+    getQuality: {
+        parameters: {
+            query?: {
+                /** @description A revision of the requirement; its current one when absent. */
+                revision?: number;
+            };
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        quality: components["schemas"]["QualityFindings"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    acceptFinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QualityAcceptInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        quality: components["schemas"]["QualityFindings"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    withdrawAcceptance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+                findingKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        quality: components["schemas"]["QualityFindings"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     reuseRequirement: {
         parameters: {
             query?: never;
@@ -17134,6 +19164,49 @@ export interface operations {
             };
         };
     };
+    listSimilar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        similar: components["schemas"]["SimilarRequirement"][];
+                        threshold: number;
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     listStatorLinks: {
         parameters: {
             query?: never;
@@ -17213,6 +19286,122 @@ export interface operations {
             };
             /** @description Bad Gateway */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listRequirementTerms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        terms: components["schemas"]["RequirementTerm"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    clearTermUse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermClearInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        term: components["schemas"]["RequirementTerm"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18609,6 +20798,312 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        term: components["schemas"]["Term"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        term: components["schemas"]["Term"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listTermRevisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        revisions: components["schemas"]["TermRevision"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getTermRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                termID: string;
+                revisionNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        revision: components["schemas"]["TermRevision"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listTermUses: {
+        parameters: {
+            query?: {
+                /** @description 1 to 500; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                termID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        limit: number;
+                        offset: number;
+                        total: number;
+                        uses: components["schemas"]["TermUse"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
