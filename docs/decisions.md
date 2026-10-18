@@ -3,6 +3,53 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-18: Analysis reads as the reader, and computed values stay outside revisions (#242)
+
+- **Up is what a requirement derives from.** A link reads from its source,
+  "CHK-R4 derives from SYS-R2", and every type the projects seed points its
+  source at the higher level: derives, refines, satisfies, verifies. So the
+  graph's up follows the links a requirement is the source of, and down
+  those it is the target of, where issues, pages, tests and code hang. A
+  type with one phrase both ways is followed both ways.
+- **Hidden requirements are counted, never named.** A graph that left them
+  out would understate what a change affects; one that named them would
+  leak them. A database function counts them for the person asking alone.
+- **Computed values are not revisions.** A requirement's attributes are part
+  of each revision, of the content a signature covers, and of what a lock
+  holds. A value that changes because a child was approved is none of those,
+  so it is kept beside the requirement, written by the worker alone, and a
+  baseline records the value it saw.
+- **Recomputed from a queue the database fills, not from events.** The
+  outbox says nothing of some changes a formula reads, such as the parent a
+  requirement was moved away from or a finding accepted, and a project's
+  recompute would outlast a handler's lease. Triggers mark what to
+  recompute in the transaction of the change, which every writer goes
+  through, and the worker drains the marks project by project, as
+  attachments are reaped.
+- **Roll-ups read their own project.** A value is stored once for every
+  reader, so a sum over links into a project the reader may not open would
+  tell them what is there. Within a project every reader sees every live
+  requirement; reconsider with rights per requirement.
+- **Dashboards are shared with the project's readers.** Armature shares a
+  dashboard by a public link read as whoever made it. A requirements
+  dashboard counts what its reader may see, and #212 asks for links to
+  people who may read the project, so the link is the dashboard's address
+  and every widget is read as whoever opens it.
+- **No chart or layout library.** Armature draws its charts by hand; the
+  dashboard takes them over, and lays widgets out in order and width,
+  dragged or moved by buttons, which a keyboard reaches as well as a mouse.
+- **A Word template is a frame.** The export keeps writing its own
+  structure and takes the template's styles by their names, its headers,
+  footers, page and cover, around a `{{content}}` paragraph. Filling a
+  template's own tables or content controls with requirements would tie
+  every template to Exciter's fields; a frame works with what organisations
+  already have.
+- **The HTML site is taken from the print view.** The print view already
+  draws every kind of content, marks and glossary as the PDF shows them. A
+  second renderer in Go would drift from it; the render service hands its
+  HTML over instead, and Exciter splits it into pages and adds a search
+  that works without a server.
+
 ## 2026-10-18: Writing rules run once, in Go, and are judged when read (#233)
 
 - **The project's language.** Word lists and inflections differ between

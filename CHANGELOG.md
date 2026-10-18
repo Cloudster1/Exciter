@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M11, Analysis and reporting (#242):
+  `docs/api-contract-m11.md` agrees how a requirement's trace graph shows
+  everything it traces to and what a change would affect, how attributes
+  compute themselves from a formula over a requirement, its children and
+  its links, how dashboards over a project's requirements are built,
+  shared and followed into the grid, and how a specification is exported
+  through a Word template and as a static HTML site. The operations it adds
+  answer 501 until they are built.
 - A Word document is imported as a specification (#209). A project's
   administrators upload a `.docx` into the project or below a section; its
   headings become sections, and its paragraphs, lists, tables and pictures

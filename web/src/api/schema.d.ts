@@ -577,6 +577,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/baselines/{baselineID}/document.html.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A baseline's document as a static HTML site in a zip. */
+        get: operations["baselineSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/baselines/{baselineID}/document.md": {
         parameters: {
             query?: never;
@@ -780,6 +797,129 @@ export interface paths {
         post?: never;
         /** Remove a coverage rule; the project's administrators'. */
         delete: operations["deleteCoverageRule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The templates a first dashboard is made from, and the widgets each starts with. */
+        get: operations["listDashboardTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboards/{dashboardID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A dashboard and its widgets in order, for its owner or, once shared, anybody who may read the project. */
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        /** Delete a dashboard; its owner's, or once shared the project's administrators'. */
+        delete: operations["deleteDashboard"];
+        options?: never;
+        head?: never;
+        /** Rename a dashboard or share it; its owner's, or once shared the project's administrators'. */
+        patch: operations["updateDashboard"];
+        trace?: never;
+    };
+    "/dashboards/{dashboardID}/dashboard.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A dashboard as a PDF, printed by the render service as the reader; 503 render_unavailable when the server has none. */
+        get: operations["dashboardPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboards/{dashboardID}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Lay a dashboard's widgets out in a new order, naming every one. */
+        put: operations["orderWidgets"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboards/{dashboardID}/widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a widget at the end of a dashboard; whoever may change the dashboard, at most 30 widgets. */
+        post: operations["addWidget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export-templates/{templateID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One Word template, the fields it shows and what it includes. */
+        get: operations["getExportTemplate"];
+        put?: never;
+        post?: never;
+        /** Delete a template; its project's administrators'. Exports made with it stay as they are. */
+        delete: operations["deleteExportTemplate"];
+        options?: never;
+        head?: never;
+        /** Rename a template, choose its fields and what it includes, or share it with every project; its project's administrators'. */
+        patch: operations["updateExportTemplate"];
+        trace?: never;
+    };
+    "/export-templates/{templateID}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The template's Word file as it was uploaded. */
+        get: operations["downloadExportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1672,6 +1812,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/dashboards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The project's dashboards the caller may read: their own, and those shared with the project. */
+        get: operations["listDashboards"];
+        put?: never;
+        /** Make a dashboard, empty or from a template, for oneself or shared with the project; sharing needs edit. At most 50 per person and project. */
+        post: operations["createDashboard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/document": {
         parameters: {
             query?: never;
@@ -1698,6 +1856,23 @@ export interface paths {
         };
         /** The same document as a Word file, with the pictures its text shows. */
         get: operations["projectDocx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/document.html.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The specification as a static HTML site in a zip that opens offline: linked pages with its contents, trace links between them and a search. Printed by the render service as the reader; 503 render_unavailable when the server has none. */
+        get: operations["projectSite"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1844,6 +2019,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/export-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Word templates the project may export through: its own, and those other projects share. */
+        get: operations["listExportTemplates"];
+        put?: never;
+        /** Upload a Word template, sent as a multipart part named file, whose styles, cover, headers and footers exports take. A template that cannot be used is refused with what is wrong. For the project's administrators; at most 20 MB. */
+        post: operations["uploadExportTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/export.csv": {
         parameters: {
             query?: never;
@@ -1923,6 +2116,23 @@ export interface paths {
         /** Set a fixed field's rule whole: the status it is required from and who changes it in which statuses. For the project's administrators. */
         put: operations["saveFieldRule"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/formula-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a computed attribute's formula as it is written: what is wrong and where, what kind of value it gives, what it reads, and its value for a requirement. The project's administrators'. */
+        post: operations["formulaCheck"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2591,6 +2801,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/widget-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a widget would show as it is being set up, before it is saved, read as the caller. */
+        post: operations["previewWidget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/word-imports": {
         parameters: {
             query?: never;
@@ -2915,6 +3142,40 @@ export interface paths {
         };
         /** What changed between two revisions of a requirement: statement, rationale, type and attributes. */
         get: operations["diffRevisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everything a requirement traces to, up, down or both, to a depth, through chosen link types and relations, as nodes and edges, with suspect and broken links and coverage gaps marked. A requirement the reader may not see is counted, never named; at most 500 nodes. */
+        get: operations["traceGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/graph.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The impact of a change to a requirement as a CSV file: everything the graph reaches, by level. */
+        get: operations["traceGraphCSV"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4260,6 +4521,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/widgets/{widgetID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take a widget off its dashboard. */
+        delete: operations["deleteWidget"];
+        options?: never;
+        head?: never;
+        /** Change a widget's title, width or what it reads. */
+        patch: operations["updateWidget"];
+        trace?: never;
+    };
+    "/widgets/{widgetID}/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a widget shows, read now as the caller: only requirements the caller may see count, and each bucket carries the query that opens it in the grid. */
+        get: operations["widgetData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflow-rule-types": {
         parameters: {
             query?: never;
@@ -5146,6 +5442,52 @@ export interface components {
             hotspotX: number;
             hotspotY: number;
         };
+        Dashboard: {
+            can: components["schemas"]["DashboardCan"];
+            /** Format: date-time */
+            createdAt: string;
+            home: boolean;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            owner: components["schemas"]["PersonRef"];
+            projectKey: string;
+            shared: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            widgets: components["schemas"]["Widget"][];
+        };
+        DashboardCan: {
+            edit: boolean;
+            share: boolean;
+        };
+        DashboardInput: {
+            name: string;
+            shared: boolean;
+            template?: string;
+        };
+        DashboardPatch: {
+            name?: string;
+            shared?: boolean;
+        };
+        DashboardSummary: {
+            can: components["schemas"]["DashboardCan"];
+            home: boolean;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            owner: components["schemas"]["PersonRef"];
+            projectKey: string;
+            shared: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DashboardTemplate: {
+            description: string;
+            key: string;
+            name: string;
+            widgets: components["schemas"]["WidgetInput"][];
+        };
         DefaultThemeRequest: {
             /** Format: uuid */
             themeId: string | null;
@@ -5295,6 +5637,45 @@ export interface components {
             name: string;
             spec: components["schemas"]["Spec"];
         };
+        ExportTemplate: {
+            can: components["schemas"]["ExportTemplateCan"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["PersonRef"];
+            description: string;
+            fields: components["schemas"]["ExportTemplateField"][];
+            fileName: string;
+            /** Format: uuid */
+            id: string;
+            include: components["schemas"]["ExportTemplateInclude"];
+            name: string;
+            placeholders: ("project" | "title" | "section" | "baseline" | "date" | "exportedBy" | "signers" | "content")[];
+            projectKey: string;
+            shared: boolean;
+            size: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ExportTemplateCan: {
+            edit: boolean;
+        };
+        ExportTemplateField: {
+            attribute?: string;
+            /** @enum {string} */
+            field: "type" | "status" | "owner" | "priority" | "labels" | "revision" | "rationale" | "attribute";
+        };
+        ExportTemplateInclude: {
+            changeMarks: boolean;
+            comments: boolean;
+            links: boolean;
+        };
+        ExportTemplatePatch: {
+            description?: string;
+            fields?: components["schemas"]["ExportTemplateField"][];
+            include?: components["schemas"]["ExportTemplateInclude"];
+            name?: string;
+            shared?: boolean;
+        };
         FieldPermit: {
             roles: string[];
             statuses: string[];
@@ -5319,6 +5700,28 @@ export interface components {
         Fonts: {
             mono?: components["schemas"]["Font"];
             sans?: components["schemas"]["Font"];
+        };
+        FormulaCheck: {
+            errors: components["schemas"]["FormulaError"][];
+            formula: string;
+            /** @enum {string} */
+            kind?: "number" | "text" | "boolean" | "date";
+            linkTypes: string[];
+            reads: string[];
+            /** @description A JSON value. */
+            value: unknown;
+            valueError?: string;
+        };
+        FormulaCheckInput: {
+            attributeId?: string;
+            formula: string;
+            onSections: boolean;
+            requirementKey?: string;
+        };
+        FormulaError: {
+            from: number;
+            message: string;
+            to: number;
         };
         Glossaries: {
             libraries: components["schemas"]["GlossaryLibrary"][];
@@ -7382,6 +7785,42 @@ export interface components {
             orphaned: number;
             outdated: number;
         };
+        TraceGraph: {
+            depth: number;
+            /** @enum {string} */
+            direction: "up" | "down" | "both";
+            edges: components["schemas"]["TraceGraphEdge"][];
+            hidden: number;
+            nodes: components["schemas"]["TraceGraphNode"][];
+            root: string;
+            truncated: boolean;
+        };
+        TraceGraphEdge: {
+            broken: boolean;
+            from: string;
+            /** Format: uuid */
+            linkId: string | null;
+            phrase?: string;
+            relation?: string;
+            suspect: boolean;
+            to: string;
+            typeKey?: string;
+        };
+        TraceGraphNode: {
+            broken: boolean;
+            code?: components["schemas"]["ChainCode"];
+            gaps: string[];
+            hidden: number;
+            id: string;
+            issueKey?: string;
+            /** @enum {string} */
+            kind: "requirement" | "issue" | "page" | "test" | "code";
+            level: number;
+            page: components["schemas"]["MatrixPage"] | null;
+            requirement: components["schemas"]["RequirementRef"] | null;
+            test?: components["schemas"]["ChainTest"];
+            type: components["schemas"]["RequirementTypeRef"] | null;
+        };
         TraceLink: {
             /** Format: date-time */
             createdAt: string;
@@ -7877,6 +8316,97 @@ export interface components {
             actor: components["schemas"]["WebhookPerson"] | null;
             requirement: components["schemas"]["WebhookRequirementRef"];
             thread: components["schemas"]["WebhookThreadRef"];
+        };
+        Widget: {
+            config: components["schemas"]["WidgetConfig"];
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "breakdown" | "count" | "list" | "coverage" | "review" | "suspects" | "changes" | "quality";
+            position: number;
+            title: string;
+            width: number;
+        };
+        WidgetBucket: {
+            category?: string;
+            count: number;
+            label: string;
+            query: string;
+        };
+        WidgetConfig: {
+            /** Format: uuid */
+            attributeId?: string;
+            columns?: string[];
+            days?: number;
+            /** @enum {string} */
+            groupBy?: "status" | "category" | "type" | "owner" | "priority" | "label" | "attribute";
+            /** @enum {string} */
+            interval?: "week" | "month";
+            rows?: number;
+            series?: ("created" | "revised" | "statusChanged")[];
+            /** @enum {string} */
+            shape?: "bars" | "donut";
+            source: components["schemas"]["WidgetSource"];
+        };
+        WidgetData: {
+            average: number | null;
+            groups: components["schemas"]["WidgetGroup"][];
+            /** @enum {string} */
+            kind: "breakdown" | "count" | "list" | "coverage" | "review" | "suspects" | "changes" | "quality";
+            lines: components["schemas"]["WidgetLine"][];
+            query: string;
+            rows: components["schemas"]["GridRow"][];
+            total: number;
+            /** Format: uuid */
+            viewId: string | null;
+        };
+        WidgetGroup: {
+            buckets: components["schemas"]["WidgetBucket"][];
+            name: string;
+            total: number;
+        };
+        WidgetInput: {
+            config: components["schemas"]["WidgetConfig"];
+            /** @enum {string} */
+            kind: "breakdown" | "count" | "list" | "coverage" | "review" | "suspects" | "changes" | "quality";
+            title: string;
+            width?: number;
+        };
+        WidgetKindInfo: {
+            description: string;
+            /** @enum {string} */
+            kind: "breakdown" | "count" | "list" | "coverage" | "review" | "suspects" | "changes" | "quality";
+            title: string;
+            width: number;
+        };
+        WidgetLine: {
+            points: components["schemas"]["WidgetPoint"][];
+            /** @enum {string} */
+            series: "created" | "revised" | "statusChanged";
+        };
+        WidgetOrderInput: {
+            widgets: string[];
+        };
+        WidgetPatch: {
+            config?: components["schemas"]["WidgetConfig"];
+            title?: string;
+            width?: number;
+        };
+        WidgetPoint: {
+            count: number;
+            query: string;
+            /** Format: date-time */
+            start: string;
+        };
+        WidgetPreviewInput: {
+            config: components["schemas"]["WidgetConfig"];
+            /** @enum {string} */
+            kind: "breakdown" | "count" | "list" | "coverage" | "review" | "suspects" | "changes" | "quality";
+        };
+        WidgetSource: {
+            query?: string;
+            /** Format: uuid */
+            viewId?: string;
         };
         Word: {
             detail: string;
@@ -9547,6 +10077,76 @@ export interface operations {
             };
         };
     };
+    baselineSite: {
+        parameters: {
+            query?: {
+                /** @description A template the project may use; none when absent. */
+                template?: string;
+            };
+            header?: never;
+            path: {
+                baselineID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     baselineMarkdown: {
         parameters: {
             query?: never;
@@ -10258,6 +10858,642 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listDashboardTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        kinds: components["schemas"]["WidgetKindInfo"][];
+                        templates: components["schemas"]["DashboardTemplate"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dashboard: components["schemas"]["Dashboard"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dashboard: components["schemas"]["Dashboard"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    dashboardPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    orderWidgets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetOrderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dashboard: components["schemas"]["Dashboard"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    addWidget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dashboardID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        widget: components["schemas"]["Widget"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getExportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        template: components["schemas"]["ExportTemplate"];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteExportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateExportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportTemplatePatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        template: components["schemas"]["ExportTemplate"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    downloadExportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                templateID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13176,6 +14412,121 @@ export interface operations {
             };
         };
     };
+    listDashboards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dashboards: components["schemas"]["DashboardSummary"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DashboardInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dashboard: components["schemas"]["Dashboard"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     getProjectDocument: {
         parameters: {
             query?: {
@@ -13255,6 +14606,78 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    projectSite: {
+        parameters: {
+            query?: {
+                /** @description The key of a requirement or section, which the document holds with everything below it; the whole project when absent. */
+                section?: string;
+                /** @description A template the project may use; none when absent. */
+                template?: string;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13818,6 +15241,135 @@ export interface operations {
             };
         };
     };
+    listExportTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        templates: components["schemas"]["ExportTemplate"][];
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    uploadExportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    description?: string;
+                    /** Format: binary */
+                    file: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        template: components["schemas"]["ExportTemplate"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     exportCSV: {
         parameters: {
             query?: {
@@ -14053,6 +15605,79 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    formulaCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormulaCheckInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        check: components["schemas"]["FormulaCheck"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16932,6 +18557,70 @@ export interface operations {
             };
         };
     };
+    previewWidget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WidgetData"];
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     uploadWord: {
         parameters: {
             query?: never;
@@ -18086,6 +19775,146 @@ export interface operations {
                     "application/json": {
                         comparison: components["schemas"]["Comparison"];
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceGraph: {
+        parameters: {
+            query?: {
+                /** @description Up, down or both; both when absent. */
+                direction?: "up" | "down" | "both";
+                /** @description Levels to follow, 1 to 6; 2 when absent. */
+                depth?: number;
+                /** @description Keys of the link types to follow; every type when absent. */
+                type?: string[];
+                /** @description Armature, Stator, test and code relations to reach; every one when absent. */
+                relation?: string[];
+                /** @description The evidence branch of the requirement's project; its counting branch when absent. */
+                branch?: string;
+            };
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        graph: components["schemas"]["TraceGraph"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    traceGraphCSV: {
+        parameters: {
+            query?: {
+                /** @description Up, down or both; both when absent. */
+                direction?: "up" | "down" | "both";
+                /** @description Levels to follow, 1 to 6; 2 when absent. */
+                depth?: number;
+                /** @description Keys of the link types to follow; every type when absent. */
+                type?: string[];
+                /** @description Armature, Stator, test and code relations to reach; every one when absent. */
+                relation?: string[];
+                /** @description The evidence branch of the requirement's project; its counting branch when absent. */
+                branch?: string;
+            };
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
@@ -22244,6 +24073,195 @@ export interface operations {
                     "application/json": {
                         delivery: components["schemas"]["WebhookDelivery"];
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteWidget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                widgetID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateWidget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                widgetID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        widget: components["schemas"]["Widget"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    widgetData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                widgetID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WidgetData"];
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
