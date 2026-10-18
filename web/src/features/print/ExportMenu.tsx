@@ -13,19 +13,23 @@ export function ExportMenu({
   projectKey,
   reqifHref,
   size = "md",
+  formats = ["pdf", "docx", "html.zip"],
 }: {
   title: string;
   href: (format: DocumentFormat) => string;
   projectKey?: string;
   reqifHref?: string;
   size?: "sm" | "md";
+  /** The formats offered, all by default. */
+  formats?: DocumentFormat[];
 }) {
   const [format, setFormat] = useState<DocumentFormat>();
-  const items: MenuItem[] = [
-    { label: t.documents.pdf, icon: <Icon.Download />, onSelect: () => setFormat("pdf"), attrs: { "data-action": "export-pdf" } },
-    { label: t.documents.docx, icon: <Icon.Download />, onSelect: () => setFormat("docx"), attrs: { "data-action": "export-docx" } },
-    { label: t.documents["html.zip"], icon: <Icon.Download />, onSelect: () => setFormat("html.zip"), attrs: { "data-action": "export-html" } },
+  const choices: [DocumentFormat, MenuItem][] = [
+    ["pdf", { label: t.documents.pdf, icon: <Icon.Download />, onSelect: () => setFormat("pdf"), attrs: { "data-action": "export-pdf" } }],
+    ["docx", { label: t.documents.docx, icon: <Icon.Download />, onSelect: () => setFormat("docx"), attrs: { "data-action": "export-docx" } }],
+    ["html.zip", { label: t.documents["html.zip"], icon: <Icon.Download />, onSelect: () => setFormat("html.zip"), attrs: { "data-action": "export-html" } }],
   ];
+  const items = choices.filter(([f]) => formats.includes(f)).map(([, item]) => item);
   if (reqifHref) {
     items.push({
       label: t.documents.reqif,

@@ -53,7 +53,8 @@ import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
-import { printBaselineDocumentRoute, printDashboardRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
+import { printBaselineDocumentRoute, printDashboardRoute, printExecutionReportRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
+import { testExecutionRoute, testPlanRoute, testRunRoute, testsRoute } from "./tests";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
@@ -62,6 +63,7 @@ const routeTree = rootRoute.addChildren([
   printBaselineDocumentRoute,
   printDashboardRoute,
   printSessionReportRoute,
+  printExecutionReportRoute,
   appRoute.addChildren([
     homeRoute,
     projectsRoute,
@@ -88,6 +90,10 @@ const routeTree = rootRoute.addChildren([
     baselineCompareRoute,
     sessionsRoute,
     sessionRoute,
+    testsRoute,
+    testPlanRoute,
+    testExecutionRoute,
+    testRunRoute,
     specRoute,
     gridRoute,
     requirementRoute,

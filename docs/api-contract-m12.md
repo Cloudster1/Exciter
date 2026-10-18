@@ -317,6 +317,28 @@ write, as their operations allow the caller.
 - Home lists the executions the person tests; a test case's page lists its
   results.
 
+### As built (#251)
+
+- **Migration**: `01220_test_executions.sql` adds `test_plan`, `test_plan_case`,
+  `test_execution`, `test_execution_tester`, `test_execution_case` (one row
+  per iteration, with the parameters' values it runs), `test_execution_step`,
+  `test_execution_file` and `test_execution_issue`. `test_execution_start`
+  pins the cases; `test_execution_manages`, `_tests` and `_records` say who
+  may do what; a trigger keeps whatever an execution holds from changing
+  once it is closed, but for letting go of a person forgotten or a CI run
+  reaped. Notifications gain `execution_id` and three kinds.
+- **Code**: `internal/testexec` (plans, executions, recording, files,
+  issues, the report, the reminder); `armature.FileDraft` files an issue
+  with its own words; `docx.ExecutionReportBytesWith`; the worker reminds a
+  day before an execution is due.
+- **Refusals**: a plan's query that does not compile is 400 `bad_query`, as
+  the grid answers it. A tester's link to a requirement they may not link
+  is left out; the issue stands.
+- **Web**: `features/tests` on `/p/{projectKey}/tests`, a plan's page, an
+  execution's page and the step runner; `/print/executions/{id}` for the
+  PDF; the home lists the reader's open executions and a test case's page
+  its results.
+
 ## #252 Executions in traceability
 
 | Operation | Needs | Answers |

@@ -28,6 +28,8 @@ type mailed struct {
 	session *uuid.UUID
 	// scan is the code scan it is about (#201); key is then its project's and title its repository and branch.
 	scan *uuid.UUID
+	// execution is the test execution it is about (#251); key is then its project's.
+	execution *uuid.UUID
 }
 
 // Sentence says what happened, in English.
@@ -65,6 +67,12 @@ func Sentence(kind Kind, actor, key, title string) string {
 		return fmt.Sprintf(`The review session "%s" of %s ends soon, and waits for you`, title, key)
 	case KindSessionClosed:
 		return fmt.Sprintf(`%s closed the review session "%s" of %s`, actor, title, key)
+	case KindExecutionAssigned:
+		return fmt.Sprintf(`%s asks you to test in the execution "%s" of %s`, actor, title, key)
+	case KindExecutionReminder:
+		return fmt.Sprintf(`The test execution "%s" of %s is due soon`, title, key)
+	case KindExecutionClosed:
+		return fmt.Sprintf(`%s closed the test execution "%s" of %s`, actor, title, key)
 	case KindCodeOutdated:
 		return fmt.Sprintf("A scan of %s in %s brought code tags naming older revisions of requirements you follow", title, key)
 	case KindTermChanged:
@@ -94,8 +102,16 @@ func CodeTagsURL(appURL, projectKey string) string {
 	return fmt.Sprintf("%s/p/%s/code-tags", appURL, projectKey)
 }
 
+// ExecutionURL is where a notification about a test execution leads: the execution's page.
+func ExecutionURL(appURL, projectKey string, id uuid.UUID) string {
+	return fmt.Sprintf("%s/p/%s/tests/executions/%s", appURL, projectKey, id)
+}
+
 // link is where one mailed notification leads.
 func (m mailed) link(appURL string) string {
+	if m.execution != nil {
+		return ExecutionURL(appURL, m.key, *m.execution)
+	}
 	if m.scan != nil {
 		return CodeTagsURL(appURL, m.key)
 	}

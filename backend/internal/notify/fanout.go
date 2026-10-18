@@ -19,6 +19,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 )
 
 // Subject is what one event tells people about: a requirement at a revision, and a thread, comment, review or link
@@ -35,8 +36,10 @@ type Subject struct {
 	// CodeScanID names a code scan the event is about instead of a requirement (#201).
 	CodeScanID *uuid.UUID
 	// TermID names the glossary term whose definition changed (#210), beside the requirement that uses it.
-	TermID  *uuid.UUID
-	Excerpt string
+	TermID *uuid.UUID
+	// ExecutionID names a test execution the event is about instead of a requirement (#251).
+	ExecutionID *uuid.UUID
+	Excerpt     string
 }
 
 // Tell is one person to tell, and why. About, when set, is what they are told about instead of the plan's subject.
@@ -108,6 +111,9 @@ func NewFanOut(cluster *db.Cluster, mailer mail.Mailer, appURL string, log *slog
 		review.TopicSessionRound:    planSession(KindSessionRound, false),
 		review.TopicSessionReminder: planSession(KindSessionReminder, true),
 		review.TopicSessionClosed:   planSession(KindSessionClosed, false),
+		testexec.TopicStarted:       planExecution(KindExecutionAssigned),
+		testexec.TopicReminder:      planExecution(KindExecutionReminder),
+		testexec.TopicClosed:        planExecution(KindExecutionClosed),
 		codetrace.TopicUploaded:     planCodeScan,
 		glossary.TopicRevised:       planTermRevised,
 	}}
@@ -175,6 +181,11 @@ func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t T
 			err = tx.QueryRow(ctx, `
 				SELECT s.repository || ' ' || s.branch, p.key FROM code_scan s JOIN project p ON p.id = s.project_id
 				WHERE s.id = $1 AND perm_project_holds(s.project_id, $2::uuid, 'view')`, *subject.CodeScanID, t.UserID).Scan(&about.title, &about.key)
+		case subject.ExecutionID != nil:
+			about.execution = subject.ExecutionID
+			err = tx.QueryRow(ctx, `
+				SELECT e.title, p.key FROM test_execution e JOIN project p ON p.id = e.project_id
+				WHERE e.id = $1 AND perm_project_holds(e.project_id, $2::uuid, 'view')`, *subject.ExecutionID, t.UserID).Scan(&about.title, &about.key)
 		case subject.SessionID != nil:
 			about.session = subject.SessionID
 			err = tx.QueryRow(ctx, `
@@ -203,12 +214,13 @@ func (f *FanOut) deliver(ctx context.Context, eventID uuid.UUID, plan *Plan, t T
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
 			INSERT INTO notification (user_id, event_id, kind, actor_id, requirement_id, revision, thread_id, comment_id,
-			                          review_id, link_id, excerpt, session_id, code_scan_id, term_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+			                          review_id, link_id, excerpt, session_id, code_scan_id, term_id, execution_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			ON CONFLICT (event_id, user_id) DO NOTHING
 			RETURNING id`,
 			t.UserID, eventID, t.Kind, nullable(plan.Actor), nullable(subject.RequirementID), subject.Revision, subject.ThreadID,
-			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID, subject.CodeScanID, subject.TermID).Scan(&id)
+			subject.CommentID, subject.ReviewID, subject.LinkID, subject.Excerpt, subject.SessionID, subject.CodeScanID, subject.TermID,
+			subject.ExecutionID).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}

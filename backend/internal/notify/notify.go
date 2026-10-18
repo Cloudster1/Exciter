@@ -48,12 +48,17 @@ const (
 	KindCodeOrphaned Kind = "code_orphaned"
 	// KindTermChanged is the definition of a glossary term changed that a requirement one owns uses (#210).
 	KindTermChanged Kind = "term_changed"
+	// KindExecutionAssigned, KindExecutionReminder and KindExecutionClosed are about a test execution one tests (#251),
+	// told about the execution rather than a requirement.
+	KindExecutionAssigned Kind = "execution_assigned"
+	KindExecutionReminder Kind = "execution_reminder"
+	KindExecutionClosed   Kind = "execution_closed"
 )
 
 // Kinds lists every Kind, the order deciding which one a person named twice by one event gets.
 var Kinds = []Kind{KindMentioned, KindReviewRequested, KindReviewed, KindSuspect, KindSourceRevised, KindReplied, KindCommented,
 	KindResolved, KindRevised, KindTransitioned, KindSessionInvited, KindSessionRound, KindSessionReminder, KindSessionClosed,
-	KindCodeOrphaned, KindCodeOutdated, KindTermChanged}
+	KindCodeOrphaned, KindCodeOutdated, KindTermChanged, KindExecutionAssigned, KindExecutionReminder, KindExecutionClosed}
 
 // Digest is how mail is sent: each notification at once, or gathered every hour or day.
 type Digest string
@@ -77,6 +82,8 @@ type Notification struct {
 	Session     *SessionLink     `json:"session"`
 	// CodeScan is the code scan it is about instead of a requirement (#201).
 	CodeScan *CodeScanLink `json:"codeScan"`
+	// Execution is the test execution it is about instead of a requirement (#251).
+	Execution *SessionLink `json:"execution"`
 	// Revision is the requirement's revision the notification is about.
 	Revision  int        `json:"revision"`
 	ThreadID  *uuid.UUID `json:"threadId"`

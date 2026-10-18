@@ -50,6 +50,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 	"github.com/cloudster1/exciter/backend/internal/trace"
@@ -125,6 +126,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		ReqIF:           reqifio.NewService(h.cluster, requirements, attribute.NewService(h.cluster), links, a.files, store),
 		Documents:       specdoc.NewService(h.cluster, requirements, baseline.NewService(h.cluster)),
 		ExportTemplates: exporttemplate.NewService(h.cluster, store),
+		Tests:           testexec.NewService(h.cluster, store).WithIssues(h.armature(t), "http://exciter.test"),
 		Renderer:        h.renderer(),
 		Armature:        h.armature(t),
 		Stator:          h.stator(t),

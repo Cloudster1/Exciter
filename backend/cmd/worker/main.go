@@ -35,6 +35,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/testresult"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
@@ -120,6 +121,7 @@ func run() error {
 		go notify.NewDigester(cluster, mailer, cfg.AppBaseURL, log).Run(ctx)
 	}
 	go review.NewReminder(cluster, log).Run(ctx)
+	go testexec.NewReminder(cluster, log).Run(ctx)
 	fanOut := notify.NewFanOut(cluster, mailer, cfg.AppBaseURL, log)
 	for _, topic := range fanOut.Topics() {
 		handlers.Route(topic, fanOut)

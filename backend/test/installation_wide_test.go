@@ -42,6 +42,7 @@ var installationWide = map[string]string{
 	"TestAnAdministratorConnectsArmatureAndMembersTheirTokens": armatureLink,
 	"TestAReadOnlyArmatureTokenIsNamedSo":                      armatureLink,
 	"TestAnArmatureThatDoesNotAnswer":                          armatureLink,
+	"TestAFailedCaseIsFiledAsAnIssue":                          armatureLink,
 	"TestACheckFindsARevokedToken":                             armatureLink,
 	"TestRawSQLWallsArmatureRows":                              armatureLink,
 	"TestRawSQLGuardsArmatureLinks":                            armatureLink,

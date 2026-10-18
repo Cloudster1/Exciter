@@ -10,7 +10,7 @@ const when = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 /** A notification in the reader's words; the server sends only what happened. */
 export function sentence(n: Notification): string {
   const scan = n.codeScan ? `${n.codeScan.repository} ${n.codeScan.branch}` : undefined;
-  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? n.session?.title ?? scan ?? "");
+  return t.notifications.sentence(n.kind, n.actorName, n.requirement?.key ?? n.session?.title ?? n.execution?.title ?? scan ?? "");
 }
 
 /** One notification, leading to its requirement at its thread when it has one; following it marks it read. */
@@ -26,6 +26,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
         {n.requirement && <span className="block truncate text-xs text-ink-muted">{n.requirement.title}</span>}
         {n.session && <span className="block truncate text-xs text-ink-muted">{n.session.projectKey}</span>}
         {n.codeScan && <span className="block truncate text-xs text-ink-muted">{n.codeScan.projectKey}</span>}
+        {n.execution && <span className="block truncate text-xs text-ink-muted">{n.execution.projectKey}</span>}
         {n.excerpt && <span className="mt-0.5 block truncate text-xs text-ink-muted italic">{n.excerpt}</span>}
         <span className="mt-0.5 block text-xs text-ink-subtle">{when.format(new Date(n.createdAt))}</span>
       </span>
@@ -42,6 +43,21 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
       <Link
         to="/p/$projectKey/code-tags"
         params={{ projectKey: n.codeScan.projectKey }}
+        onClick={follow}
+        className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
+        data-notification={n.kind}
+        data-unread={unread || undefined}
+      >
+        {words}
+      </Link>
+    );
+  }
+  // A test execution's leads to its page (#251).
+  if (n.execution) {
+    return (
+      <Link
+        to="/p/$projectKey/tests/executions/$executionId"
+        params={{ projectKey: n.execution.projectKey, executionId: n.execution.id }}
         onClick={follow}
         className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
         data-notification={n.kind}
