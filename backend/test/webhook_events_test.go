@@ -239,6 +239,8 @@ func TestRawSQLKeepsWebhooksToAdministrators(t *testing.T) {
 	w := newCommentWorld(t, "HKS")
 	w.h.keepWebhooks(t)
 	h := w.h
+	// The world's own events would otherwise reach the webhook made below and add deliveries to the log it counts.
+	h.drained(t)
 	_, address := hookBin(t)
 	id, _ := makeHook(t, w.owner, "Walled", address, []string{w.key}, webhook.TopicAny)
 	want(t, w.owner.post(t, "/api/v1/webhooks/"+id+"/test", nil), http.StatusOK, "a ping for the log")
