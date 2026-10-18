@@ -202,7 +202,11 @@ func (s *Service) take(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur, sr
 	if comment == "" {
 		comment = fmt.Sprintf("Took revision %d of %s", src.Revision, src.Key)
 	}
-	next := Normative{Title: src.Title, Statement: src.Statement, Rationale: src.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes}
+	test, err := testFor(ctx, tx, cur.typeID(), src.test)
+	if err != nil {
+		return err
+	}
+	next := Normative{Title: src.Title, Statement: src.Statement, Rationale: src.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes, Test: test}
 	files, err := s.filesShown(ctx, tx, src)
 	if err != nil {
 		return err
@@ -221,10 +225,14 @@ func (s *Service) take(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur, sr
 		_, err := tx.Exec(ctx, `UPDATE requirement SET reuse_revision = $2, reuse_state = 'following' WHERE id = $1`, cur.ID, src.Revision)
 		return err
 	}
+	pre, steps, params, err := next.Test.columns()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE requirement SET title = $2, statement = $3, rationale = $4, normative_hash = $5, updated_by = $6,
-		    reuse_revision = $7, reuse_state = 'following'
-		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, hash, actor, src.Revision); err != nil {
+		    reuse_revision = $7, reuse_state = 'following', preconditions = $8, steps = $9, parameters = $10
+		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, hash, actor, src.Revision, pre, steps, params); err != nil {
 		return fmt.Errorf("take %s into %s: %w", src.Key, cur.Key, err)
 	}
 	if len(files) > 0 {
@@ -244,7 +252,8 @@ func (s *Service) filesShown(ctx context.Context, tx db.DBTX, src *loaded) (map[
 	if err != nil {
 		return nil, err
 	}
-	words := string(src.Statement) + string(src.Rationale)
+	steps, _ := json.Marshal(src.test)
+	words := string(src.Statement) + string(src.Rationale) + string(steps)
 	for id := range planned {
 		if !strings.Contains(words, id.String()) {
 			delete(planned, id)

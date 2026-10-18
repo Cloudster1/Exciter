@@ -48,6 +48,7 @@ type content struct {
 	Priority   *requirement.Priority
 	Labels     []string
 	Updated    time.Time
+	Test       requirement.TestCase
 }
 
 // snapshot is the part of a project an export writes, read in one transaction.
@@ -57,12 +58,14 @@ type snapshot struct {
 	contents map[uuid.UUID]content
 	defs     []attribute.Def
 	types    map[uuid.UUID]named
-	changed  map[uuid.UUID]time.Time
-	statuses []named
-	links    []exportLink
-	kinds    map[uuid.UUID]linkType
-	people   map[string]string
-	ties     map[string]map[uuid.UUID][]tieRow
+	// testTypes are the types marked as test cases, whose objects carry what a test case does (#250).
+	testTypes map[uuid.UUID]bool
+	changed   map[uuid.UUID]time.Time
+	statuses  []named
+	links     []exportLink
+	kinds     map[uuid.UUID]linkType
+	people    map[string]string
+	ties      map[string]map[uuid.UUID][]tieRow
 	// root is the section a section export starts at, nil for the whole project.
 	root *requirement.TreeNode
 	// glossary is the terms the export defines: the project's, or those a section's requirements use.
@@ -165,7 +168,8 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 	snap.contents = map[uuid.UUID]content{}
 	rows, err := tx.Query(ctx, `
 		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), r.status_id, COALESCE(lower(u.email::text), ''), r.priority, r.updated_at,
-		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}')
+		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}'),
+		       r.preconditions, r.steps, r.parameters
 		FROM requirement r LEFT JOIN app_user u ON u.id = r.owner_id
 		WHERE r.id = ANY($1)`, ids)
 	if err != nil {
@@ -174,11 +178,16 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			id    uuid.UUID
-			c     content
-			attrs []byte
+			id                 uuid.UUID
+			c                  content
+			attrs              []byte
+			pre, steps, params []byte
 		)
-		if err := rows.Scan(&id, &c.Statement, &c.Rationale, &attrs, &c.Status, &c.Owner, &c.Priority, &c.Updated, &c.Labels); err != nil {
+		if err := rows.Scan(&id, &c.Statement, &c.Rationale, &attrs, &c.Status, &c.Owner, &c.Priority, &c.Updated, &c.Labels, &pre, &steps, &params); err != nil {
+			return err
+		}
+		var err error
+		if c.Test, err = requirement.ReadTestCase(pre, steps, params); err != nil {
 			return err
 		}
 		if err := json.Unmarshal(attrs, &c.Attributes); err != nil {
@@ -190,21 +199,22 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 }
 
 func (snap *snapshot) readSchema(ctx context.Context, tx db.DBTX, _ []uuid.UUID) error {
-	snap.types, snap.changed = map[uuid.UUID]named{}, map[uuid.UUID]time.Time{}
-	rows, err := tx.Query(ctx, `SELECT id, name, updated_at FROM requirement_type WHERE project_id = $1`, snap.project.ID)
+	snap.types, snap.changed, snap.testTypes = map[uuid.UUID]named{}, map[uuid.UUID]time.Time{}, map[uuid.UUID]bool{}
+	rows, err := tx.Query(ctx, `SELECT id, name, updated_at, role = 'testCase' FROM requirement_type WHERE project_id = $1`, snap.project.ID)
 	if err != nil {
 		return err
 	}
 	for rows.Next() {
 		var (
-			t  named
-			at time.Time
+			t    named
+			at   time.Time
+			test bool
 		)
-		if err := rows.Scan(&t.ID, &t.Name, &at); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &at, &test); err != nil {
 			rows.Close()
 			return err
 		}
-		snap.types[t.ID], snap.changed[t.ID] = t, at
+		snap.types[t.ID], snap.changed[t.ID], snap.testTypes[t.ID] = t, at, test
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {

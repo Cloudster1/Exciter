@@ -26,13 +26,17 @@ const (
 	TargetParent    = "parent"
 	TargetOutline   = "outline"
 	TargetLinks     = "links"
+	// TargetPreconditions, TargetSteps and TargetParameters fill what a test case carries (#250).
+	TargetPreconditions = "preconditions"
+	TargetSteps         = "steps"
+	TargetParameters    = "parameters"
 	// AttributePrefix names an attribute's target, followed by its name.
 	AttributePrefix = "attr:"
 )
 
 // BuiltInTargets are the targets every project has, in the order a mapping offers them.
 var BuiltInTargets = []string{TargetKey, TargetKind, TargetTitle, TargetStatement, TargetRationale, TargetType, TargetStatus,
-	TargetOwner, TargetPriority, TargetLabels, TargetParent, TargetOutline, TargetLinks}
+	TargetOwner, TargetPriority, TargetLabels, TargetParent, TargetOutline, TargetLinks, TargetPreconditions, TargetSteps, TargetParameters}
 
 // manyValued are the targets several columns may fill at once.
 var manyValued = map[string]bool{TargetLabels: true, TargetLinks: true}
@@ -125,6 +129,8 @@ var aliases = map[string]string{
 	"parent": TargetParent, "parent key": TargetParent,
 	"outline": TargetOutline, "number": TargetOutline, "no.": TargetOutline,
 	"links": TargetLinks, "link": TargetLinks, "trace links": TargetLinks,
+	"preconditions": TargetPreconditions, "precondition": TargetPreconditions,
+	"steps": TargetSteps, "test steps": TargetSteps, "parameters": TargetParameters,
 }
 
 // Guess maps headers to targets by name, case aside, so a file exported from here maps itself. A file with a

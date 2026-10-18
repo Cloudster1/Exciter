@@ -31,6 +31,10 @@ type Type struct {
 	Position int    `json:"position"`
 	// WorkflowID is the type's own workflow, null to follow the project's.
 	WorkflowID *uuid.UUID `json:"workflowId"`
+	// Role says whether its requirements are test cases (#250).
+	Role TypeRole `json:"role"`
+	// RoleHeld says some of its requirements carry steps, so it stays one of test cases.
+	RoleHeld bool `json:"roleHeld"`
 	// Retired types are kept for the requirements and revisions that have
 	// them, and new requirements cannot take them.
 	Retired      bool      `json:"retired"`
@@ -47,9 +51,21 @@ type TypeInput struct {
 	Icon        *string `json:"icon,omitempty"`
 	Colour      *string `json:"colour,omitempty"`
 	// Position moves it among the project's types, from 0.
-	Position *int  `json:"position,omitempty"`
-	Retired  *bool `json:"retired,omitempty"`
+	Position *int      `json:"position,omitempty"`
+	Retired  *bool     `json:"retired,omitempty"`
+	Role     *TypeRole `json:"role,omitempty"`
 }
+
+// TypeRole is what a type's requirements are: requirements, or test cases with steps (#250).
+type TypeRole string
+
+const (
+	RoleRequirement TypeRole = "requirement"
+	RoleTestCase    TypeRole = "testCase"
+)
+
+// TypeRoles lists every TypeRole, for the API document.
+var TypeRoles = []TypeRole{RoleRequirement, RoleTestCase}
 
 // Kind is what shape an attribute's values take.
 type Kind string

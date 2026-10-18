@@ -54,5 +54,26 @@ func pointAtFiles(content *Normative, ids map[uuid.UUID]uuid.UUID) error {
 		}
 	}
 	content.Attributes = values
+	// A test case's steps show files as its statement does.
+	test := content.Test
+	if len(test.Preconditions) > 0 {
+		if test.Preconditions, _, err = document.RewriteReferences(test.Preconditions, ids); err != nil {
+			return err
+		}
+	}
+	steps := make([]Step, len(test.Steps))
+	for i, s := range test.Steps {
+		steps[i] = s
+		if steps[i].Action, _, err = document.RewriteReferences(s.Action, ids); err != nil {
+			return err
+		}
+		if len(s.Expected) > 0 {
+			if steps[i].Expected, _, err = document.RewriteReferences(s.Expected, ids); err != nil {
+				return err
+			}
+		}
+	}
+	test.Steps = steps
+	content.Test = test
 	return nil
 }

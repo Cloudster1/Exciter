@@ -30,6 +30,7 @@ import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
+import { TestCaseView } from "@/features/testcases/TestCaseView";
 import { useFieldAccess } from "@/features/types/fieldAccess";
 import { LockAction, LockBanner } from "./LockBanner";
 import { RequirementEdit } from "./RequirementEdit";
@@ -194,6 +195,7 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
           )}
         </section>
       )}
+      {requirement.testCase && <TestCaseView content={requirement.testCase} />}
       {attributes && <AttributeValues attributes={attributes} values={{ ...(requirement.attributes as Values), ...(requirement.computed as Values) }} />}
     </Card>
   );

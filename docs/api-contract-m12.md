@@ -152,6 +152,31 @@ All of it is held by the database and proven straight through SQL as
   buttons to add, move and remove, and a table of parameters.
 - The requirement page shows them read-only; history shows the step diff.
 
+### As built (#250)
+
+- **Migration**: `01200_test_cases.sql` adds `requirement_type.role`, and
+  `preconditions`, `steps` and `parameters` to `requirement` and
+  `requirement_revision`, guarded by `requirement_test_case_fields` and
+  `requirement_type_role_held`; `attachment_referenced` counts the files a
+  test case's preconditions and steps show.
+- **The API** answers what a test case carries as one object, `testCase`
+  (`preconditions`, `steps`, `parameters`), on a requirement, a revision, a
+  specification entry and a document entry, null for any other; it is
+  written the same way, a field left out of a change staying as it is. A
+  type answers `role` and `roleHeld`.
+- **Code**: `requirement/testcase.go` checks, hashes and keeps it,
+  `testcase_diff.go` compares steps, `testcase_table.go` writes steps and
+  parameters as tables for Word, Markdown and ReqIF. A move, copy, reuse or
+  restore onto a type that is not one of test cases drops them.
+- **CSV** writes plain text, as it writes the statement: preconditions as
+  text, steps numbered with an `Expected:` line each, parameters as
+  `name: value; value`. A project with a type of test cases exports those
+  columns by default.
+- **ReqIF** writes the three fields only on types of test cases; an import
+  makes a type of test cases for such a type, and leaves them out as a loss
+  where it lands on another type.
+- **Left for later**: searching the words of steps and preconditions.
+
 ## #251 Test plans and test executions
 
 | Operation | Needs | Answers |

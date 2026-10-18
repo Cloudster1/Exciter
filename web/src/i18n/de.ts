@@ -18,6 +18,7 @@ import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
 import { dashboardDe } from "./dashboard.de";
 import { templatesDe } from "./templates.de";
+import { testcasesDe } from "./testcases.de";
 import { graphDe } from "./graph.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
@@ -412,6 +413,7 @@ export const de: Messages = {
   chains: chainsDe,
   dashboard: dashboardDe,
   templates: templatesDe,
+  testcases: testcasesDe,
   graph: graphDe,
   imports: importsDe,
   reqif: reqifDe,

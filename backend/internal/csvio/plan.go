@@ -39,6 +39,8 @@ type plan struct {
 	Parent    string
 	ParentSet bool
 	Links     []planLink
+	// TestCase is what the row says a test case carries, nil when its cells say nothing of it.
+	TestCase *requirement.TestCase
 }
 
 // planLink is a link the row asks for, from it to the other end.
@@ -165,6 +167,7 @@ func (w *world) planRow(row Row, m Mapping, c Choices, headers []string) (plan, 
 			p.Attributes[d.ID.String()] = value
 		}
 	}
+	w.planTestCase(row, m, &p, section, refuse)
 	if len(m[TargetParent]) > 0 {
 		p.ParentSet, p.Parent = true, strings.ToUpper(row.value(m, TargetParent))
 	}

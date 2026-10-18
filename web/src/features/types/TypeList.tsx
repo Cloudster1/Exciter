@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useTypeActions, useTypes, type RequirementType } from "@/api/attributes";
 import type { Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, Field, IconButton, Select, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, IconButton, Select, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TYPE_COLOURS, TYPE_ICONS } from "@/config";
 import { t } from "@/i18n";
@@ -53,6 +53,7 @@ export function TypeList({ project }: { project: Project }) {
                     {type.name}
                     {type.id === project.settings.defaultTypeId && <Tag>{t.types.default}</Tag>}
                     {type.retired && <Tag>{t.types.retired}</Tag>}
+                    {type.role === "testCase" && <Tag data-test-case-type="">{t.testcases.typeTag}</Tag>}
                   </span>
                   {type.description && <span className="block text-xs text-ink-subtle">{type.description}</span>}
                 </Td>
@@ -122,11 +123,14 @@ function TypeForm({ projectKey, type, onDone }: { projectKey: string; type?: Req
   const [description, setDescription] = useState(type?.description ?? "");
   const [icon, setIcon] = useState(type?.icon ?? TYPE_ICONS[0]);
   const [colour, setColour] = useState(type?.colour ?? TYPE_COLOURS[0]);
+  const [testCases, setTestCases] = useState(type?.role === "testCase");
+  // A type whose requirements carry steps stays one of test cases until they carry none.
+  const held = Boolean(type?.roleHeld) && type?.role === "testCase";
   const fields = save.error instanceof ApiError ? save.error.fields : {};
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const body = { name, description, icon, colour };
+    const body = { name, description, icon, colour, role: testCases ? ("testCase" as const) : ("requirement" as const) };
     if (type) actions.update.mutate({ id: type.id, ...body }, { onSuccess: onDone });
     else actions.create.mutate(body, { onSuccess: onDone });
   }
@@ -152,6 +156,19 @@ function TypeForm({ projectKey, type, onDone }: { projectKey: string; type?: Req
         </Select>
       </div>
       <Field label={t.types.description} value={description} onChange={(event) => setDescription(event.target.value)} error={fields.description} />
+      <div className="space-y-1">
+        <Checkbox
+          label={t.testcases.role}
+          checked={testCases}
+          disabled={held}
+          onChange={(event) => setTestCases(event.target.checked)}
+          aria-describedby="type-role-hint"
+          data-type-role=""
+        />
+        <p id="type-role-hint" className="text-xs text-ink-muted">
+          {held ? t.testcases.roleHeld : t.testcases.roleHint}
+        </p>
+      </div>
       <div className="flex items-center gap-2">
         <TypeIcon icon={icon} colour={colour} />
         <Button type="submit" size="sm" loading={save.isPending} data-action="save-type">

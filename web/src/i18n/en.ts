@@ -20,6 +20,7 @@ import { matrixEn } from "./matrix.en";
 import { chainsEn } from "./chains.en";
 import { dashboardEn } from "./dashboard.en";
 import { templatesEn } from "./templates.en";
+import { testcasesEn } from "./testcases.en";
 import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
 import { controlEn } from "./control.en";
@@ -411,6 +412,7 @@ export const en = {
   chains: chainsEn,
   dashboard: dashboardEn,
   templates: templatesEn,
+  testcases: testcasesEn,
   graph: graphEn,
   imports: importsEn,
   reqif: reqifEn,

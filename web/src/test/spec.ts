@@ -36,6 +36,7 @@ export const entry = (n: TreeNode, text: string, over: Partial<SpecEntry> = {}):
   comments: { threads: 0, open: 0 },
   suspectLinks: 0,
   reuse: null,
+  testCase: null,
   type: null,
   owner: null,
   priority: null,

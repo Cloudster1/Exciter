@@ -193,6 +193,9 @@ func attributeError(err error) *APIError {
 		return ErrNotFound("That type or attribute was not found. Reload the list; somebody may have deleted it.")
 	case errors.Is(err, attribute.ErrForbidden):
 		return ErrForbidden("Only the project's administrators change its types and attributes. Ask one of them.")
+	case errors.Is(err, attribute.ErrRoleHeld):
+		return &APIError{Status: http.StatusConflict, Code: "type_role_held",
+			Message: "Requirements of this type have preconditions, steps or parameters. Clear them, or move the requirements to another test-case type, first."}
 	case errors.Is(err, attribute.ErrDefaultType):
 		return &APIError{Status: http.StatusConflict, Code: "default_type",
 			Message: "This is the project's default type. Make another type the default under the project's settings first."}

@@ -13,6 +13,7 @@ import type { Doc } from "@/features/editor/schema";
 import { AttributeValues, type Values } from "@/features/types/AttributeFields";
 import { Through } from "@/components/Through";
 import { t } from "@/i18n";
+import { TestCaseDiff } from "@/features/testcases/TestCaseDiff";
 import { localDateFormat } from "@/lib/format";
 
 /** Where in a requirement's history the reader is: the list, its activity, one revision, or two compared. */
@@ -324,6 +325,7 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
           <DocDiffView blocks={comparison.rationale as DiffBlockView[]} data-diff-of="rationale" />
         </Card>
       )}
+      <TestCaseDiff comparison={comparison} />
       <Card className="space-y-2 p-4">
         <SectionTitle>{t.history.attributes}</SectionTitle>
         <AttributeChanges attributes={comparison.attributes} />

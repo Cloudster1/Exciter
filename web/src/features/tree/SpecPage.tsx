@@ -15,6 +15,7 @@ import type { Doc } from "@/features/editor/schema";
 import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
+import { TestCaseView } from "@/features/testcases/TestCaseView";
 import { OpenSessionButton, SessionBanner } from "@/features/sessions/SessionLaunch";
 import { lockSentence } from "@/features/requirements/LockBanner";
 import { narrowed } from "./address";
@@ -48,6 +49,7 @@ export function editableOf(entry: SpecEntry): Editable {
     revision: node.revision,
     reuse: entry.reuse,
     status: node.status,
+    testCase: entry.testCase,
   };
 }
 
@@ -564,6 +566,7 @@ function Entry({
               <DocView doc={entry.rationale as Doc} className="inline" />
             </div>
           )}
+          {entry.testCase && <TestCaseView content={entry.testCase} small />}
         </>
       )}
       {!collapsed && !editing && entry.review && <EntryReview project={project} entry={entry} onDecided={onDecided} />}

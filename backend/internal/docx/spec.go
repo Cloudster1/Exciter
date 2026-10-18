@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/document"
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 )
 
@@ -178,6 +179,9 @@ func (w *writer) entry(i int, e specdoc.Entry, f frame) {
 		w.para(f, paraProps{style: "Label", keepNext: true}, func() { w.text(w.words.rationale, runProps{}) })
 		w.body(e.Rationale, f)
 	}
+	if t := e.TestCase; t != nil {
+		w.testCase(*t, f)
+	}
 	if len(e.Properties) > 0 {
 		w.properties(e.Properties, f)
 	}
@@ -246,4 +250,23 @@ func (w *writer) properties(props []specdoc.Property, f frame) {
 		w.b.WriteString("</w:tr>")
 	}
 	w.tableEnd()
+}
+
+// testCase writes what a test case carries: its preconditions, its parameters by iteration and its steps, as tables.
+func (w *writer) testCase(t requirement.TestCase, f frame) {
+	label := func(text string) {
+		w.para(f, paraProps{style: "Label", keepNext: true}, func() { w.text(text, runProps{}) })
+	}
+	if len(t.Preconditions) > 0 {
+		label(w.words.pick("Preconditions", "Vorbedingungen"))
+		w.body(t.Preconditions, f)
+	}
+	if len(t.Parameters) > 0 {
+		label(w.words.pick("Parameters", "Parameter"))
+		w.body(requirement.ParametersTable(t, w.words.pick("Iteration", "Iteration")), f)
+	}
+	if len(t.Steps) > 0 {
+		label(w.words.pick("Steps", "Schritte"))
+		w.body(requirement.StepsTable(t.Steps, w.words.pick("Action", "Aktion"), w.words.pick("Expected result", "Erwartetes Ergebnis")), f)
+	}
 }

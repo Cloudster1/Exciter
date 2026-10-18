@@ -16,6 +16,8 @@ type typeTarget struct {
 	item   *SchemaItem
 	id     *uuid.UUID
 	create string
+	// testCases says the file's type carries what test cases do (#250), so a type made for it is one of test cases.
+	testCases bool
 	// none is the type an export writes for requirements without one.
 	none bool
 }
@@ -189,6 +191,11 @@ func (a *analysis) resolveType(t *SpecType, count int) {
 	}
 	if target.id != nil {
 		item.Means, item.MeansName = target.id, a.world.types[*target.id].Name
+	}
+	for _, d := range t.Attributes {
+		if f := fieldOf(d); f == fieldSteps || f == fieldPreconditions || f == fieldParameters {
+			target.testCases = true
+		}
 	}
 	target.item = a.appendItem(item)
 	a.schema.types[t.Identifier] = target

@@ -210,7 +210,8 @@ func ptr(id uuid.UUID) *uuid.UUID {
 func (r *run) create(ctx context.Context, p *objectPlan, parent uuid.UUID) (made, error) {
 	statement, rationale, attrs := r.documents(p, nil)
 	in := requirement.CreateInput{Kind: p.Kind, Title: p.Title, Statement: statement, Rationale: rationale, TypeID: p.TypeID,
-		Attributes: attrs, OwnerID: p.Owner, Priority: p.Priority, Labels: p.Labels, Comment: r.comment, ImportedStatus: p.Status}
+		Attributes: attrs, OwnerID: p.Owner, Priority: p.Priority, Labels: p.Labels, Comment: r.comment, ImportedStatus: p.Status,
+		TestCase: r.testCase(p, nil)}
 	after := r.last[parent]
 	if parent != uuid.Nil || after != nil {
 		in.Place = &requirement.Place{ParentID: ptr(parent), AfterID: after}
@@ -231,7 +232,7 @@ func (r *run) create(ctx context.Context, p *objectPlan, parent uuid.UUID) (made
 	statement, rationale, attrs = r.documents(p, placer)
 	revision := created.Revision
 	_, _, err = r.s.requirements.Update(ctx, r.j.createdBy, self.Key, requirement.UpdateInput{Statement: statement, Rationale: rationale,
-		Attributes: attrs, BaseRevision: &revision, Comment: "Imported the files of " + r.j.FileName})
+		Attributes: attrs, BaseRevision: &revision, Comment: "Imported the files of " + r.j.FileName, TestCase: r.testCase(p, placer)})
 	return self, err
 }
 
@@ -257,7 +258,8 @@ func (r *run) update(ctx context.Context, p *objectPlan) (bool, error) {
 		}
 	}
 	statement, rationale, attrs := r.documents(p, placer)
-	in := requirement.UpdateInput{Statement: statement, Rationale: rationale, Attributes: attrs, BaseRevision: &e.Revision, Comment: r.comment}
+	in := requirement.UpdateInput{Statement: statement, Rationale: rationale, Attributes: attrs, BaseRevision: &e.Revision, Comment: r.comment,
+		TestCase: r.testCase(p, placer)}
 	if p.Title != "" {
 		in.Title = &p.Title
 	}
@@ -523,4 +525,33 @@ func Handler(s *Service) events.HandlerFunc {
 		ctx = db.WithUser(ctx, r.ActorID)
 		return s.Run(ctx, r.ImportID)
 	}
+}
+
+// testCase is what a plan says a test case carries, its files placed, nil when the object says nothing of it.
+func (r *run) testCase(p *objectPlan, placer Placer) *requirement.TestCase {
+	if p.Kind != requirement.KindRequirement || (p.Preconditions == nil && p.Steps == nil && p.Parameters == nil) {
+		return nil
+	}
+	read := func(key string, fallback json.RawMessage) json.RawMessage {
+		if x := p.rich[key]; x != nil {
+			doc, _ := ToDocument(x, placer)
+			return doc
+		}
+		return fallback
+	}
+	t := &requirement.TestCase{}
+	if p.Preconditions != nil {
+		t.Preconditions = read(fieldPreconditions, p.Preconditions)
+	}
+	if p.Steps != nil {
+		// A table that cannot be read back gives no steps, rather than losing the import.
+		steps, err := requirement.StepsFromTable(read(fieldSteps, p.Steps))
+		if err == nil && steps != nil {
+			t.Steps = steps
+		}
+	}
+	if p.Parameters != nil {
+		t.Parameters = requirement.ParametersOf(*p.Parameters)
+	}
+	return t
 }

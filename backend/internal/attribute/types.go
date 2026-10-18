@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
@@ -15,12 +16,14 @@ import (
 
 const selectType = `
 SELECT t.id, t.name, t.description, t.icon, t.colour, t.position, t.retired, t.created_at, t.updated_at,
-       (SELECT count(*)::int FROM requirement r WHERE r.type_id = t.id AND r.trashed_at IS NULL)
+       (SELECT count(*)::int FROM requirement r WHERE r.type_id = t.id AND r.trashed_at IS NULL), t.role,
+       EXISTS (SELECT 1 FROM requirement r WHERE r.type_id = t.id AND requirement_holds_test(r.preconditions, r.steps, r.parameters))
 FROM requirement_type t`
 
 func scanType(row pgx.CollectableRow) (Type, error) {
 	var t Type
-	err := row.Scan(&t.ID, &t.Name, &t.Description, &t.Icon, &t.Colour, &t.Position, &t.Retired, &t.CreatedAt, &t.UpdatedAt, &t.Requirements)
+	err := row.Scan(&t.ID, &t.Name, &t.Description, &t.Icon, &t.Colour, &t.Position, &t.Retired, &t.CreatedAt, &t.UpdatedAt, &t.Requirements,
+		&t.Role, &t.RoleHeld)
 	return t, err
 }
 
@@ -87,6 +90,15 @@ func applyType(t *Type, in TypeInput) error {
 		}
 		t.Colour = colour
 	}
+	if in.Role != nil {
+		if *in.Role != RoleRequirement && *in.Role != RoleTestCase {
+			return &FieldError{"role", "Mark the type as one of requirements or of test cases."}
+		}
+		t.Role = *in.Role
+	}
+	if t.Role == "" {
+		t.Role = RoleRequirement
+	}
 	if t.Icon == "" {
 		return &FieldError{"icon", "Pick one of the icons offered."}
 	}
@@ -120,8 +132,8 @@ func (s *Service) CreateType(ctx context.Context, actor uuid.UUID, projectKey st
 		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `
-			INSERT INTO requirement_type (project_id, name, description, icon, colour, position)
-			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, p.ID, t.Name, t.Description, t.Icon, t.Colour, count).Scan(&id)
+			INSERT INTO requirement_type (project_id, name, description, icon, colour, position, role)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, p.ID, t.Name, t.Description, t.Icon, t.Colour, count, t.Role).Scan(&id)
 		if nameTaken(err) {
 			return &FieldError{"name", "Another type of this project is called that. Pick another name."}
 		}
@@ -160,8 +172,11 @@ func (s *Service) UpdateType(ctx context.Context, actor uuid.UUID, projectKey st
 			}
 			t.Retired = *in.Retired
 		}
-		_, err = tx.Exec(ctx, `UPDATE requirement_type SET name = $2, description = $3, icon = $4, colour = $5, retired = $6 WHERE id = $1`,
-			id, t.Name, t.Description, t.Icon, t.Colour, t.Retired)
+		_, err = tx.Exec(ctx, `UPDATE requirement_type SET name = $2, description = $3, icon = $4, colour = $5, retired = $6, role = $7 WHERE id = $1`,
+			id, t.Name, t.Description, t.Icon, t.Colour, t.Retired, t.Role)
+		if roleHeld(err) {
+			return ErrRoleHeld
+		}
 		if nameTaken(err) {
 			return &FieldError{"name", "Another type of this project is called that. Pick another name."}
 		}
@@ -205,4 +220,12 @@ func (s *Service) DeleteType(ctx context.Context, actor uuid.UUID, projectKey st
 		}
 		return reorder(ctx, tx, "requirement_type", p.ID, uuid.Nil, 0)
 	})
+}
+
+// ErrRoleHeld refuses turning a type back into one of requirements while its requirements carry steps.
+var ErrRoleHeld = errors.New("the type's requirements carry steps")
+
+func roleHeld(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.ConstraintName == "requirement_type_role_held"
 }

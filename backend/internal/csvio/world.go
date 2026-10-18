@@ -26,6 +26,7 @@ type existing struct {
 	Kind     requirement.Kind
 	Status   string
 	Revision int
+	TypeID   *uuid.UUID
 }
 
 // world is what a file is read against: the project as the person importing it sees it.
@@ -41,6 +42,8 @@ type world struct {
 	existing map[string]existing
 	// linkTypes are the keys of the link types the project uses.
 	linkTypes map[string]bool
+	// testTypes are the project's types marked as test cases (#250).
+	testTypes map[uuid.UUID]bool
 	// elsewhere says whether a key names a requirement of another project the importer may link to.
 	elsewhere func(key string) bool
 }
@@ -48,7 +51,7 @@ type world struct {
 // loadWorld reads the project as actor sees it, in the transaction tx, which elsewhere goes on reading.
 func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Project) (*world, error) {
 	w := &world{project: p, types: map[string]named{}, statuses: map[string]named{}, members: map[string]named{},
-		existing: map[string]existing{}, linkTypes: map[string]bool{}}
+		existing: map[string]existing{}, linkTypes: map[string]bool{}, testTypes: map[uuid.UUID]bool{}}
 	defs, err := attribute.Defs(ctx, tx, p.ID)
 	if err != nil {
 		return nil, err
@@ -74,7 +77,7 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 		}
 	}
 	rows, err := tx.Query(ctx, `
-		SELECT r.id, r.number, r.kind, COALESCE(st.name, ''), r.revision FROM requirement r
+		SELECT r.id, r.number, r.kind, COALESCE(st.name, ''), r.revision, r.type_id FROM requirement r
 		LEFT JOIN req_status st ON st.id = r.status_id
 		WHERE r.project_id = $1 AND r.trashed_at IS NULL`, p.ID)
 	if err != nil {
@@ -85,7 +88,7 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 			e      existing
 			number int
 		)
-		if err := rows.Scan(&e.ID, &number, &e.Kind, &e.Status, &e.Revision); err != nil {
+		if err := rows.Scan(&e.ID, &number, &e.Kind, &e.Status, &e.Revision, &e.TypeID); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -95,6 +98,17 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	tests, err := tx.Query(ctx, `SELECT id FROM requirement_type WHERE project_id = $1 AND role = 'testCase'`, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	testIDs, err := pgx.CollectRows(tests, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range testIDs {
+		w.testTypes[id] = true
 	}
 	keys, err := tx.Query(ctx, `
 		SELECT lt.key FROM link_type lt

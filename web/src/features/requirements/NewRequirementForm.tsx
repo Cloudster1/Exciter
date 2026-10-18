@@ -15,6 +15,8 @@ import { SimilarHint } from "@/features/duplicates/SimilarHint";
 import { PlaceDialog, type Placed } from "@/features/tree/PlaceDialog";
 import { AttributeFields, valuesFor, type Values } from "@/features/types/AttributeFields";
 import { t } from "@/i18n";
+import { TestCaseFields } from "@/features/testcases/TestCaseFields";
+import { contentOf, draftOf, holdsAnything, type TestCaseDraft } from "@/features/testcases/draft";
 
 type Kind = NonNullable<NewRequirement["kind"]>;
 
@@ -59,9 +61,12 @@ export function RequirementCreate({
   const { data: attributes } = useAttributes(project.key);
   const [typeId, setTypeId] = useState<string | null>(project.settings.defaultTypeId ?? null);
   const [values, setValues] = useState<Values>({});
+  const [testCase, setTestCase] = useState<TestCaseDraft>(() => draftOf(null));
+  const isTest = kind === "requirement" && (types ?? []).some((type) => type.id === typeId && type.role === "testCase");
   const fields = create.error instanceof ApiError ? create.error.fields : {};
   const general = create.error && Object.keys(fields).length === 0;
-  const dirty = title !== "" || comment !== "" || statement !== null || rationale !== null || Object.keys(values).length > 0;
+  const dirty =
+    title !== "" || comment !== "" || statement !== null || rationale !== null || Object.keys(values).length > 0 || (isTest && holdsAnything(testCase));
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
   const editorControls = useRef<EditorControls>(null);
   const written = title.trim() !== "" || !isEmptyDoc(statement);
@@ -83,6 +88,7 @@ export function RequirementCreate({
       if (typeId) body.typeId = typeId;
       const given = Object.fromEntries(Object.entries(values).filter(([, value]) => value !== null && value !== undefined));
       if (Object.keys(given).length > 0) body.attributes = given;
+      if (isTest && holdsAnything(testCase)) body.testCase = contentOf(testCase);
     }
     create.mutate(body, { onSuccess: onCreated });
   }
@@ -178,6 +184,7 @@ export function RequirementCreate({
             <Editor id="new-rationale" value={rationale} onChange={setRationale} mentions={findPeople} aria-label={t.requirements.rationale} />
           </Labelled>
         )}
+        {isTest && <TestCaseFields value={testCase} onChange={setTestCase} errors={fields} />}
         {kind === "requirement" && attributes && (
           <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
         )}
