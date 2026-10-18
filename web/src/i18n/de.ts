@@ -335,6 +335,7 @@ export const de: Messages = {
       "review_session.round_started": "Runde einer Review-Sitzung begonnen",
       "review_session.closed": "Review-Sitzung geschlossen",
       "evidence_settings.saved": "Zählender Branch benannt",
+      "code_tag_words.saved": "Code-Tag-Wörter festgelegt",
     },
     targetTypes: {
       user: "Person",

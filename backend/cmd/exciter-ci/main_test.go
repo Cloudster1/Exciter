@@ -148,3 +148,63 @@ func TestWhereARunIsComesFromTheCIItRunsIn(t *testing.T) {
 		t.Error("a pipeline outside any CI reads something")
 	}
 }
+
+func TestScanReadsTheCheckoutAndUploadsWhatItFound(t *testing.T) {
+	dir := t.TempDir()
+	for name, src := range map[string]string{
+		"brakes.go":           "// [implements CHK-R1@2]\nfunc Engage() {}\n",
+		"brakes_test.go":      "// [verifies CHK-R1, OLD-R4]\n",
+		"testdata/sample.go":  "// [implements CHK-R9]\n",
+		"node_modules/x/a.js": "// [implements CHK-R8]\n",
+	} {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(src), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var sent map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/projects/CHK/code-tag-words":
+			_, _ = w.Write([]byte(`{"words":{"implements":["implements"],"verifies":["verifies"],"projectKeys":["CHK","OLD"]}}`))
+		case "/api/v1/projects/CHK/code-scans":
+			_ = json.NewDecoder(r.Body).Decode(&sent)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"scan":{"id":"s1","tags":3,"linked":2,"reported":[{"path":"brakes_test.go","line":1,"word":"verifies","key":"OLD-R4","problem":"unknown"}]}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+	var out, errOut bytes.Buffer
+	env := envOf(map[string]string{"EXCITER_URL": srv.URL, "EXCITER_TOKEN": "t", "EXCITER_PROJECT": "CHK",
+		"GITHUB_ACTIONS": "true", "GITHUB_REPOSITORY": "acme/checkout", "GITHUB_SHA": "4f2c9a1e", "GITHUB_REF_NAME": "main", "GITHUB_SERVER_URL": "https://github.com"})
+	if code := run(context.Background(), []string{"scan", "--exclude", "testdata/*", dir}, env, &out, &errOut); code != exitPass {
+		t.Fatalf("scan exits %d: %s", code, errOut.String())
+	}
+	tags := sent["tags"].([]any)
+	if len(tags) != 3 || sent["fileUrl"] != "https://github.com/acme/checkout/blob/{commit}/{path}#L{line}" || sent["branch"] != "main" {
+		t.Errorf("the scan sent %v", sent)
+	}
+	if !strings.Contains(out.String(), "3 tags, 2 link a requirement") || !strings.Contains(out.String(), "brakes_test.go:1 [verifies OLD-R4] links nothing (unknown)") {
+		t.Errorf("scan printed %s", out.String())
+	}
+}
+
+func TestARemoteIsReadAsItsForgesAddress(t *testing.T) {
+	for raw, want := range map[string][3]string{
+		"git@github.com:acme/checkout.git":          {"https://github.com/acme/checkout", "acme/checkout", "github"},
+		"https://gitlab.example.com/acme/brakes":    {"https://gitlab.example.com/acme/brakes", "acme/brakes", "gitlab"},
+		"ssh://git@codeberg.org/acme/lights.git":    {"https://codeberg.org/acme/lights", "acme/lights", "gitea"},
+		"https://git.example.com/acme/checkout.git": {"https://git.example.com/acme/checkout", "acme/checkout", ""},
+	} {
+		base, repo, forge, err := remote(raw)
+		if err != nil || [3]string{base, repo, forge} != want {
+			t.Errorf("%s reads %s %s %s %v", raw, base, repo, forge, err)
+		}
+	}
+}

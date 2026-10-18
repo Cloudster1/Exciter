@@ -84,6 +84,10 @@ export const notificationsDe: typeof notificationsEn = {
         return `Die Review-Sitzung ${key} endet bald und wartet auf Sie`;
       case "session_closed":
         return `${who} hat die Review-Sitzung ${key} geschlossen`;
+      case "code_outdated":
+        return `Ein Scan von ${key} bringt Code-Tags, die ältere Revisionen von Anforderungen nennen, denen Sie folgen`;
+      case "code_orphaned":
+        return `Ein Scan von ${key} bringt Code-Tags, die Anforderungen im Papierkorb oder gar keine nennen`;
     }
   },
   preferencesTitle: "Benachrichtigungen",
@@ -107,6 +111,8 @@ export const notificationsDe: typeof notificationsEn = {
     session_round: "Eine Review-Sitzung, an der Sie teilnehmen, beginnt eine neue Runde",
     session_reminder: "Eine Review-Sitzung, die auf Sie wartet, endet bald",
     session_closed: "Eine Review-Sitzung, an der Sie teilnehmen, ist geschlossen",
+    code_outdated: "Ein Code-Scan bringt Tags, die eine ältere Revision einer Anforderung nennen, die Ihnen gehört oder die Sie beobachten",
+    code_orphaned: "Ein Code-Scan bringt Tags, die eine Anforderung im Papierkorb nennen, oder keine in einem Projekt, das Sie verwalten",
   },
   inAppFor: (kind: string) => `In der App: ${kind}`,
   emailFor: (kind: string) => `Per E-Mail: ${kind}`,

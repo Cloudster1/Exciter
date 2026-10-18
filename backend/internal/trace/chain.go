@@ -30,13 +30,18 @@ const (
 	LevelPages        LevelKind = "pages"
 	// LevelTests are the tests whose latest results on the counting branch verify the level before (#200).
 	LevelTests LevelKind = "tests"
+	// LevelCode are the places in the code whose tags implement or verify the level before (#201).
+	LevelCode LevelKind = "code"
 )
 
 // LevelKinds lists every LevelKind, for the API document.
-var LevelKinds = []LevelKind{LevelRequirements, LevelIssues, LevelPages, LevelTests}
+var LevelKinds = []LevelKind{LevelRequirements, LevelIssues, LevelPages, LevelTests, LevelCode}
 
-// TestRelations are the relations a level of tests is reached by.
-var TestRelations = []string{"verifies"}
+// TestRelations and CodeRelations are the relations a level of tests or of code is reached by.
+var (
+	TestRelations = []string{"verifies"}
+	CodeRelations = []string{"implements", "verifies"}
+)
 
 // IssueRelations and PageRelations are Armature's and Stator's relations, which internal/trace sits below; a test of
 // the API's keeps them equal to armature.Relations and stator.Relations.
@@ -97,6 +102,7 @@ type ChainNode struct {
 	IssueKey    string           `json:"issueKey,omitempty"`
 	Page        *MatrixPage      `json:"page"`
 	Test        *ChainTest       `json:"test,omitempty"`
+	Code        *ChainCode       `json:"code,omitempty"`
 	Via         string           `json:"via,omitempty"`
 	Suspect     bool             `json:"suspect"`
 }
@@ -108,6 +114,16 @@ type ChainTest struct {
 	Name       string `json:"name"`
 	Outcome    string `json:"outcome"`
 	Outdated   bool   `json:"outdated"`
+}
+
+// ChainCode is a place in the code as a chain's node: the file and line of its tag, and whether it names an older
+// revision.
+type ChainCode struct {
+	Repository string `json:"repository"`
+	Path       string `json:"path"`
+	Line       int    `json:"line"`
+	Outdated   bool   `json:"outdated"`
+	URL        string `json:"url"`
 }
 
 // holds says a test passed against the current revision, as a chain needs it to end whole.

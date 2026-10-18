@@ -90,6 +90,13 @@ var testOutcomes = []string{"errored", "failed", "skipped", "passed", "none"}
 // testOutdated counts a requirement's tests whose latest result was made against an older revision.
 const testOutdated = "(SELECT c.tests_outdated FROM requirement_test_counts(r.id) c)"
 
+// codeLinks and codeOutdated count a requirement's code tags on the counting branch, and those naming an older
+// revision (#201).
+const (
+	codeLinks    = "(SELECT c.implementing + c.verifying FROM requirement_code_counts(r.id) c)"
+	codeOutdated = "(SELECT c.outdated FROM requirement_code_counts(r.id) c)"
+)
+
 // priorityRank ranks a priority so that must is the highest, as the API orders them.
 const priorityRank = `array_position(ARRAY['wont', 'could', 'should', 'must'], r.priority)`
 
@@ -123,6 +130,8 @@ var fixed = []fieldDef{
 	{name: "verified", kind: fkEnum, column: "requirement_coverage(r.id, 'verified')", enum: coverageLevels},
 	{name: "testResult", kind: fkEnum, column: "requirement_test_result(r.id)", enum: testOutcomes},
 	{name: "testOutdated", kind: fkNumber, column: testOutdated, order: testOutdated},
+	{name: "codeLink", kind: fkNumber, column: codeLinks, order: codeLinks},
+	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
 }
 
 // LinkType is a link type a project's requirements may be joined by, with the phrases its ends read in.

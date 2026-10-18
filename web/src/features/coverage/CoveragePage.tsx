@@ -14,7 +14,7 @@ import {
 } from "@/api/coverage";
 import { useTypes } from "@/api/attributes";
 import type { Project } from "@/api/projects";
-import { Button, Card, Checkbox, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COVERAGE_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -135,14 +135,55 @@ function Report({ project }: { project: Project }) {
 }
 
 /** What coverage asks of each type; its administrators tick and untick it in place. */
-/** What verified may count, as the rule's select offers it: links, test results, or either (#200). */
-const VERIFIED_SOURCES = { links: ["links"], tests: ["tests"], both: ["links", "tests"] } satisfies Record<string, CoverageRule["verifiedFrom"]>;
-type SourcesChoice = keyof typeof VERIFIED_SOURCES;
+type Source = CoverageRule["verifiedFrom"][number];
 
-function sourcesOf(from: CoverageRule["verifiedFrom"]): SourcesChoice {
-  const links = from.includes("links");
-  const tests = from.includes("tests");
-  return links && tests ? "both" : tests ? "tests" : "links";
+/** What each dimension may count (#200, #201), as a rule offers them. */
+const VERIFIED_SOURCES: Source[] = ["links", "tests", "code"];
+const IMPLEMENTED_SOURCES: Source[] = ["links", "code"];
+
+/** The sources one dimension of a rule counts, one at least: the last one pressed again stays. */
+function Sources({
+  legend,
+  name,
+  options,
+  chosen,
+  disabled,
+  onChange,
+}: {
+  legend: string;
+  name: string;
+  options: Source[];
+  chosen: Source[];
+  disabled: boolean;
+  onChange: (next: Source[]) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={`${legend}: ${name}`}
+      title={t.evidence.sources.hint}
+      className="flex flex-wrap items-center gap-1.5"
+      data-sources={`${legend}:${name}`}
+    >
+      <span className="text-xs font-medium text-ink-muted">{legend}</span>
+      {options.map((source) => {
+        const on = chosen.includes(source);
+        return (
+          <Chip
+            key={source}
+            pressed={on}
+            disabled={disabled}
+            onClick={() => {
+              const next = on ? chosen.filter((each) => each !== source) : [...chosen, source];
+              if (next.length > 0) onChange(next);
+            }}
+          >
+            {t.evidence.sources[source]}
+          </Chip>
+        );
+      })}
+    </div>
+  );
 }
 
 function Rules({ project }: { project: Project }) {
@@ -155,17 +196,18 @@ function Rules({ project }: { project: Project }) {
   if (!rules) return <Skeleton />;
   const everyRule = rules.find((r) => r.typeId === null);
   const open = (types ?? []).filter((type) => !type.retired && !rules.some((r) => r.typeId === type.id));
-  const set = (rule: Pick<CoverageRule, "typeId" | "verifiedFrom" | Dimension>) =>
+  const set = (rule: Pick<CoverageRule, "typeId" | "verifiedFrom" | "implementedFrom" | Dimension>) =>
     save.mutate({
       typeId: rule.typeId ?? undefined,
       decomposed: rule.decomposed,
       implemented: rule.implemented,
       verified: rule.verified,
       verifiedFrom: rule.verifiedFrom,
+      implementedFrom: rule.implementedFrom,
     });
-  const rows: Array<Pick<CoverageRule, "typeId" | "typeName" | "verifiedFrom" | Dimension> & { id?: string }> = everyRule
+  const rows: Array<Pick<CoverageRule, "typeId" | "typeName" | "verifiedFrom" | "implementedFrom" | Dimension> & { id?: string }> = everyRule
     ? rules
-    : [{ typeId: null, typeName: "", decomposed: false, implemented: false, verified: false, verifiedFrom: ["links"] }, ...rules];
+    : [{ typeId: null, typeName: "", decomposed: false, implemented: false, verified: false, verifiedFrom: ["links"], implementedFrom: ["links"] }, ...rules];
   return (
     <Card className="space-y-3 p-4" data-coverage-rules="">
       <SectionTitle>{t.coverage.rulesTitle}</SectionTitle>
@@ -188,25 +230,25 @@ function Rules({ project }: { project: Project }) {
                   onChange={(event) => set({ ...rule, [d]: event.target.checked })}
                 />
               ))}
+              {rule.implemented && (
+                <Sources
+                  legend={t.evidence.sources.implementedLegend}
+                  name={name}
+                  options={IMPLEMENTED_SOURCES}
+                  chosen={rule.implementedFrom}
+                  disabled={!mayKeep || save.isPending}
+                  onChange={(implementedFrom) => set({ ...rule, implementedFrom })}
+                />
+              )}
               {rule.verified && (
-                <div className="min-w-40">
-                  <Select
-                    label={t.evidence.sources.legend}
-                    aria-label={`${t.evidence.sources.legend}: ${name}`}
-                    title={t.evidence.sources.hint}
-                    value={sourcesOf(rule.verifiedFrom)}
-                    disabled={!mayKeep || save.isPending}
-                    controlSize="sm"
-                    onChange={(event) => set({ ...rule, verifiedFrom: VERIFIED_SOURCES[event.target.value as SourcesChoice] })}
-                    data-verified-from={name}
-                  >
-                    {(Object.keys(VERIFIED_SOURCES) as SourcesChoice[]).map((choice) => (
-                      <option key={choice} value={choice}>
-                        {VERIFIED_SOURCES[choice].map((source) => t.evidence.sources[source]).join(" + ")}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <Sources
+                  legend={t.evidence.sources.legend}
+                  name={name}
+                  options={VERIFIED_SOURCES}
+                  chosen={rule.verifiedFrom}
+                  disabled={!mayKeep || save.isPending}
+                  onChange={(verifiedFrom) => set({ ...rule, verifiedFrom })}
+                />
               )}
               {mayKeep && rule.id && rule.typeId !== null && (
                 <IconButton

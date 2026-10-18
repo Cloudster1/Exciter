@@ -334,6 +334,7 @@ export const en = {
       "review_session.round_started": "Review session round started",
       "review_session.closed": "Review session closed",
       "evidence_settings.saved": "Counting branch named",
+      "code_tag_words.saved": "Code tag words set",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",

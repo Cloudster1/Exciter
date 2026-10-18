@@ -35,6 +35,8 @@ func columnHeading(c trace.MatrixColumn) string {
 		return c.Test.Suite + " " + c.Test.Name
 	case c.Test != nil:
 		return c.Test.Name
+	case c.Code != nil:
+		return c.Code.Path
 	}
 	return c.IssueKey
 }

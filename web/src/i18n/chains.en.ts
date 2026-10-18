@@ -8,7 +8,7 @@ export const chainsEn = {
   level: (n: number) => `Level ${n}`,
   name: "Name",
   kind: "Holds",
-  kinds: { requirements: "Requirements", issues: "Armature issues", pages: "Stator pages", tests: "Test results" },
+  kinds: { requirements: "Requirements", issues: "Armature issues", pages: "Stator pages", tests: "Test results", code: "Code" },
   types: "Types",
   steps: "Reached from the level before by",
   addLevel: "Add a level",

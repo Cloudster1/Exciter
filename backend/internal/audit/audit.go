@@ -125,6 +125,8 @@ const (
 	ActionReviewSessionClosed       = "review_session.closed"
 	// ActionEvidenceSettingsSaved keeps which branch a project's test results count on (#200).
 	ActionEvidenceSettingsSaved = "evidence_settings.saved"
+	// ActionCodeTagWordsSaved keeps the words a project's code tags use (#201).
+	ActionCodeTagWordsSaved = "code_tag_words.saved"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -143,6 +145,7 @@ var Actions = []string{
 	ActionInstallationOAuthSwitched, ActionOAuthRevoked, ActionBaselineSigned, ActionBaselineSigningSaved, ActionBaselineSigningRemoved,
 	ActionRequirementLocked, ActionRequirementUnlocked, ActionStatusLocksSet, ActionFieldRuleSaved,
 	ActionReviewSessionOpened, ActionReviewSessionRoundStarted, ActionReviewSessionClosed, ActionEvidenceSettingsSaved,
+	ActionCodeTagWordsSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

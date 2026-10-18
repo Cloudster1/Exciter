@@ -400,6 +400,11 @@ export const MATRIX_PAGE_SIZE = 50;
 export const TEST_COMMIT_SHOWN = 7;
 /** The longest repository, branch or job a test run names, the API's testresult.MaxNameLength. */
 export const TEST_NAME_MAX_LENGTH = 200;
+/** How many tags a page of the project's code tags lists, the API's codetrace.DefaultLimit (#201). */
+export const CODE_TAGS_PAGE_SIZE = 50;
+/** The words of one relation a project's tags take, and the longest, the API's codetrace.MaxWords and MaxWordLength. */
+export const CODE_TAG_MAX_WORDS = 10;
+export const CODE_TAG_WORD_MAX_LENGTH = 30;
 /** How many roots a page of the chain report shows (#151), within the server's 200. */
 export const CHAIN_PAGE_SIZE = 50;
 /** At most this many levels in a trace model, as the server's trace.MaxLevels. */

@@ -287,12 +287,14 @@ app role holds no privilege on.
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
 - **Verification evidence** (M9, `docs/api-contract-m9.md`): CI uploads
-  JUnit results (#200) and, planned, the requirement tags a scan found in the
-  source (#201), with a token carrying the `evidence` scope. The worker lands
-  a run's cases on the requirements they name (`internal/testresult`), each at
-  the revision current at upload, outdated past it. Coverage counts tests
-  where a type asks, on the project's counting branch, judged once in SQL by
-  `requirement_test_counts`, and `GET /projects/{projectKey}/trace-check`
+  JUnit results (#200) and the requirement tags a scan found in the source
+  (#201), with a token carrying the `evidence` scope. The worker lands a run's
+  cases on the requirements they name (`internal/testresult`), each at the
+  revision current at upload, outdated past it. A scan replaces its branch's
+  scan before (`internal/codetrace`), each tag carrying the revision it named.
+  Coverage counts tests and code where a type asks, on the project's counting
+  branch, judged once in SQL by `requirement_test_counts` and
+  `requirement_code_counts`, and `GET /projects/{projectKey}/trace-check`
   answers pass or fail for a pipeline, wrapped by `exciter-ci`.
 - **Review sessions and control** (M8, `docs/api-contract-m8.md`):
   baselines signed by the people a project names, with #46's

@@ -85,6 +85,10 @@ export const notificationsEn = {
         return `The review session ${key} ends soon, and waits for you`;
       case "session_closed":
         return `${who} closed the review session ${key}`;
+      case "code_outdated":
+        return `A scan of ${key} brought code tags naming older revisions of requirements you follow`;
+      case "code_orphaned":
+        return `A scan of ${key} brought code tags naming requirements in the trash or none`;
     }
   },
   preferencesTitle: "Notifications",
@@ -108,6 +112,8 @@ export const notificationsEn = {
     session_round: "A review session you take part in starts a new round",
     session_reminder: "A review session that waits for you ends soon",
     session_closed: "A review session you take part in is closed",
+    code_outdated: "A code scan brings tags naming an older revision of a requirement you own or watch",
+    code_orphaned: "A code scan brings tags naming a requirement in the trash, or none in a project you administer",
   } as Record<NotificationKind, string>,
   inAppFor: (kind: string) => `In the app: ${kind}`,
   emailFor: (kind: string) => `By email: ${kind}`,

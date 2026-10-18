@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Code traces to the requirements it implements and tests (#201). A source
+  comment tags a requirement with `[implements CHK-R42]` or
+  `[verifies CHK-R42@3]`, in words a project sets. `exciter-ci scan` uploads
+  what a checkout's comments carry, replacing its branch's scan before.
+  A requirement lists the files and lines tagged with it, linked at their
+  commit. A tag naming an older revision is outdated, and one naming a
+  requirement in the trash or none is orphaned; the project lists them and
+  owners are told. Coverage can count code for implemented and verified,
+  the query language gains `codeLink` and `codeOutdated`, the matrix takes
+  files as columns, a trace model can end in code, and the trace check can
+  fail on orphaned tags.
 - Test results from CI verify requirements (#200). A pipeline uploads its
   JUnit reports with a token of the new evidence scope, through
   `exciter-ci results`, and each test case that names a requirement, as

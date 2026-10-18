@@ -49,6 +49,21 @@ function TestCell({ rowKey, name, links }: { rowKey: string; name: string; links
   );
 }
 
+/** A file's tags for a row (#201): a mark, the relations and lines said; tags are not edited from the matrix. */
+function CodeCell({ rowKey, name, links }: { rowKey: string; name: string; links: Matrix["cells"][number]["links"] | undefined }) {
+  const said = (links ?? []).map((l) => (l.outdated ? `${l.name} (${t.evidence.matrix.outdated})` : l.name));
+  const label = links ? t.coverage.cell(rowKey, name, said.join(", ")) : "";
+  return (
+    <td className="border-l border-border p-0 text-center" data-cell={`${rowKey}:${name}`} title={label || undefined}>
+      {links && (
+        <span className="flex h-6 min-w-6 items-center justify-center" role="img" aria-label={label}>
+          {links.some((l) => l.outdated) ? <Icon.Warning className="size-3.5 text-warning" /> : <Icon.Check className="size-3.5 text-success" />}
+        </span>
+      )}
+    </td>
+  );
+}
+
 /** A page of the matrix as a table: rows down, columns across, a mark in every cell with a link, and how many links
  * each row and column has, a gap marked. A cell opens its links in a panel (#149). */
 export function MatrixTable({ project, matrix }: { project: Project; matrix: Matrix }) {
@@ -102,6 +117,7 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
                 const label = links ? t.coverage.cell(row.key, nameOf(column), names) : t.matrix.openCell(row.key, nameOf(column));
                 const opened = open?.row === r && open.column === c;
                 if (column.test) return <TestCell key={columnKey(column)} rowKey={row.key} name={nameOf(column)} links={links} />;
+                if (column.code) return <CodeCell key={columnKey(column)} rowKey={row.key} name={nameOf(column)} links={links} />;
                 return (
                   <td key={columnKey(column)} className="border-l border-border p-0 text-center" data-cell={`${row.key}:${nameOf(column)}`} title={label}>
                     {(links || row.canLink) && (

@@ -1509,7 +1509,8 @@
                 "review_session.opened",
                 "review_session.round_started",
                 "review_session.closed",
-                "evidence_settings.saved"
+                "evidence_settings.saved",
+                "code_tag_words.saved"
               ]
             }
           },
@@ -1694,7 +1695,8 @@
                 "review_session.opened",
                 "review_session.round_started",
                 "review_session.closed",
-                "evidence_settings.saved"
+                "evidence_settings.saved",
+                "code_tag_words.saved"
               ]
             }
           },
@@ -3145,16 +3147,6 @@
                   "required": [
                     "scan"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -7198,16 +7190,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -7253,16 +7235,6 @@
                   "required": [
                     "words"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -7346,16 +7318,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7467,16 +7429,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9464,7 +9416,8 @@
                 "requirements",
                 "issues",
                 "pages",
-                "tests"
+                "tests",
+                "code"
               ]
             }
           },
@@ -9818,7 +9771,8 @@
                 "requirements",
                 "issues",
                 "pages",
-                "tests"
+                "tests",
+                "code"
               ]
             }
           },
@@ -10133,7 +10087,8 @@
                 "requirements",
                 "issues",
                 "pages",
-                "tests"
+                "tests",
+                "code"
               ]
             }
           },
@@ -14885,16 +14840,6 @@
                     "countingBranch",
                     "links"
                   ]
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -22043,7 +21988,8 @@
               "review_session.opened",
               "review_session.round_started",
               "review_session.closed",
-              "evidence_settings.saved"
+              "evidence_settings.saved",
+              "code_tag_words.saved"
             ]
           },
           "actorId": {
@@ -22177,7 +22123,8 @@
                 "review_session.opened",
                 "review_session.round_started",
                 "review_session.closed",
-                "evidence_settings.saved"
+                "evidence_settings.saved",
+                "code_tag_words.saved"
               ]
             }
           },
@@ -22641,7 +22588,8 @@
               "trace",
               "armature",
               "stator",
-              "test"
+              "test",
+              "code"
             ]
           },
           "name": {
@@ -23093,6 +23041,33 @@
           "expiresAt"
         ]
       },
+      "ChainCode": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer"
+          },
+          "outdated": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "path",
+          "line",
+          "outdated",
+          "url"
+        ]
+      },
       "ChainTest": {
         "type": "object",
         "properties": {
@@ -23296,6 +23271,30 @@
           "commit",
           "branch",
           "tags"
+        ]
+      },
+      "CodeScanLink": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "repository",
+          "branch",
+          "projectKey"
         ]
       },
       "CodeScanReported": {
@@ -23905,6 +23904,17 @@
           "implemented": {
             "type": "boolean"
           },
+          "implementedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "links",
+                "tests",
+                "code"
+              ]
+            }
+          },
           "typeId": {
             "type": [
               "string",
@@ -23924,7 +23934,8 @@
               "type": "string",
               "enum": [
                 "links",
-                "tests"
+                "tests",
+                "code"
               ]
             }
           }
@@ -23936,7 +23947,8 @@
           "decomposed",
           "implemented",
           "verified",
-          "verifiedFrom"
+          "verifiedFrom",
+          "implementedFrom"
         ]
       },
       "CoverageRuleInput": {
@@ -23947,6 +23959,17 @@
           },
           "implemented": {
             "type": "boolean"
+          },
+          "implementedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "links",
+                "tests",
+                "code"
+              ]
+            }
           },
           "typeId": {
             "type": "string",
@@ -23961,7 +23984,8 @@
               "type": "string",
               "enum": [
                 "links",
-                "tests"
+                "tests",
+                "code"
               ]
             }
           }
@@ -25403,9 +25427,31 @@
           "links"
         ]
       },
+      "MatrixCode": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "path",
+          "url"
+        ]
+      },
       "MatrixColumn": {
         "type": "object",
         "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MatrixCode"
+          },
           "issueKey": {
             "type": "string"
           },
@@ -25459,7 +25505,8 @@
               "trace",
               "armature",
               "stator",
-              "test"
+              "test",
+              "code"
             ]
           },
           "name": {
@@ -25908,6 +25955,16 @@
           "actorName": {
             "type": "string"
           },
+          "codeScan": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CodeScanLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "commentId": {
             "type": [
               "string",
@@ -25942,7 +25999,9 @@
               "session_invited",
               "session_round",
               "session_reminder",
-              "session_closed"
+              "session_closed",
+              "code_orphaned",
+              "code_outdated"
             ]
           },
           "linkId": {
@@ -26003,6 +26062,7 @@
           "actorName",
           "requirement",
           "session",
+          "codeScan",
           "revision",
           "threadId",
           "commentId",
@@ -31108,6 +31168,9 @@
       "TraceChainNode": {
         "type": "object",
         "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ChainCode"
+          },
           "issueKey": {
             "type": "string"
           },
@@ -31679,7 +31742,8 @@
               "requirements",
               "issues",
               "pages",
-              "tests"
+              "tests",
+              "code"
             ]
           },
           "name": {
@@ -31714,7 +31778,8 @@
               "requirements",
               "issues",
               "pages",
-              "tests"
+              "tests",
+              "code"
             ]
           },
           "name": {
