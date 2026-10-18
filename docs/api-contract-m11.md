@@ -317,7 +317,10 @@ new tool.
   - `computed_dirty`, the queue the triggers on `requirement`,
     `trace_link`, `test_result` and `quality_acceptance` fill, only in
     projects with computed attributes; `computed_mark`,
-    `computed_recompute`, `computed_progress` and `computed_pending`
+    `computed_recompute`, `computed_progress` and `computed_pending`. Since
+    `01121_computed_queue.sql` (#248) marks are only appended, with no
+    unique or foreign key, so a change never waits on the worker; the
+    worker takes a requirement's marks together, with the fewest steps
   - `attribute_recompute`, how far a recompute after a formula changed has
     got
   - `baseline_computed` and `baseline.computed_stale`, with

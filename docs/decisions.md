@@ -25,7 +25,10 @@ tell whether the reason still holds.
   recompute would outlast a handler's lease. Triggers mark what to
   recompute in the transaction of the change, which every writer goes
   through, and the worker drains the marks project by project, as
-  attachments are reaped.
+  attachments are reaped. Marks are only appended (#248): a change that
+  upserted its marks while the worker held the ones it took could wait on
+  the worker as the worker waited on it, and the database broke the
+  change off.
 - **Roll-ups read their own project.** A value is stored once for every
   reader, so a sum over links into a project the reader may not open would
   tell them what is there. Within a project every reader sees every live

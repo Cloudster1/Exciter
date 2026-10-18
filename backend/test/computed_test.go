@@ -5,14 +5,17 @@ package test
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 )
 
@@ -306,4 +309,52 @@ func TestRawSQLKeepsComputedValuesToTheWorker(t *testing.T) {
 	if err := s.h.appConn(t, outsider).QueryRow(ctx, `SELECT count(*)::int FROM requirement_computed WHERE project_id = $1`, s.projectID).Scan(&seen); err != nil || seen != 0 {
 		t.Errorf("somebody outside the project sees %d computed rows, %v", seen, err)
 	}
+}
+
+// Changes go through while workers work values out (#248): a mark is only appended, so a move never waits on the
+// marks a worker holds, and the sums settle where the requirements end up.
+func TestChangesGoThroughWhileValuesAreWorkedOut(t *testing.T) {
+	s := newComputedScene(t, "CMQ")
+	a := s.sectionA["key"].(string)
+	var keys []string
+	for i := range 6 {
+		made := s.write(t, map[string]any{"title": fmt.Sprintf("Shoe %d", i), "attributes": map[string]any{s.cost: 1}})
+		keys = append(keys, made["key"].(string))
+	}
+
+	ctx, stop := context.WithCancel(context.Background())
+	var workers sync.WaitGroup
+	for range 3 {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			recomputer := attribute.NewRecomputer(s.h.cluster, slog.New(slog.DiscardHandler), time.Millisecond)
+			for ctx.Err() == nil {
+				_, _ = recomputer.Once(ctx)
+			}
+		}()
+	}
+
+	var movers sync.WaitGroup
+	for _, key := range keys {
+		movers.Add(1)
+		go func() {
+			defer movers.Done()
+			for round := range 8 {
+				to := s.sectionA["id"]
+				if round%2 == 0 {
+					to = s.sectionB["id"]
+				}
+				if got := s.owner.post(t, "/api/v1/requirements/"+key+"/move", map[string]any{"place": place(to, nil)}); got.Status != http.StatusOK {
+					t.Errorf("move %s in round %d: got %d: %s", key, round, got.Status, got.Raw)
+					return
+				}
+			}
+		}()
+	}
+	movers.Wait()
+	stop()
+	workers.Wait()
+	// Every shoe ends in Brakes beside Pedal travel (10) and Pedal force (5).
+	eventually(t, s.carol, a, s.total, "21")
 }
