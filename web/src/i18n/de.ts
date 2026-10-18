@@ -16,6 +16,7 @@ import { baselineDe } from "./baselines.de";
 import { coverageDe } from "./coverage.de";
 import { matrixDe } from "./matrix.de";
 import { chainsDe } from "./chains.de";
+import { graphDe } from "./graph.de";
 import { reuseDe } from "./reuse.de";
 import { controlDe } from "./control.de";
 import { evidenceDe } from "./evidence.de";
@@ -401,6 +402,7 @@ export const de: Messages = {
   coverage: coverageDe,
   matrix: matrixDe,
   chains: chainsDe,
+  graph: graphDe,
   imports: importsDe,
   reqif: reqifDe,
   word: wordDe,

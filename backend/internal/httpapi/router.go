@@ -388,6 +388,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/trace-chains", s.handleTraceChains)
 			r.Get("/projects/{projectKey}/trace-chains.csv", s.handleTraceChainsCSV)
 			r.Get("/projects/{projectKey}/trace-chains.xlsx", s.handleTraceChainsXLSX)
+			// A requirement's graph (#211): read by whoever views it, as far as they may see.
+			r.Get("/requirements/{reqKey}/graph", s.handleTraceGraph)
+			r.Get("/requirements/{reqKey}/graph.csv", s.handleTraceGraphCSV)
 		})
 
 		// Test results from CI and the trace check (#200): uploaded by a project's editors, read by its readers.

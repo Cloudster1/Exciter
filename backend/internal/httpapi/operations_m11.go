@@ -29,12 +29,13 @@ var templateQuery = param{name: "template", schema: uuidParam, description: "A t
 
 var analysisOperations = []operation{
 	// The trace graph (#211).
-	{method: "GET", path: "/requirements/{reqKey}/graph", handler: "handleTraceGraph", tag: "coverage", pending: true,
+	{method: "GET", path: "/requirements/{reqKey}/graph", handler: "handleTraceGraph", tag: "coverage",
+		tool: "get_trace_graph", toolHelp: "Everything a requirement traces to, up to what it derives from and down to what derives from it, implements or verifies it, to a depth: what a change to it would affect, with suspect and broken links and coverage gaps marked.",
 		summary: "Everything a requirement traces to, up, down or both, to a depth, through chosen link types and relations, as nodes and edges, with suspect and broken links and coverage gaps marked. A requirement the reader may not see is counted, never named; at most " +
 			strconv.Itoa(trace.MaxGraphNodes) + " nodes.",
 		query:     graphQuery,
 		responses: map[int]any{http.StatusOK: env{"graph": trace.Graph{}}, http.StatusBadRequest: errorEnvelope{}, http.StatusNotFound: errorEnvelope{}}},
-	{method: "GET", path: "/requirements/{reqKey}/graph.csv", handler: "handleTraceGraphCSV", tag: "coverage", pending: true,
+	{method: "GET", path: "/requirements/{reqKey}/graph.csv", handler: "handleTraceGraphCSV", tag: "coverage",
 		summary: "The impact of a change to a requirement as a CSV file: everything the graph reaches, by level.",
 		query:   graphQuery,
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusNotFound: errorEnvelope{}}},
