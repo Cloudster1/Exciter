@@ -3,6 +3,35 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-19: A risk is a requirement of a risk type, rated on its project's scheme (#258)
+
+- **A risk is a requirement whose type has the risk role.** For the reasons
+  a test case is one (#253): revisions, reviews, links and suspect,
+  baselines, workflow, attributes, labels, search and the trace model come
+  along, and the kinds a field uses, hazard, harm or failure mode, are types
+  a project names rather than kinds Exciter fixes.
+- **The scheme is held in tables of the project, and a rating as numbers.**
+  Select attributes carry no number, and a level worked out by a formula
+  over their names is neither revised nor signed. Tables let the database
+  hold what a scheme must be, keep a value while a rating uses it, and
+  answer a level in a join. Numbers are how severity, probability and
+  detection are spoken of, multiply into a priority number, and survive a
+  value renamed.
+- **A level is always worked out from the scheme, never stored with the
+  rating.** A scheme changed changes every risk's level at once, as a
+  matrix redrawn means to; a baseline keeps the level it had, so what was
+  signed stays what it was.
+- **The rating after mitigation counts only once every mitigation is in
+  effect.** A residual rating says what the risk will be once the measures
+  hold; until they are implemented and verified, counting it would show a
+  risk smaller than it is. The risk stays where it was before, marked as
+  claimed.
+- **A coverage level the project does not ask for counts as met for a
+  mitigation.** The coverage rules already say what each type of
+  requirement needs; asking a mitigation for more would leave it out of
+  effect for ever in a project that does not ask, say, for implementation.
+  The templates ask both of their risk controls.
+
 ## 2026-10-18: A test case is a requirement of a test-case type, run in test executions (#253)
 
 - **A test case is a requirement whose type has the test-case role.** A

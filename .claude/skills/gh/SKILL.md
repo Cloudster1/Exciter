@@ -18,8 +18,8 @@ Repo: `Cloudster1/Exciter`, default branch: `main`
 - Issues carry a milestone (`M0 Foundation`, `M1 Requirements core`, `M2 Armature integration`,
   `M3 Review and control`, `M4 Stator integration`, `M5 Traceability`, `M6 Document view`, `M7 MCP integration`,
   `M8 Review sessions and control`, `M9 Verification evidence`, `M10 Authoring quality`,
-  `M11 Analysis and reporting`, `M12 Test management` or `Backlog`), an `area/*` label, a `type/*` label
-  and `mvp` or `backlog`. `blocked` marks an issue waiting on work outside this repository.
+  `M11 Analysis and reporting`, `M12 Test management`, `M13 Risk management` or `Backlog`), an `area/*`
+  label, a `type/*` label and `mvp` or `backlog`. `blocked` marks an issue waiting on work outside this repository.
 - Issue bodies follow the feature template: User story, Acceptance criteria, Tests, Implementation,
   Depends on.
 

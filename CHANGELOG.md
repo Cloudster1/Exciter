@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The API contract for M13, Risk management (#258):
+  `docs/api-contract-m13.md` agrees how a requirement type marked as risks
+  gives its requirements a rating before and after mitigation on the scales
+  and levels a project's administrators set, how a matrix or a priority
+  number gives the level, how requirements mitigate a risk and when a
+  mitigation is in effect, the FMEA table and the risk matrix, the marks in
+  the trace graph and chain report, what a baseline records, the risk
+  report and two project templates. The operations it adds answer 501
+  until they are built.
 - Test executions in traceability (#252). A CI upload on the counting
   branch fills the open test executions holding the test cases it verifies,
   never over a tester's result or a newer upload. A coverage rule may count
