@@ -17,8 +17,8 @@ func TestEveryTemplateMakesAValidProject(t *testing.T) {
 	f := newProjectFixture(t)
 	refuse(t, "nobody signed in", f.api.anonymous().get(t, "/api/v1/project-templates"), http.StatusUnauthorized, "unauthorized")
 	templates := list(t, want(t, f.plain.get(t, "/api/v1/project-templates"), http.StatusOK, "list the templates"), "templates")
-	if len(templates) != 3 {
-		t.Fatalf("%d templates, want the three built in", len(templates))
+	if len(templates) != 5 {
+		t.Fatalf("%d templates, want the five built in", len(templates))
 	}
 	for _, each := range templates {
 		tpl := each.(map[string]any)

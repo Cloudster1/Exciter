@@ -107,6 +107,8 @@ type ChainNode struct {
 	Suspect     bool             `json:"suspect"`
 	// LastRun is a test case's last result (#252).
 	LastRun *LastRun `json:"lastRun,omitempty"`
+	// Risk marks a risk with its level and state (#261).
+	Risk *requirement.RiskMark `json:"risk,omitempty"`
 }
 
 // ChainTest is a test as a chain's node: its case, its latest outcome, and whether a newer revision outdated it.

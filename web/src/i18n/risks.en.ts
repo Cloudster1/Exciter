@@ -93,4 +93,8 @@ export const risksEn = {
     `${n === 1 ? "1 risk" : `${n} risks`} at severity ${severity} and probability ${probability}`,
   cellRisks: (severity: number, probability: number) => `Risks at severity ${severity} and probability ${probability}`,
   close: "Close",
+  reportTitle: "Risk report",
+  printTitle: (project: string) => `Risk report of ${project}`,
+  reportPdf: "Report as PDF",
+  reportWord: "Report as Word",
 };

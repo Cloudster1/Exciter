@@ -45,9 +45,25 @@ func Seed(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, b project
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO attribute_def (project_id, name, kind, options, position) VALUES ($1, $2, $3, $4, $5)`,
-			projectID, a.Name, a.Kind, encoded, i); err != nil {
+		var id uuid.UUID
+		if err := tx.QueryRow(ctx, `INSERT INTO attribute_def (project_id, name, kind, options, position) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+			projectID, a.Name, a.Kind, encoded, i).Scan(&id); err != nil {
 			return fmt.Errorf("make the attribute %s: %w", a.Name, err)
+		}
+		if len(a.Types) > 0 {
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO attribute_def_type (attribute_id, type_id)
+				SELECT $1, t.id FROM requirement_type t WHERE t.project_id = $2 AND t.name = ANY ($3)`, id, projectID, a.Types); err != nil {
+				return fmt.Errorf("show the attribute %s on its types: %w", a.Name, err)
+			}
+		}
+	}
+	for _, c := range b.Coverage {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO coverage_rule (project_id, type_id, implemented, verified, updated_by)
+			SELECT $1, t.id, $3, $4, $5 FROM requirement_type t WHERE t.project_id = $1 AND t.name = $2`,
+			projectID, c.Type, c.Implemented, c.Verified, actor); err != nil {
+			return fmt.Errorf("ask the coverage of %s: %w", c.Type, err)
 		}
 	}
 	if len(b.LinkTypeKeys) > 0 {

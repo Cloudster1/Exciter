@@ -100,6 +100,10 @@ export function stubApi(answers: Record<string, Answer | ((request: Request) => 
   return sent;
 }
 
+/** How long a test may take that edits a whole page and checks it for accessibility, which runs past vitest's default
+ * of five seconds on a busy machine. */
+export const LONG_TEST_MS = 15_000;
+
 /** A 401 in the API's envelope. */
 export const unauthorized: Answer = { status: 401, body: { error: { code: "unauthorized", message: "Sign in to continue." } } };
 

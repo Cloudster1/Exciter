@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/project"
+	"github.com/cloudster1/exciter/backend/internal/risk"
 )
 
 // What the database takes of a type's icon and colour, migration 00140's checks.
@@ -36,16 +37,32 @@ func TestEveryTemplateMakesWhatTheContractNamesAndTheDatabaseTakes(t *testing.T)
 				t.Errorf("%s: the type %+v would be refused", summary.Key, each)
 			}
 		}
+		typeNames := summary.Types
 		for _, each := range b.AttributeSpecs {
 			kind := attribute.Kind(each.Kind)
 			hasOptions := kind == attribute.Select || kind == attribute.MultiSelect
 			if !slices.Contains(attribute.Kinds, kind) || hasOptions != (len(each.Options) > 0) {
 				t.Errorf("%s: the attribute %+v would be refused", summary.Key, each)
 			}
+			for _, name := range each.Types {
+				if !slices.Contains(typeNames, name) {
+					t.Errorf("%s: the attribute %s shows on %s, which the template makes no type of", summary.Key, each.Name, name)
+				}
+			}
+		}
+		for _, c := range b.Coverage {
+			if !slices.Contains(typeNames, c.Type) {
+				t.Errorf("%s: a coverage rule asks of %s, which the template makes no type of", summary.Key, c.Type)
+			}
+		}
+		if b.Risk != nil {
+			if _, err := risk.CheckScheme(risk.SchemeOf(*b.Risk)); err != nil {
+				t.Errorf("%s: the risk scheme would be refused: %v", summary.Key, err)
+			}
 		}
 	}
-	if !slices.Equal(keys, []string{"system", "software", "test"}) {
-		t.Errorf("the templates are %v, want the contract's system, software and test", keys)
+	if !slices.Equal(keys, []string{"system", "software", "test", "medical", "safety"}) {
+		t.Errorf("the templates are %v, want the contracts' system, software, test, medical and safety", keys)
 	}
 	if _, ok := project.BlueprintOf("nope"); ok {
 		t.Error("a key nobody made names a template")

@@ -44,7 +44,7 @@ func TestEveryPathIsALineAndOneThatEndsEarlyIsBroken(t *testing.T) {
 		{need.Requirement.ID: {sys1, sys2}},
 		{sys1.Requirement.ID: {{IssueKey: "WEB-1"}}},
 	}
-	if err := c.lay(below, nil, ChainQuery{MaxLines: MaxChainLines}); err != nil {
+	if err := c.lay(below, nil, nil, ChainQuery{MaxLines: MaxChainLines}); err != nil {
 		t.Fatal(err)
 	}
 	var read []string
@@ -73,15 +73,15 @@ func TestEveryPathIsALineAndOneThatEndsEarlyIsBroken(t *testing.T) {
 	}
 
 	broken := &Chains{Levels: c.Levels, Roots: c.Roots}
-	if err := broken.lay(below, nil, ChainQuery{MaxLines: MaxChainLines, OnlyBroken: true}); err != nil || len(broken.Lines) != 2 || broken.Broken != 2 {
+	if err := broken.lay(below, nil, nil, ChainQuery{MaxLines: MaxChainLines, OnlyBroken: true}); err != nil || len(broken.Lines) != 2 || broken.Broken != 2 {
 		t.Errorf("only the broken lines read %v, %v", broken.Lines, err)
 	}
 	var tooMany *TooManyLinesError
-	if err := (&Chains{Levels: c.Levels, Roots: c.Roots}).lay(below, nil, ChainQuery{MaxLines: 2}); !errors.As(err, &tooMany) {
+	if err := (&Chains{Levels: c.Levels, Roots: c.Roots}).lay(below, nil, nil, ChainQuery{MaxLines: 2}); !errors.As(err, &tooMany) {
 		t.Errorf("three lines past a bound of two read %v", err)
 	}
 	cut := &Chains{Levels: c.Levels, Roots: c.Roots}
-	if err := cut.lay(below, nil, ChainQuery{MaxLines: 2, Truncate: true}); err != nil || !cut.Truncated || len(cut.Lines) != 2 {
+	if err := cut.lay(below, nil, nil, ChainQuery{MaxLines: 2, Truncate: true}); err != nil || !cut.Truncated || len(cut.Lines) != 2 {
 		t.Errorf("a file cut at two lines reads %v, truncated %v, %v", cut.Lines, cut.Truncated, err)
 	}
 }

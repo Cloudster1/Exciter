@@ -46,6 +46,9 @@ func (s *Service) Graph(ctx context.Context, reader uuid.UUID, key string, q Gra
 		if err := rd.gaps(ctx, b); err != nil {
 			return err
 		}
+		if err := rd.risks(ctx, b); err != nil {
+			return err
+		}
 		if err := rd.hidden(ctx, b, q.Direction); err != nil {
 			return err
 		}

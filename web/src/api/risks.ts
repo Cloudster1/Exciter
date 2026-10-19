@@ -105,3 +105,21 @@ export function useRefreshRisks(projectKey: string) {
 export function risksHref(projectKey: string, params: Pick<RiskParams, "query" | "side">): string {
   return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/risks.xlsx${queryString(params)}`;
 }
+
+// The risk report (#261).
+
+export type RiskReport = Wire["RiskReport"];
+
+/** A project's risk report, as its print view reads it. */
+export function useRiskReport(projectKey: string, query?: string) {
+  return useQuery({
+    queryKey: [...risksKey(projectKey), "report", query ?? ""],
+    queryFn: async (): Promise<RiskReport> =>
+      (await api.GET("/projects/{projectKey}/risk-report", { params: { path: { projectKey }, query: { query: query || undefined } } })).data!.report,
+  });
+}
+
+/** Where the risk report downloads, as PDF or Word. */
+export function riskReportHref(projectKey: string, format: "pdf" | "docx", query?: string): string {
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/risk-report.${format}${queryString({ query: query || undefined })}`;
+}

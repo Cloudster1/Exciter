@@ -116,16 +116,20 @@ func (s *Service) Chains(ctx context.Context, reader uuid.UUID, projectKey strin
 		if err != nil {
 			return err
 		}
+		marks, err := riskMarks(ctx, tx, every)
+		if err != nil {
+			return err
+		}
 		for _, found := range below {
 			for _, nodes := range found {
 				for i := range nodes {
 					if nodes[i].Requirement != nil {
-						nodes[i].LastRun = runs[nodes[i].Requirement.ID]
+						nodes[i].LastRun, nodes[i].Risk = runs[nodes[i].Requirement.ID], marks[nodes[i].Requirement.ID]
 					}
 				}
 			}
 		}
-		return out.lay(below, runs, q)
+		return out.lay(below, runs, marks, q)
 	})
 	if err != nil {
 		return nil, err
@@ -147,7 +151,7 @@ func reached(found map[uuid.UUID][]ChainNode) []uuid.UUID {
 }
 
 // lay follows every root down the steps found, one line per path, and keeps the broken ones when asked.
-func (c *Chains) lay(below []map[uuid.UUID][]ChainNode, runs map[uuid.UUID]*LastRun, q ChainQuery) error {
+func (c *Chains) lay(below []map[uuid.UUID][]ChainNode, runs map[uuid.UUID]*LastRun, marks map[uuid.UUID]*requirement.RiskMark, q ChainQuery) error {
 	var lines []ChainLine
 	var walk func(root int, path []ChainNode, level int) bool
 	walk = func(root int, path []ChainNode, level int) bool {
@@ -174,7 +178,7 @@ func (c *Chains) lay(below []map[uuid.UUID][]ChainNode, runs map[uuid.UUID]*Last
 	}
 	for i, root := range c.Roots {
 		ref := root
-		if !walk(i, []ChainNode{{Requirement: &ref, LastRun: runs[ref.ID]}}, 0) {
+		if !walk(i, []ChainNode{{Requirement: &ref, LastRun: runs[ref.ID], Risk: marks[ref.ID]}}, 0) {
 			if !q.Truncate {
 				return &TooManyLinesError{Lines: q.MaxLines + 1, Max: q.MaxLines}
 			}
