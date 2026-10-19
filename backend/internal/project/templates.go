@@ -11,9 +11,10 @@ import (
 // Built-in project templates (#24), shaped after Stator's space templates: what a new project starts with, kept
 // in code and copied once, so changing a template never changes the projects made from it.
 
-// TypeSpec is a requirement type a template makes; the first is the project's default.
+// TypeSpec is a requirement type a template makes; the first is the project's default. Role is the type's
+// role as internal/attribute names it, a plain requirement type when empty.
 type TypeSpec struct {
-	Name, Icon, Colour string
+	Name, Icon, Colour, Role string
 }
 
 // AttributeSpec is an attribute a template makes, shown on every type.
@@ -33,11 +34,13 @@ type Blueprint struct {
 
 // The attribute kinds a template uses, as internal/attribute names them.
 const (
-	kindText     = "text"
-	kindRichText = "richText"
-	kindSelect   = "select"
-	kindBoolean  = "boolean"
+	kindText    = "text"
+	kindSelect  = "select"
+	kindBoolean = "boolean"
 )
+
+// roleTestCase is the role of a type whose requirements are test cases (#250), as internal/attribute names it.
+const roleTestCase = "testCase"
 
 // The statuses every template uses: the default workflow's (#17).
 var defaultStatuses = []string{"Draft", "In review", "Approved", "Implemented", "Verified", "Rejected", "Obsolete"}
@@ -52,8 +55,8 @@ var blueprints = []Blueprint{
 			Description: "Stakeholder needs refined into system requirements, interfaces and constraints, each verified by a method.",
 			Sections:    []string{"Introduction", "Stakeholder needs", "System requirements", "Interfaces", "Constraints"}},
 		TypeSpecs: []TypeSpec{
-			{"Stakeholder need", "need", "#7c3aed"}, {"System requirement", "requirement", "#4f6bed"},
-			{"Interface", "interface", "#0f9d8a"}, {"Constraint", "constraint", "#d97706"},
+			{Name: "Stakeholder need", Icon: "need", Colour: "#7c3aed"}, {Name: "System requirement", Icon: "requirement", Colour: "#4f6bed"},
+			{Name: "Interface", Icon: "interface", Colour: "#0f9d8a"}, {Name: "Constraint", Icon: "constraint", Colour: "#d97706"},
 		},
 		AttributeSpecs: []AttributeSpec{{Name: "Source", Kind: kindText}, verification, {Name: "Safety relevant", Kind: kindBoolean}},
 	},
@@ -62,8 +65,8 @@ var blueprints = []Blueprint{
 			Description: "Functional and non-functional requirements, interfaces and use cases of a piece of software, by component and release.",
 			Sections:    []string{"Introduction", "Functional requirements", "Non-functional requirements", "Interfaces"}},
 		TypeSpecs: []TypeSpec{
-			{"Functional", "function", "#4f6bed"}, {"Non-functional", "requirement", "#64748b"},
-			{"Interface", "interface", "#0f9d8a"}, {"Use case", "data", "#db2777"},
+			{Name: "Functional", Icon: "function", Colour: "#4f6bed"}, {Name: "Non-functional", Icon: "requirement", Colour: "#64748b"},
+			{Name: "Interface", Icon: "interface", Colour: "#0f9d8a"}, {Name: "Use case", Icon: "data", Colour: "#db2777"},
 		},
 		AttributeSpecs: []AttributeSpec{{Name: "Component", Kind: kindText}, verification, {Name: "Release", Kind: kindText}},
 	},
@@ -71,11 +74,12 @@ var blueprints = []Blueprint{
 		Template: Template{Key: "test", Name: "Test specification",
 			Description: "Test cases and procedures that verify the requirements of other projects, with what each expects.",
 			Sections:    []string{"Test strategy", "Test cases"}},
-		TypeSpecs: []TypeSpec{{"Test case", "test", "#c2410c"}, {"Test procedure", "test", "#d97706"}},
-		AttributeSpecs: []AttributeSpec{
-			{Name: "Preconditions", Kind: kindRichText}, {Name: "Expected result", Kind: kindRichText}, {Name: "Automated", Kind: kindBoolean},
+		TypeSpecs: []TypeSpec{
+			{Name: "Test case", Icon: "test", Colour: "#c2410c", Role: roleTestCase}, {Name: "Test procedure", Icon: "test", Colour: "#d97706"},
 		},
-		LinkTypeKeys: []string{"verifies", "relates"},
+		// A test case holds its preconditions and expected results itself, so the template adds no attributes for them.
+		AttributeSpecs: []AttributeSpec{{Name: "Automated", Kind: kindBoolean}},
+		LinkTypeKeys:   []string{"verifies", "relates"},
 	},
 }
 

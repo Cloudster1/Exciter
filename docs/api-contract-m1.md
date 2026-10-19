@@ -1147,7 +1147,7 @@ New audit actions: `project.created`, `project.key_changed`,
   |---|---|---|---|---|
   | `system` | Stakeholder need, System requirement, Interface, Constraint | Source (text), Verification method (select: Test, Analysis, Inspection, Demonstration), Safety relevant (boolean) | Introduction, Stakeholder needs, System requirements, Interfaces, Constraints | all |
   | `software` | Functional, Non-functional, Interface, Use case | Component (text), Verification method, Release (text) | Introduction, Functional requirements, Non-functional requirements, Interfaces | all |
-  | `test` | Test case, Test procedure | Preconditions (rich text), Expected result (rich text), Automated (boolean) | Test strategy, Test cases | verifies, relates |
+  | `test` | Test case (a type of test cases since #263), Test procedure | Automated (boolean); preconditions and expected results are a test case's own since #250 | Test strategy, Test cases | verifies, relates |
 
 - **Choosing** one is part of `POST /projects` (`template`). An unknown key is
   422 on `template`: "There is no project template called X. Pick one from
