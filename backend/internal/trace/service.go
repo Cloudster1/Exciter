@@ -186,6 +186,8 @@ func typeRefusal(err error, key string) error {
 		return &FieldError{"name", "Another link type is called that. Pick another name."}
 	case pgErr.Code == "42501":
 		return ErrForbidden
+	case pgErr.ConstraintName == "link_type_counts_held":
+		return ErrLinkTypeHeld
 	}
 	return err
 }

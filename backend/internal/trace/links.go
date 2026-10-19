@@ -192,6 +192,15 @@ func LinkIn(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string, in Lin
 	if err := refuseCycle(ctx, tx, t, source, target); err != nil {
 		return nil, err
 	}
+	if t.Counts == CountsMitigation {
+		var fits bool
+		if err := tx.QueryRow(ctx, `SELECT requirement_is_risk($2) AND NOT requirement_is_risk($1)`, source.ID, target.ID).Scan(&fits); err != nil {
+			return nil, err
+		}
+		if !fits {
+			return nil, errNotMitigation
+		}
+	}
 	var id uuid.UUID
 	err = tx.QueryRow(ctx, `
 		INSERT INTO trace_link (type_id, source_id, target_id, created_by)
@@ -211,6 +220,9 @@ func LinkIn(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string, in Lin
 	}
 	return &links[0], nil
 }
+
+// errNotMitigation refuses a link that counts as mitigation between anything but a requirement and a risk.
+var errNotMitigation = &FieldError{"typeId", "A mitigation joins a requirement that is no risk to the risk it mitigates. Link from such a requirement to a risk, or pick another link type."}
 
 // linkEnd reads the far end of a new link, which must be another requirement the actor views, out of the trash.
 func linkEnd(ctx context.Context, tx db.DBTX, actor uuid.UUID, here *requirement.Endpoint, key string) (*requirement.Endpoint, error) {
@@ -334,6 +346,8 @@ func linkRefusal(err error, here, other *requirement.Endpoint) error {
 			here.Key, other.Key)}
 	case "trace_link_ends", "trace_link_type":
 		return &FieldError{"otherKey", "One of the requirements or the link type changed meanwhile. Reload and try again."}
+	case "trace_link_mitigates_risk":
+		return errNotMitigation
 	}
 	if pgErr.Code == "42501" {
 		return requirement.ErrForbidden

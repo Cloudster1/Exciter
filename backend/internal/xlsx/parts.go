@@ -46,8 +46,8 @@ func workbook(name string) string {
 }
 
 // styles lists a font plain and bold, the two fills every workbook starts with and one per colour, and a format per
-// style in styleOrder, which a cell's s names by place.
-func styles() string {
+// style in styleOrder, which a cell's s names by place, then one per fill of the sheet's own.
+func styles(custom []string) string {
 	var colours []string
 	fillOf := map[Style]int{}
 	for _, s := range styleOrder {
@@ -72,13 +72,15 @@ func styles() string {
 	b.WriteString(xml.Header + `<styleSheet xmlns="` + nsMain + `">`)
 	b.WriteString(`<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font>` +
 		`<font><i/><sz val="11"/><color rgb="FF64748B"/><name val="Calibri"/></font></fonts>`)
+	base := len(colours)
+	colours = append(colours, custom...)
 	b.WriteString(`<fills count="` + strconv.Itoa(len(colours)+2) + `"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>`)
 	for _, c := range colours {
 		b.WriteString(`<fill><patternFill patternType="solid"><fgColor rgb="FF` + c + `"/><bgColor indexed="64"/></patternFill></fill>`)
 	}
 	b.WriteString(`</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>`)
 	b.WriteString(`<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>`)
-	b.WriteString(`<cellXfs count="` + strconv.Itoa(len(styleOrder)) + `">`)
+	b.WriteString(`<cellXfs count="` + strconv.Itoa(len(styleOrder)+len(custom)) + `">`)
 	for _, s := range styleOrder {
 		font := 0
 		switch s {
@@ -96,6 +98,9 @@ func styles() string {
 			b.WriteString(` applyFill="1"`)
 		}
 		b.WriteString(`/>`)
+	}
+	for i := range custom {
+		b.WriteString(`<xf numFmtId="0" fontId="0" fillId="` + strconv.Itoa(base+i+2) + `" borderId="0" xfId="0" applyFill="1"/>`)
 	}
 	b.WriteString(`</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`)
 	return b.String()

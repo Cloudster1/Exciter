@@ -70,6 +70,6 @@ export const linkTypesEn = {
   suspectEnd: "A new revision of this end makes a link suspect",
   suspectEnds: { target: "The target", source: "The source", both: "Either end", none: "Neither end" },
   counts: "Counts for",
-  countsValues: { decomposition: "Decomposition", verification: "Verification", nothing: "Nothing" },
+  countsValues: { decomposition: "Decomposition", verification: "Verification", mitigation: "Mitigation", nothing: "Nothing" },
   saved: (name: string) => `Saved ${name}.`,
 };

@@ -24,7 +24,7 @@ export type ClearInput = Wire["LinkClearInput"];
 export type Counts = LinkType["counts"];
 
 export const SUSPECT_ENDS: readonly SuspectEnd[] = ["target", "source", "both", "none"];
-export const COUNTS: readonly Counts[] = ["decomposition", "verification", "nothing"];
+export const COUNTS: readonly Counts[] = ["decomposition", "verification", "mitigation", "nothing"];
 
 const linkTypesKey = ["link-types"] as const;
 const projectLinkTypesKey = (projectKey: string) => [...linkTypesKey, projectKey.toUpperCase()] as const;

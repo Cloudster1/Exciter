@@ -66,8 +66,10 @@ describe("a test case", () => {
     await userEvent.click(within(steps).getByRole("button", { name: "Remove step 2" }));
     const parameters = screen.getByRole("group", { name: "Parameters" });
     const values = within(parameters).getByRole("textbox", { name: "Values, apart by semicolons" });
+    // One paste rather than a key at a time, which the editor redraws for each.
     await userEvent.clear(values);
-    await userEvent.type(values, "30; 50; 80");
+    await userEvent.click(values);
+    await userEvent.paste("30; 50; 80");
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(sent.some((r) => r.method === "PATCH")).toBe(true));

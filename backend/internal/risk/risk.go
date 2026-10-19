@@ -124,12 +124,14 @@ type RiskRef struct {
 	Type     requirement.TypeRef `json:"type"`
 }
 
-// SourceRef is a requirement that mitigates, perhaps in another project.
+// SourceRef is a requirement that mitigates, perhaps in another project; one the reader may not view is hidden and
+// named by nothing, though it counts for the risk's state as for every reader.
 type SourceRef struct {
 	ID         uuid.UUID `json:"id"`
 	Key        string    `json:"key"`
 	Title      string    `json:"title"`
 	ProjectKey string    `json:"projectKey"`
+	Hidden     bool      `json:"hidden"`
 }
 
 // Mitigation is one requirement mitigating a risk, with what its project's coverage rules say of it (#260).

@@ -6377,7 +6377,7 @@ export interface components {
             acyclic: boolean;
             backward: string;
             /** @enum {string} */
-            counts: "decomposition" | "verification" | "nothing";
+            counts: "decomposition" | "verification" | "mitigation" | "nothing";
             enabled: boolean;
             forward: string;
             /** Format: uuid */
@@ -6399,7 +6399,7 @@ export interface components {
             acyclic?: boolean;
             backward?: string;
             /** @enum {string} */
-            counts?: "decomposition" | "verification" | "nothing";
+            counts?: "decomposition" | "verification" | "mitigation" | "nothing";
             forward?: string;
             key?: string;
             name?: string;
@@ -7668,6 +7668,7 @@ export interface components {
             verified: "none" | "partial" | "full" | "na";
         };
         RiskMitigationSource: {
+            hidden: boolean;
             /** Format: uuid */
             id: string;
             key: string;
@@ -17865,15 +17866,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -18316,15 +18308,6 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
             /** @description An error, in the one shape every endpoint uses. */
             default: {
                 headers: {
@@ -18396,15 +18379,6 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21836,15 +21810,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RiskMitigations"];
-                };
-            };
-            /** @description Not Implemented: agreed, not built yet. */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */

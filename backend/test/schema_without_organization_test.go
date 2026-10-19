@@ -197,6 +197,8 @@ func TestTheUpgradeKeepsEveryRowAndStepsBack(t *testing.T) {
 	delete(upgraded, "org_member")
 	// Writing rules (#207) ask the worker to check each project's requirements.
 	upgraded["outbox_event"] += before["project"]
+	// Risk management (#260) seeds the link types mitigates and leads_to.
+	upgraded["link_type"] += 2
 	if after := rowCounts(t, super); !sameCounts(t, "the upgrade", upgraded, after) {
 		return
 	}

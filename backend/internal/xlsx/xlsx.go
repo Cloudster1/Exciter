@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -28,11 +29,13 @@ const (
 	Note
 )
 
-// Cell is one cell: text, or a count when Count is set.
+// Cell is one cell: text, or a count when Count is set. Fill, six hex digits, colours it in place of its style's
+// fill, as a risk's level is drawn in the colour its scheme gives it (#260).
 type Cell struct {
 	Text  string
 	Count *int
 	Style Style
+	Fill  string
 }
 
 // Text is a cell of text in a style.
@@ -89,7 +92,7 @@ func Write(w io.Writer, s Sheet, modified time.Time) error {
 		{"docProps/app.xml", appProperties},
 		{"xl/workbook.xml", workbook(s.Name)},
 		{"xl/_rels/workbook.xml.rels", workbookRels},
-		{"xl/styles.xml", styles()},
+		{"xl/styles.xml", styles(customFills(s))},
 		{"xl/sharedStrings.xml", strs.xml()},
 		{"xl/worksheets/sheet1.xml", sheet},
 	} {
@@ -156,6 +159,7 @@ func sheetXML(s Sheet, strs *sharedStrings) string {
 			widths[i] = max(widths[i], n)
 		}
 	}
+	custom := customFills(s)
 	var b strings.Builder
 	b.WriteString(xml.Header + `<worksheet xmlns="` + nsMain + `" xmlns:r="` + nsRel + `">`)
 	b.WriteString(`<sheetViews><sheetView workbookViewId="0">`)
@@ -177,7 +181,7 @@ func sheetXML(s Sheet, strs *sharedStrings) string {
 		b.WriteString(`<row r="` + strconv.Itoa(r+1) + `">`)
 		for c, cell := range row {
 			ref := ColumnName(c) + strconv.Itoa(r+1)
-			style := strconv.Itoa(styleIndex(cell.Style))
+			style := strconv.Itoa(styleIndex(cell, custom))
 			switch {
 			case cell.Count != nil:
 				b.WriteString(`<c r="` + ref + `" s="` + style + `"><v>` + strconv.Itoa(*cell.Count) + `</v></c>`)
@@ -196,13 +200,34 @@ func sheetXML(s Sheet, strs *sharedStrings) string {
 	return b.String()
 }
 
-func styleIndex(s Style) int {
+// styleIndex is the format a cell names by place: its style's, or the one of its own fill after them.
+func styleIndex(c Cell, custom []string) int {
+	if c.Fill != "" {
+		for i, f := range custom {
+			if f == c.Fill {
+				return len(styleOrder) + i
+			}
+		}
+	}
 	for i, each := range styleOrder {
-		if each == s {
+		if each == c.Style {
 			return i
 		}
 	}
 	return 0
+}
+
+// customFills are the fills of the sheet's own, each once, in the order the cells first name them.
+func customFills(s Sheet) []string {
+	var out []string
+	for _, row := range s.Rows {
+		for _, c := range row {
+			if c.Fill != "" && !slices.Contains(out, c.Fill) {
+				out = append(out, c.Fill)
+			}
+		}
+	}
+	return out
 }
 
 func sheetName(name string) string {

@@ -27,6 +27,8 @@ var (
 	ErrForbidden = errors.New("only the project's administrators set its risk scheme")
 	// ErrNotFound is a risk or a project the caller may not view.
 	ErrNotFound = errors.New("not found")
+	// ErrNotRisk is a requirement asked for its mitigations that is no risk.
+	ErrNotRisk = errors.New("the requirement is no risk")
 )
 
 // FieldError is input refused on one field, with the sentence to show beside it.

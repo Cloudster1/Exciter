@@ -394,6 +394,11 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			// A project's risk scheme (#259): read by its readers, set by its administrators.
 			r.Get("/projects/{projectKey}/risk-scheme", s.handleGetRiskScheme)
 			r.Put("/projects/{projectKey}/risk-scheme", s.handleSaveRiskScheme)
+			// Mitigations, the FMEA table and the risk matrix (#260), read by the project's readers.
+			r.Get("/requirements/{reqKey}/mitigations", s.handleGetRiskMitigations)
+			r.Get("/projects/{projectKey}/risks", s.handleListRisks)
+			r.Get("/projects/{projectKey}/risks.xlsx", s.handleRisksXLSX)
+			r.Get("/projects/{projectKey}/risk-matrix", s.handleRiskMatrix)
 			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
 			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
 			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)

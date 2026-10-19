@@ -130,9 +130,12 @@ const (
 	isRisk = "(CASE WHEN r.kind = 'requirement' AND EXISTS (SELECT 1 FROM requirement_type x WHERE x.id = r.type_id AND x.role = 'risk')" +
 		" THEN 'true' ELSE 'false' END)"
 	riskDetection = "(SELECT s.detection FROM risk_scheme s WHERE s.project_id = r.project_id)"
-	// riskEffective is the side of a rating in effect; until mitigations (#260) the one before.
-	riskEffective = "r.risk->'before'"
+	// riskEffective is the side of a rating in effect: after once the risk is mitigated (#260).
+	riskEffective = "risk_effective(r.project_id, r.risk, r.id)"
 )
+
+// riskStates are how far a risk is mitigated, as requirement.RiskStates.
+var riskStates = []string{"unmitigated", "claimed", "mitigated"}
 
 // riskValue is one value of one side of a rating.
 func riskValue(side, dimension string) string {
@@ -204,6 +207,7 @@ var fixed = []fieldDef{
 	riskLevel("riskLevelBefore", "r.risk->'before'"),
 	riskLevel("riskLevelAfter", "r.risk->'after'"),
 	riskLevel("riskLevel", riskEffective),
+	{name: "mitigation", kind: fkEnum, column: "risk_mitigation_state(r.id)", enum: riskStates, empty: true},
 	{name: "codeLink", kind: fkNumber, column: codeLinks, order: codeLinks},
 	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
 	{name: "quality", kind: fkNumber, column: qualityScore, order: qualityScore, empty: true},

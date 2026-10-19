@@ -119,7 +119,7 @@ func applyType(t *LinkType, in LinkTypeInput, creating bool) error {
 	}
 	if in.Counts != nil {
 		if !slices.Contains(CountsValues, *in.Counts) {
-			return &FieldError{"counts", "Pick what a link counts for: decomposition, verification or nothing."}
+			return &FieldError{"counts", "Pick what a link counts for: decomposition, verification, mitigation or nothing."}
 		}
 		t.Counts = *in.Counts
 	}

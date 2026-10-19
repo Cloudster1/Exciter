@@ -541,3 +541,5 @@ export const RISK_DEFAULT_LEVELS = [
   { name: "Medium", colour: "#d97706", acceptable: false, from: 5 },
   { name: "High", colour: "#c2410c", acceptable: false, from: 12 },
 ] as const;
+/** How many risks a page of the FMEA table holds; the server's risk.DefaultRows. */
+export const RISK_PAGE_SIZE = 50;

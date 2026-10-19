@@ -49,6 +49,9 @@ func traceError(err error) *APIError {
 	case errors.Is(err, trace.ErrRevisionMovedOn):
 		return &APIError{Status: http.StatusConflict, Code: "revision_moved_on",
 			Message: "A requirement of this link has a newer revision than the one you read. Reload it and read the change first."}
+	case errors.Is(err, trace.ErrLinkTypeHeld):
+		return &APIError{Status: http.StatusConflict, Code: "link_type_held",
+			Message: "Links of this type join requirements that are no risks. Remove those links, or keep the type counting as it does."}
 	case errors.Is(err, trace.ErrSection):
 		return &APIError{Status: http.StatusUnprocessableEntity, Code: "validation_failed",
 			Message: "Sections take no links. Link the requirements in it instead."}

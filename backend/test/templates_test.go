@@ -76,8 +76,8 @@ func TestEveryTemplateMakesAValidProject(t *testing.T) {
 				slices.Sort(used)
 				slices.Sort(wanted)
 				sameList(t, "the link types it uses", used, wanted...)
-			} else if len(used) != 6 {
-				t.Errorf("a template that names no link types uses %v, want all six", used)
+			} else if len(used) != 8 {
+				t.Errorf("a template that names no link types uses %v, want all eight", used)
 			}
 			want(t, f.owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Works at once"}), http.StatusCreated,
 				"write a requirement of the default type")
