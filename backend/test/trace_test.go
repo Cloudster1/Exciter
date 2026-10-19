@@ -39,26 +39,26 @@ func TestLinkTypesOverTheAPI(t *testing.T) {
 	refuse(t, "nobody signed in lists them", f.api.anonymous().get(t, "/api/v1/link-types"), http.StatusUnauthorized, "unauthorized")
 
 	made := obj(t, want(t, f.owner.post(t, "/api/v1/link-types", map[string]any{
-		"name": "Mitigates", "forward": "mitigates", "backward": "is mitigated by", "acyclic": true, "suspectEnd": "target",
+		"name": "Prevents", "forward": "prevents", "backward": "is prevented by", "acyclic": true, "suspectEnd": "target",
 	}), http.StatusCreated, "make an organization's type"), "linkType")
-	if made["key"] != "mitigates" || made["scope"] != "org" || made["acyclic"] != true {
+	if made["key"] != "prevents" || made["scope"] != "org" || made["acyclic"] != true {
 		t.Errorf("the type is keyed from its name and the organization's: %v", made)
 	}
-	mitigates := made["id"].(string)
+	prevents := made["id"].(string)
 	refuse(t, "a member makes one", editor.post(t, "/api/v1/link-types", map[string]any{"name": "Mine", "forward": "a", "backward": "b"}),
 		http.StatusForbidden, "forbidden")
 	refuse(t, "a key taken", f.owner.post(t, "/api/v1/link-types", map[string]any{"key": "derives", "name": "Again", "forward": "a", "backward": "b"}),
 		http.StatusUnprocessableEntity, "validation_failed")
 
-	renamed := obj(t, want(t, f.owner.patch(t, "/api/v1/link-types/"+mitigates, map[string]any{"name": "Mitigates risk"}), http.StatusOK, "rename it"), "linkType")
-	if renamed["name"] != "Mitigates risk" || renamed["key"] != "mitigates" {
+	renamed := obj(t, want(t, f.owner.patch(t, "/api/v1/link-types/"+prevents, map[string]any{"name": "Prevents harm"}), http.StatusOK, "rename it"), "linkType")
+	if renamed["name"] != "Prevents harm" || renamed["key"] != "prevents" {
 		t.Errorf("a rename keeps the key: %v", renamed)
 	}
-	refuse(t, "a member changes one", editor.patch(t, "/api/v1/link-types/"+mitigates, map[string]any{"name": "Mine"}), http.StatusForbidden, "forbidden")
-	refuse(t, "a new key", f.owner.patch(t, "/api/v1/link-types/"+mitigates, map[string]any{"key": "lessens"}), http.StatusUnprocessableEntity, "validation_failed")
-	refuse(t, "a member deletes one", editor.delete(t, "/api/v1/link-types/"+mitigates), http.StatusForbidden, "forbidden")
-	want(t, f.owner.delete(t, "/api/v1/link-types/"+mitigates), http.StatusNoContent, "delete a type no link had")
-	refuse(t, "it is gone", f.owner.delete(t, "/api/v1/link-types/"+mitigates), http.StatusNotFound, "not_found")
+	refuse(t, "a member changes one", editor.patch(t, "/api/v1/link-types/"+prevents, map[string]any{"name": "Mine"}), http.StatusForbidden, "forbidden")
+	refuse(t, "a new key", f.owner.patch(t, "/api/v1/link-types/"+prevents, map[string]any{"key": "lessens"}), http.StatusUnprocessableEntity, "validation_failed")
+	refuse(t, "a member deletes one", editor.delete(t, "/api/v1/link-types/"+prevents), http.StatusForbidden, "forbidden")
+	want(t, f.owner.delete(t, "/api/v1/link-types/"+prevents), http.StatusNoContent, "delete a type no link had")
+	refuse(t, "it is gone", f.owner.delete(t, "/api/v1/link-types/"+prevents), http.StatusNotFound, "not_found")
 
 	own := obj(t, want(t, f.owner.post(t, "/api/v1/projects/"+ltyKey+"/link-types", map[string]any{
 		"key": "tests", "name": "Tests", "forward": "tests", "backward": "is tested by", "counts": "verification",

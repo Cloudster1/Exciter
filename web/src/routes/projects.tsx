@@ -50,6 +50,7 @@ type ProjectPath =
   | "/p/$projectKey/baselines"
   | "/p/$projectKey/sessions"
   | "/p/$projectKey/tests"
+  | "/p/$projectKey/risks"
   | "/p/$projectKey/coverage"
   | "/p/$projectKey/code-tags"
   | "/p/$projectKey/quality"

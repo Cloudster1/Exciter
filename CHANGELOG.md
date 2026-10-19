@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Mitigations, the FMEA table and the risk matrix (#260). A requirement
+  mitigates a risk through the new link type Mitigates, and the mitigation
+  is in effect once the requirement is implemented and verified as its
+  coverage rules ask and the link is not suspect; a risk is unmitigated,
+  claimed or mitigated, and counts with its rating after mitigation only
+  once mitigated. Risks, in a project's navigation, holds the FMEA table,
+  which rates risks in place, filters with a query and exports as Excel,
+  and the risk matrix, before mitigation and as the risks stand, a cell
+  opening its risks. Leads to joins one kind of risk to the next.
 - Risks and their ratings (#259). A project's administrators mark a
   requirement type as risks and set the project's risk scheme: the values
   of severity, probability and, if wanted, detection, the levels with their

@@ -73,6 +73,6 @@ export const linkTypesDe: typeof linkTypesEn = {
   suspectEnd: "Eine neue Revision dieses Endes macht eine Verknüpfung verdächtig",
   suspectEnds: { target: "Das Ziel", source: "Die Quelle", both: "Jedes Ende", none: "Keines" },
   counts: "Zählt für",
-  countsValues: { decomposition: "Zerlegung", verification: "Nachweis", nothing: "Nichts" },
+  countsValues: { decomposition: "Zerlegung", verification: "Nachweis", mitigation: "Minderung", nothing: "Nichts" },
   saved: (name: string) => `${name} gespeichert.`,
 };

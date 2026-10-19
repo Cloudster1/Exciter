@@ -32,6 +32,7 @@ import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
 import { TestCaseView } from "@/features/testcases/TestCaseView";
 import { RatingView } from "@/features/risks/RatingView";
+import { MitigationPanel } from "@/features/risks/MitigationPanel";
 import { CaseResults } from "@/features/tests/CaseResults";
 import { useFieldAccess } from "@/features/types/fieldAccess";
 import { LockAction, LockBanner } from "./LockBanner";
@@ -151,6 +152,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       <LinksPanel requirement={requirement} />
       <TermsPanel project={project} requirement={requirement} />
       <SimilarPanel requirement={requirement} />
+      <MitigationPanel requirement={requirement} />
       <ArmatureLinks requirement={requirement} />
       <StatorLinks requirement={requirement} />
       <TestResults requirement={requirement} />

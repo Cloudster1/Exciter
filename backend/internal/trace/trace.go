@@ -3,6 +3,7 @@
 package trace
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,11 +48,17 @@ const (
 	CountsDecomposition Counts = "decomposition"
 	// CountsVerification is a source showing its target is met.
 	CountsVerification Counts = "verification"
-	CountsNothing      Counts = "nothing"
+	// CountsMitigation is a source that is no risk mitigating its target, a risk (#260); it counts towards no
+	// coverage level.
+	CountsMitigation Counts = "mitigation"
+	CountsNothing    Counts = "nothing"
 )
 
 // CountsValues lists every Counts, for the API document.
-var CountsValues = []Counts{CountsDecomposition, CountsVerification, CountsNothing}
+var CountsValues = []Counts{CountsDecomposition, CountsVerification, CountsMitigation, CountsNothing}
+
+// ErrLinkTypeHeld refuses making a link type count as mitigation while its links join what is no risk.
+var ErrLinkTypeHeld = errors.New("links of the type join what is no risk")
 
 // Scope says whether a link type is the installation's or one project's.
 type Scope string

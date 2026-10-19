@@ -55,6 +55,7 @@ import { allTokensRoute, tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
 import { printBaselineDocumentRoute, printDashboardRoute, printExecutionReportRoute, printProjectDocumentRoute, printSessionReportRoute } from "./print";
 import { testExecutionRoute, testPlanRoute, testRunRoute, testsRoute } from "./tests";
+import { risksRoute } from "./risks";
 import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
@@ -91,6 +92,7 @@ const routeTree = rootRoute.addChildren([
     sessionsRoute,
     sessionRoute,
     testsRoute,
+    risksRoute,
     testPlanRoute,
     testExecutionRoute,
     testRunRoute,

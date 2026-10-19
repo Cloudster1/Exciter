@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "./client";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { API_BASE } from "@/config";
+import { api, queryString } from "./client";
 import type { components } from "./schema";
 
 // Risks (#259): a project's risk scheme, and the rating a risk carries on it.
@@ -43,4 +44,64 @@ export function useSaveRiskScheme(projectKey: string) {
       void queryClient.invalidateQueries({ queryKey: ["requirements"] });
     },
   });
+}
+
+// Mitigations, the FMEA table and the risk matrix (#260).
+
+export type Mitigation = Wire["RiskMitigation"];
+export type Mitigations = Wire["RiskMitigations"];
+export type RiskRow = Wire["RiskRow"];
+export type RiskRows = Wire["RiskRows"];
+export type RiskMatrix = Wire["RiskMatrix"];
+export type RiskState = Mitigations["state"];
+export type Side = RiskMatrix["side"];
+
+/** What the FMEA table and the matrix read: a query, the side, and a cell of the matrix. */
+export type RiskParams = {
+  query?: string;
+  side?: Side;
+  severity?: number;
+  probability?: number;
+};
+
+const risksKey = (projectKey: string) => ["risks", projectKey.toUpperCase()] as const;
+
+/** The mitigations of a risk and the state they put it in. */
+export function useMitigations(reqKey: string, enabled = true) {
+  return useQuery({
+    queryKey: ["risks", "mitigations", reqKey.toUpperCase()],
+    enabled,
+    queryFn: async (): Promise<Mitigations> => (await api.GET("/requirements/{reqKey}/mitigations", { params: { path: { reqKey } } })).data!,
+  });
+}
+
+/** A page of the FMEA table. */
+export function useRiskRows(projectKey: string, params: RiskParams, offset: number, limit: number) {
+  return useQuery({
+    queryKey: [...risksKey(projectKey), "rows", params, offset, limit],
+    queryFn: async (): Promise<RiskRows> =>
+      (await api.GET("/projects/{projectKey}/risks", { params: { path: { projectKey }, query: { ...params, offset, limit } } })).data!,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** The risk matrix of one side. */
+export function useRiskMatrix(projectKey: string, params: Pick<RiskParams, "query" | "side">) {
+  return useQuery({
+    queryKey: [...risksKey(projectKey), "matrix", params],
+    queryFn: async (): Promise<RiskMatrix> =>
+      (await api.GET("/projects/{projectKey}/risk-matrix", { params: { path: { projectKey }, query: params } })).data!.matrix,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Reads the FMEA table and the matrix again, as after a rating changed in place. */
+export function useRefreshRisks(projectKey: string) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: risksKey(projectKey) });
+}
+
+/** Where the FMEA table downloads as an Excel workbook. */
+export function risksHref(projectKey: string, params: Pick<RiskParams, "query" | "side">): string {
+  return `${API_BASE}/projects/${encodeURIComponent(projectKey)}/risks.xlsx${queryString(params)}`;
 }

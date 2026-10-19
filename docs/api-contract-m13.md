@@ -306,6 +306,31 @@ All of it is held by the database and proven straight through SQL as
   opening its risks.
 - The link-type settings offer mitigation as what a type counts.
 
+### As built (#260)
+
+- **Migration**: `01280_mitigation.sql` lets `link_type.counts` be
+  `mitigation` and seeds `mitigates` and `leads_to`, in a new installation
+  and in one running already unless a link type has the key or the name;
+  stepping back removes them while no link had them. `trace_link_mitigates_risk`
+  and `link_type_counts_held` guard the links; `risk_mitigations` reads a
+  risk's mitigations, `risk_mitigation_rows` many risks' at once, and
+  `risk_mitigation_state` and `risk_effective` give the state and the side
+  in effect, which `risk_view` now answers. A type of risks keeps its role
+  while a mitigation points at one of its risks.
+- **Every reader sees the same state**: a risk's mitigations are read with
+  the database's own rights, and a source the reader may not view answers
+  `hidden`, named by nothing.
+- **The FMEA table and the matrix** read every mitigation of the risks kept
+  in one query and work out the levels and states in Go
+  (`risk.Scheme.Level`), so a hundred risks of three mitigations read in
+  well under three seconds.
+- **Queries** gain `mitigation`; `riskLevel` is now the level in effect.
+- **Web**: Risks in a project's navigation, `/p/{projectKey}/risks`, with the
+  FMEA table and, at `?view=matrix`, the risk matrix; a cell lists its
+  risks below the matrix. The table edits a rating in place; it shows a
+  risk's attributes, which are edited on the risk's page. A risk's page
+  lists its mitigations.
+
 ## #261 Risks in traceability, baselines, the report and templates
 
 | Operation | Needs | Answers |
