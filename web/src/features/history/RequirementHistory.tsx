@@ -14,6 +14,7 @@ import { AttributeValues, type Values } from "@/features/types/AttributeFields";
 import { Through } from "@/components/Through";
 import { t } from "@/i18n";
 import { TestCaseDiff } from "@/features/testcases/TestCaseDiff";
+import { RatingDiff } from "@/features/risks/RatingDiff";
 import { localDateFormat } from "@/lib/format";
 
 /** Where in a requirement's history the reader is: the list, its activity, one revision, or two compared. */
@@ -326,6 +327,7 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
         </Card>
       )}
       <TestCaseDiff comparison={comparison} />
+      <RatingDiff comparison={comparison} />
       <Card className="space-y-2 p-4">
         <SectionTitle>{t.history.attributes}</SectionTitle>
         <AttributeChanges attributes={comparison.attributes} />

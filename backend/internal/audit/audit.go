@@ -152,6 +152,8 @@ const (
 	ActionEvidenceSettingsSaved = "evidence_settings.saved"
 	// ActionCodeTagWordsSaved keeps the words a project's code tags use (#201).
 	ActionCodeTagWordsSaved = "code_tag_words.saved"
+	// ActionRiskSchemeSaved keeps the scales and levels a project rates its risks on (#259).
+	ActionRiskSchemeSaved = "risk_scheme.saved"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -175,6 +177,7 @@ var Actions = []string{
 	ActionDashboardCreated, ActionDashboardShared, ActionDashboardDeleted,
 	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
 	ActionTestExecutionStarted, ActionTestExecutionRecorded, ActionTestExecutionIssueFiled, ActionTestExecutionClosed,
+	ActionRiskSchemeSaved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

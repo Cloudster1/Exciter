@@ -1543,7 +1543,8 @@
                 "test_execution.started",
                 "test_execution.recorded",
                 "test_execution.issue_filed",
-                "test_execution.closed"
+                "test_execution.closed",
+                "risk_scheme.saved"
               ]
             }
           },
@@ -1744,7 +1745,8 @@
                 "test_execution.started",
                 "test_execution.recorded",
                 "test_execution.issue_filed",
-                "test_execution.closed"
+                "test_execution.closed",
+                "risk_scheme.saved"
               ]
             }
           },
@@ -14519,16 +14521,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -14608,16 +14600,6 @@
           },
           "422": {
             "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20062,7 +20044,7 @@
     "/requirements/{reqKey}/diff": {
       "get": {
         "operationId": "diffRevisions",
-        "summary": "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's preconditions, steps one by one, and parameters.",
+        "summary": "What changed between two revisions of a requirement: statement, rationale, type and attributes, a test case's preconditions, steps one by one, and parameters, and a risk's rating value by value.",
         "tags": [
           "history"
         ],
@@ -29582,7 +29564,8 @@
               "test_execution.started",
               "test_execution.recorded",
               "test_execution.issue_filed",
-              "test_execution.closed"
+              "test_execution.closed",
+              "risk_scheme.saved"
             ]
           },
           "actorId": {
@@ -29732,7 +29715,8 @@
                 "test_execution.started",
                 "test_execution.recorded",
                 "test_execution.issue_filed",
-                "test_execution.closed"
+                "test_execution.closed",
+                "risk_scheme.saved"
               ]
             }
           },
@@ -31360,6 +31344,12 @@
               "$ref": "#/components/schemas/DiffBlock"
             }
           },
+          "risk": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskDiff"
+            }
+          },
           "statement": {
             "type": "array",
             "items": {
@@ -31391,7 +31381,8 @@
           "attributes",
           "preconditions",
           "steps",
-          "parameters"
+          "parameters",
+          "risk"
         ]
       },
       "Completion": {
@@ -32139,6 +32130,9 @@
           },
           "revision": {
             "type": "integer"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskRatingView"
           },
           "statement": {
             "description": "A JSON value."
@@ -34369,6 +34363,9 @@
           },
           "rationaleMarkdown": {
             "type": "string"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskRating"
           },
           "statement": {
             "description": "A JSON value."
@@ -37113,6 +37110,16 @@
           "revision": {
             "type": "integer"
           },
+          "risk": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskRatingView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statement": {
             "description": "A JSON value."
           },
@@ -37183,6 +37190,7 @@
           "attributes",
           "computed",
           "testCase",
+          "risk",
           "revision",
           "status",
           "owner",
@@ -37454,7 +37462,8 @@
             "type": "string",
             "enum": [
               "requirement",
-              "testCase"
+              "testCase",
+              "risk"
             ]
           },
           "roleHeld": {
@@ -37513,7 +37522,8 @@
             "type": "string",
             "enum": [
               "requirement",
-              "testCase"
+              "testCase",
+              "risk"
             ]
           }
         }
@@ -37585,6 +37595,9 @@
           },
           "rationaleMarkdown": {
             "type": "string"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskRating"
           },
           "statement": {
             "description": "A JSON value."
@@ -38540,6 +38553,16 @@
               "null"
             ]
           },
+          "risk": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskRatingView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statement": {
             "description": "A JSON value."
           },
@@ -38594,7 +38617,8 @@
           "rationale",
           "type",
           "attributes",
-          "testCase"
+          "testCase",
+          "risk"
         ]
       },
       "RevisionEntry": {
@@ -38653,6 +38677,35 @@
           "restoredFrom",
           "hash",
           "via"
+        ]
+      },
+      "RiskDiff": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string"
+          },
+          "from": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "side": {
+            "type": "string"
+          },
+          "to": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "side",
+          "dimension",
+          "from",
+          "to"
         ]
       },
       "RiskLevel": {
@@ -38893,6 +38946,21 @@
           "state"
         ]
       },
+      "RiskRating": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "$ref": "#/components/schemas/RiskRatingSide"
+          },
+          "before": {
+            "$ref": "#/components/schemas/RiskRatingSide"
+          }
+        },
+        "required": [
+          "before",
+          "after"
+        ]
+      },
       "RiskRatingSide": {
         "type": "object",
         "properties": {
@@ -38973,11 +39041,18 @@
             ]
           },
           "state": {
-            "type": "string",
-            "enum": [
-              "unmitigated",
-              "claimed",
-              "mitigated"
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "unmitigated",
+                  "claimed",
+                  "mitigated"
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
@@ -39938,6 +40013,16 @@
               }
             ]
           },
+          "risk": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskRatingView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statement": {
             "description": "A JSON value."
           },
@@ -39985,7 +40070,8 @@
           "change",
           "review",
           "lock",
-          "testCase"
+          "testCase",
+          "risk"
         ]
       },
       "SpecRemoved": {

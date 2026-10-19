@@ -15,6 +15,7 @@ export function aRequirement(overrides: Partial<Requirement> = {}): Requirement 
     attributes: {},
     computed: {},
     testCase: null,
+    risk: null,
     revision: 1,
     status: null,
     owner: null,

@@ -37,6 +37,7 @@ export const entry = (n: TreeNode, text: string, over: Partial<SpecEntry> = {}):
   suspectLinks: 0,
   reuse: null,
   testCase: null,
+  risk: null,
   type: null,
   owner: null,
   priority: null,

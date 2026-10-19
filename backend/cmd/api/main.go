@@ -48,6 +48,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
+	"github.com/cloudster1/exciter/backend/internal/risk"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
@@ -199,6 +200,7 @@ func run() error {
 		Documents:       specdoc.NewService(cluster, requirements, baselines),
 		ExportTemplates: exporttemplate.NewService(cluster, store),
 		Tests:           testexec.NewService(cluster, store).WithIssues(armatures, cfg.AppBaseURL),
+		Risks:           risk.NewService(cluster),
 		OAuth: oauth.NewService(cluster, cfg.AppBaseURL, httpapi.APIPrefix,
 			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))),
 		Renderer:       renderer(cfg, log),

@@ -31,6 +31,7 @@ const comparison: Comparison = {
   preconditions: [],
   steps: [],
   parameters: [],
+  risk: [],
   attributes: [],
 };
 

@@ -195,7 +195,7 @@ func attributeError(err error) *APIError {
 		return ErrForbidden("Only the project's administrators change its types and attributes. Ask one of them.")
 	case errors.Is(err, attribute.ErrRoleHeld):
 		return &APIError{Status: http.StatusConflict, Code: "type_role_held",
-			Message: "Requirements of this type have preconditions, steps or parameters. Clear them, or move the requirements to another test-case type, first."}
+			Message: "Requirements of this type have steps or a risk rating, which only its role gives. Clear them, or move the requirements to another type of the same role, first."}
 	case errors.Is(err, attribute.ErrDefaultType):
 		return &APIError{Status: http.StatusConflict, Code: "default_type",
 			Message: "This is the project's default type. Make another type the default under the project's settings first."}

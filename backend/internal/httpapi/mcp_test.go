@@ -25,7 +25,7 @@ var contractTools = []string{
 	"comment_on_requirement", "compare_baseline", "create_armature_issue", "create_requirement", "diff_revisions",
 	"file_test_failure_issue", "get_activity", "get_approval", "get_baseline", "get_baseline_spec", "get_code_links", "get_comment",
 	"get_coverage", "get_dashboard_widget", "get_matrix", "get_project", "get_quality_findings", "get_requirement", "get_review",
-	"get_review_session", "get_revision", "get_similar_requirements", "get_spec", "get_test_case_results", "get_test_execution",
+	"get_review_session", "get_revision", "get_risk_scheme", "get_similar_requirements", "get_spec", "get_test_case_results", "get_test_execution",
 	"get_test_execution_case", "get_test_plan", "get_test_results", "get_trace_graph", "get_tree", "label_requirement",
 	"link_armature_issue", "link_requirements", "link_stator_page", "list_armature_links", "list_armature_projects",
 	"list_attributes", "list_audit_log", "list_baselines", "list_bulk_transitions", "list_comments", "list_dashboards",

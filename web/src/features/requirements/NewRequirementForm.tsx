@@ -17,6 +17,10 @@ import { AttributeFields, valuesFor, type Values } from "@/features/types/Attrib
 import { t } from "@/i18n";
 import { TestCaseFields } from "@/features/testcases/TestCaseFields";
 import { contentOf, draftOf, holdsAnything, type TestCaseDraft } from "@/features/testcases/draft";
+import { RatingFields } from "@/features/risks/RatingFields";
+import { draftRating, rated } from "@/features/risks/level";
+import { riskError } from "@/features/risks/errors";
+import type { Rating } from "@/api/risks";
 
 type Kind = NonNullable<NewRequirement["kind"]>;
 
@@ -63,10 +67,19 @@ export function RequirementCreate({
   const [values, setValues] = useState<Values>({});
   const [testCase, setTestCase] = useState<TestCaseDraft>(() => draftOf(null));
   const isTest = kind === "requirement" && (types ?? []).some((type) => type.id === typeId && type.role === "testCase");
+  const [rating, setRating] = useState<Rating>(() => draftRating(null));
+  // A type marked as risks gives its requirements a rating (#259).
+  const isRisk = kind === "requirement" && (types ?? []).some((type) => type.id === typeId && type.role === "risk");
   const fields = create.error instanceof ApiError ? create.error.fields : {};
   const general = create.error && Object.keys(fields).length === 0;
   const dirty =
-    title !== "" || comment !== "" || statement !== null || rationale !== null || Object.keys(values).length > 0 || (isTest && holdsAnything(testCase));
+    title !== "" ||
+    comment !== "" ||
+    statement !== null ||
+    rationale !== null ||
+    Object.keys(values).length > 0 ||
+    (isTest && holdsAnything(testCase)) ||
+    (isRisk && rated(rating));
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
   const editorControls = useRef<EditorControls>(null);
   const written = title.trim() !== "" || !isEmptyDoc(statement);
@@ -89,6 +102,7 @@ export function RequirementCreate({
       const given = Object.fromEntries(Object.entries(values).filter(([, value]) => value !== null && value !== undefined));
       if (Object.keys(given).length > 0) body.attributes = given;
       if (isTest && holdsAnything(testCase)) body.testCase = contentOf(testCase);
+      if (isRisk && rated(rating)) body.risk = rating;
     }
     create.mutate(body, { onSuccess: onCreated });
   }
@@ -185,6 +199,7 @@ export function RequirementCreate({
           </Labelled>
         )}
         {isTest && <TestCaseFields value={testCase} onChange={setTestCase} errors={fields} />}
+        {isRisk && <RatingFields projectKey={project.key} value={rating} onChange={setRating} error={riskError(fields)} />}
         {kind === "requirement" && attributes && (
           <AttributeFields attributes={attributes} typeId={typeId} values={values} onChange={setValues} errors={fields} />
         )}

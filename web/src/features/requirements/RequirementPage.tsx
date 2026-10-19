@@ -31,6 +31,7 @@ import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
 import { TestCaseView } from "@/features/testcases/TestCaseView";
+import { RatingView } from "@/features/risks/RatingView";
 import { CaseResults } from "@/features/tests/CaseResults";
 import { useFieldAccess } from "@/features/types/fieldAccess";
 import { LockAction, LockBanner } from "./LockBanner";
@@ -197,6 +198,7 @@ function Content({ project, requirement }: { project: Project; requirement: Requ
         </section>
       )}
       {requirement.testCase && <TestCaseView content={requirement.testCase} />}
+      {requirement.risk && <RatingView view={requirement.risk} />}
       {requirement.testCase && <CaseResults projectKey={requirement.projectKey} caseKey={requirement.key} />}
       {attributes && <AttributeValues attributes={attributes} values={{ ...(requirement.attributes as Values), ...(requirement.computed as Values) }} />}
     </Card>

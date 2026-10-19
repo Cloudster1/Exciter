@@ -206,7 +206,16 @@ func (s *Service) take(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur, sr
 	if err != nil {
 		return err
 	}
-	next := Normative{Title: src.Title, Statement: src.Statement, Rationale: src.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes, Test: test}
+	// A rating comes along as far as this project's scales hold its values.
+	rating, err := ratingFor(ctx, tx, cur.typeID(), src.risk)
+	if err != nil {
+		return err
+	}
+	if rating, err = fitRating(ctx, tx, cur.projectID, rating); err != nil {
+		return err
+	}
+	next := Normative{Title: src.Title, Statement: src.Statement, Rationale: src.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes,
+		Test: test, Risk: rating}
 	files, err := s.filesShown(ctx, tx, src)
 	if err != nil {
 		return err
@@ -229,10 +238,14 @@ func (s *Service) take(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur, sr
 	if err != nil {
 		return err
 	}
+	encodedRating, err := next.Risk.column()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE requirement SET title = $2, statement = $3, rationale = $4, normative_hash = $5, updated_by = $6,
-		    reuse_revision = $7, reuse_state = 'following', preconditions = $8, steps = $9, parameters = $10
-		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, hash, actor, src.Revision, pre, steps, params); err != nil {
+		    reuse_revision = $7, reuse_state = 'following', preconditions = $8, steps = $9, parameters = $10, risk = $11
+		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, hash, actor, src.Revision, pre, steps, params, encodedRating); err != nil {
 		return fmt.Errorf("take %s into %s: %w", src.Key, cur.Key, err)
 	}
 	if len(files) > 0 {

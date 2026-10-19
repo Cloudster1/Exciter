@@ -56,6 +56,8 @@ type world struct {
 	defs      []attribute.Def
 	types     map[uuid.UUID]named
 	testTypes map[uuid.UUID]bool
+	// riskTypes are the project's types marked as risks (#259).
+	riskTypes map[uuid.UUID]bool
 	linkTypes map[uuid.UUID]linkType
 	statuses  map[uuid.UUID]named
 	// workflow lists the statuses of the workflow each type follows, and uuid.Nil the project's own.
@@ -74,7 +76,7 @@ type world struct {
 
 // loadWorld reads the project as actor sees it, in the transaction tx.
 func loadWorld(ctx context.Context, tx db.DBTX, p *project.Project) (*world, error) {
-	w := &world{project: p, types: map[uuid.UUID]named{}, testTypes: map[uuid.UUID]bool{}, linkTypes: map[uuid.UUID]linkType{}, statuses: map[uuid.UUID]named{},
+	w := &world{project: p, types: map[uuid.UUID]named{}, testTypes: map[uuid.UUID]bool{}, riskTypes: map[uuid.UUID]bool{}, linkTypes: map[uuid.UUID]linkType{}, statuses: map[uuid.UUID]named{},
 		workflow: map[uuid.UUID]map[uuid.UUID]bool{}, members: map[string]uuid.UUID{}, existing: map[uuid.UUID]*existing{},
 		children: map[uuid.UUID][]uuid.UUID{}, links: map[linkKey]bool{}, ties: map[string]map[string]tie{}, keys: map[string]uuid.UUID{}}
 	var err error
@@ -99,6 +101,7 @@ func (w *world) readNamed(ctx context.Context, tx db.DBTX) error {
 		{`SELECT id, name FROM requirement_type WHERE project_id = $1 AND NOT retired`, func(id uuid.UUID, name string) { w.types[id] = named{id, name} }},
 		{`SELECT id, name FROM req_status WHERE project_id = $1`, func(id uuid.UUID, name string) { w.statuses[id] = named{id, name} }},
 		{`SELECT id, name FROM requirement_type WHERE project_id = $1 AND role = 'testCase'`, func(id uuid.UUID, _ string) { w.testTypes[id] = true }},
+		{`SELECT id, name FROM requirement_type WHERE project_id = $1 AND role = 'risk'`, func(id uuid.UUID, _ string) { w.riskTypes[id] = true }},
 		{`SELECT u.id, lower(u.email::text) FROM app_user u
 		  WHERE u.role IS NOT NULL AND u.is_active AND perm_project_holds($1, u.id, 'view')`, func(id uuid.UUID, email string) { w.members[email] = id }},
 	} {

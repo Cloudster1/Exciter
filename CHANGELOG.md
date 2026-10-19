@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Risks and their ratings (#259). A project's administrators mark a
+  requirement type as risks and set the project's risk scheme: the values
+  of severity, probability and, if wanted, detection, the levels with their
+  colours, and a matrix or a priority number with thresholds that gives a
+  rating its level. A risk is rated before and after mitigation; the rating
+  is part of each revision and its hash, history compares it value by
+  value, and the document, Word, Markdown, CSV and ReqIF carry it. Queries
+  ask for severity, probability, detection, the priority number and the
+  level. A value a rating uses stays on its scale.
 - The API contract for M13, Risk management (#258):
   `docs/api-contract-m13.md` agrees how a requirement type marked as risks
   gives its requirements a rating before and after mitigation on the scales

@@ -19,6 +19,7 @@ import { chainsDe } from "./chains.de";
 import { dashboardDe } from "./dashboard.de";
 import { templatesDe } from "./templates.de";
 import { testcasesDe } from "./testcases.de";
+import { risksDe } from "./risks.de";
 import { testsDe } from "./tests.de";
 import { graphDe } from "./graph.de";
 import { reuseDe } from "./reuse.de";
@@ -360,6 +361,7 @@ export const de: Messages = {
       "project.language_set": "Projektsprache festgelegt",
       "quality_settings.saved": "Schreibregeln festgelegt",
       "code_tag_words.saved": "Code-Tag-Wörter festgelegt",
+      "risk_scheme.saved": "Risikoschema festgelegt",
     },
     targetTypes: {
       user: "Person",
@@ -419,6 +421,7 @@ export const de: Messages = {
   dashboard: dashboardDe,
   templates: templatesDe,
   testcases: testcasesDe,
+  risks: risksDe,
   tests: testsDe,
   graph: graphDe,
   imports: importsDe,

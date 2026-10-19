@@ -186,6 +186,33 @@ take them.
   by name, and the level each gives as it is chosen.
 - The requirement page shows them; history shows what changed.
 
+### As built (#259)
+
+- **Migrations**: `01260_risk_scheme.sql` adds `risk_scheme`,
+  `risk_scale_level`, `risk_level` and `risk_matrix_cell`, kept by
+  `risk_scheme_keeper`, and `risk_rpn`, `risk_level_of` and
+  `risk_level_ref`, plain SQL so a query over many risks inlines them.
+  `01261_risk_ratings.sql` adds the role `risk` and `risk` to `requirement`
+  and `requirement_revision`, guarded by `requirement_risk_fields`,
+  `risk_scale_level_held` and `risk_scheme_detection_held`;
+  `requirement_type_role_held` now holds either role through
+  `requirement_type_role_holds`; `risk_view` answers a rating's priority
+  numbers and levels.
+- **The API** answers a risk's rating as one object, `risk`: `before` and
+  `after` with their values, `beforeRpn`, `afterRpn`, `beforeLevel`,
+  `afterLevel`, and `state` and `level`, which a revision leaves null. It is
+  written as `before` and `after`, replacing the rating whole; empty clears
+  it. A scheme's scales answer `held`, the values a rating uses.
+- **Saving a scheme** keeps each value by its number, renamed as sent, and
+  lays the levels and the matrix anew, the matrix naming each cell's level.
+- **Copies, reuse and restores** keep the values the target project's scales
+  hold and drop the rest; a move refuses instead.
+- **CSV** names the columns `severity`, `probability`, `detection`,
+  `severityAfter`, `probabilityAfter` and `detectionAfter`; **ReqIF** names
+  its field `Risk`.
+- **Web**: the type form picks a role from requirements, test cases and
+  risks; Settings, Risks starts from a five by five matrix.
+
 ## #260 Mitigations, the FMEA table and the risk matrix
 
 | Operation | Needs | Answers |

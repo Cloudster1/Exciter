@@ -30,13 +30,21 @@ const (
 	TargetPreconditions = "preconditions"
 	TargetSteps         = "steps"
 	TargetParameters    = "parameters"
+	// TargetSeverity and the others rate a risk before and after mitigation (#259).
+	TargetSeverity         = "severity"
+	TargetProbability      = "probability"
+	TargetDetection        = "detection"
+	TargetSeverityAfter    = "severityAfter"
+	TargetProbabilityAfter = "probabilityAfter"
+	TargetDetectionAfter   = "detectionAfter"
 	// AttributePrefix names an attribute's target, followed by its name.
 	AttributePrefix = "attr:"
 )
 
 // BuiltInTargets are the targets every project has, in the order a mapping offers them.
 var BuiltInTargets = []string{TargetKey, TargetKind, TargetTitle, TargetStatement, TargetRationale, TargetType, TargetStatus,
-	TargetOwner, TargetPriority, TargetLabels, TargetParent, TargetOutline, TargetLinks, TargetPreconditions, TargetSteps, TargetParameters}
+	TargetOwner, TargetPriority, TargetLabels, TargetParent, TargetOutline, TargetLinks, TargetPreconditions, TargetSteps, TargetParameters,
+	TargetSeverity, TargetProbability, TargetDetection, TargetSeverityAfter, TargetProbabilityAfter, TargetDetectionAfter}
 
 // manyValued are the targets several columns may fill at once.
 var manyValued = map[string]bool{TargetLabels: true, TargetLinks: true}
@@ -131,6 +139,10 @@ var aliases = map[string]string{
 	"links": TargetLinks, "link": TargetLinks, "trace links": TargetLinks,
 	"preconditions": TargetPreconditions, "precondition": TargetPreconditions,
 	"steps": TargetSteps, "test steps": TargetSteps, "parameters": TargetParameters,
+	"severity": TargetSeverity, "probability": TargetProbability, "occurrence": TargetProbability, "detection": TargetDetection,
+	"severityafter": TargetSeverityAfter, "severity after": TargetSeverityAfter,
+	"probabilityafter": TargetProbabilityAfter, "probability after": TargetProbabilityAfter, "occurrence after": TargetProbabilityAfter,
+	"detectionafter": TargetDetectionAfter, "detection after": TargetDetectionAfter,
 }
 
 // Guess maps headers to targets by name, case aside, so a file exported from here maps itself. A file with a

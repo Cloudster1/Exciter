@@ -18,6 +18,8 @@ type typeTarget struct {
 	create string
 	// testCases says the file's type carries what test cases do (#250), so a type made for it is one of test cases.
 	testCases bool
+	// risks says the file's type carries a rating (#259), so a type made for it is one of risks.
+	risks bool
 	// none is the type an export writes for requirements without one.
 	none bool
 }
@@ -195,6 +197,8 @@ func (a *analysis) resolveType(t *SpecType, count int) {
 	for _, d := range t.Attributes {
 		if f := fieldOf(d); f == fieldSteps || f == fieldPreconditions || f == fieldParameters {
 			target.testCases = true
+		} else if f == fieldRisk {
+			target.risks = true
 		}
 	}
 	target.item = a.appendItem(item)

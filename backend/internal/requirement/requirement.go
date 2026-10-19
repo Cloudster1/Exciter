@@ -118,6 +118,8 @@ type Requirement struct {
 	Computed map[string]json.RawMessage `json:"computed"`
 	// TestCase is what a test case carries (#250), null unless its type is marked as test cases.
 	TestCase *TestCase `json:"testCase"`
+	// Risk is a risk's rating with its levels (#259), null unless its type is marked as risks.
+	Risk *RiskView `json:"risk"`
 	// Revision is the number of the latest revision, from 1.
 	Revision int        `json:"revision"`
 	Status   *StatusRef `json:"status"`
@@ -225,6 +227,8 @@ type CreateInput struct {
 	Labels            []string                   `json:"labels,omitempty"`
 	// TestCase is what a test case carries (#250); only a requirement of a test-case type takes it.
 	TestCase *TestCase `json:"testCase,omitempty"`
+	// Risk is a risk's rating (#259); only a requirement of a risk type takes it.
+	Risk *Rating `json:"risk,omitempty"`
 	// Place is where it goes; left out, it goes last at the top level.
 	Place *Place `json:"place,omitempty"`
 	// Comment goes with revision 1.
@@ -251,6 +255,8 @@ type UpdateInput struct {
 	Priority json.RawMessage `json:"priority,omitempty"`
 	// TestCase changes what a test case carries (#250): a field left out stays, null or empty clears it.
 	TestCase *TestCase `json:"testCase,omitempty"`
+	// Risk replaces a risk's rating whole (#259); left out it stays, empty clears it.
+	Risk *Rating `json:"risk,omitempty"`
 	// BaseRevision is the revision the change was made from; a newer one refuses it.
 	BaseRevision *int `json:"baseRevision,omitempty"`
 	// Comment goes with the revision the save writes, if it writes one.
@@ -322,6 +328,8 @@ type SpecEntry struct {
 	Lock *Lock `json:"lock"`
 	// TestCase is what a test case carries (#250), null unless its type is marked as test cases.
 	TestCase *TestCase `json:"testCase"`
+	// Risk is a risk's rating with its levels (#259), null unless its type is marked as risks.
+	Risk *RiskView `json:"risk"`
 }
 
 // SpecReview is a requirement's pending review as the document shows it to its reader.
@@ -365,6 +373,8 @@ type Revision struct {
 	Attributes map[string]json.RawMessage `json:"attributes"`
 	// TestCase is what the revision of a test case carried (#250), null for any other.
 	TestCase *TestCase `json:"testCase"`
+	// Risk is what the revision of a risk was rated (#259), with the levels the scheme gives it now; null for any other.
+	Risk *RiskView `json:"risk"`
 }
 
 // RestoreInput writes an older revision's content as the next revision.
@@ -430,6 +440,8 @@ type Comparison struct {
 	Preconditions []DiffBlock     `json:"preconditions"`
 	Steps         []StepDiff      `json:"steps"`
 	Parameters    []ParameterDiff `json:"parameters"`
+	// Risk lists each value of a risk's rating that changed (#259); empty for any other.
+	Risk []RiskDiff `json:"risk"`
 }
 
 // ActivityKind says what an activity entry records.

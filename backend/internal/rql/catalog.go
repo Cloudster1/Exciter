@@ -125,6 +125,30 @@ const (
 	runOutdated = "(CASE WHEN (SELECT x.revision FROM test_case_last_run(r.id) x) < r.revision THEN 'true' ELSE 'false' END)"
 )
 
+// A risk, the values of its rating before and after mitigation, their priority numbers and levels (#259).
+const (
+	isRisk = "(CASE WHEN r.kind = 'requirement' AND EXISTS (SELECT 1 FROM requirement_type x WHERE x.id = r.type_id AND x.role = 'risk')" +
+		" THEN 'true' ELSE 'false' END)"
+	riskDetection = "(SELECT s.detection FROM risk_scheme s WHERE s.project_id = r.project_id)"
+	// riskEffective is the side of a rating in effect; until mitigations (#260) the one before.
+	riskEffective = "r.risk->'before'"
+)
+
+// riskValue is one value of one side of a rating.
+func riskValue(side, dimension string) string {
+	return "(r.risk->'" + side + "'->>'" + dimension + "')::integer"
+}
+
+// riskRPN is the priority number of one side of a rating.
+func riskRPN(side string) string { return "risk_rpn(" + side + ", " + riskDetection + ")" }
+
+// riskLevel is the level one side of a rating gives, ordered from the least to the most severe.
+func riskLevel(name, side string) fieldDef {
+	column := "risk_level_of(r.project_id, " + side + ")"
+	return fieldDef{name: name, kind: fkName, column: column, table: "risk_level", empty: true,
+		order: "(SELECT x.position FROM risk_level x WHERE x.id = " + column + ")"}
+}
+
 // runOutcomes are a test case's last results, worst first, as trace.RunOutcomes; truths answer a yes or no field.
 var (
 	runOutcomes = []string{"failed", "blocked", "none", "skipped", "passed"}
@@ -168,6 +192,18 @@ var fixed = []fieldDef{
 	{name: "runResult", kind: fkEnum, column: runResult, enum: runOutcomes},
 	{name: "runOutdated", kind: fkEnum, column: runOutdated, enum: truths},
 	{name: "casesResult", kind: fkEnum, column: "requirement_cases_result(r.id)", enum: runOutcomes},
+	{name: "risk", kind: fkEnum, column: isRisk, enum: truths},
+	{name: "severity", kind: fkNumber, column: riskValue("before", "severity"), order: riskValue("before", "severity"), empty: true},
+	{name: "probability", kind: fkNumber, column: riskValue("before", "probability"), order: riskValue("before", "probability"), empty: true},
+	{name: "detection", kind: fkNumber, column: riskValue("before", "detection"), order: riskValue("before", "detection"), empty: true},
+	{name: "rpn", kind: fkNumber, column: riskRPN("r.risk->'before'"), order: riskRPN("r.risk->'before'"), empty: true},
+	{name: "severityAfter", kind: fkNumber, column: riskValue("after", "severity"), order: riskValue("after", "severity"), empty: true},
+	{name: "probabilityAfter", kind: fkNumber, column: riskValue("after", "probability"), order: riskValue("after", "probability"), empty: true},
+	{name: "detectionAfter", kind: fkNumber, column: riskValue("after", "detection"), order: riskValue("after", "detection"), empty: true},
+	{name: "rpnAfter", kind: fkNumber, column: riskRPN("r.risk->'after'"), order: riskRPN("r.risk->'after'"), empty: true},
+	riskLevel("riskLevelBefore", "r.risk->'before'"),
+	riskLevel("riskLevelAfter", "r.risk->'after'"),
+	riskLevel("riskLevel", riskEffective),
 	{name: "codeLink", kind: fkNumber, column: codeLinks, order: codeLinks},
 	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
 	{name: "quality", kind: fkNumber, column: qualityScore, order: qualityScore, empty: true},

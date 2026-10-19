@@ -53,14 +53,16 @@ type objectPlan struct {
 	Preconditions json.RawMessage
 	Steps         json.RawMessage
 	Parameters    *string
-	TypeRef       string
-	TypeID        *uuid.UUID
-	Attributes    map[string]json.RawMessage
-	Status        *uuid.UUID
-	Owner         *uuid.UUID
-	OwnerSet      bool
-	Priority      *requirement.Priority
-	Labels        []string
+	// Risk is a risk's rating as the file writes it (#259).
+	Risk       *string
+	TypeRef    string
+	TypeID     *uuid.UUID
+	Attributes map[string]json.RawMessage
+	Status     *uuid.UUID
+	Owner      *uuid.UUID
+	OwnerSet   bool
+	Priority   *requirement.Priority
+	Labels     []string
 	// rich are the rich text values by field or attribute id, read again once the files they show are attachments.
 	rich   map[string]*XNode
 	Images bool
@@ -305,6 +307,7 @@ func (a *analysis) planObject(o *Object, parent string) {
 	}
 	a.planTitle(p, o, name, chapter)
 	a.settleTestCase(p, where)
+	a.settleRisk(p, where)
 	if p.Kind == requirement.KindRequirement && p.Existing == nil {
 		a.checkRequired(p)
 	}

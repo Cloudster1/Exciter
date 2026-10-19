@@ -30,7 +30,7 @@ test.describe("test cases", { tag: "@desktop" }, () => {
     await page.getByRole("button", { name: "New type" }).click();
     const form = page.locator("[data-type-form]");
     await form.getByLabel("Name", { exact: true }).fill("Test case");
-    await form.getByLabel("Its requirements are test cases").check();
+    await form.getByLabel("Its requirements are").selectOption({ label: "Test cases" });
     await form.locator('[data-action="save-type"]').click();
     await expect(page.locator('[data-type="Test case"] [data-test-case-type]')).toBeVisible();
 

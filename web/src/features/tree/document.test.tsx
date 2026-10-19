@@ -93,6 +93,7 @@ describe("editing in the document", () => {
             preconditions: [],
             steps: [],
             parameters: [],
+            risk: [],
             attributes: [],
           },
         },
@@ -365,6 +366,7 @@ const payChange = {
     preconditions: [],
     steps: [],
     parameters: [],
+    risk: [],
     attributes: [{ attributeId: "a1", name: "Risk", change: "modified" as const, from: "low", to: "high", fromText: "Low", toText: "High" }],
   },
 };

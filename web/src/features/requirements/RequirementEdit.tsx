@@ -20,10 +20,14 @@ import { t } from "@/i18n";
 import { useFieldAccess } from "@/features/types/fieldAccess";
 import { TestCaseFields } from "@/features/testcases/TestCaseFields";
 import { contentOf, draftOf, holdsAnything, type TestCaseDraft } from "@/features/testcases/draft";
+import { RatingFields } from "@/features/risks/RatingFields";
+import { draftRating, rated } from "@/features/risks/level";
+import { riskError } from "@/features/risks/errors";
+import type { Rating } from "@/api/risks";
 
 /** What an edit starts from, which a requirement's page and a specification entry both hold. */
 export type Editable = Pick<Requirement, "key" | "kind" | "title" | "statement" | "rationale" | "type" | "attributes" | "revision" | "reuse" | "status"> &
-  Partial<Pick<Requirement, "computed" | "testCase">>;
+  Partial<Pick<Requirement, "computed" | "testCase" | "risk">>;
 
 /** Changes what the requirement says over the revision it was opened at; a newer one refuses the save, and the draft stays. */
 export function RequirementEdit({
@@ -68,6 +72,11 @@ export function RequirementEdit({
   const isTest = (types ?? []).some((type) => type.id === typeId && type.role === "testCase");
   const testOpened = useRef(JSON.stringify(contentOf(draftOf(requirement.testCase))));
   const testChanged = JSON.stringify(contentOf(testCase)) !== testOpened.current;
+  const [rating, setRating] = useState<Rating>(() => draftRating(requirement.risk));
+  // A type marked as risks gives its requirements a rating (#259).
+  const isRisk = (types ?? []).some((type) => type.id === typeId && type.role === "risk");
+  const ratingOpened = useRef(JSON.stringify(draftRating(requirement.risk)));
+  const ratingChanged = JSON.stringify(rating) !== ratingOpened.current;
   const conflict = update.error instanceof ApiError && update.error.code === "revision_conflict";
   // A reuse that follows its library source takes its words from there, so only the rest is edited here (#49).
   const locked = requirement.reuse?.state === "following";
@@ -86,7 +95,8 @@ export function RequirementEdit({
     JSON.stringify(statement) !== JSON.stringify(opened.current.statement) ||
     JSON.stringify(rationale) !== JSON.stringify(opened.current.rationale) ||
     JSON.stringify(values) !== JSON.stringify(opened.current.values) ||
-    (isTest && testChanged);
+    (isTest && testChanged) ||
+    (isRisk && ratingChanged);
   useEffect(() => onDirty?.(dirty), [dirty, onDirty]);
 
   // The draft is checked as it is typed (#207); a finding the saved revision has too may be accepted from here.
@@ -112,6 +122,7 @@ export function RequirementEdit({
       );
       if (Object.keys(changed).length > 0) changes.attributes = changed;
       if (isTest && testChanged && !locked) changes.testCase = contentOf(testCase);
+      if (isRisk && ratingChanged && !locked) changes.risk = rating;
     }
     update.mutate(changes, {
       onSuccess: (saved) => onDone(saved.revision > requirement.revision ? t.requirements.saved(saved.revision) : t.requirements.savedNoRevision, saved),
@@ -251,6 +262,14 @@ export function RequirementEdit({
         )}
         {requirement.kind === "requirement" && !locked && isTest && (
           <TestCaseFields value={testCase} onChange={setTestCase} errors={fields} upload={files.upload} />
+        )}
+        {requirement.kind === "requirement" && !locked && isRisk && (
+          <RatingFields projectKey={project.key} value={rating} onChange={setRating} error={riskError(fields)} />
+        )}
+        {requirement.kind === "requirement" && !isRisk && typeId !== requirement.type?.id && rated(rating) && (
+          <p role="status" className="text-sm text-ink-muted" data-rating-dropped="">
+            {t.risks.dropped}
+          </p>
         )}
         {requirement.kind === "requirement" && !isTest && typeId !== requirement.type?.id && holdsAnything(testCase) && (
           <p role="status" className="text-sm text-ink-muted" data-steps-dropped="">

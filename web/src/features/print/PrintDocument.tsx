@@ -9,6 +9,7 @@ import { cx } from "@/components/ui";
 import { localDateFormat } from "@/lib/format";
 import { usePrintReady } from "./printReady";
 import { TestCaseView } from "@/features/testcases/TestCaseView";
+import { RatingView } from "@/features/risks/RatingView";
 
 // The views the render service prints a document from, as Stator prints a page: the document alone, with no shell,
 // in the light scheme on paper. The running header and footer are drawn by the browser from the meta stated here.
@@ -235,6 +236,7 @@ function Entry({ entry: e, held }: { entry: DocumentEntry; held: Set<string> }) 
         </div>
       )}
       {e.testCase && <TestCaseView content={e.testCase} small />}
+      {e.risk && <RatingView view={e.risk} small />}
       {e.properties.length > 0 && (
         <table className="print-properties w-full text-sm" data-print-properties="">
           <tbody>

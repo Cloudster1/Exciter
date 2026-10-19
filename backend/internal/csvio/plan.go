@@ -41,6 +41,8 @@ type plan struct {
 	Links     []planLink
 	// TestCase is what the row says a test case carries, nil when its cells say nothing of it.
 	TestCase *requirement.TestCase
+	// Risk is what the row rates a risk, nil when its cells say nothing of it.
+	Risk *requirement.Rating
 }
 
 // planLink is a link the row asks for, from it to the other end.
@@ -168,6 +170,7 @@ func (w *world) planRow(row Row, m Mapping, c Choices, headers []string) (plan, 
 		}
 	}
 	w.planTestCase(row, m, &p, section, refuse)
+	w.planRisk(row, m, &p, section, refuse)
 	if len(m[TargetParent]) > 0 {
 		p.ParentSet, p.Parent = true, strings.ToUpper(row.value(m, TargetParent))
 	}

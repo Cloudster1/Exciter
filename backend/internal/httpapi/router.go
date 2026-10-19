@@ -38,6 +38,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
+	"github.com/cloudster1/exciter/backend/internal/risk"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
@@ -142,6 +143,8 @@ type Server struct {
 	ExportTemplates *exporttemplate.Service
 	// Tests keeps test plans and executions (#251); nil answers their routes that they are not set up.
 	Tests *testexec.Service
+	// Risks keeps the projects' risk schemes (#259).
+	Risks *risk.Service
 	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
 	Renderer render.Renderer
 	// handler is the router Routes built, which MCP sends each tool call through.
@@ -388,6 +391,9 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/coverage-rules", s.handleListCoverageRules)
 			r.Put("/projects/{projectKey}/coverage-rules", s.handleSaveCoverageRule)
 			r.Delete("/coverage-rules/{ruleID}", s.handleDeleteCoverageRule)
+			// A project's risk scheme (#259): read by its readers, set by its administrators.
+			r.Get("/projects/{projectKey}/risk-scheme", s.handleGetRiskScheme)
+			r.Put("/projects/{projectKey}/risk-scheme", s.handleSaveRiskScheme)
 			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
 			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
 			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)

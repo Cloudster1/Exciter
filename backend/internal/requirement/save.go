@@ -65,6 +65,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 	if kind == KindSection && in.TestCase != nil && !in.TestCase.Empty() {
 		return nil, 0, errNotTestCase
 	}
+	if kind == KindSection && in.Risk != nil && !in.Risk.Empty() {
+		return nil, 0, errNotRisk
+	}
 	if kind == KindSection && (in.OwnerID != nil || in.Priority != nil) {
 		return nil, 0, &FieldError{"ownerId", "A section has no owner or priority. Give them to the requirements in it."}
 	}
@@ -115,6 +118,9 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			if content.Test, err = testOf(ctx, tx, content.TypeID, in.TestCase, markdown.Resolve{Person: markdown.Members(ctx, tx)}); err != nil {
 				return err
 			}
+			if content.Risk, err = ratingOf(ctx, tx, p.ID, content.TypeID, in.Risk); err != nil {
+				return err
+			}
 		}
 		hash := content.Hash()
 		attrs, err := json.Marshal(content.Attributes)
@@ -122,6 +128,10 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 			return err
 		}
 		pre, steps, params, err := content.Test.columns()
+		if err != nil {
+			return err
+		}
+		rating, err := content.Risk.column()
 		if err != nil {
 			return err
 		}
@@ -141,17 +151,17 @@ func (s *Service) Create(ctx context.Context, actor uuid.UUID, projectKey string
 		var id uuid.UUID
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
-			                         parent_id, rank, created_by, updated_by, preconditions, steps, parameters)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $14, $15, $16) RETURNING id`,
+			                         parent_id, rank, created_by, updated_by, preconditions, steps, parameters, risk)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $14, $15, $16, $17) RETURNING id`,
 			p.ID, kind, title, statement, rationale, content.TypeID, attrs, hash, in.OwnerID, in.Priority, parent, at, actor,
-			pre, steps, params).Scan(&id); err != nil {
-			return fmt.Errorf("write the requirement: %w", treeRefusal(err))
+			pre, steps, params, rating).Scan(&id); err != nil {
+			return fmt.Errorf("write the requirement: %w", ratingRefusal(treeRefusal(err)))
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by,
-			                                  preconditions, steps, parameters)
-			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor,
-			pre, steps, params); err != nil {
+			                                  preconditions, steps, parameters, risk)
+			VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, id, title, statement, rationale, content.TypeID, attrs, hash, comment, actor,
+			pre, steps, params, rating); err != nil {
 			return fmt.Errorf("write revision 1: %w", err)
 		}
 		if err := quality.Record(ctx, tx, id, 1); err != nil {
@@ -248,7 +258,8 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 				return err
 			}
 		}
-		next := Normative{Title: cur.Title, Statement: cur.Statement, Rationale: cur.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes, Test: cur.test}
+		next := Normative{Title: cur.Title, Statement: cur.Statement, Rationale: cur.Rationale, TypeID: cur.typeID(), Attributes: cur.Attributes,
+			Test: cur.test, Risk: cur.risk}
 		if in.Title != nil {
 			if next.Title, err = checkTitle(*in.Title); err != nil {
 				return err
@@ -308,6 +319,19 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, key string, in Up
 		} else if typeChanged(cur, next.TypeID) {
 			// A type that is not one of test cases takes nothing a test case carries.
 			if next.Test, err = testFor(ctx, tx, next.TypeID, next.Test); err != nil {
+				return err
+			}
+		}
+		if in.Risk != nil && cur.Kind == KindSection && !in.Risk.Empty() {
+			return errNotRisk
+		}
+		if in.Risk != nil {
+			if next.Risk, err = ratingOf(ctx, tx, cur.projectID, next.TypeID, in.Risk); err != nil {
+				return err
+			}
+		} else if typeChanged(cur, next.TypeID) {
+			// A type that is not one of risks takes no rating.
+			if next.Risk, err = ratingFor(ctx, tx, next.TypeID, next.Risk); err != nil {
 				return err
 			}
 		}
@@ -377,11 +401,15 @@ func (s *Service) revise(ctx context.Context, tx db.DBTX, actor uuid.UUID, cur *
 	if err != nil {
 		return err
 	}
+	rating, err := next.Risk.column()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
-		    preconditions = $9, steps = $10, parameters = $11
-		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, actor, pre, steps, params); err != nil {
-		return fmt.Errorf("change %s: %w", cur.Key, testCaseRefusal(err))
+		    preconditions = $9, steps = $10, parameters = $11, risk = $12
+		WHERE id = $1`, cur.ID, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, actor, pre, steps, params, rating); err != nil {
+		return fmt.Errorf("change %s: %w", cur.Key, ratingRefusal(testCaseRefusal(err)))
 	}
 	return s.recordRevision(ctx, tx, actor, cur, next, hash, comment)
 }
@@ -396,12 +424,16 @@ func (s *Service) recordRevision(ctx context.Context, tx db.DBTX, actor uuid.UUI
 	if err != nil {
 		return err
 	}
+	rating, err := next.Risk.column()
+	if err != nil {
+		return err
+	}
 	number := cur.Revision + 1
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, created_by,
-		                                  preconditions, steps, parameters)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor, pre, steps, params); err != nil {
+		                                  preconditions, steps, parameters, risk)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		cur.ID, number, next.Title, next.Statement, next.Rationale, next.TypeID, attrs, hash, comment, actor, pre, steps, params, rating); err != nil {
 		return fmt.Errorf("write revision %d of %s: %w", number, cur.Key, err)
 	}
 	if err := quality.Record(ctx, tx, cur.ID, number); err != nil {

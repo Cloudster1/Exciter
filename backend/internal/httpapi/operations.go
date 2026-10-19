@@ -407,8 +407,8 @@ var operations = []operation{
 		summary: "Write an older revision's content again as the next revision, which records the one it restored.",
 		request: requirement.RestoreInput{}, responses: map[int]any{http.StatusOK: env{"requirement": requirement.Requirement{}, "revision": requirement.RevisionEntry{}}, http.StatusConflict: errorEnvelope{}}},
 	{method: "GET", path: "/requirements/{reqKey}/diff", handler: "handleDiffRevisions", tag: "history",
-		summary: "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's preconditions, steps one by one, and parameters.",
-		tool:    "diff_revisions", toolHelp: "What changed between two revisions of a requirement: statement, rationale, type and attributes, and a test case's steps one by one.",
+		summary: "What changed between two revisions of a requirement: statement, rationale, type and attributes, a test case's preconditions, steps one by one, and parameters, and a risk's rating value by value.",
+		tool:    "diff_revisions", toolHelp: "What changed between two revisions of a requirement: statement, rationale, type and attributes, a test case's steps one by one, and a risk's rating.",
 		query: []param{
 			{name: "from", schema: intParam, description: "A revision number, 0 for the empty requirement; the one before to when absent."},
 			{name: "to", schema: intParam, description: "A revision number; the latest when absent."},

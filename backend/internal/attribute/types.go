@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,7 +18,7 @@ import (
 const selectType = `
 SELECT t.id, t.name, t.description, t.icon, t.colour, t.position, t.retired, t.created_at, t.updated_at,
        (SELECT count(*)::int FROM requirement r WHERE r.type_id = t.id AND r.trashed_at IS NULL), t.role,
-       EXISTS (SELECT 1 FROM requirement r WHERE r.type_id = t.id AND requirement_holds_test(r.preconditions, r.steps, r.parameters))
+       requirement_type_role_holds(t.id)
 FROM requirement_type t`
 
 func scanType(row pgx.CollectableRow) (Type, error) {
@@ -91,8 +92,8 @@ func applyType(t *Type, in TypeInput) error {
 		t.Colour = colour
 	}
 	if in.Role != nil {
-		if *in.Role != RoleRequirement && *in.Role != RoleTestCase {
-			return &FieldError{"role", "Mark the type as one of requirements or of test cases."}
+		if !slices.Contains(TypeRoles, *in.Role) {
+			return &FieldError{"role", "Mark the type as one of requirements, test cases or risks."}
 		}
 		t.Role = *in.Role
 	}
@@ -222,8 +223,9 @@ func (s *Service) DeleteType(ctx context.Context, actor uuid.UUID, projectKey st
 	})
 }
 
-// ErrRoleHeld refuses turning a type back into one of requirements while its requirements carry steps.
-var ErrRoleHeld = errors.New("the type's requirements carry steps")
+// ErrRoleHeld refuses changing a type's role while its requirements carry what only that role gives: steps or a
+// rating.
+var ErrRoleHeld = errors.New("the type's requirements carry what only its role gives")
 
 func roleHeld(err error) bool {
 	var pgErr *pgconn.PgError

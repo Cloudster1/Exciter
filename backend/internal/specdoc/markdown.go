@@ -112,6 +112,9 @@ func (e Entry) markdown() string {
 			parts = append(parts, "**Steps**", written(requirement.StepsTable(t.Steps, "Action", "Expected result")))
 		}
 	}
+	if v := e.Risk; v != nil {
+		parts = append(parts, "**Risk**", written(requirement.RatingTable(*v, requirement.EnglishRatingWords)))
+	}
 	if len(e.Links) > 0 {
 		links := make([]string, len(e.Links))
 		for i, l := range e.Links {

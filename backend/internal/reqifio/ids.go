@@ -68,6 +68,8 @@ const (
 	fieldPreconditions = "preconditions"
 	fieldSteps         = "steps"
 	fieldParameters    = "parameters"
+	// fieldRisk is a risk's rating (#259), as requirement.RatingText writes it.
+	fieldRisk = "risk"
 )
 
 // The attribute names of the ReqIF Implementation Guide that most tools write, and what each fills.
@@ -82,7 +84,7 @@ var standardFields = map[string]string{
 var fieldNames = map[string]string{
 	fieldKey: "ReqIF.ForeignID", fieldTitle: "ReqIF.Name", fieldChapter: "ReqIF.ChapterName", fieldStatement: "ReqIF.Text",
 	fieldRationale: "Rationale", fieldStatus: "Status", fieldPriority: "Priority", fieldOwner: "Owner", fieldLabels: "Labels",
-	fieldPreconditions: "Preconditions", fieldSteps: "Steps", fieldParameters: "Parameters",
+	fieldPreconditions: "Preconditions", fieldSteps: "Steps", fieldParameters: "Parameters", fieldRisk: "Risk",
 }
 
 // fieldOf is the field an attribute definition fills, empty for an attribute of its own.

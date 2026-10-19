@@ -143,3 +143,48 @@ func ParametersOf(text string) []Parameter {
 	}
 	return out
 }
+
+// RatingWords are the headings a rating's table is written with, in the reader's language.
+type RatingWords struct {
+	Rating, Before, After, Severity, Probability, Detection, RPN, Level string
+}
+
+// RatingTable is a risk's rating as a table (#259): a row each for before and after mitigation, a column a value,
+// then the priority number and the level; detection only when a side gives it.
+func RatingTable(v RiskView, words RatingWords) json.RawMessage {
+	detection := v.Before.Detection != nil || v.After.Detection != nil
+	header := []document.Node{headerCell(words.Rating), headerCell(words.Severity), headerCell(words.Probability)}
+	if detection {
+		header = append(header, headerCell(words.Detection))
+	}
+	header = append(header, headerCell(words.RPN), headerCell(words.Level))
+	rows := []document.Node{{Type: "tableRow", Content: header}}
+	number := func(n *int) string {
+		if n == nil {
+			return "-"
+		}
+		return strconv.Itoa(*n)
+	}
+	for _, side := range []struct {
+		name  string
+		side  Side
+		rpn   *int
+		level *RiskLevel
+	}{{words.Before, v.Before, v.BeforeRPN, v.BeforeLevel}, {words.After, v.After, v.AfterRPN, v.AfterLevel}} {
+		row := []document.Node{textCell("tableCell", side.name), textCell("tableCell", number(side.side.Severity)), textCell("tableCell", number(side.side.Probability))}
+		if detection {
+			row = append(row, textCell("tableCell", number(side.side.Detection)))
+		}
+		level := "-"
+		if side.level != nil {
+			level = side.level.Name
+		}
+		row = append(row, textCell("tableCell", number(side.rpn)), textCell("tableCell", level))
+		rows = append(rows, document.Node{Type: "tableRow", Content: row})
+	}
+	return tableDoc(rows)
+}
+
+// EnglishRatingWords head a rating's table where no language is chosen, as in Markdown.
+var EnglishRatingWords = RatingWords{Rating: "Rating", Before: "Before", After: "After", Severity: "Severity", Probability: "Probability",
+	Detection: "Detection", RPN: "RPN", Level: "Level"}

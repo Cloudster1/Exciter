@@ -183,7 +183,9 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 			       (SELECT count(*)::int FROM review_decision d WHERE d.review_id = pv.id AND d.decision = 'reject'),
 			       COALESCE(review_names(pv.id, `+me+`), false), COALESCE(review_decidable(pv.id, `+me+`), false),
 			       (SELECT d.decision FROM review_decision d WHERE d.review_id = pv.id AND d.reviewer_id = `+me+`), `+QualityScore+approval+reuseSQL+lockSQL+`,
-			       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters
+			       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters,
+			       CASE WHEN t.role = 'risk' AND r.kind = 'requirement' THEN r.risk END,
+			       CASE WHEN t.role = 'risk' AND r.kind = 'requirement' THEN risk_view(r.project_id, r.risk, r.id) END
 			FROM walk w JOIN requirement r ON r.id = w.id
 			LEFT JOIN chg c ON c.id = r.id
 			LEFT JOIN requirement_review pv ON pv.requirement_id = r.id AND pv.state = 'pending'
@@ -217,6 +219,8 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				pre       []byte
 				steps     []byte
 				params    []byte
+				rating    []byte
+				view      []byte
 			)
 			n := &e.Node
 			err := row.Scan(append([]any{&n.ID, &number, &n.Kind, &n.Title, &n.ParentID, &n.Depth, &path, &n.TypeID, &n.Revision, &n.Children,
@@ -224,9 +228,18 @@ func (s *Service) Spec(ctx context.Context, reader uuid.UUID, projectKey string,
 				&typ.Name, &typ.Icon, &typ.Colour, &ownerID, &ownerName, &priority, &statusID, &status.Name, &status.Category,
 				&kind, &fromRev, &movedFrom, &reviewID, &review.Revision, &review.Required, &review.Approvals, &review.Rejections,
 				&review.Approver, &review.MayDecide, &review.Decision, &n.Quality, &e.Approval.Pending, &e.Approval.ApprovedRevision},
-				append(append(reused.targets(), locked.targets()...), &role, &pre, &steps, &params)...)...)
+				append(append(reused.targets(), locked.targets()...), &role, &pre, &steps, &params, &rating, &view)...)...)
 			if err != nil {
 				return e, err
+			}
+			if role == RoleRisk && n.Kind == KindRequirement {
+				r, err := scanRating(rating)
+				if err != nil {
+					return e, err
+				}
+				if e.Risk, err = riskView(r, view); err != nil {
+					return e, err
+				}
 			}
 			if role == RoleTestCase && n.Kind == KindRequirement {
 				test, err := scanTestCase(pre, steps, params)

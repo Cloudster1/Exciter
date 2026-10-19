@@ -302,13 +302,29 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 		if err != nil {
 			return err
 		}
-		content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test}
+		rating, err := ratingFor(ctx, tx, typeID, l.risk)
+		if err != nil {
+			return err
+		}
+		if !rating.Empty() {
+			// A move keeps a risk's rating as it is, so the other project's scales must hold every value of it.
+			if fits, _, err := ratingFits(ctx, tx, to.ID, rating); err != nil {
+				return err
+			} else if !fits {
+				return fmt.Errorf("move %s: %w", l.Key, ErrRatingsDoNotFit)
+			}
+		}
+		content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test, Risk: rating}
 		hash := content.Hash()
 		attrs, err := json.Marshal(values)
 		if err != nil {
 			return err
 		}
 		pre, steps, params, err := test.columns()
+		if err != nil {
+			return err
+		}
+		encodedRating, err := rating.column()
 		if err != nil {
 			return err
 		}
@@ -319,9 +335,9 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 		var number int
 		if err := tx.QueryRow(ctx, `
 			UPDATE requirement SET project_id = $2, parent_id = $3, rank = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
-			    preconditions = $9, steps = $10, parameters = $11
-			WHERE id = $1 RETURNING number`, id, to.ID, parent, rank, typeID, attrs, hash, actor, pre, steps, params).Scan(&number); err != nil {
-			return fmt.Errorf("move %s: %w", l.Key, treeRefusal(err))
+			    preconditions = $9, steps = $10, parameters = $11, risk = $12
+			WHERE id = $1 RETURNING number`, id, to.ID, parent, rank, typeID, attrs, hash, actor, pre, steps, params, encodedRating).Scan(&number); err != nil {
+			return fmt.Errorf("move %s: %w", l.Key, ratingRefusal(treeRefusal(err)))
 		}
 		moved := Key(to.Key, number)
 		if c.status != nil {
@@ -357,11 +373,15 @@ func revisionOf(ctx context.Context, tx db.DBTX, actor, id uuid.UUID, number int
 	if err != nil {
 		return err
 	}
+	rating, err := content.Risk.column()
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO requirement_revision (requirement_id, number, title, statement, rationale, type_id, attributes, hash, comment, restored_from, created_by,
-		                                  preconditions, steps, parameters)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor, pre, steps, params); err != nil {
+		                                  preconditions, steps, parameters, risk)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+		id, number, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, comment, restoredFrom, actor, pre, steps, params, rating); err != nil {
 		return fmt.Errorf("write revision %d: %w", number, err)
 	}
 	return quality.Record(ctx, tx, id, number)
