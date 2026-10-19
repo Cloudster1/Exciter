@@ -399,6 +399,10 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/projects/{projectKey}/risks", s.handleListRisks)
 			r.Get("/projects/{projectKey}/risks.xlsx", s.handleRisksXLSX)
 			r.Get("/projects/{projectKey}/risk-matrix", s.handleRiskMatrix)
+			// The risk report (#261), as JSON for its print view, Word and PDF.
+			r.Get("/projects/{projectKey}/risk-report", s.handleGetRiskReport)
+			r.Get("/projects/{projectKey}/risk-report.docx", s.handleRiskReportDocx)
+			r.Get("/projects/{projectKey}/risk-report.pdf", s.handleRiskReportPDF)
 			r.Get("/projects/{projectKey}/coverage", s.handleProjectCoverage)
 			r.Get("/projects/{projectKey}/matrix", s.handleTraceMatrix)
 			r.Get("/projects/{projectKey}/matrix.csv", s.handleTraceMatrixCSV)

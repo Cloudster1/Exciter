@@ -88,7 +88,9 @@ func (r *reading) baselineItems(doc *Document, id uuid.UUID, projectKey string) 
 		       v.attributes || COALESCE((SELECT jsonb_object_agg(c.attribute_id::text, c.value) FROM baseline_computed c
 		                                 WHERE c.baseline_id = $1 AND c.requirement_id = i.requirement_id), '{}'::jsonb),
 		       COALESCE(t.name, ''), COALESCE(i.status_name, ''), v.preconditions, v.steps, v.parameters,
-		       v.risk, CASE WHEN v.risk IS NOT NULL THEN risk_view((SELECT b.project_id FROM baseline b WHERE b.id = $1), v.risk, NULL) END
+		       v.risk, COALESCE((SELECT x.detail FROM baseline_evidence x
+		                         WHERE x.baseline_id = $1 AND x.requirement_id = i.requirement_id AND x.kind = 'risk'),
+		                        CASE WHEN v.risk IS NOT NULL THEN risk_view((SELECT b.project_id FROM baseline b WHERE b.id = $1), v.risk, NULL) END)
 		FROM baseline_item i
 		LEFT JOIN requirement_revision v ON v.requirement_id = i.requirement_id AND v.number = i.revision
 		LEFT JOIN requirement_type t ON t.id = v.type_id

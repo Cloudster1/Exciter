@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Project } from "@/api/projects";
-import { risksHref, useRiskRows, useRiskScheme } from "@/api/risks";
+import { riskReportHref, risksHref, useRiskRows, useRiskScheme } from "@/api/risks";
 import { Button, ButtonLink, EmptyState, ErrorBanner, PageHeader, Skeleton, TabPanel, Tabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { QueryInput, queryFailure } from "@/features/query/QueryInput";
@@ -24,11 +24,19 @@ export function RisksPage({ project, view }: { project: Project; view: RisksView
         title={t.risks.nav}
         meta={project.name}
         actions={
-          view === "table" && (
-            <ButtonLink href={risksHref(project.key, params)} icon={<Icon.Download />} data-action="export-risks">
-              {t.risks.exportXlsx}
+          <span className="flex flex-wrap gap-2">
+            {view === "table" && (
+              <ButtonLink href={risksHref(project.key, params)} icon={<Icon.Download />} data-action="export-risks">
+                {t.risks.exportXlsx}
+              </ButtonLink>
+            )}
+            <ButtonLink href={riskReportHref(project.key, "pdf", query)} icon={<Icon.Download />} data-action="risk-report-pdf">
+              {t.risks.reportPdf}
             </ButtonLink>
-          )
+            <ButtonLink href={riskReportHref(project.key, "docx", query)} icon={<Icon.Download />} data-action="risk-report-docx">
+              {t.risks.reportWord}
+            </ButtonLink>
+          </span>
         }
         tabs={
           <Tabs<RisksView>

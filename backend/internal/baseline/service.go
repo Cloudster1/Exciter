@@ -259,6 +259,25 @@ FROM baseline_item i
 CROSS JOIN LATERAL test_case_last_run(i.requirement_id) x
 JOIN test_execution e ON e.id = x.execution_id
 WHERE i.baseline_id = $1`
+	// takeRisks records each risk the baseline holds as its rating at that revision stands: priority numbers, levels
+	// and state, so a scheme changed later changes nothing it recorded (#261).
+	takeRisks = `
+INSERT INTO baseline_evidence (baseline_id, requirement_id, kind, repository, branch, name, outcome, revision, commit_sha, detail)
+SELECT $1, i.requirement_id, 'risk', '', '', '', '', i.revision, '', risk_view(r.project_id, v.risk, r.id)
+FROM baseline_item i
+JOIN requirement r ON r.id = i.requirement_id
+JOIN requirement_revision v ON v.requirement_id = i.requirement_id AND v.number = i.revision
+JOIN requirement_type t ON t.id = v.type_id AND t.role = 'risk'
+WHERE i.baseline_id = $1 AND i.kind = 'requirement'`
+	// takeMitigations records each mitigation of a risk the baseline holds, whoever takes it (#261).
+	takeMitigations = `
+INSERT INTO baseline_evidence (baseline_id, requirement_id, kind, repository, branch, name, outcome, revision, commit_sha, detail)
+SELECT $1, i.requirement_id, 'mitigation', '', '', '', '', i.revision, '',
+       jsonb_build_object('link', m.link_id, 'source', m.source_id, 'implemented', m.implemented, 'verified', m.verified,
+                          'suspect', m.suspect, 'inEffect', m.in_effect)
+FROM baseline_item i
+CROSS JOIN LATERAL risk_mitigation_rows(ARRAY[i.requirement_id]) m
+WHERE i.baseline_id = $1 AND i.kind = 'requirement'`
 	// takeComputed records each item's computed values as worked out when taken, with the attribute's name then (#213).
 	takeComputed = `
 INSERT INTO baseline_computed (baseline_id, requirement_id, attribute_id, name, kind, value)
@@ -302,7 +321,8 @@ func (s *Service) Take(ctx context.Context, actor uuid.UUID, projectKey string, 
 			sql  string
 			args []any
 		}{{takeItems, []any{p.ID, id, root}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-			{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeRuns, []any{id}}, {takeComputed, []any{id}}} {
+			{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeRuns, []any{id}}, {takeRisks, []any{id}}, {takeMitigations, []any{id}},
+			{takeComputed, []any{id}}} {
 			if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 				return fmt.Errorf("take the baseline: %w", err)
 			}

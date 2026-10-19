@@ -97,4 +97,8 @@ export const risksDe: typeof risksEn = {
     `${n === 1 ? "1 Risiko" : `${n} Risiken`} bei Schwere ${severity} und Wahrscheinlichkeit ${probability}`,
   cellRisks: (severity: number, probability: number) => `Risiken bei Schwere ${severity} und Wahrscheinlichkeit ${probability}`,
   close: "Schließen",
+  reportTitle: "Risikobericht",
+  printTitle: (project: string) => `Risikobericht von ${project}`,
+  reportPdf: "Bericht als PDF",
+  reportWord: "Bericht als Word",
 };

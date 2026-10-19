@@ -1,6 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { PrintBaselineDocument, PrintProjectDocument } from "@/features/print/PrintDocument";
 import { PrintSessionReport } from "@/features/print/PrintSessionReport";
+import { PrintRiskReport } from "@/features/print/PrintRiskReport";
 import { PrintExecutionReport } from "@/features/print/PrintExecutionReport";
 import { PrintDashboard } from "@/features/dashboard/DashboardPages";
 import type { DocumentShape } from "@/api/documents";
@@ -66,5 +67,16 @@ export const printExecutionReportRoute = createRoute({
   component: function PrintExecutionReportPage() {
     const { executionId } = printExecutionReportRoute.useParams();
     return <PrintExecutionReport executionId={executionId} />;
+  },
+});
+
+export const printRiskReportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/print/risks/$projectKey",
+  validateSearch: (search: Record<string, unknown>): { query?: string } => (typeof search.query === "string" ? { query: search.query } : {}),
+  component: function PrintRiskReportPage() {
+    const { projectKey } = printRiskReportRoute.useParams();
+    const { query } = printRiskReportRoute.useSearch();
+    return <PrintRiskReport projectKey={projectKey} query={query} />;
   },
 });

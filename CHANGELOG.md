@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Risks in traceability, baselines, the risk report and project templates
+  (#261). The trace graph and the chain report mark a risk with its level
+  and state; a baseline records each risk's levels, state and mitigations
+  as they stood, and its document shows them so; the risk report lists
+  the levels and every risk with its ratings and mitigations, as PDF and
+  as Word through the project's templates. Two project templates set up a
+  medical device risk file and a functional safety analysis, with their
+  types, scheme, link types and coverage rules.
 - Mitigations, the FMEA table and the risk matrix (#260). A requirement
   mitigates a risk through the new link type Mitigates, and the mitigation
   is in effect once the requirement is implemented and verified as its

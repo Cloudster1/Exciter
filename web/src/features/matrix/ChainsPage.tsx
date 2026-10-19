@@ -14,6 +14,7 @@ import { queryFailure } from "@/features/query/QueryInput";
 import { t } from "@/i18n";
 import { GridViews } from "@/features/grid/GridViews";
 import { RunMark } from "@/features/tests/RunMark";
+import { RiskMark } from "@/features/risks/RiskMark";
 import { chainParams, chainSettings, fromChainView, fromChainsAddress, levelRange, toChainsAddress, type ChainsAddress } from "./chainsAddress";
 
 /** A project's chains (#151): every path from the trace model's first level shown down to its last, a page of roots
@@ -251,6 +252,7 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
         <span className="font-mono text-xs text-ink">{node.issueKey}</span>
       )}
       <RunMark run={node.lastRun} />
+      <RiskMark mark={node.risk} />
       {node.test?.outdated && <Icon.Warning className="size-3.5 text-warning" label={t.evidence.matrix.outdated} />}
       {node.code?.outdated && <Icon.Warning className="size-3.5 text-warning" label={t.evidence.matrix.outdated} />}
       {node.suspect && !node.test && !node.code && <Icon.Warning className="size-3.5 text-warning" label={t.coverage.suspect} />}

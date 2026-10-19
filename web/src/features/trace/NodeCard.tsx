@@ -4,6 +4,7 @@ import { Icon } from "@/components/icons";
 import { cx, Tag } from "@/components/ui";
 import { TypeIcon } from "@/features/types/TypeIcon";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
+import { RiskMark } from "@/features/risks/RiskMark";
 import { t } from "@/i18n";
 import { nodeName } from "./layout";
 
@@ -55,6 +56,7 @@ export function NodeCard({ node, title, suspect = false, compact = false }: { no
           {status && <StatusBadge name={status.name} category={status.category as StatusCategory} />}
           {node.type && <span className="text-xs text-ink-muted">{node.type.name}</span>}
           {node.test && <Tag>{t.evidence.results.outcome[node.test.outcome] ?? node.test.outcome}</Tag>}
+          <RiskMark mark={node.risk} />
           {marks.map((mark) => (
             <Tag key={mark.label} className={toneClass[mark.tone]} data-node-mark={mark.label}>
               {mark.label}

@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
+	"github.com/cloudster1/exciter/backend/internal/docx"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/risk"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -34,6 +37,9 @@ func riskError(err error) *APIError {
 			Message: "A risk is rated on a value the scheme would take away. Keep the values in use, or change the ratings first."}
 	case errors.Is(err, risk.ErrForbidden):
 		return ErrForbidden("Only the project's administrators set its risk scheme. Ask one of them.")
+	case errors.Is(err, risk.ErrNoScheme):
+		return &APIError{Status: http.StatusConflict, Code: "risk_scheme_missing",
+			Message: "This project has no risk scheme yet, so no report can rate its risks. Ask an administrator to set one under Settings, Risks."}
 	case errors.Is(err, risk.ErrNotRisk):
 		return ErrNotFound("That requirement is no risk, so nothing mitigates it. Give it a type marked as risks first.")
 	case errors.Is(err, risk.ErrNotFound):
@@ -155,4 +161,74 @@ func (s *Server) handleRiskMatrix(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, map[string]any{"matrix": m})
+}
+
+// riskReport reads the risk report the query string narrows, as the grid narrows the requirements.
+func (s *Server) riskReport(r *http.Request) (*risk.Report, error) {
+	filter, sort, err := search.ParseGrid(r.URL.Query())
+	if err != nil {
+		return nil, err
+	}
+	return s.Risks.Report(r.Context(), userFrom(r), projectKeyParam(r), filter, sort)
+}
+
+// noteRiskReport records a risk report about to leave, as an exported document is.
+func (s *Server) noteRiskReport(w http.ResponseWriter, r *http.Request, rep *risk.Report, format string) bool {
+	return s.noteExport(w, r, audit.Entry{Action: audit.ActionSpecificationExported, TargetType: "project", Actor: userFrom(r),
+		Data: map[string]any{"project": rep.ProjectKey, "kind": "risks", "format": format, "risks": len(rep.Risks)}})
+}
+
+func (s *Server) handleGetRiskReport(w http.ResponseWriter, r *http.Request) {
+	rep, err := s.riskReport(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"report": rep})
+}
+
+func (s *Server) handleRiskReportDocx(w http.ResponseWriter, r *http.Request) {
+	rep, err := s.riskReport(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	at := time.Now().UTC()
+	f, err := s.framingOf(r, rep.ProjectKey)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	var frame *docx.Template
+	fill := docx.Fill{"project": rep.ProjectKey, "title": rep.ProjectName, "date": at.Format(time.DateOnly), "exportedBy": s.nameOf(r)}
+	if f != nil {
+		frame = f.frame
+		fill["project"] = rep.ProjectName + " (" + rep.ProjectKey + ")"
+	}
+	body, err := docx.RiskReportBytesWith(r.Context(), rep, s.nameOf(r), at, language(r), frame, fill)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	if !s.noteRiskReport(w, r, rep, "docx") {
+		return
+	}
+	sendFile(w, docx.ContentType, docx.RiskReportFileName(rep, at, "docx"), body)
+}
+
+func (s *Server) handleRiskReportPDF(w http.ResponseWriter, r *http.Request) {
+	rep, err := s.riskReport(r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	path := "/print/risks/" + url.PathEscape(rep.ProjectKey)
+	if q := r.URL.Query().Get("query"); q != "" {
+		path += "?" + url.Values{"query": {q}}.Encode()
+	}
+	pdf, ok := s.printed(w, r, path)
+	if !ok || !s.noteRiskReport(w, r, rep, "pdf") {
+		return
+	}
+	sendFile(w, "application/pdf", docx.RiskReportFileName(rep, time.Now().UTC(), "pdf"), pdf)
 }

@@ -27,6 +27,8 @@ var (
 	ErrForbidden = errors.New("only the project's administrators set its risk scheme")
 	// ErrNotFound is a risk or a project the caller may not view.
 	ErrNotFound = errors.New("not found")
+	// ErrNoScheme refuses a risk report of a project whose administrators set no scheme yet.
+	ErrNoScheme = errors.New("the project has no risk scheme")
 	// ErrNotRisk is a requirement asked for its mitigations that is no risk.
 	ErrNotRisk = errors.New("the requirement is no risk")
 )

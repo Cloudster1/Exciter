@@ -74,6 +74,8 @@ type GraphNode struct {
 	Broken bool `json:"broken"`
 	// Hidden counts its links, of the types followed, to requirements the reader may not see; they are never named.
 	Hidden int `json:"hidden"`
+	// Risk marks a risk with its level and state (#261).
+	Risk *requirement.RiskMark `json:"risk,omitempty"`
 }
 
 // GraphEdge is a link between two nodes, read from its source; From is the link's source for a trace link, and the

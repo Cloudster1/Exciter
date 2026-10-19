@@ -388,6 +388,31 @@ What a baseline records is frozen, as the rest of a baseline.
 - The FMEA table exports the risk report as PDF and Word.
 - The project chooser offers the two templates.
 
+### As built (#261)
+
+- **Migration**: `01300_risk_traceability.sql` records a baseline's risks as
+  two more kinds of `baseline_evidence`, `risk` and `mitigation`, each with
+  a `detail` holding what `risk_view` answered of the risk, or the
+  mitigation's link, source, coverage and whether it was in effect; the
+  content hash writes them as `risk` or `mitigation` and the detail as jsonb
+  writes it, which orders its keys the same way every time. `risk_mark`
+  answers a risk's level and state for the marks.
+- **A baseline's document** shows each risk's levels as recorded, so a
+  scheme changed later changes nothing it shows; a baseline taken before
+  shows them as the scheme gives them now.
+- **Code**: `trace.GraphNode.Risk` and `ChainNode.Risk` carry
+  `requirement.RiskMark`; `risk.Report` with `docx.RiskReportBytesWith`;
+  `GET /projects/{projectKey}/risk-report` with `.docx` and `.pdf` (MCP
+  `get_risk_report`), refused with 409 `risk_scheme_missing` in a project
+  without a scheme.
+- **Templates**: `project.Blueprint` gains `Risk` and `Coverage`, and an
+  attribute spec names the types it shows on; `risk.SeedProject` makes what
+  `requirement.Seed` makes and then the scheme. The medical template's
+  default type is Risk control, the safety template's Safety requirement.
+- **Web**: the chain report and the trace graph's chosen node mark a risk;
+  the Risks page downloads the report as PDF and Word; `/print/risks/{key}`
+  prints it.
+
 ## What is left for later
 
 - Signing off a risk as acceptable as a workflow of its own; a level marks

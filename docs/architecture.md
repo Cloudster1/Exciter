@@ -292,7 +292,7 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
-- **Risk management** (M13, `docs/api-contract-m13.md`, planned): a risk
+- **Risk management** (M13, `docs/api-contract-m13.md`): a risk
   is a requirement of a type whose role is risks, rated before and after
   mitigation in its revisions; `internal/risk` keeps a project's scheme,
   whose matrix or priority number gives each rating its level, the

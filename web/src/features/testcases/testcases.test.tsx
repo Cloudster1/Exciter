@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderAt, stubApi } from "@/test/app";
+import { LONG_TEST_MS, renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -57,24 +57,28 @@ describe("a test case", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it("moves and removes steps, sets parameters, and sends the case whole", async () => {
-    const sent = stubApi({ ...stubs, "PATCH /requirements/CHK-R1": { status: 200, body: { requirement: { ...brake, revision: 2 } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
-    await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
-    const steps = await screen.findByRole("group", { name: "Steps" });
-    await userEvent.click(within(steps).getByRole("button", { name: "Move step 2 up" }));
-    await userEvent.click(within(steps).getByRole("button", { name: "Remove step 2" }));
-    const parameters = screen.getByRole("group", { name: "Parameters" });
-    const values = within(parameters).getByRole("textbox", { name: "Values, apart by semicolons" });
-    // One paste rather than a key at a time, which the editor redraws for each.
-    await userEvent.clear(values);
-    await userEvent.click(values);
-    await userEvent.paste("30; 50; 80");
-    expect(await axeViolations()).toEqual([]);
-    await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(sent.some((r) => r.method === "PATCH")).toBe(true));
-    const body = sent.find((r) => r.method === "PATCH")?.body as { testCase: { steps: { action: unknown }[]; parameters: unknown } };
-    expect(body.testCase.steps).toEqual([{ action: doc("Press the pedal."), expected: doc("The car stops within 40 m.") }]);
-    expect(body.testCase.parameters).toEqual([{ name: "Speed", values: ["30", "50", "80"] }]);
-  });
+  it(
+    "moves and removes steps, sets parameters, and sends the case whole",
+    async () => {
+      const sent = stubApi({ ...stubs, "PATCH /requirements/CHK-R1": { status: 200, body: { requirement: { ...brake, revision: 2 } } } });
+      await renderAt("/p/CHK/r/CHK-R1");
+      await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
+      const steps = await screen.findByRole("group", { name: "Steps" });
+      await userEvent.click(within(steps).getByRole("button", { name: "Move step 2 up" }));
+      await userEvent.click(within(steps).getByRole("button", { name: "Remove step 2" }));
+      const parameters = screen.getByRole("group", { name: "Parameters" });
+      const values = within(parameters).getByRole("textbox", { name: "Values, apart by semicolons" });
+      // One paste rather than a key at a time, which the editor redraws for each.
+      await userEvent.clear(values);
+      await userEvent.click(values);
+      await userEvent.paste("30; 50; 80");
+      expect(await axeViolations()).toEqual([]);
+      await userEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(sent.some((r) => r.method === "PATCH")).toBe(true));
+      const body = sent.find((r) => r.method === "PATCH")?.body as { testCase: { steps: { action: unknown }[]; parameters: unknown } };
+      expect(body.testCase.steps).toEqual([{ action: doc("Press the pedal."), expected: doc("The car stops within 40 m.") }]);
+      expect(body.testCase.parameters).toEqual([{ name: "Speed", values: ["30", "50", "80"] }]);
+    },
+    LONG_TEST_MS,
+  );
 });

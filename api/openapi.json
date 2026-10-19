@@ -13986,8 +13986,8 @@
               }
             }
           },
-          "422": {
-            "description": "Unprocessable Entity",
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -13996,8 +13996,8 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -14225,16 +14225,6 @@
               }
             }
           },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
             "content": {
@@ -14427,16 +14417,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Not Implemented: agreed, not built yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -38734,6 +38714,33 @@
           "acceptable"
         ]
       },
+      "RiskMark": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskLevelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unmitigated",
+              "claimed",
+              "mitigated"
+            ]
+          }
+        },
+        "required": [
+          "level",
+          "state"
+        ]
+      },
       "RiskMatrix": {
         "type": "object",
         "properties": {
@@ -42702,6 +42709,9 @@
               }
             ]
           },
+          "risk": {
+            "$ref": "#/components/schemas/RiskMark"
+          },
           "suspect": {
             "type": "boolean"
           },
@@ -43163,6 +43173,9 @@
                 "type": "null"
               }
             ]
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskMark"
           },
           "test": {
             "$ref": "#/components/schemas/ChainTest"
