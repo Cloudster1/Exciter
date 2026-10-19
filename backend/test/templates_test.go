@@ -81,6 +81,16 @@ func TestEveryTemplateMakesAValidProject(t *testing.T) {
 			}
 			want(t, f.owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Works at once"}), http.StatusCreated,
 				"write a requirement of the default type")
+			if tpl["key"] == "test" {
+				// Its first type takes test cases with their steps straight away (#263).
+				if first := types[0].(map[string]any); first["name"] != "Test case" || first["role"] != "testCase" {
+					t.Errorf("the first type is %v, want a type of test cases", first)
+				}
+				made := obj(t, want(t, f.owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Brake on a wet road",
+					"testCase": map[string]any{"steps": []any{map[string]any{"action": statementSaying("Press the pedal.")}}}}),
+					http.StatusCreated, "write a test case with steps"), "requirement")
+				sameList(t, "the steps", stepTexts(t, testCaseOf(t, made)), "Press the pedal.")
+			}
 		})
 	}
 }

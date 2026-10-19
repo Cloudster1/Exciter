@@ -824,3 +824,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   run before each push by the branch-guard hook and in CI as a matrix of jobs;
   `release.sh` cuts a version from the commit history; issue and pull request
   templates and the GitHub workflow live in `.claude/skills/gh`.
+
+### Fixed
+
+- A project made from the Test specification template takes test cases
+  straight away (#263): its "Test case" type is a type of test cases, and
+  the template no longer adds Preconditions and Expected result attributes,
+  which a test case now holds itself.

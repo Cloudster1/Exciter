@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/events"
@@ -18,12 +19,16 @@ import (
 // attributes, the installation's link types it leaves off, and sections.
 func Seed(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID, b project.Blueprint) error {
 	for i, t := range b.TypeSpecs {
-		sql := `INSERT INTO requirement_type (project_id, name, icon, colour, position) VALUES ($1, $2, $3, $4, $5)`
+		role := t.Role
+		if role == "" {
+			role = string(attribute.RoleRequirement)
+		}
+		sql := `INSERT INTO requirement_type (project_id, name, icon, colour, position, role) VALUES ($1, $2, $3, $4, $5, $6)`
 		if i == 0 {
 			// The type the project was made with is its default; renaming it keeps that.
-			sql = `UPDATE requirement_type SET name = $2, icon = $3, colour = $4 WHERE project_id = $1 AND position = $5`
+			sql = `UPDATE requirement_type SET name = $2, icon = $3, colour = $4, role = $6 WHERE project_id = $1 AND position = $5`
 		}
-		if _, err := tx.Exec(ctx, sql, projectID, t.Name, t.Icon, t.Colour, i); err != nil {
+		if _, err := tx.Exec(ctx, sql, projectID, t.Name, t.Icon, t.Colour, i, role); err != nil {
 			return fmt.Errorf("make the type %s: %w", t.Name, err)
 		}
 	}

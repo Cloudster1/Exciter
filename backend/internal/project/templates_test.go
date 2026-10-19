@@ -30,7 +30,9 @@ func TestEveryTemplateMakesWhatTheContractNamesAndTheDatabaseTakes(t *testing.T)
 			t.Errorf("%s: the summary does not name what it makes: %+v", summary.Key, summary)
 		}
 		for _, each := range b.TypeSpecs {
-			if !iconShape.MatchString(each.Icon) || !colourShape.MatchString(each.Colour) || len(each.Name) > attribute.MaxNameLength {
+			role := attribute.TypeRole(each.Role)
+			if !iconShape.MatchString(each.Icon) || !colourShape.MatchString(each.Colour) || len(each.Name) > attribute.MaxNameLength ||
+				(role != "" && !slices.Contains(attribute.TypeRoles, role)) {
 				t.Errorf("%s: the type %+v would be refused", summary.Key, each)
 			}
 		}
@@ -50,5 +52,7 @@ func TestEveryTemplateMakesWhatTheContractNamesAndTheDatabaseTakes(t *testing.T)
 	}
 	if b, _ := project.BlueprintOf("test"); !slices.Equal(b.LinkTypeKeys, []string{"verifies", "relates"}) {
 		t.Errorf("the test template uses %v", b.LinkTypeKeys)
+	} else if b.TypeSpecs[0].Role != string(attribute.RoleTestCase) {
+		t.Errorf("the test template's first type is %+v, want a type of test cases", b.TypeSpecs[0])
 	}
 }
