@@ -23,6 +23,8 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
   test("alice opens a session over a section, bob decides in two rounds, and alice closes it with a baseline", async ({ page, api, pageAs, people }) => {
+    // Two people decide over two rounds and the session closes with a baseline: about 20 s on CI.
+    test.setTimeout(60_000);
     const project = { params: { path: { projectKey: KEY } } };
     must(await api.POST("/projects", { body: { key: KEY, name: "Sessions" } }));
     must(
