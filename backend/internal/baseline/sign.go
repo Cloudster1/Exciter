@@ -381,7 +381,8 @@ type Content struct {
 	Items                 []ContentItem
 	Links                 []ContentLink
 	External, Pages       []uuid.UUID
-	// Evidence is what the baseline recorded of each requirement's test results (#200).
+	// Evidence is what the baseline recorded of each requirement's test results (#200), code tags (#201) and, for
+	// a test case, its last result (#252).
 	Evidence []ContentEvidence
 	// Computed are the computed values it recorded (#213), each line as baseline_computed_line writes it.
 	Computed []ContentEvidence
@@ -546,7 +547,7 @@ func TakeOfSession(ctx context.Context, tx db.DBTX, actor, projectID, sessionID 
 		sql  string
 		args []any
 	}{{takeSessionItems, []any{projectID, id, approved}}, {takeLinks, []any{id}}, {takeExternal, []any{id}}, {takePages, []any{id}},
-		{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeComputed, []any{id}}} {
+		{takeEvidence, []any{id}}, {takeCode, []any{id}}, {takeRuns, []any{id}}, {takeComputed, []any{id}}} {
 		if _, err := tx.Exec(ctx, step.sql, step.args...); err != nil {
 			return uuid.Nil, fmt.Errorf("take the session's baseline: %w", err)
 		}

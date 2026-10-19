@@ -29917,7 +29917,8 @@
               "enum": [
                 "links",
                 "tests",
-                "code"
+                "code",
+                "runs"
               ]
             }
           },
@@ -29941,7 +29942,8 @@
               "enum": [
                 "links",
                 "tests",
-                "code"
+                "code",
+                "runs"
               ]
             }
           }
@@ -29973,7 +29975,8 @@
               "enum": [
                 "links",
                 "tests",
-                "code"
+                "code",
+                "runs"
               ]
             }
           },
@@ -29991,7 +29994,8 @@
               "enum": [
                 "links",
                 "tests",
-                "code"
+                "code",
+                "runs"
               ]
             }
           }
@@ -32257,6 +32261,9 @@
           "issueKey": {
             "type": "string"
           },
+          "lastRun": {
+            "$ref": "#/components/schemas/TestCaseLastRun"
+          },
           "page": {
             "oneOf": [
               {
@@ -32374,6 +32381,9 @@
               "requirement",
               "section"
             ]
+          },
+          "lastRun": {
+            "$ref": "#/components/schemas/TestCaseLastRun"
           },
           "projectKey": {
             "type": "string"
@@ -38965,6 +38975,36 @@
           "parameters"
         ]
       },
+      "TestCaseLastRun": {
+        "type": "object",
+        "properties": {
+          "executionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "failed",
+              "blocked",
+              "none",
+              "skipped",
+              "passed"
+            ]
+          },
+          "outdated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "outcome",
+          "executionId",
+          "outdated"
+        ]
+      },
       "TestCaseRef": {
         "type": "object",
         "properties": {
@@ -40322,6 +40362,9 @@
           },
           "issueKey": {
             "type": "string"
+          },
+          "lastRun": {
+            "$ref": "#/components/schemas/TestCaseLastRun"
           },
           "page": {
             "oneOf": [

@@ -26,6 +26,8 @@ const (
 	TopicRequested     = "test_run.requested"
 	TopicFinished      = "test_run.finished"
 	TopicSettingsSaved = "evidence_settings.saved"
+	// TopicExecutionRecorded is a test execution's result recorded, here as an upload fills it (#252).
+	TopicExecutionRecorded = "test_execution.recorded"
 )
 
 var (

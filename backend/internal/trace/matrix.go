@@ -106,6 +106,8 @@ type MatrixQuery struct {
 type MatrixRow struct {
 	requirement.Ref
 	CanLink bool `json:"canLink"`
+	// LastRun is a test case's last result (#252).
+	LastRun *LastRun `json:"lastRun,omitempty"`
 }
 
 // MatrixColumn is a requirement, an Armature issue by its key, a Stator page, or a test case.
@@ -115,6 +117,8 @@ type MatrixColumn struct {
 	Page        *MatrixPage      `json:"page"`
 	Test        *MatrixTest      `json:"test,omitempty"`
 	Code        *MatrixCode      `json:"code,omitempty"`
+	// LastRun is a test case's last result (#252).
+	LastRun *LastRun `json:"lastRun,omitempty"`
 }
 
 // MatrixCode is a file as a column: its repository and path, and its address at the scanned commit.
@@ -268,7 +272,10 @@ func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey strin
 		if err != nil {
 			return err
 		}
-		return l.into(out, kept, p.ArchivedAt == nil, q)
+		if err := l.into(out, kept, p.ArchivedAt == nil, q); err != nil {
+			return err
+		}
+		return markRuns(ctx, tx, out)
 	})
 	if err != nil {
 		return nil, err
@@ -304,4 +311,30 @@ func CompareIssueKeys(a, b string) int {
 	x, _ := strconv.ParseUint(an, 10, 64)
 	y, _ := strconv.ParseUint(bn, 10, 64)
 	return cmp.Or(cmp.Compare(ap, bp), cmp.Compare(x, y))
+}
+
+// markRuns marks each test case among a matrix's rows and requirement columns with its last result.
+func markRuns(ctx context.Context, tx db.DBTX, m *Matrix) error {
+	var ids []uuid.UUID
+	for _, r := range m.Rows {
+		ids = append(ids, r.ID)
+	}
+	for _, c := range m.Columns {
+		if c.Requirement != nil {
+			ids = append(ids, c.Requirement.ID)
+		}
+	}
+	runs, err := lastRuns(ctx, tx, ids)
+	if err != nil {
+		return err
+	}
+	for i := range m.Rows {
+		m.Rows[i].LastRun = runs[m.Rows[i].ID]
+	}
+	for i := range m.Columns {
+		if c := m.Columns[i].Requirement; c != nil {
+			m.Columns[i].LastRun = runs[c.ID]
+		}
+	}
+	return nil
 }

@@ -5684,21 +5684,21 @@ export interface components {
             /** Format: uuid */
             id: string;
             implemented: boolean;
-            implementedFrom: ("links" | "tests" | "code")[];
+            implementedFrom: ("links" | "tests" | "code" | "runs")[];
             /** Format: uuid */
             typeId: string | null;
             typeName: string;
             verified: boolean;
-            verifiedFrom: ("links" | "tests" | "code")[];
+            verifiedFrom: ("links" | "tests" | "code" | "runs")[];
         };
         CoverageRuleInput: {
             decomposed: boolean;
             implemented: boolean;
-            implementedFrom?: ("links" | "tests" | "code")[];
+            implementedFrom?: ("links" | "tests" | "code" | "runs")[];
             /** Format: uuid */
             typeId?: string;
             verified: boolean;
-            verifiedFrom?: ("links" | "tests" | "code")[];
+            verifiedFrom?: ("links" | "tests" | "code" | "runs")[];
         };
         CoverageSummary: {
             decomposed: components["schemas"]["CoverageTotals"];
@@ -6291,6 +6291,7 @@ export interface components {
         MatrixColumn: {
             code?: components["schemas"]["MatrixCode"];
             issueKey: string;
+            lastRun?: components["schemas"]["TestCaseLastRun"];
             page: components["schemas"]["MatrixPage"] | null;
             requirement: components["schemas"]["RequirementRef"] | null;
             test?: components["schemas"]["MatrixTest"];
@@ -6321,6 +6322,7 @@ export interface components {
             key: string;
             /** @enum {string} */
             kind: "requirement" | "section";
+            lastRun?: components["schemas"]["TestCaseLastRun"];
             projectKey: string;
             revision: number;
             status: components["schemas"]["StatusRef"] | null;
@@ -7961,6 +7963,13 @@ export interface components {
             preconditionsMarkdown?: string;
             steps: components["schemas"]["TestStep"][];
         };
+        TestCaseLastRun: {
+            /** Format: uuid */
+            executionId: string | null;
+            /** @enum {string} */
+            outcome: "failed" | "blocked" | "none" | "skipped" | "passed";
+            outdated: boolean;
+        };
         TestCaseRef: {
             /** Format: uuid */
             id: string;
@@ -8287,6 +8296,7 @@ export interface components {
         TraceChainNode: {
             code?: components["schemas"]["ChainCode"];
             issueKey?: string;
+            lastRun?: components["schemas"]["TestCaseLastRun"];
             page: components["schemas"]["MatrixPage"] | null;
             requirement: components["schemas"]["RequirementRef"] | null;
             suspect: boolean;

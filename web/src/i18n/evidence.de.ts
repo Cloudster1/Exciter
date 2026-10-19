@@ -31,7 +31,8 @@ export const evidenceDe: typeof evidenceEn = {
     links: "Verknüpfungen",
     tests: "Testergebnisse",
     code: "Code",
-    hint: "Was für eine Anforderung dieses Typs zählt: Verknüpfungen, bestandene Testergebnisse auf dem zählenden Branch, Code-Tags mit ihrer aktuellen Revision, oder mehreres davon.",
+    runs: "Testdurchführungen",
+    hint: "Was für eine Anforderung dieses Typs zählt: Verknüpfungen, bestandene Testergebnisse auf dem zählenden Branch, Code-Tags mit ihrer aktuellen Revision, Testfälle, deren letztes Ergebnis in einer Testdurchführung bestanden ist, oder mehreres davon.",
   },
   matrix: {
     tests: "Tests",

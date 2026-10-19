@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Test executions in traceability (#252). A CI upload on the counting
+  branch fills the open test executions holding the test cases it verifies,
+  never over a tester's result or a newer upload. A coverage rule may count
+  test executions for verified: a requirement is verified in full when each
+  test case verifying it last passed at its current revision through a link
+  that is not suspect. The query language gains `testCase`, `runResult`,
+  `runOutdated` and `casesResult`; the chain report and the matrix mark a
+  test case with its last result; a baseline records the last results of
+  the test cases it holds.
 - Test plans and test executions (#251). A project's editors group test
   cases into plans, picked in order or found by a query, and start an
   execution of a plan against a baseline, a version and a configuration,

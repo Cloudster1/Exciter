@@ -138,7 +138,7 @@ function Report({ project }: { project: Project }) {
 type Source = CoverageRule["verifiedFrom"][number];
 
 /** What each dimension may count (#200, #201), as a rule offers them. */
-const VERIFIED_SOURCES: Source[] = ["links", "tests", "code"];
+const VERIFIED_SOURCES: Source[] = ["links", "tests", "code", "runs"];
 const IMPLEMENTED_SOURCES: Source[] = ["links", "code"];
 
 /** The sources one dimension of a rule counts, one at least: the last one pressed again stays. */

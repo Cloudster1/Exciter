@@ -121,7 +121,13 @@ const chains: TraceChains = {
       root: 0,
       nodes: [
         { requirement: ref(1, "Stop within 40 m"), page: null, suspect: false },
-        { requirement: ref(3, "Brakes engage within 100 ms"), page: null, via: "is derived into", suspect: true },
+        {
+          requirement: ref(3, "Brakes engage within 100 ms"),
+          page: null,
+          via: "is derived into",
+          suspect: true,
+          lastRun: { outcome: "failed", executionId: "0195f000-0000-7000-8000-0000000003e1", outdated: true },
+        },
         { requirement: null, issueKey: "WEB-9", page: null, via: "implements", suspect: false },
       ],
       broken: false,
@@ -152,6 +158,10 @@ describe("the chains", () => {
     ).toEqual(["Need", "System", "Issue"]);
     expect(table.querySelectorAll("[data-break]")).toHaveLength(1);
     expect(within(table).getByText("WEB-9")).toBeInTheDocument();
+    // A test case carries its last result, marked when it ran an older revision (#252).
+    const run = table.querySelector('[data-last-run="failed"]') as HTMLElement;
+    expect(run).toHaveTextContent("Failed");
+    expect(within(run).getByRole("img", { name: "The last result ran an older revision" })).toBeInTheDocument();
     expect(screen.getByText("2 chains on this page, 1 broken")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.selectOptions(screen.getByLabelText("To level"), "1");

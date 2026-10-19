@@ -58,6 +58,8 @@ export const testsDe: typeof testsEn = {
   state: { open: "Offen", closed: "Abgeschlossen", aborted: "Abgebrochen" } as Record<string, string>,
   outcome: { passed: "Bestanden", failed: "Fehlgeschlagen", blocked: "Blockiert", skipped: "Übersprungen" } as Record<string, string>,
   notRun: "Nicht ausgeführt",
+  lastRun: "Letztes Ergebnis in einer Testdurchführung",
+  runOutdated: "Das letzte Ergebnis prüfte eine ältere Revision",
   progress: (run: number, total: number, failed: number) => `${run} von ${total} ausgeführt, ${failed} fehlgeschlagen`,
   managedBy: (name: string) => `Verantwortlich: ${name}`,
   dueOn: (day: string) => `Fällig am ${day}`,

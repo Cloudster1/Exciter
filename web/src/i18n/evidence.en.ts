@@ -29,7 +29,8 @@ export const evidenceEn = {
     links: "Links",
     tests: "Test results",
     code: "Code",
-    hint: "What counts for a requirement of this type: links, passing test results on the counting branch, code tags naming its current revision, or several of them.",
+    runs: "Test executions",
+    hint: "What counts for a requirement of this type: links, passing test results on the counting branch, code tags naming its current revision, test cases whose last result in a test execution passed, or several of them.",
   },
   matrix: {
     tests: "Tests",

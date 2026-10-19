@@ -15,6 +15,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
+	"github.com/cloudster1/exciter/backend/internal/testresult"
 )
 
 // Topics an execution writes to the outbox: who is told, and what coverage hears of (#252).
@@ -22,7 +23,7 @@ const (
 	TopicStarted  = "test_execution.started"
 	TopicReminder = "test_execution.reminder"
 	TopicClosed   = "test_execution.closed"
-	TopicRecorded = "test_execution.recorded"
+	TopicRecorded = testresult.TopicExecutionRecorded
 )
 
 var (

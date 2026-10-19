@@ -116,6 +116,21 @@ const (
 	codeOutdated = "(SELECT c.outdated FROM requirement_code_counts(r.id) c)"
 )
 
+// A test case, its last result, whether that ran an older revision, and the worst last result of the test cases
+// verifying a requirement (#252).
+const (
+	isTestCase = "(CASE WHEN r.kind = 'requirement' AND EXISTS (SELECT 1 FROM requirement_type x WHERE x.id = r.type_id AND x.role = 'testCase')" +
+		" THEN 'true' ELSE 'false' END)"
+	runResult   = "COALESCE((SELECT x.outcome FROM test_case_last_run(r.id) x), 'none')"
+	runOutdated = "(CASE WHEN (SELECT x.revision FROM test_case_last_run(r.id) x) < r.revision THEN 'true' ELSE 'false' END)"
+)
+
+// runOutcomes are a test case's last results, worst first, as trace.RunOutcomes; truths answer a yes or no field.
+var (
+	runOutcomes = []string{"failed", "blocked", "none", "skipped", "passed"}
+	truths      = []string{"true", "false"}
+)
+
 // priorityRank ranks a priority so that must is the highest, as the API orders them.
 const priorityRank = `array_position(ARRAY['wont', 'could', 'should', 'must'], r.priority)`
 
@@ -149,6 +164,10 @@ var fixed = []fieldDef{
 	{name: "verified", kind: fkEnum, column: "requirement_coverage(r.id, 'verified')", enum: coverageLevels},
 	{name: "testResult", kind: fkEnum, column: "requirement_test_result(r.id)", enum: testOutcomes},
 	{name: "testOutdated", kind: fkNumber, column: testOutdated, order: testOutdated},
+	{name: "testCase", kind: fkEnum, column: isTestCase, enum: truths},
+	{name: "runResult", kind: fkEnum, column: runResult, enum: runOutcomes},
+	{name: "runOutdated", kind: fkEnum, column: runOutdated, enum: truths},
+	{name: "casesResult", kind: fkEnum, column: "requirement_cases_result(r.id)", enum: runOutcomes},
 	{name: "codeLink", kind: fkNumber, column: codeLinks, order: codeLinks},
 	{name: "codeOutdated", kind: fkNumber, column: codeOutdated, order: codeOutdated},
 	{name: "quality", kind: fkNumber, column: qualityScore, order: qualityScore, empty: true},

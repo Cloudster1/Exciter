@@ -33,19 +33,20 @@ const (
 // Dimensions lists every Dimension, in report order.
 var Dimensions = []Dimension{Decomposed, Implemented, Verified}
 
-// Source is what counts for a dimension: links, as before #200, test results or code tags.
+// Source is what counts for a dimension: links, as before #200, test results, code tags or executed test cases.
 type Source string
 
 const (
 	SourceLinks Source = "links"
 	SourceTests Source = "tests"
 	SourceCode  Source = "code"
+	SourceRuns  Source = "runs"
 )
 
 // VerifiedSources and ImplementedSources list what each dimension may count, for the API document; DefaultSources is
 // a rule's without one.
 var (
-	VerifiedSources    = []Source{SourceLinks, SourceTests, SourceCode}
+	VerifiedSources    = []Source{SourceLinks, SourceTests, SourceCode, SourceRuns}
 	ImplementedSources = []Source{SourceLinks, SourceCode}
 	DefaultSources     = []Source{SourceLinks}
 )
@@ -129,6 +130,9 @@ type Counted struct {
 	// CodeImplementing and CodeVerifying are the code tags of each relation on that branch, the Whole ones naming the
 	// current revision (#201).
 	CodeImplementing, CodeImplementingWhole, CodeVerifying, CodeVerifyingWhole int
+	// Cases are the test cases verifying it; CasesWhole those whose last result passed at their current revision,
+	// through a link not suspect (#252).
+	Cases, CasesWhole int
 }
 
 // Judge answers a requirement's level in each dimension, as the contract's table says.
@@ -157,6 +161,7 @@ func Judge(asks Asks, c Counted) (decomposed, implemented, verified Level) {
 				c.VerifyingLinksSuspect+c.VerifyingIssuesSuspect == 0 && c.VerifyingIssuesDone == c.VerifyingIssues},
 			{slices.Contains(from, SourceTests) && c.Tests > 0, c.TestsWhole == c.Tests},
 			{slices.Contains(from, SourceCode) && c.CodeVerifying > 0, c.CodeVerifyingWhole == c.CodeVerifying},
+			{slices.Contains(from, SourceRuns) && c.Cases > 0, c.CasesWhole == c.Cases},
 		})
 	}
 	return decomposed, implemented, verified

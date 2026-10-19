@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -129,6 +130,9 @@ func land(ctx context.Context, tx db.DBTX, id, projectID uuid.UUID, cases []Case
 			ON CONFLICT DO NOTHING`, runs, projectID, reqs, suites, names, outcomes, messages, durations); err != nil {
 			return fmt.Errorf("keep the results: %w", err)
 		}
+		if err := fillExecutions(ctx, tx, id, projectID, actor); err != nil {
+			return err
+		}
 	}
 	if reported == nil {
 		reported = []Reported{}
@@ -213,6 +217,38 @@ func (s *Service) fail(ctx context.Context, id uuid.UUID, cause error) error {
 	})
 	if err != nil {
 		return errors.Join(cause, err)
+	}
+	return nil
+}
+
+// fillExecutions fills the open executions holding the test cases a landing run verifies, as test_execution_take_ci
+// says (#252), and tells each execution's audit trail and coverage.
+func fillExecutions(ctx context.Context, tx db.DBTX, id, projectID, actor uuid.UUID) error {
+	rows, err := tx.Query(ctx, `
+		SELECT filled_execution, count(DISTINCT filled_case)::int FROM test_execution_take_ci($1)
+		GROUP BY filled_execution ORDER BY filled_execution`, id)
+	if err != nil {
+		return fmt.Errorf("fill the open test executions: %w", err)
+	}
+	type filled struct {
+		execution uuid.UUID
+		cases     int
+	}
+	found, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (filled, error) {
+		var f filled
+		return f, row.Scan(&f.execution, &f.cases)
+	})
+	if err != nil {
+		return fmt.Errorf("fill the open test executions: %w", err)
+	}
+	for _, f := range found {
+		if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionTestExecutionRecorded, TargetType: "test_execution", TargetID: &f.execution,
+			Actor: actor, Data: map[string]any{"source": "ci", "runId": id, "cases": f.cases}}); err != nil {
+			return err
+		}
+		if err := events.Emit(ctx, tx, TopicExecutionRecorded, map[string]any{"actorId": actor, "executionId": f.execution, "projectId": projectID, "runId": id}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
