@@ -93,6 +93,9 @@ func (s *Service) makeSchema(ctx context.Context, j *job, a *analysis) error {
 			if target.testCases {
 				role := attribute.RoleTestCase
 				in.Role = &role
+			} else if target.risks {
+				role := attribute.RoleRisk
+				in.Role = &role
 			}
 			made, _, err := s.attributes.CreateType(ctx, actor, key, in)
 			if err != nil {

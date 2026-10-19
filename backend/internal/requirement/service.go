@@ -79,6 +79,8 @@ type loaded struct {
 	requireComment bool
 	// test is what it carries as a test case, empty for any other.
 	test TestCase
+	// risk is its rating as a risk, empty for any other.
+	risk Rating
 }
 
 // selectRequirement reads requirements with what $1 may do to each.
@@ -98,7 +100,8 @@ SELECT r.id, p.key, r.number, r.kind, r.title, r.statement, r.rationale, r.attri
        || COALESCE((SELECT array_agg(a.key || '-R' || r.number ORDER BY a.created_at DESC, a.key) FROM project_key_alias a
                  WHERE a.project_id = r.project_id), '{}'),
        ARRAY(SELECT lb.name FROM requirement_label lb WHERE lb.requirement_id = r.id ORDER BY lb.name),` + commentCounts + watching + approval + reuseSQL + lockSQL + qualitySQL + `, requirement_computed_of(r.id),
-       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters
+       COALESCE(t.role, 'requirement'), r.preconditions, r.steps, r.parameters,
+       r.risk, CASE WHEN t.role = 'risk' AND r.kind = 'requirement' THEN risk_view(r.project_id, r.risk, r.id) END
 FROM requirement r
 JOIN project p ON p.id = r.project_id
 LEFT JOIN app_user o ON o.id = r.owner_id
@@ -140,6 +143,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		computedJSON         []byte
 		role                 TypeRole
 		pre, steps, params   []byte
+		rating, ratingView   []byte
 	)
 	r := &l.Requirement
 	err := row.Scan(append([]any{&r.ID, &r.ProjectKey, &r.Number, &r.Kind, &r.Title, &r.Statement, &rationale, &attrs, &r.Revision,
@@ -148,7 +152,7 @@ func scan(row pgx.Row) (*loaded, error) {
 		&l.requireComment, &edit, &approve, &alter, &statusID, &status.Name, &status.Category, &r.ParentID, &l.rank, &copiedID, &copied.ProjectKey, &copiedNumber, &copied.Kind, &copied.Title,
 		&copied.Revision, &copied.Trashed, &r.FormerKeys, &r.Labels, &r.Comments.Threads, &r.Comments.Open,
 		&r.Watching.Requirement, &r.Watching.Project, &r.Approval.Pending, &r.Approval.ApprovedRevision}, append(append(reused.targets(), locked.targets()...),
-		&qualityJSON, &computedJSON, &role, &pre, &steps, &params)...)...)
+		&qualityJSON, &computedJSON, &role, &pre, &steps, &params, &rating, &ratingView)...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -174,6 +178,14 @@ func scan(row pgx.Row) (*loaded, error) {
 	if role == RoleTestCase && r.Kind == KindRequirement {
 		test := l.test
 		r.TestCase = &test
+	}
+	if l.risk, err = scanRating(rating); err != nil {
+		return nil, err
+	}
+	if role == RoleRisk && r.Kind == KindRequirement {
+		if r.Risk, err = riskView(l.risk, ratingView); err != nil {
+			return nil, err
+		}
 	}
 	r.Computed = map[string]json.RawMessage{}
 	if len(computedJSON) > 0 {

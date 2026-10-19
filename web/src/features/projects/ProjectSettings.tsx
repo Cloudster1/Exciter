@@ -24,6 +24,7 @@ import { CodeTagWordsCard } from "@/features/evidence/CodeTagWordsCard";
 import { QualityRulesCard, QualityWordsCard } from "@/features/quality/QualitySettingsCards";
 import { GlossariesCard } from "@/features/glossary/GlossariesCard";
 import { DuplicateSettingsCard } from "@/features/duplicates/DuplicateSettingsCard";
+import { RiskSchemeCard } from "@/features/risks/RiskSchemeCard";
 
 const SETTINGS_TABS = [
   "details",
@@ -35,6 +36,7 @@ const SETTINGS_TABS = [
   "links",
   "trace",
   "quality",
+  "risks",
   "import",
   "reqif",
   "word",
@@ -72,6 +74,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
               { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
               { value: "trace", label: t.chains.tab, attrs: { "data-tab": "trace" } },
               { value: "quality", label: t.quality.tab, attrs: { "data-tab": "quality" } },
+              { value: "risks", label: t.risks.tab, attrs: { "data-tab": "risks" } },
               { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
               { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
               { value: "word", label: t.word.tab, attrs: { "data-tab": "word" } },
@@ -121,6 +124,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
             <DuplicateSettingsCard project={project} />
           </div>
         )}
+        {tab === "risks" && <RiskSchemeCard project={project} />}
         {tab === "import" && <ImportPanel project={project} />}
         {tab === "reqif" && <ReqIFPanel project={project} />}
         {tab === "word" && <WordImportPanel project={project} />}

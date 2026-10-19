@@ -114,8 +114,12 @@ func (cat *Catalog) Takes(f Field) string {
 	}
 	switch def.kind {
 	case fkName:
-		if def.table == "req_status" {
+		switch def.table {
+		case "req_status":
 			return "status"
+		case "risk_level":
+			// A risk level is the scheme's, which the caller does not look up by name.
+			return ""
 		}
 		return "type"
 	case fkUser:

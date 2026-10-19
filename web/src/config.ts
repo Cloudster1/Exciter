@@ -528,3 +528,16 @@ export const TEST_CONFIGURATION_MAX_LENGTH = 500;
 export const TEST_NOTE_MAX_LENGTH = 4000;
 /** How many test cases the plan's picker offers at most, one page of the grid. */
 export const TEST_CASE_PICKER_LIMIT = 100;
+
+/** The most values a risk scale has and the most levels a scheme has; the server's risk.MaxScaleValue and risk.MaxLevels. */
+export const RISK_MAX_SCALE_VALUE = 10;
+export const RISK_MAX_LEVELS = 10;
+/** How many values each scale of the scheme a project starts from has. */
+export const RISK_DEFAULT_SCALE = 5;
+/** The levels a project's first scheme has, least severe first, and the product of severity and probability from
+ * which each applies in its matrix. */
+export const RISK_DEFAULT_LEVELS = [
+  { name: "Low", colour: "#0f9d8a", acceptable: true, from: 1 },
+  { name: "Medium", colour: "#d97706", acceptable: false, from: 5 },
+  { name: "High", colour: "#c2410c", acceptable: false, from: 12 },
+] as const;

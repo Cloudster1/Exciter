@@ -202,3 +202,48 @@ type Report struct {
 	Unrated     int          `json:"unrated"`
 	Risks       []Row        `json:"risks"`
 }
+
+// RPN is the priority number of one side under the scheme, nil while a value it needs is unknown; risk_rpn in SQL
+// works it out alike.
+func (sc Scheme) RPN(side requirement.Side) *int {
+	if side.Severity == nil || side.Probability == nil {
+		return nil
+	}
+	n := *side.Severity * *side.Probability
+	if sc.Detection {
+		if side.Detection == nil {
+			return nil
+		}
+		n *= *side.Detection
+	}
+	return &n
+}
+
+// Level is the level one side gives under the scheme, nil for none; risk_level_of in SQL works it out alike.
+func (sc Scheme) Level(side requirement.Side) *Level {
+	if sc.Method == MethodMatrix {
+		if side.Severity == nil || side.Probability == nil {
+			return nil
+		}
+		for _, c := range sc.Matrix {
+			if c.Severity == *side.Severity && c.Probability == *side.Probability {
+				for i := range sc.Levels {
+					if sc.Levels[i].Name == c.Level {
+						return &sc.Levels[i]
+					}
+				}
+			}
+		}
+		return nil
+	}
+	rpn := sc.RPN(side)
+	if rpn == nil {
+		return nil
+	}
+	for i := len(sc.Levels) - 1; i >= 0; i-- {
+		if sc.Levels[i].MinRPN == nil || *sc.Levels[i].MinRPN <= *rpn {
+			return &sc.Levels[i]
+		}
+	}
+	return nil
+}

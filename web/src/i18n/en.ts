@@ -21,6 +21,7 @@ import { chainsEn } from "./chains.en";
 import { dashboardEn } from "./dashboard.en";
 import { templatesEn } from "./templates.en";
 import { testcasesEn } from "./testcases.en";
+import { risksEn } from "./risks.en";
 import { testsEn } from "./tests.en";
 import { graphEn } from "./graph.en";
 import { reuseEn } from "./reuse.en";
@@ -359,6 +360,7 @@ export const en = {
       "project.language_set": "Project language set",
       "quality_settings.saved": "Writing rules set",
       "code_tag_words.saved": "Code tag words set",
+      "risk_scheme.saved": "Risk scheme set",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -418,6 +420,7 @@ export const en = {
   dashboard: dashboardEn,
   templates: templatesEn,
   testcases: testcasesEn,
+  risks: risksEn,
   tests: testsEn,
   graph: graphEn,
   imports: importsEn,

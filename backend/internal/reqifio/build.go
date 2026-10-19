@@ -141,6 +141,14 @@ var testCaseFields = []struct {
 	{fieldPreconditions, dataXHTML, KindXHTML}, {fieldSteps, dataXHTML, KindXHTML}, {fieldParameters, dataString, KindString},
 }
 
+// riskFields are what the type of risks writes besides (#259): the rating as one line.
+var riskFields = []struct {
+	field, dataType string
+	kind            DataKind
+}{
+	{fieldRisk, dataString, KindString},
+}
+
 func (b *builder) specTypes() {
 	used := map[uuid.UUID]bool{}
 	sections := false
@@ -180,6 +188,9 @@ func (b *builder) specTypes() {
 		fields := requirementFields
 		if b.snap.testTypes[typeID] {
 			fields = append(fields[:len(fields):len(fields)], testCaseFields...)
+		}
+		if b.snap.riskTypes[typeID] {
+			fields = append(fields[:len(fields):len(fields)], riskFields...)
 		}
 		for _, f := range fields {
 			defs[f.field] = &AttrDef{Identity: b.id(fieldIdentifier(scope, f.field), fieldNames[f.field]), Kind: f.kind, DataType: f.dataType}
@@ -301,6 +312,9 @@ func (b *builder) object(n requirement.TreeNode) {
 		}
 		if len(c.Test.Parameters) > 0 {
 			put(fieldParameters, Value{Text: requirement.ParametersText(c.Test.Parameters)})
+		}
+		if !c.Risk.Empty() {
+			put(fieldRisk, Value{Text: requirement.RatingText(c.Risk)})
 		}
 		for _, d := range b.snap.defs {
 			if v, ok := b.attributeValue(d, c.Attributes[d.ID.String()]); ok {

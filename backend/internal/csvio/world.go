@@ -44,6 +44,8 @@ type world struct {
 	linkTypes map[string]bool
 	// testTypes are the project's types marked as test cases (#250).
 	testTypes map[uuid.UUID]bool
+	// riskTypes are the project's types marked as risks (#259).
+	riskTypes map[uuid.UUID]bool
 	// elsewhere says whether a key names a requirement of another project the importer may link to.
 	elsewhere func(key string) bool
 }
@@ -51,7 +53,8 @@ type world struct {
 // loadWorld reads the project as actor sees it, in the transaction tx, which elsewhere goes on reading.
 func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Project) (*world, error) {
 	w := &world{project: p, types: map[string]named{}, statuses: map[string]named{}, members: map[string]named{},
-		existing: map[string]existing{}, linkTypes: map[string]bool{}, testTypes: map[uuid.UUID]bool{}}
+		existing: map[string]existing{}, linkTypes: map[string]bool{}, testTypes: map[uuid.UUID]bool{},
+		riskTypes: map[uuid.UUID]bool{}}
 	defs, err := attribute.Defs(ctx, tx, p.ID)
 	if err != nil {
 		return nil, err
@@ -99,16 +102,28 @@ func loadWorld(ctx context.Context, tx db.DBTX, actor uuid.UUID, p *project.Proj
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	tests, err := tx.Query(ctx, `SELECT id FROM requirement_type WHERE project_id = $1 AND role = 'testCase'`, p.ID)
+	roles, err := tx.Query(ctx, `SELECT id, role FROM requirement_type WHERE project_id = $1 AND role IN ('testCase', 'risk')`, p.ID)
 	if err != nil {
 		return nil, err
 	}
-	testIDs, err := pgx.CollectRows(tests, pgx.RowTo[uuid.UUID])
-	if err != nil {
-		return nil, err
+	for roles.Next() {
+		var (
+			id   uuid.UUID
+			role string
+		)
+		if err := roles.Scan(&id, &role); err != nil {
+			roles.Close()
+			return nil, err
+		}
+		if role == "risk" {
+			w.riskTypes[id] = true
+		} else {
+			w.testTypes[id] = true
+		}
 	}
-	for _, id := range testIDs {
-		w.testTypes[id] = true
+	roles.Close()
+	if err := roles.Err(); err != nil {
+		return nil, err
 	}
 	keys, err := tx.Query(ctx, `
 		SELECT lt.key FROM link_type lt

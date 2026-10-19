@@ -174,6 +174,9 @@ func requirementError(err error) *APIError {
 		return ErrForbidden("Only the project's administrators delete from the trash for good. Restore the requirement instead, or ask one of them.")
 	case errors.Is(err, requirement.ErrNoRevision):
 		return ErrNotFound("That revision does not exist. Pick one from the requirement's history.")
+	case errors.Is(err, requirement.ErrRatingsDoNotFit):
+		return &APIError{Status: http.StatusConflict, Code: "ratings_do_not_fit",
+			Message: "A risk is rated on values the other project's scales lack. Give that project the same values, or change the rating first."}
 	case errors.Is(err, requirement.ErrNoChange):
 		return &APIError{Status: http.StatusConflict, Code: "no_change", Message: "That revision says what the requirement says now. Pick another to restore."}
 	case errors.Is(err, requirement.ErrTrashed):

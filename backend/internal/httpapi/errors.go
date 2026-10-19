@@ -221,6 +221,9 @@ func toAPIError(err error) *APIError {
 		if apiErr := testError(err); apiErr != nil {
 			return apiErr
 		}
+		if apiErr := riskError(err); apiErr != nil {
+			return apiErr
+		}
 		if apiErr := duplicatesError(err); apiErr != nil {
 			return apiErr
 		}

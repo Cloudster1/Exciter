@@ -211,7 +211,7 @@ func (r *run) create(ctx context.Context, p *objectPlan, parent uuid.UUID) (made
 	statement, rationale, attrs := r.documents(p, nil)
 	in := requirement.CreateInput{Kind: p.Kind, Title: p.Title, Statement: statement, Rationale: rationale, TypeID: p.TypeID,
 		Attributes: attrs, OwnerID: p.Owner, Priority: p.Priority, Labels: p.Labels, Comment: r.comment, ImportedStatus: p.Status,
-		TestCase: r.testCase(p, nil)}
+		TestCase: r.testCase(p, nil), Risk: r.rating(p)}
 	after := r.last[parent]
 	if parent != uuid.Nil || after != nil {
 		in.Place = &requirement.Place{ParentID: ptr(parent), AfterID: after}
@@ -232,7 +232,7 @@ func (r *run) create(ctx context.Context, p *objectPlan, parent uuid.UUID) (made
 	statement, rationale, attrs = r.documents(p, placer)
 	revision := created.Revision
 	_, _, err = r.s.requirements.Update(ctx, r.j.createdBy, self.Key, requirement.UpdateInput{Statement: statement, Rationale: rationale,
-		Attributes: attrs, BaseRevision: &revision, Comment: "Imported the files of " + r.j.FileName, TestCase: r.testCase(p, placer)})
+		Attributes: attrs, BaseRevision: &revision, Comment: "Imported the files of " + r.j.FileName, TestCase: r.testCase(p, placer), Risk: r.rating(p)})
 	return self, err
 }
 
@@ -259,7 +259,7 @@ func (r *run) update(ctx context.Context, p *objectPlan) (bool, error) {
 	}
 	statement, rationale, attrs := r.documents(p, placer)
 	in := requirement.UpdateInput{Statement: statement, Rationale: rationale, Attributes: attrs, BaseRevision: &e.Revision, Comment: r.comment,
-		TestCase: r.testCase(p, placer)}
+		TestCase: r.testCase(p, placer), Risk: r.rating(p)}
 	if p.Title != "" {
 		in.Title = &p.Title
 	}
@@ -554,4 +554,16 @@ func (r *run) testCase(p *objectPlan, placer Placer) *requirement.TestCase {
 		t.Parameters = requirement.ParametersOf(*p.Parameters)
 	}
 	return t
+}
+
+// rating is what a plan rates a risk, nil when the object says nothing of it.
+func (r *run) rating(p *objectPlan) *requirement.Rating {
+	if p.Kind != requirement.KindRequirement || p.Risk == nil {
+		return nil
+	}
+	rating, err := requirement.RatingOf(*p.Risk)
+	if err != nil {
+		return nil
+	}
+	return &rating
 }

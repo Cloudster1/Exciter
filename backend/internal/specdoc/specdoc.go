@@ -105,7 +105,9 @@ type Entry struct {
 	Properties []Property      `json:"properties"`
 	// TestCase is what a test case carries (#250), absent for any other entry.
 	TestCase *requirement.TestCase `json:"testCase,omitempty"`
-	Links    []Link                `json:"links"`
+	// Risk is a risk's rating with its levels (#259), absent for any other entry.
+	Risk  *requirement.RiskView `json:"risk,omitempty"`
+	Links []Link                `json:"links"`
 	// Changes is the statement with what changed since a baseline marked, and ChangedFrom the revision the baseline
 	// held, 0 for a requirement it did not hold; both are absent unless a template asks for change marks (#214).
 	Changes     json.RawMessage `json:"changes,omitempty"`

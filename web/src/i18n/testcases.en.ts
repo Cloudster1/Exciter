@@ -1,8 +1,5 @@
 /** The strings of test cases: requirements of a type marked as test cases, with steps (#250). */
 export const testcasesEn = {
-  role: "Its requirements are test cases",
-  roleHint: "A test case carries preconditions, steps with an expected result each, and parameters besides.",
-  roleHeld: "Some of its requirements have steps, so it stays one of test cases. Clear their steps, or give them another test-case type, first.",
   typeTag: "Test cases",
   preconditions: "Preconditions",
   preconditionsHint: "What holds before the first step, such as the system's state or the data it needs.",

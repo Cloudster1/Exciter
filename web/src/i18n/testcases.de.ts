@@ -2,10 +2,6 @@ import type { testcasesEn } from "./testcases.en";
 
 /** Die Texte der Testfälle: Anforderungen eines als Testfälle markierten Typs, mit Schritten (#250). */
 export const testcasesDe: typeof testcasesEn = {
-  role: "Seine Anforderungen sind Testfälle",
-  roleHint: "Ein Testfall hat zusätzlich Vorbedingungen, Schritte mit je einem erwarteten Ergebnis und Parameter.",
-  roleHeld:
-    "Einige seiner Anforderungen haben Schritte, darum bleibt er ein Typ für Testfälle. Leeren Sie zuerst deren Schritte oder geben Sie ihnen einen anderen Testfall-Typ.",
   typeTag: "Testfälle",
   preconditions: "Vorbedingungen",
   preconditionsHint: "Was vor dem ersten Schritt gilt, etwa der Zustand des Systems oder die Daten, die es braucht.",

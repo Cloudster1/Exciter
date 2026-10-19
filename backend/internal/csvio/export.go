@@ -22,7 +22,8 @@ import (
 // ExportColumns are the columns an export may carry besides an attribute, which is named by its id as the grid
 // names it; outline and parent always come last.
 var ExportColumns = []string{TargetKey, TargetKind, TargetTitle, TargetStatement, TargetRationale, TargetType, TargetStatus,
-	TargetOwner, TargetPriority, TargetLabels, TargetLinks, TargetPreconditions, TargetSteps, TargetParameters, "updated"}
+	TargetOwner, TargetPriority, TargetLabels, TargetLinks, TargetPreconditions, TargetSteps, TargetParameters,
+	TargetSeverity, TargetProbability, TargetDetection, TargetSeverityAfter, TargetProbabilityAfter, TargetDetectionAfter, "updated"}
 
 // defaultExport is what an export carries when nobody chose: everything an import into another project reads.
 var defaultExport = []string{TargetKey, TargetKind, TargetTitle, TargetStatement, TargetRationale, TargetType, TargetStatus,
@@ -48,6 +49,7 @@ type details struct {
 	parent, owner        string
 	links                []string
 	test                 requirement.TestCase
+	risk                 requirement.Rating
 }
 
 // Export writes one project's requirements, narrowed and ordered as the grid is, as CSV with the columns
@@ -64,6 +66,7 @@ func (s *Service) Export(ctx context.Context, w io.Writer, actor uuid.UUID, proj
 		extra  map[uuid.UUID]details
 		people map[uuid.UUID]string
 		tests  bool
+		risks  bool
 	)
 	err = s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, actor, projectKey)
@@ -73,7 +76,9 @@ func (s *Service) Export(ctx context.Context, w io.Writer, actor uuid.UUID, proj
 		if defs, err = attribute.Defs(ctx, tx, p.ID); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM requirement_type WHERE project_id = $1 AND role = 'testCase')`, p.ID).Scan(&tests); err != nil {
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (SELECT 1 FROM requirement_type WHERE project_id = $1 AND role = 'testCase'),
+			       EXISTS (SELECT 1 FROM requirement_type WHERE project_id = $1 AND role = 'risk')`, p.ID).Scan(&tests, &risks); err != nil {
 			return err
 		}
 		ids := make([]uuid.UUID, len(rows))
@@ -89,7 +94,7 @@ func (s *Service) Export(ctx context.Context, w io.Writer, actor uuid.UUID, proj
 	if err != nil {
 		return done, err
 	}
-	if columns, err = exportColumns(columns, defs, tests); err != nil {
+	if columns, err = exportColumns(columns, defs, tests, risks); err != nil {
 		return done, err
 	}
 	out := csv.NewWriter(w)
@@ -120,12 +125,15 @@ func (s *Service) Export(ctx context.Context, w io.Writer, actor uuid.UUID, proj
 }
 
 // exportColumns checks the columns asked for, the default ones when none were, and puts outline and parent last; a
-// project with test cases exports what they carry by default too.
-func exportColumns(asked []string, defs []attribute.Def, tests bool) ([]string, error) {
+// project with test cases or risks exports what they carry by default too.
+func exportColumns(asked []string, defs []attribute.Def, tests, risks bool) ([]string, error) {
 	if len(asked) == 0 {
 		asked = append([]string{}, defaultExport...)
 		if tests {
 			asked = append(asked, TargetPreconditions, TargetSteps, TargetParameters)
+		}
+		if risks {
+			asked = append(asked, RiskTargets...)
 		}
 		for _, d := range defs {
 			if !d.Retired {
@@ -168,7 +176,7 @@ func exportDetails(ctx context.Context, tx db.DBTX, ids []uuid.UUID) (map[uuid.U
 	out := map[uuid.UUID]details{}
 	rows, err := tx.Query(ctx, `
 		SELECT r.id, r.statement, r.rationale, COALESCE(pp.key || '-R' || pr.number, ''), COALESCE(o.email::text, ''),
-		       r.preconditions, r.steps, r.parameters
+		       r.preconditions, r.steps, r.parameters, r.risk
 		FROM requirement r
 		LEFT JOIN requirement pr ON pr.id = r.parent_id
 		LEFT JOIN project pp ON pp.id = pr.project_id
@@ -182,8 +190,12 @@ func exportDetails(ctx context.Context, tx db.DBTX, ids []uuid.UUID) (map[uuid.U
 			id uuid.UUID
 			d  details
 		)
-		var pre, steps, params []byte
-		if err := rows.Scan(&id, &d.statement, &d.rationale, &d.parent, &d.owner, &pre, &steps, &params); err != nil {
+		var pre, steps, params, rating []byte
+		if err := rows.Scan(&id, &d.statement, &d.rationale, &d.parent, &d.owner, &pre, &steps, &params, &rating); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if d.risk, err = requirement.ReadRating(rating); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -276,6 +288,8 @@ func exportCell(r search.Row, d details, column string, defs []attribute.Def, pe
 		return StepsText(d.test.Steps)
 	case TargetParameters:
 		return requirement.ParametersText(d.test.Parameters)
+	case TargetSeverity, TargetProbability, TargetDetection, TargetSeverityAfter, TargetProbabilityAfter, TargetDetectionAfter:
+		return ratingCell(d.risk, column)
 	case TargetType:
 		if r.Type != nil {
 			return r.Type.Name

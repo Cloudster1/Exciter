@@ -106,12 +106,12 @@ func (s *Service) write(ctx context.Context, j *job, p plan, comment string) (*r
 	if p.Existing == nil {
 		in := requirement.CreateInput{Kind: p.Kind, Title: p.Title, Statement: p.Statement, Rationale: p.Rationale, TypeID: p.TypeID,
 			Attributes: p.Attributes, OwnerID: p.Owner, Priority: p.Priority, Labels: p.Labels, Comment: comment, ImportedStatus: p.Status,
-			TestCase: p.TestCase}
+			TestCase: p.TestCase, Risk: p.Risk}
 		r, _, err := s.requirements.Create(ctx, j.createdBy, j.ProjectKey, in)
 		return r, false, err
 	}
 	in := requirement.UpdateInput{Statement: p.Statement, Rationale: p.Rationale, TypeID: p.TypeID, Comment: comment, BaseRevision: &p.Existing.Revision,
-		TestCase: p.TestCase}
+		TestCase: p.TestCase, Risk: p.Risk}
 	if p.Title != "" {
 		in.Title = &p.Title
 	}

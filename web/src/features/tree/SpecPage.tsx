@@ -16,6 +16,7 @@ import { RequirementCreate } from "@/features/requirements/NewRequirementForm";
 import { RequirementEdit, type Editable } from "@/features/requirements/RequirementEdit";
 import { t } from "@/i18n";
 import { TestCaseView } from "@/features/testcases/TestCaseView";
+import { RatingView } from "@/features/risks/RatingView";
 import { OpenSessionButton, SessionBanner } from "@/features/sessions/SessionLaunch";
 import { lockSentence } from "@/features/requirements/LockBanner";
 import { narrowed } from "./address";
@@ -50,6 +51,7 @@ export function editableOf(entry: SpecEntry): Editable {
     reuse: entry.reuse,
     status: node.status,
     testCase: entry.testCase,
+    risk: entry.risk,
   };
 }
 
@@ -567,6 +569,7 @@ function Entry({
             </div>
           )}
           {entry.testCase && <TestCaseView content={entry.testCase} small />}
+          {entry.risk && <RatingView view={entry.risk} small />}
         </>
       )}
       {!collapsed && !editing && entry.review && <EntryReview project={project} entry={entry} onDecided={onDecided} />}

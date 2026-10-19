@@ -144,7 +144,15 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 	if err != nil {
 		return uuid.Nil, err
 	}
-	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test}
+	// A rating comes along as far as the other project's scales hold its values.
+	rating, err := ratingFor(ctx, tx, typeID, l.risk)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if rating, err = fitRating(ctx, tx, to.ID, rating); err != nil {
+		return uuid.Nil, err
+	}
+	content := Normative{Title: l.Title, Statement: l.Statement, Rationale: l.Rationale, TypeID: typeID, Attributes: values, Test: test, Risk: rating}
 	if err := pointAtFiles(&content, files); err != nil {
 		return uuid.Nil, err
 	}
@@ -154,6 +162,10 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 		return uuid.Nil, err
 	}
 	pre, steps, params, err := content.Test.columns()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	encodedRating, err := content.Risk.column()
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -169,12 +181,12 @@ func copyOne(ctx context.Context, tx db.DBTX, actor uuid.UUID, l *loaded, to *pr
 	err = tx.QueryRow(ctx, `
 		INSERT INTO requirement (project_id, kind, title, statement, rationale, type_id, attributes, normative_hash, owner_id, priority,
 		                         parent_id, rank, copied_from, created_by, updated_by, reuse_source, reuse_revision, reuse_state,
-		                         preconditions, steps, parameters)
+		                         preconditions, steps, parameters, risk)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14, $15, $16, CASE WHEN $15::uuid IS NULL THEN NULL ELSE 'following' END,
-		        $17, $18, $19)
+		        $17, $18, $19, $20)
 		RETURNING id`,
 		to.ID, l.Kind, l.Title, content.Statement, content.Rationale, typeID, attrs, hash, owner, l.Priority, parent, rank, l.ID, actor,
-		reuseFrom, reuseRev, pre, steps, params).Scan(&id)
+		reuseFrom, reuseRev, pre, steps, params, encodedRating).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound
 	}

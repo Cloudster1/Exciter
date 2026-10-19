@@ -27,10 +27,11 @@ var riskRowsQuery = append(append(append([]param{}, gridQuery...), riskSideQuery
 
 var riskOperations = []operation{
 	// The risk scheme (#259).
-	{method: "GET", path: "/projects/{projectKey}/risk-scheme", handler: "handleGetRiskScheme", tag: "risks", pending: true,
+	{method: "GET", path: "/projects/{projectKey}/risk-scheme", handler: "handleGetRiskScheme", tag: "risks",
+		tool: "get_risk_scheme", toolHelp: "A project's risk scheme: its scales and their named values, its levels, and the matrix or the priority-number thresholds that give a rating its level; null until set.",
 		summary:   "A project's risk scheme: its scales, levels, and the matrix or thresholds that give a level; null until set.",
 		responses: ok(env{"scheme": (*risk.Scheme)(nil)})},
-	{method: "PUT", path: "/projects/{projectKey}/risk-scheme", handler: "handleSaveRiskScheme", tag: "risks", pending: true,
+	{method: "PUT", path: "/projects/{projectKey}/risk-scheme", handler: "handleSaveRiskScheme", tag: "risks",
 		summary: "Set a project's risk scheme whole: scales of at most " + strconv.Itoa(risk.MaxScaleValue) + " values, at most " +
 			strconv.Itoa(risk.MaxLevels) + " levels, and a full matrix or rising thresholds. A value a rating uses stays. The project's administrators'.",
 		request: risk.SchemeInput{}, responses: map[int]any{http.StatusOK: env{"scheme": risk.Scheme{}}, http.StatusForbidden: errorEnvelope{},

@@ -56,16 +56,18 @@ type TypeInput struct {
 	Role     *TypeRole `json:"role,omitempty"`
 }
 
-// TypeRole is what a type's requirements are: requirements, or test cases with steps (#250).
+// TypeRole is what a type's requirements are: requirements, test cases with steps (#250), or risks with a
+// rating (#259).
 type TypeRole string
 
 const (
 	RoleRequirement TypeRole = "requirement"
 	RoleTestCase    TypeRole = "testCase"
+	RoleRisk        TypeRole = "risk"
 )
 
 // TypeRoles lists every TypeRole, for the API document.
-var TypeRoles = []TypeRole{RoleRequirement, RoleTestCase}
+var TypeRoles = []TypeRole{RoleRequirement, RoleTestCase, RoleRisk}
 
 // Kind is what shape an attribute's values take.
 type Kind string

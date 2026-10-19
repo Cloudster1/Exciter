@@ -57,6 +57,13 @@ func (a *analysis) planValue(p *objectPlan, o *Object, v *Value, name, chapter *
 			text := textOf(v)
 			p.Parameters = &text
 		}
+	case fieldRisk:
+		if section {
+			a.lose(LossValue, p.Where, "Sections are no risks, so its rating is left out.")
+			return
+		}
+		text := textOf(v)
+		p.Risk = &text
 	case fieldStatus:
 		if !section {
 			a.planStatus(p, v)
@@ -327,4 +334,32 @@ func (a *analysis) settleTestCase(p *objectPlan, where string) {
 	p.Preconditions, p.Steps, p.Parameters = nil, nil, nil
 	delete(p.rich, fieldPreconditions)
 	delete(p.rich, fieldSteps)
+}
+
+// settleRisk leaves out a rating when the object becomes no risk, or the rating cannot be read, as a loss.
+func (a *analysis) settleRisk(p *objectPlan, where string) {
+	if p.Risk == nil {
+		return
+	}
+	if _, err := requirement.RatingOf(*p.Risk); err != nil {
+		a.lose(LossValue, where, "Its rating cannot be read, so it is left out: %v.", err)
+		p.Risk = nil
+		return
+	}
+	typeID := p.TypeID
+	if typeID == nil && p.Existing != nil {
+		typeID = p.Existing.TypeID
+	}
+	if typeID == nil && p.Existing == nil {
+		typeID = a.world.project.Settings.DefaultTypeID
+	}
+	if p.Kind == requirement.KindRequirement && typeID != nil && a.world.riskTypes[*typeID] {
+		return
+	}
+	// A type the import makes for the file's type of risks is one of risks too.
+	if t := a.schema.types[p.TypeRef]; p.Kind == requirement.KindRequirement && p.TypeRef != "" && t != nil && t.create != "" && t.risks {
+		return
+	}
+	a.lose(LossValue, where, "Its type here is not one of risks, so its rating is left out.")
+	p.Risk = nil
 }

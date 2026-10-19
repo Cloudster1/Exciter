@@ -160,7 +160,8 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), COALESCE(t.name, ''), COALESCE(st.name, ''),
 		       COALESCE(NULLIF(u.name, ''), u.email::text, ''), COALESCE(r.priority, ''),
 		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}'),
-		       r.preconditions, r.steps, r.parameters
+		       r.preconditions, r.steps, r.parameters,
+		       r.risk, CASE WHEN r.risk IS NOT NULL THEN risk_view(r.project_id, r.risk, r.id) END
 		FROM requirement r
 		LEFT JOIN requirement_type t ON t.id = r.type_id
 		LEFT JOIN req_status st ON st.id = r.status_id
@@ -174,6 +175,7 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 		typeName, status, owner, priority string
 		labels                            []string
 		pre, steps, params                []byte
+		rating, view                      []byte
 	}
 	byID := map[uuid.UUID]found{}
 	for rows.Next() {
@@ -182,7 +184,7 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 			f  found
 		)
 		if err := rows.Scan(&id, &f.statement, &f.rationale, &f.attributes, &f.typeName, &f.status, &f.owner, &f.priority, &f.labels,
-			&f.pre, &f.steps, &f.params); err != nil {
+			&f.pre, &f.steps, &f.params, &f.rating, &f.view); err != nil {
 			rows.Close()
 			return err
 		}
@@ -200,6 +202,10 @@ func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
 			continue
 		}
 		if err := withTestCase(e, f.pre, f.steps, f.params); err != nil {
+			return err
+		}
+		var err error
+		if e.Risk, err = requirement.ReadRiskView(f.rating, f.view); err != nil {
 			return err
 		}
 		e.Properties = appendText(e.Properties, FieldType, f.typeName)

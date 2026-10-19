@@ -49,6 +49,7 @@ type content struct {
 	Labels     []string
 	Updated    time.Time
 	Test       requirement.TestCase
+	Risk       requirement.Rating
 }
 
 // snapshot is the part of a project an export writes, read in one transaction.
@@ -60,6 +61,8 @@ type snapshot struct {
 	types    map[uuid.UUID]named
 	// testTypes are the types marked as test cases, whose objects carry what a test case does (#250).
 	testTypes map[uuid.UUID]bool
+	// riskTypes are the types marked as risks, whose objects carry a rating (#259).
+	riskTypes map[uuid.UUID]bool
 	changed   map[uuid.UUID]time.Time
 	statuses  []named
 	links     []exportLink
@@ -169,7 +172,7 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 	rows, err := tx.Query(ctx, `
 		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), r.status_id, COALESCE(lower(u.email::text), ''), r.priority, r.updated_at,
 		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}'),
-		       r.preconditions, r.steps, r.parameters
+		       r.preconditions, r.steps, r.parameters, r.risk
 		FROM requirement r LEFT JOIN app_user u ON u.id = r.owner_id
 		WHERE r.id = ANY($1)`, ids)
 	if err != nil {
@@ -182,12 +185,17 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 			c                  content
 			attrs              []byte
 			pre, steps, params []byte
+			rating             []byte
 		)
-		if err := rows.Scan(&id, &c.Statement, &c.Rationale, &attrs, &c.Status, &c.Owner, &c.Priority, &c.Updated, &c.Labels, &pre, &steps, &params); err != nil {
+		if err := rows.Scan(&id, &c.Statement, &c.Rationale, &attrs, &c.Status, &c.Owner, &c.Priority, &c.Updated, &c.Labels, &pre, &steps, &params,
+			&rating); err != nil {
 			return err
 		}
 		var err error
 		if c.Test, err = requirement.ReadTestCase(pre, steps, params); err != nil {
+			return err
+		}
+		if c.Risk, err = requirement.ReadRating(rating); err != nil {
 			return err
 		}
 		if err := json.Unmarshal(attrs, &c.Attributes); err != nil {
@@ -199,8 +207,8 @@ func (snap *snapshot) readContents(ctx context.Context, tx db.DBTX, ids []uuid.U
 }
 
 func (snap *snapshot) readSchema(ctx context.Context, tx db.DBTX, _ []uuid.UUID) error {
-	snap.types, snap.changed, snap.testTypes = map[uuid.UUID]named{}, map[uuid.UUID]time.Time{}, map[uuid.UUID]bool{}
-	rows, err := tx.Query(ctx, `SELECT id, name, updated_at, role = 'testCase' FROM requirement_type WHERE project_id = $1`, snap.project.ID)
+	snap.types, snap.changed, snap.testTypes, snap.riskTypes = map[uuid.UUID]named{}, map[uuid.UUID]time.Time{}, map[uuid.UUID]bool{}, map[uuid.UUID]bool{}
+	rows, err := tx.Query(ctx, `SELECT id, name, updated_at, role = 'testCase', role = 'risk' FROM requirement_type WHERE project_id = $1`, snap.project.ID)
 	if err != nil {
 		return err
 	}
@@ -209,12 +217,13 @@ func (snap *snapshot) readSchema(ctx context.Context, tx db.DBTX, _ []uuid.UUID)
 			t    named
 			at   time.Time
 			test bool
+			risk bool
 		)
-		if err := rows.Scan(&t.ID, &t.Name, &at, &test); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &at, &test, &risk); err != nil {
 			rows.Close()
 			return err
 		}
-		snap.types[t.ID], snap.changed[t.ID], snap.testTypes[t.ID] = t, at, test
+		snap.types[t.ID], snap.changed[t.ID], snap.testTypes[t.ID], snap.riskTypes[t.ID] = t, at, test, risk
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {

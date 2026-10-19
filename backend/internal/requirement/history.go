@@ -37,7 +37,9 @@ var viaRevision = via.Column("v")
 var selectRevision = `
 SELECT v.number, v.title, v.comment, v.created_by, COALESCE(u.name, ''), v.created_at, v.restored_from, v.hash, ` + viaRevision + `,
        v.statement, v.rationale, v.attributes, v.type_id, COALESCE(t.name, ''), COALESCE(t.icon, ''), COALESCE(t.colour, ''), t.project_id,
-       COALESCE(t.role, 'requirement'), v.preconditions, v.steps, v.parameters
+       COALESCE(t.role, 'requirement'), v.preconditions, v.steps, v.parameters, v.risk,
+       CASE WHEN v.risk IS NOT NULL OR t.role = 'risk'
+            THEN risk_view((SELECT rq.project_id FROM requirement rq WHERE rq.id = v.requirement_id), v.risk, NULL) END
 FROM requirement_revision v
 LEFT JOIN app_user u ON u.id = v.created_by
 LEFT JOIN requirement_type t ON t.id = v.type_id`
@@ -47,6 +49,7 @@ type stored struct {
 	Revision
 	typeProject *uuid.UUID
 	test        TestCase
+	risk        Rating
 }
 
 func scanRevision(row pgx.Row) (*stored, error) {
@@ -60,9 +63,12 @@ func scanRevision(row pgx.Row) (*stored, error) {
 		pre       []byte
 		steps     []byte
 		params    []byte
+		rating    []byte
+		view      []byte
 	)
 	err := row.Scan(&v.Number, &v.Title, &v.Comment, &v.AuthorID, &v.AuthorName, &v.CreatedAt, &v.RestoredFrom, &v.Hash, &v.Via,
-		&v.Statement, &rationale, &attrs, &typeID, &typ.Name, &typ.Icon, &typ.Colour, &v.typeProject, &role, &pre, &steps, &params)
+		&v.Statement, &rationale, &attrs, &typeID, &typ.Name, &typ.Icon, &typ.Colour, &v.typeProject, &role, &pre, &steps, &params,
+		&rating, &view)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNoRevision
 	}
@@ -82,6 +88,14 @@ func scanRevision(row pgx.Row) (*stored, error) {
 	if role == RoleTestCase || !v.test.Empty() {
 		test := v.test
 		v.TestCase = &test
+	}
+	if v.risk, err = scanRating(rating); err != nil {
+		return nil, err
+	}
+	if role == RoleRisk || !v.risk.Empty() {
+		if v.Risk, err = riskView(v.risk, view); err != nil {
+			return nil, err
+		}
 	}
 	return &v, json.Unmarshal(attrs, &v.Attributes)
 }
@@ -216,6 +230,7 @@ func comparison(ctx context.Context, tx db.DBTX, defs []attribute.Def, id uuid.U
 	if c.Steps == nil {
 		c.Steps = []StepDiff{}
 	}
+	c.Risk = riskDiff(a.risk, b.risk)
 	return c, nil
 }
 
@@ -421,6 +436,12 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 		if content.Test, err = testFor(ctx, tx, content.TypeID, old.test); err != nil {
 			return err
 		}
+		if content.Risk, err = ratingFor(ctx, tx, content.TypeID, old.risk); err != nil {
+			return err
+		}
+		if content.Risk, err = fitRating(ctx, tx, cur.projectID, content.Risk); err != nil {
+			return err
+		}
 		hash := content.Hash()
 		if hash == cur.hash {
 			return ErrNoChange
@@ -433,10 +454,14 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 		if err != nil {
 			return err
 		}
+		rating, err := content.Risk.column()
+		if err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
-			    preconditions = $9, steps = $10, parameters = $11
-			WHERE id = $1`, cur.ID, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, actor, pre, steps, params); err != nil {
+			    preconditions = $9, steps = $10, parameters = $11, risk = $12
+			WHERE id = $1`, cur.ID, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, actor, pre, steps, params, rating); err != nil {
 			return fmt.Errorf("restore revision %d of %s: %w", number, cur.Key, err)
 		}
 		next := cur.Revision + 1

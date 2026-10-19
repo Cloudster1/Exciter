@@ -182,6 +182,14 @@ func (w *writer) entry(i int, e specdoc.Entry, f frame) {
 	if t := e.TestCase; t != nil {
 		w.testCase(*t, f)
 	}
+	if v := e.Risk; v != nil {
+		w.para(f, paraProps{style: "Label", keepNext: true}, func() { w.text(w.words.pick("Risk", "Risiko"), runProps{}) })
+		w.body(requirement.RatingTable(*v, requirement.RatingWords{
+			Rating: w.words.pick("Rating", "Bewertung"), Before: w.words.pick("Before", "Vorher"), After: w.words.pick("After", "Nachher"),
+			Severity: w.words.pick("Severity", "Schwere"), Probability: w.words.pick("Probability", "Wahrscheinlichkeit"),
+			Detection: w.words.pick("Detection", "Entdeckung"), RPN: w.words.pick("RPN", "RPZ"), Level: w.words.pick("Level", "Stufe"),
+		}), f)
+	}
 	if len(e.Properties) > 0 {
 		w.properties(e.Properties, f)
 	}
