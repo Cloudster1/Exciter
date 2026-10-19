@@ -22,6 +22,8 @@ test.describe("test cases", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
   test("alice writes a test case with steps and reads its history", async ({ page, api }) => {
+    // It marks a type, writes a case with steps and parameters, revises it and reads its history: over 20 s on CI.
+    test.setTimeout(60_000);
     must(await api.POST("/projects", { body: { key: KEY, name: "Brakes" } }));
 
     await page.goto(`/p/${KEY}/settings?tab=types`);
