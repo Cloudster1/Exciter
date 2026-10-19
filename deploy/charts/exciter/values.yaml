@@ -96,7 +96,8 @@ database:
   appRole: exciter_app
   adminRole: exciter_admin
   # The role the roles and migrate Jobs connect as. It owns the schema and,
-  # outside cnpg, may CREATE ROLE. Empty means exciter_owner with cnpg, which
+  # outside cnpg, may CREATE ROLE. It must be a superuser or BYPASSRLS, which
+  # the chart grants under cnpg and the migrations check. Empty means exciter_owner with cnpg, which
   # keeps postgres for its own superuser, and postgres otherwise. A CNPG
   # cluster creates its owner once, so do not change this after the first sync.
   ownerRole: ""

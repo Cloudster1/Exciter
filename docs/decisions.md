@@ -3,6 +3,23 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-19: The database owner passes row security (#271)
+
+The permission functions are `SECURITY DEFINER` and read `app_user` and the
+other walled tables as the role that owns them, through `FORCE ROW LEVEL
+SECURITY`, and the policies name only `exciter_app` and `exciter_admin`. The
+compose stack and the bundled Postgres migrate as a superuser, which passes
+every policy, so this held unnoticed; the CNPG owner `exciter_owner` is none,
+and every administrator check answered false.
+
+- **The owner is BYPASSRLS** rather than named in a policy on every table.
+  It is what the superuser owner already had, the operator grants it from
+  `managed.roles` without a superuser in the chart, and a policy for a role
+  whose name is a value would have to be written by every migration.
+- **The migrate command refuses an owner without it**, so a database of
+  one's own fails at the migration with what to grant, not at the first
+  administrator action.
+
 ## 2026-10-19: A risk is a requirement of a risk type, rated on its project's scheme (#258)
 
 - **A risk is a requirement whose type has the risk role.** For the reasons

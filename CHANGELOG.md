@@ -862,6 +862,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- An installation on CloudNativePG can be administered (#271). The chart
+  gives the database owner BYPASSRLS, which the permission checks it owns
+  need to see anybody; without it the bootstrap stopped at the identity
+  provider and no administrator could change anything walled. The
+  migrations now refuse an owner that is neither a superuser nor BYPASSRLS
+  and say what to grant.
 - A project made from the Test specification template takes test cases
   straight away (#263): its "Test case" type is a type of test cases, and
   the template no longer adds Preconditions and Expected result attributes,

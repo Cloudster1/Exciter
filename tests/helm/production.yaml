@@ -560,6 +560,12 @@ spec:
       name: exciter_app
       passwordSecret:
         name: r-exciter-db-app
+    - bypassrls: true
+      ensure: present
+      login: true
+      name: exciter_owner
+      passwordSecret:
+        name: r-exciter-db-owner
   monitoring:
     enablePodMonitor: false
   postgresql:

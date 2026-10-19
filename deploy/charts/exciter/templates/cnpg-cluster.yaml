@@ -32,6 +32,17 @@ to read pg_stat_wal_receiver.
   "inRoles" (list "pg_read_all_stats")
   "passwordSecret" (dict "name" (include "exciter.credentialSecret" (dict "root" $ "name" $key)))) }}
 {{- end }}
+{{/*
+The permission functions are SECURITY DEFINER and read the walled tables as
+their owner, through FORCE ROW LEVEL SECURITY: an owner that is no superuser
+needs BYPASSRLS, or every administrator check answers false (#271).
+*/}}
+{{- $roles = append $roles (dict
+  "name" (include "exciter.ownerRole" .)
+  "ensure" "present"
+  "login" true
+  "bypassrls" true
+  "passwordSecret" (dict "name" (include "exciter.credentialSecret" (dict "root" . "name" "dbOwner")))) }}
 {{- $managed := $spec.managed | default dict }}
 {{- $_ := set $managed "roles" (concat $roles ($managed.roles | default list)) }}
 {{- $_ := set $spec "managed" $managed }}
