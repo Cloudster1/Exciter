@@ -26,6 +26,8 @@ test.describe("approval", { tag: "@desktop" }, () => {
   test.afterEach(async ({ api }) => removeProject(api));
 
   test("alice asks bob to approve her revision, bob approves it, and her next revision is not approved", async ({ page, api, pageAs, people }) => {
+    // Two people take turns over several pages: close to 20 s on CI.
+    test.setTimeout(60_000);
     must(await api.POST("/projects", { body: { key: KEY, name: "Signed off" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Brakes engage within 100 ms" } }));
 
