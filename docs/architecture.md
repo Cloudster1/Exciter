@@ -45,8 +45,9 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m8.md` for review sessions and control (#216),
   `docs/api-contract-m9.md` for verification evidence (#224),
   `docs/api-contract-m10.md` for authoring quality (#233),
-  `docs/api-contract-m11.md` for analysis and reporting (#242), and
-  `docs/api-contract-m12.md` for test management (#253).
+  `docs/api-contract-m11.md` for analysis and reporting (#242),
+  `docs/api-contract-m12.md` for test management (#253), and
+  `docs/api-contract-m13.md` for risk management (#258).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
   default; an administrator renames it under Settings, Installation.
@@ -291,6 +292,11 @@ app role holds no privilege on.
   resources, and prompts. Exciter becomes the OAuth authorization server of
   its MCP endpoint (`internal/oauth`), whose tokens are good for MCP alone,
   and what is written through a token or a grant carries `via`.
+- **Risk management** (M13, `docs/api-contract-m13.md`, planned): a risk
+  is a requirement of a type whose role is risks, rated before and after
+  mitigation in its revisions; `internal/risk` keeps a project's scheme,
+  whose matrix or priority number gives each rating its level, the
+  mitigations in effect, the FMEA table, the risk matrix and the report.
 - **Test management** (M12, `docs/api-contract-m12.md`): a test
   case is a requirement of a type whose role is test cases, carrying
   preconditions, steps and parameters in its revisions; `internal/testexec`

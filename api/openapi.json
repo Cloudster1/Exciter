@@ -97,6 +97,9 @@
       "name": "reviews"
     },
     {
+      "name": "risks"
+    },
+    {
       "name": "search"
     },
     {
@@ -13558,6 +13561,1579 @@
         }
       }
     },
+    "/projects/{projectKey}/risk-matrix": {
+      "get": {
+        "operationId": "riskMatrix",
+        "summary": "The risk matrix: how many of the risks the filter keeps fall in each cell, before mitigation or in effect.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "description": "before, or effective: after once every mitigation is in effect; effective when absent.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "before",
+                "effective"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matrix": {
+                      "$ref": "#/components/schemas/RiskMatrix"
+                    }
+                  },
+                  "required": [
+                    "matrix"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risk-report": {
+      "get": {
+        "operationId": "getRiskReport",
+        "summary": "The risk report: the scheme, the risks at each level before and in effect, and each risk with its ratings and mitigations.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "report": {
+                      "$ref": "#/components/schemas/RiskReport"
+                    }
+                  },
+                  "required": [
+                    "report"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risk-report.docx": {
+      "get": {
+        "operationId": "riskReportDocx",
+        "summary": "The risk report as a Word file, through a template of the project when one is named.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "A template the project may use; none when absent.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risk-report.pdf": {
+      "get": {
+        "operationId": "riskReportPDF",
+        "summary": "The risk report as a PDF, printed by the render service as the reader.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risk-scheme": {
+      "get": {
+        "operationId": "getRiskScheme",
+        "summary": "A project's risk scheme: its scales, levels, and the matrix or thresholds that give a level; null until set.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scheme": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/RiskScheme"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "scheme"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveRiskScheme",
+        "summary": "Set a project's risk scheme whole: scales of at most 10 values, at most 10 levels, and a full matrix or rising thresholds. A value a rating uses stays. The project's administrators'.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskSchemeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scheme": {
+                      "$ref": "#/components/schemas/RiskScheme"
+                    }
+                  },
+                  "required": [
+                    "scheme"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risks": {
+      "get": {
+        "operationId": "listRisks",
+        "summary": "The FMEA table: a page of the project's risks, narrowed like the grid, with their ratings, levels, mitigations and state.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "description": "before, or effective: after once every mitigation is in effect; effective when absent.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "before",
+                "effective"
+              ]
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "description": "Only risks of this severity on the side read.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "probability",
+            "in": "query",
+            "description": "Only risks of this probability on the side read.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "0 or later; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskRows"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/risks.xlsx": {
+      "get": {
+        "operationId": "risksXLSX",
+        "summary": "The FMEA table as an Excel workbook, every risk the filter keeps, a row a mitigation, each level in its colour.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Words to find, as in search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Requirements, sections or both when absent.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "requirement",
+                  "section"
+                ]
+              }
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Requirement types.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Statuses.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Status categories.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "review",
+                  "approved",
+                  "done",
+                  "closed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "description": "Label names.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "Owners.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "description": "Priorities.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "must",
+                  "should",
+                  "could",
+                  "wont"
+                ]
+              }
+            }
+          },
+          {
+            "name": "attr",
+            "in": "query",
+            "description": "attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "suspect",
+            "in": "query",
+            "description": "true to keep only requirements with a suspect link.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "A column to order by; outline order when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "true to order the column backwards.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "description": "before, or effective: after once every mitigation is in effect; effective when absent.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "before",
+                "effective"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/similar": {
       "post": {
         "operationId": "similarToDraft",
@@ -19271,6 +20847,57 @@
                   "required": [
                     "people"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requirements/{reqKey}/mitigations": {
+      "get": {
+        "operationId": "getRiskMitigations",
+        "summary": "The requirements mitigating a risk, each with its coverage and whether it is in effect, and the risk's state.",
+        "tags": [
+          "risks"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskMitigations"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not Implemented: agreed, not built yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -37026,6 +38653,643 @@
           "restoredFrom",
           "hash",
           "via"
+        ]
+      },
+      "RiskLevel": {
+        "type": "object",
+        "properties": {
+          "acceptable": {
+            "type": "boolean"
+          },
+          "colour": {
+            "type": "string"
+          },
+          "minRpn": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "colour",
+          "acceptable",
+          "minRpn"
+        ]
+      },
+      "RiskLevelCount": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "integer"
+          },
+          "effective": {
+            "type": "integer"
+          },
+          "level": {
+            "$ref": "#/components/schemas/RiskLevelRef"
+          }
+        },
+        "required": [
+          "level",
+          "before",
+          "effective"
+        ]
+      },
+      "RiskLevelRef": {
+        "type": "object",
+        "properties": {
+          "acceptable": {
+            "type": "boolean"
+          },
+          "colour": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "colour",
+          "acceptable"
+        ]
+      },
+      "RiskMatrix": {
+        "type": "object",
+        "properties": {
+          "cells": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMatrixCount"
+            }
+          },
+          "probability": {
+            "$ref": "#/components/schemas/RiskScale"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/RiskScale"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "effective"
+            ]
+          },
+          "unrated": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "side",
+          "severity",
+          "probability",
+          "cells",
+          "unrated"
+        ]
+      },
+      "RiskMatrixCell": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "integer"
+          },
+          "severity": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "severity",
+          "probability",
+          "level"
+        ]
+      },
+      "RiskMatrixCount": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "level": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskLevelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probability": {
+            "type": "integer"
+          },
+          "severity": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "severity",
+          "probability",
+          "level",
+          "count"
+        ]
+      },
+      "RiskMitigation": {
+        "type": "object",
+        "properties": {
+          "implemented": {
+            "type": "string",
+            "enum": [
+              "none",
+              "partial",
+              "full",
+              "na"
+            ]
+          },
+          "inEffect": {
+            "type": "boolean"
+          },
+          "linkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RiskMitigationSource"
+          },
+          "suspect": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "string",
+            "enum": [
+              "none",
+              "partial",
+              "full",
+              "na"
+            ]
+          }
+        },
+        "required": [
+          "linkId",
+          "source",
+          "implemented",
+          "verified",
+          "suspect",
+          "inEffect"
+        ]
+      },
+      "RiskMitigationSource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "title",
+          "projectKey"
+        ]
+      },
+      "RiskMitigations": {
+        "type": "object",
+        "properties": {
+          "mitigations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMitigation"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unmitigated",
+              "claimed",
+              "mitigated"
+            ]
+          }
+        },
+        "required": [
+          "mitigations",
+          "state"
+        ]
+      },
+      "RiskRatingSide": {
+        "type": "object",
+        "properties": {
+          "detection": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "probability": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "severity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "severity",
+          "probability",
+          "detection"
+        ]
+      },
+      "RiskRatingView": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "$ref": "#/components/schemas/RiskRatingSide"
+          },
+          "afterLevel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskLevelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "afterRpn": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "before": {
+            "$ref": "#/components/schemas/RiskRatingSide"
+          },
+          "beforeLevel": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskLevelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "beforeRpn": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "level": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RiskLevelRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unmitigated",
+              "claimed",
+              "mitigated"
+            ]
+          }
+        },
+        "required": [
+          "before",
+          "after",
+          "beforeRpn",
+          "afterRpn",
+          "beforeLevel",
+          "afterLevel",
+          "state",
+          "level"
+        ]
+      },
+      "RiskRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RequirementTypeRef"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "title",
+          "revision",
+          "type"
+        ]
+      },
+      "RiskReport": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskLevelCount"
+            }
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskRow"
+            }
+          },
+          "scheme": {
+            "$ref": "#/components/schemas/RiskScheme"
+          },
+          "unrated": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "projectKey",
+          "projectName",
+          "scheme",
+          "levels",
+          "unrated",
+          "risks"
+        ]
+      },
+      "RiskRow": {
+        "type": "object",
+        "properties": {
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "description": "A JSON value."
+            }
+          },
+          "can": {
+            "$ref": "#/components/schemas/RiskRowCan"
+          },
+          "mitigations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMitigation"
+            }
+          },
+          "rating": {
+            "$ref": "#/components/schemas/RiskRatingView"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskRef"
+          }
+        },
+        "required": [
+          "risk",
+          "attributes",
+          "rating",
+          "mitigations",
+          "can"
+        ]
+      },
+      "RiskRowCan": {
+        "type": "object",
+        "properties": {
+          "edit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "edit"
+        ]
+      },
+      "RiskRows": {
+        "type": "object",
+        "properties": {
+          "risks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskRow"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "unrated": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "risks",
+          "total",
+          "unrated"
+        ]
+      },
+      "RiskScale": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "severity",
+              "probability",
+              "detection"
+            ]
+          },
+          "held": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskScaleValue"
+            }
+          }
+        },
+        "required": [
+          "dimension",
+          "label",
+          "values",
+          "held"
+        ]
+      },
+      "RiskScaleInput": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "severity",
+              "probability",
+              "detection"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskScaleValue"
+            }
+          }
+        },
+        "required": [
+          "dimension",
+          "label",
+          "values"
+        ]
+      },
+      "RiskScaleValue": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "name",
+          "description"
+        ]
+      },
+      "RiskScheme": {
+        "type": "object",
+        "properties": {
+          "detection": {
+            "type": "boolean"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskLevel"
+            }
+          },
+          "matrix": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMatrixCell"
+            }
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "matrix",
+              "rpn"
+            ]
+          },
+          "scales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskScale"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "$ref": "#/components/schemas/PersonRef"
+          }
+        },
+        "required": [
+          "method",
+          "detection",
+          "scales",
+          "levels",
+          "matrix",
+          "updatedBy",
+          "updatedAt"
+        ]
+      },
+      "RiskSchemeInput": {
+        "type": "object",
+        "properties": {
+          "detection": {
+            "type": "boolean"
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskLevel"
+            }
+          },
+          "matrix": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskMatrixCell"
+            }
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "matrix",
+              "rpn"
+            ]
+          },
+          "scales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskScaleInput"
+            }
+          }
+        },
+        "required": [
+          "method",
+          "detection",
+          "scales",
+          "levels",
+          "matrix"
         ]
       },
       "RuleOption": {

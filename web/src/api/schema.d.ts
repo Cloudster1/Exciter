@@ -2434,6 +2434,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectKey}/risk-matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The risk matrix: how many of the risks the filter keeps fall in each cell, before mitigation or in effect. */
+        get: operations["riskMatrix"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risk-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The risk report: the scheme, the risks at each level before and in effect, and each risk with its ratings and mitigations. */
+        get: operations["getRiskReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risk-report.docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The risk report as a Word file, through a template of the project when one is named. */
+        get: operations["riskReportDocx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risk-report.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The risk report as a PDF, printed by the render service as the reader. */
+        get: operations["riskReportPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risk-scheme": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A project's risk scheme: its scales, levels, and the matrix or thresholds that give a level; null until set. */
+        get: operations["getRiskScheme"];
+        /** Set a project's risk scheme whole: scales of at most 10 values, at most 10 levels, and a full matrix or rising thresholds. A value a rating uses stays. The project's administrators'. */
+        put: operations["saveRiskScheme"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The FMEA table: a page of the project's risks, narrowed like the grid, with their ratings, levels, mitigations and state. */
+        get: operations["listRisks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectKey}/risks.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The FMEA table as an Excel workbook, every risk the filter keeps, a row a mitigation, each level in its colour. */
+        get: operations["risksXLSX"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectKey}/similar": {
         parameters: {
             query?: never;
@@ -3300,6 +3420,23 @@ export interface paths {
         };
         /** The people a comment on the requirement may mention, and whether each may read it. */
         get: operations["listMentionable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requirements/{reqKey}/mitigations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The requirements mitigating a risk, each with its coverage and whether it is in effect, and the risk's state. */
+        get: operations["getRiskMitigations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7471,6 +7608,150 @@ export interface components {
             restoredFrom: number | null;
             title: string;
             via: components["schemas"]["Via"] | null;
+        };
+        RiskLevel: {
+            acceptable: boolean;
+            colour: string;
+            minRpn: number | null;
+            name: string;
+        };
+        RiskLevelCount: {
+            before: number;
+            effective: number;
+            level: components["schemas"]["RiskLevelRef"];
+        };
+        RiskLevelRef: {
+            acceptable: boolean;
+            colour: string;
+            name: string;
+        };
+        RiskMatrix: {
+            cells: components["schemas"]["RiskMatrixCount"][];
+            probability: components["schemas"]["RiskScale"];
+            severity: components["schemas"]["RiskScale"];
+            /** @enum {string} */
+            side: "before" | "effective";
+            unrated: number;
+        };
+        RiskMatrixCell: {
+            level: string;
+            probability: number;
+            severity: number;
+        };
+        RiskMatrixCount: {
+            count: number;
+            level: components["schemas"]["RiskLevelRef"] | null;
+            probability: number;
+            severity: number;
+        };
+        RiskMitigation: {
+            /** @enum {string} */
+            implemented: "none" | "partial" | "full" | "na";
+            inEffect: boolean;
+            /** Format: uuid */
+            linkId: string;
+            source: components["schemas"]["RiskMitigationSource"];
+            suspect: boolean;
+            /** @enum {string} */
+            verified: "none" | "partial" | "full" | "na";
+        };
+        RiskMitigationSource: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            projectKey: string;
+            title: string;
+        };
+        RiskMitigations: {
+            mitigations: components["schemas"]["RiskMitigation"][];
+            /** @enum {string} */
+            state: "unmitigated" | "claimed" | "mitigated";
+        };
+        RiskRatingSide: {
+            detection: number | null;
+            probability: number | null;
+            severity: number | null;
+        };
+        RiskRatingView: {
+            after: components["schemas"]["RiskRatingSide"];
+            afterLevel: components["schemas"]["RiskLevelRef"] | null;
+            afterRpn: number | null;
+            before: components["schemas"]["RiskRatingSide"];
+            beforeLevel: components["schemas"]["RiskLevelRef"] | null;
+            beforeRpn: number | null;
+            level: components["schemas"]["RiskLevelRef"] | null;
+            /** @enum {string} */
+            state: "unmitigated" | "claimed" | "mitigated";
+        };
+        RiskRef: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            revision: number;
+            title: string;
+            type: components["schemas"]["RequirementTypeRef"];
+        };
+        RiskReport: {
+            levels: components["schemas"]["RiskLevelCount"][];
+            projectKey: string;
+            projectName: string;
+            risks: components["schemas"]["RiskRow"][];
+            scheme: components["schemas"]["RiskScheme"];
+            unrated: number;
+        };
+        RiskRow: {
+            attributes: {
+                [key: string]: unknown;
+            };
+            can: components["schemas"]["RiskRowCan"];
+            mitigations: components["schemas"]["RiskMitigation"][];
+            rating: components["schemas"]["RiskRatingView"];
+            risk: components["schemas"]["RiskRef"];
+        };
+        RiskRowCan: {
+            edit: boolean;
+        };
+        RiskRows: {
+            risks: components["schemas"]["RiskRow"][];
+            total: number;
+            unrated: number;
+        };
+        RiskScale: {
+            /** @enum {string} */
+            dimension: "severity" | "probability" | "detection";
+            held: number[];
+            label: string;
+            values: components["schemas"]["RiskScaleValue"][];
+        };
+        RiskScaleInput: {
+            /** @enum {string} */
+            dimension: "severity" | "probability" | "detection";
+            label: string;
+            values: components["schemas"]["RiskScaleValue"][];
+        };
+        RiskScaleValue: {
+            description: string;
+            name: string;
+            value: number;
+        };
+        RiskScheme: {
+            detection: boolean;
+            levels: components["schemas"]["RiskLevel"][];
+            matrix: components["schemas"]["RiskMatrixCell"][];
+            /** @enum {string} */
+            method: "matrix" | "rpn";
+            scales: components["schemas"]["RiskScale"][];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: components["schemas"]["PersonRef"];
+        };
+        RiskSchemeInput: {
+            detection: boolean;
+            levels: components["schemas"]["RiskLevel"][];
+            matrix: components["schemas"]["RiskMatrixCell"][];
+            /** @enum {string} */
+            method: "matrix" | "rpn";
+            scales: components["schemas"]["RiskScaleInput"][];
         };
         RuleOption: {
             choices: string[];
@@ -17499,6 +17780,651 @@ export interface operations {
             };
         };
     };
+    riskMatrix: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description before, or effective: after once every mitigation is in effect; effective when absent. */
+                side?: "before" | "effective";
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matrix: components["schemas"]["RiskMatrix"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getRiskReport: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        report: components["schemas"]["RiskReport"];
+                    };
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    riskReportDocx: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description A template the project may use; none when absent. */
+                template?: string;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    riskReportPDF: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getRiskScheme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scheme: components["schemas"]["RiskScheme"] | null;
+                    };
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    saveRiskScheme: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RiskSchemeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scheme: components["schemas"]["RiskScheme"];
+                    };
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listRisks: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description before, or effective: after once every mitigation is in effect; effective when absent. */
+                side?: "before" | "effective";
+                /** @description Only risks of this severity on the side read. */
+                severity?: number;
+                /** @description Only risks of this probability on the side read. */
+                probability?: number;
+                /** @description 1 to 200; 50 when absent. */
+                limit?: number;
+                /** @description 0 or later; 0 when absent. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskRows"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    risksXLSX: {
+        parameters: {
+            query?: {
+                /** @description Words to find, as in search. */
+                q?: string;
+                /** @description A query in the query language, such as owner = currentUser() AND verifiedBy IS EMPTY ORDER BY priority DESC, at most 2000 characters; its ORDER BY outranks sort. Refused with bad_query and its position. */
+                query?: string;
+                /** @description Requirements, sections or both when absent. */
+                kind?: ("requirement" | "section")[];
+                /** @description Requirement types. */
+                type?: string[];
+                /** @description Statuses. */
+                status?: string[];
+                /** @description Status categories. */
+                category?: ("draft" | "review" | "approved" | "done" | "closed")[];
+                /** @description Label names. */
+                label?: string[];
+                /** @description Owners. */
+                owner?: string[];
+                /** @description Priorities. */
+                priority?: ("must" | "should" | "could" | "wont")[];
+                /** @description attributeId:op:value, all of which must hold; op is one of is, not, gte, lte, contains, set, unset. */
+                attr?: string[];
+                /** @description true to keep only requirements with a suspect link. */
+                suspect?: boolean;
+                /** @description A column to order by; outline order when absent. */
+                sort?: string;
+                /** @description true to order the column backwards. */
+                desc?: boolean;
+                /** @description before, or effective: after once every mitigation is in effect; effective when absent. */
+                side?: "before" | "effective";
+            };
+            header?: never;
+            path: {
+                projectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     similarToDraft: {
         parameters: {
             query?: never;
@@ -20881,6 +21807,46 @@ export interface operations {
                     "application/json": {
                         people: components["schemas"]["MentionablePerson"][];
                     };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getRiskMitigations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reqKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskMitigations"];
+                };
+            };
+            /** @description Not Implemented: agreed, not built yet. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description An error, in the one shape every endpoint uses. */
