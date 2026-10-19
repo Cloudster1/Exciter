@@ -138,7 +138,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Notifications:   notify.NewService(h.cluster),
 		Reviews:         review.NewService(h.cluster).WithPasswords(accounts),
 		Baselines:       baseline.NewService(h.cluster).WithPasswords(accounts),
-		OAuth:           oauth.NewService(h.cluster, "http://"+appHost, httpapi.APIPrefix, nil),
+		OAuth:           oauth.NewService(h.cluster, "http://"+appHost, httpapi.APIPrefix, nil).WithPeople(a.sso),
 		Fresh:           h.freshness(t), CookieName: h.cfg.Auth.SessionCookie, AppBaseURL: "http://" + appHost,
 	}
 	if configure != nil {

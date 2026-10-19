@@ -571,6 +571,91 @@ The tools of #185: review, comments and trace.
     address alone and is found under Connected apps, and keeps the client
     settings with a header for the others.
 
+## #273 Partner apps and the token exchange
+
+A tool beside Exciter that signs people in with the same identity provider,
+such as Stator, reads Exciter as each of them. Rather than each person pasting
+an `exciter_pat_` into it, the tool trades the person's access token from the
+shared realm for a grant here (RFC 8693), as it does at Armature
+(Cloudster1/Armature#280). Exciter's side follows Armature's
+`docs/oauth.md`, "Token exchange", so the three tools answer alike.
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `GET /oauth/clients` | admin | `{clients}`, the partner apps by name |
+| `POST /oauth/clients` | admin | 201 `{client}` with `secret`; 422 on `name`, `clientUri`, `keycloakClientId`, `scopes` |
+| `PATCH /oauth/clients/{clientID}` | admin | `{client}`; what is left out keeps its value; 404; 422 |
+| `POST /oauth/clients/{clientID}/rotate-secret` | admin | `{client}` with the new `secret`; the old one stops at once; 404 |
+| `DELETE /oauth/clients/{clientID}` | admin | 204, every grant of it ended; 404 |
+| `POST /oauth/token` with the exchange grant | public, the partner app | the tokens; 400; 401 |
+
+- **A partner app** answers `id` (its `client_id`), `name` (1 to 100
+  characters), `clientUri`, `keycloakClientId`, `scopes`, `grants` (how many
+  people it holds a grant of) and `createdAt`, and `secret` once, on
+  registering and on rotating: `exciter_ocs_` and 43 characters, kept as a
+  digest. An administrator registers it with a session or a token, so a
+  deployment's setup job wires the tools; a partner app's own token is
+  refused with 403.
+- **Scopes.** `read`, always among them, and `write`, which lets a grant do
+  whatever its person may, as a personal token without a scope does. Left
+  out, a new app reads only. Taking `write` away narrows every grant of the
+  app at once.
+- **`keycloakClientId`** is the identity provider's client the app signs
+  people in with. Empty, the app exchanges nothing: `unauthorized_client`.
+- **The exchange.** `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`,
+  `subject_token` the person's access token,
+  `subject_token_type=urn:ietf:params:oauth:token-type:access_token`, an
+  optional `scope` (`read`, or `read write`; left out, all the app holds) and
+  `requested_token_type` the access token type or nothing. The app
+  authenticates with its id and secret, HTTP Basic form-encoded first or both
+  in the form.
+  - The token is verified as the installation's provider's: its issuer and
+    keys, unexpired, `azp` the app's `keycloakClientId`, and `aud` holding
+    Exciter's own OIDC client id. In the realm, an audience mapper on the
+    partner's client adds it.
+  - The person is the one the token names, matched as a sign-in matches
+    them, by issuer and subject and else by the verified address, and
+    somebody not yet in Exciter is let in by the group mapping, as at
+    sign-in, their groups synced. Somebody the mapping does not let in is
+    `invalid_grant`, "Ada Lovelace has no Exciter account yet. Sign in to
+    Exciter once, or ask an administrator to let them in.", and no account
+    is left behind.
+  - The answer is the tokens of the person's one grant of the app, with
+    `issued_token_type` the access token type: an hour's `exciter_oat_` and
+    an `exciter_ort_` that rotates on every refresh, as an assistant's. A
+    new exchange ends the grant's earlier tokens; asking for other scopes
+    than the grant holds replaces it.
+  - The token is good for the whole API as a personal token is, reads only
+    without `write`, and never reaches further than its person. A partner
+    app's token cannot manage partner apps.
+  - The administrator who named the Keycloak client consented for everybody,
+    so no page is shown. `oauth.granted` records the grant with `by:
+    token_exchange`.
+  - Refusals: `invalid_request` for a missing subject or another token type,
+    `unauthorized_client` for an app without a Keycloak client or an
+    installation without single sign-on, `invalid_scope`, `invalid_grant`
+    for a token the provider did not vouch for as asked, with the reason,
+    and `temporarily_unavailable` when the provider cannot be reached.
+    An assistant's client asking for the grant is `unauthorized_client`.
+- **Connected apps.** The grant is among the person's connected apps (#189),
+  its client of kind `partner`, and ends there, at the revocation endpoint,
+  with the app, or as any grant does. The page says it was connected at the
+  person's sign-in in the partner rather than where it sends back to.
+- **The switch.** `PUT /installation/oauth-connections` is for assistants. A
+  partner app is the administrators' own doing, and removing it is its off,
+  so the switch leaves partner apps working.
+- **Discovery.** The server's metadata lists the exchange among its
+  `grant_types`; its `scopes_supported` stay the assistants', since a client
+  may ask for every scope listed there.
+- **The capability.** `oauth.token-exchange@1`, with Armature's promise
+  (Cloudster1/Armature#302), resting on `POST /oauth/token`.
+- **Audit:** `oauth_app.created`, `oauth_app.updated`,
+  `oauth_app.secret_rotated` and `oauth_app.deleted`, with the app's id,
+  name, Keycloak client and scopes.
+- **UI.** The installation page lists the partner apps, registers one and
+  shows its client id and secret once, lets it write or not, gives it a new
+  secret and removes it.
+
 ## #190 What an assistant wrote
 
 - **Where.** What is written through a personal token or an OAuth grant

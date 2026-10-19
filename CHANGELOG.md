@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Partner apps connect people with no pasted token (#273). An administrator
+  registers a tool beside Exciter, such as Stator, with the Keycloak client
+  it signs people in with, under Installation or at `/oauth/clients`, and
+  is shown its secret once. The tool then trades a person's access token
+  from the shared sign-in for a token here (RFC 8693) at
+  `POST /oauth/token`, with no consent page: the person is matched as at
+  sign-in and let in by the group mapping, the token reads no more than
+  the app may and the person can, and it shows under the person's
+  connected apps, where it is disconnected. `/meta` lists
+  `oauth.token-exchange@1`, with Armature's promise.
+
 - Risks in traceability, baselines, the risk report and project templates
   (#261). The trace graph and the chain report mark a risk with its level
   and state; a baseline records each risk's levels, state and mitigations

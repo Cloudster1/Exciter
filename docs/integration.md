@@ -11,7 +11,7 @@ before it has an account; the names promise features, not data.
   "product": "exciter",
   "build": { "version": "0.1.0", "commit": "abc1234", "builtAt": "2026-10-15T09:00:00Z" },
   "apiVersion": "1",
-  "capabilities": ["mcp@1", "requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"]
+  "capabilities": ["mcp@1", "oauth.token-exchange@1", "requirement-embed@1", "requirement-list@1", "specifications@1", "theme-export@1", "trace-links@1", "webhooks@1", "webhooks@2"]
 }
 ```
 
@@ -62,6 +62,22 @@ what their lists name, and a partner reads them there.
 [`docs/mcp.md`](mcp.md) says how to connect a client.
 
 - `POST /mcp`
+
+### `oauth.token-exchange@1`
+
+A partner app trades a person's access token from the shared identity
+provider for a token here (RFC 8693), so a tool beside Exciter reads it as
+each person without anybody pasting a token (#273). The name and the promise
+are Armature's (Cloudster1/Armature#302): `POST /oauth/token` with
+`grant_type=urn:ietf:params:oauth:grant-type:token-exchange`, `subject_token`
+an access token of the installation's OIDC provider whose `azp` is the app's
+`keycloakClientId` and whose `aud` holds Exciter's client, the app
+authenticating with its own id and secret; the answer an access and a refresh
+token within the person's rights, with no consent page. An administrator
+registers the app at `POST /oauth/clients`;
+[`docs/api-contract-m7.md`](api-contract-m7.md), #273, has the rest.
+
+- `POST /oauth/token`
 
 ### `specifications@1`
 

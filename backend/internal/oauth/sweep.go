@@ -52,7 +52,8 @@ func (s *Sweeper) Once(ctx context.Context) error {
 			{`DELETE FROM oauth_grant g WHERE NOT EXISTS (SELECT 1 FROM oauth_code c WHERE c.grant_id = g.id)
 				AND NOT EXISTS (SELECT 1 FROM oauth_token t WHERE t.grant_id = g.id AND t.kind = 'refresh')`, nil},
 			// A client that never led to a grant goes after a day, and one whose last grant ended after RefreshTTL.
-			{`DELETE FROM oauth_client c WHERE NOT EXISTS (SELECT 1 FROM oauth_grant g WHERE g.client_id = c.id)
+			// A partner stays until an administrator removes it, connected or not.
+			{`DELETE FROM oauth_client c WHERE c.kind <> 'partner' AND NOT EXISTS (SELECT 1 FROM oauth_grant g WHERE g.client_id = c.id)
 				AND NOT EXISTS (SELECT 1 FROM oauth_request r WHERE r.client_id = c.id)
 				AND CASE WHEN c.idle_since IS NULL THEN c.created_at < now() - make_interval(secs => $1)
 				         ELSE c.idle_since < now() - make_interval(secs => $2) END`,

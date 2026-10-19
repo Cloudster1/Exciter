@@ -25,7 +25,8 @@ var ErrNoSuchGrant = errors.New("that connection was not found")
 
 // grantColumns name a grant's projects through the reader's own rights, as a token's list does, so a list never
 // spells the key of a project its reader may not see.
-const grantColumns = `g.id, c.id, c.name, c.uri, c.kind, g.redirect_uri, g.read_only, g.evidence, NOT g.projects_only,
+const grantColumns = `g.id, c.id, c.name, c.uri, c.kind, g.redirect_uri,
+	g.read_only OR (c.kind = 'partner' AND NOT 'write' = ANY (c.scopes)), g.evidence, NOT g.projects_only,
 	ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id WHERE gp.grant_id = g.id ORDER BY p.key),
 	g.created_at, g.last_used_at`
 

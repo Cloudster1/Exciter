@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ type Service struct {
 	// issuer is EXCITER_APP_URL, the address everything is named from; api is it with the API's prefix.
 	issuer, api string
 	fetch       Fetcher
+	people      People
 	now         func() time.Time
 }
 
@@ -64,7 +66,7 @@ func (s *Service) Metadata() ServerMetadata {
 	return ServerMetadata{
 		Issuer: s.issuer, AuthorizationEndpoint: s.api + "/oauth/authorize", TokenEndpoint: s.api + "/oauth/token",
 		RegistrationEndpoint: s.api + "/oauth/register", RevocationEndpoint: s.api + "/oauth/revoke",
-		ScopesSupported: Scopes, ResponseTypesSupported: []string{ResponseCode}, GrantTypesSupported: GrantTypes,
+		ScopesSupported: Scopes, ResponseTypesSupported: []string{ResponseCode}, GrantTypesSupported: append(slices.Clone(GrantTypes), GrantTokenExchange),
 		CodeChallengeMethodsSupported: []string{ChallengeS256}, TokenEndpointAuthMethodsSupported: AuthMethods,
 		RevocationEndpointAuthMethodsSupported: AuthMethods, ClientIDMetadataDocumentSupported: true,
 		AuthorizationResponseIssParameterSupported: true,

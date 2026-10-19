@@ -544,6 +544,13 @@ Adapted from Armature at e3dccd1, for dashboards (#212):
   grid of widgets moved earlier and later, with each value opening its
   requirements in the grid and widgets dragged into place
 
+Adapted from Armature at b650791 and 10edbd7, for the token exchange (#273):
+- backend/internal/oauth/exchange.go: the exchange of internal/oauth/token.go
+  for a token of the installation's identity provider, its checks, scopes and
+  sentences, over Exciter's grants
+- backend/internal/oidc/service.go VerifyAccessToken: internal/oidc's, its
+  issuer, keys, azp and audience checks
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license
