@@ -28,7 +28,9 @@ Three things come from outside the chart:
   Job makes `exciter_app` and `exciter_admin`, the migrate Job runs the
   migrations as the owner before every upgrade. They create the extensions
   `citext`, `unaccent` and `pg_trgm`, all shipped with Postgres and trusted,
-  so the owner needs no superuser for them. The upgrade that brings duplicate
+  so the owner needs no superuser for them. It does need to be a superuser or
+  `BYPASSRLS`, since the permission checks run as it; the chart grants that
+  under cnpg, and the migrations refuse an owner without it. The upgrade that brings duplicate
   finding (#208) adds a column to every requirement and compares each with
   its project's others once, which takes a while on a large installation.
 - **Valkey**, at `valkey.host`. More than one api pod with read replicas needs

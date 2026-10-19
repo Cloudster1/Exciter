@@ -57,6 +57,12 @@ func run() error {
 	}
 	defer pool.Close()
 
+	if command == "up" || command == "up-to" || command == "down" {
+		if err := migrations.CheckOwner(ctx, pool); err != nil {
+			return err
+		}
+	}
+
 	sqlDB := stdlib.OpenDBFromPool(pool)
 	defer sqlDB.Close()
 
