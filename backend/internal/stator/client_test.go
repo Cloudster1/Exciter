@@ -195,17 +195,18 @@ func TestAPageReadsAsStatorAnswersIt(t *testing.T) {
 	}
 }
 
-// Stator names a capability with its version after an @ (Stator's #409); any version of the name counts.
-func TestACapabilityIsKnownByItsName(t *testing.T) {
+// Stator names a capability with its version after an @ (Stator's #409); another version promises otherwise.
+func TestACapabilityIsKnownByItsExactName(t *testing.T) {
 	for _, tc := range []struct {
 		listed []string
 		want   bool
 	}{
 		{nil, false},
 		{[]string{"webhooks@1"}, false},
-		{[]string{RemoteLinksCapability}, true},
-		{[]string{"webhooks@1", RemoteLinksCapability + "@2"}, true},
-		{[]string{RemoteLinksCapability + "s@1"}, false},
+		{[]string{"webhooks@1", "page-remote-links@1"}, true},
+		{[]string{"page-remote-links@2"}, false},
+		{[]string{"page-remote-links"}, false},
+		{[]string{"page-remote-linkss@1"}, false},
 	} {
 		if got := (&Meta{Capabilities: tc.listed}).Offers(RemoteLinksCapability); got != tc.want {
 			t.Errorf("%v offers remote links: %v, want %v", tc.listed, got, tc.want)

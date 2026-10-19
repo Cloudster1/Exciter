@@ -151,7 +151,7 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 
 	// What connecting reads (#40): which product answers, what it offers, and whom a token acts as.
 	meta := c.expect("GET", "/meta", "", nil, 200)
-	if meta["product"] != stator.Product || !slices.Contains(meta["capabilities"].([]any), any(stator.RemoteLinksCapability+"@1")) {
+	if meta["product"] != stator.Product || !slices.Contains(meta["capabilities"].([]any), any(stator.RemoteLinksCapability)) {
 		t.Errorf("the stub describes itself as %v", meta)
 	}
 	c.expect("PUT", stubPrefix+"/capabilities", "", map[string]any{"capabilities": []string{}}, 204)
