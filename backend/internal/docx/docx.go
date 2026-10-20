@@ -33,6 +33,8 @@ var ErrTooLarge = errors.New("the specification's pictures make the Word file la
 type Reader struct {
 	// Picture opens a file's bytes; nil and no error is a file the reader may not open.
 	Picture func(ctx context.Context, id uuid.UUID) (io.ReadCloser, error)
+	// Diagram draws a diagram's source as PNG; nil, or an error, writes the diagram as its source.
+	Diagram func(ctx context.Context, language, source string) ([]byte, error)
 	// BaseURL is the web client's address, which links within it are read against.
 	BaseURL string
 }

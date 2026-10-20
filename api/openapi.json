@@ -37,6 +37,9 @@
       "name": "dashboards"
     },
     {
+      "name": "diagrams"
+    },
+    {
       "name": "documents"
     },
     {
@@ -4261,6 +4264,77 @@
           },
           "422": {
             "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diagrams": {
+      "post": {
+        "operationId": "drawDiagram",
+        "summary": "Draw a diagram from its source as SVG, for anybody signed in: the picture a requirement's diagram shows. 422 is source the renderer could not read, in its words; 503 is a server that draws no diagrams, or is drawing too many.",
+        "tags": [
+          "diagrams"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Picture"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
             "content": {
               "application/json": {
                 "schema": {
@@ -35982,6 +36056,17 @@
           "name"
         ]
       },
+      "Picture": {
+        "type": "object",
+        "properties": {
+          "svg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "svg"
+        ]
+      },
       "Place": {
         "type": "object",
         "properties": {
@@ -37561,6 +37646,21 @@
           "meansName",
           "by",
           "count"
+        ]
+      },
+      "Request": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "language",
+          "source"
         ]
       },
       "RequestBody": {

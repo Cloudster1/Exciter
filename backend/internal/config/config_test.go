@@ -27,6 +27,7 @@ func clean(t *testing.T) {
 		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_STATOR_BACKCHANNEL",
 		"EXCITER_ARMATURE_TOKEN_EXCHANGE", "EXCITER_STATOR_TOKEN_EXCHANGE", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
 		"EXCITER_RENDER_URL", "EXCITER_RENDER_TIMEOUT", "EXCITER_RENDER_CONCURRENCY", "EXCITER_RENDER_MAX_SIZE",
+		"EXCITER_KROKI_URL", "EXCITER_KROKI_TIMEOUT", "EXCITER_KROKI_CONCURRENCY",
 	} {
 		t.Setenv(key, "")
 	}
@@ -72,6 +73,29 @@ func TestTheRenderServiceIsReadAndHeldToWhatAPrintNeeds(t *testing.T) {
 		"EXCITER_RENDER_URL":         "render:8090",
 		"EXCITER_RENDER_TIMEOUT":     "45s",
 		"EXCITER_RENDER_CONCURRENCY": "0",
+	} {
+		clean(t)
+		t.Setenv(key, bad)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s=%q should be refused by name, got %v", key, bad, err)
+		}
+	}
+}
+
+func TestTheDiagramRendererIsReadAndHeldToWhatADrawingNeeds(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_KROKI_URL", "http://kroki:8000/")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Kroki.URL != "http://kroki:8000" || c.Kroki.Timeout != DefaultKrokiTimeout || c.Kroki.Concurrency != DefaultKrokiConcurrency {
+		t.Errorf("the renderer read as %+v", c.Kroki)
+	}
+	for key, bad := range map[string]string{
+		"EXCITER_KROKI_URL":         "kroki:8000",
+		"EXCITER_KROKI_TIMEOUT":     "45s",
+		"EXCITER_KROKI_CONCURRENCY": "0",
 	} {
 		clean(t)
 		t.Setenv(key, bad)

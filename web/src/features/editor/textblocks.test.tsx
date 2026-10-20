@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { stubApi } from "@/test/app";
 import { Editor } from "@tiptap/core";
 import { Node } from "@tiptap/pm/model";
 import { DocView } from "./DocView";
@@ -68,7 +70,13 @@ describe("the server's text blocks", () => {
 
   it.each(cases.map((c) => [c.name, c] as const))("mark a finding's words in a requirement read, %s", (_name, c) => {
     const expected = marks(c);
-    const { container } = render(<DocView doc={c.doc} findings={expected.map((each) => each.mark)} />);
+    // A diagram among the blocks asks for its drawing, which this test leaves unanswered.
+    stubApi({});
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <DocView doc={c.doc} findings={expected.map((each) => each.mark)} />
+      </QueryClientProvider>,
+    );
     for (const { mark, word } of expected) {
       expect(container.querySelector(`[data-finding="${mark.key}"]`)?.textContent, mark.key).toBe(word);
     }

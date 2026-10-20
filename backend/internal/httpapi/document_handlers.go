@@ -112,7 +112,7 @@ func (s *Server) sendDocx(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	reader := docx.Reader{BaseURL: s.AppBaseURL, Picture: s.pictureFor(userFrom(r))}
+	reader := docx.Reader{BaseURL: s.AppBaseURL, Picture: s.pictureFor(userFrom(r)), Diagram: s.diagramPNG}
 	var frame *docx.Template
 	if f != nil {
 		frame = f.frame

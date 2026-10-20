@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -183,6 +185,11 @@ func (c *converter) block(n ast.Node, depth int) []document.Node {
 				}
 			}
 		}
+		if lang, ok := language.(string); ok && !c.resolve.NoDiagrams && slices.Contains(document.DiagramLanguages, lang) {
+			if d, ok := diagram(c.lines(n), lang); ok {
+				return []document.Node{d}
+			}
+		}
 		return []document.Node{codeBlock(c.lines(n), language)}
 	case *ast.Blockquote:
 		content := c.blocks(children(n), depth+1)
@@ -204,6 +211,15 @@ var languagePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9+#-]*$`)
 
 // maxLanguageLength matches the longest language name a code block keeps.
 const maxLanguageLength = 32
+
+// diagram reads a fence as a diagram, as Stator's does; one empty or too long to be a diagram stays a code block.
+func diagram(code, language string) (document.Node, bool) {
+	source := strings.TrimSuffix(code, "\n")
+	if strings.TrimSpace(source) == "" || utf8.RuneCountInString(source) > document.MaxDiagramLength {
+		return document.Node{}, false
+	}
+	return document.Node{Type: document.NodeDiagram, Attrs: map[string]any{"language": language, "source": source}}, true
+}
 
 func codeBlock(code string, language any) document.Node {
 	code = strings.TrimSuffix(code, "\n")

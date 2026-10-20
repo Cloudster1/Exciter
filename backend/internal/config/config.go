@@ -54,6 +54,9 @@ const (
 	DefaultRenderTimeout           = 20 * time.Second
 	DefaultRenderConcurrency       = 4
 	DefaultRenderMaxSize     int64 = 50 << 20
+	// The renderer's bounds are diagram.Default*, which a test holds the two to.
+	DefaultKrokiTimeout     = 10 * time.Second
+	DefaultKrokiConcurrency = 4
 )
 
 // Config is the fully resolved configuration for every binary.
@@ -84,6 +87,8 @@ type Config struct {
 	Mail      Mail
 	// Render is the service that prints specifications as PDF; a blank URL turns PDF export off.
 	Render Render
+	// Kroki draws diagrams from their source (#284); a blank URL shows diagrams as their source.
+	Kroki Kroki
 
 	// UploadLimit is the largest file a requirement takes, in bytes.
 	UploadLimit int64
@@ -188,6 +193,13 @@ type Render struct {
 	MaxSize     int64
 }
 
+// Kroki names the diagram renderer, when there is one, and bounds its drawings.
+type Kroki struct {
+	URL         string
+	Timeout     time.Duration
+	Concurrency int
+}
+
 // S3 is the bucket uploaded files live in: theme assets and attachments. A blank endpoint leaves uploads off,
 // refused with the setting to fix.
 type S3 struct {
@@ -287,6 +299,11 @@ func Load() (Config, error) {
 			Concurrency: l.integer("EXCITER_RENDER_CONCURRENCY", DefaultRenderConcurrency),
 			MaxSize:     l.size("EXCITER_RENDER_MAX_SIZE", DefaultRenderMaxSize),
 		},
+		Kroki: Kroki{
+			URL:         strings.TrimSuffix(l.str("EXCITER_KROKI_URL", ""), "/"),
+			Timeout:     l.duration("EXCITER_KROKI_TIMEOUT", DefaultKrokiTimeout),
+			Concurrency: l.integer("EXCITER_KROKI_CONCURRENCY", DefaultKrokiConcurrency),
+		},
 		Mail: Mail{
 			SMTPAddr: l.str("EXCITER_SMTP_ADDR", ""),
 			From:     l.str("EXCITER_MAIL_FROM", ""),
@@ -360,6 +377,7 @@ func Load() (Config, error) {
 		l.problem("EXCITER_S3_ENDPOINT is set, so set EXCITER_S3_ACCESS_KEY and EXCITER_S3_SECRET_KEY as well.")
 	}
 	c.checkRender(l)
+	c.checkKroki(l)
 	if c.Mail.SMTPAddr != "" {
 		if _, err := mail.ParseAddress(c.Mail.From); err != nil {
 			l.problem(fmt.Sprintf("EXCITER_SMTP_ADDR is set, but EXCITER_MAIL_FROM is %q; set it to an address such as Exciter <no-reply@example.com>.", c.Mail.From))
@@ -410,5 +428,20 @@ func (c *Config) checkRender(l *loader) {
 	}
 	if c.Render.MaxSize < 1 {
 		l.problem("EXCITER_RENDER_MAX_SIZE must be above zero, such as 50MB.")
+	}
+}
+
+// checkKroki holds the diagram renderer's settings to what a drawing can work with.
+func (c *Config) checkKroki(l *loader) {
+	if c.Kroki.URL != "" {
+		if u, err := url.Parse(c.Kroki.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			l.problem(fmt.Sprintf("EXCITER_KROKI_URL is %q; set it to the diagram renderer's address, such as http://kroki:8000, or leave it blank to show diagrams as their source.", c.Kroki.URL))
+		}
+	}
+	if c.Kroki.Timeout <= 0 || c.Kroki.Timeout >= c.RequestTimeout {
+		l.problem(fmt.Sprintf("EXCITER_KROKI_TIMEOUT is %s; set it above zero and below EXCITER_REQUEST_TIMEOUT (%s), so a slow drawing is refused in words rather than cut off.", c.Kroki.Timeout, c.RequestTimeout))
+	}
+	if c.Kroki.Concurrency < 1 {
+		l.problem(fmt.Sprintf("EXCITER_KROKI_CONCURRENCY is %d; set it to 1 or more.", c.Kroki.Concurrency))
 	}
 }

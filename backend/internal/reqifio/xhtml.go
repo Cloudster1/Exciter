@@ -476,6 +476,10 @@ func fromNodes(nodes []document.Node, file FileRef) []XNode {
 			out = append(out, XNode{Name: fmt.Sprintf("h%d", level), Children: fromNodes(n.Content, file)})
 		case "codeBlock":
 			out = append(out, XNode{Name: "pre", Children: fromNodes(n.Content, file)})
+		// Another tool draws no PlantUML, so a diagram goes as its source, which reads back as code.
+		case document.NodeDiagram:
+			source, _ := n.Attrs["source"].(string)
+			out = append(out, XNode{Name: "pre", Children: []XNode{{Text: source}}})
 		case "mention":
 			label, _ := n.Attrs["label"].(string)
 			out = append(out, XNode{Text: "@" + label})

@@ -15,6 +15,8 @@ images:
   # deploy/Dockerfile.render: the public Chrome image with the render
   # service's script baked in, for PDF export.
   render: { repository: ghcr.io/cloudster1/exciter-render, tag: "" }
+  # The diagram renderer, as it is published.
+  kroki: { repository: yuzutech/kroki, tag: 0.33.0 }
   # The client the roles Job runs, and the server the bundled Postgres runs.
   psql: { repository: postgres, tag: 18-alpine }
   valkey: { repository: valkey/valkey, tag: 8-alpine }
@@ -175,6 +177,26 @@ render:
   resources:
     requests: { cpu: 200m, memory: 512Mi }
     limits: { memory: 2Gi }
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+kroki:
+  # Draws the PlantUML diagrams requirements hold. Only the api reaches it, and
+  # in its secure mode it reads no file and fetches no address a diagram names.
+  # Disabled, diagrams show as their source with a sentence saying why, and a
+  # Word export writes them as their source.
+  enabled: true
+  replicas: 1
+  # How long one drawing may take, waiting for a free slot included; below the
+  # api's request timeout.
+  timeout: 10s
+  # Drawings one api pod asks for at once.
+  concurrency: 4
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits: { memory: 1Gi }
   podAnnotations: {}
   nodeSelector: {}
   tolerations: []

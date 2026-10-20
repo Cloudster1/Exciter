@@ -144,6 +144,9 @@ func pairGap(a, b []*node, ka, kb []string) []step {
 // merge marks the changes from x to y inside y, or says the two cannot be
 // compared inline because their shape differs.
 func merge(x, y *node) (*node, bool, bool) {
+	if x.Type == document.NodeDiagram && y.Type == document.NodeDiagram && attr(x, "language") == attr(y, "language") {
+		return mergeDiagram(x, y)
+	}
 	if x.Type != y.Type || !sameAttrs(x, y) {
 		return nil, false, false
 	}
@@ -175,6 +178,22 @@ func merge(x, y *node) (*node, bool, bool) {
 		}
 	}
 	return &out, changed, true
+}
+
+// mergeDiagram compares two drawings by their source, shown as a code block in their language: a change to a picture
+// is seen in the words that drew it.
+func mergeDiagram(x, y *node) (*node, bool, bool) {
+	source := func(n *node) []*node {
+		if s, _ := n.Attrs["source"].(string); s != "" {
+			return []*node{{Type: "text", Text: s}}
+		}
+		return nil
+	}
+	if key(x) == key(y) {
+		return y, false, true
+	}
+	out := &node{Type: "codeBlock", Attrs: map[string]any{"language": y.Attrs["language"]}, Content: inlineDiff(source(x), source(y))}
+	return out, true, true
 }
 
 // mergeTable compares two tables cell by cell, which only works while they

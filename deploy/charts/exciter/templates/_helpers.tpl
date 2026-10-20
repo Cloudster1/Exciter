@@ -269,6 +269,11 @@ EXCITER_RENDER_TIMEOUT: {{ .Values.render.timeout | quote }}
 EXCITER_RENDER_CONCURRENCY: {{ .Values.render.concurrency | quote }}
 EXCITER_RENDER_MAX_SIZE: {{ .Values.render.maxSize | quote }}
 {{- end }}
+{{- if .Values.kroki.enabled }}
+EXCITER_KROKI_URL: {{ printf "http://%s-kroki:8000" (include "exciter.fullname" .) | quote }}
+EXCITER_KROKI_TIMEOUT: {{ .Values.kroki.timeout | quote }}
+EXCITER_KROKI_CONCURRENCY: {{ .Values.kroki.concurrency | quote }}
+{{- end }}
 EXCITER_RETAIN_AUDIT: {{ .Values.retention.audit | quote }}
 {{- with .Values.mail.smtpAddr }}
 EXCITER_SMTP_ADDR: {{ . | quote }}

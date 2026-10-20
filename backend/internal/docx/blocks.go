@@ -35,6 +35,7 @@ func init() {
 		"horizontalRule": (*writer).rule,
 		"table":          (*writer).table,
 		"image":          (*writer).imageBlock,
+		"diagram":        (*writer).diagramBlock,
 	}
 }
 

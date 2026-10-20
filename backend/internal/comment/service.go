@@ -113,7 +113,7 @@ func (s *Service) body(ctx context.Context, in Input) (json.RawMessage, error) {
 	var root document.Node
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var err error
-		root, err = markdown.Convert(*in.BodyMarkdown, markdown.Resolve{Person: markdown.Members(ctx, tx)})
+		root, err = markdown.Convert(*in.BodyMarkdown, markdown.Resolve{Person: markdown.Members(ctx, tx), NoDiagrams: true})
 		return err
 	})
 	var refusal *markdown.Refusal

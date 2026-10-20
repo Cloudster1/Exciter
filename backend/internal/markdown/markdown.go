@@ -44,6 +44,8 @@ func (r *Refusal) Is(target error) bool { return target == ErrRefused }
 type Resolve struct {
 	File   func(attachmentID string) (fileName string, ok bool)
 	Person func(id string) bool
+	// NoDiagrams keeps a fence in a diagram language as code, for a comment, which holds no diagram.
+	NoDiagrams bool
 }
 
 func (r Resolve) file(id string) (string, bool) {

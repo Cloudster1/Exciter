@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Architecture drawings in PlantUML (#284). The editor's PlantUML diagram
+  button puts a diagram into a statement, rationale or rich text value,
+  written as PlantUML with a preview drawn below it as it is typed. Every
+  view shows the drawing, the document view, history, baselines and print
+  included, with the drawing to save as SVG; one that cannot be drawn shows
+  its source and why. History compares a diagram's source, search finds its
+  words, Markdown writes it as a `plantuml` fence, and Word embeds it as a
+  picture. Diagrams are drawn by a Kroki container that compose and the
+  Helm chart now run beside the api (`EXCITER_KROKI_URL`, Helm `kroki`);
+  without one, diagrams show as their source.
+
 - A suite demo of the three tools' own requirements (#270). An
   administrator adds it once under Installation, or `make seed` does: the
   projects `ARM`, `EXC` and `STA` hold the user stories and acceptance

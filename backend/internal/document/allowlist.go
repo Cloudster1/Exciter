@@ -80,6 +80,8 @@ const (
 	MaxImageWidth = 4000
 	// maxFileNameLength matches the longest file name an upload keeps, objectstore.MaxNameLength.
 	maxFileNameLength = 200
+	// MaxDiagramLength bounds a diagram's source, as Stator's: room for a whole system, not for keeping a renderer busy.
+	MaxDiagramLength = 20000
 )
 
 // The nodes that show a file of the requirement (#21), which name it by attachmentId.
@@ -88,6 +90,15 @@ const (
 	NodeAttachment = "attachment"
 )
 
+// NodeDiagram is a drawing kept as its source text (#284), drawn by the renderer in the language it names.
+const NodeDiagram = "diagram"
+
+// DiagramPlantUML is the one language a diagram is written in so far.
+const DiagramPlantUML = "plantuml"
+
+// DiagramLanguages are the languages a diagram may be written in.
+var DiagramLanguages = []string{DiagramPlantUML}
+
 // MarkTerm links words to a glossary term (#210) by its termId, for words the matcher would not find.
 const MarkTerm = "term"
 
@@ -95,7 +106,7 @@ const MarkTerm = "term"
 const UUIDPattern = `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
 
 var (
-	blockNodes  = []string{"paragraph", "heading", "bulletList", "orderedList", "blockquote", "codeBlock", "horizontalRule", "table", NodeImage}
+	blockNodes  = []string{"paragraph", "heading", "bulletList", "orderedList", "blockquote", "codeBlock", "horizontalRule", "table", NodeImage, NodeDiagram}
 	inlineNodes = []string{"text", "hardBreak", "mention", NodeAttachment}
 	cellAttrs   = map[string]Attr{
 		"colspan":  {Kind: KindInteger, Min: 1, Max: MaxTableSpan},
@@ -153,6 +164,12 @@ var Allowed = Allowlist{
 				"attachmentId": {Kind: KindString, Pattern: UUIDPattern},
 				"alt":          {Kind: KindString, Nullable: true, MaxLength: MaxAltLength},
 				"width":        {Kind: KindInteger, Nullable: true, Min: 1, Max: MaxImageWidth},
+			},
+		},
+		NodeDiagram: {
+			Attrs: map[string]Attr{
+				"language": {Kind: KindString, Required: true, Enum: DiagramLanguages},
+				"source":   {Kind: KindString, Required: true, MaxLength: MaxDiagramLength, Pattern: `\S`},
 			},
 		},
 		NodeAttachment: {

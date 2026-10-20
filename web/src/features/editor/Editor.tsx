@@ -169,10 +169,17 @@ const TOOLS: Tool[] = [
     active: (e) => e.isActive("table"),
     run: (e) => e.chain().focus().insertTable({ rows: NEW_TABLE_ROWS, cols: NEW_TABLE_COLUMNS, withHeaderRow: true }).run(),
   },
+  {
+    icon: "Diagram",
+    label: t.editor.diagram.insert,
+    action: "diagram",
+    active: (e) => e.isActive("diagram"),
+    run: (e) => e.chain().focus().insertDiagram().run(),
+  },
 ];
 
-/** What a comment's toolbar offers: everything but rules and tables, which a comment may not hold. */
-const COMMENT_TOOLS = TOOLS.filter((tool) => tool.action !== "rule" && tool.action !== "table");
+/** What a comment's toolbar offers: everything but rules, tables and diagrams, which a comment may not hold. */
+const COMMENT_TOOLS = TOOLS.filter((tool) => !["rule", "table", "diagram"].includes(tool.action));
 
 function Toolbar({ editor, files, tools, glossary }: { editor: TiptapEditor; files: boolean; tools: Tool[]; glossary?: string }) {
   const [linking, setLinking] = useState(false);

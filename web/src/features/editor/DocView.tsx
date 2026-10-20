@@ -3,6 +3,7 @@ import { cx } from "@/components/ui";
 import { attachmentUrl } from "@/api/attachments";
 import { TermWords } from "@/features/glossary/TermButton";
 import { t } from "@/i18n";
+import { DIAGRAM_NODE, DiagramFigure, diagramLanguage, diagramSource } from "./DiagramViews";
 import { imageAlt, imageWidth } from "./files";
 import type { FindingMark } from "./quality";
 import { safeHref, type DocMark, type DocNode } from "./schema";
@@ -150,6 +151,10 @@ function block(node: DocNode, key: number): ReactNode {
           <img src={attachmentUrl(id, true)} alt={imageAlt(node.attrs?.alt) ?? ""} style={width ? { width: `${width}px` } : undefined} />
         </figure>
       );
+    }
+    case DIAGRAM_NODE: {
+      const source = diagramSource(node.attrs?.source);
+      return source ? <DiagramFigure key={key} language={diagramLanguage(node.attrs?.language)} source={source} /> : null;
     }
     case "table":
       return (

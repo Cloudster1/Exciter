@@ -58,6 +58,7 @@ Stator marks its own with `data-stator`. No other HTML reaches a requirement.
 | bullet, numbered list | `-`, `1.` with its start |
 | blockquote | `>` |
 | code block | fenced, with its language |
+| diagram (#284) | fenced as `plantuml`, its source inside; a comment, which holds no diagram, keeps such a fence as code |
 | horizontal rule | `---` |
 | table | GFM table, its first row the header, alignment per column |
 | picture | `![alt](exciter:attachment/<id>)`, or `<img src="exciter:attachment/<id>" alt="alt" width="320">` with a width |

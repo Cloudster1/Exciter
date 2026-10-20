@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/demo"
+	"github.com/cloudster1/exciter/backend/internal/diagram"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
@@ -150,6 +151,8 @@ type Server struct {
 	Risks *risk.Service
 	// Renderer prints a document's print view as PDF; nil or render.Unavailable says PDF export is not set up.
 	Renderer render.Renderer
+	// Diagrams draws diagrams from their source (#284); nil or diagram.Unavailable shows them as their source.
+	Diagrams diagram.Drawer
 	// handler is the router Routes built, which MCP sends each tool call through.
 	handler http.Handler
 	// Attachments keeps the files on requirements; nil answers their routes that file storage is not set up.
@@ -252,6 +255,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 
 		// Themes are a person's; the examples are anybody's who is signed in.
 		r.With(requireAuth).Get("/themes/examples", s.handleThemeExamples)
+		r.With(requireAuth).Post("/diagrams", s.handleDrawDiagram)
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
 			r.With(requireAdmin, s.themesOn).Put("/themes/default", s.handleSetDefaultTheme)

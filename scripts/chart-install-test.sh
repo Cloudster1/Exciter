@@ -85,10 +85,10 @@ ok "the roles, secrets, migrate and bootstrap Jobs all succeeded"
 
 # The api and worker start before the hooks have made the database and crash
 # until they have, so kubelet's back-off, up to five minutes, is in this wait.
-for workload in api worker web; do
+for workload in api worker web kroki; do
   kubectl rollout status "deploy/${FULL}-${workload}" -n "$NS" --timeout=360s >/dev/null || fail "$workload is not ready"
 done
-ok "api, worker and web are ready"
+ok "api, worker, web and the diagram renderer are ready"
 
 say "Through the web server"
 kubectl port-forward -n "$NS" "svc/${FULL}-web" "${LOCAL_PORT}:80" >/dev/null 2>&1 &
@@ -113,6 +113,11 @@ code="$(curl -s -o /dev/null -w '%{http_code}' -c "$JAR" -H 'Content-Type: appli
 name="$(curl -s -b "$JAR" "http://127.0.0.1:${LOCAL_PORT}/api/v1/auth/me" | jq -r '.installation.name')"
 [[ "$name" == Trial ]] || fail "signed in to the installation [$name], want [Trial]"
 ok "the bootstrap administrator signs in to the installation the Job made"
+# Kroki runs as the chart locks every pod down: its own user, no capability, a root file system it cannot write.
+svg="$(curl -s -b "$JAR" -H 'Content-Type: application/json' -d '{"language":"plantuml","source":"@startuml\nA -> B\n@enduml"}' \
+  "http://127.0.0.1:${LOCAL_PORT}/api/v1/diagrams" | jq -r '.svg // empty')"
+[[ "$svg" == *"<svg"* ]] || fail "the api did not draw a diagram through Kroki in the cluster"
+ok "the api draws a PlantUML diagram through Kroki, locked down as the chart runs it"
 for partner in armature stator; do
   base="$(curl -s -b "$JAR" "http://127.0.0.1:${LOCAL_PORT}/api/v1/${partner}/connection" | jq -r '.connection.baseUrl')"
   [[ "$base" == "http://${partner}.chart-test.example" ]] || fail "the $partner connection is [$base], want the address the values name"

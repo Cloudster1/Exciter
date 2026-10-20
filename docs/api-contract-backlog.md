@@ -18,11 +18,14 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00750 to 00759 | Webhooks (#48) | `webhook_endpoint` (an address, its events and projects, a sealed secret, its owner) and `webhook_delivery` (one attempt at one event), the trigger `webhook_endpoint_stamp` and their policies |
 | 00760 to 00769 | Reuse (#49) | `requirement.reuse_source`, `reuse_revision` and `reuse_state`, the guard `requirement_reuse_guard`, the change field `reuse` and the notification kind `source_revised` |
 | 01360 to 01369 | Suite demo (#270) | `suite_demo` (the one demo: its state, step and counts, and the snapshot and keys it was made with), `suite_demo_requirement` (which issue or criterion a requirement came from), the guard `suite_demo_guard` and their policies |
+| 01380 to 01399 | Diagrams (#284) | `requirement_plain_blocks` reading a diagram's source, so search finds its words |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
 and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
-`EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
+`EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off. `EXCITER_KROKI_URL`,
+`EXCITER_KROKI_TIMEOUT` (10s) and `EXCITER_KROKI_CONCURRENCY` (4) name and bound the diagram renderer (#284); a blank URL
+shows diagrams as their source.
 
 ## #44 ReqIF import and export
 
@@ -492,3 +495,16 @@ until Stator ships it.
   their part (Cloudster1/Armature#300, praetorianer777/Stator#457), which
   `make suite-up DEMO=1` calls before Exciter's; one that answers 404 has no
   demo yet.
+
+## #284 Diagrams
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `POST /diagrams` | anybody signed in | `{svg}`; 422 `diagram_source` with the renderer's sentence in `fields.source`, or `validation_failed`; 503 `diagrams_unavailable` or `diagrams_busy`; 504 `diagram_timeout` |
+
+- **A diagram** is a block of a statement, rationale or rich text value:
+  `{"type":"diagram","attrs":{"language":"plantuml","source":"..."}}`, the
+  source up to 20000 characters and not blank. A comment holds none.
+- **Drawing** takes `{language, source}` as the block holds them and answers
+  the SVG Kroki draws, in its secure mode; the web shows it as a `data:`
+  image. The same drawing as PNG goes into a Word export.

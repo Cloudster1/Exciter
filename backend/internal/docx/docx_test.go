@@ -177,6 +177,52 @@ func TestPicturesPastTheLimitRefuseTheDocument(t *testing.T) {
 	}
 }
 
+// A diagram is embedded as the PNG the renderer draws, described by its title, and one that cannot be drawn is its
+// source with a note; one drawn twice is embedded once.
+func TestADiagramIsItsPictureOrItsSource(t *testing.T) {
+	const source = "@startuml\ntitle Brake circuit\n[Pedal] --> [Caliper]\n@enduml"
+	withDiagram := func() *specdoc.Document {
+		doc := aDocument()
+		raw, _ := json.Marshal(source)
+		block := `{"type":"diagram","attrs":{"language":"plantuml","source":` + string(raw) + `}}`
+		doc.Entries[1].Statement = json.RawMessage(`{"type":"doc","content":[` + block + `,` + block + `]}`)
+		return doc
+	}
+	drawn := 0
+	read := Reader{Diagram: func(_ context.Context, language, got string) ([]byte, error) {
+		drawn++
+		if language != document.DiagramPlantUML || got != source {
+			t.Errorf("asked to draw %s %q", language, got)
+		}
+		return aPNG(t), nil
+	}}
+	data, err := Bytes(context.Background(), withDiagram(), "en", read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := unzip(t, data)
+	if _, ok := files["word/media/picture1.png"]; !ok || drawn != 1 {
+		t.Errorf("the diagram is not embedded once: drawn %d times", drawn)
+	}
+	if _, ok := files["word/media/picture2.png"]; ok {
+		t.Error("one diagram is embedded twice")
+	}
+	if body := files["word/document.xml"]; !strings.Contains(body, `descr="Brake circuit"`) || strings.Contains(body, "[Pedal]") {
+		t.Error("the drawn diagram is not described by its title, or its source is written beside it")
+	}
+	undrawn := Reader{Diagram: func(context.Context, string, string) ([]byte, error) { return nil, errors.New("renderer down") }}
+	for name, r := range map[string]Reader{"no renderer": {}, "a renderer that fails": undrawn} {
+		data, err := Bytes(context.Background(), withDiagram(), "en", r)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		body := unzip(t, data)["word/document.xml"]
+		if !strings.Contains(body, "[Pedal] --&gt; [Caliper]") || !strings.Contains(body, "could not be drawn, so it is shown as its PlantUML source") {
+			t.Errorf("%s: the diagram is not written as its source with a note", name)
+		}
+	}
+}
+
 type zeros struct{}
 
 func (zeros) Read(p []byte) (int, error) {

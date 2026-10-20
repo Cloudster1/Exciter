@@ -246,6 +246,8 @@ services:
         condition: service_healthy
       stator-stub:
         condition: service_healthy
+      kroki:
+        condition: service_healthy
       # After the seed rather than beside it: `up --wait` accepts a one-shot container only when something waits for it.
       seed:
         condition: service_completed_successfully
@@ -262,6 +264,8 @@ services:
       EXCITER_TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
       # Prints a specification's print view as PDF (#45); asked only when somebody exports.
       EXCITER_RENDER_URL: http://render:8090
+      # Draws a requirement's PlantUML diagrams (#284).
+      EXCITER_KROKI_URL: http://kroki:8000
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     healthcheck:
@@ -362,6 +366,21 @@ services:
       timeout: 3s
       retries: 5
       start_period: 30s
+      start_interval: 1s
+
+  # Draws diagrams from their PlantUML source for the api (#284). Its secure mode, the image's default and set here so
+  # it stays, reads no file and fetches no address a diagram names; it publishes no port.
+  kroki:
+    image: yuzutech/kroki:0.33.0
+    restart: on-failure
+    environment:
+      KROKI_SAFE_MODE: secure
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
       start_interval: 1s
 
   # Prints the web client's print view as PDF for the api (#45), as Stator's render service does: a headless

@@ -108,6 +108,19 @@ func (w words) pictureMissing(alt string) string {
 	return w.pick("A picture that could not be read is left out: "+alt, "Ein Bild, das nicht gelesen werden konnte, fehlt hier: "+alt)
 }
 
+func (w words) diagramUndrawn() string {
+	return w.pick("The diagram above could not be drawn, so it is shown as its PlantUML source.",
+		"Das Diagramm oben konnte nicht gezeichnet werden und steht deshalb als PlantUML-Quelltext hier.")
+}
+
+// diagramDescription is what a drawn diagram says to whoever cannot see it: its title, or what it is.
+func (w words) diagramDescription(title string) string {
+	if title != "" {
+		return title
+	}
+	return w.pick("PlantUML diagram", "PlantUML-Diagramm")
+}
+
 // property names a property: a field in the reader's language, an attribute by its own name.
 func (w words) property(p specdoc.Property) string {
 	if p.Field != "" {

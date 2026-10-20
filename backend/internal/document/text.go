@@ -21,6 +21,12 @@ func writeBlocks(b *strings.Builder, blocks []Node, depth int) {
 				b.WriteString(text)
 				b.WriteByte('\n')
 			}
+		// A diagram's labels are in its source, among the arrows.
+		case NodeDiagram:
+			if source, _ := n.Attrs["source"].(string); source != "" {
+				b.WriteString(source)
+				b.WriteByte('\n')
+			}
 		case "tableRow":
 			cells := make([]string, 0, len(n.Content))
 			for _, cell := range n.Content {
@@ -35,6 +41,20 @@ func writeBlocks(b *strings.Builder, blocks []Node, depth int) {
 		}
 	}
 }
+
+// DiagramTitle is the words of a PlantUML diagram's title line, which describe its picture to whoever cannot see it;
+// empty when it has none.
+func DiagramTitle(source string) string {
+	for line := range strings.SplitSeq(source, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) > len(diagramTitleWord) && strings.EqualFold(line[:len(diagramTitleWord)], diagramTitleWord) {
+			return strings.TrimSpace(line[len(diagramTitleWord):])
+		}
+	}
+	return ""
+}
+
+const diagramTitleWord = "title "
 
 // InlineText flattens a block's inline children: text, mentions as @Name and breaks as newlines.
 func InlineText(n Node) string {
