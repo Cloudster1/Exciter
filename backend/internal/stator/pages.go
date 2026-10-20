@@ -166,6 +166,38 @@ func (s *Service) fetchPages(ctx context.Context, v *Viewer, ids []uuid.UUID) (m
 	return out, nil
 }
 
+// labeledLimit is how many pages a label lookup reads, enough to pass over a draft that carries the label too.
+const labeledLimit = 10
+
+// LabeledPage is the first published page Stator labels with label that the person ctx acts for may read, or
+// uuid.Nil when there is none; the suite demo finds its pages so (#270).
+func (s *Service) LabeledPage(ctx context.Context, label string) (uuid.UUID, error) {
+	v, err := s.writer(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	var answer struct {
+		Pages []struct {
+			ID          uuid.UUID `json:"id"`
+			Unpublished bool      `json:"unpublished"`
+		} `json:"pages"`
+	}
+	err = v.Caller.Get(ctx, "/labels/"+url.PathEscape(label)+"/pages", url.Values{"limit": {strconv.Itoa(labeledLimit)}}, &answer)
+	var refused *RefusedError
+	if errors.As(err, &refused) && refused.Status == http.StatusNotFound {
+		return uuid.Nil, nil
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	for _, p := range answer.Pages {
+		if !p.Unpublished {
+			return p.ID, nil
+		}
+	}
+	return uuid.Nil, nil
+}
+
 // fetchPage is Stator's GET /pages/{pageID}; nil when there is none the viewer may read.
 func (s *Service) fetchPage(ctx context.Context, v *Viewer, id uuid.UUID) (*Page, error) {
 	var answer wirePage

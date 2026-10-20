@@ -1,0 +1,1161 @@
+{
+  "repo": "praetorianer777/Stator",
+  "key": "STA",
+  "name": "Stator",
+  "commit": "6094b76162be38a0ec13e12c00cd6a37b22219c9",
+  "taken": "2026-10-20",
+  "issues": [
+    {
+      "number": 1,
+      "title": "Scaffold repository tooling",
+      "closed": true,
+      "closedAt": "2026-09-29T07:30:17Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/1",
+      "body": "## User story\n\nAs a contributor, I want the repository rules, hooks and CI in place so that every change runs through an issue, a branch, the full test gate and a pull request.\n\n## Acceptance criteria\n\n- [ ] `.claude/settings.json`, `hooks/issue-context.sh`, `hooks/branch-guard.sh` and its test suite are in place and pass\n- [ ] `.claude/skills/gh/SKILL.md` describes the issue, branch and PR workflow for this repo\n- [ ] `CLAUDE.md` covers containers only (Makefile, Go 1.26), issue branches, four test layers, `make openapi`, no mocks below the layer under test, and style rules\n- [ ] `run-tests.sh` is the single gate: shell tests, Go format/vet/unit, OpenAPI drift, web lint/types/vitest, compose-backed integration and Playwright on ports derived per worktree\n- [ ] `release.sh` and its tests are ported; `CHANGELOG.md` follows Keep a Changelog\n- [ ] `.github/workflows/ci.yml` runs `./run-tests.sh`; issue templates and a PR template with `Closes #` exist\n- [ ] `docs/architecture.md` and `docs/decisions.md` record the architecture and the decisions taken so far\n- [ ] `NOTICE` credits the Apache-2.0 code adapted from Armature\n\n## Tests\n\n`.claude/hooks/tests/branch-guard-test.sh` and `tests/test-release.sh` run inside `run-tests.sh` and in CI.\n"
+    },
+    {
+      "number": 2,
+      "title": "Backend skeleton: config, database, migrations, HTTP route table",
+      "closed": true,
+      "closedAt": "2026-09-29T07:52:10Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/2",
+      "body": "## User story\n\nAs a developer, I want a Go service skeleton that mirrors Armature so that every later feature plugs into the same patterns.\n\n## Acceptance criteria\n\n- [ ] `backend/cmd/{api,worker,migrate,seed,openapi}` build\n- [ ] Configuration from `STATOR_*` environment variables only, with validation and sentence-style errors\n- [ ] `internal/db` cluster with primary/replica transactions and org row-level security via `current_org_id()`; IDs from `uuidv7()`\n- [ ] goose migrations embedded and applied by `cmd/migrate`; `org` and `app_user` tables exist with RLS policies\n- [ ] chi router with middleware chain (request id, metrics, logging, recovery, security headers, same-site check, timeout, authenticate) and a single error envelope\n- [ ] The route table generates `api/openapi.json`; a unit test fails when the committed spec is stale and when router and table disagree\n- [ ] `/healthz`, `/readyz` and `/metrics` respond\n\n## Tests\n\nUnit tests for config and route table; integration test proving RLS isolates two orgs even through raw SQL.\n"
+    },
+    {
+      "number": 3,
+      "title": "Web skeleton: routing, API client, app shell",
+      "closed": true,
+      "closedAt": "2026-09-29T07:32:08Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/3",
+      "body": "## User story\n\nAs a user, I want a fast single-page app with a clear shell (rail, sidebar, content) so that navigating the wiki feels like Armature.\n\n## Acceptance criteria\n\n- [ ] React 19, TypeScript, Vite, TanStack Router and Query\n- [ ] openapi-fetch client typed from `web/src/api/schema.d.ts` generated from `api/openapi.json`\n- [ ] Shell with rail, collapsible sidebar, top bar with search entry point and user menu\n- [ ] Error and empty states follow Armature's design docs; user-facing constants live in `web/src/config.ts`\n- [ ] ESLint, `tsc --noEmit` and vitest wired into `run-tests.sh`\n\n## Tests\n\nVitest for shell components; Playwright smoke test loads the app and navigates.\n"
+    },
+    {
+      "number": 4,
+      "title": "Compose stack and Makefile with containerised toolchains",
+      "closed": true,
+      "closedAt": "2026-09-29T08:47:42Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/4",
+      "body": "## User story\n\nAs a developer, I want `make up` to start the complete stack and every toolchain to run in a container so that nothing has to be installed on the host.\n\n## Acceptance criteria\n\n- [ ] `deploy/docker-compose.yml` with postgres, valkey, seaweedfs, mailpit, keycloak (realm with clients for Stator and Armature), migrate, seed, api, worker, web and armature-stub\n- [ ] Dockerfiles for backend and web; nginx config for the web image\n- [ ] Makefile targets: up, down, clean, logs, seed, test, test-integration, test-e2e (ONLY=, WORKERS=), test-all, openapi, vet, fmt, npm ARGS=, web-build, shell\n- [ ] Go 1.26 and Node run as containers with caches under `.cache/`\n- [ ] Compose project name and host ports derive from the worktree path so parallel worktrees do not collide\n\n## Tests\n\n`run-tests.sh` brings the stack up and down; CI proves it on a clean runner.\n"
+    },
+    {
+      "number": 5,
+      "title": "Single sign-on via OIDC with sessions and group sync",
+      "closed": true,
+      "closedAt": "2026-09-29T10:01:06Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/5",
+      "body": "## User story\n\nAs an organisation admin, I want members to log in through our identity provider and have their groups follow them so that access is managed in one place.\n\n## Acceptance criteria\n\n- [ ] One OIDC provider per organisation (issuer, client id, secret, scopes, groups claim, enabled), configurable by admins\n- [ ] Login via `/auth/oidc/{orgSlug}/start` and `/auth/oidc/callback`; users are created or updated by subject\n- [ ] Groups from the groups claim are synced into Stator groups\n- [ ] Sessions in an HttpOnly cookie; only the SHA-256 of the token is stored; logout and expiry work\n- [ ] Backchannel issuer rewrite for in-cluster access, as in Armature\n- [ ] Optional local password login for bootstrap admins (argon2)\n\n## Tests\n\nUnit tests for claim mapping; integration tests against Keycloak in compose; Playwright login fixture used by all e2e tests.\n"
+    },
+    {
+      "number": 6,
+      "title": "Themes: design tokens, light/dark, custom themes, import",
+      "closed": true,
+      "closedAt": "2026-09-29T08:24:12Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/6",
+      "body": "## User story\n\nAs a user, I want Stator to look and feel exactly like Armature, including my custom themes, so that both tools read as one product.\n\n## Acceptance criteria\n\n- [ ] Tailwind v4 `@theme` tokens identical to Armature's Clay light and dark values\n- [ ] Light / dark / system switch stored per browser and applied before first paint\n- [ ] Server-stored custom themes with the same spec as Armature (colors, fonts, shape, shadows, cursors, icons, backdrop, effect, css) and the same limits\n- [ ] Built-in Deep-Tech and Constellation themes; organisation default theme\n- [ ] Import and export in the `armature-theme/1` format, so Armature theme files work unchanged\n- [ ] Theme editor with live preview\n\n## Tests\n\nVitest: token list matches the stylesheet, compiler output; integration: theme CRUD and import; Playwright: switch themes and import `minecraft.armature-theme.json`.\n"
+    },
+    {
+      "number": 7,
+      "title": "Playwright end-to-end harness",
+      "closed": true,
+      "closedAt": "2026-09-29T09:42:14Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/7",
+      "body": "## User story\n\nAs a developer, I want a Playwright suite running against the real compose stack so that every user flow is proven in a browser before it is pushed.\n\n## Acceptance criteria\n\n- [ ] `e2e/` Playwright project with TypeScript, base URL from the per-worktree ports\n- [ ] Fixtures: logged-in user via Keycloak, fresh organisation per test file, seeded data helpers through the API\n- [ ] Traces and screenshots on failure, uploaded as CI artifacts\n- [ ] Runs from `run-tests.sh` and `make test-e2e` with `ONLY=` and `WORKERS=`\n\n## Tests\n\nThe harness proves itself with a login smoke test.\n"
+    },
+    {
+      "number": 8,
+      "title": "Responsive layout and accessibility baseline",
+      "closed": true,
+      "closedAt": "2026-09-29T07:47:16Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/8",
+      "body": "## User story\n\nAs a user on a phone or with assistive technology, I want every screen to be usable so that nobody is locked out of the documentation.\n\n## Acceptance criteria\n\n- [ ] Layouts work from 360px wide upwards; sidebar becomes a drawer on small screens\n- [ ] Keyboard navigation for all interactive elements, visible focus ring, skip link\n- [ ] Landmarks, labels and ARIA roles on shell, tree and editor toolbar\n- [ ] Automated axe checks in Playwright on the main screens\n\n## Tests\n\nPlaywright with @axe-core/playwright on shell, page view, editor and search; mobile viewport run.\n"
+    },
+    {
+      "number": 9,
+      "title": "Spaces with home page and space settings",
+      "closed": true,
+      "closedAt": "2026-09-29T12:00:21Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/9",
+      "body": "## User story\n\nAs a team, I want our own space with a home page so that our documentation has a clear place and entry point.\n\n## Acceptance criteria\n\n- [ ] Create, rename, describe and delete spaces; each space has a unique key and a home page\n- [ ] Space directory listing all spaces the user can see\n- [ ] Space settings for admins: details, permissions, trash\n- [ ] Space key appears in URLs: `/s/{spaceKey}/...`\n\n## Tests\n\nUnit: key validation; integration: CRUD and RLS; Playwright: create a space and land on its home page.\n"
+    },
+    {
+      "number": 10,
+      "title": "Page tree with drag-and-drop, move and copy",
+      "closed": true,
+      "closedAt": "2026-09-29T12:08:19Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/10",
+      "body": "## User story\n\nAs an author, I want to arrange pages in a nested tree so that readers find related content together.\n\n## Acceptance criteria\n\n- [ ] Pages have a parent and a rank; unlimited nesting\n- [ ] Sidebar tree with lazy loading, expand/collapse and keyboard support\n- [ ] Drag and drop to reorder or re-parent; cycles are refused\n- [ ] Move and copy a page with or without its children, also into another space\n- [ ] Breadcrumbs on every page\n\n## Tests\n\nUnit: rank maths; integration: move/copy including subtree and permission checks; Playwright: drag a page under another.\n"
+    },
+    {
+      "number": 11,
+      "title": "Trash and restore",
+      "closed": true,
+      "closedAt": "2026-09-29T12:12:16Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/11",
+      "body": "## User story\n\nAs an author, I want deleted pages to go to a trash so that mistakes can be undone.\n\n## Acceptance criteria\n\n- [ ] Deleting a page moves it and its children to the space trash\n- [ ] Restore puts the page back at its former position or under the space home if the parent is gone\n- [ ] Space admins can purge single items or empty the trash\n- [ ] Trashed pages are excluded from tree, search and macros\n\n## Tests\n\nIntegration: delete/restore/purge; Playwright: delete and restore a page.\n"
+    },
+    {
+      "number": 12,
+      "title": "Rich-text editor: formatting, slash menu, tables, code, panels, anchors",
+      "closed": true,
+      "closedAt": "2026-09-29T09:13:17Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/12",
+      "body": "## User story\n\nAs an author, I want a fast editor with the building blocks of technical documentation so that writing feels natural.\n\n## Acceptance criteria\n\n- [ ] TipTap 3 editor reusing Armature's editor components\n- [ ] Headings, bold, italic, strike, code, links, lists, task-style checklists, quotes, horizontal rule\n- [ ] Markdown-style shortcuts as you type and on paste\n- [ ] Slash menu listing every insertable block, filterable by typing\n- [ ] Tables with header row/column, add/remove rows and columns, merge cells, cell background\n- [ ] Code blocks with language picker and syntax highlighting\n- [ ] Panels: info, note, success, warning, error\n- [ ] Every heading gets a stable anchor; copying a heading link works\n- [ ] Server validates documents against a node and mark allowlist\n\n## Tests\n\nUnit (Go): document validation; vitest: extensions; Playwright: slash menu, table, code block, panel, heading link.\n"
+    },
+    {
+      "number": 13,
+      "title": "Drafts and publishing with version comment",
+      "closed": true,
+      "closedAt": "2026-09-30T04:32:10Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/13",
+      "body": "## User story\n\nAs an author, I want to work on a draft and publish when ready so that readers only see finished content.\n\n## Acceptance criteria\n\n- [ ] Edits autosave to a private draft per page\n- [ ] Publish creates a new version with an optional comment and an option to notify watchers\n- [ ] Unpublished new pages are visible only to their creator\n- [ ] Discard draft reverts to the published version\n- [ ] Conflict detection when another person published in between\n\n## Tests\n\nIntegration: draft/publish lifecycle and conflicts; Playwright: edit, autosave, publish with comment.\n"
+    },
+    {
+      "number": 14,
+      "title": "Page history, compare versions, restore",
+      "closed": true,
+      "closedAt": "2026-09-30T04:32:11Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/14",
+      "body": "## User story\n\nAs a reader or author, I want to see how a page changed and roll back so that nothing is ever lost.\n\n## Acceptance criteria\n\n- [ ] History lists every version with author, time and comment\n- [ ] View any version read-only\n- [ ] Compare two versions with inline additions and deletions highlighted\n- [ ] Restore a version as a new version\n\n## Tests\n\nUnit: document diff; integration: history and restore; Playwright: compare and restore.\n"
+    },
+    {
+      "number": 15,
+      "title": "Page templates",
+      "closed": true,
+      "closedAt": "2026-09-30T14:40:34Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/15",
+      "body": "## User story\n\nAs an author, I want to start from a template so that recurring documents look consistent.\n\n## Acceptance criteria\n\n- [ ] Built-in templates: meeting notes, how-to, troubleshooting, retrospective, decision record, product requirements, project plan\n- [ ] Template picker when creating a page, with preview\n- [ ] Templates can contain placeholder text that disappears on typing\n\n## Tests\n\nUnit: templates validate against the document schema; Playwright: create a page from a template.\n"
+    },
+    {
+      "number": 16,
+      "title": "Table of contents and child pages blocks",
+      "closed": true,
+      "closedAt": "2026-09-30T15:23:55Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/16",
+      "body": "## User story\n\nAs an author, I want to insert a table of contents and a list of child pages so that long pages and sections stay navigable.\n\n## Acceptance criteria\n\n- [ ] Table of contents block generated from headings, with depth option, updates live\n- [ ] Child pages block listing direct children or the full subtree, with depth and sort options\n- [ ] Both render in view mode and in exports\n\n## Tests\n\nVitest: TOC generation; Playwright: insert both blocks and follow links.\n"
+    },
+    {
+      "number": 17,
+      "title": "Labels",
+      "closed": true,
+      "closedAt": "2026-09-30T13:58:51Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/17",
+      "body": "## User story\n\nAs an author, I want to tag pages with labels so that related content can be found across the tree.\n\n## Acceptance criteria\n\n- [ ] Add and remove labels on pages with autocomplete\n- [ ] Label page listing all pages with a label, per space and globally\n- [ ] Labels are a search filter\n\n## Tests\n\nIntegration: label CRUD and listing; Playwright: add a label and open the label page.\n"
+    },
+    {
+      "number": 18,
+      "title": "Full-text search with filters and quick search",
+      "closed": true,
+      "closedAt": "2026-09-30T13:10:19Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/18",
+      "body": "## User story\n\nAs a reader, I want to find any page quickly so that I do not have to know where something lives.\n\n## Acceptance criteria\n\n- [ ] PostgreSQL full-text search over titles, bodies and comments, ranked, with highlighted snippets\n- [ ] Filters: space, author, last modified, label, content type\n- [ ] Quick search in the top bar and a command palette (Ctrl/Cmd+K) with recent pages\n- [ ] Only content the user may see is returned\n\n## Tests\n\nIntegration: ranking, filters and permission trimming; Playwright: quick search and filtered search.\n"
+    },
+    {
+      "number": 19,
+      "title": "Permissions: global, space and page restrictions",
+      "closed": true,
+      "closedAt": "2026-09-30T06:45:50Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/19",
+      "body": "## User story\n\nAs an admin, I want to control who can see and edit which content so that sensitive documentation stays protected.\n\n## Acceptance criteria\n\n- [ ] Global permissions: use Stator, create spaces, administer\n- [ ] Space permissions per user and group: view, add pages, add comments, delete, administer\n- [ ] Page restrictions for view and edit, inherited by child pages\n- [ ] Enforced in the service and in the database; attempts through raw SQL are refused as well\n- [ ] UI shows why a page is restricted and who can access it\n\n## Tests\n\nIntegration: permission matrix including a raw-SQL attempt; Playwright: restricted page is hidden from another user.\n"
+    },
+    {
+      "number": 20,
+      "title": "Attachments",
+      "closed": true,
+      "closedAt": "2026-09-30T12:05:59Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/20",
+      "body": "## User story\n\nAs an author, I want to attach files and images by dragging or pasting so that pages can carry screenshots and documents.\n\n## Acceptance criteria\n\n- [ ] Upload via drag-and-drop, paste and file picker; stored in S3-compatible storage\n- [ ] Images render inline with resize and alt text\n- [ ] Attachments list per page with download and delete\n- [ ] Configurable size limit with a clear error message\n\n## Tests\n\nIntegration: upload/download against SeaweedFS and permission checks; Playwright: paste an image.\n"
+    },
+    {
+      "number": 21,
+      "title": "REST API with OpenAPI and personal access tokens",
+      "closed": true,
+      "closedAt": "2026-09-29T10:31:25Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/21",
+      "body": "## User story\n\nAs an integrator, I want a documented API and personal tokens so that scripts and other tools can read and write content.\n\n## Acceptance criteria\n\n- [ ] All UI operations are available under `/api/v1` and described in `api/openapi.json`, served at `/api/v1/openapi.json`\n- [ ] Personal access tokens with prefix, optional expiry and optional read-only scope; only hashes stored\n- [ ] Token management UI\n\n## Tests\n\nIntegration: every response is validated against the spec and the suite fails if an operation is not exercised; Playwright: create and revoke a token.\n"
+    },
+    {
+      "number": 22,
+      "title": "Page comments",
+      "closed": true,
+      "closedAt": "2026-09-30T19:02:34Z",
+      "milestone": "M2 Collaboration",
+      "url": "https://github.com/praetorianer777/Stator/issues/22",
+      "body": "## User story\n\nAs a reader, I want to discuss a page below its content so that feedback stays with the documentation.\n\n## Acceptance criteria\n\n- [ ] Threaded comments with rich text\n- [ ] Edit and delete own comments; admins can delete any\n- [ ] Comment count in page header\n\n## Tests\n\nIntegration: CRUD and permissions; Playwright: reply to a comment.\n"
+    },
+    {
+      "number": 23,
+      "title": "Inline comments",
+      "closed": true,
+      "closedAt": "2026-09-30T20:01:59Z",
+      "milestone": "M2 Collaboration",
+      "url": "https://github.com/praetorianer777/Stator/issues/23",
+      "body": "## User story\n\nAs a reviewer, I want to comment on a specific passage so that feedback is precise.\n\n## Acceptance criteria\n\n- [ ] Select text and add a comment; the passage is highlighted\n- [ ] Threads can be resolved and reopened; resolved threads are hidden by default\n- [ ] Anchors survive edits; orphaned comments are shown separately\n\n## Tests\n\nVitest: anchor mark; integration: resolve flow; Playwright: comment on a selection and resolve.\n"
+    },
+    {
+      "number": 24,
+      "title": "Mentions",
+      "closed": true,
+      "closedAt": "2026-09-30T20:47:49Z",
+      "milestone": "M2 Collaboration",
+      "url": "https://github.com/praetorianer777/Stator/issues/24",
+      "body": "## User story\n\nAs an author, I want to @mention people in pages and comments so that they notice what concerns them.\n\n## Acceptance criteria\n\n- [ ] @ opens a user picker; mentions render as chips\n- [ ] Mentioned users are notified once per publish or comment\n- [ ] Mentions of users without access do not leak content\n\n## Tests\n\nUnit: mention extraction; integration: notification and access check; Playwright: mention a user.\n"
+    },
+    {
+      "number": 25,
+      "title": "Watch pages and spaces",
+      "closed": true,
+      "closedAt": "2026-09-30T18:15:48Z",
+      "milestone": "M2 Collaboration",
+      "url": "https://github.com/praetorianer777/Stator/issues/25",
+      "body": "## User story\n\nAs a reader, I want to watch pages and spaces so that I learn about changes that matter to me.\n\n## Acceptance criteria\n\n- [ ] Watch and unwatch a page or a whole space\n- [ ] Authors automatically watch pages they create or edit\n- [ ] Watchers list on the page\n\n## Tests\n\nIntegration: watch semantics; Playwright: watch a page.\n"
+    },
+    {
+      "number": 26,
+      "title": "In-app and email notifications",
+      "closed": true,
+      "closedAt": "2026-09-30T18:15:48Z",
+      "milestone": "M2 Collaboration",
+      "url": "https://github.com/praetorianer777/Stator/issues/26",
+      "body": "## User story\n\nAs a user, I want to be notified in the app and by email so that I never miss a mention or an important change.\n\n## Acceptance criteria\n\n- [ ] Notification centre with unread badge, mark read, mark all read\n- [ ] Emails for mentions, comments and watched changes, with per-user preferences and a daily digest option\n- [ ] Events go through the outbox and are delivered by the worker\n\n## Tests\n\nIntegration: outbox to email via Mailpit; Playwright: receive a mention notification.\n"
+    },
+    {
+      "number": 27,
+      "title": "Connect an Armature instance",
+      "closed": true,
+      "closedAt": "2026-10-01T00:20:11Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/27",
+      "body": "## User story\n\nAs an admin and as a user, I want to connect Stator to Armature so that pages can show and create issues with my own rights.\n\n## Acceptance criteria\n\n- [ ] Org admins set the Armature base URL\n- [ ] Each user stores their Armature personal access token under Profile; encrypted at rest with `STATOR_SECRET_KEY`\n- [ ] Every Armature call is made as the viewing user through the SSRF guard; no shared bot token for reads\n- [ ] Clear message and connect button when a user has not connected yet\n- [ ] `cmd/armature-stub` implements the Armature API subset used; a contract test checks it against Armature's `api/openapi.json`\n\n## Tests\n\nUnit: token encryption; integration: proxy against the stub; Playwright: connect flow.\n"
+    },
+    {
+      "number": 28,
+      "title": "Smart links for Armature issues",
+      "closed": true,
+      "closedAt": "2026-10-01T01:08:35Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/28",
+      "body": "## User story\n\nAs an author, I want Armature issue keys and URLs to turn into live chips so that readers see status at a glance.\n\n## Acceptance criteria\n\n- [ ] Pasting an Armature issue URL or typing a known issue key converts it to a chip\n- [ ] Chip shows key, summary, type icon and status, with a hover card\n- [ ] Readers without access see only the key\n\n## Tests\n\nVitest: key detection; Playwright: paste a URL against the stub.\n"
+    },
+    {
+      "number": 29,
+      "title": "Armature issue block",
+      "closed": true,
+      "closedAt": "2026-10-01T01:47:25Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/29",
+      "body": "## User story\n\nAs an author, I want to embed a single Armature issue with live details so that specs and work stay in sync.\n\n## Acceptance criteria\n\n- [ ] Insert via slash menu by key or URL\n- [ ] Shows summary, status, assignee, priority; refreshes on view\n- [ ] Cached per user in Valkey for a short time\n\n## Tests\n\nIntegration: proxy and cache; Playwright: insert and render the block.\n"
+    },
+    {
+      "number": 30,
+      "title": "Armature issue list block from a query",
+      "closed": true,
+      "closedAt": "2026-10-01T02:01:49Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/30",
+      "body": "## User story\n\nAs an author, I want to embed a live table of Armature issues from a query so that status pages build themselves.\n\n## Acceptance criteria\n\n- [ ] Insert with an NQL query, chosen columns and maximum rows\n- [ ] Renders as a sortable table with total count and a link to the full result in Armature\n- [ ] Query errors are shown as sentences that say how to fix them\n\n## Tests\n\nIntegration: search proxy; Playwright: insert a list and see rows.\n"
+    },
+    {
+      "number": 31,
+      "title": "Create Armature issues from selected text",
+      "closed": true,
+      "closedAt": "2026-10-01T02:53:31Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/31",
+      "body": "## User story\n\nAs an author, I want to turn selected text into Armature issues so that action items from a document become tracked work.\n\n## Acceptance criteria\n\n- [ ] Selecting text offers Create issue; choose project and type, summary prefilled\n- [ ] Multiple issues from a table or list selection, one per row or item\n- [ ] The selection is replaced or followed by the new issue chip\n\n## Tests\n\nIntegration: create proxy; Playwright: create an issue from a selection against the stub.\n"
+    },
+    {
+      "number": 32,
+      "title": "Show pages that mention an issue in Armature",
+      "closed": true,
+      "closedAt": "2026-10-01T03:37:44Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/32",
+      "body": "## User story\n\nAs an Armature user, I want to see which documentation pages reference an issue so that I can jump to the spec.\n\n## Acceptance criteria\n\n- [ ] On publish, Stator extracts issue keys and syncs remote links in Armature (add and remove)\n- [ ] Requires the remote links feature in Armature (issue filed in Cloudster1/Armature)\n- [ ] Failures are retried through the outbox\n\n## Tests\n\nIntegration: sync against the stub; manual check against a local Armature.\n"
+    },
+    {
+      "number": 33,
+      "title": "Receive Armature webhooks to refresh cached issues",
+      "closed": true,
+      "closedAt": "2026-10-01T04:42:22Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/33",
+      "body": "## User story\n\nAs a reader, I want issue chips and blocks to reflect changes promptly so that pages never show stale status.\n\n## Acceptance criteria\n\n- [ ] `/api/v1/armature/webhook` verifies `X-Armature-Signature-256` with a per-org secret\n- [ ] issue.updated, issue.transitioned and comment.added invalidate the cached entries\n- [ ] Setup instructions shown in the admin integration screen\n\n## Tests\n\nUnit: signature check; integration: invalidation.\n"
+    },
+    {
+      "number": 34,
+      "title": "Use my active Armature theme",
+      "closed": true,
+      "closedAt": "2026-10-01T04:54:45Z",
+      "milestone": "M3 Armature integration",
+      "url": "https://github.com/praetorianer777/Stator/issues/34",
+      "body": "## User story\n\nAs a user of both tools, I want Stator to pick up my Armature theme so that switching tools feels seamless.\n\n## Acceptance criteria\n\n- [ ] Option in the theme menu: follow Armature\n- [ ] Fetches the active theme via Armature's `/themes/active` with the user's token and applies it\n- [ ] Falls back to the Stator theme when Armature is unreachable\n\n## Tests\n\nIntegration against the stub; Playwright: enable follow and see the theme applied.\n"
+    },
+    {
+      "number": 35,
+      "title": "Personal spaces",
+      "closed": true,
+      "closedAt": "2026-10-02T18:23:00Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/35",
+      "body": "## User story\n\nAs a user, I want a personal space for drafts and notes so that I have somewhere to work before sharing.\n\n## Acceptance criteria\n\n- [ ] Every user can create one personal space\n- [ ] Private by default, shareable like any other space\n- [ ] Listed separately in the space directory\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 36,
+      "title": "Folders in the page tree",
+      "closed": true,
+      "closedAt": "2026-10-02T18:44:08Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/36",
+      "body": "## User story\n\nAs an author, I want folders without content so that I can group pages without writing empty parent pages.\n\n## Acceptance criteria\n\n- [ ] Create, rename, move and delete folders in the tree\n- [ ] Folders hold pages and folders\n- [ ] Folders show their children when opened\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 37,
+      "title": "Archive pages and spaces",
+      "closed": true,
+      "closedAt": "2026-10-01T20:15:36Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/37",
+      "body": "## User story\n\nAs a space admin, I want to archive outdated content so that it stops cluttering the tree and search but stays retrievable.\n\n## Acceptance criteria\n\n- [ ] Archive and unarchive pages (with children) and whole spaces\n- [ ] Archived content is read-only and excluded from default search\n- [ ] Archive view per space\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 38,
+      "title": "Starred content and personal home feed",
+      "closed": true,
+      "closedAt": "2026-10-01T16:01:23Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/38",
+      "body": "## User story\n\nAs a user, I want to star pages and spaces and see my recent work on a home screen so that I get back to things quickly.\n\n## Acceptance criteria\n\n- [ ] Star and unstar pages and spaces\n- [ ] Home shows starred items, recently viewed, recently edited and activity from watched content\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 39,
+      "title": "Space sidebar shortcuts",
+      "closed": true,
+      "closedAt": "2026-10-02T03:33:52Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/39",
+      "body": "## User story\n\nAs a space admin, I want to pin links in the space sidebar so that important resources are one click away.\n\n## Acceptance criteria\n\n- [ ] Add, reorder and remove shortcuts to pages or external URLs\n- [ ] Shortcuts appear above the page tree\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 40,
+      "title": "Organisation hub page",
+      "closed": true,
+      "closedAt": "2026-10-02T19:05:55Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/40",
+      "body": "## User story\n\nAs an admin, I want an organisation-wide landing page so that everyone starts from shared news and resources.\n\n## Acceptance criteria\n\n- [ ] One editable hub page per organisation\n- [ ] Configurable as the default landing page\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 41,
+      "title": "Expand blocks",
+      "closed": true,
+      "closedAt": "2026-10-01T09:09:56Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/41",
+      "body": "## User story\n\nAs an author, I want collapsible sections so that optional detail does not overwhelm readers.\n\n## Acceptance criteria\n\n- [ ] Insert an expand block with a title\n- [ ] Collapsed by default in view mode; expanded in exports\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 42,
+      "title": "Column layouts",
+      "closed": true,
+      "closedAt": "2026-10-02T17:56:35Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/42",
+      "body": "## User story\n\nAs an author, I want multi-column sections so that I can place content side by side.\n\n## Acceptance criteria\n\n- [ ] Two- and three-column sections with adjustable widths\n- [ ] Stacks to one column on small screens\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 43,
+      "title": "Status labels, dates and emoji",
+      "closed": true,
+      "closedAt": "2026-10-01T10:30:48Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/43",
+      "body": "## User story\n\nAs an author, I want inline status labels, date pickers and emoji so that pages carry compact, scannable information.\n\n## Acceptance criteria\n\n- [ ] Coloured status label with free text\n- [ ] Inline date with picker and locale formatting\n- [ ] Emoji picker via `:` shortcut\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 44,
+      "title": "Decision items",
+      "closed": true,
+      "closedAt": "2026-10-02T19:29:21Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/44",
+      "body": "## User story\n\nAs a team, I want to mark decisions in a page so that they can be found and reviewed later.\n\n## Acceptance criteria\n\n- [ ] Decision block with state (decided, undecided)\n- [ ] Decision log view per space\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 45,
+      "title": "Math formulas",
+      "closed": true,
+      "closedAt": "2026-10-02T20:35:43Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/45",
+      "body": "## User story\n\nAs an author, I want LaTeX formulas so that technical pages can contain equations.\n\n## Acceptance criteria\n\n- [ ] Inline and block math rendered with KaTeX\n- [ ] Source editable on click\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 46,
+      "title": "Diagrams",
+      "closed": true,
+      "closedAt": "2026-10-02T21:07:27Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/46",
+      "body": "## User story\n\nAs an author, I want diagrams as text so that architecture sketches live next to the prose and are versioned with it.\n\n## Acceptance criteria\n\n- [ ] Mermaid block with live preview\n- [ ] Rendered to SVG for view and export\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 47,
+      "title": "Link previews and embeds for external URLs",
+      "closed": true,
+      "closedAt": "2026-10-02T21:44:19Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/47",
+      "body": "## User story\n\nAs an author, I want pasted links to become rich previews or embeds so that pages show context without leaving the wiki.\n\n## Acceptance criteria\n\n- [ ] Inline, card and embed views for URLs\n- [ ] Server-side unfurling through the SSRF guard with caching\n- [ ] Allowlisted embeds (video, design tools)\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 48,
+      "title": "Excerpts",
+      "closed": true,
+      "closedAt": "2026-10-02T22:14:47Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/48",
+      "body": "## User story\n\nAs an author, I want to mark reusable parts of a page so that other pages can include them.\n\n## Acceptance criteria\n\n- [ ] Named excerpt block\n- [ ] Excerpt picker used by the include block\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 49,
+      "title": "Find and replace in the editor",
+      "closed": true,
+      "closedAt": "2026-10-01T10:02:03Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/49",
+      "body": "## User story\n\nAs an author, I want find and replace so that I can edit long pages quickly.\n\n## Acceptance criteria\n\n- [ ] Ctrl/Cmd+F opens find with match count\n- [ ] Replace one or all; case-sensitive option\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 50,
+      "title": "Page appearance: cover image, title emoji, width",
+      "closed": true,
+      "closedAt": "2026-10-03T05:23:15Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/50",
+      "body": "## User story\n\nAs an author, I want to give a page a cover image, a title emoji and a width so that pages look distinct.\n\n## Acceptance criteria\n\n- [ ] Cover image from attachment or upload with focal point\n- [ ] Emoji before the title, shown in the tree\n- [ ] Fixed or full width per page\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 51,
+      "title": "Armature charts block",
+      "closed": true,
+      "closedAt": "2026-10-03T06:25:08Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/51",
+      "body": "## User story\n\nAs a team lead, I want charts of Armature issues in a page so that status reports stay current.\n\n## Acceptance criteria\n\n- [ ] Pie and created-vs-resolved charts from an NQL query\n- [ ] Uses the viewer's token\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 52,
+      "title": "Armature roadmap block",
+      "closed": true,
+      "closedAt": "2026-10-03T08:08:03Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/52",
+      "body": "## User story\n\nAs a product owner, I want a roadmap of Armature epics in a page so that plans are visible where they are discussed.\n\n## Acceptance criteria\n\n- [ ] Timeline of issues with start and due dates from a query\n- [ ] Grouping by epic or team\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 53,
+      "title": "Include page and excerpt blocks",
+      "closed": true,
+      "closedAt": "2026-10-02T22:55:18Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/53",
+      "body": "## User story\n\nAs an author, I want to reuse content from other pages so that shared text is maintained once.\n\n## Acceptance criteria\n\n- [ ] Include a whole page or a named excerpt\n- [ ] Permission-trimmed: readers without access see a notice\n- [ ] Cycle detection\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 54,
+      "title": "Page properties and properties report",
+      "closed": true,
+      "closedAt": "2026-10-03T10:35:16Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/54",
+      "body": "## User story\n\nAs a team, I want key-value metadata on pages and a report across pages so that document registers build themselves.\n\n## Acceptance criteria\n\n- [ ] Properties block with a two-column table\n- [ ] Report block aggregates properties from pages with given labels\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 55,
+      "title": "Content by label, recently updated and blog list blocks",
+      "closed": true,
+      "closedAt": "2026-10-03T12:09:55Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/55",
+      "body": "## User story\n\nAs an author, I want dynamic lists of pages so that overview pages stay current without editing.\n\n## Acceptance criteria\n\n- [ ] Content by label with filters\n- [ ] Recently updated per space or organisation\n- [ ] Latest blog posts\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 56,
+      "title": "Tasks with assignee and due date",
+      "closed": true,
+      "closedAt": "2026-10-03T18:29:33Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/56",
+      "body": "## User story\n\nAs a team member, I want checklist items with an assignee and due date so that actions from meetings are tracked.\n\n## Acceptance criteria\n\n- [ ] Task items with @assignee and date\n- [ ] My tasks view across all pages\n- [ ] Notifications for assignment and due dates\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 57,
+      "title": "Task report block",
+      "closed": true,
+      "closedAt": "2026-10-03T21:10:46Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/57",
+      "body": "## User story\n\nAs a team lead, I want to embed a report of tasks so that open actions are visible on a page.\n\n## Acceptance criteria\n\n- [ ] Filters by space, assignee, due date and state\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 58,
+      "title": "Attachments list block",
+      "closed": true,
+      "closedAt": "2026-10-03T22:02:08Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/58",
+      "body": "## User story\n\nAs an author, I want to show a page's attachments in the content so that readers find files easily.\n\n## Acceptance criteria\n\n- [ ] Lists attachments with size, uploader and version\n- [ ] Upload from the block\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 59,
+      "title": "Chart from table",
+      "closed": true,
+      "closedAt": "2026-10-05T07:18:57Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/59",
+      "body": "## User story\n\nAs an author, I want to turn a table into a chart so that numbers become visual.\n\n## Acceptance criteria\n\n- [ ] Bar, line and pie charts\n- [ ] Chart updates when the table changes\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 60,
+      "title": "Team calendars",
+      "closed": true,
+      "closedAt": "2026-10-05T09:10:02Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/60",
+      "body": "## User story\n\nAs a team, I want shared calendars so that events, absences and Armature due dates are in one view.\n\n## Acceptance criteria\n\n- [ ] Calendars per space with events\n- [ ] Armature issues with due dates as an event source\n- [ ] Calendar block for pages\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 61,
+      "title": "Office and PDF previews",
+      "closed": true,
+      "closedAt": "2026-10-05T09:51:52Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/61",
+      "body": "## User story\n\nAs a reader, I want to preview attached PDFs and office documents inline so that I do not have to download them.\n\n## Acceptance criteria\n\n- [ ] PDF viewer inline\n- [ ] Office documents converted for preview\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 62,
+      "title": "Create-from-template button and contributors block",
+      "closed": true,
+      "closedAt": "2026-10-05T13:14:57Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/62",
+      "body": "## User story\n\nAs a space admin, I want a button that creates a page from a template and a contributors list so that recurring pages are one click away.\n\n## Acceptance criteria\n\n- [ ] Button block with template and target parent\n- [ ] Contributors block for a page or tree\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 63,
+      "title": "Custom templates with variables",
+      "closed": true,
+      "closedAt": "2026-10-07T07:42:21Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/63",
+      "body": "## User story\n\nAs a space admin, I want to define our own templates with variables so that team documents follow our structure.\n\n## Acceptance criteria\n\n- [ ] Space and organisation templates\n- [ ] Variables prompt the author on creation\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 64,
+      "title": "Space templates",
+      "closed": true,
+      "closedAt": "2026-10-05T10:51:47Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/64",
+      "body": "## User story\n\nAs an admin, I want to create a space from a template so that new teams start with a sensible structure.\n\n## Acceptance criteria\n\n- [ ] Knowledge base, team and documentation space templates\n- [ ] Pages, labels and permissions preset\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 65,
+      "title": "Real-time collaborative editing",
+      "closed": true,
+      "closedAt": "2026-10-05T19:04:40Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/65",
+      "body": "## User story\n\nAs a team, I want to edit a page together at the same time so that we write faster without conflicts.\n\n## Acceptance criteria\n\n- [ ] Yjs-based co-editing with presence avatars and remote cursors\n- [ ] Offline-tolerant sync with conflict-free merge\n- [ ] Works with drafts and publishing\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 66,
+      "title": "Reactions",
+      "closed": true,
+      "closedAt": "2026-10-01T11:07:09Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/66",
+      "body": "## User story\n\nAs a reader, I want to react with emoji to pages and comments so that I can give quick feedback.\n\n## Acceptance criteria\n\n- [ ] Emoji reactions on pages and comments\n- [ ] Who-reacted tooltip\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 67,
+      "title": "Share a page",
+      "closed": true,
+      "closedAt": "2026-10-01T19:24:05Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/67",
+      "body": "## User story\n\nAs a user, I want to send a page to colleagues with a note so that they look at it.\n\n## Acceptance criteria\n\n- [ ] Share dialog with users and groups\n- [ ] Shows who already has access\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 68,
+      "title": "Verified pages and page owners",
+      "closed": true,
+      "closedAt": "2026-10-01T18:34:42Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/68",
+      "body": "## User story\n\nAs a reader, I want to know whether a page is current and who owns it so that I can trust it.\n\n## Acceptance criteria\n\n- [ ] Page owner field\n- [ ] Verify with expiry; owners are reminded to re-verify\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 69,
+      "title": "Guest access to single spaces",
+      "closed": true,
+      "closedAt": "2026-10-06T04:07:09Z",
+      "milestone": "M4 Access and sharing",
+      "url": "https://github.com/praetorianer777/Stator/issues/69",
+      "body": "## User story\n\nAs an admin, I want to invite external guests to one space so that contractors can collaborate safely.\n\n## Acceptance criteria\n\n- [ ] Guest role limited to one space\n- [ ] Guests cannot see people directory or other spaces\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 70,
+      "title": "Live pages without drafts",
+      "closed": true,
+      "closedAt": "2026-10-06T16:02:20Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/70",
+      "body": "## User story\n\nAs a team, I want pages where edits are visible immediately so that working notes need no publishing step.\n\n## Acceptance criteria\n\n- [ ] Per-page mode: live or draft/publish\n- [ ] History still records versions\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 71,
+      "title": "Scheduled publishing",
+      "closed": true,
+      "closedAt": "2026-10-06T17:29:53Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/71",
+      "body": "## User story\n\nAs an author, I want to publish at a set time so that announcements go out when planned.\n\n## Acceptance criteria\n\n- [ ] Schedule publish on a draft\n- [ ] Worker publishes and notifies at the time\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 72,
+      "title": "Blog posts",
+      "closed": true,
+      "closedAt": "2026-10-06T20:46:46Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/72",
+      "body": "## User story\n\nAs a team, I want dated posts in a space so that announcements and updates have a home.\n\n## Acceptance criteria\n\n- [ ] Blog posts per space with date navigation\n- [ ] Watchers and notifications\n- [ ] A latest blog posts block listing a space's or the organisation's newest posts (moved here from #55)\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_"
+    },
+    {
+      "number": 73,
+      "title": "Whiteboards",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/73",
+      "body": "## User story\n\nAs a team, I want an infinite canvas with sticky notes and shapes so that we can brainstorm next to our documentation.\n\n## Acceptance criteria\n\n- [ ] Stickies, shapes, connectors, text\n- [ ] Turn stickies into Armature issues\n- [ ] Embeddable in pages\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 74,
+      "title": "Databases",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/74",
+      "body": "## User story\n\nAs a team, I want structured tables with typed fields and board views so that lightweight data lives in the wiki.\n\n## Acceptance criteria\n\n- [ ] Typed columns (text, number, date, user, select, page link)\n- [ ] Table and board views with filters\n- [ ] Optional sync with Armature issues\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 75,
+      "title": "Slides",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/75",
+      "body": "## User story\n\nAs a presenter, I want to present a page as slides so that I do not need a separate tool.\n\n## Acceptance criteria\n\n- [ ] Presentation mode splitting at headings\n- [ ] Keyboard navigation and full screen\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 76,
+      "title": "Structured query language for content",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M8 Search and Armature",
+      "url": "https://github.com/praetorianer777/Stator/issues/76",
+      "body": "## User story\n\nAs a power user, I want to query content with a query language so that I can build precise lists and API searches.\n\n## Acceptance criteria\n\n- [ ] Fields: space, label, author, created, updated, type, title, text\n- [ ] Used by search, list blocks and the API\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 77,
+      "title": "Combined search across Stator and Armature",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M8 Search and Armature",
+      "url": "https://github.com/praetorianer777/Stator/issues/77",
+      "body": "## User story\n\nAs a user, I want one search box for pages and issues so that I do not have to know where information lives.\n\n## Acceptance criteria\n\n- [ ] Issue results from Armature shown alongside pages\n- [ ] Uses the viewer's token\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 78,
+      "title": "Related pages",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M8 Search and Armature",
+      "url": "https://github.com/praetorianer777/Stator/issues/78",
+      "body": "## User story\n\nAs a reader, I want suggestions for related pages so that I discover relevant content.\n\n## Acceptance criteria\n\n- [ ] Related by labels, links and text similarity\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 79,
+      "title": "Anonymous access to spaces",
+      "closed": true,
+      "closedAt": "2026-10-06T07:10:56Z",
+      "milestone": "M4 Access and sharing",
+      "url": "https://github.com/praetorianer777/Stator/issues/79",
+      "body": "## User story\n\nAs an admin, I want to make selected spaces readable without login so that public documentation can be hosted.\n\n## Acceptance criteria\n\n- [ ] Organisation switch plus per-space anonymous view permission\n- [ ] No personal data shown to anonymous readers\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 80,
+      "title": "Public read-only links",
+      "closed": true,
+      "closedAt": "2026-10-06T09:22:45Z",
+      "milestone": "M4 Access and sharing",
+      "url": "https://github.com/praetorianer777/Stator/issues/80",
+      "body": "## User story\n\nAs an author, I want to share a single page via a public link so that externals can read it without an account.\n\n## Acceptance criteria\n\n- [ ] Create and revoke links per page\n- [ ] Organisation can disable the feature\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 81,
+      "title": "Inspect permissions",
+      "closed": true,
+      "closedAt": "2026-10-01T14:52:41Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/81",
+      "body": "## User story\n\nAs an admin, I want to see why someone can or cannot access content so that access problems are quick to solve.\n\n## Acceptance criteria\n\n- [ ] Explains the grant or restriction path for a user and a page\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 82,
+      "title": "Copy space permissions",
+      "closed": true,
+      "closedAt": "2026-10-06T14:14:50Z",
+      "milestone": "M4 Access and sharing",
+      "url": "https://github.com/praetorianer777/Stator/issues/82",
+      "body": "## User story\n\nAs an admin, I want to copy permissions from one space to another so that setting up spaces is fast.\n\n## Acceptance criteria\n\n- [ ] Copy with preview of changes\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 83,
+      "title": "Link Armature projects to spaces",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M8 Search and Armature",
+      "url": "https://github.com/praetorianer777/Stator/issues/83",
+      "body": "## User story\n\nAs a team, I want an Armature project linked to our space so that each tool links to the other.\n\n## Acceptance criteria\n\n- [ ] Link a space to one or more projects\n- [ ] Space shows project link; Armature shows a Docs link (Armature change filed separately)\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 84,
+      "title": "Release notes from an Armature version",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M8 Search and Armature",
+      "url": "https://github.com/praetorianer777/Stator/issues/84",
+      "body": "## User story\n\nAs a release manager, I want release notes generated from an Armature version so that they write themselves.\n\n## Acceptance criteria\n\n- [ ] Template pulls issues of a version grouped by type\n- [ ] Refresh button until published\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 85,
+      "title": "Suggest issues from a page with AI",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/85",
+      "body": "## User story\n\nAs a product owner, I want AI to propose issues from a requirements page so that planning is faster.\n\n## Acceptance criteria\n\n- [ ] Proposes issues with summary and description\n- [ ] Review and create selected ones in Armature\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 86,
+      "title": "Export pages to PDF",
+      "closed": true,
+      "closedAt": "2026-10-07T15:37:23Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/86",
+      "body": "## User story\n\nAs a reader, I want to export a page to PDF so that I can share or archive it.\n\n## Acceptance criteria\n\n- [ ] Headless-Chrome renderer like Armature's\n- [ ] Themed print stylesheet with headers and footers\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 87,
+      "title": "Export pages to Word",
+      "closed": true,
+      "closedAt": "2026-10-07T18:58:06Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/87",
+      "body": "## User story\n\nAs a reader, I want to export a page to .docx so that it can be edited offline.\n\n## Acceptance criteria\n\n- [ ] Headings, lists, tables, images and code preserved\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 88,
+      "title": "Space export and import",
+      "closed": true,
+      "closedAt": "2026-10-07T22:52:19Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/88",
+      "body": "## User story\n\nAs an admin, I want to export and import whole spaces so that content can be backed up and moved.\n\n## Acceptance criteria\n\n- [ ] Archive with pages, versions, attachments and permissions\n- [ ] HTML export for offline reading\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 89,
+      "title": "Import Word documents",
+      "closed": true,
+      "closedAt": "2026-10-08T04:24:30Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/89",
+      "body": "## User story\n\nAs an author, I want to import .docx files so that existing documents move into the wiki.\n\n## Acceptance criteria\n\n- [ ] Single and bulk import into a chosen parent\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 90,
+      "title": "Markdown import and export",
+      "closed": true,
+      "closedAt": "2026-10-01T14:15:13Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/90",
+      "body": "## User story\n\nAs a developer, I want to import and export Markdown so that docs can move between repos and the wiki.\n\n## Acceptance criteria\n\n- [ ] Page and subtree export to Markdown with attachments\n- [ ] Import Markdown files and folders\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 91,
+      "title": "Import from other wiki tools",
+      "closed": true,
+      "closedAt": "2026-10-08T06:50:28Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/91",
+      "body": "## User story\n\nAs an admin, I want to migrate existing wiki spaces via their XML/HTML exports so that switching to Stator is painless.\n\n## Acceptance criteria\n\n- [ ] Importer for common wiki space export formats\n- [ ] Maps pages, hierarchy, attachments, comments and labels\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 92,
+      "title": "Import from Notion",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/92",
+      "body": "## User story\n\nAs an admin, I want to import a Notion export so that teams can move over.\n\n## Acceptance criteria\n\n- [ ] Pages, hierarchy and attachments from Notion's Markdown/HTML export\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 93,
+      "title": "Inline previews for attachments",
+      "closed": true,
+      "closedAt": "2026-10-07T00:28:21Z",
+      "milestone": "M6 Files and media",
+      "url": "https://github.com/praetorianer777/Stator/issues/93",
+      "body": "## User story\n\nAs a reader, I want to preview images and videos in a lightbox so that I can view them without downloading.\n\n## Acceptance criteria\n\n- [ ] Lightbox for images, video player, zoom\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 94,
+      "title": "Image annotation",
+      "closed": true,
+      "closedAt": "2026-10-07T05:33:09Z",
+      "milestone": "M6 Files and media",
+      "url": "https://github.com/praetorianer777/Stator/issues/94",
+      "body": "## User story\n\nAs an author, I want to crop and annotate images so that screenshots highlight what matters.\n\n## Acceptance criteria\n\n- [ ] Crop, arrows, boxes, text\n- [ ] Saved as a new attachment version\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 95,
+      "title": "Attachment versions",
+      "closed": true,
+      "closedAt": "2026-10-07T02:03:01Z",
+      "milestone": "M6 Files and media",
+      "url": "https://github.com/praetorianer777/Stator/issues/95",
+      "body": "## User story\n\nAs an author, I want re-uploads to create versions so that older files can be restored.\n\n## Acceptance criteria\n\n- [ ] Same name creates a new version\n- [ ] Version list with restore\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 96,
+      "title": "Image galleries",
+      "closed": true,
+      "closedAt": "2026-10-07T03:59:07Z",
+      "milestone": "M6 Files and media",
+      "url": "https://github.com/praetorianer777/Stator/issues/96",
+      "body": "## User story\n\nAs an author, I want to show several images as a gallery so that screenshots are easy to browse.\n\n## Acceptance criteria\n\n- [ ] Gallery block from attachments\n- [ ] Lightbox navigation\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 97,
+      "title": "Page views",
+      "closed": true,
+      "closedAt": "2026-10-02T01:03:51Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/97",
+      "body": "## User story\n\nAs an author, I want to see how often a page is read so that I know what matters.\n\n## Acceptance criteria\n\n- [ ] View count and unique viewers per page\n- [ ] Privacy-respecting aggregation\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 98,
+      "title": "Space analytics",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M10 Operations",
+      "url": "https://github.com/praetorianer777/Stator/issues/98",
+      "body": "## User story\n\nAs a space admin, I want space analytics so that I see popular content and contributors.\n\n## Acceptance criteria\n\n- [ ] Top pages, contributors and trends over time\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 99,
+      "title": "Stale content report",
+      "closed": true,
+      "closedAt": "2026-10-01T22:51:13Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/99",
+      "body": "## User story\n\nAs an admin, I want a report of unused and outdated content so that the wiki stays healthy.\n\n## Acceptance criteria\n\n- [ ] Pages not viewed or updated for a configurable period\n- [ ] Bulk archive from the report\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 100,
+      "title": "Automation rules",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/100",
+      "body": "## User story\n\nAs a space admin, I want rules with triggers, conditions and actions so that routine upkeep happens by itself.\n\n## Acceptance criteria\n\n- [ ] Triggers: page published, label added, comment added\n- [ ] Actions: notify, add label, move, archive\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 101,
+      "title": "Scheduled automation rules",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/101",
+      "body": "## User story\n\nAs a team, I want scheduled rules so that recurring pages such as weekly meeting notes create themselves.\n\n## Acceptance criteria\n\n- [ ] Cron-style schedules\n- [ ] Create page from template action\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 102,
+      "title": "Automation across Stator and Armature",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/102",
+      "body": "## User story\n\nAs a team, I want rules reacting to Armature events so that documentation follows work.\n\n## Acceptance criteria\n\n- [ ] Trigger on Armature webhooks, e.g. version released\n- [ ] Action: create a page from a template\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 103,
+      "title": "AI summaries",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/103",
+      "body": "## User story\n\nAs a reader, I want a summary of a page and its comments so that I catch up quickly.\n\n## Acceptance criteria\n\n- [ ] Uses an externally configured model like Armature's assistant\n- [ ] Summary of changes since last visit\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 104,
+      "title": "AI writing assistance",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/104",
+      "body": "## User story\n\nAs an author, I want AI to draft, rewrite and shorten text so that writing goes faster.\n\n## Acceptance criteria\n\n- [ ] Commands in the slash menu and on selection\n- [ ] Diff preview before applying\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 105,
+      "title": "AI questions over the knowledge base",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/105",
+      "body": "## User story\n\nAs a user, I want to ask questions and get answers from our documentation with sources so that I find knowledge without searching.\n\n## Acceptance criteria\n\n- [ ] Answers cite pages\n- [ ] Only content the user may read is used\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 106,
+      "title": "MCP server",
+      "closed": true,
+      "closedAt": "2026-10-01T21:18:07Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/106",
+      "body": "## User story\n\nAs a developer, I want Stator to expose MCP tools so that AI agents can read and write documentation.\n\n## Acceptance criteria\n\n- [ ] JSON-RPC MCP endpoint generated from the route table like Armature's\n- [ ] Read-only tokens expose only read tools\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 107,
+      "title": "Audit log",
+      "closed": true,
+      "closedAt": "2026-10-01T17:41:45Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/107",
+      "body": "## User story\n\nAs an admin, I want an audit log of administrative and permission changes so that I can trace what happened.\n\n## Acceptance criteria\n\n- [ ] Records who, what, when for admin, permission and export actions\n- [ ] Filter and export\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 108,
+      "title": "Backup and restore",
+      "closed": true,
+      "closedAt": "2026-10-12T06:29:59Z",
+      "milestone": "M10 Operations",
+      "url": "https://github.com/praetorianer777/Stator/issues/108",
+      "body": "## User story\n\nAs an operator, I want documented backup and restore so that no data is lost.\n\n## Decision\n\nThe first version is an operator backup, not an in-app export: one command takes a consistent database dump plus a copy of every object in storage, and one command restores it. Two install paths are covered, Docker Compose and the Helm chart. Scheduled backups with retention are out of scope for now; a site-wide export from the UI would be a separate issue.\n\n## Acceptance criteria\n\n- [ ] **Docker Compose**: a backup command writes one archive (database dump, object storage contents, the Stator version it was taken with); a restore command brings an empty stack back from it and refuses an archive from a newer version.\n- [ ] **Helm chart**: CloudNativePG backups to object storage and the attachment bucket configured through chart values, with a documented restore into a fresh release.\n- [ ] `docs/backup-and-restore.md` covers both paths, what is and is not in a backup (for example secrets and Keycloak), and how to check a restore.\n- [ ] **Restore tested in CI**: fill a stack with pages, versions, attachments, comments and permissions, back it up, wipe it, restore it, and check everything is back and readable through the API, including the row level security on restored rows.\n\n## Tests\n\nUnit tests for the archive and its refusals, a chart test for the jobs, an integration test that every PL/pgSQL function pins its search_path (a dump restores with an empty one), and the backup round trip as a layer of its own against the compose stack.\n"
+    },
+    {
+      "number": 109,
+      "title": "Content lifecycle policies",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M10 Operations",
+      "url": "https://github.com/praetorianer777/Stator/issues/109",
+      "body": "## User story\n\nAs an admin, I want policies that archive stale content automatically so that the wiki stays tidy.\n\n## Acceptance criteria\n\n- [ ] Per-space policy with notice to owners before archiving\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 110,
+      "title": "Outbound webhooks",
+      "closed": true,
+      "closedAt": "2026-10-02T00:13:59Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/110",
+      "body": "## User story\n\nAs an integrator, I want webhooks for content events so that other systems can react.\n\n## Acceptance criteria\n\n- [ ] Signed deliveries with retries like Armature's\n- [ ] Topics: page published, comment added, page moved, page deleted\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 111,
+      "title": "Personal access token scopes per space",
+      "closed": true,
+      "closedAt": "2026-10-02T02:58:11Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/111",
+      "body": "## User story\n\nAs a user, I want to limit a token to certain spaces so that automation has least privilege.\n\n## Acceptance criteria\n\n- [ ] Token can be restricted to selected spaces\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 112,
+      "title": "Chat integrations",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M9 Automation and AI",
+      "url": "https://github.com/praetorianer777/Stator/issues/112",
+      "body": "## User story\n\nAs a team, I want notifications and link previews in our chat tool so that updates reach us where we talk.\n\n## Acceptance criteria\n\n- [ ] Incoming webhook targets for Slack and Microsoft Teams\n- [ ] Per-space channel configuration\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 113,
+      "title": "German and English user interface",
+      "closed": true,
+      "closedAt": "2026-10-01T12:45:04Z",
+      "milestone": "Backlog",
+      "url": "https://github.com/praetorianer777/Stator/issues/113",
+      "body": "## User story\n\nAs a German-speaking user, I want the interface in German so that I can work in my language.\n\n## Acceptance criteria\n\n- [ ] i18n framework with German and English\n- [ ] User preference with browser default\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 114,
+      "title": "Offline reading",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M10 Operations",
+      "url": "https://github.com/praetorianer777/Stator/issues/114",
+      "body": "## User story\n\nAs a traveller, I want to read recently visited pages offline so that I have documentation without a connection.\n\n## Acceptance criteria\n\n- [ ] Service worker caches visited pages\n- [ ] Clear offline indicator\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack, and a Playwright test for the main flow.\n"
+    },
+    {
+      "number": 120,
+      "title": "Read your own writes when a replica serves reads",
+      "closed": true,
+      "closedAt": "2026-09-29T09:16:27Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/120",
+      "body": "## User story\n\nAs a user, I want to see my own change right after I make it, so that a save never seems to be lost because the next read hit a replica that hasn't caught up yet.\n\n## Acceptance criteria\n\n- [ ] Writes return their LSN (the db cluster already does this). After a write, the API pins that session's reads to the primary until the replica has replayed that position, as Armature does with its Valkey-backed tracker (`ARMATURE_READ_YOUR_WRITES_TTL`).\n- [ ] Tracked per session in Valkey, with a TTL from `STATOR_READ_YOUR_WRITES_TTL`.\n- [ ] Handlers stop discarding the write position.\n- [ ] The integration suite runs with the replica configured again (`mk/stack.mk` currently leaves it out of the suite's environment for this reason).\n\n## Tests\n\nIntegration: write then immediately read through the API with the replica configured, repeated enough times to catch lag. The theme tests that failed with the replica pass.\n"
+    },
+    {
+      "number": 122,
+      "title": "Kubernetes deployment with CloudNativePG read and write services",
+      "closed": true,
+      "closedAt": "2026-09-29T09:25:03Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/praetorianer777/Stator/issues/122",
+      "body": "## User story\n\nAs an operator running Stator on Kubernetes, I want a CloudNativePG cluster whose write service takes all writes and whose read service takes the reads, so that read traffic scales across replicas and the primary stays free for writes.\n\n## Acceptance criteria\n\n- [ ] Helm chart `deploy/charts/stator`, modelled on Armature's `deploy/charts/armature`:\n  - `cnpg.enabled` renders a `postgresql.cnpg.io/v1` Cluster (instances, storage, resources and backup passed through from `cnpg.spec`), as in Armature's `cnpg-cluster.yaml`\n  - the api, worker, migrate and seed deployments and jobs, plus a roles job for `stator_app` / `stator_admin`\n  - an ingress, a ServiceMonitor, and Valkey / S3 settings\n- [ ] Write path: `STATOR_DB_PRIMARY_URL` points at `<cluster>-rw`. Migrations and admin work use it too.\n- [ ] Read path: `STATOR_DB_REPLICA_URLS` points at `<cluster>-ro` when `cnpg.readReplicas` is on and `instances > 1`, otherwise it is empty and reads go to `-rw`. Same rules as Armature's `_helpers.tpl`.\n- [ ] Reads stay correct behind a load-balanced `-ro` service, because one connection can land on any replica:\n  - replica lag is sampled per connection and bounded (`STATOR_DB_MAX_REPLICA_LAG`, `STATOR_DB_REPLICA_LAG_SAMPLES`, as in Armature); a lagging replica falls back to the primary\n  - read-your-writes (#120) checks `pg_last_wal_replay_lsn()` on the connection it actually got, not on the service\n- [ ] Separate pool sizes for the write and read pools (`STATOR_DB_PRIMARY_MAX_CONNS`, `STATOR_DB_REPLICA_MAX_CONNS`), plus Prometheus metrics per pool (queries, wait time, fallbacks to primary).\n- [ ] Guard: `cnpg.enabled` and a bundled Postgres can't both be on; the chart fails with a sentence saying which to turn off.\n- [ ] `docs/architecture.md` and a deployment section in the README describe the write and read services.\n\n## Tests\n\n- Go unit tests for read routing: replica chosen, lag fallback, LSN pinning per connection.\n- Integration against the compose primary and replica: pause replay on the replica (`pg_wal_replay_pause()`) and show that reads fall back to the primary and still see the last write.\n- `helm lint` and `helm template` with cnpg on and off, with `instances: 1` and `instances: 3`, checked by a shell test in `run-tests.sh` (Helm runs in a container).\n"
+    },
+    {
+      "number": 124,
+      "title": "Map identity provider groups to org roles",
+      "closed": true,
+      "closedAt": "2026-09-29T10:52:42Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/124",
+      "body": "## User story\n\nAs an org admin, I want groups from our identity provider to grant roles in Stator, so that access follows what we already manage centrally.\n\n## Acceptance criteria\n\n- [ ] On the SSO settings page, admins map IdP group names (values of the groups claim) to org roles (member, admin). Several groups can map to the same role.\n- [ ] On every SSO sign-in, the person's role follows the mapping; the highest mapped role wins. When a group disappears, the role it granted goes too, but never below member while they are still a member.\n- [ ] A mapped group counts as the admin's approval given in advance: a first sign-in by someone in a mapped group joins directly with that role. Everyone else still waits for approval (#5).\n- [ ] Roles an admin set by hand for people outside any mapped group are left alone. The UI shows which roles come from the IdP.\n- [ ] The org owner is never demoted by a mapping.\n- [ ] Every role change the mapping makes is recorded for the audit log.\n\n## Tests\n\n- Unit tests for resolving the mapping.\n- Integration through Keycloak: alice (`stator-administrators`) becomes admin once that group is mapped, and loses it when the group is removed in Keycloak.\n- A Playwright case for the mapping UI.\n"
+    },
+    {
+      "number": 131,
+      "title": "Throwaway organisations for end-to-end test isolation",
+      "closed": true,
+      "closedAt": "2026-09-29T11:13:14Z",
+      "milestone": "M1 Wiki core",
+      "url": "https://github.com/praetorianer777/Stator/issues/131",
+      "body": "## User story\n\nAs a developer, I want every end-to-end spec file to run in its own throwaway organisation, so that specs run in parallel without sharing the `demo` org's data.\n\n## Acceptance criteria\n\n- [ ] A test-only endpoint, enabled only when `STATOR_TEST_ENDPOINTS=1` (set in compose for the suite, never by the Helm chart), creates an org with a unique slug. Alice (admin) and bob (member) are pre-approved in it, and its SSO provider points at the compose Keycloak realm.\n- [ ] A matching endpoint deletes that org and all its data, including S3 objects.\n- [ ] Sign-in works for any such slug.\n- [ ] `e2e/fixtures/org.ts` `freshOrg` uses these endpoints. The theme specs move from the shared `demo` org to their own org and run in parallel again.\n- [ ] The endpoints return 404 when the setting is off. An integration test proves it.\n\n## Tests\n\n- Integration: create, use and delete an org, and the 404 when disabled.\n- The theme specs run in parallel.\n"
+    },
+    {
+      "number": 287,
+      "title": "Text keeps a readable measure while wide blocks use the window",
+      "closed": true,
+      "closedAt": "2026-10-06T10:54:56Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/287",
+      "body": "## User story\n\nAs a reader on a wide screen, I want a page to use the window's width where its content needs it, so that wide content gets room while text stays comfortable to read.\n\n## Background\n\nA page's content is held to one column, `max-w-3xl` (48rem; the app's root font size is 14px, so 672px), in the reader and the editor. The per-page \"Full\" width in Appearance lifts the limit for one page at a time.\n\n## Acceptance criteria\n\n- [ ] Text keeps a comfortable measure: paragraphs, headings, lists, quotes and the title stay within a readable line length (about 80 to 90 characters, named in `web/src/config.ts`), centred in the content area.\n- [ ] Wide blocks use the content area's width, up to a named maximum: tables, charts from tables, diagrams, math blocks, images, galleries, columns, embeds and link cards, roadmaps, calendars, Armature charts and issue lists, and code blocks.\n- [ ] The layout is the same in the reader, the editor, a version and the comparison in history, and the public reading view.\n- [ ] The editor's toolbar, block handles, slash menu and remote carets still line up with the content.\n- [ ] Narrow screens are unchanged, and nothing scrolls sideways on a phone.\n- [ ] \"Full\" width also widens text to the content area.\n\n## Tests\n\nvitest where logic is involved, and Playwright checks on a wide window that text keeps its measure while a table and a diagram reach the wider width, in the reader and the editor, plus a phone check that nothing scrolls sideways.\n"
+    },
+    {
+      "number": 288,
+      "title": "An example space that explains Stator",
+      "closed": true,
+      "closedAt": "2026-10-06T22:55:35Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/288",
+      "body": "## User story\n\nAs an administrator, I want a button that creates an example space explaining Stator, so that a new team learns how to use it, and sees what pages can hold, from Stator itself.\n\n## Acceptance criteria\n\n- [ ] Administrators find a \"Create the example space\" action (on the spaces overview and in organization settings). It creates a space with a fixed key and name, or says so and links to it if it already exists.\n- [ ] The space's pages explain Stator: spaces and pages, the page tree and folders, drafts, publishing and history, editing together, comments and reactions, labels, watching and notifications, search, permissions, guests, anonymous spaces and public links, templates, attachments and previews, Armature integration, tokens and the MCP tools.\n- [ ] A rich text showcase shows every block and mark the editor offers, each with a short note on how to insert it (slash menu, toolbar or shortcut): headings, lists and task lists, tables and charts from tables, panels, expands, columns, code, math, diagrams, decisions, link cards and embeds, excerpts and includes, page properties and reports, task reports, calendars, files blocks, template buttons, contributors, Armature blocks, dates, status, emoji and mentions.\n- [ ] Blocks that need data (Armature, calendars, reports) show working examples where the site can provide them, and a sentence where it cannot.\n- [ ] The content is written in English and German, following the person's language when the space is made.\n- [ ] A test fails when the editor gains a block that the showcase does not show.\n- [ ] Creating the space is audited; nobody but administrators may do it, and the database refuses it too.\n\n## Tests\n\nUnit tests for the content (every allowlisted node appears, the documents pass the allowlist), integration tests against the compose stack for creating it once and refusing members, and a Playwright test that an administrator creates it and reads the showcase.\n"
+    },
+    {
+      "number": 304,
+      "title": "Let somebody edit one page without editing the whole space",
+      "closed": true,
+      "closedAt": "2026-10-07T08:57:10Z",
+      "milestone": "M4 Access and sharing",
+      "url": "https://github.com/praetorianer777/Stator/issues/304",
+      "body": "## User story\n\nAs a space administrator, I want to let somebody edit one page and the pages below it without giving them Add pages in the whole space, so that a reader of the space can look after the pages that are theirs.\n\n## Today\n\nEditing a page needs the space's Add pages right. A page's restriction lists only narrow what the space allows, and a page must pass the lists of every page above it, so there is no way to open a single page or branch to an editor. Putting somebody who may only view the space on a page's \"Who can edit\" list changes nothing, and the dialog does not say so.\n\n## Acceptance criteria\n\n- [ ] The restrictions dialog has a third list, \"Also allowed to edit\", of people and groups who may edit the page and the pages below it although the space does not let them add pages. The view and edit lists keep narrowing as before.\n- [ ] Somebody on that list must still be able to view the page; the list never lets anybody past a view list or into a space they cannot view.\n- [ ] The grant covers editing (drafts, publishing, live saves, files, restrictions as editors may change them today), not adding new pages, unless it is decided otherwise and recorded.\n- [ ] The edit rule in the database (`perm_page_editable` and whatever else decides editing) takes the grant into account, and the guards are proven through SQL as the app role.\n- [ ] The access report on a page names the grant when it decides an answer.\n- [ ] Guests, tokens limited to spaces, copying a space's permissions and copying pages handle the new grant consistently, and the choices are recorded in docs/decisions.md.\n- [ ] The restrictions dialog marks people and groups on the \"Who can edit\" list who still cannot edit, and says what to do (add them to \"Also allowed to edit\", or give them Add pages in the space).\n- [ ] Changing the list is audited like other restriction changes.\n\n## Tests\n\nUnit tests for the logic, integration tests against the compose stack including the SQL guards, and a Playwright test: an administrator lets bob, who may only view the space, edit one page; bob edits and publishes it and cannot edit its sibling; the warning shows for somebody on the edit list who cannot edit.\n"
+    },
+    {
+      "number": 310,
+      "title": "Give the example showcase page a cover picture",
+      "closed": true,
+      "closedAt": "2026-10-07T14:58:39Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/310",
+      "body": "## User story\n\nAs an administrator trying the example space, I want the \"Every block a page can hold\" page to show a cover picture, so that I see what a cover looks like and that pages can have one.\n\n## Acceptance criteria\n\n- [ ] The example space gives the showcase page a cover picture, made with the space like its other pictures, with a focus point set.\n- [ ] The showcase says in a sentence, in English and German, what the cover is and where it is set (the page menu, Appearance).\n- [ ] Without file storage, the page has no cover and says so in a sentence, as the other file examples do.\n\n## Tests\n\nUnit test that the showcase asks for a cover; the integration test of the example space finds the cover on the page; the browser test sees it.\n"
+    },
+    {
+      "number": 312,
+      "title": "Draw sketches in a page with an Excalidraw block",
+      "closed": true,
+      "closedAt": "2026-10-08T10:27:53Z",
+      "milestone": "M6 Files and media",
+      "url": "https://github.com/praetorianer777/Stator/issues/312",
+      "body": "## User story\n\nAs an author, I want to draw a sketch right in a page, with shapes, arrows, text and freehand lines, so that a quick architecture drawing or whiteboard idea lives with the page instead of in a picture nobody can change.\n\n## Acceptance criteria\n\n- [ ] A **Sketch** block from the slash menu opens a drawing canvas built on Excalidraw (MIT), loaded only when a sketch is opened, from the app's own build with no third-party host.\n- [ ] The drawing is stored in the page as its scene (JSON) within a size limit, so versions, history comparison, copy, templates and editing together carry it like any other block.\n- [ ] Readers see it drawn as SVG in the read view, includes, public and link views and the PDF print, and can open it larger; only editors change it.\n- [ ] Pictures used in a sketch are the page's own files, so permissions and copies hold.\n- [ ] Markdown export writes the sketch so that import brings it back; the example space showcase shows one, in English and German, with how to insert it.\n- [ ] The block passes axe in light and dark, works by keyboard as far as the canvas allows, and fits a phone.\n\n## Tests\n\nUnit tests for the scene's validation and size limit, integration tests that the server keeps only valid scenes and that copy and Markdown round trip them, and a Playwright test that draws a box with text, publishes, and sees it in the read view and in history.\n"
+    },
+    {
+      "number": 313,
+      "title": "Review pages before they publish, and confirm reading them",
+      "closed": true,
+      "closedAt": "2026-10-11T16:50:22Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/313",
+      "body": "## User story\n\nAs a space administrator, I want pages to be reviewed before they are published, and readers to confirm they have read important pages, so that procedures and policies go out checked and we know who has seen them.\n\n## Acceptance criteria\n\n- [ ] A space, or a branch of its pages, can require a review: publishing a draft then asks one or more named reviewers (people or groups) instead of going out at once.\n- [ ] Reviewers are notified, see the draft and its comparison with the published version, and approve or ask for changes with a comment; the draft goes out when the required approvals are in, as its author.\n- [ ] The page shows that a review is pending and who decided what; history records who approved each version.\n- [ ] Administrators can skip a review with a reason, which is audited.\n- [ ] A page can ask its readers to confirm they have read it; the page lists who has and has not, and a new version can ask again.\n- [ ] Guards hold in the database: only named reviewers approve, nobody approves their own draft, a page under review is not published around it.\n- [ ] Live pages, scheduled publishing and blog posts behave consistently with reviews, and the choices are recorded.\n\n## Tests\n\nUnit tests for the review rules, integration tests including the SQL guards, and a Playwright test: alice requires a review, bob's draft waits, alice approves, the page goes out, and carol confirms she read it.\n"
+    },
+    {
+      "number": 320,
+      "title": "Renew the example space when a newer one ships",
+      "closed": true,
+      "closedAt": "2026-10-11T16:01:46Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/320",
+      "body": "## User story\n\nAs an administrator, I want to know when Stator ships a newer example space and renew ours with one click, so that the guides and the showcase keep describing what Stator can do today.\n\n## Today\n\nThe example space is made once (#288, #306). When later releases add features (live pages, PDF and Word export, space import, the sketch block), an existing example space keeps its old pages and never mentions them; the only way to a current one is to delete it and make it again.\n\n## Acceptance criteria\n\n- [ ] The example's content carries a version that changes whenever its pages change; the example space records the version it was made from.\n- [ ] Administrators see, on the spaces overview, in the example space and in its settings page, that a newer example is available, with a short list of what is new (written with the content, in English and German).\n- [ ] **Renew** replaces the example space's guide pages, showcase and their files with the current ones, through the worker job as making it does, in the language it was made in or one the administrator picks. The space keeps its key, and what people added (their own pages, comments, labels, stars and watches on pages that still exist) is kept or reported; record the choice.\n- [ ] Pages people changed since the example was made are not overwritten silently: they are kept, renamed or listed in a report, as decided and recorded.\n- [ ] Renewing is audited, only administrators may do it, and the database refuses it too.\n\n## Tests\n\nUnit tests for the version and the what-is-new list (a test fails when the content changes without a new version), integration tests for renewing an older example including the SQL guards and kept additions, and a Playwright test: an administrator sees that a newer example is available, renews it, and reads a new guide.\n"
+    },
+    {
+      "number": 321,
+      "title": "Brand exports with the organization's logo, name and colours",
+      "closed": true,
+      "closedAt": "2026-10-10T18:29:23Z",
+      "milestone": "M7 Import and export",
+      "url": "https://github.com/praetorianer777/Stator/issues/321",
+      "body": "## User story\n\nAs an organization administrator, I want our exports to carry our brand, so that a PDF, Word document or offline HTML copy of a page looks like it comes from us.\n\n## Acceptance criteria\n\n- [ ] Organization settings gain a **logo** (an uploaded picture, with size and type limits) shown in the app's header, and an optional footer line (for example a classification or a contact), in English and German.\n- [ ] PDF export (#86) prints the logo and the organization's name in its header, the footer line in its footer, and uses the organization's theme colours for headings, links and panels.\n- [ ] Word export (#87) puts the logo and name in the document header, the footer line in its footer, and the theme's colours in its heading and link styles.\n- [ ] The HTML export of a space (#88) carries the logo, the name and the theme's colours in its stylesheet.\n- [ ] Public and link exports carry the same brand; a page without an organization logo falls back to the name alone.\n- [ ] Only organization administrators change the brand; the change is audited and the database refuses it from anyone else.\n\n## Tests\n\nUnit tests for the Word header and styles and the HTML stylesheet, integration tests that each export carries the logo and footer line and that members cannot change them (also through SQL), and a Playwright test: an administrator uploads a logo and footer line, exports a page as PDF and Word, and finds both in the files.\n"
+    },
+    {
+      "number": 322,
+      "title": "Take a task's link to the task on its page",
+      "closed": true,
+      "closedAt": "2026-10-10T13:54:03Z",
+      "milestone": "M5 Authoring",
+      "url": "https://github.com/praetorianer777/Stator/issues/322",
+      "body": "## User story\n\nAs somebody with tasks on many pages, I want a task's link to take me to that task on its page, so that I do not have to search a long page for it.\n\n## Today\n\n**My tasks**, the task report block and the notification that a task was assigned all link to the page itself, so the page opens at its top. Each task in the read view already carries its id (`data-task-id`), but no link points at it.\n\n## Acceptance criteria\n\n- [ ] A task's link from **My tasks**, the task report, the assignment notification (in the app and in its email) and the task's MCP tool result carries the task's id, for example `/s/KEY/p/ID/slug#task-<id>`.\n- [ ] Opening such a link scrolls the task into view once the page has drawn, below the sticky header, and marks it briefly so the eye finds it; the mark respects reduced motion.\n- [ ] It works when the task sits inside a collapsed expand (which opens), in columns, a panel or a table cell, and in an included page's copy of it is not chosen over the page's own.\n- [ ] If the task is gone from the published page (deleted, or only in a draft), the page opens at its top with a short note that says so.\n- [ ] Focus moves to the task for keyboard and screen reader users.\n\n## Tests\n\nUnit tests for building and reading the anchor, and a Playwright test: bob is assigned a task far down a long page and inside a collapsed expand, follows it from My tasks and from his notification, and lands on it.\n"
+    },
+    {
+      "number": 457,
+      "title": "A suite demo space filled with the documentation of Stator, Armature and Exciter",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "",
+      "url": "https://github.com/praetorianer777/Stator/issues/457",
+      "body": "## User story\n\nAs someone trying Stator together with Armature and Exciter, I want a demo whose pages are the suite's own documentation, so that I see the three tools working on real, linked content rather than invented examples.\n\nPart of one suite demo: Armature holds the issues (Cloudster1/Armature#300), Stator the documentation and Exciter the requirements (Cloudster1/Exciter#270), and Exciter traces between them.\n\n## Acceptance criteria\n\n- [ ] **Adding it:** an administrator adds the suite demo once, beside the example space, and `make seed` adds it too. It is refused when one of its keys is taken.\n- [ ] **Spaces:** three spaces, `ARM`, `EXC` and `STA`, each hold the README, CONTRIBUTING, CHANGELOG and every Markdown file under `docs/` of their tool's repository, in its folder tree. Images become attachments.\n- [ ] **Decisions:** `docs/decisions.md` becomes a page with one child page per top-level section, so no page is too long to read or edit.\n- [ ] **Links between docs:** links between docs become page links, also across tools (a GitHub link from Exciter's docs to Armature's `docs/integration.md` opens that page in `ARM`). Links to source files point at GitHub, at the snapshot's commit.\n- [ ] **Issue references:** `#261` in Exciter's docs and `Cloudster1/Armature#213` anywhere become issue chips (`EXC-261`, `ARM-213`). They resolve once Armature has its suite demo, and publishing puts the page links on those issues.\n- [ ] **Labels for partners:** every page carries a label naming its source file (for example `demo-exc-docs-api-contract-m13`), so Exciter finds it through `GET /labels/{name}/pages`.\n- [ ] **Snapshot:** the content comes from a snapshot in the repository, so adding the demo needs no network. `make demo-snapshot` refreshes it from the three repositories and records the date and commit of each.\n\n## Tests\n\n- Go unit: link and reference rewriting (relative, cross-tool, source files, `#N` and `owner/repo#N`); splitting the decisions; label names.\n- Integration: add the demo; a second add and a taken key are refused; the page trees match the snapshot; a cross-space page link and an issue chip are present.\n- vitest: the control that adds the demo.\n- Playwright: add the demo, open a decisions page and a page with a chip, with the accessibility check.\n\n## Implementation\n\n- Follows `backend/internal/example`: embedded content, a worker job that builds through the services as a person would, and `versions.json` for renewal.\n- The folder import of `internal/mdio`.\n- A decision in `docs/decisions.md`: why a snapshot and not git sync.\n\n## Depends on\n\n- Nothing to build. The chips resolve with Cloudster1/Armature#300.\n"
+    }
+  ]
+}
