@@ -42,6 +42,20 @@ func writeBlocks(b *strings.Builder, blocks []Node, depth int) {
 	}
 }
 
+// DiagramTitle is the words of a PlantUML diagram's title line, which describe its picture to whoever cannot see it;
+// empty when it has none.
+func DiagramTitle(source string) string {
+	for line := range strings.SplitSeq(source, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) > len(diagramTitleWord) && strings.EqualFold(line[:len(diagramTitleWord)], diagramTitleWord) {
+			return strings.TrimSpace(line[len(diagramTitleWord):])
+		}
+	}
+	return ""
+}
+
+const diagramTitleWord = "title "
+
 // InlineText flattens a block's inline children: text, mentions as @Name and breaks as newlines.
 func InlineText(n Node) string {
 	var b strings.Builder

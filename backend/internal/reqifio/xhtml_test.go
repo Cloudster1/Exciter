@@ -137,6 +137,21 @@ func TestFromDocumentLeavesOutFilesTheExportDoesNotCarry(t *testing.T) {
 	})
 }
 
+func TestFromDocumentWritesADiagramAsItsSource(t *testing.T) {
+	doc := `{"type":"doc","content":[{"type":"diagram","attrs":{"language":"plantuml","source":"@startuml\n[Pump] - [Valve]\n@enduml"}}]}`
+	var buf bytes.Buffer
+	w := &writer{w: bufioWriter(&buf)}
+	w.xhtml(*FromDocument(json.RawMessage(doc), nil))
+	if err := w.w.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	back, losses := ToDocument(xhtmlOf(t, buf.String()), func(string) (Placed, bool) { return Placed{}, false })
+	want := `{"type":"doc","content":[{"type":"codeBlock","content":[{"type":"text","text":"@startuml\n[Pump] - [Valve]\n@enduml"}]}]}`
+	if compact(t, back) != compact(t, json.RawMessage(want)) || len(losses) > 0 {
+		t.Errorf("wrote %s, read back %s, losses %+v", buf.String(), compact(t, back), losses)
+	}
+}
+
 func TestFromDocumentWritesATermsWords(t *testing.T) {
 	doc := `{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Press the "},{"type":"text","text":"brake pedal","marks":[{"type":"bold"},{"type":"term","attrs":{"termId":"` + placed + `"}}]}]}]}`
 	var buf bytes.Buffer

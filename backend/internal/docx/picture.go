@@ -53,6 +53,12 @@ func (w *writer) load(id string) *picture {
 		w.fail(fmt.Errorf("read the picture %s: %w", id, err))
 		return nil
 	}
+	return w.place(data)
+}
+
+// place adds a picture's bytes to the document within what is left of MaxBytes; nil is no picture Word shows.
+func (w *writer) place(data []byte) *picture {
+	left := MaxBytes - w.spent
 	if int64(len(data)) > left {
 		w.fail(ErrTooLarge)
 		return nil
@@ -120,4 +126,38 @@ func (w *writer) imageBlock(n document.Node, f frame, _ int) {
 		return
 	}
 	w.para(f, paraProps{}, func() { w.drawing(p, intAttr(n, "width", 0), f.width, alt) })
+}
+
+// diagramBlock embeds a diagram as the renderer draws it, as PNG since Word shows no SVG it can be sure of; one that
+// cannot be drawn is written as its source, with a note saying so.
+func (w *writer) diagramBlock(n document.Node, f frame, _ int) {
+	language, source := stringAttr(n, "language"), stringAttr(n, "source")
+	key := "diagram\x00" + language + "\x00" + source
+	p, seen := w.embedded[key]
+	if !seen {
+		p = w.drawDiagram(language, source)
+		w.embedded[key] = p
+	}
+	if p == nil {
+		w.code(source, f)
+		if w.err == nil {
+			w.note(f, w.words.diagramUndrawn())
+		}
+		return
+	}
+	w.para(f, paraProps{}, func() { w.drawing(p, 0, f.width, w.words.diagramDescription(document.DiagramTitle(source))) })
+}
+
+func (w *writer) drawDiagram(language, source string) *picture {
+	if w.read.Diagram == nil || w.err != nil {
+		return nil
+	}
+	data, err := w.read.Diagram(w.ctx, language, source)
+	if err != nil {
+		if w.ctx.Err() != nil {
+			w.fail(w.ctx.Err())
+		}
+		return nil
+	}
+	return w.place(data)
 }

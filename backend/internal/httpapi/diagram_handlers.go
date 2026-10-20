@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,6 +26,14 @@ func (s *Server) handleDrawDiagram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, r, http.StatusOK, diagram.Picture{SVG: string(picture)})
+}
+
+// diagramPNG draws a diagram for a Word export, which embeds PNG.
+func (s *Server) diagramPNG(ctx context.Context, language, source string) ([]byte, error) {
+	if s.Diagrams == nil {
+		return nil, diagram.ErrUnavailable
+	}
+	return s.Diagrams.Draw(ctx, language, diagram.PNG, source)
 }
 
 // diagramError says what a drawing that failed means to the writer, and what to do about it.
