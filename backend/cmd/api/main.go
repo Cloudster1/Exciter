@@ -29,6 +29,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/demo"
+	"github.com/cloudster1/exciter/backend/internal/diagram"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
@@ -207,6 +208,7 @@ func run() error {
 		OAuth: oauth.NewService(cluster, cfg.AppBaseURL, httpapi.APIPrefix,
 			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))).WithPeople(sso),
 		Renderer:       renderer(cfg, log),
+		Diagrams:       drawer(cfg, log),
 		Armature:       armatures,
 		Stator:         stators,
 		Webhooks:       webhook.NewService(cluster, box, webhook.Options{AppURL: cfg.AppBaseURL, Allow: allow, Log: log}),
@@ -372,4 +374,13 @@ func renderer(cfg config.Config, log *slog.Logger) render.Renderer {
 		return render.Unavailable{}
 	}
 	return render.New(cfg.Render.URL, render.Options{Timeout: cfg.Render.Timeout, Concurrency: cfg.Render.Concurrency, MaxSize: cfg.Render.MaxSize})
+}
+
+// drawer is the diagram renderer the configuration names, or the one that says diagrams show as their source.
+func drawer(cfg config.Config, log *slog.Logger) diagram.Drawer {
+	if cfg.Kroki.URL == "" {
+		log.Warn("diagrams show as their source: EXCITER_KROKI_URL is not set")
+		return diagram.Unavailable{}
+	}
+	return diagram.New(cfg.Kroki.URL, diagram.Options{Timeout: cfg.Kroki.Timeout, Concurrency: cfg.Kroki.Concurrency})
 }

@@ -889,6 +889,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/diagrams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a diagram from its source as SVG, for anybody signed in: the picture a requirement's diagram shows. 422 is source the renderer could not read, in its words; 503 is a server that draws no diagrams, or is drawing too many. */
+        post: operations["drawDiagram"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/export-templates/{templateID}": {
         parameters: {
             query?: never;
@@ -6952,6 +6969,9 @@ export interface components {
             id: string;
             name: string;
         };
+        Picture: {
+            svg: string;
+        };
         Place: {
             /** Format: uuid */
             afterId: string | null;
@@ -7320,6 +7340,10 @@ export interface components {
             means: string | null;
             meansName: string;
             name: string;
+        };
+        Request: {
+            language: string;
+            source: string;
         };
         RequestBody: {
             content: {
@@ -12260,6 +12284,66 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    drawDiagram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Picture"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
                 headers: {
                     [name: string]: unknown;
                 };
