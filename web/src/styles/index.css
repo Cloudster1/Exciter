@@ -407,6 +407,36 @@
     color: var(--color-ink-muted);
     font-size: 0.875rem;
   }
+  /* PlantUML draws on white whatever the theme, so the picture keeps its own ground and a little room on it. */
+  .doc-content .doc-diagram-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    padding: 0.5rem;
+    border-radius: var(--radius-control);
+    background: white;
+  }
+  .doc-content .doc-diagram-tools {
+    margin-top: 0.25rem;
+  }
+  .doc-content .doc-diagram-edit {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+  }
+  .doc-content .doc-diagram-label {
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+  }
+  .doc-content :is(.doc-diagram-error, .doc-diagram-note) {
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+  }
+  .doc-content .doc-diagram-error {
+    color: var(--color-danger);
+  }
   .doc-content :is(a[data-attachment-id], [data-upload-placeholder]) {
     padding: 0 0.25rem;
     border-radius: 0.25rem;

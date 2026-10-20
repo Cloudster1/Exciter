@@ -247,6 +247,15 @@ export const LINK_TYPES_PATH = "/settings/link-types";
 /** The longest description and widest picture a statement keeps, the server's document.MaxAltLength and MaxImageWidth. */
 export const IMAGE_ALT_MAX_LENGTH = 500;
 export const IMAGE_MAX_WIDTH_PX = 4000;
+
+/** A diagram (#284): its language, the longest source the server's document.MaxDiagramLength keeps, and how its
+ * source is edited and previewed. The preview waits for typing to stop, since each drawing asks the server. */
+export const DIAGRAM_LANGUAGE = "plantuml";
+export const DIAGRAM_MAX_LENGTH = 20000;
+export const DIAGRAM_PREVIEW_DELAY_MS = 600;
+export const DIAGRAM_SOURCE_ROWS = 8;
+export const DIAGRAM_FILE_NAME = "diagram.svg";
+export const DIAGRAM_DEFAULT_SOURCE = "@startuml\ntitle Components\n[Sensor] --> [Controller] : reading\n[Controller] --> [Actuator] : command\n@enduml";
 /** The types the server shows in place when asked, attachment.ShowsInPlace; everything else downloads. */
 export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf", "text/plain"];
 /** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */

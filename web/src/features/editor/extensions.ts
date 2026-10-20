@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import type { SuggestionOptions } from "@tiptap/suggestion";
 import type { UploadFile } from "@/api/attachments";
 import { EDITOR_HEADING_LEVELS } from "@/config";
+import { Diagram } from "./diagram";
 import { AttachmentChip, FileUpload, Image } from "./files";
 import { QualityMarks } from "./quality";
 import { safeHref } from "./schema";
@@ -42,6 +43,7 @@ export function editorExtensions(suggestion?: Omit<SuggestionOptions<Mentionable
       ...(suggestion ? { suggestion } : {}),
     }),
     Image,
+    Diagram,
     AttachmentChip,
     FileUpload.configure({ upload }),
     QualityMarks,

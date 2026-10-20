@@ -41,8 +41,9 @@ func diagramError(err error) error {
 	var source *diagram.SourceError
 	switch {
 	case errors.As(err, &source):
+		// The renderer's own sentence goes in fields too, for the web client to put in the reader's language.
 		return &APIError{Status: http.StatusUnprocessableEntity, Code: "diagram_source",
-			Message: "The diagram could not be drawn: " + source.Message + ". Check its source."}
+			Message: "The diagram could not be drawn: " + source.Message + ". Check its source.", Fields: map[string]string{"source": source.Message}}
 	case errors.Is(err, diagram.ErrInvalid):
 		return ErrValidation(map[string]string{"source": fmt.Sprintf("Write the diagram in PlantUML, in at most %d characters.", document.MaxDiagramLength)})
 	case errors.Is(err, diagram.ErrUnavailable):

@@ -72,6 +72,7 @@ export const Icon = {
   CodeBlock: makeIcon("code-block", ["M2.5 3h11v10h-11z", "m6.5 6.5-1.5 1.5 1.5 1.5", "m9.5 6.5 1.5 1.5-1.5 1.5"]),
   Rule: makeIcon("rule", ["M2 8h12"]),
   Table: makeIcon("table", ["M2.5 3h11v10h-11z", "M2.5 6.5h11", "M2.5 10h11", "M6.5 3v10"]),
+  Diagram: makeIcon("diagram", ["M2 2.5h5v4H2z", "M9 9.5h5v4H9z", "M4.5 6.5v5H9"]),
   Everyone: makeIcon("everyone", [
     "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z",
     "M2 8h12",

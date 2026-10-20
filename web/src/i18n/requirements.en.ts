@@ -86,4 +86,16 @@ export const editorEn = {
   linkSave: "Save link",
   linkInvalid: "Give a web or mail address, such as https://example.com. Leave it empty to remove the link.",
   mentions: "People to mention",
+  diagram: {
+    insert: "PlantUML diagram",
+    source: "PlantUML source",
+    preview: "Preview",
+    drawing: "PlantUML diagram",
+    drawingNow: "Drawing the diagram.",
+    download: "Save as SVG",
+    empty: "Write the diagram in PlantUML, between @startuml and @enduml.",
+    unreadable: (why: string) => `The diagram cannot be drawn: ${why}. Check its source.`,
+    unavailable: "This server draws no diagrams, so the source is shown. Ask whoever runs Exciter to start the diagram renderer.",
+    failed: "The diagram could not be drawn just now, so the source is shown. Reload the page in a moment.",
+  },
 };
