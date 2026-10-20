@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -354,6 +355,42 @@ func (s *Service) Exchange(ctx context.Context, state, code string) (*Identity, 
 	}
 	return identity, &login, nil
 }
+
+// VerifyAccessToken checks a person's access token from the installation's provider, issued to authorizedParty for
+// Exciter: the provider's issuer and keys, unexpired, azp the partner's client and aud holding Exciter's own, as
+// Armature checks one (#273). The identity in it is read as a sign-in reads an id token's.
+func (s *Service) VerifyAccessToken(ctx context.Context, raw, authorizedParty string) (*Identity, error) {
+	provider, err := s.signInProvider(ctx)
+	if err != nil {
+		return nil, err
+	}
+	discovered, err := s.discover(ctx, provider.Issuer)
+	if err != nil {
+		return nil, err
+	}
+	// The audience is checked below, by name, since an access token is for its resources rather than its client.
+	verified, err := discovered.Verifier(&coreoidc.Config{SkipClientIDCheck: true}).Verify(s.providerContext(ctx), raw)
+	if err != nil {
+		return nil, &TokenError{Reason: "it is not a current token signed by the identity provider"}
+	}
+	var claims map[string]any
+	if err := verified.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("read the token's claims: %w", err)
+	}
+	if party := asString(claims["azp"]); party != authorizedParty {
+		return nil, &TokenError{Reason: fmt.Sprintf("it was issued to %q, not to the app's Keycloak client", party)}
+	}
+	if !slices.Contains(verified.Audience, provider.ClientID) {
+		return nil, &TokenError{Reason: fmt.Sprintf(
+			"its audience does not hold Exciter's client %s; add an audience mapper to the app's Keycloak client", provider.ClientID)}
+	}
+	return identityFromClaims(verified.Issuer, verified.Subject, claims, provider.GroupsClaim)
+}
+
+// TokenError is an access token the provider did not vouch for as asked, with the reason in words.
+type TokenError struct{ Reason string }
+
+func (e *TokenError) Error() string { return e.Reason }
 
 // randomTokenBytes is what both the state and the nonce need to be unguessable.
 const randomTokenBytes = 32

@@ -87,6 +87,16 @@ var integrationCapabilities = []capability{
 		},
 	},
 	{
+		// Armature's name and promise for the same grant (Cloudster1/Armature#302), so a partner checks all three alike.
+		name: "oauth.token-exchange@1",
+		promise: "POST /oauth/token with grant_type urn:ietf:params:oauth:grant-type:token-exchange: subject_token an access token of the installation's identity provider " +
+			"whose azp is the partner app's keycloakClientId and whose aud holds Exciter's client, the app authenticating with its own id and secret; " +
+			"the answer an access and a refresh token within the person's rights, with no consent page.",
+		operations: []string{
+			"POST /oauth/token",
+		},
+	},
+	{
 		name:    "theme-export@1",
 		promise: "A theme exported as one armature-theme/1 file with its pictures and fonts, and such a file imported as a theme of the caller's own.",
 		operations: []string{

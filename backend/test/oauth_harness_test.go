@@ -26,7 +26,7 @@ func newOAuthServer(t *testing.T, h *harness, fetch ...oauth.Fetcher) *apiServer
 	t.Helper()
 	return newAPIServerWith(t, h, func(a *apiServer, s *httpapi.Server) {
 		s.AppBaseURL = a.URL
-		s.OAuth = oauth.NewService(h.cluster, a.URL, httpapi.APIPrefix, append(fetch, nil)[0])
+		s.OAuth = oauth.NewService(h.cluster, a.URL, httpapi.APIPrefix, append(fetch, nil)[0]).WithPeople(a.sso)
 		s.TrustedProxies = []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128")}
 	})
 }

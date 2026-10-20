@@ -88,6 +88,9 @@ type client struct {
 	AuthMethod    string
 	SecretHash    []byte
 	GrantTypes    []string
+	// KeycloakClientID and Scopes are a partner's (#273), empty for any other client.
+	KeycloakClientID string
+	Scopes           []string
 }
 
 func (c *client) ref() ClientRef { return ClientRef{ID: c.ID, Name: c.Name, URI: c.URI, Kind: c.Kind} }
@@ -112,7 +115,8 @@ func (c *client) authenticate(secret string, basic bool) *Refusal {
 		}
 		return nil
 	case AuthSecretBasic:
-		if !basic {
+		// A partner authenticates either way, as at Armature, since it was never asked how it would.
+		if !basic && c.Kind != ClientPartner {
 			return wrong
 		}
 	case AuthSecretPost:
@@ -128,7 +132,8 @@ func (c *client) authenticate(secret string, basic bool) *Refusal {
 
 var errUnknownClient = refuse(ErrInvalidClient, "Exciter does not know this client. Register it, or give the address of its metadata document as its client_id.")
 
-const clientSQL = `SELECT id, name, uri, kind, redirect_uris, auth_method, secret_hash, grant_types, fresh_until FROM oauth_client WHERE id = $1`
+const clientSQL = `SELECT id, name, uri, kind, redirect_uris, auth_method, secret_hash, grant_types, fresh_until, keycloak_client_id, scopes
+	FROM oauth_client WHERE id = $1`
 
 // clientOf finds a client, fetching its metadata document again when it is one and the kept copy went stale.
 func (s *Service) clientOf(ctx context.Context, id string) (*client, error) {
@@ -137,10 +142,11 @@ func (s *Service) clientOf(ctx context.Context, id string) (*client, error) {
 		fresh *time.Time
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		return tx.QueryRow(ctx, clientSQL, id).Scan(&c.ID, &c.Name, &c.URI, &c.Kind, &c.RedirectURIs, &c.AuthMethod, &c.SecretHash, &c.GrantTypes, &fresh)
+		return tx.QueryRow(ctx, clientSQL, id).Scan(&c.ID, &c.Name, &c.URI, &c.Kind, &c.RedirectURIs, &c.AuthMethod, &c.SecretHash, &c.GrantTypes, &fresh,
+			&c.KeycloakClientID, &c.Scopes)
 	})
 	switch {
-	case err == nil && (c.Kind == ClientRegistered || fresh.After(s.now())):
+	case err == nil && (c.Kind != ClientMetadata || fresh.After(s.now())):
 		return &c, nil
 	case err != nil && !errors.Is(err, pgx.ErrNoRows):
 		return nil, err

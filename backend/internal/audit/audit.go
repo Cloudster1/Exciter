@@ -129,6 +129,12 @@ const (
 	// ActionOAuthRevoked is a connection ended, with who ended it: its person, an administrator, the client, or a
 	// reused token (#189).
 	ActionOAuthRevoked = "oauth.revoked"
+	// ActionOAuthAppCreated and the three after it are a partner app registered, changed, given a new secret or
+	// removed by an administrator (#273).
+	ActionOAuthAppCreated       = "oauth_app.created"
+	ActionOAuthAppUpdated       = "oauth_app.updated"
+	ActionOAuthAppSecretRotated = "oauth_app.secret_rotated"
+	ActionOAuthAppDeleted       = "oauth_app.deleted"
 	// ActionInstallationOAuthSwitched is OAuth connections switched on or off for the installation (#188).
 	ActionInstallationOAuthSwitched = "installation.oauth_switched"
 	// ActionBaselineSigned, ActionBaselineSigningSaved and ActionBaselineSigningRemoved keep who released a baseline and
@@ -177,7 +183,7 @@ var Actions = []string{
 	ActionDashboardCreated, ActionDashboardShared, ActionDashboardDeleted,
 	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
 	ActionTestExecutionStarted, ActionTestExecutionRecorded, ActionTestExecutionIssueFiled, ActionTestExecutionClosed,
-	ActionRiskSchemeSaved,
+	ActionRiskSchemeSaved, ActionOAuthAppCreated, ActionOAuthAppUpdated, ActionOAuthAppSecretRotated, ActionOAuthAppDeleted,
 }
 
 // Redacted stands in the record for a value that looked like a credential.
@@ -185,7 +191,7 @@ const Redacted = "[redacted]"
 
 // SecretPrefixes start every credential Exciter, Armature or Stator issues, so a
 // value that starts with one never reaches the record whatever key it hides under.
-var SecretPrefixes = []string{"exciter_pat_", "exciter_whs_", "armature_pat_", "armature_whs_", "stator_pat_", "stator_whs_"}
+var SecretPrefixes = []string{"exciter_pat_", "exciter_whs_", "exciter_ocs_", "exciter_oat_", "exciter_ort_", "armature_pat_", "armature_whs_", "stator_pat_", "stator_whs_"}
 
 // secretWords mark a key whose value would be a credential if it were text.
 var secretWords = []string{"secret", "password", "token", "credential"}

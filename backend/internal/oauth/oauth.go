@@ -53,7 +53,7 @@ const (
 )
 
 // ClientKinds lists every ClientKind, for the API document.
-var ClientKinds = []ClientKind{ClientRegistered, ClientMetadata}
+var ClientKinds = []ClientKind{ClientRegistered, ClientMetadata, ClientPartner}
 
 // ProtectedResource is the MCP endpoint described for a client that met a 401 there (RFC 9728).
 type ProtectedResource struct {
@@ -106,7 +106,7 @@ type RegisteredClient struct {
 	ClientSecretExpiresAt int64  `json:"client_secret_expires_at"`
 }
 
-// TokenRequest is the form a client posts to the token endpoint, for either grant.
+// TokenRequest is the form a client posts to the token endpoint, for any of its grants.
 type TokenRequest struct {
 	GrantType    string `json:"grant_type"`
 	Code         string `json:"code,omitempty"`
@@ -117,6 +117,11 @@ type TokenRequest struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 	Resource     string `json:"resource,omitempty"`
 	Scope        string `json:"scope,omitempty"`
+	// SubjectToken is the person's access token from the identity provider a partner exchanges (RFC 8693), of
+	// SubjectTokenType urn:ietf:params:oauth:token-type:access_token.
+	SubjectToken       string `json:"subject_token,omitempty"`
+	SubjectTokenType   string `json:"subject_token_type,omitempty"`
+	RequestedTokenType string `json:"requested_token_type,omitempty"`
 }
 
 // TokenResponse hands a client its tokens (RFC 6749).
@@ -126,6 +131,8 @@ type TokenResponse struct {
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 	Scope        string `json:"scope"`
+	// IssuedTokenType answers an exchange (RFC 8693): an access token.
+	IssuedTokenType string `json:"issued_token_type,omitempty"`
 }
 
 // RevokeRequest is the form a client ends a token with (RFC 7009).

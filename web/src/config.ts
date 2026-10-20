@@ -263,6 +263,10 @@ export const ALL_CONNECTED_APPS_PATH = "/settings/all-connected-apps";
 export const TOKEN_READ_SCOPE = "read";
 export const TOKEN_EVIDENCE_SCOPE = "evidence";
 export const TOKEN_NAME_MAX_LENGTH = 100;
+/** A partner app's scopes beside read and the kind its grants' client has, the API's oauth.ScopeWrite and
+ * oauth.ClientPartner (#273). */
+export const PARTNER_WRITE_SCOPE = "write";
+export const PARTNER_CLIENT_KIND = "partner";
 /** The lifetimes offered for a new token, in days, and the one picked unless a person changes it. */
 export const TOKEN_EXPIRY_DAYS = [7, 30, 90, 365] as const;
 export const TOKEN_DEFAULT_EXPIRY_DAYS = 30;

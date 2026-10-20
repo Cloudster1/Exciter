@@ -25,6 +25,8 @@ func assistantSchemas(b *openapi.Builder) {
 		reflect.TypeFor[oauth.Grant]():                "OAuthGrant",
 		reflect.TypeFor[oauth.OrgGrant]():             "OrgOAuthGrant",
 		reflect.TypeFor[oauthConnectionsRequest]():    "OAuthConnectionsRequest",
+		reflect.TypeFor[oauth.PartnerApp]():           "OAuthPartnerApp",
+		reflect.TypeFor[oauth.PartnerAppInput]():      "OAuthPartnerAppInput",
 	}
 	for t, name := range names {
 		b.Names[t] = name

@@ -3,9 +3,10 @@ import { ApiError } from "@/api/client";
 import { useInstallation, useRenameInstallation, type Installation } from "@/api/installation";
 import { useSwitchOAuthConnections } from "@/api/oauth";
 import { Button, Card, ErrorBanner, Field, Skeleton, Switch } from "@/components/ui";
+import { PartnerApps } from "@/features/oauth/PartnerApps";
 import { t } from "@/i18n";
 
-/** The installation's name and whether assistants connect with OAuth, for administrators to change. */
+/** The installation's name, whether assistants connect with OAuth and the partner apps, for administrators to change. */
 export function InstallationSettings() {
   const { data, isLoading, error } = useInstallation();
   // Held here rather than in the form: a rename remounts the form, and what it
@@ -18,6 +19,7 @@ export function InstallationSettings() {
     <div className="space-y-6">
       <NameForm key={data.name} installation={data} rename={rename} notice={notice} setNotice={setNotice} />
       <OAuthConnections installation={data} />
+      <PartnerApps />
     </div>
   );
 }
