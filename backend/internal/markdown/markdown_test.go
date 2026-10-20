@@ -105,6 +105,7 @@ func TestEveryNodeAndMarkComesBackAsItLeft(t *testing.T) {
 			{"type":"bulletList","content":[{"type":"listItem","content":[` + strings.Replace(single, "%q", `"In it"`, 1) + `]}]}]}`,
 		"code": `{"type":"codeBlock","attrs":{"language":"go"},"content":[{"type":"text","text":"if engaged {\n\treturn ` + "```" + `\n}"}]},
 			{"type":"codeBlock","attrs":{"language":null},"content":[{"type":"text","text":"plain"}]}`,
+		"a diagram": `{"type":"diagram","attrs":{"language":"plantuml","source":"@startuml\n[Pump] --> [Valve] : ` + "```" + `\n@enduml"}}`,
 		"a rule": strings.Replace(single, "%q", `"Above"`, 1) + `,{"type":"horizontalRule"},` + strings.Replace(single, "%q", `"Below"`, 1),
 		"a table": `{"type":"table","content":[
 			{"type":"tableRow","content":[
@@ -203,5 +204,31 @@ func TestATermsWordsAreReadAndNotWrittenBack(t *testing.T) {
 	got := ForReading(raw)
 	if got == nil || strings.TrimSpace(*got) != "Press the **brake** pedal." {
 		t.Errorf("for reading: %v", got)
+	}
+}
+
+// A plantuml fence is a diagram in a requirement and code in a comment, which holds none; one that is empty or too
+// long to be a diagram stays code.
+func TestAPlantUMLFenceIsADiagramWhereOneMayBe(t *testing.T) {
+	const fence = "```plantuml\n@startuml\nA -> B\n@enduml\n```"
+	got, err := Convert(fence, Resolve{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := doc(t, `{"type":"diagram","attrs":{"language":"plantuml","source":"@startuml\nA -> B\n@enduml"}}`)
+	if !same(t, got, want) {
+		t.Errorf("a requirement's fence: %s", mustJSON(t, got))
+	}
+	code := doc(t, `{"type":"codeBlock","attrs":{"language":"plantuml"},"content":[{"type":"text","text":"@startuml\nA -> B\n@enduml"}]}`)
+	if got, err := Convert(fence, Resolve{NoDiagrams: true}); err != nil || !same(t, got, code) {
+		t.Errorf("a comment's fence: %s %v", mustJSON(t, got), err)
+	}
+	empty := doc(t, `{"type":"codeBlock","attrs":{"language":"plantuml"}}`)
+	if got, err := Convert("```plantuml\n```", Resolve{}); err != nil || !same(t, got, empty) {
+		t.Errorf("an empty fence: %s %v", mustJSON(t, got), err)
+	}
+	long := "```plantuml\n" + strings.Repeat("a", document.MaxDiagramLength+1) + "\n```"
+	if got, err := Convert(long, Resolve{}); err != nil || got.Content[0].Type != "codeBlock" {
+		t.Errorf("a fence too long for a diagram: %v", err)
 	}
 }

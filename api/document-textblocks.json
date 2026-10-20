@@ -441,6 +441,13 @@
               "text": "x := 1"
             }
           ]
+        },
+        {
+          "type": "diagram",
+          "attrs": {
+            "language": "plantuml",
+            "source": "@startuml\nA -> B\n@enduml"
+          }
         }
       ]
     },

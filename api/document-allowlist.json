@@ -24,7 +24,8 @@
         "codeBlock",
         "horizontalRule",
         "table",
-        "image"
+        "image",
+        "diagram"
       ]
     },
     "bulletList": {
@@ -45,6 +46,23 @@
         "text"
       ]
     },
+    "diagram": {
+      "attrs": {
+        "language": {
+          "kind": "string",
+          "required": true,
+          "enum": [
+            "plantuml"
+          ]
+        },
+        "source": {
+          "kind": "string",
+          "required": true,
+          "maxLength": 20000,
+          "pattern": "\\S"
+        }
+      }
+    },
     "doc": {
       "content": [
         "paragraph",
@@ -55,7 +73,8 @@
         "codeBlock",
         "horizontalRule",
         "table",
-        "image"
+        "image",
+        "diagram"
       ]
     },
     "hardBreak": {
@@ -107,7 +126,8 @@
         "codeBlock",
         "horizontalRule",
         "table",
-        "image"
+        "image",
+        "diagram"
       ]
     },
     "mention": {
@@ -204,7 +224,8 @@
         "codeBlock",
         "horizontalRule",
         "table",
-        "image"
+        "image",
+        "diagram"
       ]
     },
     "tableHeader": {
@@ -244,7 +265,8 @@
         "codeBlock",
         "horizontalRule",
         "table",
-        "image"
+        "image",
+        "diagram"
       ]
     },
     "tableRow": {

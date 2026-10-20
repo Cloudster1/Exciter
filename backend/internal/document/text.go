@@ -21,6 +21,12 @@ func writeBlocks(b *strings.Builder, blocks []Node, depth int) {
 				b.WriteString(text)
 				b.WriteByte('\n')
 			}
+		// A diagram's labels are in its source, among the arrows.
+		case NodeDiagram:
+			if source, _ := n.Attrs["source"].(string); source != "" {
+				b.WriteString(source)
+				b.WriteByte('\n')
+			}
 		case "tableRow":
 			cells := make([]string, 0, len(n.Content))
 			for _, cell := range n.Content {

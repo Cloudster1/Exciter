@@ -109,6 +109,9 @@ func (r renderer) block(n document.Node, depth int) (string, bool) {
 		return "---", true
 	case "codeBlock":
 		return codeFence(textOf(n), stringAttr(n, "language")), true
+	// A fence in the diagram's language is drawn as a diagram where Markdown draws them, and read back as one.
+	case document.NodeDiagram:
+		return codeFence(stringAttr(n, "source"), stringAttr(n, "language")), true
 	case "blockquote":
 		return quote(r.blocks(n.Content, depth+1)), true
 	case "bulletList", "orderedList":

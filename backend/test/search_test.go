@@ -84,6 +84,7 @@ func TestPlainTextInSQLIsDocumentPlainText(t *testing.T) {
 		`{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Ask "},{"type":"mention","attrs":{"id":"0195f000-0000-7000-8000-000000000001","label":"Ada"}},{"type":"hardBreak"},{"type":"text","text":"today"}]}]}`,
 		`{"type":"doc","content":[{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"first"}]},{"type":"orderedList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"nested"}]}]}]}]}]},{"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"quoted"}]}]}]}`,
 		`{"type":"doc","content":[{"type":"table","content":[{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Case"}]}]},{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Result"}]},{"type":"paragraph","content":[{"type":"text","text":"line two"}]}]}]},{"type":"tableRow","content":[{"type":"tableCell","content":[{"type":"paragraph"}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"ok"}]}]}]}]}]}`,
+		`{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Parts"}]},{"type":"diagram","attrs":{"language":"plantuml","source":"@startuml\n[Pump] --> [Valve]\n@enduml"}}]}`,
 	}
 	for _, raw := range docs {
 		node, err := document.Parse(json.RawMessage(raw))

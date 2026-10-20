@@ -169,6 +169,7 @@ var textBlocksCases = []struct {
 		Node{Type: "blockquote", Content: []Node{fixturePara(fixtureText("quoted"))}},
 		Node{Type: NodeImage, Attrs: map[string]any{"attachmentId": fixtureMentionID}},
 		Node{Type: "codeBlock", Content: []Node{fixtureText("x := 1")}},
+		Node{Type: NodeDiagram, Attrs: map[string]any{"language": DiagramPlantUML, "source": "@startuml\nA -> B\n@enduml"}},
 	)},
 }
 

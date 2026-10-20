@@ -211,3 +211,20 @@ func TestAlignFindsTheLongestCommonRun(t *testing.T) {
 		}
 	}
 }
+
+func TestAChangedDiagramIsItsSourceWithWordsMarked(t *testing.T) {
+	d := func(source string) string {
+		raw, _ := json.Marshal(source)
+		return `{"type":"diagram","attrs":{"language":"plantuml","source":` + string(raw) + `}}`
+	}
+	sameChanges(t, mustDiff(t, doc(d("A -> B")), doc(d("A -> B"))), DiffEqual)
+	got := mustDiff(t, doc(d("[Pump] --> [Valve]")), doc(d("[Pump] --> [Tank]")))
+	sameChanges(t, got, DiffModified)
+	sameRuns(t, runs(t, got[0].Node), "[Pump] --> [", "-Valve", "+Tank", "]")
+	var n node
+	_ = json.Unmarshal(got[0].Node, &n)
+	if n.Type != "codeBlock" || n.Attrs["language"] != "plantuml" {
+		t.Errorf("a changed diagram reads as its source in its language: %s %v", n.Type, n.Attrs)
+	}
+	sameChanges(t, mustDiff(t, doc(para("A")), doc(d("A -> B"))), DiffDeleted, DiffInserted)
+}

@@ -18,6 +18,7 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00750 to 00759 | Webhooks (#48) | `webhook_endpoint` (an address, its events and projects, a sealed secret, its owner) and `webhook_delivery` (one attempt at one event), the trigger `webhook_endpoint_stamp` and their policies |
 | 00760 to 00769 | Reuse (#49) | `requirement.reuse_source`, `reuse_revision` and `reuse_state`, the guard `requirement_reuse_guard`, the change field `reuse` and the notification kind `source_revised` |
 | 01360 to 01369 | Suite demo (#270) | `suite_demo` (the one demo: its state, step and counts, and the snapshot and keys it was made with), `suite_demo_requirement` (which issue or criterion a requirement came from), the guard `suite_demo_guard` and their policies |
+| 01380 to 01399 | Diagrams (#284) | `requirement_plain_blocks` reading a diagram's source, so search finds its words |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
 and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
