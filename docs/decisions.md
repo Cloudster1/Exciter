@@ -3,6 +3,26 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-20: The suite demo draws each tool's architecture by hand (#286)
+
+Each project of the suite demo gets a section "Architecture" after its
+introduction: one requirement a view, each a few sentences around a PlantUML
+diagram of the tool's parts, its deployment, signing in, how it reaches the
+other two, and what else its architecture document gives most weight to.
+
+- **Written, not taken.** The issues the demo is taken from hold no
+  diagrams, and one generated from code would draw everything and explain
+  nothing. The views are Markdown in `backend/internal/demo/architecture`,
+  one file a tool, each naming the document and commit it was drawn from,
+  which the rationale of every view links.
+- **Held to drawing.** A unit test puts every view through the Markdown a
+  requirement takes and asks for one diagram each; an integration test has
+  the stack's Kroki draw them all, so a demo never shows a syntax error.
+- **Kept as issue 0.** A view is recorded as the requirement of no issue
+  with its place as the criterion, beside the About at 0, so linking again
+  finds it and links it to the page of its document in Stator. A demo added
+  before has none; the demo is added once.
+
 ## 2026-10-20: A diagram is its PlantUML source, drawn by Kroki beside the api (#284)
 
 Architecture drawings go into a requirement's text as a `diagram` block that

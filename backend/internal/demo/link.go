@@ -190,6 +190,13 @@ func items(p Plan, tool string, nodes map[node]made, visit func(pr Project, it I
 		if m, ok := nodes[node{tool: pr.Tool}]; ok {
 			visit(pr, pr.About, m)
 		}
+		if pr.Architecture != nil {
+			for i, it := range pr.Architecture.Items {
+				if m, ok := nodes[node{tool: pr.Tool, criterion: i + 1}]; ok {
+					visit(pr, it, m)
+				}
+			}
+		}
 		for _, sec := range pr.Sections {
 			for _, it := range sec.Items {
 				if m, ok := nodes[node{tool: pr.Tool, issue: it.Issue}]; ok {

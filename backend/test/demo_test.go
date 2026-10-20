@@ -47,6 +47,12 @@ func demoFixture() demo.Snapshot {
 	}}
 }
 
+// demoArchitecture is one drawing of Exciter's architecture, filed after the introduction.
+func demoArchitecture() *demo.Architecture {
+	return &demo.Architecture{Commit: "abc123", Source: "docs/architecture.md", Intro: "How Exciter is built.",
+		Views: []demo.View{{Title: "Components", Statement: "The parts.\n\n```plantuml\n" + pumpDiagram + "\n```"}}}
+}
+
 func (h *harness) demoService(t *testing.T) *demo.Service {
 	t.Helper()
 	return demo.NewService(h.cluster, project.NewService(h.cluster).WithSeeder(risk.SeedProject),
@@ -86,22 +92,24 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 	want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t), "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
 	want(t, owner.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "alice")}), http.StatusOK, "connect to Stator")
 
-	svc, plan := h.demoService(t), demo.Make(demoFixture())
+	fixture := demoFixture()
+	fixture.Tools[1].Architecture = demoArchitecture()
+	svc, plan := h.demoService(t), demo.Make(fixture)
 	keys := map[string]string{"EXC": exc, "ARM": arm}
 	made, err := svc.Build(home.ctx, home.user, plan, keys)
 	if err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)
-	// Each project's About, Exciter's four issues and two criteria, and Armature's one.
-	if made != 9 {
-		t.Errorf("the demo made %d requirements, want 9", made)
+	// Each project's About, Exciter's drawing, four issues and two criteria, and Armature's one.
+	if made != 10 {
+		t.Errorf("the demo made %d requirements, want 10", made)
 	}
 
 	t.Run("the issues are filed by milestone in their order, with their criteria", func(t *testing.T) {
 		rows := h.demoTree(t, exc)
 		want := []string{
-			"Introduction", "  About Exciter [Approved]", "Functional requirements", "  M2 Armature integration", "    Projects [Approved, M2 Armature integration]",
+			"Introduction", "  About Exciter [Approved]", "Architecture", "  Components [Approved]", "Functional requirements", "  M2 Armature integration", "    Projects [Approved, M2 Armature integration]",
 			"      Making one [Approved]", "      Keys [Approved]", "    Requirements [Draft, M2 Armature integration]", "  Backlog",
 			"    Trace links [Approved, Backlog]", "  Without a milestone", "    Not in Armature [Draft]", "Non-functional requirements", "Interfaces",
 		}
@@ -110,14 +118,26 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 		}
 	})
 
+	t.Run("the architecture section introduces its drawings, kept as diagrams", func(t *testing.T) {
+		var intro, drawn bool
+		if err := h.super.QueryRow(context.Background(), `SELECT
+			coalesce(bool_or(r.kind = 'section' AND r.statement::text LIKE '%How Exciter is built.%'), false),
+			coalesce(bool_or(r.kind = 'requirement' AND jsonb_path_exists(r.statement, '$.**.type ? (@ == "diagram")')), false)
+			FROM requirement r JOIN project p ON p.id = r.project_id WHERE p.key = $1 AND r.title IN ('Architecture', 'Components')`,
+			exc).Scan(&intro, &drawn); err != nil || !intro || !drawn {
+			t.Errorf("the section is introduced %v and the view drawn %v (%v)", intro, drawn, err)
+		}
+	})
+
 	linked, err := svc.Link(home.ctx, home.user, plan, keys)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Run("dependencies, issues and pages are linked, and what the partners lack is counted", func(t *testing.T) {
-		// Two dependencies, EXC-1 to EXC-3 in Armature, and four pages: the M2 contract twice, README and architecture.
-		if linked.Links != 9 || linked.Skipped != 4 {
-			t.Errorf("linking added %d and skipped %d, want 9 and 4: %v", linked.Links, linked.Skipped, linked.Notes)
+		// Two dependencies, EXC-1 to EXC-3 in Armature, and five pages: the M2 contract twice, README, and architecture
+		// for the About and the drawing.
+		if linked.Links != 10 || linked.Skipped != 4 {
+			t.Errorf("linking added %d and skipped %d, want 10 and 4: %v", linked.Links, linked.Skipped, linked.Notes)
 		}
 		if len(linked.Notes) != 2 || !strings.Contains(linked.Notes[0], "Armature") || !strings.Contains(linked.Notes[1], "Stator") {
 			t.Errorf("the notes say %v", linked.Notes)
@@ -423,4 +443,38 @@ func TestRawSQLKeepsTheSuiteDemoToAdministrators(t *testing.T) {
 	if _, err := asAdmin.Exec(ctx, record, uuid.New(), uuid.New()); !errors.As(err, &pgErr) || pgErr.Code != "23503" {
 		t.Errorf("a record of a requirement that is none was kept: %v", err)
 	}
+}
+
+// Every drawing of the demo's architecture (#286) draws through the stack's Kroki, so nobody adding the demo meets a
+// diagram that shows its source and a syntax error instead.
+func TestEveryDrawingOfTheSuiteDemoDraws(t *testing.T) {
+	f := newProjectFixture(t)
+	if f.h.cfg.Kroki.URL == "" {
+		t.Fatal("EXCITER_KROKI_URL is not set; run the suite with make test-integration against the running stack")
+	}
+	s, err := demo.Embedded()
+	if err != nil {
+		t.Fatal(err)
+	}
+	drawn := 0
+	for _, tool := range s.Tools {
+		if tool.Architecture == nil {
+			t.Errorf("%s has no architecture", tool.Name)
+			continue
+		}
+		for _, v := range tool.Architecture.Views {
+			sources, err := demo.DiagramSources(v.Statement)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, src := range sources {
+				got := f.plain.post(t, "/api/v1/diagrams", map[string]any{"language": "plantuml", "source": src})
+				if svg, _ := got.Body["svg"].(string); got.Status != http.StatusOK || !strings.Contains(svg, "<svg") {
+					t.Errorf("%s, %s: got %d: %s", tool.Name, v.Title, got.Status, got.Raw)
+				}
+				drawn++
+			}
+		}
+	}
+	t.Logf("%d drawings", drawn)
 }

@@ -50,16 +50,19 @@ type Plan struct {
 
 // Project is one tool's requirements. Tool is its key in Armature and Stator.
 type Project struct {
-	Tool     string
-	Name     string
-	Repo     string
-	About    Item
-	Sections []Section
+	Tool  string
+	Name  string
+	Repo  string
+	About Item
+	// Architecture is the section of drawings after the introduction, nil for a tool that has none.
+	Architecture *Section
+	Sections     []Section
 }
 
-// Section holds the issues of one milestone.
+// Section holds the issues of one milestone, or the drawings of the architecture under an introduction.
 type Section struct {
 	Title string
+	Intro string
 	Items []Item
 }
 
@@ -128,7 +131,7 @@ func planProject(t Tool, taken string, byRepo map[string]string, known map[Targe
 		Rationale: fmt.Sprintf("Taken from [%s](https://github.com/%s).", t.Repo, t.Repo),
 		Approved:  true,
 		Pages:     []Page{{Label(t.Key, "README.md"), Describes}, {Label(t.Key, "docs/architecture.md"), Describes}},
-	}}
+	}, Architecture: architectureSection(t)}
 	sections := map[string]*Section{}
 	var order []string
 	for _, issue := range t.Issues {
