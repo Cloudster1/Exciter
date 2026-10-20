@@ -42,6 +42,35 @@ exchange since its #280; Stator's is its #461.
   token's signature, `azp` and `aud` against the stack's Keycloak, so the
   realm's mappers are tested with them. Stator's route is outside its
   vendored document until its #461 ships.
+## 2026-10-19: A partner app trades a person's sign-in for a grant, as at Armature (#273)
+
+- **Armature's exchange, not a new one.** The grant, its checks, its
+  refusals and the capability's name and promise are Armature's
+  (`docs/oauth.md`, Cloudster1/Armature#280 and #302), so Stator speaks to
+  Exciter and to Armature alike and Dynamo lists one promise.
+- **A partner is an OAuth client of its own kind,** beside the assistants'
+  registrations and metadata documents. Its grants and tokens are the
+  assistants' tables, so the connected apps page, revocation, the sweeper
+  and the triggers that end a switched-off person's grants hold for it
+  unchanged.
+- **Admitted as a sign-in admits.** The exchange is the person signing in
+  through the partner, so the mapping that lets somebody in at Exciter's own
+  sign-in lets them in here, in the exchange's transaction; somebody it does
+  not let in is refused, and no request to join is noted, since they asked
+  the partner and not Exciter.
+- **The whole API, not MCP alone.** An assistant's token is for MCP because
+  a person consented to an assistant; a partner's stands for the person in a
+  tool beside Exciter and reads what a personal token reads. `write` is
+  offered so a partner that later changes requirements needs no new kind of
+  grant; a new app reads only.
+- **Partner apps ignore the switch for assistants.** Switching assistants off
+  should not silently disconnect every reader of a wiki page; removing the
+  app does that, and only an administrator registers one.
+- **Registered with a token too.** Unlike Armature, which asks for a
+  session, an administrator's personal token registers a partner app, as it
+  saves the Armature and Stator connections, so a deployment's setup job
+  wires the three tools once through their APIs. A partner app's own token
+  never does.
 
 ## 2026-10-19: The database owner passes row security (#271)
 
@@ -800,8 +829,9 @@ checks what Armature lists before each feature calls it.
   agreed, so a renamed route fails here rather than at a partner.
 - **A partner's capability counts by its exact name.** `remote-links@2` does
   not stand in for the `@1` a feature was built against, which is what a
-  raised number means. Stator's `page-remote-links` is matched by its bare
-  name under any version, as #42 agreed before Stator named it.
+  raised number means. Stator's `page-remote-links@1` is matched the same
+  way since #275; before, its bare name counted under any version, as #42
+  agreed before Stator named it.
 - **Not asked counts as offering everything.** A connection saved before this
   release has no list until it is saved again or a token checked, so
   upgrading Exciter alone switches nothing off before Armature is asked.

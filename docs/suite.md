@@ -33,7 +33,9 @@ projects are named `suite-*`, so a product's own stack, which another session ma
 
 The realm is the suite's, `deploy/keycloak/realm.json`, the same file in all three repositories, with a client for
 each product. Exciter's and Stator's clients
-require PKCE; Armature's does not, as Armature's sign-in sends no PKCE challenge yet.
+require PKCE; Armature's does not, as Armature's sign-in sends no PKCE challenge yet. Armature's and Stator's clients
+carry an audience mapper that adds `exciter` to their access tokens, so either trades a person's token for one of
+Exciter's at its token endpoint (#273); Armature's and Stator's copies of the file take the same mappers.
 
 | Person | Password | Exciter | Armature | Stator |
 |---|---|---|---|---|

@@ -72,6 +72,16 @@ func (s *Server) mountOAuth(r chi.Router) {
 		r.With(requireAuth, requireSession).Delete("/oauth/grants/{grantID}", s.handleRevokeOAuthGrant)
 		r.With(requireAdmin).Get("/oauth/grants/everyone", s.handleListEveryonesOAuthGrants)
 		r.With(requireAdmin, requireSession).Delete("/oauth/grants/everyone/{grantID}", s.handleRevokeAnybodysOAuthGrant)
+		// Partner apps (#273): registered by an administrator, also with a token, so a deployment's setup job wires
+		// the tools together; never by a partner app's own token.
+		r.Group(func(r chi.Router) {
+			r.Use(requireAdmin, notPartnerApp)
+			r.Get("/oauth/clients", s.handleListPartnerApps)
+			r.Post("/oauth/clients", s.handleCreatePartnerApp)
+			r.Patch("/oauth/clients/{clientID}", s.handleUpdatePartnerApp)
+			r.Post("/oauth/clients/{clientID}/rotate-secret", s.handleRotatePartnerSecret)
+			r.Delete("/oauth/clients/{clientID}", s.handleDeletePartnerApp)
+		})
 	})
 	r.With(requireAdmin, requireSession, s.installationOn).Put("/installation/oauth-connections", s.handleSwitchOAuthConnections)
 }
@@ -172,6 +182,7 @@ func (s *Server) handleOAuthToken(w http.ResponseWriter, r *http.Request) {
 	out, err := s.OAuth.Token(r.Context(), oauth.TokenRequest{
 		GrantType: f.Get("grant_type"), Code: f.Get("code"), RedirectURI: f.Get("redirect_uri"), CodeVerifier: f.Get("code_verifier"),
 		RefreshToken: f.Get("refresh_token"), Resource: f.Get("resource"), Scope: f.Get("scope"),
+		SubjectToken: f.Get("subject_token"), SubjectTokenType: f.Get("subject_token_type"), RequestedTokenType: f.Get("requested_token_type"),
 	}, who)
 	answerOAuth(w, r, http.StatusOK, out, err, who.Basic)
 }
@@ -263,8 +274,8 @@ func (s *Server) handleSwitchOAuthConnections(w http.ResponseWriter, r *http.Req
 	respondJSON(w, r, http.StatusOK, map[string]any{"installation": inst})
 }
 
-// principalOf reads who a credential acts for: an access token only at MCP and for the calls it carries, or an
-// evidence one at the routes evidenceToken lets it reach.
+// principalOf reads who a credential acts for: an access token only at MCP and for the calls it carries, an
+// evidence one at the routes evidenceToken lets it reach, or a partner app's wherever a personal token goes.
 func (s *Server) principalOf(r *http.Request, secret string) (*auth.Principal, error) {
 	if !oauth.IsAccessToken(secret) {
 		return s.Auth.Authenticate(r.Context(), secret)
@@ -276,7 +287,7 @@ func (s *Server) principalOf(r *http.Request, secret string) (*auth.Principal, e
 	if errors.Is(err, oauth.ErrSwitchedOff) {
 		return nil, errOAuthSwitchedOff
 	}
-	if err == nil && r.URL.Path != mcpPath && !inProcessCall(r.Context()) && !p.Evidence() {
+	if err == nil && r.URL.Path != mcpPath && !inProcessCall(r.Context()) && !p.Evidence() && !p.PartnerApp {
 		return nil, errMCPOnly
 	}
 	return p, err
@@ -353,6 +364,90 @@ func (s *Server) endGrant(w http.ResponseWriter, r *http.Request, end func(conte
 	noteWrite(r.Context(), lsn)
 	if err != nil {
 		respondError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+var errPartnerManagesPartners = ErrForbidden("A partner app cannot manage partner apps. Do it in Exciter, signed in as an administrator.")
+
+// notPartnerApp keeps a partner app's token from registering partners, which would hand it secrets of its own.
+func notPartnerApp(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if p := PrincipalFrom(r.Context()); p != nil && p.PartnerApp {
+			respondError(w, r, errPartnerManagesPartners)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// partnerError maps a partner app's refusals.
+func partnerError(err error) error {
+	var field *oauth.FieldError
+	switch {
+	case errors.As(err, &field):
+		return ErrValidation(map[string]string{field.Field: field.Message})
+	case errors.Is(err, oauth.ErrNoSuchPartner):
+		return ErrNotFound("That partner app was not found. It may have been removed already; reload the list.")
+	}
+	return err
+}
+
+func (s *Server) handleListPartnerApps(w http.ResponseWriter, r *http.Request) {
+	apps, err := s.OAuth.PartnerApps(r.Context())
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"clients": apps})
+}
+
+func (s *Server) handleCreatePartnerApp(w http.ResponseWriter, r *http.Request) {
+	var in oauth.PartnerAppInput
+	if err := decodeJSON(w, r, &in); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	app, lsn, err := s.OAuth.CreatePartnerApp(r.Context(), in)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, partnerError(err))
+		return
+	}
+	respondJSON(w, r, http.StatusCreated, map[string]any{"client": app})
+}
+
+func (s *Server) handleUpdatePartnerApp(w http.ResponseWriter, r *http.Request) {
+	var in oauth.PartnerAppInput
+	if err := decodeJSON(w, r, &in); err != nil {
+		respondError(w, r, err)
+		return
+	}
+	app, lsn, err := s.OAuth.UpdatePartnerApp(r.Context(), chi.URLParam(r, "clientID"), in)
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, partnerError(err))
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"client": app})
+}
+
+func (s *Server) handleRotatePartnerSecret(w http.ResponseWriter, r *http.Request) {
+	app, lsn, err := s.OAuth.RotatePartnerSecret(r.Context(), chi.URLParam(r, "clientID"))
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, partnerError(err))
+		return
+	}
+	respondJSON(w, r, http.StatusOK, map[string]any{"client": app})
+}
+
+func (s *Server) handleDeletePartnerApp(w http.ResponseWriter, r *http.Request) {
+	lsn, err := s.OAuth.DeletePartnerApp(r.Context(), chi.URLParam(r, "clientID"))
+	noteWrite(r.Context(), lsn)
+	if err != nil {
+		respondError(w, r, partnerError(err))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

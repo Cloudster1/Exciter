@@ -24,6 +24,20 @@ const aGrant = (over: Record<string, unknown> = {}) => ({
 const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "" };
 
 describe("connected apps", () => {
+  it("says a partner app was connected at the person's sign-in there, not where it sends back to", async () => {
+    stubApi({
+      "GET /oauth/grants": {
+        status: 200,
+        body: { grants: [aGrant({ client: { id: "p1", name: "Stator", uri: "", kind: "partner" }, redirectHost: "", allProjects: true, projects: [] })] },
+      },
+    });
+    await renderAt(CONNECTED_APPS_PATH);
+    const table = await screen.findByRole("table", { name: "Connected apps" });
+    const row = within(table).getByText("Stator").closest("tr")!;
+    expect(within(row).getByText("Connected when you signed in to it with the shared sign-in")).toBeInTheDocument();
+    expect(within(row).queryByText(/Sends back to/)).not.toBeInTheDocument();
+  });
+
   it("lists the apps with what each reaches and when it was last used, and disconnects one", async () => {
     let grants = [
       aGrant(),

@@ -108,6 +108,9 @@ var installationWide = map[string]string{
 	"TestRawSQLKeepsJoinRequestsToTheirAdministrators":       singleSignOn,
 	"TestRawSQLKeepsSignInToItsAdministrators":               singleSignOn,
 	"TestAGroupKeepsItsMembersInItsOrganization":             singleSignOn,
+	"TestAPartnerAppExchangesAPersonsTokenFromTheRealm":      singleSignOn,
+	"TestAnExchangeIsRefusedWhatTheRealmDidNotVouchFor":      singleSignOn,
+	"TestAnExchangeLetsInWhomTheMappingLetsIn":               singleSignOn,
 
 	"TestTheInstallationIsRenamedByAnAdministrator":  installationName,
 	"TestWriteReportsThePositionPastItsCommit":       installationName,

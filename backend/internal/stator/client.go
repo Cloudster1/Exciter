@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/cloudster1/exciter/backend/internal/netguard"
@@ -74,15 +75,8 @@ type Meta struct {
 	Capabilities []string `json:"capabilities"`
 }
 
-// Offers says whether Stator lists the capability, under any version or none.
-func (m *Meta) Offers(name string) bool {
-	for _, c := range m.Capabilities {
-		if bare, _, _ := strings.Cut(c, "@"); bare == name {
-			return true
-		}
-	}
-	return false
-}
+// Offers says whether Stator lists the capability by its exact name, version included.
+func (m *Meta) Offers(capability string) bool { return slices.Contains(m.Capabilities, capability) }
 
 // Describe asks baseURL what answers there, and says ErrNotStator unless it is a Stator.
 func (c *Client) Describe(ctx context.Context, baseURL string) (*Meta, error) {

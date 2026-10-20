@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,22 +37,29 @@ func (s *Service) clientFor(ctx context.Context, who ClientAuth) (*client, error
 
 var errGrant = refuse(ErrInvalidGrant, "The code or refresh token is not one this client may use: it expired, was used, or was ended. Connect the client again.")
 
-// Token trades a code and its verifier, or a refresh token, for a new access and refresh token.
+// Token trades a code and its verifier, a refresh token, or for a partner app a person's token from the identity
+// provider, for a new access and refresh token.
 func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*TokenResponse, error) {
-	if on, err := s.Enabled(ctx); err != nil || !on {
-		return nil, firstErr(err, refuse(ErrTemporarilyUnavailable, "OAuth connections are switched off on this server. Ask its administrators."))
-	}
-	if in.GrantType != GrantAuthorizationCode && in.GrantType != GrantRefreshToken {
-		return nil, refuse(ErrUnsupportedGrantType, "The grants offered are authorization_code and refresh_token.")
+	if in.GrantType != GrantAuthorizationCode && in.GrantType != GrantRefreshToken && in.GrantType != GrantTokenExchange {
+		return nil, refuse(ErrUnsupportedGrantType, "The grants offered are authorization_code, refresh_token and "+GrantTokenExchange+".")
 	}
 	c, err := s.clientFor(ctx, who)
 	if err != nil {
 		return nil, err
 	}
+	// The switch is for assistants; a partner app is the administrators' own doing, and removing it is its off.
+	if c.Kind != ClientPartner {
+		if on, err := s.Enabled(ctx); err != nil || !on {
+			return nil, firstErr(err, refuse(ErrTemporarilyUnavailable, "OAuth connections are switched off on this server. Ask its administrators."))
+		}
+	}
 	if !c.grants(in.GrantType) {
 		return nil, refuse(ErrUnauthorizedClient, "The client did not register for "+in.GrantType+".")
 	}
-	if in.Resource != "" && !s.isResource(in.Resource) {
+	if in.GrantType == GrantTokenExchange {
+		return s.exchange(ctx, c, in)
+	}
+	if in.Resource != "" && !s.isResource(in.Resource) && c.Kind != ClientPartner {
 		return nil, refuse(ErrInvalidTarget, "The one resource is the MCP endpoint, "+s.Resource()+".")
 	}
 	var (
@@ -63,7 +71,7 @@ func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*
 		if in.GrantType == GrantRefreshToken {
 			redeem = turnRefresh
 		}
-		grant, sc, err := redeem(ctx, tx, c.ID, in)
+		grant, sc, err := redeem(ctx, tx, c, in)
 		// A refusal still commits: a code or refresh token used twice has just ended its grant.
 		if errors.As(err, &refusal) {
 			return nil
@@ -106,7 +114,8 @@ func deleteGrant(ctx context.Context, tx db.DBTX, grant uuid.UUID, by string) er
 	return audit.Write(ctx, tx, endedEntry(grant, uuid.Nil, owner, client, by, ""))
 }
 
-func redeemCode(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, scope, error) {
+func redeemCode(ctx context.Context, tx db.DBTX, c *client, in TokenRequest) (uuid.UUID, scope, error) {
+	clientID := c.ID
 	var (
 		grant                          uuid.UUID
 		owner, redirect, challenge, rs string
@@ -140,7 +149,8 @@ func redeemCode(ctx context.Context, tx db.DBTX, clientID string, in TokenReques
 	return grant, sc, nil
 }
 
-func turnRefresh(ctx context.Context, tx db.DBTX, clientID string, in TokenRequest) (uuid.UUID, scope, error) {
+func turnRefresh(ctx context.Context, tx db.DBTX, c *client, in TokenRequest) (uuid.UUID, scope, error) {
+	clientID := c.ID
 	var (
 		grant    uuid.UUID
 		owner    string
@@ -165,6 +175,9 @@ func turnRefresh(ctx context.Context, tx db.DBTX, clientID string, in TokenReque
 	case expired:
 		return grant, sc, errGrant
 	}
+	if c.Kind == ClientPartner {
+		return grant, sc, turnPartnerRefresh(ctx, tx, c, in, &sc)
+	}
 	asked, ok := scopeAsked(in.Scope)
 	// An evidence grant refreshes as evidence alone; any other may only narrow to reading.
 	if !ok || (in.Scope != "" && asked.evidence != sc.evidence) || (sc.readOnly && in.Scope != "" && !asked.readOnly) {
@@ -175,6 +188,19 @@ func turnRefresh(ctx context.Context, tx db.DBTX, clientID string, in TokenReque
 	}
 	sc.readOnly = !sc.evidence && (sc.readOnly || (in.Scope != "" && asked.readOnly))
 	return grant, sc, nil
+}
+
+// turnPartnerRefresh is a partner's refresh: it may narrow to read, and the app's scopes bound it as they stand.
+func turnPartnerRefresh(ctx context.Context, tx db.DBTX, c *client, in TokenRequest, sc *scope) error {
+	narrow, ok := partnerScopeAsked(in.Scope, c.Scopes)
+	if !ok || (sc.readOnly && in.Scope != "" && !narrow) {
+		return refuse(ErrInvalidScope, "A refresh may only narrow the scope, to read.")
+	}
+	if _, err := tx.Exec(ctx, `UPDATE oauth_token SET replaced_at = now() WHERE token_hash = $1`, auth.HashToken(in.RefreshToken)); err != nil {
+		return err
+	}
+	sc.partner, sc.readOnly = true, sc.readOnly || (in.Scope != "" && narrow) || !slices.Contains(c.Scopes, ScopeWrite)
+	return nil
 }
 
 // issue hands a grant a new access and refresh token; only their digests are kept.
@@ -231,7 +257,8 @@ func (s *Service) Revoke(ctx context.Context, in RevokeRequest, who ClientAuth) 
 // lastUsedEvery is how often a grant's use is noted, as a personal token's is.
 const lastUsedEvery = time.Minute
 
-// Authenticate reads the person an access token acts for, with the grant's limits on them, as a personal token's.
+// Authenticate reads the person an access token acts for, with the grant's limits on them, as a personal token's;
+// a partner app's grant reads only once the app may no longer write.
 func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Principal, error) {
 	if auth.ParsePrefixed(secret, AccessTokenPrefix) != nil {
 		return nil, auth.ErrInvalidToken
@@ -244,10 +271,12 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 		active   bool
 		readOnly bool
 		evidence bool
+		partner  bool
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT g.id, c.name, g.read_only OR t.read_only, g.evidence, g.last_used_at, t.expires_at, g.projects_only,
+			SELECT g.id, c.name, g.read_only OR t.read_only OR (c.kind = 'partner' AND NOT 'write' = ANY (c.scopes)),
+			       g.evidence, c.kind = 'partner', g.last_used_at, t.expires_at, g.projects_only,
 			       ARRAY(SELECT gp.project_id FROM oauth_grant_project gp WHERE gp.grant_id = g.id),
 			       ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id
 			             WHERE gp.grant_id = g.id ORDER BY p.key),
@@ -259,7 +288,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 			JOIN app_user u ON u.id = g.user_id AND u.role IS NOT NULL
 			CROSS JOIN installation i
 			WHERE t.token_hash = $1 AND t.kind = 'access' AND t.expires_at > now()`, auth.HashToken(secret)).Scan(
-			&tok.ID, &tok.Name, &readOnly, &evidence, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
+			&tok.ID, &tok.Name, &readOnly, &evidence, &partner, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active, &p.InstallationName, &p.Role, &on)
 	})
 	switch {
@@ -267,7 +296,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 		return nil, auth.ErrInvalidToken
 	case err != nil:
 		return nil, err
-	case !on:
+	case !on && !partner:
 		return nil, ErrSwitchedOff
 	case !active:
 		return nil, auth.ErrSwitchedOff
@@ -282,7 +311,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 	if tok.AllProjects {
 		p.TokenProjects = nil
 	}
-	p.Token = &tok
+	p.Token, p.PartnerApp = &tok, partner
 	if lastUsed == nil || s.now().Sub(*lastUsed) > lastUsedEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, `UPDATE oauth_grant SET last_used_at = now() WHERE id = $1`, tok.ID)

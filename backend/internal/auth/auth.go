@@ -34,6 +34,9 @@ type Principal struct {
 	Token *CallingToken
 	// TokenProjects are the ids of the projects Token is limited to, when it is.
 	TokenProjects []uuid.UUID
+	// PartnerApp says Token is a partner app's from a token exchange (#273), good for the whole API as a personal
+	// token is rather than for MCP alone.
+	PartnerApp bool
 }
 
 // ReadOnly reports whether the caller came with a token made to read.

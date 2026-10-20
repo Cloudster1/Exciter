@@ -63,45 +63,12 @@ func (s *Service) noteJoinRequest(ctx context.Context, identity *Identity) error
 func (s *Service) signIn(ctx context.Context, identity *Identity, ttl time.Duration, userAgent, ip string) (*Session, error) {
 	out := Session{ExpiresAt: time.Now().Add(ttl)}
 	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		userID, err := upsertUser(ctx, tx, identity)
+		admitted, err := admit(ctx, tx, identity)
 		if err != nil {
 			return err
 		}
-		out.UserID = userID
-
-		// The provider vouches for the person; whether the account is switched
-		// on is still Exciter's to say, as it is at every other door.
-		var active bool
-		if err := tx.QueryRow(ctx, `SELECT is_active FROM app_user WHERE id = $1`, userID).Scan(&active); err != nil {
-			return err
-		}
-		if !active {
-			return auth.ErrSwitchedOff
-		}
-
-		var create bool
-		err = tx.QueryRow(ctx, `SELECT create_groups FROM oidc_provider WHERE enabled`).Scan(&create)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrNotConfigured
-		}
-		if err != nil {
-			return err
-		}
-		// Before the groups, whose rows need a membership to hang off: a mapped
-		// group is an administrator's yes given in advance.
-		if out.Role, err = followMapping(ctx, tx, userID, identity.Groups); err != nil {
-			return err
-		}
-		// A guest is in no group, whatever the provider says: a group would
-		// carry them into every project it is granted.
-		if out.Role != auth.RoleGuest {
-			out.Joined, out.Left, err = syncGroups(ctx, tx, userID, identity.Groups, create)
-			if err != nil {
-				return err
-			}
-		}
-
-		id, secret, err := auth.OpenSession(ctx, tx, userID, auth.ProofOIDC, out.ExpiresAt, userAgent, ip)
+		out.UserID, out.Role, out.Joined, out.Left = admitted.UserID, admitted.Role, admitted.Joined, admitted.Left
+		id, secret, err := auth.OpenSession(ctx, tx, out.UserID, auth.ProofOIDC, out.ExpiresAt, userAgent, ip)
 		out.SessionID, out.Secret = id, secret
 		return err
 	})
@@ -109,6 +76,61 @@ func (s *Service) signIn(ctx context.Context, identity *Identity, ttl time.Durat
 		return nil, err
 	}
 	out.LSN = lsn
+	return &out, nil
+}
+
+// Admission is who a verified identity was let in as, and the provider groups that changed on the way.
+type Admission struct {
+	UserID       uuid.UUID
+	Role         auth.OrgRole
+	Joined, Left []string
+}
+
+// Admit lets a verified identity in as a sign-in would, without opening a session: a partner trading the person's
+// token from the shared realm (#273) is them signing in there. Somebody not let in is ErrNotAMember, and noted
+// nowhere, since they asked the partner rather than Exciter.
+func (s *Service) Admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, error) {
+	return admit(ctx, tx, identity)
+}
+
+func admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, error) {
+	userID, err := upsertUser(ctx, tx, identity)
+	if err != nil {
+		return nil, err
+	}
+	out := Admission{UserID: userID}
+
+	// The provider vouches for the person; whether the account is switched
+	// on is still Exciter's to say, as it is at every other door.
+	var active bool
+	if err := tx.QueryRow(ctx, `SELECT is_active FROM app_user WHERE id = $1`, userID).Scan(&active); err != nil {
+		return nil, err
+	}
+	if !active {
+		return nil, auth.ErrSwitchedOff
+	}
+
+	var create bool
+	err = tx.QueryRow(ctx, `SELECT create_groups FROM oidc_provider WHERE enabled`).Scan(&create)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+	// Before the groups, whose rows need a membership to hang off: a mapped
+	// group is an administrator's yes given in advance.
+	if out.Role, err = followMapping(ctx, tx, userID, identity.Groups); err != nil {
+		return nil, err
+	}
+	// A guest is in no group, whatever the provider says: a group would
+	// carry them into every project it is granted.
+	if out.Role != auth.RoleGuest {
+		out.Joined, out.Left, err = syncGroups(ctx, tx, userID, identity.Groups, create)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &out, nil
 }
 

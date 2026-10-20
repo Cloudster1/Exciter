@@ -260,7 +260,7 @@ func TestAnAdministratorConnectsStatorAndMembersTheirTokens(t *testing.T) {
 }
 
 // Whether Stator takes remote links on pages (#42) is read from its /meta whenever the address is saved or a token
-// checked, under any version Stator names.
+// checked, by its exact name: a Stator listing only a later version promises something else.
 func TestTheConnectionKnowsWhatStatorOffers(t *testing.T) {
 	h := newHarness(t)
 	h.keepStator(t)
@@ -278,16 +278,16 @@ func TestTheConnectionKnowsWhatStatorOffers(t *testing.T) {
 	want(t, bob.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(stubTenant(t), "bob")}), http.StatusOK, "bob connects")
 
 	// Stator is upgraded: a member's check finds it, though only an administrator may write the connection.
-	statorOffers(t, "webhooks@1", stator.RemoteLinksCapability+"@1")
+	statorOffers(t, "webhooks@1", stator.RemoteLinksCapability)
 	want(t, bob.post(t, "/api/v1/stator/account/check", nil), http.StatusOK, "bob checks his token")
 	h.settle(t)
 	if conn := obj(t, want(t, owner.get(t, "/api/v1/stator/connection"), http.StatusOK, "after the upgrade"), "connection"); conn["remoteLinks"] != true || conn["connected"] != float64(1) {
 		t.Errorf("a check did not learn what Stator offers: %v", conn)
 	}
 	// Saving the same address reads it again, and keeps the tokens.
-	statorOffers(t)
+	statorOffers(t, "webhooks@1", "page-remote-links@2")
 	if conn := obj(t, want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": base}), http.StatusOK, "save again"), "connection"); conn["remoteLinks"] != false || conn["connected"] != float64(1) {
-		t.Errorf("saving again did not read what Stator offers: %v", conn)
+		t.Errorf("saving again did not read what Stator offers, or took page-remote-links@2 for @1: %v", conn)
 	}
 }
 

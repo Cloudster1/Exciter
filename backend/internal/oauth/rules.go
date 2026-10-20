@@ -184,9 +184,10 @@ func IsMetadataClientID(id string) bool {
 	return err == nil && u.Scheme == "https" && u.Host != "" && u.Path != "" && u.Path != "/" && u.Fragment == "" && u.User == nil
 }
 
-// scope is what a grant or a token may do: everything its person may, reading, or evidence alone.
+// scope is what a grant or a token may do: everything its person may, reading, or evidence alone; a partner's is
+// named in its own words.
 type scope struct {
-	readOnly, evidence bool
+	readOnly, evidence, partner bool
 }
 
 // scopeAsked reads a requested scope: mcp or nothing is everything, mcp:read is reading, evidence alone is evidence;
@@ -220,6 +221,10 @@ func scopeAsked(asked string) (sc scope, ok bool) {
 // name is the scope as a token answer names it.
 func (sc scope) name() string {
 	switch {
+	case sc.partner && sc.readOnly:
+		return ScopeRead
+	case sc.partner:
+		return ScopeRead + " " + ScopeWrite
 	case sc.evidence:
 		return ScopeEvidence
 	case sc.readOnly:

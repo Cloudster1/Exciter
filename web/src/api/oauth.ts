@@ -71,3 +71,55 @@ export function useEndGrant(anybodys = false) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: grantsQueryKey }),
   });
 }
+
+/** A tool beside Exciter that trades a person's token from the shared sign-in for a grant here (#273). */
+export type PartnerApp = Wire["OAuthPartnerApp"];
+export type PartnerAppInput = Wire["OAuthPartnerAppInput"];
+
+export const partnerAppsQueryKey = ["oauth", "partners"] as const;
+
+/** The installation's partner apps, by name, for the administrators. */
+export function usePartnerApps() {
+  return useQuery({
+    queryKey: partnerAppsQueryKey,
+    queryFn: async (): Promise<PartnerApp[]> => (await api.GET("/oauth/clients")).data!.clients,
+  });
+}
+
+/** Registers a partner app; the answer carries its secret, once. */
+export function useCreatePartnerApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: PartnerAppInput): Promise<PartnerApp> => (await api.POST("/oauth/clients", { body })).data!.client,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: partnerAppsQueryKey }),
+  });
+}
+
+/** Changes a partner app; what is left out keeps its value. */
+export function useUpdatePartnerApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...body }: PartnerAppInput & { id: string }): Promise<PartnerApp> =>
+      (await api.PATCH("/oauth/clients/{clientID}", { params: { path: { clientID: id } }, body })).data!.client,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: partnerAppsQueryKey }),
+  });
+}
+
+/** Gives a partner app a new secret, answered once; the old one stops at once. */
+export function useRotatePartnerSecret() {
+  return useMutation({
+    mutationFn: async (id: string): Promise<PartnerApp> =>
+      (await api.POST("/oauth/clients/{clientID}/rotate-secret", { params: { path: { clientID: id } } })).data!.client,
+  });
+}
+
+/** Removes a partner app, and every grant it holds. */
+export function useDeletePartnerApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.DELETE("/oauth/clients/{clientID}", { params: { path: { clientID: id } } });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: partnerAppsQueryKey }),
+  });
+}

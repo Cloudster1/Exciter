@@ -202,7 +202,7 @@ func run() error {
 		Tests:           testexec.NewService(cluster, store).WithIssues(armatures, cfg.AppBaseURL),
 		Risks:           risk.NewService(cluster),
 		OAuth: oauth.NewService(cluster, cfg.AppBaseURL, httpapi.APIPrefix,
-			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))),
+			oauth.HTTPFetcher(netguard.Client(oauth.FetchTimeout, allow))).WithPeople(sso),
 		Renderer:       renderer(cfg, log),
 		Armature:       armatures,
 		Stator:         stators,
