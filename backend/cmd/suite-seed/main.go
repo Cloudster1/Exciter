@@ -35,6 +35,11 @@ const (
 	statorHook  = statorAPI + "/armature/webhook"
 	// tokenName names the token the seed makes for alice, so an earlier one is revoked rather than piling up.
 	tokenName = "Suite"
+	// appName is Exciter as a connected app of Armature and Stator, which connects people at sign-in (#274), by
+	// exchanging their token of the realm's exciterClient; exchangeCapability is what a partner lists when it can.
+	appName            = "Exciter"
+	exciterClient      = "exciter"
+	exchangeCapability = "oauth.token-exchange@1"
 
 	callTimeout = 30 * time.Second
 	// envFileMode keeps the file holding alice's token hers alone.
@@ -113,12 +118,20 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("sign in to Stator as its administrator: %w", err)
 	}
+	exciterURL := "http://localhost:" + env("SUITE_EXCITER_WEB_PORT")
+	statorURL := "http://localhost:" + env("SUITE_STATOR_WEB_PORT")
+	toArmature := map[string]any{"baseUrl": armatureURL}
+	id, secret, err := armature.partnerApp(ctx, exciterURL+"/api/v1/armature/oauth/callback", []string{"read", "issue.write"})
+	if err != nil {
+		return fmt.Errorf("register Exciter as a connected app of Armature: %w", err)
+	}
+	toArmature["clientId"], toArmature["clientSecret"] = id, secret
 	products := []struct {
 		name, hook string
 		api        *session
 		connection map[string]any
 	}{
-		{"Exciter", exciterHook, exciter, map[string]any{"baseUrl": armatureURL}},
+		{"Exciter", exciterHook, exciter, toArmature},
 		{"Stator", statorHook, stator, map[string]any{"baseUrl": armatureURL, "orgSlug": me.Principal.Org.Slug}},
 	}
 	for _, p := range products {
@@ -141,11 +154,29 @@ func run() error {
 		slog.Info("connected to Armature", "product", p.name)
 	}
 
+	// Exciter reads Stator's pages as each person; it connects them at sign-in once Stator offers the exchange
+	// (praetorianer777/Stator#461), and until then each person pastes a Stator token.
+	toStator := map[string]any{"baseUrl": statorURL}
+	if offers, err := offersExchange(ctx, statorAPI); err != nil {
+		return fmt.Errorf("ask Stator what it offers: %w", err)
+	} else if offers {
+		id, secret, err := stator.partnerApp(ctx, exciterURL+"/api/v1/stator/oauth/callback", nil)
+		if err != nil {
+			return fmt.Errorf("register Exciter as a connected app of Stator: %w", err)
+		}
+		toStator["clientId"], toStator["clientSecret"] = id, secret
+	} else {
+		slog.Info("Stator does not offer the token exchange yet, so people connect Exciter to it with a token")
+	}
+	if err := exciter.send(ctx, http.MethodPut, "/stator/connection", toStator, nil); err != nil {
+		return fmt.Errorf("connect Exciter to Stator: %w", err)
+	}
+
 	lines := []string{
 		"SUITE_KEYCLOAK_URL=" + keycloak,
 		"SUITE_EXCITER_URL=http://localhost:" + env("SUITE_EXCITER_WEB_PORT"),
 		"SUITE_ARMATURE_URL=" + armatureURL,
-		"SUITE_STATOR_URL=http://localhost:" + env("SUITE_STATOR_WEB_PORT"),
+		"SUITE_STATOR_URL=" + statorURL,
 		"SUITE_ARMATURE_ORG_SLUG=" + me.Principal.Org.Slug,
 		"SUITE_ALICE_ARMATURE_TOKEN=" + token,
 	}
@@ -273,4 +304,45 @@ func (s *session) webhook(ctx context.Context, name, url string, topics []string
 	}
 	err := s.send(ctx, http.MethodPost, "/webhooks", map[string]any{"name": name, "url": url, "topics": topics, "version": 1}, &answer)
 	return answer.Webhook.Secret, err
+}
+
+// partnerApp registers Exciter as a connected app named by the realm's Exciter client, or gives the one an earlier
+// run registered a new secret, and answers its client id and secret, which the product shows only then. No scopes
+// is what Stator's registration gives by default.
+func (s *session) partnerApp(ctx context.Context, redirect string, scopes []string) (id, secret string, err error) {
+	type client struct {
+		ID     string `json:"id"`
+		Name   string `json:"name"`
+		Secret string `json:"secret"`
+	}
+	var listed struct {
+		Clients []client `json:"clients"`
+	}
+	if err := s.send(ctx, http.MethodGet, "/oauth/clients", nil, &listed); err != nil {
+		return "", "", err
+	}
+	var answer struct {
+		Client client `json:"client"`
+	}
+	if at := slices.IndexFunc(listed.Clients, func(c client) bool { return c.Name == appName }); at >= 0 {
+		err := s.send(ctx, http.MethodPost, "/oauth/clients/"+listed.Clients[at].ID+"/rotate-secret", nil, &answer)
+		return answer.Client.ID, answer.Client.Secret, err
+	}
+	body := map[string]any{"name": appName, "redirectUris": []string{redirect}, "confidential": true, "keycloakClientId": exciterClient}
+	if scopes != nil {
+		body["scopes"] = scopes
+	}
+	err = s.send(ctx, http.MethodPost, "/oauth/clients", body, &answer)
+	return answer.Client.ID, answer.Client.Secret, err
+}
+
+// offersExchange says whether the product at api lists the token exchange on its /meta, which anybody may read.
+func offersExchange(ctx context.Context, api string) (bool, error) {
+	var meta struct {
+		Capabilities []string `json:"capabilities"`
+	}
+	if err := (&session{base: api, client: &http.Client{Timeout: callTimeout}}).send(ctx, http.MethodGet, "/meta", nil, &meta); err != nil {
+		return false, err
+	}
+	return slices.Contains(meta.Capabilities, exchangeCapability), nil
 }

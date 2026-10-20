@@ -21,7 +21,7 @@ EPHEMERAL_FLOOR=32768
 
 echo "== suite"
 
-if config="$(ARMATURE_STUB_PORT=30018 SUITE_ARMATURE_WEB_PORT=30020 \
+if config="$(ARMATURE_STUB_PORT=30018 SUITE_ARMATURE_WEB_PORT=30020 STATOR_STUB_PORT=30019 SUITE_STATOR_WEB_PORT=30040 \
   docker compose -f "$SRC/deploy/docker-compose.yml" -f "$SRC/deploy/suite/exciter.yml" config --format json 2>"$TMP/err")"; then
   pass "compose merges Exciter's suite override"
   [[ "$(jq -r '.services.keycloak.networks.suite.aliases[0]' <<< "$config")" == suite-keycloak ]] \

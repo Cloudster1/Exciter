@@ -22,9 +22,12 @@ services:
       suite:
         aliases: [suite-exciter-api]
     environment: &partners
-      EXCITER_OUTBOUND_ALLOW: armature-stub,stator-stub,suite-armature-api
+      EXCITER_OUTBOUND_ALLOW: armature-stub,stator-stub,suite-armature-api,suite-stator-api
       EXCITER_ARMATURE_BACKCHANNEL: >-
         http://localhost:${ARMATURE_STUB_PORT}=http://armature-stub:8080,http://localhost:${SUITE_ARMATURE_WEB_PORT}=http://suite-armature-api:8080
+      # Exciter reads the suite's Stator too, and connects people to both at sign-in (#274).
+      EXCITER_STATOR_BACKCHANNEL: >-
+        http://localhost:${STATOR_STUB_PORT}=http://stator-stub:8080,http://localhost:${SUITE_STATOR_WEB_PORT}=http://suite-stator-api:8080
 
   worker:
     networks:

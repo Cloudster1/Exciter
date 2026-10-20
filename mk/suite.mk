@@ -14,7 +14,7 @@ SUITE_SMOKE_CONFIG := playwright.suite.config.ts
 # Every product's compose with its suite override, project name and ports; the rest of each port block follows the
 # product's own order, so a database is still where its owner's docs say relative to the web port.
 suite_compose = COMPOSE_PROJECT_NAME=suite-$(1) COMPOSE_FILE=$(2)/deploy/docker-compose.yml:$(ROOT)/deploy/suite/$(1).yml \
-	SUITE_KEYCLOAK_PORT=$(SUITE_KEYCLOAK_PORT) SUITE_ARMATURE_WEB_PORT=$(SUITE_ARMATURE_WEB_PORT) $(3) docker compose
+	SUITE_KEYCLOAK_PORT=$(SUITE_KEYCLOAK_PORT) SUITE_ARMATURE_WEB_PORT=$(SUITE_ARMATURE_WEB_PORT) SUITE_STATOR_WEB_PORT=$(SUITE_STATOR_WEB_PORT) $(3) docker compose
 
 SUITE_EXCITER = $(call suite_compose,exciter,$(ROOT),\
 	WEB_PORT=30010 API_PORT=30011 KEYCLOAK_PORT=$(SUITE_KEYCLOAK_PORT) MAILPIT_PORT=30013 POSTGRES_PORT=30014 \
