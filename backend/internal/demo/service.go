@@ -91,19 +91,20 @@ type Service struct {
 	stator       *stator.Service
 	snapshot     *Snapshot
 	topic        string
+	keys         []string
 }
 
 // NewService builds the service; armatures and stators may be nil, and then nothing is linked to them.
 func NewService(cluster *db.Cluster, projects *project.Service, requirements *requirement.Service, links *trace.Service,
 	baselines *baseline.Service, armatures *armature.Service, stators *stator.Service) *Service {
 	return &Service{db: cluster, projects: projects, requirements: requirements, trace: links, baselines: baselines,
-		armature: armatures, stator: stators, topic: TopicRequested}
+		armature: armatures, stator: stators, topic: TopicRequested, keys: Keys}
 }
 
-// WithSnapshot runs a snapshot other than the embedded one, its steps on a topic of its own, so a test's run is
-// never taken up by a worker that holds the embedded snapshot.
-func (s *Service) WithSnapshot(snap Snapshot, topic string) *Service {
-	s.snapshot, s.topic = &snap, topic
+// WithSnapshot runs a snapshot other than the embedded one under keys of its own, its steps on a topic of its own,
+// so a test's demo meets no other and is never taken up by a worker that holds the embedded snapshot.
+func (s *Service) WithSnapshot(snap Snapshot, topic string, keys []string) *Service {
+	s.snapshot, s.topic, s.keys = &snap, topic, keys
 	return s
 }
 
@@ -150,7 +151,7 @@ func (s *Service) Start(ctx context.Context, actor uuid.UUID) (*Demo, db.LSN, er
 		if d, err := readDemo(ctx, tx); err != nil || d != nil {
 			return cmpErr(err, ErrExists)
 		}
-		for _, key := range Keys {
+		for _, key := range s.keys {
 			var taken bool
 			if err := tx.QueryRow(ctx, `SELECT project_key_taken($1)`, key).Scan(&taken); err != nil {
 				return err
@@ -160,7 +161,7 @@ func (s *Service) Start(ctx context.Context, actor uuid.UUID) (*Demo, db.LSN, er
 			}
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO suite_demo (taken, project_keys, requested_by, steps) VALUES ($1, $2, $3, $4)`,
-			snap.Taken(), Keys, actor, steps); err != nil {
+			snap.Taken(), s.keys, actor, steps); err != nil {
 			return err
 		}
 		if err := events.Emit(ctx, tx, s.topic, requested{ActorID: actor}); err != nil {
@@ -171,7 +172,7 @@ func (s *Service) Start(ctx context.Context, actor uuid.UUID) (*Demo, db.LSN, er
 			return err
 		}
 		if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionSuiteDemoAdded, TargetType: "installation",
-			TargetID: &id, Actor: actor, Data: map[string]any{"taken": snap.Taken(), "projects": Keys}}); err != nil {
+			TargetID: &id, Actor: actor, Data: map[string]any{"taken": snap.Taken(), "projects": s.keys}}); err != nil {
 			return err
 		}
 		out, err = readDemo(ctx, tx)

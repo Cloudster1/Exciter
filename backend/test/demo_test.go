@@ -5,6 +5,7 @@ package test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -14,9 +15,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/demo"
+	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/risk"
@@ -171,7 +174,7 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 	home := h.owner(t, "suite-steps")
 	ctx := context.Background()
 	fixture := demoFixture()
-	svc := h.demoService(t).WithSnapshot(fixture, demoTopic)
+	svc := h.demoService(t).WithSnapshot(fixture, demoTopic, []string{arm, exc})
 	steps := demo.StepCount(demo.Make(fixture), demo.KindBuild)
 	if _, err := h.super.Exec(ctx, `INSERT INTO suite_demo (taken, project_keys, steps, requested_by) VALUES ('2026-10-20', $1, $2, $3)`,
 		[]string{arm, exc}, steps, home.user); err != nil {
@@ -284,7 +287,8 @@ func TestTheSuiteDemoIsAddedOnce(t *testing.T) {
 	h := newHarness(t)
 	h.keepSuiteDemo(t)
 	api := newAPIServer(t, h)
-	admin := api.as(t, h.owner(t, "demo-once").user)
+	owner := h.owner(t, "demo-once")
+	admin := api.as(t, owner.user)
 	member := api.as(t, h.addPerson(t, "member"))
 	ctx := context.Background()
 
@@ -308,6 +312,39 @@ func TestTheSuiteDemoIsAddedOnce(t *testing.T) {
 		if msg := fieldError(t, admin.post(t, "/api/v1/installation/suite-demo", nil), "key"); !strings.Contains(msg, demo.Keys[1]) {
 			t.Errorf("the refusal says %q", msg)
 		}
+	})
+
+	t.Run("an administrator adds it, and links it again once it is done", func(t *testing.T) {
+		// A small snapshot under keys of the test's own, on a topic the stack's worker leaves alone.
+		keys := []string{projectKey(t, "DOA"), projectKey(t, "DOX")}
+		fixed := newAPIServerWith(t, h, func(_ *apiServer, s *httpapi.Server) {
+			s.Demo = h.demoService(t).WithSnapshot(demoFixture(), demoTopic, keys)
+		})
+		t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic) })
+		by := fixed.as(t, owner.user)
+		added := obj(t, want(t, by.post(t, "/api/v1/installation/suite-demo", nil), http.StatusAccepted, "add the demo"), "demo")
+		if added["state"] != "queued" || added["kind"] != "build" || fmt.Sprint(added["projectKeys"]) != fmt.Sprint(keys) || added["step"] != float64(0) {
+			t.Errorf("the demo added reads %v", added)
+		}
+		var audited int
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM audit_log WHERE action = $1 AND actor_user_id = $2`,
+			audit.ActionSuiteDemoAdded, owner.user).Scan(&audited); err != nil || audited != 1 {
+			t.Errorf("%d audit entries (%v), want one", audited, err)
+		}
+		refuse(t, "adding it twice", by.post(t, "/api/v1/installation/suite-demo", nil), http.StatusConflict, "conflict")
+		if _, err := h.super.Exec(ctx, `UPDATE suite_demo SET state = 'running'`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := h.super.Exec(ctx, `UPDATE suite_demo SET state = 'done'`); err != nil {
+			t.Fatal(err)
+		}
+		h.settle(t)
+		relinked := obj(t, want(t, by.post(t, "/api/v1/installation/suite-demo/links", nil), http.StatusAccepted, "link it again"), "demo")
+		if relinked["state"] != "queued" || relinked["kind"] != "links" || relinked["steps"] != float64(3) {
+			t.Errorf("linking again reads %v", relinked)
+		}
+		h.cleanupExec(t, h.super, `DELETE FROM suite_demo`)
+		h.settle(t)
 	})
 
 	if _, err := h.super.Exec(ctx, `INSERT INTO suite_demo (taken, project_keys, state, kind) VALUES ('2026-10-20', $1, 'queued', 'build')`, demo.Keys); err != nil {
