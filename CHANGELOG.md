@@ -873,6 +873,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Exciter puts its links on Stator pages only while Stator lists
+  `page-remote-links@1` by that exact name (#275), so a later
+  `page-remote-links@2` that promises something else is not taken for it.
 - An installation on CloudNativePG can be administered (#271). The chart
   gives the database owner BYPASSRLS, which the permission checks it owns
   need to see anybody; without it the bootstrap stopped at the identity

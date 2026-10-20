@@ -139,7 +139,7 @@ Armature's #26, with these differences:
 - **The address** is checked with `GET {baseUrl}/api/v1/meta`, which must
   answer `product` `stator`, in any case; Stator's `/meta` reports the
   integration features it offers, and `remoteLinks` records whether
-  `page-remote-links` is among them. `POST /stator/account/check` and every saved address read it again. A
+  `page-remote-links@1`, exactly, is among them. `POST /stator/account/check` and every saved address read it again. A
   page opens at `{baseUrl}/s/{spaceKey}/p/{pageID}`.
 - **No organization to learn.** Stator is one installation per team, as
   Armature and Exciter are (#82); the address alone names it, so there is no

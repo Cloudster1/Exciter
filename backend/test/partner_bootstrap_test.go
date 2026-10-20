@@ -59,6 +59,6 @@ func TestTheBootstrapConnectsArmatureOnce(t *testing.T) {
 func TestTheBootstrapConnectsStatorOnce(t *testing.T) {
 	h := newHarness(t)
 	h.keepStator(t)
-	statorOffers(t, stator.RemoteLinksCapability+"@1")
+	statorOffers(t, stator.RemoteLinksCapability)
 	connectsOnce(t, h, h.stator(t).ConnectFirst, "stator_connection", "remote_links", "http://stator-stub:9", statorURL(t))
 }

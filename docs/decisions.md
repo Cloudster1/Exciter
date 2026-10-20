@@ -790,8 +790,9 @@ checks what Armature lists before each feature calls it.
   agreed, so a renamed route fails here rather than at a partner.
 - **A partner's capability counts by its exact name.** `remote-links@2` does
   not stand in for the `@1` a feature was built against, which is what a
-  raised number means. Stator's `page-remote-links` is matched by its bare
-  name under any version, as #42 agreed before Stator named it.
+  raised number means. Stator's `page-remote-links@1` is matched the same
+  way since #275; before, its bare name counted under any version, as #42
+  agreed before Stator named it.
 - **Not asked counts as offering everything.** A connection saved before this
   release has no list until it is saved again or a token checked, so
   upgrading Exciter alone switches nothing off before Armature is asked.
