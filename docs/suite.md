@@ -84,7 +84,8 @@ tools' own development, each in the tool it belongs in.
   (Cloudster1/Armature#300).
 - **Stator** holds their documentation, each page labelled with the file it came from (praetorianer777/Stator#457).
 - **Exciter** holds their requirements in projects of the same keys, and links each to its issue and to the pages
-  that specify and describe it.
+  that specify and describe it. Each project opens with its tool's architecture drawn in PlantUML (#286): its
+  parts, deployment, signing in and how it reaches the other two, written in `backend/internal/demo/architecture`.
 
 `suite-seed` stores alice's Armature token and a fresh Stator token of Stator's administrator for Exciter's
 administrator, asks Armature and Stator for their demo, and then Exciter for its own, which it links with those

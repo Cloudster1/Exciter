@@ -83,7 +83,37 @@ func (s *Service) makeProject(ctx context.Context, actor uuid.UUID, pr Project, 
 	if err != nil {
 		return b.made, err
 	}
-	return b.made, s.record(ctx, w.projectID, []node{{about, pr.Tool, 0, 0}})
+	nodes := []node{{about, pr.Tool, 0, 0}}
+	if pr.Architecture != nil {
+		drawn, err := b.architecture(ctx, pr.Tool, *pr.Architecture)
+		nodes = append(nodes, drawn...)
+		if err != nil {
+			return b.made, err
+		}
+	}
+	return b.made, s.record(ctx, w.projectID, nodes)
+}
+
+// architecture files the drawings in a top-level section after the introduction. Each is kept as issue 0 with the
+// view's place as its criterion, so it never meets the requirement about the tool or an issue's.
+func (b *builder) architecture(ctx context.Context, tool string, sec Section) ([]node, error) {
+	section, err := b.create(ctx, requirement.KindSection, Item{Title: sec.Title, Statement: sec.Intro}, nil, b.w.intro)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		nodes []node
+		prev  *uuid.UUID
+	)
+	for i, it := range sec.Items {
+		id, err := b.create(ctx, requirement.KindRequirement, it, &section, prev)
+		if err != nil {
+			return nodes, fmt.Errorf("the architecture view %q: %w", it.Title, err)
+		}
+		nodes = append(nodes, node{id, tool, 0, i + 1})
+		prev = &id
+	}
+	return nodes, nil
 }
 
 // fileSection files one milestone's issues, with their criteria, after the sections filed before it.
@@ -207,10 +237,10 @@ type builder struct {
 
 func (b *builder) create(ctx context.Context, kind requirement.Kind, it Item, parent, after *uuid.UUID) (uuid.UUID, error) {
 	in := requirement.CreateInput{Kind: kind, Title: it.Title, Comment: revisionComment, Place: &requirement.Place{ParentID: parent, AfterID: after}}
+	if it.Statement != "" {
+		in.StatementMarkdown = &it.Statement
+	}
 	if kind == requirement.KindRequirement {
-		if it.Statement != "" {
-			in.StatementMarkdown = &it.Statement
-		}
 		if it.Rationale != "" {
 			in.RationaleMarkdown = &it.Rationale
 		}

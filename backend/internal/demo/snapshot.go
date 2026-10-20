@@ -31,6 +31,8 @@ type Tool struct {
 	Commit string  `json:"commit"`
 	Taken  string  `json:"taken"`
 	Issues []Issue `json:"issues"`
+	// Architecture is drawn by hand rather than taken, so it comes from architecture/, not the snapshot.
+	Architecture *Architecture `json:"-"`
 }
 
 // Issue is one GitHub issue as the snapshot keeps it.
@@ -55,6 +57,9 @@ func Embedded() (Snapshot, error) {
 		var t Tool
 		if err := json.Unmarshal(raw, &t); err != nil {
 			return Snapshot{}, fmt.Errorf("read the %s snapshot: %w", name, err)
+		}
+		if t.Architecture, err = embeddedArchitecture(name); err != nil {
+			return Snapshot{}, err
 		}
 		s.Tools = append(s.Tools, t)
 	}

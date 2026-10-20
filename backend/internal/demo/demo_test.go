@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/cloudster1/exciter/backend/internal/document"
 	"github.com/cloudster1/exciter/backend/internal/markdown"
@@ -81,6 +82,68 @@ func fixture() Snapshot {
 			{Number: 13, Title: "No milestone", Body: "## User story\n\nAs nobody.\n"},
 		}},
 	}}
+}
+
+const architectureFile = "commit: abc123\nsource: docs/architecture.md\n\nHow it is built.\n\n## Components\n\nThe parts.\n\n" +
+	"```plantuml\n@startuml\ntitle Components\n## inside the fence\n[A] --> [B]\n@enduml\n```\n\n## Signing in\n\nThe flow.\n\n" +
+	"```plantuml\n@startuml\nA -> B\n@enduml\n```\n"
+
+func TestParseArchitectureReadsAViewUnderEachHeading(t *testing.T) {
+	a, err := ParseArchitecture(architectureFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Commit != "abc123" || a.Source != "docs/architecture.md" || a.Intro != "How it is built." {
+		t.Errorf("the head reads %+v", a)
+	}
+	if len(a.Views) != 2 || a.Views[0].Title != "Components" || a.Views[1].Title != "Signing in" {
+		t.Fatalf("views %+v", a.Views)
+	}
+	if !strings.HasPrefix(a.Views[0].Statement, "The parts.") || !strings.Contains(a.Views[0].Statement, "## inside the fence") {
+		t.Errorf("a heading in a fence stays in the view: %q", a.Views[0].Statement)
+	}
+	sources, err := DiagramSources(a.Views[1].Statement)
+	if err != nil || len(sources) != 1 || !strings.Contains(sources[0], "A -> B") {
+		t.Errorf("the view's diagram is %q (%v)", sources, err)
+	}
+	for name, md := range map[string]string{
+		"no commit":  strings.Replace(architectureFile, "commit: abc123\n", "", 1),
+		"no source":  strings.Replace(architectureFile, "source: docs/architecture.md\n", "", 1),
+		"no view":    "commit: a\nsource: b\n\nOnly an introduction.\n",
+		"open fence": "commit: a\nsource: b\n\n## View\n\n```plantuml\n@startuml\n",
+		"nothing":    "",
+	} {
+		if _, err := ParseArchitecture(md); err == nil {
+			t.Errorf("%s was read", name)
+		}
+	}
+}
+
+func TestMakeFilesTheArchitectureWithItsSource(t *testing.T) {
+	s := fixture()
+	a, err := ParseArchitecture(architectureFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Tools[1].Architecture = &a
+	p := Make(s)
+	if p.Projects[0].Architecture != nil {
+		t.Errorf("a tool without drawings has no architecture section: %+v", p.Projects[0].Architecture)
+	}
+	sec := p.Projects[1].Architecture
+	if sec == nil || sec.Title != SectionArchitecture || sec.Intro != "How it is built." || len(sec.Items) != 2 {
+		t.Fatalf("the section is %+v", sec)
+	}
+	view := sec.Items[1]
+	if view.Title != "Signing in" || !view.Approved || view.Issue != 0 {
+		t.Errorf("a view is an approved requirement of no issue: %+v", view)
+	}
+	if want := []Page{{"demo-exc-docs-architecture", Describes}}; !slices.Equal(view.Pages, want) {
+		t.Errorf("pages %v, want %v", view.Pages, want)
+	}
+	if !strings.Contains(view.Rationale, "(https://github.com/Cloudster1/Exciter/blob/abc123/docs/architecture.md)") {
+		t.Errorf("the rationale links the document at its commit: %q", view.Rationale)
+	}
 }
 
 func TestMakeOrdersMilestonesAndLinks(t *testing.T) {
@@ -173,6 +236,7 @@ func TestTheEmbeddedSnapshotPlansStatementsThatAreTaken(t *testing.T) {
 	items, children := 0, 0
 	for _, pr := range p.Projects {
 		all := []Item{pr.About}
+		checkArchitecture(t, pr, take)
 		for _, sec := range pr.Sections {
 			all = append(all, sec.Items...)
 		}
@@ -194,4 +258,38 @@ func TestTheEmbeddedSnapshotPlansStatementsThatAreTaken(t *testing.T) {
 		}
 	}
 	t.Logf("%d requirements with %d criteria", items, children)
+}
+
+// minViews is what every tool's architecture draws at least: its parts, its deployment, signing in and the suite.
+const minViews = 4
+
+// checkArchitecture holds each view to one diagram in plain ASCII, as the repository's prose is, under a title the
+// requirement takes.
+func checkArchitecture(t *testing.T, pr Project, take func(where, field, md string)) {
+	t.Helper()
+	sec := pr.Architecture
+	if sec == nil || len(sec.Items) < minViews || sec.Intro == "" {
+		t.Errorf("%s: the architecture is %+v, want an introduction and at least %d views", pr.Repo, sec, minViews)
+		return
+	}
+	take(pr.Repo+" architecture", "statement", sec.Intro)
+	seen := map[string]bool{}
+	for _, it := range sec.Items {
+		where := pr.Repo + " architecture view " + it.Title
+		if it.Title == "" || len([]rune(it.Title)) > requirement.MaxTitleLength || seen[it.Title] {
+			t.Errorf("%s: title %q is empty, too long or twice", where, it.Title)
+		}
+		seen[it.Title] = true
+		for i, r := range it.Statement + it.Title + sec.Intro {
+			if r > unicode.MaxASCII {
+				t.Errorf("%s: %q at %d is not ASCII", where, r, i)
+				break
+			}
+		}
+		take(where, "statement", it.Statement)
+		take(where, "rationale", it.Rationale)
+		if sources, err := DiagramSources(it.Statement); err != nil || len(sources) != 1 {
+			t.Errorf("%s holds %d diagrams (%v), want one", where, len(sources), err)
+		}
+	}
 }

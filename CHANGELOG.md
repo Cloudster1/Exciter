@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The suite demo draws each tool's architecture (#286). The projects `ARM`,
+  `EXC` and `STA` open with a section "Architecture" after the
+  introduction: PlantUML diagrams of the tool's parts and data stores, its
+  deployment, how people sign in and how it reaches the other two tools,
+  each drawn from the tool's own documentation and linked to its page in
+  Stator.
+
 - Architecture drawings in PlantUML (#284). The editor's PlantUML diagram
   button puts a diagram into a statement, rationale or rich text value,
   written as PlantUML with a preview drawn below it as it is typed. Every
