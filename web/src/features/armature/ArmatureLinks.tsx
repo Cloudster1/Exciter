@@ -174,7 +174,13 @@ function AddIssueLink({ requirement, connected, onLinked }: { requirement: Requi
   return (
     <form onSubmit={submit} className="space-y-3 border-t border-border pt-3" aria-label={l.add} data-add-armature-link>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Select label={l.relation} value={relation} onChange={(event) => setRelation(event.target.value as ArmatureRelation)} data-armature-relation-select>
+        <Select
+          id="armature-link-relation"
+          label={l.relation}
+          value={relation}
+          onChange={(event) => setRelation(event.target.value as ArmatureRelation)}
+          data-armature-relation-select
+        >
           {ARMATURE_RELATIONS.map((each) => (
             <option key={each} value={each}>
               {l.relations[each]}
