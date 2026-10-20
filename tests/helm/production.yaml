@@ -52,6 +52,9 @@ data:
   EXCITER_DB_REPLICA_LAG_SAMPLES: "3"
   EXCITER_READ_YOUR_WRITES_TTL: "30s"
   EXCITER_UPLOAD_LIMIT: "50MB"
+  EXCITER_KROKI_URL: "http://r-exciter-kroki:8000"
+  EXCITER_KROKI_TIMEOUT: "10s"
+  EXCITER_KROKI_CONCURRENCY: "4"
   EXCITER_RETAIN_AUDIT: "8760h"
 ---
 # Source: exciter/templates/configmap-nginx.yaml
@@ -158,6 +161,30 @@ spec:
     app.kubernetes.io/instance: r
     app.kubernetes.io/component: api
 ---
+# Source: exciter/templates/kroki-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-kroki
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: kroki
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: kroki
+---
 # Source: exciter/templates/web-service.yaml
 apiVersion: v1
 kind: Service
@@ -211,7 +238,7 @@ spec:
       annotations:
         # Rolls the pods when the configuration changes, which an edited
         # ConfigMap alone would not.
-        checksum/env: f362f087afbac0c07b322bd1f463d30c6287086d2bc1333f7fef467a0061e27f
+        checksum/env: 5c00bfbe7b0dc0cb49c2899420c5b3befdf0a779aeac62664068ec8241be3081
     spec:
       serviceAccountName: r-exciter
       securityContext:
@@ -288,6 +315,81 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+---
+# Source: exciter/templates/kroki-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r-exciter-kroki
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: kroki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+      app.kubernetes.io/component: kroki
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exciter
+        app.kubernetes.io/instance: r
+        app.kubernetes.io/component: kroki
+    spec:
+      serviceAccountName: r-exciter
+      # The image's own user, named rather than numbered there, so runAsNonRoot can check it.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: kroki
+          image: yuzutech/kroki:0.33.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+          env:
+            # The image's default, set so a later image cannot loosen it: no file read, no address fetched.
+            - name: KROKI_SAFE_MODE
+              value: secure
+            # The JVM and the renderers write scratch files only under /tmp.
+            - name: HOME
+              value: /tmp
+          ports:
+            - name: http
+              containerPort: 8000
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 100m
+              memory: 384Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 # Source: exciter/templates/web-deployment.yaml
 apiVersion: apps/v1
@@ -402,7 +504,7 @@ spec:
         app.kubernetes.io/instance: r
         app.kubernetes.io/component: worker
       annotations:
-        checksum/env: f362f087afbac0c07b322bd1f463d30c6287086d2bc1333f7fef467a0061e27f
+        checksum/env: 5c00bfbe7b0dc0cb49c2899420c5b3befdf0a779aeac62664068ec8241be3081
     spec:
       serviceAccountName: r-exciter
       securityContext:

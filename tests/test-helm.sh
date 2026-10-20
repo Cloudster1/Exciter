@@ -129,6 +129,11 @@ check "enabled, the render service runs beside the web and the api prints throug
     "$(config_value "${with_render}" EXCITER_RENDER_URL) $(grep -c "^  name: ${RELEASE}-exciter-render\$" <<<"${with_render}") $(grep -c 'name: RENDER_APP_URL' <<<"${with_render}")" \
     "http://${RELEASE}-exciter-render:8090 2 1"
 check "its image is the one a release pushes" "$(grep -c 'image: ghcr.io/cloudster1/exciter-render:' <<<"${with_render}")" "1"
+check "diagrams are drawn by a pinned Kroki in its secure mode, which the api reaches in the cluster" \
+    "$(config_value "${RENDERED}" EXCITER_KROKI_URL) $(grep -c "^  name: ${RELEASE}-exciter-kroki\$" <<<"${RENDERED}") $(grep -c 'image: yuzutech/kroki:0.33.0' <<<"${RENDERED}") $(grep -A1 'name: KROKI_SAFE_MODE' <<<"${RENDERED}" | grep -c 'value: secure')" \
+    "http://${RELEASE}-exciter-kroki:8000 2 1 1"
+check "without Kroki, diagrams show as their source" \
+    "$(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set kroki.enabled=false 2>&1 | grep -cE 'EXCITER_KROKI_URL|component: kroki')" "0"
 check "the installation keeps the name Exciter until one is given" \
     "$(grep -c 'EXCITER_NAME' <<<"${RENDERED}") $(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set installation.name=Acme 2>&1 | grep -c 'EXCITER_NAME: "Acme"')" \
     "0 1"
