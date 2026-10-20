@@ -95,7 +95,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("sign in to Armature as alice: %w", err)
 	}
-	token, err := alice.freshToken(ctx)
+	token, err := alice.freshToken(ctx, "alice's Armature")
 	if err != nil {
 		return err
 	}
@@ -171,6 +171,11 @@ func run() error {
 	if err := exciter.send(ctx, http.MethodPut, "/stator/connection", toStator, nil); err != nil {
 		return fmt.Errorf("connect Exciter to Stator: %w", err)
 	}
+	if os.Getenv("SUITE_DEMO") == "1" {
+		if err := addDemo(ctx, exciter, armature, stator, token); err != nil {
+			return err
+		}
+	}
 
 	lines := []string{
 		"SUITE_KEYCLOAK_URL=" + keycloak,
@@ -242,8 +247,8 @@ func (s *session) send(ctx context.Context, method, path string, body, out any) 
 	return nil
 }
 
-// freshToken revokes the token an earlier run made and makes another, whose secret Armature shows only once.
-func (s *session) freshToken(ctx context.Context) (string, error) {
+// freshToken revokes the token an earlier run made and makes another, whose secret the product shows only once.
+func (s *session) freshToken(ctx context.Context, whose string) (string, error) {
 	var listed struct {
 		Tokens []struct {
 			ID   string `json:"id"`
@@ -251,12 +256,12 @@ func (s *session) freshToken(ctx context.Context) (string, error) {
 		} `json:"tokens"`
 	}
 	if err := s.send(ctx, http.MethodGet, "/tokens", nil, &listed); err != nil {
-		return "", fmt.Errorf("list alice's Armature tokens: %w", err)
+		return "", fmt.Errorf("list %s tokens: %w", whose, err)
 	}
 	for _, t := range listed.Tokens {
 		if t.Name == tokenName {
 			if err := s.send(ctx, http.MethodDelete, "/tokens/"+t.ID, nil, nil); err != nil {
-				return "", fmt.Errorf("revoke alice's earlier token: %w", err)
+				return "", fmt.Errorf("revoke the earlier of %s tokens: %w", whose, err)
 			}
 		}
 	}
@@ -266,7 +271,7 @@ func (s *session) freshToken(ctx context.Context) (string, error) {
 		} `json:"token"`
 	}
 	if err := s.send(ctx, http.MethodPost, "/tokens", map[string]any{"name": tokenName}, &made); err != nil {
-		return "", fmt.Errorf("make alice an Armature token: %w", err)
+		return "", fmt.Errorf("make one of %s tokens: %w", whose, err)
 	}
 	return made.Token.Secret, nil
 }

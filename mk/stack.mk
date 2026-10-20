@@ -146,8 +146,12 @@ shell: | $(GO_CACHE) ## Interactive shell in the Go toolchain container, on the 
 	$(call DOCKER_GO_STACK,-it) sh
 
 .PHONY: seed
-seed: ## Run the seed again against the running stack
-	docker compose run --rm seed
+seed: ## Run the seed again against the running stack, and add the suite demo
+	docker compose run --rm seed /app/seed demo
+
+.PHONY: demo-snapshot
+demo-snapshot: ## Take the suite demo's snapshot of the three tools' issues again, with gh on the host
+	$(ROOT)/scripts/demo-snapshot.sh
 
 .PHONY: stack-up
 stack-up: stack-env ## The gate's stack: build and start it, and wait until every service is healthy

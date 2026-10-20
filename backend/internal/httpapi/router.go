@@ -22,6 +22,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/demo"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
@@ -81,6 +82,8 @@ type Server struct {
 	AuditRetention time.Duration
 	// Installation keeps the installation's name; nil answers its routes that it is not set up.
 	Installation *installation.Service
+	// Demo adds the suite demo (#270); nil answers its routes that it is not set up.
+	Demo *demo.Service
 	// Themes keeps custom themes and their files; nil answers their routes that they are not set up.
 	Themes *theme.Service
 	// Projects keeps the projects requirements live in; nil answers their routes that they are not set up.
@@ -245,6 +248,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/installation", s.handleGetInstallation)
 			r.With(requireAdmin).Put("/installation", s.handleRenameInstallation)
 		})
+		s.mountSuiteDemo(r)
 
 		// Themes are a person's; the examples are anybody's who is signed in.
 		r.With(requireAuth).Get("/themes/examples", s.handleThemeExamples)

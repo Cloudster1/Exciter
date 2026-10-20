@@ -17,6 +17,7 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 00740 to 00749 | Query language (#47) | `requirement_key_id` (the requirement a key, or one it had, names) and `requirement_coverage` (a requirement's level in one dimension, as `trace.Judge` judges it), both read as the reader sees |
 | 00750 to 00759 | Webhooks (#48) | `webhook_endpoint` (an address, its events and projects, a sealed secret, its owner) and `webhook_delivery` (one attempt at one event), the trigger `webhook_endpoint_stamp` and their policies |
 | 00760 to 00769 | Reuse (#49) | `requirement.reuse_source`, `reuse_revision` and `reuse_state`, the guard `requirement_reuse_guard`, the change field `reuse` and the notification kind `source_revised` |
+| 01360 to 01369 | Suite demo (#270) | `suite_demo` (the one demo: its state, step and counts, and the snapshot and keys it was made with), `suite_demo_requirement` (which issue or criterion a requirement came from), the guard `suite_demo_guard` and their policies |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
 and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
@@ -457,3 +458,37 @@ until Stator ships it.
 - **Not in this contract:** writing to Exciter from a page, and an embed
   format such as oEmbed. Pages traced to requirements (#41, #42) stay as they
   are; a chip does not make a page link.
+
+## #270 Suite demo
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `GET /installation/suite-demo` | an administrator | `{demo}`, null while nobody added it |
+| `POST /installation/suite-demo` | an administrator | 202 `{demo}`; 409 when it was added; 422 `key` when a project holds `ARM`, `EXC` or `STA` |
+| `POST /installation/suite-demo/links` | an administrator | 202 `{demo}`; 404 when nobody added it; 409 while it is built or linked |
+
+- **The demo** is three projects from the `software` template, `ARM`, `EXC`
+  and `STA`, holding the requirements of Armature, Exciter and Stator from
+  the snapshot in `backend/internal/demo/snapshot` (`make demo-snapshot`).
+  Each issue with a user story is a requirement filed under its milestone,
+  under Functional requirements, with its acceptance criteria as children,
+  approved when the issue is closed; "Depends on" is a `relates` link, also
+  across projects; each project has an "About" requirement in its
+  Introduction and a baseline named `Snapshot <taken>`. Audited as
+  `installation.suite_demo_added`.
+- **The run** is the worker's, as the caller: `suite_demo.requested` names a
+  step, which makes a project, files one milestone, links one project or
+  takes the baselines, and queues the next. `state` goes `queued`,
+  `running`, then `done` or `failed`, with `step` of `steps`, and `message`
+  saying why links wait.
+- **Links** are made with the caller's own Armature and Stator tokens: each
+  issue's requirement `implements` `<ARM|EXC|STA>-<number>`, and pages are
+  found by the label `demo-<arm|exc|sta>-<path>` (`GET /labels/{labelName}/pages`
+  in Stator); every requirement of milestone Mn `specifies` that tool's
+  `docs/api-contract-mn.md`, and the About requirement is `describes`d by its
+  README and `docs/architecture.md`. What a partner cannot take yet is
+  counted in `skipped`; `.../links` adds it later and nothing twice.
+- **Armature and Stator** offer `POST` and `GET /installation/suite-demo` for
+  their part (Cloudster1/Armature#300, praetorianer777/Stator#457), which
+  `make suite-up DEMO=1` calls before Exciter's; one that answers 404 has no
+  demo yet.

@@ -10,6 +10,8 @@ SUITE_ARMATURE_WEB_PORT := 30020
 SUITE_STATOR_WEB_PORT := 30040
 SUITE_ENV_FILE := $(ROOT)/.cache/suite.env
 SUITE_SMOKE_CONFIG := playwright.suite.config.ts
+# DEMO=1 adds the suite demo to all three as well (#270): Armature's issues, Stator's pages, Exciter's requirements.
+DEMO ?=
 
 # Every product's compose with its suite override, project name and ports; the rest of each port block follows the
 # product's own order, so a database is still where its owner's docs say relative to the web port.
@@ -33,7 +35,7 @@ define suite_dirs
 endef
 
 .PHONY: suite-up
-suite-up: ## Start Exciter, Armature and Stator on one Keycloak and connect them: ARMATURE_DIR=<checkout> STATOR_DIR=<checkout>
+suite-up: ## Start Exciter, Armature and Stator on one Keycloak and connect them: ARMATURE_DIR=<checkout> STATOR_DIR=<checkout> [DEMO=1]
 	$(suite_dirs)
 	@docker network inspect $(SUITE_NET) >/dev/null 2>&1 || docker network create $(SUITE_NET) >/dev/null
 	$(SUITE_EXCITER) up -d --build --wait --quiet-pull
@@ -57,7 +59,7 @@ suite-seed: | $(GO_CACHE) ## Connect the running suite's products to each other 
 	$(call go_run,--network $(SUITE_NET) \
 		-e SUITE_KEYCLOAK_PORT=$(SUITE_KEYCLOAK_PORT) -e SUITE_EXCITER_WEB_PORT=$(SUITE_EXCITER_WEB_PORT) \
 		-e SUITE_ARMATURE_WEB_PORT=$(SUITE_ARMATURE_WEB_PORT) -e SUITE_STATOR_WEB_PORT=$(SUITE_STATOR_WEB_PORT) \
-		-e SUITE_ENV_FILE=/work/.cache/suite.env) go run ./cmd/suite-seed
+		-e SUITE_ENV_FILE=/work/.cache/suite.env -e SUITE_DEMO=$(DEMO)) go run ./cmd/suite-seed
 
 .PHONY: suite-smoke
 suite-smoke: ## Sign in to all three and watch a chip follow Armature; outside the gate

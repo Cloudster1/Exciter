@@ -348,6 +348,8 @@ export const WEBHOOK_TIMESTAMPED_SIGNATURE_HEADER = "X-Exciter-Signature-Timesta
 
 /** How often an import the worker has is read again while a person watches it. */
 export const IMPORT_POLL_MS = 1000;
+/** How often the suite demo is read again while the worker builds or links it (#270). */
+export const SUITE_DEMO_POLL_MS = 2000;
 /** The largest file an import takes, the API's csvio.MaxImportBytes. */
 export const IMPORT_MAX_BYTES = 8 * 1024 * 1024;
 /** The largest ReqIF file or archive an import takes, the API's reqifio.MaxImportBytes. */

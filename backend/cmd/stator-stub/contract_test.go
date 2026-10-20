@@ -179,6 +179,7 @@ func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 
 	pagesTenantScenario(t, c)
 	remoteLinksScenario(t, c)
+	labelsScenario(t, c)
 
 	if status, _ := c.call("DELETE", stubPrefix+"/acme", "", nil); status != http.StatusNoContent {
 		t.Errorf("forgetting a tenant answered %d", status)
@@ -251,6 +252,23 @@ func pagesTenantScenario(t *testing.T, c *contract) {
 	}
 	c.expect("PUT", stubPrefix+"/acme/webhook", "", map[string]any{"url": ""}, 204)
 	c.expect("POST", stubPrefix+"/acme/webhooks", "", map[string]any{"topic": "ping"}, 409)
+}
+
+// labelsScenario finds the suite demo's pages by their labels, as Exciter's demo does (#270).
+func labelsScenario(t *testing.T, c *contract) {
+	alice := patFor("labels", "alice")
+	got := c.expect("GET", "/labels/demo-exc-docs-api-contract-m2/pages?limit=10", alice, nil, 200)
+	pages := got["pages"].([]any)
+	if len(pages) != 1 || pages[0].(map[string]any)["title"] != "API contract M2" || got["total"] != float64(1) {
+		t.Errorf("the contract page's label lists %v", got)
+	}
+	if none := c.expect("GET", "/labels/demo-exc-nothing/pages", alice, nil, 200); none["total"] != float64(0) {
+		t.Errorf("a label nobody carries lists %v", none)
+	}
+	if other := c.expect("GET", "/labels/demo-exc-readme/pages?space=ENG", alice, nil, 200); other["total"] != float64(0) {
+		t.Errorf("another space's pages list %v", other)
+	}
+	c.expect("GET", "/labels/demo-exc-readme/pages?limit=0", alice, nil, 422)
 }
 
 // remoteLinksScenario puts, replaces and takes off links as Exciter's link sync does (#42), and as a person in Stator.

@@ -28,6 +28,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/demo"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/freshness"
@@ -169,6 +170,7 @@ func run() error {
 	attributes := attribute.NewService(cluster)
 	baselines := baseline.NewService(cluster).WithPasswords(accounts)
 	files := attachment.NewService(cluster, store, requirements).WithMaxSize(cfg.UploadLimit).WithLogger(log)
+	projects := project.NewService(cluster).WithSeeder(risk.SeedProject)
 	server := &httpapi.Server{
 		DB:              cluster,
 		Auth:            accounts,
@@ -180,7 +182,8 @@ func run() error {
 		AuditRetention:  cfg.RetainAudit,
 		Installation:    installation.NewService(cluster),
 		Themes:          theme.NewService(cluster, store),
-		Projects:        project.NewService(cluster).WithSeeder(risk.SeedProject),
+		Projects:        projects,
+		Demo:            demo.NewService(cluster, projects, requirements, links, baselines, armatures, stators),
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirements,
 		Search:          finder,

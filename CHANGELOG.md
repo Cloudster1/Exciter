@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- A suite demo of the three tools' own requirements (#270). An
+  administrator adds it once under Installation, or `make seed` does: the
+  projects `ARM`, `EXC` and `STA` hold the user stories and acceptance
+  criteria of Armature's, Exciter's and Stator's issues, filed by milestone,
+  approved where the issue is closed, with their dependencies traced and a
+  baseline of each. Where Armature and Stator are connected and have their
+  own demo, each requirement links to its issue and to the API contract and
+  architecture pages that describe it; linking again adds what a partner
+  could not take before. `make suite-up DEMO=1` adds it to all three.
+
 - People connected to Armature and Stator as they sign in (#274). Where the
   three tools share one Keycloak realm and the operator switches it on
   (`EXCITER_ARMATURE_TOKEN_EXCHANGE`, `EXCITER_STATOR_TOKEN_EXCHANGE`, Helm

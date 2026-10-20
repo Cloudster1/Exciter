@@ -34,6 +34,8 @@ const (
 
 	spaceOpen   = "ENG"
 	spaceSecret = "SEC"
+	// spaceDemo holds pages labelled as Stator's suite demo labels them (#270), for Exciter's demo to find.
+	spaceDemo = "EXC"
 )
 
 type person struct {
@@ -66,6 +68,7 @@ type page struct {
 	UpdatedBy string
 	// Trashed pages answer to nobody, as Stator's trash does.
 	Trashed bool
+	Labels  []string
 }
 
 type tenant struct {
@@ -143,7 +146,8 @@ func seed(slug string) *tenant {
 	for _, spec := range []struct {
 		key, name, home string
 		adminOnly       bool
-	}{{spaceOpen, "Engineering", "Engineering home", false}, {spaceSecret, "Security", "Security home", true}} {
+	}{{spaceOpen, "Engineering", "Engineering home", false}, {spaceSecret, "Security", "Security home", true},
+		{spaceDemo, "Exciter", "Exciter home", false}} {
 		sp := &space{ID: idOf(slug, "space", spec.key), Key: spec.key, Name: spec.name, AdminOnly: spec.adminOnly}
 		t.spaces = append(t.spaces, sp)
 		sp.Home = t.add(sp, nil, spec.home, 1)
@@ -154,6 +158,12 @@ func seed(slug string) *tenant {
 	t.add(eng, braking, "Brake timing", 2)
 	t.add(eng, eng.Home, "Onboarding guide", 1)
 	t.add(sec, sec.Home, "Threat model", 1)
+	demo := t.spaces[2]
+	for _, spec := range []struct{ title, label string }{
+		{"README", "demo-exc-readme"}, {"Architecture", "demo-exc-docs-architecture"}, {"API contract M2", "demo-exc-docs-api-contract-m2"},
+	} {
+		t.add(demo, demo.Home, spec.title, 1).Labels = []string{spec.label}
+	}
 	return t
 }
 

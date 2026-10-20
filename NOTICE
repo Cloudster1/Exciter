@@ -551,6 +551,11 @@ Adapted from Armature at b650791 and 10edbd7, for the token exchange (#273):
 - backend/internal/oidc/service.go VerifyAccessToken: internal/oidc's, its
   issuer, keys, azp and audience checks
 
+The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
+titles and texts of the public GitHub issues of Armature, Exciter and Stator
+that carry a user story, as scripts/demo-snapshot.sh took them on the date
+and at the commit each file names.
+
 The logo and the icons (assets/branding and web/public) show the Go gopher,
 whose design is by Renee French (https://reneefrench.blogspot.com/) and is
 licensed under the Creative Commons Attribution 4.0 International license

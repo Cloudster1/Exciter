@@ -3,6 +3,40 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-20: The suite demo is the three tools' own requirements, from a snapshot (#270)
+
+An administrator adds a demo once: the requirements of Armature, Exciter and
+Stator, taken from the user stories and acceptance criteria of their own
+GitHub issues, as the projects `ARM`, `EXC` and `STA`. Armature's demo holds
+the same issues under the same numbers (Cloudster1/Armature#300) and
+Stator's their documentation (praetorianer777/Stator#457).
+
+- **A snapshot in the repository, not a live import.** Adding the demo needs
+  no network and no GitHub token, and gives the same demo every time, which a
+  test can hold it to. `make demo-snapshot` takes it again with `gh`; a unit
+  test puts every statement through the Markdown a requirement takes, so a
+  snapshot that brings something it refuses fails there first.
+- **Each tool holds its own part, and Exciter makes the links.** Issues
+  belong in the tracker and pages in the wiki; tracing between them is
+  Exciter's. The issue keys keep their GitHub numbers (`EXC-261`) and the
+  pages carry a label naming their file, so the links follow by rule, with no
+  table of ids passed between three installations.
+- **Only an issue's own requirement links to it.** Its criteria are its
+  children; linking all 1,240 would bury every issue under links and cost a
+  call to Armature each.
+- **Pages link to requirements, not sections.** Sections take no pages, so
+  every requirement of a milestone specifies that tool's API contract page,
+  and one "About" requirement per project is described by its README and
+  architecture pages.
+- **Built a step at a time.** The worker takes one event at a time, so a run
+  of two minutes would hold up every other event; a step makes a project,
+  files one milestone or links one project, and queues the next in the same
+  write that records it.
+- **What a partner cannot take yet waits.** A partner not connected, or one
+  without its demo, is counted and said in a sentence; linking again adds
+  only what is missing, reading the links there are first so it asks no
+  partner twice.
+
 ## 2026-10-19: People are connected to Armature and Stator at sign-in (#274)
 
 With one Keycloak realm for the three tools, Exciter exchanges the access

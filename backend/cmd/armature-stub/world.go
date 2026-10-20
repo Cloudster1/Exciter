@@ -37,6 +37,10 @@ const (
 
 	projectOpen   = "CP"
 	projectSecret = "SEC"
+	// projectDemo holds issues numbered as Armature's suite demo numbers Exciter's (#270). Only demoName sees it,
+	// so every other test reads the stub as it did before.
+	projectDemo = "EXC"
+	demoName    = "demo"
 )
 
 type person struct {
@@ -212,6 +216,7 @@ func seed(slug string) *tenant {
 	t.projects = []*project{
 		{ID: idOf(slug, "project", projectOpen), Key: projectOpen, Name: "Core platform"},
 		{ID: idOf(slug, "project", projectSecret), Key: projectSecret, Name: "Security", AdminOnly: true},
+		{ID: idOf(slug, "project", projectDemo), Key: projectDemo, Name: "Exciter"},
 	}
 	for i, spec := range []struct {
 		name, icon string
@@ -248,6 +253,10 @@ func seed(slug string) *tenant {
 	}
 	// An issue that moved keeps answering to its old key: SEC-2 is CP-5 now.
 	t.move(t.issues["SEC-2"], t.project(projectOpen), seeded.Add(6*time.Hour))
+	demo := t.project(projectDemo)
+	for _, summary := range []string{"Projects", "Requirements", "Trace links"} {
+		t.add(demo, t.typeNamed("Story"), summary, t.person(demoName), seeded)
+	}
 	return t
 }
 
@@ -315,7 +324,12 @@ func (t *tenant) statusOf(category string) *status {
 	return nil
 }
 
-func (p *person) sees(pr *project) bool { return pr != nil && (!pr.AdminOnly || p.Name == adminName) }
+func (p *person) sees(pr *project) bool {
+	if pr != nil && pr.Key == projectDemo {
+		return p.Name == demoName
+	}
+	return pr != nil && (!pr.AdminOnly || p.Name == adminName)
+}
 
 // lookup finds an issue the person may see by its key or a key it had.
 func (t *tenant) lookup(p *person, key string) *issue {

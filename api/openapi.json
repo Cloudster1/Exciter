@@ -1548,7 +1548,8 @@
                 "oauth_app.created",
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
-                "oauth_app.deleted"
+                "oauth_app.deleted",
+                "installation.suite_demo_added"
               ]
             }
           },
@@ -1754,7 +1755,8 @@
                 "oauth_app.created",
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
-                "oauth_app.deleted"
+                "oauth_app.deleted",
+                "installation.suite_demo_added"
               ]
             }
           },
@@ -4952,6 +4954,168 @@
                   "required": [
                     "installation"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/installation/suite-demo": {
+      "get": {
+        "operationId": "getSuiteDemo",
+        "summary": "The suite demo: how far it got, what it made and why links wait; null while nobody added it. For administrators.",
+        "tags": [
+          "installation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "demo": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Demo"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "demo"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addSuiteDemo",
+        "summary": "Add the suite demo once: the requirements of Armature, Exciter and Stator from their own issues, built by the worker as the caller and linked to their issues and pages. For administrators.",
+        "tags": [
+          "installation"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "demo": {
+                      "$ref": "#/components/schemas/Demo"
+                    }
+                  },
+                  "required": [
+                    "demo"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/installation/suite-demo/links": {
+      "post": {
+        "operationId": "linkSuiteDemo",
+        "summary": "Link the suite demo again, adding the links to Armature and Stator it is missing, as the caller. For administrators.",
+        "tags": [
+          "installation"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "demo": {
+                      "$ref": "#/components/schemas/Demo"
+                    }
+                  },
+                  "required": [
+                    "demo"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -29841,7 +30005,8 @@
               "oauth_app.created",
               "oauth_app.updated",
               "oauth_app.secret_rotated",
-              "oauth_app.deleted"
+              "oauth_app.deleted",
+              "installation.suite_demo_added"
             ]
           },
           "actorId": {
@@ -29996,7 +30161,8 @@
                 "oauth_app.created",
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
-                "oauth_app.deleted"
+                "oauth_app.deleted",
+                "installation.suite_demo_added"
               ]
             }
           },
@@ -32209,6 +32375,77 @@
         },
         "required": [
           "themeId"
+        ]
+      },
+      "Demo": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "links": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "projectKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requirements": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "step": {
+            "type": "integer"
+          },
+          "steps": {
+            "type": "integer"
+          },
+          "taken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "kind",
+          "taken",
+          "projectKeys",
+          "step",
+          "steps",
+          "requirements",
+          "links",
+          "skipped",
+          "message",
+          "createdAt",
+          "startedAt",
+          "finishedAt"
         ]
       },
       "DiffBlock": {

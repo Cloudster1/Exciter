@@ -44,6 +44,7 @@ var routes = []route{
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
 	{Method: "GET", Path: "/pages/{pageID}", handler: (*stub).getPage},
 	{Method: "GET", Path: "/search/quick", handler: (*stub).quickSearch},
+	{Method: "GET", Path: "/labels/{labelName}/pages", handler: (*stub).labelPages},
 	{Method: "GET", Path: "/pages/{pageID}/remote-links", handler: (*stub).listLinks},
 	{Method: "POST", Path: "/pages/{pageID}/remote-links", handler: (*stub).putLink},
 	{Method: "DELETE", Path: "/pages/{pageID}/remote-links/{linkID}", handler: (*stub).deleteLink},

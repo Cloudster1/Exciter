@@ -160,6 +160,8 @@ const (
 	ActionCodeTagWordsSaved = "code_tag_words.saved"
 	// ActionRiskSchemeSaved keeps the scales and levels a project rates its risks on (#259).
 	ActionRiskSchemeSaved = "risk_scheme.saved"
+	// ActionSuiteDemoAdded keeps who added the suite demo and from which snapshot (#270).
+	ActionSuiteDemoAdded = "installation.suite_demo_added"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -184,6 +186,7 @@ var Actions = []string{
 	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
 	ActionTestExecutionStarted, ActionTestExecutionRecorded, ActionTestExecutionIssueFiled, ActionTestExecutionClosed,
 	ActionRiskSchemeSaved, ActionOAuthAppCreated, ActionOAuthAppUpdated, ActionOAuthAppSecretRotated, ActionOAuthAppDeleted,
+	ActionSuiteDemoAdded,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

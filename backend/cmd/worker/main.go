@@ -18,9 +18,11 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attachment"
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
+	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/demo"
 	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/mail"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
@@ -28,10 +30,12 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/oauth"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/observability"
+	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/quality"
 	"github.com/cloudster1/exciter/backend/internal/reqifio"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/review"
+	"github.com/cloudster1/exciter/backend/internal/risk"
 	"github.com/cloudster1/exciter/backend/internal/search"
 	"github.com/cloudster1/exciter/backend/internal/secret"
 	"github.com/cloudster1/exciter/backend/internal/stator"
@@ -112,7 +116,9 @@ func run() error {
 		Route(armature.TopicLinks, armature.NewLinkSync(armatures, log)).
 		Route(stator.TopicLinks, stator.NewLinkSync(stators, log)).
 		Route(testresult.TopicRequested, testresult.Handler(testresult.NewService(cluster))).
-		Route(quality.TopicRecheck, quality.Handler(quality.NewService(cluster, requirement.LocateForQuality)))
+		Route(quality.TopicRecheck, quality.Handler(quality.NewService(cluster, requirement.LocateForQuality))).
+		Route(demo.TopicRequested, demo.Handler(demo.NewService(cluster, project.NewService(cluster).WithSeeder(risk.SeedProject),
+			requirements, links, baseline.NewService(cluster), armatures, stators)))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
 		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")
