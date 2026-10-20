@@ -23,7 +23,9 @@ rights of #12, and a project the caller may not view is 404, never 403.
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
 and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
 `reqif.requested`. Settings: `EXCITER_RENDER_URL`, `EXCITER_RENDER_TIMEOUT` (20s), `EXCITER_RENDER_CONCURRENCY` (4) and
-`EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off.
+`EXCITER_RENDER_MAX_SIZE` (50MB) name and bound the render service; a blank URL turns PDF export off. `EXCITER_KROKI_URL`,
+`EXCITER_KROKI_TIMEOUT` (10s) and `EXCITER_KROKI_CONCURRENCY` (4) name and bound the diagram renderer (#284); a blank URL
+shows diagrams as their source.
 
 ## #44 ReqIF import and export
 
@@ -493,3 +495,16 @@ until Stator ships it.
   their part (Cloudster1/Armature#300, praetorianer777/Stator#457), which
   `make suite-up DEMO=1` calls before Exciter's; one that answers 404 has no
   demo yet.
+
+## #284 Diagrams
+
+| Operation | Needs | Answers |
+|---|---|---|
+| `POST /diagrams` | anybody signed in | `{svg}`; 422 `diagram_source` with the renderer's sentence in `fields.source`, or `validation_failed`; 503 `diagrams_unavailable` or `diagrams_busy`; 504 `diagram_timeout` |
+
+- **A diagram** is a block of a statement, rationale or rich text value:
+  `{"type":"diagram","attrs":{"language":"plantuml","source":"..."}}`, the
+  source up to 20000 characters and not blank. A comment holds none.
+- **Drawing** takes `{language, source}` as the block holds them and answers
+  the SVG Kroki draws, in its secure mode; the web shows it as a `data:`
+  image. The same drawing as PNG goes into a Word export.

@@ -69,6 +69,12 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `internal/docx` writes in the api, works either way. Its `/html` hands the
   print view over as one page, styles inlined and scripts gone, which
   `internal/sitezip` cuts into the static HTML site (#214).
+- Diagrams (#284): a requirement's `diagram` block holds PlantUML source,
+  which `internal/diagram` has a Kroki container draw, in its secure mode
+  and reached only by the api, behind `POST /api/v1/diagrams`, keeping the
+  pictures drawn last in memory. The web shows the SVG as a `data:` image;
+  Word embeds a PNG. `EXCITER_KROKI_URL`, `_TIMEOUT` and `_CONCURRENCY`
+  name and bound it; without a URL diagrams show as their source.
 - Observability: `log/slog`, Prometheus metrics, OpenTelemetry traces.
 
 ### One installation
@@ -602,3 +608,5 @@ release builds the `backend`, `web` and `render` images from its tag and pushes 
   serves the client on `WEB_PORT` once the api is healthy (#6). `render`
   prints the print view as PDF once the web is healthy (#45); it publishes no
   port, and the api and the integration suite reach it at `render:8090`.
+  `kroki` draws diagrams for the api at `kroki:8000` (#284), publishing no
+  port either.

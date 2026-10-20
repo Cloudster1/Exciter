@@ -3,6 +3,41 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-20: A diagram is its PlantUML source, drawn by Kroki beside the api (#284)
+
+Architecture drawings go into a requirement's text as a `diagram` block that
+holds its language, `plantuml`, and its source, up to 20000 characters. Only
+the source is stored: it is what is versioned, compared, searched and
+exported, as Stator keeps a diagram.
+
+- **Drawn on the server, unlike Stator.** Stator draws Mermaid in the
+  reader's browser. PlantUML has no renderer that runs in one, so a Kroki
+  container draws it, reached only by the api at `POST /api/v1/diagrams`
+  and in its secure mode, which reads no file and fetches no address a
+  diagram names. Kroki rather than PlantUML's own server because it draws
+  many languages behind one door: another one is an allowlist change, not
+  another container.
+- **No picture is stored.** A stored SVG would go stale with every new
+  renderer and would have to be checked as SVG on its way in, which the
+  attachments refuse for that reason. A drawing is made when it is shown,
+  and the api keeps the pictures drawn last in memory, so a page read again
+  asks Kroki nothing.
+- **Shown as a `data:` image.** The web puts the SVG in an `img`, where
+  nothing in it runs and it fetches nothing, and which the page's image
+  policy already allows; it needs no sanitising and no change to the CSP.
+  The print view does the same, so the PDF and the static site carry the
+  drawing as they are.
+- **Word gets a PNG** of the same drawing, since Word shows no SVG it can be
+  sure of; a diagram that cannot be drawn is written as its source with a
+  sentence. ReqIF, CSV and Excel carry the source, which another tool can
+  read; Markdown writes it as a `plantuml` fence and reads that back as a
+  diagram, except in a comment, which holds none.
+- **History compares the source**, word by word as code, since two pictures
+  side by side do not say what changed.
+
+**Reconsider if** a PlantUML renderer that runs in the browser becomes
+practical, or if diagrams must show where no renderer may run.
+
 ## 2026-10-20: The suite demo is the three tools' own requirements, from a snapshot (#270)
 
 An administrator adds a demo once: the requirements of Armature, Exciter and

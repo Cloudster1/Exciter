@@ -30,6 +30,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/csvio"
 	"github.com/cloudster1/exciter/backend/internal/dashboard"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/diagram"
 	"github.com/cloudster1/exciter/backend/internal/duplicates"
 	"github.com/cloudster1/exciter/backend/internal/exporttemplate"
 	"github.com/cloudster1/exciter/backend/internal/glossary"
@@ -130,6 +131,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 		Tests:           testexec.NewService(h.cluster, store).WithIssues(h.armature(t), "http://exciter.test"),
 		Risks:           risk.NewService(h.cluster),
 		Renderer:        h.renderer(),
+		Diagrams:        h.drawer(),
 		Armature:        h.armature(t),
 		Stator:          h.stator(t),
 		Demo:            h.demoService(t),
@@ -322,4 +324,12 @@ func (h *harness) renderer() render.Renderer {
 		return render.Unavailable{}
 	}
 	return render.New(h.cfg.Render.URL, render.Options{Timeout: h.cfg.Render.Timeout, Concurrency: h.cfg.Render.Concurrency, MaxSize: h.cfg.Render.MaxSize})
+}
+
+// drawer is the stack's diagram renderer, or none when the suite runs without one.
+func (h *harness) drawer() diagram.Drawer {
+	if h.cfg.Kroki.URL == "" {
+		return diagram.Unavailable{}
+	}
+	return diagram.New(h.cfg.Kroki.URL, diagram.Options{Timeout: h.cfg.Kroki.Timeout, Concurrency: h.cfg.Kroki.Concurrency})
 }
