@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 )
 
 // Account is the caller's own link to Armature.
@@ -30,14 +31,23 @@ func (s *Service) account(ctx context.Context, tx db.DBTX) (*Account, error) {
 		return nil, err
 	}
 	if e == nil {
-		return &Account{Status: StatusNotConfigured, Missing: []Missing{}}, nil
+		return &Account{Status: StatusNotConfigured, Missing: []Missing{}, Source: SourceNone}, nil
 	}
-	a := &Account{Configured: true, BaseURL: e.BaseURL, Status: StatusNotConnected, Missing: e.Offered.Missing()}
+	a := &Account{Configured: true, BaseURL: e.BaseURL, Status: StatusNotConnected, Missing: e.Offered.Missing(), Source: SourceNone}
+	if user, ok := db.UserFrom(ctx); ok {
+		if a.SignIn, err = tokenexchange.Read(ctx, tx, tokenexchange.PartnerArmature, user); err != nil {
+			return nil, err
+		}
+	}
 	row, err := s.ownToken(ctx, tx)
 	if err != nil || row == nil {
 		return a, err
 	}
 	a.Connected, a.Status, a.User, a.ReadOnly, a.CheckedAt = true, row.Status, row.User, row.ReadOnly, &row.CheckedAt
+	a.Source = SourceToken
+	if row.exchanged() {
+		a.Source = SourceSignIn
+	}
 	return a, nil
 }
 
@@ -49,7 +59,13 @@ type tokenRow struct {
 	Status    Status
 	User      *AccountUser
 	CheckedAt time.Time
+	// Source is token or exchange; an exchanged one has a refresh token and an hour to live.
+	Source        string
+	RefreshSealed []byte
+	ExpiresAt     *time.Time
 }
+
+func (r *tokenRow) exchanged() bool { return r.Source == sourceExchange }
 
 func (s *Service) ownToken(ctx context.Context, tx db.DBTX) (*tokenRow, error) {
 	user, ok := db.UserFrom(ctx)
@@ -62,9 +78,11 @@ func (s *Service) ownToken(ctx context.Context, tx db.DBTX) (*tokenRow, error) {
 		armatureName, armatureAt *string
 	)
 	err := tx.QueryRow(ctx, `
-		SELECT id, token, read_only, status, armature_user_id, armature_user_name, armature_user_email, checked_at
+		SELECT id, token, read_only, status, armature_user_id, armature_user_name, armature_user_email, checked_at,
+		       source, refresh_token, access_expires_at
 		FROM armature_token WHERE user_id = $1`, user,
-	).Scan(&row.ID, &row.Sealed, &row.ReadOnly, &row.Status, &armatureUser, &armatureName, &armatureAt, &row.CheckedAt)
+	).Scan(&row.ID, &row.Sealed, &row.ReadOnly, &row.Status, &armatureUser, &armatureName, &armatureAt, &row.CheckedAt,
+		&row.Source, &row.RefreshSealed, &row.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -153,6 +171,14 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 		return err
 	}); err != nil {
 		return nil, 0, err
+	}
+	if row != nil && row.exchanged() {
+		user, _ := db.UserFrom(ctx)
+		renewed, _, err := s.renew(ctx, user, row.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		row = renewed
 	}
 	if e == nil || row == nil {
 		out, err := s.Account(db.PinPrimary(ctx))
@@ -246,6 +272,13 @@ func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
 		return nil, StatusNotConfigured, nil
 	case row == nil:
 		return nil, StatusNotConnected, nil
+	case row.exchanged() && (row.Status == StatusRejected || row.ExpiresAt == nil || tokenexchange.Due(*row.ExpiresAt, time.Now())):
+		// A grant from a sign-in is renewed here, where every read and the link worker meet it, so links are
+		// made as the person while they are away; a 401 from Armature is a reason to try its refresh token too.
+		var status Status
+		if row, status, err = s.renew(ctx, user, row.ID); err != nil || status != StatusOK {
+			return nil, status, err
+		}
 	case row.Status == StatusRejected:
 		return nil, StatusRejected, nil
 	}

@@ -82,6 +82,9 @@
       "name": "notifications"
     },
     {
+      "name": "oauth"
+    },
+    {
       "name": "plan"
     },
     {
@@ -119,6 +122,70 @@
     }
   ],
   "paths": {
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "serverMetadata",
+        "summary": "The authorization server's metadata (RFC 8414): every address a connected app needs, and what Armature offers.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "operationId": "resourceMetadata",
+        "summary": "The API as a protected resource (RFC 9728), for an MCP client finding where to get a token.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/absences": {
       "get": {
         "operationId": "listAbsences",
@@ -2988,6 +3055,203 @@
         }
       }
     },
+    "/companies/{companyID}": {
+      "delete": {
+        "operationId": "deleteCompany",
+        "summary": "Remove a company; what was shared with it is shared no more.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "companyID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCompany",
+        "summary": "Rename a company or change its domains.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "companyID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "$ref": "#/components/schemas/Company"
+                    }
+                  },
+                  "required": [
+                    "company"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{companyID}/members": {
+      "post": {
+        "operationId": "addCompanyMember",
+        "summary": "Put a customer in the company by address.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "companyID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "$ref": "#/components/schemas/Company"
+                    }
+                  },
+                  "required": [
+                    "company"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{companyID}/members/{userID}": {
+      "delete": {
+        "operationId": "removeCompanyMember",
+        "summary": "Take a customer out of the company.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "companyID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/components/{componentID}": {
       "delete": {
         "operationId": "deleteComponent",
@@ -5206,7 +5470,7 @@
     "/holiday-calendars/{calendarID}": {
       "delete": {
         "operationId": "deleteHolidayCalendar",
-        "summary": "Delete a calendar that is not the default; the people given it fall back to the default.",
+        "summary": "Delete a calendar that is not the default and no desk takes its days off from; the people given it fall back to the default.",
         "tags": [
           "availability"
         ],
@@ -8667,9 +8931,34 @@
     "/labels": {
       "get": {
         "operationId": "listLabels",
-        "summary": "The labels, with how often each is used.",
+        "summary": "The labels, with how often each is used, a page at a time with how many there are in all.",
         "tags": [
           "labels"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the name contains; names starting with it come first.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -8677,18 +8966,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "labels": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Label"
-                      }
-                    }
-                  },
-                  "required": [
-                    "labels"
-                  ]
+                  "$ref": "#/components/schemas/LabelPage"
                 }
               }
             }
@@ -8935,9 +9213,42 @@
     "/members": {
       "get": {
         "operationId": "listMembers",
-        "summary": "Everyone with an active account here, and their role.",
+        "summary": "Everyone with an active account here and their role, a page at a time, with how many there are in all.",
         "tags": [
           "users"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the name or the address contains; names it starts come first.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "staff",
+            "in": "query",
+            "description": "Leave the service desk's customers out.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -8945,18 +9256,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "members": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/MemberView"
-                      }
-                    }
-                  },
-                  "required": [
-                    "members"
-                  ]
+                  "$ref": "#/components/schemas/MemberPage"
                 }
               }
             }
@@ -9445,6 +9745,618 @@
         }
       }
     },
+    "/oauth/clients": {
+      "get": {
+        "operationId": "listOAuthClients",
+        "summary": "The connected apps, by name, pending ones marked.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clients": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Client"
+                      }
+                    }
+                  },
+                  "required": [
+                    "clients"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createOAuthClient",
+        "summary": "Register a connected app by hand, active at once; a confidential one's secret is shown once.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/clients/{clientID}": {
+      "delete": {
+        "operationId": "deleteOAuthClient",
+        "summary": "Remove a connected app: every grant of it ends, and its webhook goes with its log.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateOAuthClient",
+        "summary": "Change a connected app; narrowing its scopes narrows every grant of it at once.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/clients/{clientID}/approve": {
+      "post": {
+        "operationId": "approveOAuthClient",
+        "summary": "Allow a pending app, with the scopes it registered.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/clients/{clientID}/rotate-secret": {
+      "post": {
+        "operationId": "rotateOAuthClientSecret",
+        "summary": "Issue a connected app a new secret; the old one stops at once.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/consent": {
+      "get": {
+        "operationId": "oAuthConsent",
+        "summary": "What the consent page shows for an /oauth/authorize query, or where the browser goes at once.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "description": "code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "description": "One the app registered, byte for byte.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "Spaced scopes, read among them.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "The app's own, returned with the answer.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "description": "The base64url SHA-256 of the app's verifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "description": "S256",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "description": "The API, or its MCP endpoint (RFC 8707).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prompt",
+            "in": "query",
+            "description": "consent shows the page to a person who allowed the app already.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentAnswer"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "oAuthDecide",
+        "summary": "Allow or cancel what the consent page showed; the answer is where the browser goes.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirectTo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "redirectTo"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "operationId": "oAuthRegister",
+        "summary": "Register a connected app (RFC 7591); it is pending until an administrator allows it, and goes after a day if nobody does.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "operationId": "oAuthRevoke",
+        "summary": "Revoke a token (RFC 7009): a grant's access or refresh token ends the grant; every token is answered alike.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "oAuthToken",
+        "summary": "Trade a code, a refresh token or a token to exchange (RFC 8693) for a person's tokens; the app authenticates with HTTP Basic or the form.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OauthErrorBody"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/oidc-provider": {
       "get": {
         "operationId": "getOIDCProvider",
@@ -9852,7 +10764,7 @@
     "/portal/requests": {
       "get": {
         "operationId": "portalRequests",
-        "summary": "The caller's own requests.",
+        "summary": "The caller's own requests, and those colleagues shared with the caller's companies.",
         "tags": [
           "portal"
         ],
@@ -9867,12 +10779,19 @@
                     "requests": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Issue"
+                        "$ref": "#/components/schemas/PortalRequest"
+                      }
+                    },
+                    "shared": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PortalRequest"
                       }
                     }
                   },
                   "required": [
-                    "requests"
+                    "requests",
+                    "shared"
                   ]
                 }
               }
@@ -9915,7 +10834,7 @@
                   "type": "object",
                   "properties": {
                     "request": {
-                      "$ref": "#/components/schemas/Issue"
+                      "$ref": "#/components/schemas/PortalRequest"
                     }
                   },
                   "required": [
@@ -10009,7 +10928,7 @@
                     "attachments": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Attachment"
+                        "$ref": "#/components/schemas/PortalAttachment"
                       }
                     }
                   },
@@ -10077,7 +10996,7 @@
                   "type": "object",
                   "properties": {
                     "attachment": {
-                      "$ref": "#/components/schemas/Attachment"
+                      "$ref": "#/components/schemas/PortalAttachment"
                     }
                   },
                   "required": [
@@ -10137,7 +11056,7 @@
                   "type": "object",
                   "properties": {
                     "comment": {
-                      "$ref": "#/components/schemas/Comment"
+                      "$ref": "#/components/schemas/PortalComment"
                     }
                   },
                   "required": [
@@ -10189,7 +11108,7 @@
                     "watchers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Watcher"
+                        "$ref": "#/components/schemas/PortalFollower"
                       }
                     }
                   },
@@ -10248,7 +11167,7 @@
                   "type": "object",
                   "properties": {
                     "watcher": {
-                      "$ref": "#/components/schemas/Watcher"
+                      "$ref": "#/components/schemas/PortalFollower"
                     }
                   },
                   "required": [
@@ -10360,17 +11279,40 @@
     "/projects": {
       "get": {
         "operationId": "listProjects",
-        "summary": "Projects.",
+        "summary": "Projects the caller can see, a page at a time, with how many there are in all.",
         "tags": [
           "projects"
         ],
         "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the key or the name contains.",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "archived",
             "in": "query",
             "description": "Include archived projects.",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -10380,18 +11322,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "projects": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Project"
-                      }
-                    }
-                  },
-                  "required": [
-                    "projects"
-                  ]
+                  "$ref": "#/components/schemas/Page"
                 }
               }
             }
@@ -11254,7 +12185,7 @@
       },
       "put": {
         "operationId": "saveCalendar",
-        "summary": "Set when the desk is open.",
+        "summary": "Set when the desk is open, and the holiday calendar whose days close it beside its own.",
         "tags": [
           "desk"
         ],
@@ -11462,6 +12393,117 @@
                   },
                   "required": [
                     "response"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectKey}/companies": {
+      "get": {
+        "operationId": "listCompanies",
+        "summary": "The desk's companies, each with its customers.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "An issue key such as CP-12, or a project key such as CP."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "companies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Company"
+                      }
+                    }
+                  },
+                  "required": [
+                    "companies"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createCompany",
+        "summary": "Add a company; a customer at one of its domains joins on their first request.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "An issue key such as CP-12, or a project key such as CP."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "$ref": "#/components/schemas/Company"
+                    }
+                  },
+                  "required": [
+                    "company"
                   ]
                 }
               }
@@ -12388,6 +13430,56 @@
         }
       }
     },
+    "/projects/{projectKey}/mail-address": {
+      "get": {
+        "operationId": "deskMailAddress",
+        "summary": "The desk's own address, where a new mail raises a request; empty when the installation reads no mailbox.",
+        "tags": [
+          "service desk"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "An issue key such as CP-12, or a project key such as CP."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "address"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/milestones": {
       "get": {
         "operationId": "listMilestones",
@@ -12586,6 +13678,15 @@
                 "breached",
                 "all"
               ]
+            }
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "description": "Only the requests of this company.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -13507,6 +14608,59 @@
         }
       }
     },
+    "/projects/{projectKey}/statuses": {
+      "get": {
+        "operationId": "projectStatuses",
+        "summary": "The statuses this project's workflows hold, which its boards are made of.",
+        "tags": [
+          "workflows"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "An issue key such as CP-12, or a project key such as CP."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statuses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Status"
+                      }
+                    }
+                  },
+                  "required": [
+                    "statuses"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects/{projectKey}/teams": {
       "get": {
         "operationId": "listTeams",
@@ -13780,29 +14934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assignments": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/WorkflowAssignment"
-                      }
-                    },
-                    "projectKey": {
-                      "type": "string"
-                    },
-                    "schemeId": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "assignments",
-                    "projectKey",
-                    "schemeId"
-                  ]
+                  "$ref": "#/components/schemas/ProjectWorkflows"
                 }
               }
             }
@@ -13904,29 +15036,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assignments": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/WorkflowAssignment"
-                      }
-                    },
-                    "projectKey": {
-                      "type": "string"
-                    },
-                    "schemeId": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "assignments",
-                    "projectKey",
-                    "schemeId"
-                  ]
+                  "$ref": "#/components/schemas/ProjectWorkflows"
                 }
               }
             }
@@ -14249,17 +15359,48 @@
     "/role-assignments": {
       "get": {
         "operationId": "listAssignments",
-        "summary": "Who holds which role where.",
+        "summary": "Who holds which role where, a page at a time, with how many there are in all.",
         "tags": [
           "access"
         ],
         "parameters": [
           {
-            "name": "project",
+            "name": "q",
             "in": "query",
-            "description": "Only grants over this project.",
+            "description": "Text the person, the group, or the project's key or name contains.",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "project",
+            "in": "query",
+            "description": "Only grants that answer in this project, those over all projects included.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Only grants of this role, by its key.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -14269,18 +15410,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assignments": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Assignment"
-                      }
-                    }
-                  },
-                  "required": [
-                    "assignments"
-                  ]
+                  "$ref": "#/components/schemas/AssignmentPage"
                 }
               }
             }
@@ -16297,7 +17427,7 @@
     "/tokens/{tokenID}": {
       "delete": {
         "operationId": "revokeAPIToken",
-        "summary": "Revoke a token.",
+        "summary": "Revoke a token; a connected app's grant ends with its access and refresh tokens.",
         "tags": [
           "auth"
         ],
@@ -16367,9 +17497,34 @@
     "/users": {
       "get": {
         "operationId": "listUsers",
-        "summary": "The accounts, switched off ones included, and what may be done to each.",
+        "summary": "The accounts, switched off ones included, and what may be done to each, a page at a time, with how many there are in all.",
         "tags": [
           "users"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the name or the address contains; names it starts come first.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -16377,18 +17532,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ManagedUser"
-                      }
-                    }
-                  },
-                  "required": [
-                    "users"
-                  ]
+                  "$ref": "#/components/schemas/UserPage"
                 }
               }
             }
@@ -17252,6 +18396,246 @@
         }
       }
     },
+    "/webhooks/partner": {
+      "delete": {
+        "operationId": "deletePartnerWebhook",
+        "summary": "Remove the calling connected app's endpoint and its log, also when there was none.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getPartnerWebhook",
+        "summary": "The calling connected app's own endpoint, or null when it has none.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/Endpoint"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePartnerWebhook",
+        "summary": "Change the calling connected app's endpoint; what is left out keeps its value.",
+        "tags": [
+          "webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Endpoint"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPartnerWebhook",
+        "summary": "Make the calling connected app's endpoint; the secret is shown once.",
+        "tags": [
+          "webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Endpoint"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/partner/rotate-secret": {
+      "post": {
+        "operationId": "rotatePartnerWebhookSecret",
+        "summary": "Issue the calling connected app's endpoint a new secret; the old one stops at once.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/components/schemas/Endpoint"
+                    }
+                  },
+                  "required": [
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/partner/test": {
+      "post": {
+        "operationId": "testPartnerWebhook",
+        "summary": "Post a ping to the calling connected app's endpoint now.",
+        "tags": [
+          "webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "delivery": {
+                      "$ref": "#/components/schemas/Delivery"
+                    }
+                  },
+                  "required": [
+                    "delivery"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/{endpointID}": {
       "delete": {
         "operationId": "deleteWebhook",
@@ -17661,9 +19045,34 @@
     "/workflow-schemes": {
       "get": {
         "operationId": "listSchemes",
-        "summary": "Which workflow answers for which issue type.",
+        "summary": "Which workflow answers for which issue type, a page of schemes at a time with the default first, and how many there are in all.",
         "tags": [
           "workflows"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the name contains.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -17671,18 +19080,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "schemes": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Scheme"
-                      }
-                    }
-                  },
-                  "required": [
-                    "schemes"
-                  ]
+                  "$ref": "#/components/schemas/SchemePage"
                 }
               }
             }
@@ -17768,6 +19166,54 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getScheme",
+        "summary": "One scheme with its mappings.",
+        "tags": [
+          "workflows"
+        ],
+        "parameters": [
+          {
+            "name": "schemeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "scheme": {
+                      "$ref": "#/components/schemas/Scheme"
+                    }
+                  },
+                  "required": [
+                    "scheme"
+                  ]
+                }
+              }
+            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -17878,9 +19324,34 @@
     "/workflows": {
       "get": {
         "operationId": "listWorkflows",
-        "summary": "The workflows projects can follow.",
+        "summary": "The workflows projects can follow, a page at a time by name, with how many there are in all.",
         "tags": [
           "workflows"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the name contains.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -17888,18 +19359,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "workflows": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Summary"
-                      }
-                    }
-                  },
-                  "required": [
-                    "workflows"
-                  ]
+                  "$ref": "#/components/schemas/SummaryPage"
                 }
               }
             }
@@ -18430,6 +19890,9 @@
       "APIToken": {
         "type": "object",
         "properties": {
+          "app": {
+            "$ref": "#/components/schemas/ConnectedApp"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -18931,6 +20394,32 @@
           "role"
         ]
       },
+      "AssignmentPage": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assignment"
+            }
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assignments",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "AssistantStatus": {
         "type": "object",
         "properties": {
@@ -19124,6 +20613,9 @@
           "description": {
             "type": "string"
           },
+          "doneForDays": {
+            "type": "integer"
+          },
           "groupBy": {
             "type": "string",
             "enum": [
@@ -19136,6 +20628,12 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "leftOut": {
+            "type": "integer"
+          },
+          "leftOutQuery": {
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -19188,6 +20686,8 @@
           "name",
           "type",
           "groupBy",
+          "doneForDays",
+          "leftOut",
           "swimlanes",
           "unmapped",
           "createdAt",
@@ -19202,6 +20702,9 @@
               "string",
               "null"
             ]
+          },
+          "doneForDays": {
+            "type": "integer"
           },
           "groupBy": {
             "type": [
@@ -19671,6 +21174,19 @@
       "Calendar": {
         "type": "object",
         "properties": {
+          "holidayCalendarId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "holidayCalendarName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "holidays": {
             "type": "array",
             "items": {
@@ -19693,7 +21209,9 @@
         "required": [
           "timezone",
           "hours",
-          "holidays"
+          "holidays",
+          "holidayCalendarId",
+          "holidayCalendarName"
         ]
       },
       "CalendarItem": {
@@ -20066,6 +21584,167 @@
           "themeId"
         ]
       },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "confidential": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grants": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "webhook": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClientWebhook"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "clientUri",
+          "redirectUris",
+          "scopes",
+          "confidential",
+          "status",
+          "keycloakClientId",
+          "webhook",
+          "grants",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ClientChanges": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ClientInput": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "confidential": {
+            "type": "boolean"
+          },
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "redirectUris",
+          "scopes"
+        ]
+      },
+      "ClientWebhook": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "topics",
+          "enabled"
+        ]
+      },
       "CloneOptions": {
         "type": "object",
         "properties": {
@@ -20235,6 +21914,116 @@
           "message",
           "committedAt"
         ]
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyMember"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "projectKey",
+          "name",
+          "domains",
+          "members",
+          "createdAt"
+        ]
+      },
+      "CompanyMember": {
+        "type": "object",
+        "properties": {
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "email",
+          "addedAt"
+        ]
+      },
+      "CompanyMemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "CompanyRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "CompanyRequest": {
+        "type": "object",
+        "properties": {
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "CompleteSprintRequest": {
         "type": "object",
@@ -20446,6 +22235,111 @@
         "required": [
           "token",
           "password"
+        ]
+      },
+      "ConnectedApp": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientUri": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "name"
+        ]
+      },
+      "Consent": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ConsentClient"
+          },
+          "mayAllow": {
+            "type": "boolean"
+          },
+          "mayCancel": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "boolean"
+          },
+          "person": {
+            "type": "string"
+          },
+          "redirectHost": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopeConsent"
+            }
+          }
+        },
+        "required": [
+          "client",
+          "redirectHost",
+          "pending",
+          "person",
+          "scopes",
+          "mayAllow",
+          "mayCancel"
+        ]
+      },
+      "ConsentAnswer": {
+        "type": "object",
+        "properties": {
+          "consent": {
+            "$ref": "#/components/schemas/Consent"
+          },
+          "redirectTo": {
+            "type": "string"
+          }
+        }
+      },
+      "ConsentClient": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ConsentRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "decision"
         ]
       },
       "ControlChartReport": {
@@ -21182,7 +23076,13 @@
       "Desk": {
         "type": "object",
         "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyRef"
+          },
           "description": {
+            "type": "string"
+          },
+          "mailAddress": {
             "type": "string"
           },
           "name": {
@@ -21417,6 +23317,16 @@
           "name": {
             "type": "string"
           },
+          "partner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Partner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "secret": {
             "type": "string"
           },
@@ -21445,7 +23355,8 @@
           "enabled",
           "version",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "partner"
         ]
       },
       "Enrolment": {
@@ -21966,7 +23877,7 @@
           "members": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Member"
+              "$ref": "#/components/schemas/PermMember"
             }
           },
           "name": {
@@ -22093,6 +24004,12 @@
           "default": {
             "type": "boolean"
           },
+          "desks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -22114,6 +24031,7 @@
           "default",
           "dayCount",
           "peopleCount",
+          "desks",
           "createdAt",
           "updatedAt"
         ]
@@ -22429,6 +24347,9 @@
           "commentCount": {
             "type": "integer"
           },
+          "company": {
+            "$ref": "#/components/schemas/CompanyRef"
+          },
           "components": {
             "type": "array",
             "items": {
@@ -22534,6 +24455,9 @@
           "resolvedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "sharedWithCompany": {
+            "type": "boolean"
           },
           "sprint": {
             "$ref": "#/components/schemas/SprintRef"
@@ -22812,6 +24736,32 @@
           "issueCount",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "LabelPage": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            }
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "labels",
+          "total",
+          "limit",
+          "offset"
         ]
       },
       "LabelRef": {
@@ -23106,25 +25056,6 @@
       "Member": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        "required": [
-          "userId",
-          "name"
-        ]
-      },
-      "MemberView": {
-        "type": "object",
-        "properties": {
           "avatarUrl": {
             "type": "string"
           },
@@ -23147,6 +25078,32 @@
           "name",
           "email",
           "role"
+        ]
+      },
+      "MemberPage": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "members",
+          "total",
+          "limit",
+          "offset"
         ]
       },
       "Meta": {
@@ -23543,6 +25500,21 @@
           "createdAt"
         ]
       },
+      "OauthErrorBody": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "error_description"
+        ]
+      },
       "Operation": {
         "type": "object",
         "properties": {
@@ -23682,6 +25654,32 @@
           "named"
         ]
       },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "projects",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "Palette": {
         "type": "object",
         "properties": {
@@ -23818,6 +25816,63 @@
           "parentKey"
         ]
       },
+      "Partner": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "name"
+        ]
+      },
+      "PartnerChanges": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "PartnerInput": {
+        "type": "object",
+        "properties": {
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "url",
+          "topics"
+        ]
+      },
       "PasswordResetRequest": {
         "type": "object",
         "properties": {
@@ -23827,6 +25882,25 @@
         },
         "required": [
           "email"
+        ]
+      },
+      "PermMember": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "name"
         ]
       },
       "PermissionView": {
@@ -24138,6 +26212,38 @@
           "useCalendar"
         ]
       },
+      "PortalAttachment": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "uploader": {
+            "$ref": "#/components/schemas/PortalPerson"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "contentType",
+          "size",
+          "createdAt"
+        ]
+      },
       "PortalCodeRequest": {
         "type": "object",
         "properties": {
@@ -24152,6 +26258,30 @@
           "email"
         ]
       },
+      "PortalComment": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "$ref": "#/components/schemas/PortalPerson"
+          },
+          "body": {
+            "description": "A JSON value."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "body",
+          "createdAt"
+        ]
+      },
       "PortalFollowRequest": {
         "type": "object",
         "properties": {
@@ -24163,6 +26293,44 @@
           "email"
         ]
       },
+      "PortalFollower": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId",
+          "name"
+        ]
+      },
+      "PortalPerson": {
+        "type": "object",
+        "properties": {
+          "avatarUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
       "PortalRaiseRequest": {
         "type": "object",
         "properties": {
@@ -24172,6 +26340,9 @@
           "requestTypeId": {
             "type": "string",
             "format": "uuid"
+          },
+          "shareWithCompany": {
+            "type": "boolean"
           },
           "summary": {
             "type": "string"
@@ -24194,6 +26365,76 @@
           "text"
         ]
       },
+      "PortalRequest": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "$ref": "#/components/schemas/PortalPerson"
+          },
+          "commentCount": {
+            "type": "integer"
+          },
+          "company": {
+            "$ref": "#/components/schemas/CompanyRef"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "description": "A JSON value."
+          },
+          "key": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "lowest",
+              "low",
+              "medium",
+              "high",
+              "highest"
+            ]
+          },
+          "reporter": {
+            "$ref": "#/components/schemas/PortalPerson"
+          },
+          "requestTypeName": {
+            "type": "string"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sharedWithCompany": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PortalStatus"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "team": {
+            "$ref": "#/components/schemas/TeamRef"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "status",
+          "priority",
+          "sharedWithCompany",
+          "createdAt",
+          "updatedAt",
+          "commentCount"
+        ]
+      },
       "PortalSessionRequest": {
         "type": "object",
         "properties": {
@@ -24212,6 +26453,26 @@
         },
         "required": [
           "email"
+        ]
+      },
+      "PortalStatus": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "todo",
+              "in_progress",
+              "done"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "category"
         ]
       },
       "Preferences": {
@@ -24416,6 +26677,10 @@
           "leadName": {
             "type": "string"
           },
+          "mailRequestTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
           },
@@ -24475,6 +26740,39 @@
           "resourceGrouping",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "ProjectWorkflows": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowAssignment"
+            }
+          },
+          "defaultSchemeName": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "schemeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "schemeName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectKey",
+          "schemeId",
+          "defaultSchemeName",
+          "assignments"
         ]
       },
       "Proposal": {
@@ -24767,6 +27065,103 @@
         "required": [
           "key",
           "reason"
+        ]
+      },
+      "RegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "client_name": {
+            "type": "string"
+          },
+          "client_uri": {
+            "type": "string"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_name",
+          "redirect_uris"
+        ]
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_id_issued_at": {
+            "type": "integer"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "client_secret_expires_at": {
+            "type": "integer"
+          },
+          "client_uri": {
+            "type": "string"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret_expires_at",
+          "client_id_issued_at",
+          "client_name",
+          "redirect_uris",
+          "scope",
+          "token_endpoint_auth_method",
+          "grant_types",
+          "response_types"
         ]
       },
       "ReleaseBurndownReport": {
@@ -25245,18 +27640,18 @@
           "comments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Comment"
+              "$ref": "#/components/schemas/PortalComment"
             }
           },
-          "issue": {
-            "$ref": "#/components/schemas/Issue"
+          "request": {
+            "$ref": "#/components/schemas/PortalRequest"
           },
-          "requestTypeName": {
-            "type": "string"
+          "throughCompany": {
+            "type": "boolean"
           }
         },
         "required": [
-          "issue",
+          "request",
           "comments"
         ]
       },
@@ -25385,6 +27780,38 @@
         "required": [
           "key",
           "summary"
+        ]
+      },
+      "ResourceMetadata": {
+        "type": "object",
+        "properties": {
+          "authorization_servers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bearer_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resource": {
+            "type": "string"
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "resource",
+          "authorization_servers",
+          "scopes_supported",
+          "bearer_methods_supported"
         ]
       },
       "ResourcePlan": {
@@ -25570,6 +27997,26 @@
           "total",
           "limit",
           "offset"
+        ]
+      },
+      "RevokeRequest": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "token_type_hint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ]
       },
       "Row": {
@@ -26110,6 +28557,32 @@
           "workflowName"
         ]
       },
+      "SchemePage": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "schemes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Scheme"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schemes",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "SchemeRequest": {
         "type": "object",
         "properties": {
@@ -26143,6 +28616,21 @@
         "required": [
           "name",
           "items"
+        ]
+      },
+      "ScopeConsent": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "words": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "words"
         ]
       },
       "SecondFactorCodeRequest": {
@@ -26245,6 +28733,89 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "ServerMetadata": {
+        "type": "object",
+        "properties": {
+          "authorization_endpoint": {
+            "type": "string"
+          },
+          "authorization_response_iss_parameter_supported": {
+            "type": "boolean"
+          },
+          "code_challenge_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grant_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "registration_endpoint": {
+            "type": "string"
+          },
+          "response_modes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revocation_endpoint": {
+            "type": "string"
+          },
+          "revocation_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "service_documentation": {
+            "type": "string"
+          },
+          "token_endpoint": {
+            "type": "string"
+          },
+          "token_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "issuer",
+          "authorization_endpoint",
+          "token_endpoint",
+          "revocation_endpoint",
+          "scopes_supported",
+          "response_types_supported",
+          "response_modes_supported",
+          "grant_types_supported",
+          "code_challenge_methods_supported",
+          "token_endpoint_auth_methods_supported",
+          "revocation_endpoint_auth_methods_supported",
+          "authorization_response_iss_parameter_supported",
+          "service_documentation"
         ]
       },
       "Session": {
@@ -27253,6 +29824,32 @@
           "inDefault"
         ]
       },
+      "SummaryPage": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "workflows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Summary"
+            }
+          }
+        },
+        "required": [
+          "workflows",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "Swimlane": {
         "type": "object",
         "properties": {
@@ -27777,6 +30374,82 @@
           "paused"
         ]
       },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "armature_expires_in": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "code_verifier": {
+            "type": "string"
+          },
+          "grant_type": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "requested_token_type": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "subject_token": {
+            "type": "string"
+          },
+          "subject_token_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_type"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer"
+          },
+          "issued_token_type": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "scope"
+        ]
+      },
       "Transition": {
         "type": "object",
         "properties": {
@@ -28071,6 +30744,13 @@
             ],
             "format": "uuid"
           },
+          "mailRequestTypeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
           },
@@ -28246,6 +30926,32 @@
           "timezone",
           "locale",
           "isActive"
+        ]
+      },
+      "UserPage": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagedUser"
+            }
+          }
+        },
+        "required": [
+          "users",
+          "total",
+          "limit",
+          "offset"
         ]
       },
       "UserRef": {

@@ -91,8 +91,9 @@ type world struct {
 	capabilities []string
 }
 
-// statorCapabilities are what Stator's main lists on GET /meta, read when api/stator was last vendored.
-var statorCapabilities = []string{"page-links@1", "page-remote-links@1", "webhook-receiver@1", "webhooks@1", "theme-export@1"}
+// statorCapabilities are what Stator's main lists on GET /meta, read when api/stator was last vendored, and the
+// token exchange its #461 is to list, which the stub serves ahead of it (#274).
+var statorCapabilities = []string{"page-links@1", "page-remote-links@1", "webhook-receiver@1", "webhooks@1", "theme-export@1", "oauth.token-exchange@1"}
 
 func newWorld() *world {
 	return &world{tenants: map[string]*tenant{}, capabilities: slices.Clone(statorCapabilities)}

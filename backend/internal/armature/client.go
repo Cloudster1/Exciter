@@ -159,8 +159,9 @@ func (a *Caller) Me(ctx context.Context) (*Me, error) {
 		return nil, err
 	}
 	me := &Me{User: answer.Principal.User}
+	// A connected app's token holds read beside what it may change, so read alone is what makes it read only.
 	if answer.Token != nil {
-		me.ReadOnly = slices.Contains(answer.Token.Scopes, ScopeRead)
+		me.ReadOnly = slices.Contains(answer.Token.Scopes, ScopeRead) && !slices.Contains(answer.Token.Scopes, ScopeIssueWrite)
 	}
 	if answer.Principal.Org != nil {
 		me.OrgID = answer.Principal.Org.ID

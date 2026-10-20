@@ -181,7 +181,13 @@ function AddPageLink({ requirement, connected, onLinked }: { requirement: Requir
   return (
     <form onSubmit={submit} className="space-y-3 border-t border-border pt-3" aria-label={l.add} data-add-stator-link>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Select label={l.relation} value={relation} onChange={(event) => setRelation(event.target.value as StatorRelation)} data-stator-relation-select>
+        <Select
+          id="stator-link-relation"
+          label={l.relation}
+          value={relation}
+          onChange={(event) => setRelation(event.target.value as StatorRelation)}
+          data-stator-relation-select
+        >
           {STATOR_RELATIONS.map((each) => (
             <option key={each} value={each}>
               {l.relations[each]}

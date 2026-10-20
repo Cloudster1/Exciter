@@ -23,6 +23,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/specdoc"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/theme"
+	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 	"github.com/cloudster1/exciter/backend/internal/version"
 	"github.com/cloudster1/exciter/backend/internal/via"
@@ -167,6 +168,7 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[armature.Connection]():      "ArmatureConnection",
 		reflect.TypeFor[armature.ConnectionInput](): "ArmatureConnectionInput",
 		reflect.TypeFor[armature.Account]():         "ArmatureAccount",
+		reflect.TypeFor[tokenexchange.SignIn]():     "PartnerSignIn",
 		reflect.TypeFor[armature.AccountUser]():     "ArmatureUser",
 		reflect.TypeFor[armature.TokenInput]():      "ArmatureTokenInput",
 		reflect.TypeFor[armature.Issue]():           "ArmatureIssue",
@@ -227,11 +229,13 @@ func coreSchemas(b *openapi.Builder) {
 	b.Enums[reflect.TypeOf(armature.Status(""))] = enumStrings(armature.Statuses)
 	b.Enums[reflect.TypeOf(armature.Relation(""))] = enumStrings(armature.Relations)
 	b.Enums[reflect.TypeOf(armature.SyncState(""))] = enumStrings(armature.SyncStates)
+	b.Enums[reflect.TypeOf(armature.Source(""))] = enumStrings(armature.Sources)
 	// Null until Armature is asked, which counts as offering everything.
 	b.FieldOverrides["ArmatureConnection.capabilities"] = openapi.Nullable(&openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string"}})
 	b.Enums[reflect.TypeOf(stator.Status(""))] = enumStrings(stator.Statuses)
 	b.Enums[reflect.TypeOf(stator.Relation(""))] = enumStrings(stator.Relations)
 	b.Enums[reflect.TypeOf(stator.SyncState(""))] = enumStrings(stator.SyncStates)
+	b.Enums[reflect.TypeOf(stator.Source(""))] = enumStrings(stator.Sources)
 
 	category := &openapi.Schema{Type: "string", Enum: enumStrings(workflow.Categories)}
 	b.FieldOverrides["StatusRef.category"] = category

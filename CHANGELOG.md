@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- People connected to Armature and Stator as they sign in (#274). Where the
+  three tools share one Keycloak realm and the operator switches it on
+  (`EXCITER_ARMATURE_TOKEN_EXCHANGE`, `EXCITER_STATOR_TOKEN_EXCHANGE`, Helm
+  `armature.tokenExchange`, `stator.tokenExchange`), Exciter exchanges the
+  person's sign-in at each partner that offers `oauth.token-exchange@1`, as
+  the connected app whose client id and secret an administrator stores on
+  the connection, so nobody pastes a token. The tokens are renewed as they
+  are used, the link worker's included; a token somebody pasted stays, and
+  the account page says in a sentence why a partner is not connected. A
+  failed exchange never fails the sign-in.
 - Partner apps connect people with no pasted token (#273). An administrator
   registers a tool beside Exciter, such as Stator, with the Keycloak client
   it signs people in with, under Installation or at `/oauth/clients`, and

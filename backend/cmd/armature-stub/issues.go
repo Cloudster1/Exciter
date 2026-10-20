@@ -41,7 +41,7 @@ func decode(c *call, into any) bool {
 }
 
 func (c *call) readOnly() bool {
-	if c.person.ReadOnly {
+	if c.person.ReadOnly || (c.exchanged && !slices.Contains(strings.Fields(c.scope), scopeIssueWrite)) {
 		refuse(c.w, http.StatusForbidden, "read_only_token", "This token can only read. Use a token without the read scope, or sign in, to make changes.")
 		return true
 	}
@@ -162,6 +162,9 @@ func (s *stub) access(c *call) {
 	})
 }
 
+// projectsLimit is the window Armature answers projects in when none is asked; the stub has fewer.
+const projectsLimit = 50
+
 func (s *stub) projects(c *call) {
 	out := []map[string]any{}
 	for _, pr := range c.tenant.projects {
@@ -184,7 +187,7 @@ func (s *stub) projects(c *call) {
 			"createdAt": seeded, "updatedAt": seeded,
 		})
 	}
-	respond(c.w, http.StatusOK, map[string]any{"projects": out})
+	respond(c.w, http.StatusOK, map[string]any{"projects": out, "total": len(out), "limit": projectsLimit, "offset": 0})
 }
 
 func (s *stub) issueTypes(c *call) {

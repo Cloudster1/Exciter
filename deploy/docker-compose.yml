@@ -46,6 +46,10 @@ x-partner-env: &partner-env
   EXCITER_OUTBOUND_ALLOW: armature-stub,stator-stub
   EXCITER_ARMATURE_BACKCHANNEL: http://localhost:${ARMATURE_STUB_PORT:-8188}=http://armature-stub:8080
   EXCITER_STATOR_BACKCHANNEL: http://localhost:${STATOR_STUB_PORT:-8189}=http://stator-stub:8080
+  # People are connected to both at sign-in once an administrator stores Exciter's client id and secret on each
+  # connection (#274); the stubs serve the exchange for an app a test registered with them.
+  EXCITER_ARMATURE_TOKEN_EXCHANGE: "true"
+  EXCITER_STATOR_TOKEN_EXCHANGE: "true"
 
 # Every Go service runs the same image, which migrate alone builds: two builds racing to tag one name would fail
 # the stack's start.
@@ -299,13 +303,17 @@ services:
       start_interval: 1s
 
   # Stands in for Armature, serving the part of its API Exciter calls; a contract test holds it to Armature's
-  # document. Tokens are armature_pat_<org slug>_<person>.
+  # document. Tokens are armature_pat_<org slug>_<person>, and those its token exchange gives armature_oat_; the
+  # exchange takes access tokens of the stack's Keycloak, under the published port as the browser's sign-ins get
+  # them and inside the network as the integration suite does.
   armature-stub:
     <<: *backend
     command: ["/app/armature-stub"]
     environment:
       # Webhooks go to the address Exciter shows, which people open; inside the stack the api answers it.
       ARMATURE_STUB_BACKCHANNEL: http://localhost:${WEB_PORT:-8000}=http://api:8080
+      ARMATURE_STUB_OIDC_ISSUERS: http://localhost:${KEYCLOAK_PORT:-8180}/realms/dynamo,http://keycloak:8080/realms/dynamo
+      ARMATURE_STUB_OIDC_BACKCHANNEL: http://localhost:${KEYCLOAK_PORT:-8180}=http://keycloak:8080
     ports:
       - "127.0.0.1:${ARMATURE_STUB_PORT:-8188}:8080"
     healthcheck:
@@ -317,13 +325,15 @@ services:
       start_interval: 1s
 
   # Stands in for Stator, serving the part of its API Exciter calls; a contract test holds it to Stator's document.
-  # Tokens are stator_pat_<tenant>_<person>.
+  # Tokens are stator_pat_<tenant>_<person>, and those its token exchange gives stator_oat_, as for Armature.
   stator-stub:
     <<: *backend
     command: ["/app/stator-stub"]
     environment:
       # Webhooks go to the address Exciter shows, which people open; inside the stack the api answers it.
       STATOR_STUB_BACKCHANNEL: http://localhost:${WEB_PORT:-8000}=http://api:8080
+      STATOR_STUB_OIDC_ISSUERS: http://localhost:${KEYCLOAK_PORT:-8180}/realms/dynamo,http://keycloak:8080/realms/dynamo
+      STATOR_STUB_OIDC_BACKCHANNEL: http://localhost:${KEYCLOAK_PORT:-8180}=http://keycloak:8080
     ports:
       - "127.0.0.1:${STATOR_STUB_PORT:-8189}:8080"
     healthcheck:

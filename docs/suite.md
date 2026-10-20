@@ -67,7 +67,11 @@ single sign-on.
   (`http://suite-exciter-api:8080/api/v1/armature/webhook`); each product stores the endpoint's secret. Exciter
   checks the signature, not the address it was posted to.
 - **Alice's Armature token.** `suite-seed` makes one and writes it to `.cache/suite.env`, with the addresses. Paste
-  it under Your account, Armature account in Exciter, and the same in Stator, to see issues as alice.
+  it under Your account, Armature account in Stator to see issues as alice there.
+- **Connected at sign-in (#274).** `suite-seed` registers Exciter as a connected app of Armature, named by the
+  realm's `exciter` client, stores its client id and secret on Exciter's Armature connection, and connects Exciter
+  to Stator, the same way once Stator lists `oauth.token-exchange@1`. Signing in to Exciter then connects alice to
+  Armature without a token; Stator follows when its exchange ships (praetorianer777/Stator#461).
 
 `make suite-seed` runs these steps again on a running suite; each finds what is already there and leaves it.
 

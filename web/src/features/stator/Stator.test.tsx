@@ -27,12 +27,16 @@ function connection(over: Partial<StatorConnection> = {}): StatorConnection {
     webhookTopics: ["page.published", "page.moved", "page.deleted", "page.remote_link.removed"],
     connected: 0,
     updatedAt: "2026-10-01T08:00:00Z",
+    clientId: "",
+    clientSecretSet: false,
+    tokenExchange: false,
+    exchangeOffered: false,
     ...over,
   };
 }
 
 function account(over: Partial<StatorAccount> = {}): StatorAccount {
-  return { configured: true, baseUrl: BASE, connected: false, status: "not_connected", user: null, checkedAt: null, ...over };
+  return { configured: true, baseUrl: BASE, connected: false, status: "not_connected", user: null, checkedAt: null, source: "none", signIn: null, ...over };
 }
 
 const connectedAccount = account({
@@ -212,5 +216,63 @@ describe("connecting one's own Stator account", () => {
     await user.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Stator account" }));
     await waitFor(() => expect(router.state.location.pathname).toBe(STATOR_ACCOUNT_PATH));
     expect(await screen.findByRole("heading", { level: 1, name: "Stator account" })).toBeInTheDocument();
+  });
+});
+
+describe("connecting people to Stator at sign-in", () => {
+  it("stores Exciter's client id and secret on the connection, the secret never coming back", async () => {
+    let current = connection({ tokenExchange: true, exchangeOffered: true });
+    const sent = stubApi({
+      "GET /stator/connection": () => ({ status: 200, body: { connection: current } }),
+      "PUT /stator/connection": () => {
+        current = connection({ tokenExchange: true, exchangeOffered: true, clientId: "exciter-app", clientSecretSet: true, updatedAt: "2026-10-02T08:00:00Z" });
+        return { status: 200, body: { connection: current } };
+      },
+    });
+    const user = userEvent.setup();
+    await renderAt(STATOR_SETTINGS_PATH);
+    expect(await screen.findByText("People are connected to Stator when they sign in.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Client id at Stator"), "exciter-app");
+    await user.type(screen.getByLabelText("Client secret at Stator"), "s3cret");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Saved.")).toBeInTheDocument();
+    expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ baseUrl: BASE, clientId: "exciter-app", clientSecret: "s3cret" });
+    expect(screen.getByLabelText("Client id at Stator")).toHaveValue("exciter-app");
+    expect(screen.getByLabelText("Client secret at Stator")).toHaveValue("");
+    expect(screen.getByLabelText("Client secret at Stator")).toHaveAttribute("placeholder", "Stored. Leave blank to keep it.");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says when the operator has not switched it on", async () => {
+    stubApi({ "GET /stator/connection": { status: 200, body: { connection: connection() } } });
+    await renderAt(STATOR_SETTINGS_PATH);
+    expect(await screen.findByText(/EXCITER_STATOR_TOKEN_EXCHANGE/)).toBeInTheDocument();
+  });
+
+  it("tells a person connected at sign-in so, and one who was not why", async () => {
+    const why = "Stator did not connect you at sign-in: Ada has no Stator account yet. Connect with a token below, or ask Stator's administrator.";
+    stubApi({
+      "GET /stator/account": {
+        status: 200,
+        body: { account: account({ signIn: { connected: false, message: why, at: "2026-10-01T09:00:00Z" } }) },
+      },
+    });
+    await renderAt(STATOR_ACCOUNT_PATH);
+    expect(await screen.findByText(why)).toBeInTheDocument();
+    expect(screen.getByLabelText("Stator token")).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("shows a token from the sign-in as such, without the sentence of an earlier failure", async () => {
+    stubApi({
+      "GET /stator/account": {
+        status: 200,
+        body: { account: { ...connectedAccount, source: "sign_in", signIn: { connected: true, message: "", at: "2026-10-01T09:00:00Z" } } },
+      },
+    });
+    await renderAt(STATOR_ACCOUNT_PATH);
+    expect(await screen.findByText("Connected when you signed in. Disconnecting lasts until your next sign-in.")).toBeInTheDocument();
+    expect(document.querySelector("[data-stator-sign-in]")).toBeNull();
   });
 });

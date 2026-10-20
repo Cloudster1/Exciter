@@ -71,7 +71,7 @@ func (h *harness) armature(t *testing.T) *armature.Service {
 	allow := netguard.ParseAllow(armatureStubHost)
 	client := armature.NewClient(allow, map[string]string{armatureURL(t): os.Getenv(envArmatureStub)})
 	return armature.NewService(h.cluster, box, client, armature.NewCache(h.valkey(t), discard()),
-		armature.Options{AppURL: "http://" + appHost, Allow: allow, Development: true, Log: discard()})
+		armature.Options{AppURL: "http://" + appHost, Allow: allow, Development: true, TokenExchange: true, Log: discard()})
 }
 
 func patFor(tenant, person string) string { return armature.TokenPrefix + tenant + "_" + person }

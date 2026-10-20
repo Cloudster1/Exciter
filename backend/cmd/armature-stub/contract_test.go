@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +19,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
+	"github.com/cloudster1/exciter/backend/internal/exchangestub"
 	"github.com/cloudster1/exciter/backend/internal/openapi"
 	"github.com/cloudster1/exciter/backend/internal/theme"
 )
@@ -167,7 +171,7 @@ func keysOf(t *testing.T, answer map[string]any) []string {
 
 func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 	doc, raw := loadArmature(t)
-	server := httptest.NewServer(newStub(raw).handler())
+	server := httptest.NewServer(newStub(raw, fakeKeycloak).handler())
 	defer server.Close()
 	c := &contract{t: t, doc: doc, base: server.URL, served: map[string]bool{}}
 	alice, admin, reader := patFor("acme", "alice"), patFor("acme", adminName), patFor("acme", readerName)
@@ -357,10 +361,96 @@ func TestEveryAnswerFitsArmaturesDocument(t *testing.T) {
 		t.Errorf("the health check answered %d", status)
 	}
 
+	c.exchange()
+
 	for _, rt := range routes {
 		if !c.served[rt.Method+" "+rt.Path] {
 			t.Errorf("the scenario never had %s %s answer with a success", rt.Method, rt.Path)
 		}
+	}
+}
+
+// fakeKeycloak reads "kc|email|azp|aud" as a verified token, so the contract needs no identity provider.
+func fakeKeycloak(_ context.Context, raw string) (*exchangestub.Claims, error) {
+	parts := strings.Split(raw, "|")
+	if len(parts) != 4 || parts[0] != "kc" {
+		return nil, errors.New("it is not a current token signed by the identity provider")
+	}
+	return &exchangestub.Claims{Email: parts[1], AuthorizedBy: parts[2], Audience: []string{parts[3]}}, nil
+}
+
+// form posts to the token endpoint as a partner app does, checking the answer against Armature's document.
+func (c *contract) form(id, secret string, values url.Values, want int) map[string]any {
+	c.t.Helper()
+	req, _ := http.NewRequest(http.MethodPost, c.base+apiPrefix+"/oauth/token", strings.NewReader(values.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth(url.QueryEscape(id), url.QueryEscape(secret))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != want {
+		c.t.Fatalf("POST /oauth/token %v = %d, want %d: %s", values, resp.StatusCode, want, raw)
+	}
+	op := c.doc.Paths["/oauth/token"]["post"]
+	if op.RequestBody == nil || op.RequestBody.Content["application/x-www-form-urlencoded"].Schema == nil {
+		c.t.Fatal("Armature's token endpoint takes no form")
+	}
+	sent, _ := json.Marshal(flat(values))
+	if err := c.doc.ValidateJSON(op.RequestBody.Content["application/x-www-form-urlencoded"].Schema, sent); err != nil {
+		c.t.Errorf("Armature would refuse the form %s: %v", sent, err)
+	}
+	if err := c.doc.ValidateJSON(op.Responses[strconv.Itoa(want)].Content["application/json"].Schema, raw); err != nil {
+		c.t.Errorf("POST /oauth/token answered %d in a shape Armature does not: %v\n%s", want, err, raw)
+	}
+	if want == http.StatusOK {
+		c.served["POST /oauth/token"] = true
+	}
+	out := map[string]any{}
+	_ = json.Unmarshal(raw, &out)
+	return out
+}
+
+func flat(values url.Values) map[string]string {
+	out := map[string]string{}
+	for k := range values {
+		out[k] = values.Get(k)
+	}
+	return out
+}
+
+// exchange is the token exchange as docs/oauth.md has it (#274): Exciter's app trades alice's realm token for her
+// tokens, which act as her, refreshes them, and a rotated refresh token presented again ends the grant.
+func (c *contract) exchange() {
+	c.t.Helper()
+	c.expect("PUT", stubPrefix+"/acme/oauth-app", "", map[string]any{"clientId": "exciter-app", "clientSecret": "s3cret", "keycloakClientId": "exciter"}, http.StatusNoContent)
+	subject := func(token string) url.Values {
+		return url.Values{"grant_type": {exchangestub.GrantExchange}, "subject_token": {token}, "subject_token_type": {exchangestub.TokenTypeAccess}}
+	}
+	c.form("exciter-app", "wrong", subject("kc|alice@suite.test|exciter|armature"), http.StatusUnauthorized)
+	c.form("exciter-app", "s3cret", subject("kc|alice@suite.test|stator|armature"), http.StatusBadRequest)
+	c.form("exciter-app", "s3cret", subject("kc|alice@suite.test|exciter|stator"), http.StatusBadRequest)
+	got := c.form("exciter-app", "s3cret", subject("kc|alice@suite.test|exciter|armature"), http.StatusOK)
+	access, refresh := got["access_token"].(string), got["refresh_token"].(string)
+	if !strings.HasPrefix(access, accessTokenPrefix) || !strings.HasPrefix(refresh, refreshTokenPrefix) || got["scope"] != "read issue.write" {
+		c.t.Errorf("the exchange answered %v", got)
+	}
+	me := c.expect("GET", "/auth/me", access, nil, 200)
+	if me["principal"].(map[string]any)["user"].(map[string]any)["name"] != "Alice" || fmt.Sprint(me["token"].(map[string]any)["scopes"]) != "[read issue.write]" {
+		c.t.Errorf("an exchanged token is not alice's with the app's scopes: %v", me)
+	}
+	renewed := c.form("exciter-app", "s3cret", url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refresh}}, http.StatusOK)
+	if renewed["refresh_token"] == refresh {
+		c.t.Error("a refresh did not rotate the refresh token")
+	}
+	if status, _ := c.call("GET", "/auth/me", access, nil); status != http.StatusUnauthorized {
+		c.t.Errorf("the access token before the refresh still answers %d", status)
+	}
+	c.form("exciter-app", "s3cret", url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refresh}}, http.StatusBadRequest)
+	if status, _ := c.call("GET", "/auth/me", renewed["access_token"].(string), nil); status != http.StatusUnauthorized {
+		c.t.Errorf("a replayed refresh token left the grant standing: %d", status)
 	}
 }
 

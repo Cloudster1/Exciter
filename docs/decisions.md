@@ -3,6 +3,45 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-19: People are connected to Armature and Stator at sign-in (#274)
+
+With one Keycloak realm for the three tools, Exciter exchanges the access
+token of a person's sign-in at each partner's token endpoint (RFC 8693), as
+the connected app an administrator registered there. Armature serves the
+exchange since its #280; Stator's is its #461.
+
+- **Synchronous, bounded, never failing.** The exchange runs before the
+  browser lands, at both partners at once and for at most three seconds
+  each, so the first page already shows the person connected and a partner
+  away costs a moment, not the sign-in. What it came to is kept per person
+  and partner, so the account page can say why in a sentence.
+- **The exchanged token takes the pasted token's place, not a place of its
+  own.** Every read, the picker, issue creation and the link worker already
+  find a person's token in one row; an exchanged one there, with its refresh
+  token and expiry beside it, needs nothing of them but the refresh where
+  the token is read, which is also where the worker meets it.
+- **A working pasted token wins.** Somebody who pasted a token chose it, may
+  have chosen one of other rights, and still has it while Exciter is unsure;
+  the exchange fills in only a missing, rejected or exchanged token, and
+  pasting replaces an exchanged one. Disconnecting lasts until the next
+  sign-in, which is what the operator switching the exchange on asked for.
+- **Refreshed where used, under a row lock.** A rotated refresh token
+  presented again ends the grant at Armature, so two processes refreshing at
+  once would disconnect the person; the lock serializes them, and the second
+  finds the token renewed. There is no refresh on a timer: a person whose
+  grant lapses unused is connected again by their next sign-in.
+- **Off until the operator says so, per partner.** It needs the realm's
+  audience mappers, the app registered at the partner and its secret here,
+  so `EXCITER_ARMATURE_TOKEN_EXCHANGE` and `EXCITER_STATOR_TOKEN_EXCHANGE`
+  turn it on, and the partner must list `oauth.token-exchange@1` by its
+  exact name.
+- **No scope is asked.** The partner's administrator sets what the app may
+  have; a token holding `read` beside `issue.write` is not read only.
+- **The stubs verify against the realm's keys.** armature-stub and
+  stator-stub serve the exchange as Armature's docs describe, checking the
+  token's signature, `azp` and `aud` against the stack's Keycloak, so the
+  realm's mappers are tested with them. Stator's route is outside its
+  vendored document until its #461 ships.
 ## 2026-10-19: A partner app trades a person's sign-in for a grant, as at Armature (#273)
 
 - **Armature's exchange, not a new one.** The grant, its checks, its

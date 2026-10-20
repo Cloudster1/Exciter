@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/exchangestub"
 )
 
 const (
@@ -18,6 +20,12 @@ const (
 	apiVersion = "1"
 	// maxBody bounds what the stub reads of a request.
 	maxBody = 1 << 20
+	// The stub's own client in the shared realm, which an exchanged token's audience must hold, and its tokens,
+	// named as Stator names its others until its #461 says.
+	keycloakClient     = "stator"
+	accessTokenPrefix  = "stator_oat_"
+	refreshTokenPrefix = "stator_ort_"
+	defaultAppScope    = "read write"
 )
 
 // route is one operation the stub serves. Path is Stator's, relative to
@@ -46,6 +54,8 @@ type stub struct {
 	client *http.Client
 	// backchannel maps an origin people open to the one the stub reaches it at.
 	backchannel map[string]string
+	// exchange serves the token exchange for a partner app a test registered (#274).
+	exchange *exchangestub.Server
 }
 
 // call is one request as a person of a tenant.
@@ -59,7 +69,32 @@ type call struct {
 	answer func([]delivery)
 }
 
-func newStub() *stub { return &stub{world: newWorld(), client: &http.Client{Timeout: webhookTimeout}} }
+func newStub(verify exchangestub.Verifier) *stub {
+	return &stub{world: newWorld(), client: &http.Client{Timeout: webhookTimeout},
+		exchange: exchangestub.NewServer(product, accessTokenPrefix, refreshTokenPrefix, keycloakClient, verify)}
+}
+
+// setApp registers the tenant's partner app, as an administrator does in Stator; an empty client id removes it.
+func (s *stub) setApp(c *call) {
+	var app exchangestub.App
+	if !decode(c, &app) {
+		return
+	}
+	if app.Scope == "" {
+		app.Scope = defaultAppScope
+	}
+	s.exchange.SetApp(c.tenant.Slug, app)
+	c.w.WriteHeader(http.StatusNoContent)
+}
+
+// grants lists the tenant's grants from the exchange, with how often each was refreshed.
+func (s *stub) grants(c *call) {
+	out := []map[string]any{}
+	for _, g := range s.exchange.Grants(c.tenant.Slug) {
+		out = append(out, map[string]any{"person": g.Person, "scope": g.Scope, "refreshes": g.Refreshes, "expiresAt": g.ExpiresAt})
+	}
+	respond(c.w, http.StatusOK, map[string]any{"grants": out})
+}
 
 // finish posts what a call owes, once the world is unlocked.
 func (s *stub) finish(c *call) {
@@ -76,7 +111,12 @@ func (s *stub) handler() http.Handler {
 		mux.HandleFunc(rt.Method+" "+apiPrefix+rt.Path, s.serve(rt))
 	}
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	// Stator's token exchange is being built in its #461, so its document has no such route yet and the route is kept
+	// out of routes, which the contract test holds to the document; it answers as Armature's does (docs/oauth.md).
+	mux.HandleFunc("POST "+apiPrefix+"/oauth/token", s.exchange.ServeToken)
 	mux.HandleFunc("PUT "+stubPrefix+"/capabilities", s.setCapabilities)
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/oauth-app", s.control((*stub).setApp))
+	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/oauth-grants", s.control((*stub).grants))
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/pages", s.control((*stub).listPages))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/pages/{pageID}/publish", s.control((*stub).publishPage))
 	mux.HandleFunc("POST "+stubPrefix+"/{tenant}/pages/{pageID}/move", s.control((*stub).movePage))
@@ -91,6 +131,7 @@ func (s *stub) handler() http.Handler {
 		s.world.mu.Lock()
 		delete(s.world.tenants, r.PathValue("tenant"))
 		s.world.mu.Unlock()
+		s.exchange.Forget(r.PathValue("tenant"))
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
@@ -109,7 +150,12 @@ func (s *stub) serve(rt route) http.HandlerFunc {
 			return
 		}
 		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		t, p, ok := s.world.caller(strings.TrimSpace(token))
+		token = strings.TrimSpace(token)
+		t, p, ok := s.world.caller(token)
+		if slug, name, exchanged := s.exchange.Caller(token); exchanged {
+			t = s.world.tenant(slug)
+			p, ok = t.person(name), true
+		}
 		if !found || !ok {
 			s.world.mu.Unlock()
 			refuse(w, http.StatusUnauthorized, "unauthorized", "Sign in to continue.")

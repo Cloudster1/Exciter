@@ -144,7 +144,7 @@ func patFor(tenant, person string) string { return tokenPrefix + tenant + "_" + 
 
 func TestEveryAnswerFitsStatorsDocument(t *testing.T) {
 	doc := loadStator(t)
-	server := httptest.NewServer(newStub().handler())
+	server := httptest.NewServer(newStub(nil).handler())
 	defer server.Close()
 	c := &contract{t: t, doc: doc, base: server.URL, served: map[string]bool{}}
 	alice := patFor("acme", "alice")

@@ -180,6 +180,11 @@ func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 		if run.viewer, run.status, err = l.svc.Viewer(run.as); err != nil {
 			return err
 		}
+		// Armature not answering the refresh of a grant from a sign-in is Armature away, tried again later.
+		if run.status == StatusUnreachable {
+			retry = ErrUnreachable
+			return nil
+		}
 		if err := run.pending(ctx, steps); err != nil {
 			return err
 		}

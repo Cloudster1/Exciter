@@ -218,12 +218,21 @@ network:
 # connected yet; an administrator changes it under Settings after, and the Job
 # leaves that alone. backchannel maps it to where this release reaches it, such
 # as {"https://armature.example.com": "http://armature-api.armature.svc:8080"}.
+# tokenExchange connects each person to the partner at sign-in when both share
+# the identity provider's realm: Exciter trades the person's access token for
+# their token there (RFC 8693), as the partner app whose client id and secret
+# an administrator stores on the connection (PUT /api/v1/armature/connection,
+# clientId and clientSecret). It needs the partner to list
+# oauth.token-exchange@1, and Exciter's client in the realm an audience mapper
+# naming the partner's client.
 armature:
   url: ""
   backchannel: {}
+  tokenExchange: false
 stator:
   url: ""
   backchannel: {}
+  tokenExchange: false
 
 telemetry:
   # /metrics has no authentication. Keep it on the cluster network.

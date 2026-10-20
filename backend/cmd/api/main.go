@@ -159,10 +159,10 @@ func run() error {
 	}
 	allow := netguard.ParseAllow(cfg.OutboundAllow)
 	armatures := armature.NewService(cluster, box, armature.NewClient(allow, cfg.ArmatureBackchannel), cache,
-		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log}).
+		armature.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, TokenExchange: cfg.ArmatureTokenExchange, Log: log}).
 		WithCoverageCache(coverage)
 	stators := stator.NewService(cluster, box, stator.NewClient(allow, cfg.StatorBackchannel), statorCache,
-		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, Log: log})
+		stator.Options{AppURL: cfg.AppBaseURL, Allow: allow, Development: cfg.Env == config.EnvDevelopment, TokenExchange: cfg.StatorTokenExchange, Log: log})
 	requirements := requirement.NewService(cluster).WithCoverage(trace.CoverageJudge{})
 	links := trace.NewService(cluster).WithCoverageCache(coverage)
 	finder := search.NewService(cluster)

@@ -36,6 +36,17 @@ export const statorDe: typeof statorEn = {
   disconnect: "Stator trennen",
   confirmDisconnect: "Stator trennen? Die Tokens aller Mitglieder werden verworfen.",
   disconnected: "Stator ist getrennt.",
+  signIn: {
+    title: "Personen bei der Anmeldung verbinden",
+    intro:
+      "Teilen Exciter und Stator einen Identitätsanbieter, verbindet Exciter jede Person bei ihrer Anmeldung mit Stator, sodass niemand ein Token einfügt. Registrieren Sie Exciter unter den verbundenen Apps von Stator, mit dem Client von Exciter im Identitätsanbieter als Keycloak-Client, und fügen Sie die ID und das Geheimnis ein, die Stator anzeigt.",
+    on: "Personen werden bei der Anmeldung mit Stator verbunden.",
+    off: "Der Betreiber hat dies für diesen Server nicht eingeschaltet (EXCITER_STATOR_TOKEN_EXCHANGE), daher verbinden sich Personen mit einem Token.",
+    notOffered: "Dieses Stator bietet oauth.token-exchange@1 noch nicht an, daher verbinden sich Personen mit einem Token, bis es aktualisiert ist.",
+    clientId: "Client-ID bei Stator",
+    clientSecret: "Client-Geheimnis bei Stator",
+    forgetSecret: "Gespeichertes Client-Geheimnis verwerfen",
+  },
   account: {
     title: "Stator-Konto",
     intro: "Verbinden Sie Ihr Stator-Konto, damit Anforderungen Ihnen die Seiten zeigen, die Sie in Stator lesen dürfen.",
@@ -47,6 +58,7 @@ export const statorDe: typeof statorEn = {
     connect: "Verbinden",
     replace: "Neues Token einfügen",
     connectedAs: (name: string, email: string) => `Verbunden als ${name} (${email}).`,
+    atSignIn: "Bei Ihrer Anmeldung verbunden. Eine Trennung gilt bis zur nächsten Anmeldung.",
     checkedAt: (when: string) => `Zuletzt geprüft ${when}.`,
     check: "Erneut prüfen",
     checked: "Stator akzeptiert Ihr Token.",

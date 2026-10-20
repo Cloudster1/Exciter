@@ -22,6 +22,8 @@ const project = aProject();
 
 const connected: StatorAccount = {
   configured: true,
+  source: "token",
+  signIn: null,
   baseUrl: BASE,
   connected: true,
   status: "ok",

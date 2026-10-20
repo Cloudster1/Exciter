@@ -99,3 +99,46 @@ test("alice signs in to all three, and a requirement follows its issue in Armatu
   await page.request.put(api(`/projects/${key}/archive`));
   await page.request.delete(api(`/projects/${key}`));
 });
+
+// Connecting at sign-in (#274): alice, holding no token of her own in Exciter, signs in at the one Keycloak and
+// links a requirement to an Armature issue and a Stator page; the suite's seed registered Exciter as a connected
+// app of both. Stator's part waits for Stator to offer the exchange (praetorianer777/Stator#461).
+test("alice signs in to Exciter and links an issue and a page without connecting either", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const api = (path: string) => `${EXCITER}/api/v1${path}`;
+  await signIn(page, EXCITER);
+  // A token the person pasted stays at sign-in, so the first test's goes, and the next sign-in exchanges hers.
+  await page.request.delete(api("/armature/account/token"));
+  await page.request.delete(api("/stator/account/token"));
+  await context.clearCookies();
+  await signIn(page, EXCITER);
+
+  const account = (await (await page.request.get(api("/armature/account"))).json()) as { account: { source: string } };
+  expect(account.account.source, "alice is connected to Armature by her sign-in").toBe("sign_in");
+
+  const key = `SXC${Date.now().toString(36).toUpperCase().slice(-5)}`;
+  expect((await page.request.post(api("/projects"), { data: { key, name: "Connected at sign-in" } })).ok()).toBe(true);
+  expect((await page.request.post(api(`/projects/${key}/requirements`), { data: { title: "Brakes engage within 100 ms" } })).ok()).toBe(true);
+  const { issues } = await armature<{ issues: { key: string }[] }>("GET", "/issues?limit=1&text=");
+  const issue = issues[0]!.key;
+  const linked = await page.request.post(api(`/requirements/${key}-R1/armature-links`), { data: { issueKey: issue, relation: "implements" } });
+  expect(linked.ok(), `alice links ${issue} with the token her sign-in exchanged`).toBe(true);
+
+  const stator = (await (await page.request.get(api("/stator/account"))).json()) as { account: { source: string; signIn: { message: string } | null } };
+  if (stator.account.source === "sign_in") {
+    const found = (await (await page.request.get(api("/stator/search?q=a"))).json()) as { pages?: { id: string }[] };
+    const first = found.pages?.[0];
+    expect(first, "Stator shows alice a page to link").toBeDefined();
+    const pageLink = await page.request.post(api(`/requirements/${key}-R1/stator-links`), { data: { pageId: first!.id, relation: "describes" } });
+    expect(pageLink.ok(), "alice links a Stator page with the token her sign-in exchanged").toBe(true);
+  } else {
+    test
+      .info()
+      .annotations.push({ type: "skipped", description: `Stator part: ${stator.account.signIn?.message ?? "Stator does not offer the exchange yet."}` });
+  }
+
+  await page.request.put(api(`/projects/${key}/archive`));
+  await page.request.delete(api(`/projects/${key}`));
+  await context.close();
+});
