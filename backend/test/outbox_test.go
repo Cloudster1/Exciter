@@ -3,9 +3,9 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -17,24 +17,43 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/events"
+	"github.com/cloudster1/exciter/backend/internal/seed"
 )
 
 const (
-	// claimTries is how often a test offers an event before giving up: the stack's own worker may take one first.
-	claimTries = 5
-	// claimWait is how long one offer waits for the suite's worker to take it.
-	claimWait = 5 * time.Second
+	// claimWait is how long a planted event waits for the suite's worker to take it.
+	claimWait = 10 * time.Second
 	// testTopic is a topic no handler of the product knows.
 	testTopic = "test.probe"
 	// manyEvents is how many events two workers race for.
 	manyEvents = 200
 )
 
-// errNotThisTest leaves another test's event to the stack's worker.
-var errNotThisTest = errors.New("not this test's event")
-
 // deleteBound is how long deleting the event may take while the handler runs; it waits on nothing.
 var deleteBound = bound{deadline: 10 * time.Second, watchdog: 2 * time.Second}
+
+// ownOutbox is the harness on a database of its own, migrated and seeded, whose outbox only the test's workers
+// drain. On the stack's database its worker takes any event as soon as it is due, so a test there cannot count
+// on its own worker getting one (#279).
+func ownOutbox(t *testing.T, h *harness, name string) *harness {
+	t.Helper()
+	ctx := context.Background()
+	provider, super, at := scratchDatabase(t, h, name)
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatalf("migrate %s: %v", name, err)
+	}
+	cfg := h.cfg
+	cfg.DB.PrimaryURL, cfg.DB.AdminURL, cfg.DB.ReplicaURLs = at(cfg.DB.PrimaryURL), at(cfg.DB.AdminURL), nil
+	cluster, err := db.Open(ctx, cfg.DB, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatalf("open %s: %v", name, err)
+	}
+	t.Cleanup(cluster.Close)
+	if _, err := seed.Ensure(ctx, cluster, "Outbox"); err != nil {
+		t.Fatalf("seed %s: %v", name, err)
+	}
+	return &harness{cfg: cfg, cluster: cluster, super: super}
+}
 
 // plantEvent adds an event behind the policies' back, already tried attempts times.
 func (h *harness) plantEvent(t *testing.T, attempts int) uuid.UUID {
@@ -129,104 +148,70 @@ func TestTheAppRoleOnlyAddsEventsInItsOwnName(t *testing.T) {
 // Any number of workers may run at once: each event is handled by one of them,
 // never by two, and every one is handled.
 func TestTwoWorkersNeverHandleOneEvent(t *testing.T) {
-	h := newHarness(t)
-	race := uuid.NewString()
+	h := ownOutbox(t, newHarness(t), "exciter_outbox_two_workers_test")
 
 	var mu sync.Mutex
 	handledBy := map[uuid.UUID][]int{}
 	worker := func(n int) events.Handler {
 		return events.HandlerFunc(func(_ context.Context, e events.Event) error {
-			if !bytes.Contains(e.Payload, []byte(race)) {
-				return errNotThisTest
-			}
 			mu.Lock()
 			handledBy[e.ID] = append(handledBy[e.ID], n)
 			mu.Unlock()
 			return nil
 		})
 	}
-	// Running before the events exist, so the stack's worker does not have them all to itself.
 	h.runWorker(t, worker(1))
 	h.runWorker(t, worker(2))
 	if _, err := h.super.Exec(context.Background(),
-		`INSERT INTO outbox_event (topic, payload) SELECT $1, jsonb_build_object('race', $2::text) FROM generate_series(1, $3)`,
-		testTopic, race, manyEvents); err != nil {
+		`INSERT INTO outbox_event (topic, payload) SELECT $1, '{}' FROM generate_series(1, $2)`, testTopic, manyEvents); err != nil {
 		t.Fatalf("add the events: %v", err)
 	}
 
 	waitFor(t, "every planted event to be done", func() bool {
-		return h.countRows(t, `SELECT count(*) FROM outbox_event WHERE payload ->> 'race' = $1 AND processed_at IS NULL`, race) == 0
+		return h.countRows(t, `SELECT count(*) FROM outbox_event WHERE processed_at IS NULL`) == 0
 	})
 	mu.Lock()
 	defer mu.Unlock()
-	// The stack's own worker may take some of them; whoever took one, nobody else did.
 	for id, by := range handledBy {
 		if len(by) > 1 {
 			t.Errorf("event %s was handled %d times, by workers %v", id, len(by), by)
 		}
 	}
-	if len(handledBy) == 0 {
-		t.Error("the suite's workers handled none of the events, so nothing was raced for")
+	if len(handledBy) != manyEvents {
+		t.Errorf("the workers handled %d of the %d events", len(handledBy), manyEvents)
 	}
 }
 
-// offerer runs one worker of the suite that fails every event it was offered, and
-// offers events until that worker, rather than the stack's, claims one.
+// offerer runs one worker of the suite that fails every event it is offered.
 type offerer struct {
 	h       *harness
-	mu      sync.Mutex
-	ours    map[uuid.UUID]bool
 	claimed chan uuid.UUID
 }
 
 func newOfferer(t *testing.T, h *harness) *offerer {
 	t.Helper()
-	o := &offerer{h: h, ours: map[uuid.UUID]bool{}, claimed: make(chan uuid.UUID, claimTries)}
+	o := &offerer{h: h, claimed: make(chan uuid.UUID, 64)}
 	h.runWorker(t, events.HandlerFunc(func(_ context.Context, e events.Event) error {
-		o.mu.Lock()
-		mine := o.ours[e.ID]
-		o.mu.Unlock()
-		if !mine {
-			return errNotThisTest
-		}
 		o.claimed <- e.ID
 		return errors.New("the dependency is down")
 	}))
 	return o
 }
 
-// offer adds events tried attempts times until the worker claims one, and returns it.
+// offer adds an event tried attempts times and waits for the worker to claim it. An earlier event of this test
+// coming due again is no answer: the worker takes the oldest first, so it may come before this one.
 func (o *offerer) offer(t *testing.T, attempts int) uuid.UUID {
 	t.Helper()
-	for range claimTries {
-		id := o.h.plantEvent(t, attempts)
-		o.mu.Lock()
-		o.ours[id] = true
-		o.mu.Unlock()
-		if o.awaitClaim(t, id) {
-			return id
-		}
-	}
-	t.Fatalf("the stack's worker took every one of %d events first", claimTries)
-	return uuid.Nil
-}
-
-// awaitClaim waits for the worker to take id, and says false when the stack's worker took it instead. An earlier
-// event of this test coming due again is no answer: the worker takes the oldest first, so it may come before id.
-func (o *offerer) awaitClaim(t *testing.T, id uuid.UUID) bool {
-	t.Helper()
+	id := o.h.plantEvent(t, attempts)
 	deadline := time.After(claimWait)
 	for {
 		select {
 		case got := <-o.claimed:
 			if got == id {
-				return true
+				return id
 			}
 		case <-deadline:
-			if o.h.countRows(t, `SELECT count(*) FROM outbox_event WHERE id = $1 AND processed_at IS NULL`, id) > 0 {
-				t.Fatalf("the worker did not take event %s within %s", id, claimWait)
-			}
-			return false
+			t.Fatalf("the worker did not take event %s within %s", id, claimWait)
 		}
 	}
 }
@@ -234,7 +219,7 @@ func (o *offerer) awaitClaim(t *testing.T, id uuid.UUID) bool {
 // A failed event is tried again later, each time later still, and after the
 // last attempt it is set aside and recorded in the audit log.
 func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
-	h := newHarness(t)
+	h := ownOutbox(t, newHarness(t), "exciter_outbox_failed_event_test")
 
 	o := newOfferer(t, h)
 	first := o.offer(t, 0)
@@ -274,21 +259,13 @@ func TestAFailedEventWaitsAndAGivenUpOneIsAudited(t *testing.T) {
 // While a handler runs, the worker holds no lock on its event: a handler's write may wait on a delete that
 // reaches the event, which would otherwise wait on the handler.
 func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
-	h := newHarness(t)
-	var mu sync.Mutex
-	ours := map[uuid.UUID]bool{}
+	h := ownOutbox(t, newHarness(t), "exciter_outbox_no_lock_test")
 	started := make(chan uuid.UUID, 1)
 	release := make(chan struct{})
 	var once sync.Once
 	stop := func() { once.Do(func() { close(release) }) }
 	t.Cleanup(stop)
 	h.runWorker(t, events.HandlerFunc(func(ctx context.Context, e events.Event) error {
-		mu.Lock()
-		mine := ours[e.ID]
-		mu.Unlock()
-		if !mine {
-			return errNotThisTest
-		}
 		started <- e.ID
 		select {
 		case <-release:
@@ -297,19 +274,12 @@ func TestTheWorkerHoldsNoLockWhileItHandles(t *testing.T) {
 		return nil
 	}))
 
-	handling := uuid.Nil
-	for try := 0; try < claimTries && handling == uuid.Nil; try++ {
-		id := h.plantEvent(t, 0)
-		mu.Lock()
-		ours[id] = true
-		mu.Unlock()
-		select {
-		case handling = <-started:
-		case <-time.After(claimWait):
-		}
-	}
-	if handling == uuid.Nil {
-		t.Fatalf("the stack's worker took every one of %d events first", claimTries)
+	planted := h.plantEvent(t, 0)
+	var handling uuid.UUID
+	select {
+	case handling = <-started:
+	case <-time.After(claimWait):
+		t.Fatalf("the worker did not take event %s within %s", planted, claimWait)
 	}
 	if report, err := h.execBounded(t, h.super, deleteBound, `DELETE FROM outbox_event WHERE id = $1`, handling); err != nil {
 		t.Fatalf("deleting the event while it is handled: %v\n%s", err, report)
