@@ -29,12 +29,28 @@ function connection(over: Partial<ArmatureConnection> = {}): ArmatureConnection 
     updatedAt: "2026-10-01T08:00:00Z",
     capabilities: ["issue-embed@1", "remote-links@1", "theme-export@1", "webhooks@1"],
     missing: [],
+    clientId: "",
+    clientSecretSet: false,
+    tokenExchange: false,
+    exchangeOffered: false,
     ...over,
   };
 }
 
 function account(over: Partial<ArmatureAccount> = {}): ArmatureAccount {
-  return { configured: true, baseUrl: BASE, connected: false, status: "not_connected", user: null, readOnly: false, checkedAt: null, missing: [], ...over };
+  return {
+    configured: true,
+    baseUrl: BASE,
+    connected: false,
+    status: "not_connected",
+    user: null,
+    readOnly: false,
+    checkedAt: null,
+    missing: [],
+    source: "none",
+    signIn: null,
+    ...over,
+  };
 }
 
 const connectedAccount = account({
@@ -271,5 +287,63 @@ describe("connecting one's own Armature account", () => {
     expect(await screen.findByText(/This token may only read/)).toBeInTheDocument();
     expect(screen.getByLabelText("Paste a new token")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
+  });
+});
+
+describe("connecting people to Armature at sign-in", () => {
+  it("stores Exciter's client id and secret on the connection, the secret never coming back", async () => {
+    let current = connection({ tokenExchange: true, exchangeOffered: true });
+    const sent = stubApi({
+      "GET /armature/connection": () => ({ status: 200, body: { connection: current } }),
+      "PUT /armature/connection": () => {
+        current = connection({ tokenExchange: true, exchangeOffered: true, clientId: "exciter-app", clientSecretSet: true, updatedAt: "2026-10-02T08:00:00Z" });
+        return { status: 200, body: { connection: current } };
+      },
+    });
+    const user = userEvent.setup();
+    await renderAt(ARMATURE_SETTINGS_PATH);
+    expect(await screen.findByText("People are connected to Armature when they sign in.")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Client id at Armature"), "exciter-app");
+    await user.type(screen.getByLabelText("Client secret at Armature"), "s3cret");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Saved.")).toBeInTheDocument();
+    expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ baseUrl: BASE, clientId: "exciter-app", clientSecret: "s3cret" });
+    expect(screen.getByLabelText("Client id at Armature")).toHaveValue("exciter-app");
+    expect(screen.getByLabelText("Client secret at Armature")).toHaveValue("");
+    expect(screen.getByLabelText("Client secret at Armature")).toHaveAttribute("placeholder", "Stored. Leave blank to keep it.");
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says when the operator has not switched it on", async () => {
+    stubApi({ "GET /armature/connection": { status: 200, body: { connection: connection() } } });
+    await renderAt(ARMATURE_SETTINGS_PATH);
+    expect(await screen.findByText(/EXCITER_ARMATURE_TOKEN_EXCHANGE/)).toBeInTheDocument();
+  });
+
+  it("tells a person connected at sign-in so, and one who was not why", async () => {
+    const why = "Armature did not connect you at sign-in: Ada has no Armature account yet. Connect with a token below, or ask Armature's administrator.";
+    stubApi({
+      "GET /armature/account": {
+        status: 200,
+        body: { account: account({ signIn: { connected: false, message: why, at: "2026-10-01T09:00:00Z" } }) },
+      },
+    });
+    await renderAt(ARMATURE_ACCOUNT_PATH);
+    expect(await screen.findByText(why)).toBeInTheDocument();
+    expect(screen.getByLabelText("Armature token")).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("shows a token from the sign-in as such, without the sentence of an earlier failure", async () => {
+    stubApi({
+      "GET /armature/account": {
+        status: 200,
+        body: { account: { ...connectedAccount, source: "sign_in", signIn: { connected: true, message: "", at: "2026-10-01T09:00:00Z" } } },
+      },
+    });
+    await renderAt(ARMATURE_ACCOUNT_PATH);
+    expect(await screen.findByText("Connected when you signed in. Disconnecting lasts until your next sign-in.")).toBeInTheDocument();
+    expect(document.querySelector("[data-armature-sign-in]")).toBeNull();
   });
 });

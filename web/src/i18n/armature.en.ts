@@ -32,6 +32,17 @@ export const armatureEn = {
   disconnect: "Disconnect Armature",
   confirmDisconnect: "Disconnect Armature? Every member's token is forgotten, and requirements show issue keys only.",
   disconnected: "Armature is disconnected.",
+  signIn: {
+    title: "Connect people at sign-in",
+    intro:
+      "When Exciter and Armature share an identity provider, Exciter connects each person to Armature as they sign in, so nobody pastes a token. Register Exciter in Armature under Settings, Connected apps, with Exciter's client in the identity provider as its Keycloak client, and paste the id and secret Armature shows.",
+    on: "People are connected to Armature when they sign in.",
+    off: "The operator has not switched this on for this server (EXCITER_ARMATURE_TOKEN_EXCHANGE), so people connect with a token.",
+    notOffered: "This Armature does not offer oauth.token-exchange@1 yet, so people connect with a token until it is updated.",
+    clientId: "Client id at Armature",
+    clientSecret: "Client secret at Armature",
+    forgetSecret: "Forget the stored client secret",
+  },
   account: {
     title: "Armature account",
     intro: "Connect your Armature account so requirements show you the issues you may see in Armature.",
@@ -42,6 +53,7 @@ export const armatureEn = {
     connect: "Connect",
     replace: "Paste a new token",
     connectedAs: (name: string, email: string) => `Connected as ${name} (${email}).`,
+    atSignIn: "Connected when you signed in. Disconnecting lasts until your next sign-in.",
     checkedAt: (when: string) => `Last checked ${when}.`,
     readOnly:
       "This token may only read. Exciter shows you issues with it, but cannot create issues or link requirements to them. Paste a token without the read scope to do that.",

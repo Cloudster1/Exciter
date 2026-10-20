@@ -33,6 +33,17 @@ export const statorEn = {
   disconnect: "Disconnect Stator",
   confirmDisconnect: "Disconnect Stator? Every member's token is forgotten.",
   disconnected: "Stator is disconnected.",
+  signIn: {
+    title: "Connect people at sign-in",
+    intro:
+      "When Exciter and Stator share an identity provider, Exciter connects each person to Stator as they sign in, so nobody pastes a token. Register Exciter among Stator's connected apps, with Exciter's client in the identity provider as its Keycloak client, and paste the id and secret Stator shows.",
+    on: "People are connected to Stator when they sign in.",
+    off: "The operator has not switched this on for this server (EXCITER_STATOR_TOKEN_EXCHANGE), so people connect with a token.",
+    notOffered: "This Stator does not offer oauth.token-exchange@1 yet, so people connect with a token until it is updated.",
+    clientId: "Client id at Stator",
+    clientSecret: "Client secret at Stator",
+    forgetSecret: "Forget the stored client secret",
+  },
   account: {
     title: "Stator account",
     intro: "Connect your Stator account so requirements show you the pages you may read in Stator.",
@@ -44,6 +55,7 @@ export const statorEn = {
     connect: "Connect",
     replace: "Paste a new token",
     connectedAs: (name: string, email: string) => `Connected as ${name} (${email}).`,
+    atSignIn: "Connected when you signed in. Disconnecting lasts until your next sign-in.",
     checkedAt: (when: string) => `Last checked ${when}.`,
     check: "Check again",
     checked: "Stator accepts your token.",

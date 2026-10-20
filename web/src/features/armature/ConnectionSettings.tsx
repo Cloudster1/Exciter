@@ -66,6 +66,9 @@ function ConnectionForm({
   const [baseUrl, setBaseUrl] = useState(connection?.baseUrl ?? "");
   const [secret, setSecret] = useState("");
   const [forget, setForget] = useState(false);
+  const [clientId, setClientId] = useState(connection?.clientId ?? "");
+  const [clientSecret, setClientSecret] = useState("");
+  const [forgetClient, setForgetClient] = useState(false);
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const formError = save.error && Object.keys(fields).length === 0 ? save.error.message : null;
 
@@ -75,6 +78,9 @@ function ConnectionForm({
     const body: ArmatureConnectionInput = { baseUrl: baseUrl.trim() };
     if (secret.trim()) body.webhookSecret = secret.trim();
     else if (forget) body.webhookSecret = "";
+    if (clientId.trim() !== (connection?.clientId ?? "")) body.clientId = clientId.trim();
+    if (clientSecret.trim()) body.clientSecret = clientSecret.trim();
+    else if (forgetClient) body.clientSecret = "";
     save.mutate(body, { onSuccess: () => onSaved(t.armature.saved) });
   }
 
@@ -107,6 +113,34 @@ function ConnectionForm({
           </p>
         )}
         {connection && <MissingCapabilities missing={connection.missing} />}
+        <fieldset className="space-y-3" data-armature-sign-in-app>
+          <legend className="text-sm font-medium text-ink">{t.armature.signIn.title}</legend>
+          <p className="text-sm text-ink-muted">{t.armature.signIn.intro}</p>
+          {connection && (
+            <p className="text-sm text-ink-muted" data-armature-exchange={connection.tokenExchange && connection.exchangeOffered ? "on" : "off"}>
+              {!connection.tokenExchange ? t.armature.signIn.off : connection.exchangeOffered ? t.armature.signIn.on : t.armature.signIn.notOffered}
+            </p>
+          )}
+          <Field
+            label={t.armature.signIn.clientId}
+            value={clientId}
+            autoComplete="off"
+            error={fields.clientId}
+            onChange={(event) => setClientId(event.target.value)}
+          />
+          <Field
+            label={t.armature.signIn.clientSecret}
+            type="password"
+            autoComplete="off"
+            value={clientSecret}
+            placeholder={connection?.clientSecretSet ? t.armature.secretStored : ""}
+            error={fields.clientSecret}
+            onChange={(event) => setClientSecret(event.target.value)}
+          />
+          {connection?.clientSecretSet && (
+            <Checkbox label={t.armature.signIn.forgetSecret} checked={forgetClient} onChange={(event) => setForgetClient(event.target.checked)} />
+          )}
+        </fieldset>
         {connection && <p className="text-xs text-ink-muted">{t.armature.movesForget}</p>}
         {formError && <ErrorBanner>{formError}</ErrorBanner>}
         <Button type="submit" loading={save.isPending} data-action="save-armature">

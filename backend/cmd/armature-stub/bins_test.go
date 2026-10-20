@@ -11,7 +11,7 @@ import (
 // A bin keeps every delivery as it came and answers what it was told, so a
 // suite can read a signature over the raw body and make a receiver fail.
 func TestABinKeepsWhatItWasSentAndAnswersAsTold(t *testing.T) {
-	server := httptest.NewServer(newStub(nil).handler())
+	server := httptest.NewServer(newStub(nil, nil).handler())
 	defer server.Close()
 	post := func(body string) int {
 		req, _ := http.NewRequest(http.MethodPost, server.URL+hooksPrefix+"/b1", strings.NewReader(body))

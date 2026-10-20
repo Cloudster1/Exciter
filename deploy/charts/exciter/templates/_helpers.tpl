@@ -241,6 +241,12 @@ EXCITER_ARMATURE_BACKCHANNEL: {{ . | quote }}
 {{- with include "exciter.rewrites" .Values.stator.backchannel }}
 EXCITER_STATOR_BACKCHANNEL: {{ . | quote }}
 {{- end }}
+{{- if .Values.armature.tokenExchange }}
+EXCITER_ARMATURE_TOKEN_EXCHANGE: "true"
+{{- end }}
+{{- if .Values.stator.tokenExchange }}
+EXCITER_STATOR_TOKEN_EXCHANGE: "true"
+{{- end }}
 {{- with include "exciter.rewrites" .Values.auth.oidcBackchannel }}
 EXCITER_OIDC_BACKCHANNEL: {{ . | quote }}
 {{- end }}

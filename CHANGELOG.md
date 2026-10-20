@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- People connected to Armature and Stator as they sign in (#274). Where the
+  three tools share one Keycloak realm and the operator switches it on
+  (`EXCITER_ARMATURE_TOKEN_EXCHANGE`, `EXCITER_STATOR_TOKEN_EXCHANGE`, Helm
+  `armature.tokenExchange`, `stator.tokenExchange`), Exciter exchanges the
+  person's sign-in at each partner that offers `oauth.token-exchange@1`, as
+  the connected app whose client id and secret an administrator stores on
+  the connection, so nobody pastes a token. The tokens are renewed as they
+  are used, the link worker's included; a token somebody pasted stays, and
+  the account page says in a sentence why a partner is not connected. A
+  failed exchange never fails the sign-in.
 - Risks in traceability, baselines, the risk report and project templates
   (#261). The trace graph and the chain report mark a risk with its level
   and state; a baseline records each risk's levels, state and mitigations

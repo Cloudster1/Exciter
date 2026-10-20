@@ -17,6 +17,8 @@ const project = aProject();
 
 const connected: ArmatureAccount = {
   configured: true,
+  source: "token",
+  signIn: null,
   baseUrl: BASE,
   connected: true,
   status: "ok",

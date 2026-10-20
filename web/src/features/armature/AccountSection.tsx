@@ -43,8 +43,14 @@ export function AccountSection() {
           {t.armature.account.notConfigured}
         </Card>
       ) : (
-        <Card className="space-y-4 p-4" data-armature-status={account.status}>
+        <Card className="space-y-4 p-4" data-armature-status={account.status} data-armature-source={account.source}>
           {account.connected && <Connected account={account} />}
+          {account.status !== "ok" && account.signIn && !account.signIn.connected && (
+            <p className="flex items-start gap-1.5 text-sm text-ink" data-armature-sign-in>
+              <Icon.Warning aria-hidden="true" className="mt-0.5 shrink-0" />
+              {account.signIn.message}
+            </p>
+          )}
           <MissingCapabilities missing={account.missing} />
           {account.connected && (
             <div className="flex flex-wrap gap-2">
@@ -71,6 +77,7 @@ function Connected({ account }: { account: ArmatureAccount }) {
           {t.armature.account.connectedAs(account.user.name, account.user.email)}
         </p>
       )}
+      {account.source === "sign_in" && <p className="text-ink-muted">{t.armature.account.atSignIn}</p>}
       {account.readOnly && (
         <p className="flex items-start gap-1.5 text-ink" data-armature-read-only>
           <Icon.Warning aria-hidden="true" className="mt-0.5 shrink-0" />

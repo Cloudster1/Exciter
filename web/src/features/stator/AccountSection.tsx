@@ -42,8 +42,14 @@ export function AccountSection() {
           {t.stator.account.notConfigured}
         </Card>
       ) : (
-        <Card className="space-y-4 p-4" data-stator-status={account.status}>
+        <Card className="space-y-4 p-4" data-stator-status={account.status} data-stator-source={account.source}>
           {account.connected && <Connected account={account} />}
+          {account.status !== "ok" && account.signIn && !account.signIn.connected && (
+            <p className="flex items-start gap-1.5 text-sm text-ink" data-stator-sign-in>
+              <Icon.Warning aria-hidden="true" className="mt-0.5 shrink-0" />
+              {account.signIn.message}
+            </p>
+          )}
           {account.connected && (
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={checkNow} loading={check.isPending} data-action="check-stator">
@@ -69,6 +75,7 @@ function Connected({ account }: { account: StatorAccount }) {
           {t.stator.account.connectedAs(account.user.name, account.user.email)}
         </p>
       )}
+      {account.source === "sign_in" && <p className="text-ink-muted">{t.stator.account.atSignIn}</p>}
       {account.status === "rejected" && <ErrorBanner>{t.stator.account.rejected}</ErrorBanner>}
       {account.status === "unreachable" && <p className="text-ink-muted">{t.stator.account.unreachable}</p>}
       {account.checkedAt && <p className="text-ink-muted">{t.stator.account.checkedAt(when.format(new Date(account.checkedAt)))}</p>}

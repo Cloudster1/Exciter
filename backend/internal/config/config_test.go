@@ -24,7 +24,8 @@ func clean(t *testing.T) {
 		"EXCITER_BOOTSTRAP_OIDC_ISSUER", "EXCITER_BOOTSTRAP_OIDC_CLIENT_ID", "EXCITER_BOOTSTRAP_OIDC_CLIENT_SECRET", "EXCITER_BOOTSTRAP_MEMBERS",
 		"EXCITER_S3_ENDPOINT", "EXCITER_S3_BUCKET", "EXCITER_S3_ACCESS_KEY", "EXCITER_S3_SECRET_KEY",
 		"EXCITER_S3_REGION", "EXCITER_S3_USE_SSL",
-		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_STATOR_BACKCHANNEL", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
+		"EXCITER_UPLOAD_LIMIT", "EXCITER_OUTBOUND_ALLOW", "EXCITER_ARMATURE_BACKCHANNEL", "EXCITER_STATOR_BACKCHANNEL",
+		"EXCITER_ARMATURE_TOKEN_EXCHANGE", "EXCITER_STATOR_TOKEN_EXCHANGE", "EXCITER_SMTP_ADDR", "EXCITER_MAIL_FROM",
 		"EXCITER_RENDER_URL", "EXCITER_RENDER_TIMEOUT", "EXCITER_RENDER_CONCURRENCY", "EXCITER_RENDER_MAX_SIZE",
 	} {
 		t.Setenv(key, "")
@@ -359,6 +360,22 @@ func TestBackchannelRewritesAreParsed(t *testing.T) {
 	t.Setenv("EXCITER_OIDC_BACKCHANNEL", "keycloak")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "EXCITER_OIDC_BACKCHANNEL") {
 		t.Fatalf("a malformed rewrite should be refused: %v", err)
+	}
+}
+
+// Connecting people at sign-in is the operator's choice per partner, and off until made (#274).
+func TestTheTokenExchangeIsSwitchedOnPerPartner(t *testing.T) {
+	clean(t)
+	if c, err := Load(); err != nil || c.ArmatureTokenExchange || c.StatorTokenExchange {
+		t.Fatalf("the exchange is on by default: %+v, %v", c, err)
+	}
+	t.Setenv("EXCITER_ARMATURE_TOKEN_EXCHANGE", "true")
+	if c, err := Load(); err != nil || !c.ArmatureTokenExchange || c.StatorTokenExchange {
+		t.Fatalf("only Armature's was switched on: %v %v, %v", c.ArmatureTokenExchange, c.StatorTokenExchange, err)
+	}
+	t.Setenv("EXCITER_STATOR_TOKEN_EXCHANGE", "true")
+	if c, err := Load(); err != nil || !c.StatorTokenExchange {
+		t.Fatalf("Stator's was switched on: %v, %v", c.StatorTokenExchange, err)
 	}
 }
 

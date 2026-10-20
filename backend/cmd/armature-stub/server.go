@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/exchangestub"
 )
 
 const (
@@ -15,8 +17,14 @@ const (
 	stubPrefix = "/_stub"
 	// uploadBytes is what /auth/me says Armature takes; nothing is uploaded.
 	uploadBytes = 25 << 20
-	// scopeRead is Armature's only scope: a token without it may do whatever its owner may.
-	scopeRead = "read"
+	// scopeRead is a personal token's only scope: a token without it may do whatever its owner may. A connected
+	// app's holds it beside scopeIssueWrite, which lets it change issues.
+	scopeRead       = "read"
+	scopeIssueWrite = "issue.write"
+	// The stub's own client in the shared realm, which an exchanged token's audience must hold, and its tokens.
+	keycloakClient     = "armature"
+	accessTokenPrefix  = "armature_oat_"
+	refreshTokenPrefix = "armature_ort_"
 )
 
 // route is one operation the stub serves. Path is Armature's, relative to
@@ -33,6 +41,7 @@ type route struct {
 var routes = []route{
 	{Method: "GET", Path: "/openapi.json", Public: true, handler: (*stub).openAPI},
 	{Method: "GET", Path: "/meta", Public: true, handler: (*stub).meta},
+	{Method: "POST", Path: "/oauth/token", Public: true, handler: (*stub).token},
 	{Method: "GET", Path: "/auth/me", handler: (*stub).me},
 	{Method: "GET", Path: "/access/me", handler: (*stub).access},
 	{Method: "GET", Path: "/projects", handler: (*stub).projects},
@@ -56,6 +65,8 @@ type stub struct {
 	backchannel map[string]string
 	// bins receive Exciter's own webhooks for the suites (#48).
 	bins *bins
+	// exchange serves the token exchange for a partner app a test registered (#274).
+	exchange *exchangestub.Server
 }
 
 // call is one request as a person of a tenant.
@@ -64,13 +75,43 @@ type call struct {
 	r      *http.Request
 	tenant *tenant
 	person *person
+	// exchanged is a call with a token the exchange gave, scope what it holds.
+	exchanged bool
+	scope     string
 	// events are the webhooks the call owes, posted before it answers; answer, when set, answers after them.
 	events []event
 	answer func([]delivery)
 }
 
-func newStub(openapi []byte) *stub {
-	return &stub{world: newWorld(), openapi: openapi, client: &http.Client{Timeout: webhookTimeout}, bins: newBins()}
+func newStub(openapi []byte, verify exchangestub.Verifier) *stub {
+	return &stub{world: newWorld(), openapi: openapi, client: &http.Client{Timeout: webhookTimeout}, bins: newBins(),
+		exchange: exchangestub.NewServer("armature", accessTokenPrefix, refreshTokenPrefix, keycloakClient, verify)}
+}
+
+func (s *stub) token(c *call) { s.exchange.ServeToken(c.w, c.r) }
+
+// setApp registers the tenant's partner app, as an administrator does under Settings, Connected apps; an empty
+// client id removes it.
+func (s *stub) setApp(c *call) {
+	var app exchangestub.App
+	if err := json.NewDecoder(c.r.Body).Decode(&app); err != nil {
+		refuse(c.w, http.StatusUnprocessableEntity, "invalid", "Send {\"clientId\", \"clientSecret\", \"keycloakClientId\", \"scope\", \"accessTtlSeconds\"}.")
+		return
+	}
+	if app.Scope == "" {
+		app.Scope = scopeRead + " " + scopeIssueWrite
+	}
+	s.exchange.SetApp(c.tenant.Slug, app)
+	c.w.WriteHeader(http.StatusNoContent)
+}
+
+// grants lists the tenant's grants from the exchange, with how often each was refreshed.
+func (s *stub) grants(c *call) {
+	out := []map[string]any{}
+	for _, g := range s.exchange.Grants(c.tenant.Slug) {
+		out = append(out, map[string]any{"person": g.Person, "scope": g.Scope, "refreshes": g.Refreshes, "expiresAt": g.ExpiresAt})
+	}
+	respond(c.w, http.StatusOK, map[string]any{"grants": out})
 }
 
 // finish posts what a call owes, once the world is unlocked.
@@ -90,6 +131,8 @@ func (s *stub) handler() http.Handler {
 	s.bins.routes(mux)
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.HandleFunc("PUT "+stubPrefix+"/capabilities", s.setCapabilities)
+	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/oauth-app", s.control((*stub).setApp))
+	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/oauth-grants", s.control((*stub).grants))
 	mux.HandleFunc("GET "+stubPrefix+"/{tenant}/remote-links", s.control((*stub).allLinks))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/remote-links/outage", s.control((*stub).setOutage))
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/people/{person}/read-only-projects", s.control((*stub).setReads))
@@ -108,6 +151,7 @@ func (s *stub) handler() http.Handler {
 		s.world.mu.Lock()
 		delete(s.world.tenants, r.PathValue("tenant"))
 		s.world.mu.Unlock()
+		s.exchange.Forget(r.PathValue("tenant"))
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
@@ -133,8 +177,15 @@ func (s *stub) serve(rt route) http.HandlerFunc {
 			}
 		}
 		token, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		token = strings.TrimSpace(token)
+		slug, name, exchanged := s.exchange.Caller(token)
 		s.world.mu.Lock()
-		t, p, ok := s.world.caller(strings.TrimSpace(token))
+		t, p, ok := s.world.caller(token)
+		if exchanged {
+			t = s.world.tenant(slug)
+			p, ok = t.person(name), true
+			c.exchanged, c.scope = true, s.exchange.ScopeOf(token)
+		}
 		if !found || !ok {
 			s.world.mu.Unlock()
 			refuse(w, http.StatusUnauthorized, "unauthorized", "Sign in to continue.")
@@ -244,7 +295,10 @@ func roleOf(p *person) string {
 func (s *stub) me(c *call) {
 	p, t := c.person, c.tenant
 	scopes := []string{}
-	if p.ReadOnly {
+	switch {
+	case c.exchanged:
+		scopes = strings.Fields(c.scope)
+	case p.ReadOnly:
 		scopes = []string{scopeRead}
 	}
 	respond(c.w, http.StatusOK, map[string]any{

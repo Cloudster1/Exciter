@@ -94,6 +94,8 @@ func (s *Service) writer(ctx context.Context) (*Viewer, error) {
 		return nil, ErrNotConfigured
 	case status == StatusNotConnected:
 		return nil, ErrNotConnected
+	case status == StatusUnreachable:
+		return nil, ErrUnreachable
 	case v == nil:
 		return nil, ErrRejected
 	case v.ReadOnly:

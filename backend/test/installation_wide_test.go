@@ -90,6 +90,7 @@ var installationWide = map[string]string{
 	"TestAnAssistantReachesStatorAsItsPerson":                statorLink,
 
 	"TestSignInThroughKeycloak":                              singleSignOn,
+	"TestPeopleAreConnectedToArmatureAndStatorAtSignIn":      singleSignOn,
 	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,
 	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":   singleSignOn,

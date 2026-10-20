@@ -5,6 +5,7 @@ package armature
 import (
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
@@ -14,8 +15,10 @@ const (
 	// TokenPrefix starts every Armature personal access token; WebhookSecretPrefix every webhook secret.
 	TokenPrefix         = "armature_pat_"
 	WebhookSecretPrefix = "armature_whs_"
-	// ScopeRead is the scope of an Armature token that may only read.
-	ScopeRead = "read"
+	// ScopeRead is the scope of an Armature token that may only read, unless it also holds ScopeIssueWrite, as a
+	// connected app's token does.
+	ScopeRead       = "read"
+	ScopeIssueWrite = "issue.write"
 	// SignatureHeader carries sha256= and the hex HMAC of the raw body; the timestamped pair signs
 	// "{timestamp}.{body}" (#29).
 	SignatureHeader            = "X-Armature-Signature-256"
@@ -39,6 +42,8 @@ const (
 	// MaxSummaryLength and MaxLinkTitleLength are Armature's limits on an issue's summary and a link's title.
 	MaxSummaryLength   = 255
 	MaxLinkTitleLength = 255
+	// MaxClientIDLength bounds the client id of Exciter's partner app at Armature, a uuid there.
+	MaxClientIDLength = 255
 
 	// IssueCacheTTL and SearchCacheTTL are how long an answer is served to the same person without asking
 	// Armature again; webhooks end it sooner.
@@ -95,12 +100,23 @@ type Connection struct {
 	// needs and did not find, each with the sentence that says what goes without it.
 	Capabilities []string  `json:"capabilities"`
 	Missing      []Missing `json:"missing"`
+	// ClientID is Exciter's partner app at Armature, which connects people at sign-in (#274); ClientSecretSet says
+	// whether its secret is stored, which is never answered.
+	ClientID        string `json:"clientId"`
+	ClientSecretSet bool   `json:"clientSecretSet"`
+	// TokenExchange says the operator lets Exciter connect people at sign-in (EXCITER_ARMATURE_TOKEN_EXCHANGE), and
+	// ExchangeOffered that Armature listed oauth.token-exchange@1 when last asked.
+	TokenExchange   bool `json:"tokenExchange"`
+	ExchangeOffered bool `json:"exchangeOffered"`
 }
 
-// ConnectionInput sets the connection; WebhookSecret absent keeps the stored one and empty removes it.
+// ConnectionInput sets the connection; WebhookSecret and ClientSecret absent keep the stored one and empty removes
+// it, ClientID absent keeps the stored one.
 type ConnectionInput struct {
 	BaseURL       string  `json:"baseUrl"`
 	WebhookSecret *string `json:"webhookSecret,omitempty"`
+	ClientID      *string `json:"clientId,omitempty"`
+	ClientSecret  *string `json:"clientSecret,omitempty"`
 }
 
 // Account is the caller's own standing with Armature.
@@ -115,7 +131,24 @@ type Account struct {
 	CheckedAt *time.Time   `json:"checkedAt"`
 	// Missing are the capabilities Exciter needs that the connected Armature does not offer.
 	Missing []Missing `json:"missing"`
+	// Source is how the person is connected: token for one they stored, sign_in for one their sign-in exchanged,
+	// none while they are not.
+	Source Source `json:"source"`
+	// SignIn is what the last sign-in's exchange came to, null when none tried.
+	SignIn *tokenexchange.SignIn `json:"signIn"`
 }
+
+// Source is how a person's Armature token came to be stored.
+type Source string
+
+const (
+	SourceNone   Source = "none"
+	SourceToken  Source = "token"
+	SourceSignIn Source = "sign_in"
+)
+
+// Sources lists every Source, for the API document.
+var Sources = []Source{SourceNone, SourceToken, SourceSignIn}
 
 // AccountUser is a person in Armature.
 type AccountUser struct {

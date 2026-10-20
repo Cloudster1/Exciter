@@ -1,13 +1,18 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+
+	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 )
 
@@ -64,9 +69,31 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	loggerFrom(r.Context()).Info("signed in through an identity provider", "user_id", session.UserID, "role", session.Role,
 		"groups_joined", session.Joined, "groups_left", session.Left)
-	s.noteSession(r.Context(), session.SessionID, session.LSN)
+	s.noteSession(r.Context(), session.SessionID, max(session.LSN, s.connectPartners(r.Context(), session.UserID, identity.AccessToken)))
 	s.setSessionCookie(w, session.Secret, session.ExpiresAt)
 	s.landAfterSignIn(w, r, redirect, "")
+}
+
+// connectPartners exchanges the sign-in's access token at Armature and Stator at once (#274), before the browser
+// lands, so the first page already shows the person connected; each exchange is bounded and never fails the sign-in.
+// It answers where the later of the two last wrote, which the session's reads then wait for on a replica.
+func (s *Server) connectPartners(ctx context.Context, user uuid.UUID, subject string) db.LSN {
+	if subject == "" {
+		return 0
+	}
+	ctx = context.WithoutCancel(ctx)
+	var (
+		wg            sync.WaitGroup
+		atArm, atStat db.LSN
+	)
+	if s.Armature != nil {
+		wg.Go(func() { atArm = s.Armature.ExchangeAtSignIn(ctx, user, subject) })
+	}
+	if s.Stator != nil {
+		wg.Go(func() { atStat = s.Stator.ExchangeAtSignIn(ctx, user, subject) })
+	}
+	wg.Wait()
+	return max(atArm, atStat)
 }
 
 // signInFailure names a refusal for the sign-in page to explain, without

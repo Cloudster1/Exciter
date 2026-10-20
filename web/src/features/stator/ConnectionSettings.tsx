@@ -59,6 +59,9 @@ function ConnectionForm({
   const [baseUrl, setBaseUrl] = useState(connection?.baseUrl ?? "");
   const [secret, setSecret] = useState("");
   const [forget, setForget] = useState(false);
+  const [clientId, setClientId] = useState(connection?.clientId ?? "");
+  const [clientSecret, setClientSecret] = useState("");
+  const [forgetClient, setForgetClient] = useState(false);
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const formError = save.error && Object.keys(fields).length === 0 ? save.error.message : null;
 
@@ -68,6 +71,9 @@ function ConnectionForm({
     const body: StatorConnectionInput = { baseUrl: baseUrl.trim() };
     if (secret.trim()) body.webhookSecret = secret.trim();
     else if (forget) body.webhookSecret = "";
+    if (clientId.trim() !== (connection?.clientId ?? "")) body.clientId = clientId.trim();
+    if (clientSecret.trim()) body.clientSecret = clientSecret.trim();
+    else if (forgetClient) body.clientSecret = "";
     save.mutate(body, { onSuccess: () => onSaved(t.stator.saved) });
   }
 
@@ -99,6 +105,34 @@ function ConnectionForm({
             {t.stator.connectedCount(connection.connected)} {connection.remoteLinks ? t.stator.remoteLinks : t.stator.noRemoteLinks}
           </p>
         )}
+        <fieldset className="space-y-3" data-stator-sign-in-app>
+          <legend className="text-sm font-medium text-ink">{t.stator.signIn.title}</legend>
+          <p className="text-sm text-ink-muted">{t.stator.signIn.intro}</p>
+          {connection && (
+            <p className="text-sm text-ink-muted" data-stator-exchange={connection.tokenExchange && connection.exchangeOffered ? "on" : "off"}>
+              {!connection.tokenExchange ? t.stator.signIn.off : connection.exchangeOffered ? t.stator.signIn.on : t.stator.signIn.notOffered}
+            </p>
+          )}
+          <Field
+            label={t.stator.signIn.clientId}
+            value={clientId}
+            autoComplete="off"
+            error={fields.clientId}
+            onChange={(event) => setClientId(event.target.value)}
+          />
+          <Field
+            label={t.stator.signIn.clientSecret}
+            type="password"
+            autoComplete="off"
+            value={clientSecret}
+            placeholder={connection?.clientSecretSet ? t.stator.secretStored : ""}
+            error={fields.clientSecret}
+            onChange={(event) => setClientSecret(event.target.value)}
+          />
+          {connection?.clientSecretSet && (
+            <Checkbox label={t.stator.signIn.forgetSecret} checked={forgetClient} onChange={(event) => setForgetClient(event.target.checked)} />
+          )}
+        </fieldset>
         {connection && <p className="text-xs text-ink-muted">{t.stator.movesForget}</p>}
         {formError && <ErrorBanner>{formError}</ErrorBanner>}
         <Button type="submit" loading={save.isPending} data-action="save-stator">

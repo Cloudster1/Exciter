@@ -146,6 +146,54 @@ saved or an account checked, puts every live page link on its page, each
 requirement's as the maker of its newest link. Nothing else Stator lists is
 checked yet; the page reads, search and webhooks are what every Stator has.
 
+### Connecting people at sign-in
+
+With the three tools on one Keycloak realm, Exciter connects each person to
+Armature and Stator as they sign in (#274), so nobody pastes a token. After
+an OIDC sign-in it trades the person's Keycloak access token for their tokens
+at the partner, RFC 8693 as Armature's `docs/oauth.md` has it:
+
+```
+POST {baseUrl}/api/v1/oauth/token
+Authorization: Basic <client id and secret, each form-encoded first>
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange
+&subject_token=<the Keycloak access token>
+&subject_token_type=urn:ietf:params:oauth:token-type:access_token
+```
+
+- **Only when switched on.** The operator sets
+  `EXCITER_ARMATURE_TOKEN_EXCHANGE` and `EXCITER_STATOR_TOKEN_EXCHANGE`
+  (Helm `armature.tokenExchange`, `stator.tokenExchange`); the partner lists
+  `oauth.token-exchange@1`, by that exact name; and an administrator stores
+  Exciter's client id and secret there on the connection,
+  `PUT /api/v1/armature/connection` and `PUT /api/v1/stator/connection`
+  with `clientId` and `clientSecret`. The secret is sealed with
+  `EXCITER_SECRET_KEY` and never answered; the connection answers
+  `clientId`, `clientSecretSet`, `tokenExchange` and `exchangeOffered`.
+- **No scope is asked**, so the partner gives what its administrator allowed
+  the app. Armature's token holds `read issue.write`; Exciter takes a token
+  that holds `read` without `issue.write` for one that may only read.
+- **The tokens sit where a pasted one does**, sealed per person and partner
+  with the refresh token beside them, so every read and the link worker use
+  them alike. A token due within a minute is refreshed where it is used,
+  one refresh at a time under a row lock, as a rotated refresh token
+  presented twice ends the grant; the worker making links while the person
+  is away renews it the same way. `invalid_grant` on a refresh forgets the
+  token, and the account says the partner ended the connection.
+- **A token the person pasted and that works stays**, and the exchange is
+  not tried; a pasted token replaces an exchanged one.
+- **A failed exchange never fails the sign-in.** Each partner has at most
+  three seconds, both at once; the account page says in a sentence why the
+  person is not connected (`signIn` on `GET /armature/account` and
+  `GET /stator/account`, and `source`: `none`, `token` or `sign_in`).
+
+In the realm, Exciter's Keycloak client carries an audience mapper for each
+partner's client (`armature`, `stator`), so its access tokens hold their ids
+in `aud`; each partner registers Exciter as a connected app whose Keycloak
+client is `exciter`.
+
 A test result's commit links to Armature's development panel (#200) when an
 issue the requirement links to names the commit there. The panel,
 `GET /issues/{issueKey}/development`, has no capability in Armature's list, so

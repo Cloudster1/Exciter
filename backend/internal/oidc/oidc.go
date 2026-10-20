@@ -62,6 +62,9 @@ type Identity struct {
 	Groups []string
 	// AuthTime is when the person last proved who they are at the provider, zero when the token does not say.
 	AuthTime time.Time
+	// AccessToken is the provider's access token from the sign-in, which Exciter exchanges at Armature and Stator
+	// for the person's tokens there (#274); empty for an identity read from anything but a sign-in.
+	AccessToken string
 }
 
 // Login is a sign-in that came back: where it was headed, and for a re-authentication whose session it proves.

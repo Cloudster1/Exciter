@@ -5115,6 +5115,9 @@ export interface components {
             connected: boolean;
             missing: components["schemas"]["ArmatureMissing"][];
             readOnly: boolean;
+            signIn: components["schemas"]["PartnerSignIn"] | null;
+            /** @enum {string} */
+            source: "none" | "token" | "sign_in";
             /** @enum {string} */
             status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable" | "outdated";
             user: components["schemas"]["ArmatureUser"] | null;
@@ -5128,8 +5131,12 @@ export interface components {
             armatureOrgId: string | null;
             baseUrl: string;
             capabilities: string[] | null;
+            clientId: string;
+            clientSecretSet: boolean;
             connected: number;
+            exchangeOffered: boolean;
             missing: components["schemas"]["ArmatureMissing"][];
+            tokenExchange: boolean;
             /** Format: date-time */
             updatedAt: string;
             webhookSecretSet: boolean;
@@ -5138,6 +5145,8 @@ export interface components {
         };
         ArmatureConnectionInput: {
             baseUrl: string;
+            clientId?: string;
+            clientSecret?: string;
             webhookSecret?: string;
         };
         ArmatureCreateFailure: {
@@ -6799,6 +6808,12 @@ export interface components {
             /** @description The sender's prefix, dev.armature. or dev.stator., and the topic it names in version 1. */
             type: string;
         };
+        PartnerSignIn: {
+            /** Format: date-time */
+            at: string;
+            connected: boolean;
+            message: string;
+        };
         Person: {
             email: string;
             /** Format: uuid */
@@ -7992,6 +8007,9 @@ export interface components {
             checkedAt: string | null;
             configured: boolean;
             connected: boolean;
+            signIn: components["schemas"]["PartnerSignIn"] | null;
+            /** @enum {string} */
+            source: "none" | "token" | "sign_in";
             /** @enum {string} */
             status: "ok" | "not_configured" | "not_connected" | "rejected" | "unreachable";
             user: components["schemas"]["StatorUser"] | null;
@@ -8002,8 +8020,12 @@ export interface components {
         };
         StatorConnection: {
             baseUrl: string;
+            clientId: string;
+            clientSecretSet: boolean;
             connected: number;
+            exchangeOffered: boolean;
             remoteLinks: boolean;
+            tokenExchange: boolean;
             /** Format: date-time */
             updatedAt: string;
             webhookSecretSet: boolean;
@@ -8012,6 +8034,8 @@ export interface components {
         };
         StatorConnectionInput: {
             baseUrl: string;
+            clientId?: string;
+            clientSecret?: string;
             webhookSecret?: string;
         };
         StatorLink: {

@@ -148,6 +148,11 @@ check "each partner is reached where it is mapped" \
 check "the guard lets through what is named and every host a backchannel reaches" \
     "$(config_value "${RENDERED}" EXCITER_OUTBOUND_ALLOW)" \
     "10.40.0.0/16,armature-api.armature.svc,stator-api.stator.svc,keycloak.sso.svc"
+check "nobody is connected at sign-in until the operator says so" "$(grep -c 'TOKEN_EXCHANGE' <<<"${RENDERED}")" "0"
+with_exchange=$(helm template "${RELEASE}" /chart "${WIRED[@]}" --set armature.tokenExchange=true --set stator.tokenExchange=true 2>&1)
+check "switched on, the api and the worker connect people to both partners at sign-in" \
+    "$(config_value "${with_exchange}" EXCITER_ARMATURE_TOKEN_EXCHANGE) $(config_value "${with_exchange}" EXCITER_STATOR_TOKEN_EXCHANGE)" \
+    "true true"
 check "the bootstrap connects the partners at the addresses people open" \
     "$(env_value "${RENDERED}" EXCITER_BOOTSTRAP_ARMATURE_URL) $(env_value "${RENDERED}" EXCITER_BOOTSTRAP_STATOR_URL)" \
     "https://armature.example.com https://wiki.example.com"

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/installation"
 	"github.com/cloudster1/exciter/backend/internal/netguard"
 	"github.com/cloudster1/exciter/backend/internal/secret"
+	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 )
 
 // WebhookPath is where Stator posts the installation's events, under the app's origin.
@@ -53,7 +55,10 @@ type Options struct {
 	Allow netguard.Allow
 	// Development lets any base URL be plain http.
 	Development bool
-	Log         *slog.Logger
+	// TokenExchange connects people at sign-in by exchanging their identity provider's token at Stator (#274),
+	// EXCITER_STATOR_TOKEN_EXCHANGE.
+	TokenExchange bool
+	Log           *slog.Logger
 }
 
 // Service keeps the installation's connection and each member's token, and
@@ -113,12 +118,13 @@ func (s *Service) Connection(ctx context.Context) (*Connection, error) {
 }
 
 func (s *Service) readConnection(ctx context.Context, tx db.DBTX) (*Connection, error) {
-	c := Connection{WebhookURL: s.opts.AppURL + WebhookPath, WebhookTopics: WebhookTopics}
+	c := Connection{WebhookURL: s.opts.AppURL + WebhookPath, WebhookTopics: WebhookTopics, TokenExchange: s.opts.TokenExchange}
 	var connected *int
 	err := tx.QueryRow(ctx, `
-		SELECT base_url, remote_links, webhook_secret IS NOT NULL, updated_at, stator_connected_count()
+		SELECT base_url, remote_links, webhook_secret IS NOT NULL, updated_at, stator_connected_count(),
+		       coalesce(client_id, ''), client_secret IS NOT NULL, token_exchange
 		FROM stator_connection`,
-	).Scan(&c.BaseURL, &c.RemoteLinks, &c.WebhookSecretSet, &c.UpdatedAt, &connected)
+	).Scan(&c.BaseURL, &c.RemoteLinks, &c.WebhookSecretSet, &c.UpdatedAt, &connected, &c.ClientID, &c.ClientSecretSet, &c.ExchangeOffered)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -166,6 +172,18 @@ func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip str
 			secretChange = "set"
 		}
 	}
+	clientID, clientSecret, clientChange := "", "", "kept"
+	if in.ClientID != nil {
+		if clientID = strings.TrimSpace(*in.ClientID); len(clientID) > MaxClientIDLength {
+			return nil, 0, &FieldError{Field: "clientId", Message: fmt.Sprintf("A client id is at most %d characters. Paste the id Stator showed for Exciter among its connected apps.", MaxClientIDLength)}
+		}
+	}
+	if in.ClientSecret != nil {
+		clientChange = "removed"
+		if clientSecret = strings.TrimSpace(*in.ClientSecret); clientSecret != "" {
+			clientChange = "set"
+		}
+	}
 
 	var (
 		before    *Connection
@@ -180,9 +198,14 @@ func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip str
 	}); err != nil {
 		return nil, 0, err
 	}
-	var sealed []byte
+	var sealed, sealedClient []byte
 	if secret != "" {
 		if sealed, err = s.seal(secret, webhookContext(installed), "webhookSecret"); err != nil {
+			return nil, 0, err
+		}
+	}
+	if clientSecret != "" {
+		if sealedClient, err = s.seal(clientSecret, clientContext(installed), "clientSecret"); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -201,19 +224,24 @@ func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip str
 			}
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO stator_connection (base_url, webhook_secret, updated_by)
-			VALUES ($1, $2, $3)
+			INSERT INTO stator_connection (base_url, webhook_secret, updated_by, client_id, client_secret)
+			VALUES ($1, $2, $3, NULLIF($5, ''), $7)
 			ON CONFLICT ((true)) DO UPDATE SET
 			    base_url = EXCLUDED.base_url,
 			    webhook_secret = CASE WHEN $4 THEN stator_connection.webhook_secret ELSE EXCLUDED.webhook_secret END,
+			    client_id = CASE WHEN $6 THEN stator_connection.client_id ELSE EXCLUDED.client_id END,
+			    client_secret = CASE WHEN $8 THEN stator_connection.client_secret ELSE EXCLUDED.client_secret END,
 			    updated_by = EXCLUDED.updated_by`,
-			base, sealed, nullable(actor), in.WebhookSecret == nil)
+			base, sealed, nullable(actor), in.WebhookSecret == nil, clientID, in.ClientID == nil, sealedClient, in.ClientSecret == nil)
 		if err != nil {
 			return fmt.Errorf("save the Stator connection: %w", err)
 		}
+		data := map[string]any{"baseUrl": base, "webhookSecret": secretChange, "moved": moved, "tokensForgotten": forgotten, "clientSecret": clientChange}
+		if in.ClientID != nil {
+			data["clientId"] = clientID
+		}
 		return audit.Write(ctx, tx, audit.Entry{
-			Action: ActionConnectionSaved, TargetType: "stator_connection", Actor: actor, IP: ip,
-			Data: map[string]any{"baseUrl": base, "webhookSecret": secretChange, "moved": moved, "tokensForgotten": forgotten},
+			Action: ActionConnectionSaved, TargetType: "stator_connection", Actor: actor, IP: ip, Data: data,
 		})
 	})
 	if err != nil {
@@ -231,9 +259,9 @@ func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip str
 func (s *Service) noteOffers(ctx context.Context, base string, meta *Meta) db.LSN {
 	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		_, err := tx.Exec(ctx, `
-			UPDATE stator_connection SET remote_links = $1
-			WHERE base_url = $2 AND remote_links IS DISTINCT FROM $1`,
-			meta.Offers(RemoteLinksCapability), base)
+			UPDATE stator_connection SET remote_links = $1, token_exchange = $3
+			WHERE base_url = $2 AND (remote_links IS DISTINCT FROM $1 OR token_exchange IS DISTINCT FROM $3)`,
+			meta.Offers(RemoteLinksCapability), base, slices.Contains(meta.Capabilities, tokenexchange.Capability))
 		return err
 	})
 	if err != nil {
@@ -320,6 +348,16 @@ func (s *Service) open(ctx context.Context, row *tokenRow, installation uuid.UUI
 // tokenContext binds a sealed token to its installation and person, so a copy moved onto another row does not open.
 func tokenContext(installation, user uuid.UUID) []byte {
 	return append(append([]byte("stator.token:"), installation[:]...), user[:]...)
+}
+
+// refreshContext binds a sealed refresh token to its installation and person, apart from the access token's.
+func refreshContext(installation, user uuid.UUID) []byte {
+	return append(append([]byte("stator.refresh:"), installation[:]...), user[:]...)
+}
+
+// clientContext binds Exciter's client secret at Stator to its installation.
+func clientContext(installation uuid.UUID) []byte {
+	return append([]byte("stator.client:"), installation[:]...)
 }
 
 // webhookContext binds the webhook secret to its installation.

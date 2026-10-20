@@ -36,6 +36,17 @@ export const armatureDe: typeof armatureEn = {
   disconnect: "Armature trennen",
   confirmDisconnect: "Armature trennen? Die Tokens aller Mitglieder werden verworfen, und Anforderungen zeigen nur noch Vorgangsschlüssel.",
   disconnected: "Armature ist getrennt.",
+  signIn: {
+    title: "Personen bei der Anmeldung verbinden",
+    intro:
+      "Teilen Exciter und Armature einen Identitätsanbieter, verbindet Exciter jede Person bei ihrer Anmeldung mit Armature, sodass niemand ein Token einfügt. Registrieren Sie Exciter in Armature unter Settings, Connected apps, mit dem Client von Exciter im Identitätsanbieter als Keycloak-Client, und fügen Sie die ID und das Geheimnis ein, die Armature anzeigt.",
+    on: "Personen werden bei der Anmeldung mit Armature verbunden.",
+    off: "Der Betreiber hat dies für diesen Server nicht eingeschaltet (EXCITER_ARMATURE_TOKEN_EXCHANGE), daher verbinden sich Personen mit einem Token.",
+    notOffered: "Dieses Armature bietet oauth.token-exchange@1 noch nicht an, daher verbinden sich Personen mit einem Token, bis es aktualisiert ist.",
+    clientId: "Client-ID bei Armature",
+    clientSecret: "Client-Geheimnis bei Armature",
+    forgetSecret: "Gespeichertes Client-Geheimnis verwerfen",
+  },
   account: {
     title: "Armature-Konto",
     intro: "Verbinden Sie Ihr Armature-Konto, damit Anforderungen Ihnen die Vorgänge zeigen, die Sie in Armature sehen dürfen.",
@@ -47,6 +58,7 @@ export const armatureDe: typeof armatureEn = {
     connect: "Verbinden",
     replace: "Neues Token einfügen",
     connectedAs: (name: string, email: string) => `Verbunden als ${name} (${email}).`,
+    atSignIn: "Bei Ihrer Anmeldung verbunden. Eine Trennung gilt bis zur nächsten Anmeldung.",
     checkedAt: (when: string) => `Zuletzt geprüft ${when}.`,
     readOnly:
       "Dieses Token darf nur lesen. Exciter zeigt Ihnen damit Vorgänge, kann aber keine Vorgänge anlegen und keine Anforderungen mit ihnen verknüpfen. Fügen Sie dafür ein Token ohne den Bereich read ein.",

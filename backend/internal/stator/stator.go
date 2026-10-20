@@ -5,6 +5,7 @@ package stator
 import (
 	"time"
 
+	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 	"github.com/cloudster1/exciter/backend/internal/via"
 	"github.com/google/uuid"
 )
@@ -37,6 +38,8 @@ const (
 	MaxSearchLength    = 200
 	// MaxLinkTitleLength bounds a remote link's title, as Armature's does.
 	MaxLinkTitleLength = 255
+	// MaxClientIDLength bounds the client id of Exciter's partner app at Stator.
+	MaxClientIDLength = 255
 
 	// PageCacheTTL and SearchCacheTTL are how long an answer is served to the same person without asking Stator
 	// again; webhooks end a page's sooner.
@@ -88,12 +91,23 @@ type Connection struct {
 	WebhookTopics []string  `json:"webhookTopics"`
 	Connected     int       `json:"connected"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+	// ClientID is Exciter's partner app at Stator, which connects people at sign-in (#274); ClientSecretSet says
+	// whether its secret is stored, which is never answered.
+	ClientID        string `json:"clientId"`
+	ClientSecretSet bool   `json:"clientSecretSet"`
+	// TokenExchange says the operator lets Exciter connect people at sign-in (EXCITER_STATOR_TOKEN_EXCHANGE), and
+	// ExchangeOffered that Stator listed oauth.token-exchange@1 when last asked.
+	TokenExchange   bool `json:"tokenExchange"`
+	ExchangeOffered bool `json:"exchangeOffered"`
 }
 
-// ConnectionInput sets the connection; WebhookSecret absent keeps the stored one and empty removes it.
+// ConnectionInput sets the connection; WebhookSecret and ClientSecret absent keep the stored one and empty removes
+// it, ClientID absent keeps the stored one.
 type ConnectionInput struct {
 	BaseURL       string  `json:"baseUrl"`
 	WebhookSecret *string `json:"webhookSecret,omitempty"`
+	ClientID      *string `json:"clientId,omitempty"`
+	ClientSecret  *string `json:"clientSecret,omitempty"`
 }
 
 // Account is the caller's own standing with Stator.
@@ -105,7 +119,24 @@ type Account struct {
 	// User is whom the token acts as in Stator.
 	User      *AccountUser `json:"user"`
 	CheckedAt *time.Time   `json:"checkedAt"`
+	// Source is how the person is connected: token for one they stored, sign_in for one their sign-in exchanged,
+	// none while they are not.
+	Source Source `json:"source"`
+	// SignIn is what the last sign-in's exchange came to, null when none tried.
+	SignIn *tokenexchange.SignIn `json:"signIn"`
 }
+
+// Source is how a person's Stator token came to be stored.
+type Source string
+
+const (
+	SourceNone   Source = "none"
+	SourceToken  Source = "token"
+	SourceSignIn Source = "sign_in"
+)
+
+// Sources lists every Source, for the API document.
+var Sources = []Source{SourceNone, SourceToken, SourceSignIn}
 
 // AccountUser is a person in Stator.
 type AccountUser struct {

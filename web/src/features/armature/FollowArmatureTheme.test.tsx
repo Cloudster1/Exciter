@@ -15,6 +15,8 @@ const INVALID = 'Armature\'s theme cannot be used in Exciter: "not a colour" is 
 
 const account = (over: Partial<ArmatureAccount> = {}): ArmatureAccount => ({
   configured: true,
+  source: "token",
+  signIn: null,
   baseUrl: "https://armature.example.com",
   connected: true,
   status: "ok",

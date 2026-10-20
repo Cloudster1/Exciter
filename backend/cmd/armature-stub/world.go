@@ -159,7 +159,7 @@ type world struct {
 }
 
 // armatureCapabilities are what Armature's main lists on GET /meta, read when api/armature was last vendored.
-var armatureCapabilities = []string{"calendar@1", "issue-embed@1", "plan@1", "remote-link-relations@1", "remote-links@1", "reports@1", "theme-export@1", "webhooks@1"}
+var armatureCapabilities = []string{"calendar@1", "issue-embed@1", "oauth.token-exchange@1", "plan@1", "remote-link-relations@1", "remote-links@1", "reports@1", "theme-export@1", "webhooks@1"}
 
 func newWorld() *world {
 	return &world{tenants: map[string]*tenant{}, capabilities: slices.Clone(armatureCapabilities)}

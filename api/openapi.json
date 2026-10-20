@@ -28424,6 +28424,24 @@
           "readOnly": {
             "type": "boolean"
           },
+          "signIn": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PartnerSignIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "none",
+              "token",
+              "sign_in"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -28454,7 +28472,9 @@
           "user",
           "readOnly",
           "checkedAt",
-          "missing"
+          "missing",
+          "source",
+          "signIn"
         ]
       },
       "ArmatureClearInput": {
@@ -28494,14 +28514,26 @@
               "type": "string"
             }
           },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecretSet": {
+            "type": "boolean"
+          },
           "connected": {
             "type": "integer"
+          },
+          "exchangeOffered": {
+            "type": "boolean"
           },
           "missing": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArmatureMissing"
             }
+          },
+          "tokenExchange": {
+            "type": "boolean"
           },
           "updatedAt": {
             "type": "string",
@@ -28529,13 +28561,23 @@
           "connected",
           "updatedAt",
           "capabilities",
-          "missing"
+          "missing",
+          "clientId",
+          "clientSecretSet",
+          "tokenExchange",
+          "exchangeOffered"
         ]
       },
       "ArmatureConnectionInput": {
         "type": "object",
         "properties": {
           "baseUrl": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
             "type": "string"
           },
           "webhookSecret": {
@@ -35274,6 +35316,26 @@
           "data"
         ]
       },
+      "PartnerSignIn": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "message",
+          "at"
+        ]
+      },
       "Person": {
         "type": "object",
         "properties": {
@@ -40251,6 +40313,24 @@
           "connected": {
             "type": "boolean"
           },
+          "signIn": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PartnerSignIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "none",
+              "token",
+              "sign_in"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -40278,7 +40358,9 @@
           "connected",
           "status",
           "user",
-          "checkedAt"
+          "checkedAt",
+          "source",
+          "signIn"
         ]
       },
       "StatorClearInput": {
@@ -40302,10 +40384,22 @@
           "baseUrl": {
             "type": "string"
           },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecretSet": {
+            "type": "boolean"
+          },
           "connected": {
             "type": "integer"
           },
+          "exchangeOffered": {
+            "type": "boolean"
+          },
           "remoteLinks": {
+            "type": "boolean"
+          },
+          "tokenExchange": {
             "type": "boolean"
           },
           "updatedAt": {
@@ -40332,13 +40426,23 @@
           "webhookUrl",
           "webhookTopics",
           "connected",
-          "updatedAt"
+          "updatedAt",
+          "clientId",
+          "clientSecretSet",
+          "tokenExchange",
+          "exchangeOffered"
         ]
       },
       "StatorConnectionInput": {
         "type": "object",
         "properties": {
           "baseUrl": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
             "type": "string"
           },
           "webhookSecret": {

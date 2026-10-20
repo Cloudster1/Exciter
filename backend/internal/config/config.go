@@ -95,6 +95,10 @@ type Config struct {
 	ArmatureBackchannel map[string]string
 	// StatorBackchannel maps Stator's public origin to the one this process reaches it at.
 	StatorBackchannel map[string]string
+	// ArmatureTokenExchange and StatorTokenExchange connect people to the partner at sign-in through the shared
+	// identity provider (#274); off unless the operator says so, as both sides must be set up for it.
+	ArmatureTokenExchange bool
+	StatorTokenExchange   bool
 
 	// RetainAudit is how long the worker keeps an audit entry; zero keeps
 	// every one forever.
@@ -298,6 +302,8 @@ func Load() (Config, error) {
 	c.OutboundAllow = l.str("EXCITER_OUTBOUND_ALLOW", "")
 	c.ArmatureBackchannel = l.rewrites("EXCITER_ARMATURE_BACKCHANNEL")
 	c.StatorBackchannel = l.rewrites("EXCITER_STATOR_BACKCHANNEL")
+	c.ArmatureTokenExchange = l.boolean("EXCITER_ARMATURE_TOKEN_EXCHANGE", false)
+	c.StatorTokenExchange = l.boolean("EXCITER_STATOR_TOKEN_EXCHANGE", false)
 	c.SecretKey = l.secretKey("EXCITER_SECRET_KEY", c.Env)
 	c.Auth.OIDCRedirectURL = l.str("EXCITER_OIDC_REDIRECT_URL", c.AppBaseURL+OIDCCallbackPath)
 	c.Auth.OIDCBackchannel = l.rewrites("EXCITER_OIDC_BACKCHANNEL")

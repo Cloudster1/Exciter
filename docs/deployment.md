@@ -60,6 +60,7 @@ through one Keycloak realm. The values that wire Exciter in:
 | `auth.oidcBackchannel` | Where this release reaches Keycloak when that is not the address the browser uses. |
 | `armature.url`, `stator.url` | The partners as people open them. The bootstrap Job connects each where nothing is connected yet, before it answers too, and leaves a connection an administrator changed alone. |
 | `armature.backchannel`, `stator.backchannel` | Where this release reaches each partner inside the cluster. |
+| `armature.tokenExchange`, `stator.tokenExchange` | Connect each person to the partner at sign-in through the shared realm (#274), as `EXCITER_ARMATURE_TOKEN_EXCHANGE` and `EXCITER_STATOR_TOKEN_EXCHANGE`. Off by default. Each also needs Exciter's client id and secret at the partner on the connection, which the setup job stores with `PUT /api/v1/armature/connection` and `PUT /api/v1/stator/connection` (`clientId`, `clientSecret`), and the partner to list `oauth.token-exchange@1`. |
 
 Every host a backchannel reaches is let through the outbound guard on its own;
 `network.outboundAllow` names any other. A partner's webhook secret is shown

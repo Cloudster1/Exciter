@@ -13,6 +13,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/cloudster1/exciter/backend/internal/exchangestub"
 )
 
 // Settings, from the environment like everything in the stack.
@@ -20,7 +22,11 @@ const (
 	addrEnv = "STATOR_STUB_ADDR"
 	// backchannelEnv holds public=reachable origin pairs, comma separated, for posting webhooks inside the stack.
 	backchannelEnv = "STATOR_STUB_BACKCHANNEL"
-	defaultAddr    = ":8080"
+	// issuersEnv names the identity provider issuers whose access tokens the exchange takes, comma separated, and
+	// oidcBackchannelEnv how the stub reaches them, as public=reachable origin pairs.
+	issuersEnv         = "STATOR_STUB_OIDC_ISSUERS"
+	oidcBackchannelEnv = "STATOR_STUB_OIDC_BACKCHANNEL"
+	defaultAddr        = ":8080"
 
 	readHeaderTimeout = 10 * time.Second
 	shutdownGrace     = 5 * time.Second
@@ -45,7 +51,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	stub := newStub()
+	var verify exchangestub.Verifier
+	if issuers := exchangestub.List(os.Getenv(issuersEnv)); len(issuers) > 0 {
+		verify = exchangestub.Keycloak(issuers, pairs(os.Getenv(oidcBackchannelEnv)))
+	}
+	stub := newStub(verify)
 	stub.backchannel = pairs(os.Getenv(backchannelEnv))
 	srv := &http.Server{Addr: addr, Handler: stub.handler(), ReadHeaderTimeout: readHeaderTimeout}
 	served := make(chan error, 1)

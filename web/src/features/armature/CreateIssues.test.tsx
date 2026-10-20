@@ -16,6 +16,8 @@ const BASE = "https://armature.example.com";
 const project = aProject();
 const account: ArmatureAccount = {
   configured: true,
+  source: "token",
+  signIn: null,
   baseUrl: BASE,
   connected: true,
   status: "ok",
