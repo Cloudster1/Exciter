@@ -76,7 +76,12 @@ export const Diagram = Node.create({
   },
   parseHTML() {
     return [
-      { tag: "pre[data-diagram]", priority: ABOVE_CODE_BLOCK, preserveWhitespace: "full", getAttrs: (el) => (diagramSource((el as HTMLElement).textContent) ? null : false) },
+      {
+        tag: "pre[data-diagram]",
+        priority: ABOVE_CODE_BLOCK,
+        preserveWhitespace: "full",
+        getAttrs: (el) => (diagramSource((el as HTMLElement).textContent) ? null : false),
+      },
     ];
   },
   renderHTML({ node, HTMLAttributes }) {

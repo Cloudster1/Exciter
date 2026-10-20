@@ -18,7 +18,10 @@ const SOURCE = "@startuml\ntitle Pump control\n[Pump] --> [Valve]\n@enduml";
 
 const withDiagram = (source: string): Doc => ({
   type: "doc",
-  content: [{ type: "paragraph", content: [{ type: "text", text: "The parts:" }] }, { type: "diagram", attrs: { language: "plantuml", source } }],
+  content: [
+    { type: "paragraph", content: [{ type: "text", text: "The parts:" }] },
+    { type: "diagram", attrs: { language: "plantuml", source } },
+  ],
 });
 
 function shown(children: ReactNode) {

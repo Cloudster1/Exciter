@@ -106,7 +106,7 @@ func TestEveryNodeAndMarkComesBackAsItLeft(t *testing.T) {
 		"code": `{"type":"codeBlock","attrs":{"language":"go"},"content":[{"type":"text","text":"if engaged {\n\treturn ` + "```" + `\n}"}]},
 			{"type":"codeBlock","attrs":{"language":null},"content":[{"type":"text","text":"plain"}]}`,
 		"a diagram": `{"type":"diagram","attrs":{"language":"plantuml","source":"@startuml\n[Pump] --> [Valve] : ` + "```" + `\n@enduml"}}`,
-		"a rule": strings.Replace(single, "%q", `"Above"`, 1) + `,{"type":"horizontalRule"},` + strings.Replace(single, "%q", `"Below"`, 1),
+		"a rule":    strings.Replace(single, "%q", `"Above"`, 1) + `,{"type":"horizontalRule"},` + strings.Replace(single, "%q", `"Below"`, 1),
 		"a table": `{"type":"table","content":[
 			{"type":"tableRow","content":[
 				{"type":"tableHeader","attrs":` + cellAttrs("left") + `,"content":[` + strings.Replace(single, "%q", `"Signal"`, 1) + `]},

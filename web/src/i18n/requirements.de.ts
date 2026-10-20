@@ -98,7 +98,8 @@ export const editorDe: typeof editorEn = {
     download: "Als SVG speichern",
     empty: "Schreiben Sie das Diagramm in PlantUML, zwischen @startuml und @enduml.",
     unreadable: (why: string) => `Das Diagramm lässt sich nicht zeichnen: ${why}. Prüfen Sie den Quelltext.`,
-    unavailable: "Dieser Server zeichnet keine Diagramme, deshalb steht hier der Quelltext. Bitten Sie den Betreiber von Exciter, den Diagramm-Renderer zu starten.",
+    unavailable:
+      "Dieser Server zeichnet keine Diagramme, deshalb steht hier der Quelltext. Bitten Sie den Betreiber von Exciter, den Diagramm-Renderer zu starten.",
     failed: "Das Diagramm konnte gerade nicht gezeichnet werden, deshalb steht hier der Quelltext. Laden Sie die Seite gleich noch einmal.",
   },
 };

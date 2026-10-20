@@ -20,7 +20,10 @@ async function cleanUp(api: ExciterApi) {
 
 /** Whether a picture on the page was drawn, not left broken. */
 async function drawn(page: Page, selector: string) {
-  return page.locator(selector).first().evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0);
 }
 
 // Diagrams (#284): written as PlantUML in the editor with a preview Kroki draws, and shown drawn wherever the
