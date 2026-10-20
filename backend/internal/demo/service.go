@@ -214,12 +214,12 @@ func Handler(s *Service) events.HandlerFunc {
 func (s *Service) Run(ctx context.Context, actor uuid.UUID) error {
 	var d *Demo
 	if _, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		var err error
-		if d, err = readDemo(ctx, tx); err != nil || d == nil || d.State != StateQueued {
-			d = nil
+		// Claimed in one statement, so the worker and the seed never both run it.
+		tag, err := tx.Exec(ctx, `UPDATE suite_demo SET state = 'running', started_at = now() WHERE state = 'queued'`)
+		if err != nil || tag.RowsAffected() == 0 {
 			return err
 		}
-		_, err = tx.Exec(ctx, `UPDATE suite_demo SET state = 'running', started_at = now()`)
+		d, err = readDemo(ctx, tx)
 		return err
 	}); err != nil || d == nil {
 		return err

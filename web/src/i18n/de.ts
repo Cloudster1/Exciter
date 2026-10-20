@@ -150,6 +150,23 @@ export const de: Messages = {
     saved: "Gespeichert.",
     notAdmin: "Nur Administratoren benennen die Installation um. Fragen Sie eine dieser Personen.",
   },
+  suiteDemo: {
+    title: "Suite-Demo",
+    intro:
+      "Die Anforderungen von Armature, Exciter und Stator selbst, aus ihren eigenen Issues, als drei Projekte, verfolgt zu diesen Issues in Armature und zu ihrer Dokumentation in Stator.",
+    add: "Suite-Demo hinzufügen",
+    confirmTitle: "Suite-Demo hinzufügen?",
+    confirmBody:
+      "Das legt die Projekte ARM, EXC und STA mit rund 1.500 Anforderungen in Ihrem Namen an und verknüpft sie über Ihre Konten in Armature und Stator. Sie wird einmal hinzugefügt und braucht ein bis zwei Minuten.",
+    confirm: "Hinzufügen",
+    building: "Die Demo wird aufgebaut. Das braucht ein bis zwei Minuten.",
+    linking: "Die Demo wird mit Armature und Stator verknüpft.",
+    done: (requirements: number, links: number, skipped: number) =>
+      `Die Demo enthält ${requirements} Anforderungen und ${links} Verknüpfungen${skipped > 0 ? `; ${skipped} Verknüpfungen warten` : ""}.`,
+    failed: "Die Demo ist stehen geblieben, bevor sie fertig war.",
+    relink: "Demo erneut verknüpfen",
+    projects: "Die Projekte der Demo",
+  },
   sso: {
     title: "Single Sign-on",
     notAdmin: "Nur ein Administrator ändert, wie sich Personen anmelden. Fragen Sie einen.",
@@ -366,6 +383,7 @@ export const de: Messages = {
       "quality_settings.saved": "Schreibregeln festgelegt",
       "code_tag_words.saved": "Code-Tag-Wörter festgelegt",
       "risk_scheme.saved": "Risikoschema festgelegt",
+      "installation.suite_demo_added": "Suite-Demo hinzugefügt",
     },
     targetTypes: {
       user: "Person",

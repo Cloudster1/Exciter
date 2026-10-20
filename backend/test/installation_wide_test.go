@@ -20,13 +20,14 @@ const (
 	installationName = "renames the installation"
 	webhookEndpoints = "keeps the installation's webhooks, which hear every project"
 	oauthConnections = "switches OAuth connections off for everyone"
+	suiteDemo        = "adds or takes away the suite demo, of which the installation has one"
 )
 
 // keepers are the helpers that put such a setting back, with what each is for.
 var keepers = map[string]string{
 	"keepLinkTypes": linkTypes, "keepDefaultTheme": defaultTheme, "keepArmature": armatureLink, "keepStator": statorLink,
 	"singleSignOn": singleSignOn, "keepInstallationName": installationName, "keepWebhooks": webhookEndpoints,
-	"keepOAuthConnections": oauthConnections,
+	"keepOAuthConnections": oauthConnections, "keepSuiteDemo": suiteDemo,
 }
 
 // installationWide is every test that changes a setting of the whole installation. The suite runs one test at a
@@ -83,6 +84,10 @@ var installationWide = map[string]string{
 	"TestAStatorThatDoesNotAnswer":                           statorLink,
 	"TestRawSQLWallsStatorRows":                              statorLink,
 	"TestRequirementsAreTracedToStatorPages":                 statorLink,
+
+	"TestTheSuiteDemoIsBuiltAndLinked":            armatureLink,
+	"TestTheSuiteDemoIsAddedOnce":                 suiteDemo,
+	"TestRawSQLKeepsTheSuiteDemoToAdministrators": suiteDemo,
 	"TestRawSQLGuardsStatorLinks":                            statorLink,
 	"TestTheBootstrapConnectsStatorOnce":                     statorLink,
 	"TestRequirementsShowOnTheStatorPagesTheyAreLinkedTo":    statorLink,

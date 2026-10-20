@@ -5,6 +5,7 @@ import { useSwitchOAuthConnections } from "@/api/oauth";
 import { Button, Card, ErrorBanner, Field, Skeleton, Switch } from "@/components/ui";
 import { PartnerApps } from "@/features/oauth/PartnerApps";
 import { t } from "@/i18n";
+import { SuiteDemo } from "./SuiteDemo";
 
 /** The installation's name, whether assistants connect with OAuth and the partner apps, for administrators to change. */
 export function InstallationSettings() {
@@ -20,6 +21,7 @@ export function InstallationSettings() {
       <NameForm key={data.name} installation={data} rename={rename} notice={notice} setNotice={setNotice} />
       <OAuthConnections installation={data} />
       <PartnerApps />
+      <SuiteDemo />
     </div>
   );
 }

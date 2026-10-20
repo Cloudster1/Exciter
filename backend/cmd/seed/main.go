@@ -1,5 +1,5 @@
-// Command seed makes the installation EXCITER_NAME names on its first start, with the first administrator, provider,
-// members and partners EXCITER_BOOTSTRAP_* names. Bare it is a development stack's; `seed bootstrap` is for production.
+// Command seed makes the installation and what EXCITER_BOOTSTRAP_* names. Bare it is a development stack's, `seed
+// demo` adds the suite demo to one, and `seed bootstrap` is for production.
 package main
 
 import (
@@ -33,8 +33,9 @@ func main() {
 
 func run() error {
 	bootstrap := len(os.Args) > 1 && os.Args[1] == "bootstrap"
-	if len(os.Args) > 1 && !bootstrap {
-		return fmt.Errorf("unknown command %q; run seed bare on a development stack, or seed bootstrap", os.Args[1])
+	withDemo := len(os.Args) > 1 && os.Args[1] == "demo"
+	if len(os.Args) > 1 && !bootstrap && !withDemo {
+		return fmt.Errorf("unknown command %q; run seed bare or seed demo on a development stack, or seed bootstrap", os.Args[1])
 	}
 	cfg, err := config.Load()
 	if err != nil {
@@ -78,7 +79,10 @@ func run() error {
 		}
 		ctx = db.WithUser(ctx, admin)
 	}
-	return populate(ctx, cfg, cluster, accounts, log)
+	if err := populate(ctx, cfg, cluster, accounts, log); err != nil || !withDemo {
+		return err
+	}
+	return addDemo(ctx, cfg, cluster, log)
 }
 
 // populate lets the named members in ahead of their first sign-in and points the installation at its provider,

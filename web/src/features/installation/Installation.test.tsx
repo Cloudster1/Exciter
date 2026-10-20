@@ -67,6 +67,67 @@ describe("the installation page", () => {
     expect(await screen.findByText("Give the installation a name.")).toBeInTheDocument();
   });
 
+  it("adds the suite demo once confirmed, follows it while it is built, and links it again", async () => {
+    const demo = (state: string, kind = "build") => ({
+      state,
+      kind,
+      taken: "2026-10-20",
+      projectKeys: ["ARM", "EXC", "STA"],
+      requirements: state === "done" ? 1540 : 0,
+      links: state === "done" ? 12 : 0,
+      skipped: state === "done" ? 3 : 0,
+      message: state === "done" ? "Your Armature account is not connected, so the demo links nothing there yet." : "",
+      createdAt: "2026-10-20T08:00:00Z",
+      startedAt: null,
+      finishedAt: null,
+    });
+    let current: ReturnType<typeof demo> | null = null;
+    const sent = stubApi({
+      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
+      "GET /installation/suite-demo": () => ({ status: 200, body: { demo: current } }),
+      "POST /installation/suite-demo": () => {
+        current = demo("queued");
+        return { status: 202, body: { demo: current } };
+      },
+      "POST /installation/suite-demo/links": () => {
+        current = demo("queued", "links");
+        return { status: 202, body: { demo: current } };
+      },
+    });
+    const user = userEvent.setup();
+    await renderAt(INSTALLATION_PATH);
+    await user.click(await screen.findByRole("button", { name: "Add the suite demo" }));
+    expect(await screen.findByRole("dialog", { name: "Add the suite demo?" })).toBeInTheDocument();
+    expect(await axeViolations()).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Add it" }));
+    expect(await screen.findByText("The demo is being built. This takes a minute or two.")).toBeInTheDocument();
+    expect(sent.filter((r) => r.method === "POST" && r.path === "/installation/suite-demo")).toHaveLength(1);
+
+    current = demo("done");
+    expect(await screen.findByText("The demo holds 1540 requirements and 12 links; 3 links wait.", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByText(/Your Armature account is not connected/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "EXC" })).toHaveAttribute("href", "/p/EXC");
+    expect(screen.queryByRole("button", { name: "Add the suite demo" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Link the demo again" }));
+    expect(await screen.findByText("The demo is being linked to Armature and Stator.")).toBeInTheDocument();
+  });
+
+  it("says which key keeps the suite demo out", async () => {
+    stubApi({
+      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
+      "GET /installation/suite-demo": () => ({ status: 200, body: { demo: null } }),
+      "POST /installation/suite-demo": () => ({
+        status: 422,
+        body: { error: { code: "validation_failed", message: "Check the fields.", fields: { key: "The key EXC is taken by another project." } } },
+      }),
+    });
+    const user = userEvent.setup();
+    await renderAt(INSTALLATION_PATH);
+    await user.click(await screen.findByRole("button", { name: "Add the suite demo" }));
+    await user.click(await screen.findByRole("button", { name: "Add it" }));
+    expect(await screen.findByText("The key EXC is taken by another project.")).toBeInTheDocument();
+  });
+
   it("tells a member to ask an administrator", async () => {
     stubApi({});
     await renderAt(INSTALLATION_PATH, { me: { ...signedIn, role: "member" } });

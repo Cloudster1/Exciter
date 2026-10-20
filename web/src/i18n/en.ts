@@ -149,6 +149,23 @@ export const en = {
     saved: "Saved.",
     notAdmin: "Only an administrator can rename the installation. Ask one of them.",
   },
+  suiteDemo: {
+    title: "Suite demo",
+    intro:
+      "The requirements of Armature, Exciter and Stator themselves, taken from their own issues, as three projects traced to those issues in Armature and to their documentation in Stator.",
+    add: "Add the suite demo",
+    confirmTitle: "Add the suite demo?",
+    confirmBody:
+      "This makes the projects ARM, EXC and STA with about 1,500 requirements, in your name, and links them with your Armature and Stator accounts. It is added once and takes a minute or two.",
+    confirm: "Add it",
+    building: "The demo is being built. This takes a minute or two.",
+    linking: "The demo is being linked to Armature and Stator.",
+    done: (requirements: number, links: number, skipped: number) =>
+      `The demo holds ${requirements} requirements and ${links} links${skipped > 0 ? `; ${skipped} links wait` : ""}.`,
+    failed: "The demo stopped before it was done.",
+    relink: "Link the demo again",
+    projects: "The demo's projects",
+  },
   sso: {
     title: "Single sign-on",
     notAdmin: "Only an administrator changes how people sign in. Ask one.",
@@ -365,6 +382,7 @@ export const en = {
       "quality_settings.saved": "Writing rules set",
       "code_tag_words.saved": "Code tag words set",
       "risk_scheme.saved": "Risk scheme set",
+      "installation.suite_demo_added": "Suite demo added",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
