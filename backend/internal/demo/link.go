@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/google/uuid"
 
@@ -50,9 +51,33 @@ type existing struct {
 	pages  map[pageLink]bool
 }
 
-// Link adds what the demo's projects are missing: their dependencies, their issues in Armature and their pages in
-// Stator. What a partner cannot take yet is counted as skipped, and linking again adds it.
+// Link adds what every project of the demo is missing, all at once; the worker takes a project a step.
 func (s *Service) Link(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string) (Linked, error) {
+	var out Linked
+	for _, pr := range p.Projects {
+		got, err := s.LinkProject(ctx, actor, p, keys, pr.Tool)
+		out.add(got)
+		if err != nil {
+			return out, err
+		}
+	}
+	return out, nil
+}
+
+// add counts another step's links in, each note once.
+func (l *Linked) add(other Linked) {
+	l.Links += other.Links
+	l.Skipped += other.Skipped
+	for _, n := range other.Notes {
+		if !slices.Contains(l.Notes, n) {
+			l.Notes = append(l.Notes, n)
+		}
+	}
+}
+
+// LinkProject adds what one tool's project is missing: its dependencies, its issues in Armature and its pages in
+// Stator. What a partner cannot take yet is counted as skipped, and linking again adds it.
+func (s *Service) LinkProject(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string, tool string) (Linked, error) {
 	var out Linked
 	nodes, err := s.mapped(ctx, keys)
 	if err != nil {
@@ -62,11 +87,11 @@ func (s *Service) Link(ctx context.Context, actor uuid.UUID, p Plan, keys map[st
 	if err != nil {
 		return out, err
 	}
-	if err := s.linkDependencies(ctx, actor, p, nodes, have, &out); err != nil {
+	if err := s.linkDependencies(ctx, actor, p, tool, nodes, have, &out); err != nil {
 		return out, err
 	}
-	s.linkIssues(ctx, p, nodes, have, &out)
-	s.linkPages(ctx, p, nodes, have, &out)
+	s.linkIssues(ctx, p, tool, nodes, have, &out)
+	s.linkPages(ctx, p, tool, nodes, have, &out)
 	return out, nil
 }
 
@@ -156,9 +181,12 @@ func (s *Service) existing(ctx context.Context, nodes map[node]made) (*existing,
 	return have, err
 }
 
-// items walks every item of the projects the demo made, with the requirement it became.
-func items(p Plan, nodes map[node]made, visit func(pr Project, it Item, m made)) {
+// items walks every item of one tool's project the demo made, with the requirement it became.
+func items(p Plan, tool string, nodes map[node]made, visit func(pr Project, it Item, m made)) {
 	for _, pr := range p.Projects {
+		if pr.Tool != tool {
+			continue
+		}
 		if m, ok := nodes[node{tool: pr.Tool}]; ok {
 			visit(pr, pr.About, m)
 		}
@@ -172,9 +200,9 @@ func items(p Plan, nodes map[node]made, visit func(pr Project, it Item, m made))
 	}
 }
 
-func (s *Service) linkDependencies(ctx context.Context, actor uuid.UUID, p Plan, nodes map[node]made, have *existing, out *Linked) error {
+func (s *Service) linkDependencies(ctx context.Context, actor uuid.UUID, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) error {
 	var failed error
-	items(p, nodes, func(_ Project, it Item, from made) {
+	items(p, tool, nodes, func(_ Project, it Item, from made) {
 		for _, dep := range it.DependsOn {
 			to, ok := nodes[node{tool: dep.Tool, issue: dep.Number}]
 			if failed != nil || !ok || have.traces[[2]uuid.UUID{from.id, to.id}] {
@@ -226,15 +254,15 @@ func (pt *partner) note(out *Linked) {
 	case pt.stopped != "":
 		out.Notes = append(out.Notes, pt.stopped)
 	case pt.missing > 0:
-		out.Notes = append(out.Notes, fmt.Sprintf("%d links wait for %s that %s does not have yet. Add %s's suite demo, then link this one again.",
-			pt.missing, pt.what, pt.name, pt.name))
+		out.Notes = append(out.Notes, fmt.Sprintf("Some links wait for %s that %s does not have yet. Add %s's suite demo, then link this one again.",
+			pt.what, pt.name, pt.name))
 	}
 }
 
-func (s *Service) linkIssues(ctx context.Context, p Plan, nodes map[node]made, have *existing, out *Linked) {
+func (s *Service) linkIssues(ctx context.Context, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) {
 	pt := &partner{name: "Armature", what: "issues"}
 	defer pt.note(out)
-	items(p, nodes, func(pr Project, it Item, m made) {
+	items(p, tool, nodes, func(pr Project, it Item, m made) {
 		if it.Issue == 0 {
 			return
 		}
@@ -260,11 +288,11 @@ func (s *Service) linkIssues(ctx context.Context, p Plan, nodes map[node]made, h
 	})
 }
 
-func (s *Service) linkPages(ctx context.Context, p Plan, nodes map[node]made, have *existing, out *Linked) {
+func (s *Service) linkPages(ctx context.Context, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) {
 	pt := &partner{name: "Stator", what: "pages"}
 	defer pt.note(out)
 	pages := map[string]uuid.UUID{}
-	items(p, nodes, func(_ Project, it Item, m made) {
+	items(p, tool, nodes, func(_ Project, it Item, m made) {
 		for _, pg := range it.Pages {
 			if s.stator == nil || pt.stopped != "" {
 				out.Skipped++

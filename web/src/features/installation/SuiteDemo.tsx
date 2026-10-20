@@ -64,7 +64,7 @@ function Progress({ demo }: { demo: Demo | null }) {
     demo.state === "queued" || demo.state === "running"
       ? demo.kind === "links"
         ? t.suiteDemo.linking
-        : t.suiteDemo.building
+        : t.suiteDemo.building(Math.min(demo.step + 1, demo.steps), demo.steps)
       : demo.state === "failed"
         ? t.suiteDemo.failed
         : t.suiteDemo.done(demo.requirements, demo.links, demo.skipped);

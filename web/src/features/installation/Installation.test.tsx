@@ -73,6 +73,8 @@ describe("the installation page", () => {
       kind,
       taken: "2026-10-20",
       projectKeys: ["ARM", "EXC", "STA"],
+      step: state === "done" ? 40 : 0,
+      steps: 40,
       requirements: state === "done" ? 1540 : 0,
       links: state === "done" ? 12 : 0,
       skipped: state === "done" ? 3 : 0,
@@ -100,7 +102,7 @@ describe("the installation page", () => {
     expect(await screen.findByRole("dialog", { name: "Add the suite demo?" })).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await user.click(screen.getByRole("button", { name: "Add it" }));
-    expect(await screen.findByText("The demo is being built. This takes a minute or two.")).toBeInTheDocument();
+    expect(await screen.findByText("The demo is being built: step 1 of 40. This takes a few minutes.")).toBeInTheDocument();
     expect(sent.filter((r) => r.method === "POST" && r.path === "/installation/suite-demo")).toHaveLength(1);
 
     current = demo("done");

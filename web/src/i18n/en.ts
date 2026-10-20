@@ -156,9 +156,9 @@ export const en = {
     add: "Add the suite demo",
     confirmTitle: "Add the suite demo?",
     confirmBody:
-      "This makes the projects ARM, EXC and STA with about 1,500 requirements, in your name, and links them with your Armature and Stator accounts. It is added once and takes a minute or two.",
+      "This makes the projects ARM, EXC and STA with about 1,500 requirements, in your name, and links them with your Armature and Stator accounts. It is added once and takes a few minutes.",
     confirm: "Add it",
-    building: "The demo is being built. This takes a minute or two.",
+    building: (step: number, steps: number) => `The demo is being built: step ${step} of ${steps}. This takes a few minutes.`,
     linking: "The demo is being linked to Armature and Stator.",
     done: (requirements: number, links: number, skipped: number) =>
       `The demo holds ${requirements} requirements and ${links} links${skipped > 0 ? `; ${skipped} links wait` : ""}.`,

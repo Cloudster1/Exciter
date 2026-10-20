@@ -10,6 +10,9 @@ CREATE TABLE suite_demo (
     taken        text NOT NULL,
     project_keys text[] NOT NULL,
     requested_by uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    -- The worker takes the run a short step an event, so other work goes on between: the next step and how many.
+    step         integer NOT NULL DEFAULT 0 CHECK (step >= 0),
+    steps        integer NOT NULL DEFAULT 0 CHECK (steps >= step),
     requirements integer NOT NULL DEFAULT 0 CHECK (requirements >= 0),
     links        integer NOT NULL DEFAULT 0 CHECK (links >= 0),
     -- What could not be linked: a partner not connected, an issue or a page it does not have yet.
@@ -22,7 +25,8 @@ CREATE TABLE suite_demo (
 CREATE UNIQUE INDEX suite_demo_one_row_idx ON suite_demo ((true));
 
 -- +goose StatementBegin
--- The demo moves forward only, and is asked for again once it ended; what it was made from never changes.
+-- The demo moves forward only, a step at a time, and is asked for again once it ended; what it was made from never
+-- changes.
 CREATE FUNCTION suite_demo_guard() RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -37,6 +41,10 @@ BEGIN
         OR (OLD.state IN ('done', 'failed') AND NEW.state = 'queued')) THEN
         RAISE EXCEPTION 'suite_demo_forward' USING ERRCODE = 'check_violation',
             DETAIL = 'The suite demo moves from queued to running, and then ends; an ended one may be queued again.';
+    END IF;
+    IF NEW.step < OLD.step AND NEW.state <> 'queued' THEN
+        RAISE EXCEPTION 'suite_demo_step' USING ERRCODE = 'check_violation',
+            DETAIL = 'The suite demo goes back to its first step only when it is queued again.';
     END IF;
     IF NEW.kind IS DISTINCT FROM OLD.kind AND NEW.state <> 'queued' THEN
         RAISE EXCEPTION 'suite_demo_kind' USING ERRCODE = 'check_violation',

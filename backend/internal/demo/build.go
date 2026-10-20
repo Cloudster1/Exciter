@@ -27,7 +27,8 @@ const (
 	projectDescriptor = "The requirements of %s, taken on %s from the user stories and acceptance criteria of its issues, for the suite demo."
 )
 
-// Build makes the project of each tool the keys name, and answers how many requirements it made.
+// Build makes the project of each tool the keys name, all at once, and answers how many requirements it made; the
+// worker takes the same a step at a time.
 func (s *Service) Build(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string) (int, error) {
 	made := 0
 	for _, pr := range p.Projects {
@@ -35,8 +36,12 @@ func (s *Service) Build(ctx context.Context, actor uuid.UUID, p Plan, keys map[s
 		if key == "" {
 			continue
 		}
-		n, err := s.buildProject(ctx, actor, pr, key, p.Taken)
+		n, err := s.makeProject(ctx, actor, pr, key, p.Taken)
 		made += n
+		for i := 0; err == nil && i < len(pr.Sections); i++ {
+			n, err = s.fileSection(ctx, actor, pr, key, i)
+			made += n
+		}
 		if err != nil {
 			return made, fmt.Errorf("the project %s: %w", key, err)
 		}
@@ -63,7 +68,8 @@ type node struct {
 	criterion int
 }
 
-func (s *Service) buildProject(ctx context.Context, actor uuid.UUID, pr Project, key, taken string) (int, error) {
+// makeProject makes a tool's project from the template, with the requirement that says what the tool is.
+func (s *Service) makeProject(ctx context.Context, actor uuid.UUID, pr Project, key, taken string) (int, error) {
 	in := project.CreateInput{Key: key, Name: pr.Name, Description: fmt.Sprintf(projectDescriptor, pr.Name, taken), Template: template}
 	if _, _, err := s.projects.Create(ctx, actor, in); err != nil {
 		return 0, err
@@ -77,32 +83,41 @@ func (s *Service) buildProject(ctx context.Context, actor uuid.UUID, pr Project,
 	if err != nil {
 		return b.made, err
 	}
-	nodes := []node{{about, pr.Tool, 0, 0}}
-	after := w.issuesLast
-	for _, sec := range pr.Sections {
-		section, err := b.create(ctx, requirement.KindSection, Item{Title: sec.Title}, w.issues, after)
+	return b.made, s.record(ctx, w.projectID, []node{{about, pr.Tool, 0, 0}})
+}
+
+// fileSection files one milestone's issues, with their criteria, after the sections filed before it.
+func (s *Service) fileSection(ctx context.Context, actor uuid.UUID, pr Project, key string, at int) (int, error) {
+	w, err := s.world(ctx, key)
+	if err != nil {
+		return 0, err
+	}
+	b := &builder{s: s, actor: actor, key: key, w: w}
+	sec := pr.Sections[at]
+	section, err := b.create(ctx, requirement.KindSection, Item{Title: sec.Title}, w.issues, w.issuesLast)
+	if err != nil {
+		return 0, err
+	}
+	var (
+		nodes    []node
+		prevItem *uuid.UUID
+	)
+	for _, it := range sec.Items {
+		id, err := b.create(ctx, requirement.KindRequirement, it, &section, prevItem)
 		if err != nil {
-			return b.made, err
+			return b.made, fmt.Errorf("issue #%d: %w", it.Issue, err)
 		}
-		after = &section
-		var prevItem *uuid.UUID
-		for _, it := range sec.Items {
-			id, err := b.create(ctx, requirement.KindRequirement, it, &section, prevItem)
+		nodes = append(nodes, node{id, pr.Tool, it.Issue, 0})
+		prevItem = &id
+		var prevChild *uuid.UUID
+		for i, c := range it.Children {
+			child := Item{Title: c.Title, Statement: c.Statement, Approved: it.Approved}
+			cid, err := b.create(ctx, requirement.KindRequirement, child, &id, prevChild)
 			if err != nil {
-				return b.made, fmt.Errorf("issue #%d: %w", it.Issue, err)
+				return b.made, fmt.Errorf("issue #%d, criterion %d: %w", it.Issue, i+1, err)
 			}
-			nodes = append(nodes, node{id, pr.Tool, it.Issue, 0})
-			prevItem = &id
-			var prevChild *uuid.UUID
-			for i, c := range it.Children {
-				child := Item{Title: c.Title, Statement: c.Statement, Approved: it.Approved}
-				cid, err := b.create(ctx, requirement.KindRequirement, child, &id, prevChild)
-				if err != nil {
-					return b.made, fmt.Errorf("issue #%d, criterion %d: %w", it.Issue, i+1, err)
-				}
-				nodes = append(nodes, node{cid, pr.Tool, it.Issue, i + 1})
-				prevChild = &cid
-			}
+			nodes = append(nodes, node{cid, pr.Tool, it.Issue, i + 1})
+			prevChild = &cid
 		}
 	}
 	return b.made, s.record(ctx, w.projectID, nodes)

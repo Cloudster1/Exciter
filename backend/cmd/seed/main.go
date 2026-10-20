@@ -82,7 +82,7 @@ func run() error {
 	if err := populate(ctx, cfg, cluster, accounts, log); err != nil || !withDemo {
 		return err
 	}
-	return addDemo(ctx, cfg, cluster, log)
+	return addDemo(ctx, cluster, log)
 }
 
 // populate lets the named members in ahead of their first sign-in and points the installation at its provider,

@@ -32422,6 +32422,12 @@
           "state": {
             "type": "string"
           },
+          "step": {
+            "type": "integer"
+          },
+          "steps": {
+            "type": "integer"
+          },
           "taken": {
             "type": "string"
           }
@@ -32431,6 +32437,8 @@
           "kind",
           "taken",
           "projectKeys",
+          "step",
+          "steps",
           "requirements",
           "links",
           "skipped",

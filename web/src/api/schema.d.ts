@@ -6033,6 +6033,8 @@ export interface components {
             /** Format: date-time */
             startedAt: string | null;
             state: string;
+            step: number;
+            steps: number;
             taken: string;
         };
         DiffBlock: {

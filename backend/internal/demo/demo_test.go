@@ -125,6 +125,23 @@ func TestMakeOrdersMilestonesAndLinks(t *testing.T) {
 	}
 }
 
+func TestARunMakesEveryProjectBeforeItLinksAny(t *testing.T) {
+	p := Make(fixture())
+	build := stepsOf(p, KindBuild)
+	// Armature: its project and one section; Exciter: its project and four; a link step each; the baselines.
+	want := []step{
+		{stepProject, 0, 0}, {stepSection, 0, 0},
+		{stepProject, 1, 0}, {stepSection, 1, 0}, {stepSection, 1, 1}, {stepSection, 1, 2}, {stepSection, 1, 3},
+		{stepLinks, 0, 0}, {stepLinks, 1, 0}, {stepBaseline, 0, 0},
+	}
+	if !slices.Equal(build, want) {
+		t.Errorf("a build runs %v, want %v", build, want)
+	}
+	if links := stepsOf(p, KindLinks); !slices.Equal(links, want[len(want)-3:]) || StepCount(p, KindLinks) != 3 {
+		t.Errorf("linking again runs %v", links)
+	}
+}
+
 func TestCleanEscapesPlaceholdersOutsideCode(t *testing.T) {
 	got := Clean("About <tool>, `<kept>` and ![logo](x.png) a < b")
 	if want := "About \\<tool>, `<kept>` and  a < b"; got != want {

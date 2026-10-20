@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/baseline"
+	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/demo"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -97,7 +98,7 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 	t.Run("the issues are filed by milestone in their order, with their criteria", func(t *testing.T) {
 		rows := h.demoTree(t, exc)
 		want := []string{
-			"Introduction", "  About Exciter", "Functional requirements", "  M2 Armature integration", "    Projects [Approved, M2 Armature integration]",
+			"Introduction", "  About Exciter [Approved]", "Functional requirements", "  M2 Armature integration", "    Projects [Approved, M2 Armature integration]",
 			"      Making one [Approved]", "      Keys [Approved]", "    Requirements [Draft, M2 Armature integration]", "  Backlog",
 			"    Trace links [Approved, Backlog]", "  Without a milestone", "    Not in Armature [Draft]", "Non-functional requirements", "Interfaces",
 		}
@@ -155,6 +156,103 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 			t.Errorf("%d baselines (%v), want one a project", n, err)
 		}
 	})
+}
+
+// demoTopic is where a test's run queues its steps, which the stack's worker does not hear.
+const demoTopic = "suite_demo.test"
+
+func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
+	exc, arm := projectKey(t, "DSX"), projectKey(t, "DSA")
+	h := newHarness(t)
+	h.keepSuiteDemo(t)
+	// No partner is connected, so every link to one waits and says why.
+	h.keepArmature(t)
+	h.keepStator(t)
+	home := h.owner(t, "suite-steps")
+	ctx := context.Background()
+	fixture := demoFixture()
+	svc := h.demoService(t).WithSnapshot(fixture, demoTopic)
+	steps := demo.StepCount(demo.Make(fixture), demo.KindBuild)
+	if _, err := h.super.Exec(ctx, `INSERT INTO suite_demo (taken, project_keys, steps, requested_by) VALUES ('2026-10-20', $1, $2, $3)`,
+		[]string{arm, exc}, steps, home.user); err != nil {
+		t.Fatal(err)
+	}
+	h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic)
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic) })
+	read := func(t *testing.T) *demo.Demo {
+		t.Helper()
+		d, err := svc.Status(db.PinPrimary(home.ctx))
+		if err != nil || d == nil {
+			t.Fatalf("read the demo: %v %v", d, err)
+		}
+		return d
+	}
+
+	t.Run("a step that is not next does nothing", func(t *testing.T) {
+		if err := svc.Step(home.ctx, home.user, 1); err != nil {
+			t.Fatal(err)
+		}
+		if d := read(t); d.State != demo.StateQueued || d.Step != 0 {
+			t.Errorf("the demo is %s at step %d", d.State, d.Step)
+		}
+	})
+
+	t.Run("each step queues the next, and the last ends the run", func(t *testing.T) {
+		for at := range steps {
+			if err := svc.Step(home.ctx, home.user, at); err != nil {
+				t.Fatalf("step %d: %v", at, err)
+			}
+			if at == 0 {
+				if d := read(t); d.State != demo.StateRunning || d.Step != 1 {
+					t.Errorf("after the first step the demo is %s at step %d", d.State, d.Step)
+				}
+			}
+		}
+		d := read(t)
+		if d.State != demo.StateDone || d.Step != steps || d.Requirements != 9 || d.Links != 2 || d.FinishedAt == nil {
+			t.Errorf("the demo ended as %+v", d)
+		}
+		for _, partner := range []string{"Armature is not connected", "Stator is not connected"} {
+			if strings.Count(d.Message, partner) != 1 {
+				t.Errorf("the message says %q, want %q once", d.Message, partner)
+			}
+		}
+		var queued []int
+		rows, err := h.super.Query(ctx, `SELECT (payload->>'step')::int FROM outbox_event WHERE topic = $1 ORDER BY created_at`, demoTopic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if queued, err = pgx.CollectRows(rows, pgx.RowTo[int]); err != nil || len(queued) != steps-1 || queued[0] != 1 || queued[len(queued)-1] != steps-1 {
+			t.Errorf("the steps queued are %v (%v)", queued, err)
+		}
+		if err := svc.Step(home.ctx, home.user, steps-1); err != nil {
+			t.Fatal(err)
+		}
+		if again := read(t); again.Requirements != 9 {
+			t.Errorf("the last step again made more: %+v", again)
+		}
+	})
+
+	t.Run("linking again runs the link steps alone", func(t *testing.T) {
+		d, _, err := svc.Relink(home.ctx, home.user)
+		if err != nil || d.State != demo.StateQueued || d.Kind != demo.KindLinks || d.Step != 0 || d.Steps != 3 {
+			t.Fatalf("relinking queued %+v (%v)", d, err)
+		}
+		if _, _, err := svc.Relink(home.ctx, home.user); !errors.Is(err, demo.ErrBusy) {
+			t.Errorf("linking twice at once: %v", err)
+		}
+		for at := range d.Steps {
+			if err := svc.Step(home.ctx, home.user, at); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if d := read(t); d.State != demo.StateDone || d.Requirements != 9 || d.Links != 2 {
+			t.Errorf("after linking again the demo is %+v", d)
+		}
+	})
+	if rows := h.demoTree(t, exc); len(rows) != 14 {
+		t.Errorf("the steps filed a tree of %d rows: %v", len(rows), rows)
+	}
 }
 
 // demoTree reads a project's tree as the superuser: each node indented by depth, with its status and Release.
@@ -267,6 +365,15 @@ func TestRawSQLKeepsTheSuiteDemoToAdministrators(t *testing.T) {
 		if _, err := asAdmin.Exec(ctx, sql); !isCheckViolation(err) {
 			t.Errorf("%s was not refused: %v", what, err)
 		}
+	}
+	if _, err := asAdmin.Exec(ctx, `UPDATE suite_demo SET state = 'running', steps = 5, step = 2`); err != nil {
+		t.Fatalf("the worker takes two steps: %v", err)
+	}
+	if _, err := asAdmin.Exec(ctx, `UPDATE suite_demo SET step = 1`); !isCheckViolation(err) {
+		t.Errorf("a running demo went back a step: %v", err)
+	}
+	if _, err := asAdmin.Exec(ctx, `UPDATE suite_demo SET step = 6`); !isCheckViolation(err) {
+		t.Errorf("a demo went past its last step: %v", err)
 	}
 	var pgErr *pgconn.PgError
 	if _, err := asAdmin.Exec(ctx, `DELETE FROM suite_demo`); !errors.As(err, &pgErr) || pgErr.Code != "42501" {

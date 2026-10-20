@@ -157,9 +157,9 @@ export const de: Messages = {
     add: "Suite-Demo hinzufügen",
     confirmTitle: "Suite-Demo hinzufügen?",
     confirmBody:
-      "Das legt die Projekte ARM, EXC und STA mit rund 1.500 Anforderungen in Ihrem Namen an und verknüpft sie über Ihre Konten in Armature und Stator. Sie wird einmal hinzugefügt und braucht ein bis zwei Minuten.",
+      "Das legt die Projekte ARM, EXC und STA mit rund 1.500 Anforderungen in Ihrem Namen an und verknüpft sie über Ihre Konten in Armature und Stator. Sie wird einmal hinzugefügt und braucht einige Minuten.",
     confirm: "Hinzufügen",
-    building: "Die Demo wird aufgebaut. Das braucht ein bis zwei Minuten.",
+    building: (step: number, steps: number) => `Die Demo wird aufgebaut: Schritt ${step} von ${steps}. Das braucht einige Minuten.`,
     linking: "Die Demo wird mit Armature und Stator verknüpft.",
     done: (requirements: number, links: number, skipped: number) =>
       `Die Demo enthält ${requirements} Anforderungen und ${links} Verknüpfungen${skipped > 0 ? `; ${skipped} Verknüpfungen warten` : ""}.`,

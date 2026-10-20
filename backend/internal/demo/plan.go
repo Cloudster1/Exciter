@@ -178,7 +178,7 @@ func item(t Tool, issue Issue, byRepo map[string]string, known map[Target]bool) 
 		Issue:     issue.Number,
 		Title:     shorten(issue.Title),
 		Statement: Clean(parsed.Story),
-		Rationale: fmt.Sprintf("Taken from [%s#%d](%s).", t.Repo, issue.Number, issue.URL),
+		Rationale: fmt.Sprintf("Taken from [%s#%d](%s).", t.Repo, issue.Number, cmp.Or(issue.URL, fmt.Sprintf("https://github.com/%s/issues/%d", t.Repo, issue.Number))),
 		Approved:  issue.Closed,
 		Release:   issue.Milestone,
 	}
