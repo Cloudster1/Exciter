@@ -180,6 +180,14 @@ expect_release && {
         "$(grep -c 'nothing released yet' "${W}/out.log")" "1"
 }
 
+# Before the first tag the log is the whole history, which an environment
+# variable once carried; Linux refuses one over 128 KB (#290).
+use_fixture untagged
+{ printf 'feat: a commit with a long description\n\n'; head -c 200000 /dev/zero | tr '\0' 'x' | fold -w 72; } \
+    | git -C "${REPO}" commit -q --allow-empty -F - && git -C "${REPO}" push -q origin main
+expect_release && \
+    check "a history over 128 KB still releases" "$(released_version)" "0.1.0"
+
 echo "== release.sh: an empty history aborts without touching anything"
 use_fixture tagged
 BEFORE="$(tree_state)$(git -C "${REPO}" tag -l)"
