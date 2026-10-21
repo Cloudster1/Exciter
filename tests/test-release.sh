@@ -30,6 +30,7 @@ fail() { echo "   FAIL  $1"; FAILED=1; }
 check() { if [[ "$2" == "$3" ]]; then pass "$1"; else fail "$1: expected [$3], got [$2]"; fi; }
 
 REPO="${W}/repo"
+CASE=0
 
 # One prepared repository is copied per case, so each case can state the
 # version it expects instead of tracking what its predecessors released.
@@ -69,7 +70,11 @@ EOF
 }
 
 use_fixture() { # tagged|untagged
-    rm -rf "${REPO}" "${REPO}.remote" || fixture_failed "removing the previous case's repository"
+    # Each case gets a directory of its own rather than removing the last
+    # one: a git process the last case left behind still wrote into its
+    # remote in CI (#288), and rm failed.
+    CASE=$((CASE + 1))
+    REPO="${W}/repo-${CASE}"
     cp -a "${W}/pristine-$1" "${REPO}" || fixture_failed "copying the $1 fixture"
     cp -a "${W}/pristine-$1.remote" "${REPO}.remote" || fixture_failed "copying the $1 fixture's remote"
     git -C "${REPO}" remote set-url origin "${REPO}.remote" || fixture_failed "pointing the copy at its remote"
