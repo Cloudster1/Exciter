@@ -117,19 +117,23 @@ type TokenRequest struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 	Resource     string `json:"resource,omitempty"`
 	Scope        string `json:"scope,omitempty"`
-	// SubjectToken is the person's access token from the identity provider a partner exchanges (RFC 8693), of
-	// SubjectTokenType urn:ietf:params:oauth:token-type:access_token.
+	// SubjectToken is the access token exchanged (RFC 8693): the person's from the identity provider for a partner,
+	// or one of the client's own grant; SubjectTokenType is urn:ietf:params:oauth:token-type:access_token.
 	SubjectToken       string `json:"subject_token,omitempty"`
 	SubjectTokenType   string `json:"subject_token_type,omitempty"`
 	RequestedTokenType string `json:"requested_token_type,omitempty"`
+	// ExpiresIn and Projects narrow an exchanged access token of the client's own grant (#235).
+	ExpiresIn string `json:"exciter_expires_in,omitempty"`
+	Projects  string `json:"exciter_projects,omitempty"`
 }
 
 // TokenResponse hands a client its tokens (RFC 6749).
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token"`
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+	// RefreshToken is left out of an exchange's answer, which issues an access token alone.
+	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope"`
 	// IssuedTokenType answers an exchange (RFC 8693): an access token.
 	IssuedTokenType string `json:"issued_token_type,omitempty"`

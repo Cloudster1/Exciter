@@ -7,6 +7,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A connected app can take a narrower, shorter access token for one run
+  without narrowing what the person allowed it (#235). `POST /oauth/token`
+  exchanges an access token of the app's own grant (RFC 8693) for one that
+  only reads, reaches fewer projects (`exciter_projects`) or ends sooner
+  (`exciter_expires_in`), never outliving the token it came from and with no
+  refresh token. Revoking it ends it alone, and ending the grant ends it
+  too. Apps may now register for the token exchange grant.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

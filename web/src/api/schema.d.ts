@@ -1521,7 +1521,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token. */
+        /** Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token; or an access token of the client's own grant for a narrower, shorter access token alone (RFC 8693, exciter_expires_in, exciter_projects). */
         post: operations["oAuthToken"];
         delete?: never;
         options?: never;
@@ -6856,6 +6856,8 @@ export interface components {
             client_secret?: string;
             code?: string;
             code_verifier?: string;
+            exciter_expires_in?: string;
+            exciter_projects?: string;
             grant_type: string;
             redirect_uri?: string;
             refresh_token?: string;
@@ -6869,7 +6871,7 @@ export interface components {
             access_token: string;
             expires_in: number;
             issued_token_type?: string;
-            refresh_token: string;
+            refresh_token?: string;
             scope: string;
             token_type: string;
         };

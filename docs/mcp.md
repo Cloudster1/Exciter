@@ -33,7 +33,9 @@ hour and is renewed with a refresh token, which turns over at each use. A
 refresh token used twice ends the connection, as a stolen one would. The
 tokens are good at the MCP endpoint alone, never for the rest of the API.
 Connecting the same app again replaces its earlier connection, and switching
-somebody off ends theirs.
+somebody off ends theirs. An app may also trade its access token for a
+narrower, shorter one for a single job, such as reading only, which never
+outlives the token it came from.
 
 **Connected apps**, under the account menu beside the access tokens, lists
 the apps you connected: the host each sends back to, whether it only reads,

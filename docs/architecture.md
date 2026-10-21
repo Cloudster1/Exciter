@@ -237,7 +237,10 @@ app role holds no privilege on.
   prefix, accepts it at `/mcp` and for the calls MCP makes in process, and
   puts the grant's reading and projects on the principal as a personal
   token's. The worker sweeps what ran out. A person's grants are listed and
-  ended under row level security, as their tokens are (#189).
+  ended under row level security, as their tokens are (#189). A client
+  narrows a token of its own grant by token exchange (#235): the new access
+  token reads only or reaches fewer projects, kept in `oauth_token_project`,
+  and ends with its subject's hour and with the grant.
 - **What an assistant wrote** (#190): `authenticate` puts the calling token
   or grant on the context, `inTx` sets it as `app.via`, and a trigger on
   each table an assistant writes stamps `via_kind`, `via_id` and `via_name`

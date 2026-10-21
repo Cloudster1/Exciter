@@ -183,6 +183,7 @@ func (s *Server) handleOAuthToken(w http.ResponseWriter, r *http.Request) {
 		GrantType: f.Get("grant_type"), Code: f.Get("code"), RedirectURI: f.Get("redirect_uri"), CodeVerifier: f.Get("code_verifier"),
 		RefreshToken: f.Get("refresh_token"), Resource: f.Get("resource"), Scope: f.Get("scope"),
 		SubjectToken: f.Get("subject_token"), SubjectTokenType: f.Get("subject_token_type"), RequestedTokenType: f.Get("requested_token_type"),
+		ExpiresIn: f.Get(oauth.ParamExpiresIn), Projects: f.Get(oauth.ParamProjects),
 	}, who)
 	answerOAuth(w, r, http.StatusOK, out, err, who.Basic)
 }

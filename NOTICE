@@ -550,6 +550,9 @@ Adapted from Armature at b650791 and 10edbd7, for the token exchange (#273):
   sentences, over Exciter's grants
 - backend/internal/oidc/service.go VerifyAccessToken: internal/oidc's, its
   issuer, keys, azp and audience checks
+- backend/internal/oauth/narrow.go: narrow of internal/oauth/token.go, a
+  narrower and shorter access token from one of the client's own grant, its
+  checks and sentences, over Exciter's tokens and projects (#235)
 
 Adapted from Stator at 6094b76, for diagrams (#284):
 - web/src/features/editor/diagram.tsx and DiagramViews.tsx: the diagram

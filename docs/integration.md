@@ -77,6 +77,12 @@ token within the person's rights, with no consent page. An administrator
 registers the app at `POST /oauth/clients`;
 [`docs/api-contract-m7.md`](api-contract-m7.md), #273, has the rest.
 
+The same grant type narrows a token too (#235): `subject_token` an access
+token of the calling client's own grant answers an access token alone, no
+wider than the grant in scope and projects (`exciter_projects`), ending at
+the latest when its subject does (`exciter_expires_in`), the grant
+untouched; #235 in the same document has the rest.
+
 - `POST /oauth/token`
 
 ### `specifications@1`

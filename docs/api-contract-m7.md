@@ -389,8 +389,8 @@ The tools of #185: review, comments and trace.
     tokens are sent in the header.
   - The server's metadata names:
     - the endpoints, under `/api/v1/oauth/`
-    - `response_types` `code` and `grant_types` `authorization_code` and
-      `refresh_token`
+    - `response_types` `code` and `grant_types` `authorization_code`,
+      `refresh_token` and the token exchange (#273, #235)
     - `S256` alone
     - client authentication `none`, `client_secret_basic` and
       `client_secret_post`
@@ -636,7 +636,8 @@ shared realm for a grant here (RFC 8693), as it does at Armature
     installation without single sign-on, `invalid_scope`, `invalid_grant`
     for a token the provider did not vouch for as asked, with the reason,
     and `temporarily_unavailable` when the provider cannot be reached.
-    An assistant's client asking for the grant is `unauthorized_client`.
+    An assistant's client exchanging anything but an access token of its
+    own grant is `unauthorized_client`; its own token it narrows (#235).
 - **Connected apps.** The grant is among the person's connected apps (#189),
   its client of kind `partner`, and ends there, at the revocation endpoint,
   with the app, or as any grant does. The page says it was connected at the
@@ -682,3 +683,50 @@ shared realm for a grant here (RFC 8693), as it does at Armature
   either envelope version read past (#103).
 - **UI.** The history, the activity, comments, reviews and the audit log show
   "through" and the name beside the person.
+
+## #235 A narrower token for one run
+
+A client trades an access token of its own grant for a shorter one that may
+do less, for one run, and the grant keeps what its person allowed. Rotor
+holds a run to reading this way until a person confirms a write
+(Cloudster1/Rotor#32), and parallel runs never share a refresh token.
+
+- **The exchange.** `POST /oauth/token` with
+  `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`,
+  `subject_token` an `exciter_oat_` access token of the calling client's
+  grant, `subject_token_type=urn:ietf:params:oauth:token-type:access_token`,
+  and `requested_token_type` the same or nothing. The client authenticates
+  as it registered. Any other subject is a partner's exchange (#273).
+  - `scope` may only narrow: `mcp:read` from a grant that writes, and an
+    evidence grant stays `evidence`. Left out, it is the subject's.
+  - `resource`, when sent, is the MCP endpoint.
+  - `exciter_expires_in` asks for 1 to 3600 seconds. The token never
+    outlives its subject, which is also its lifetime when nothing is asked.
+  - `exciter_projects` names project keys, space-separated, at most as many
+    as a personal token holds. Each must be one the grant reaches and its
+    person may view, read under their rights, so an unknown key and one out
+    of reach refuse alike.
+- **The answer.** `{access_token, token_type: "Bearer", expires_in, scope,
+  issued_token_type}` and no refresh token: the token is an `exciter_oat_`
+  like any other, accepted where the grant's are, with the reading and
+  projects asked for.
+- **What stays.** The grant, its refresh token and its other access tokens
+  are untouched. An exchanged token is never the subject of another.
+- **Ending.** Revoking an exchanged token (RFC 7009) ends it alone; ending
+  the grant, by revoking its refresh token, at the person's connected apps,
+  or by switching the person off, ends every token exchanged from it.
+- **Refusals.** `invalid_grant` for a subject that is not a live access token
+  of the client's own grant, or that was exchanged itself;
+  `invalid_scope` for a wider scope or a project out of reach;
+  `invalid_request` for another token type or a lifetime out of range;
+  `invalid_target` for another resource; `unauthorized_client` for a partner
+  app, which narrows by refreshing to `read`.
+- **Registration.** A client may register for
+  `urn:ietf:params:oauth:grant-type:token-exchange` beside
+  `authorization_code`, which it still needs; the exchange of its own token
+  does not depend on it.
+- **The database.** `oauth_token.exchanged` and `projects_only` (migration
+  01400), and `oauth_token_project`, which only the admin role reads and
+  writes, as the tokens. Authentication reads a token's own projects instead
+  of its grant's when it has them; they lie within the grant's.
+- **The capability.** `oauth.token-exchange@1` promises this exchange too.
