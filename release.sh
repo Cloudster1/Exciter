@@ -82,8 +82,14 @@ PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
 RANGE="HEAD"
 [[ -n "${PREV_TAG}" ]] && RANGE="${PREV_TAG}..HEAD"
 # \x1f separates the fields of a commit, \x1e the commits: neither can occur in
-# a subject or body, unlike any printable delimiter.
-RAW_LOG=$(git log --no-merges --format="%H%x1f%s%x1f%b%x1e" "${RANGE}" 2>/dev/null || true)
+# a subject or body, unlike any printable delimiter. The log goes through a
+# file: before the first tag it is the whole history, and Linux refuses an
+# environment string over 128 KB (#290).
+RAW_LOG_FILE="$(mktemp)"
+PR_BODY="$(mktemp)"
+COMMIT_MESSAGE="$(mktemp)"
+trap 'rm -f "${RAW_LOG_FILE}" "${PR_BODY}" "${COMMIT_MESSAGE}"' EXIT
+git log --no-merges --format="%H%x1f%s%x1f%b%x1e" "${RANGE}" > "${RAW_LOG_FILE}" 2>/dev/null || true
 
 # Without a version argument the number is derived from those commits, and the reasoning is printed
 # before anything is written so the bump can be checked.
@@ -91,7 +97,7 @@ if [[ -z "${VERSION}" ]]; then
     # Values reach Python through the environment, never interpolated: a commit
     # subject is attacker-shaped input and would otherwise be executed.
     VERSION=$(
-        RAW_LOG="${RAW_LOG}" \
+        RAW_LOG_FILE="${RAW_LOG_FILE}" \
         PREV_TAG="${PREV_TAG}" \
         CURRENT_VERSION="${CURRENT_VERSION}" \
         python3 - <<'PY'
@@ -109,7 +115,8 @@ def parts(version):
     return tuple(int(n) for n in version.split('.'))
 
 
-raw = os.environ.get('RAW_LOG', '')
+with open(os.environ['RAW_LOG_FILE']) as f:
+    raw = f.read()
 prev_tag = os.environ.get('PREV_TAG', '')
 current = os.environ['CURRENT_VERSION']
 
@@ -227,13 +234,13 @@ if (( ! DRY_RUN )); then
 fi
 
 if [[ -n "${MANUAL_CHANGELOG}" ]]; then
-    RAW_LOG=""
+    : > "${RAW_LOG_FILE}"
 fi
 
 # Same reason as above: everything reaches Python through the environment.
 NOTES_SOURCE=$(
 VERSION="${VERSION}" \
-RAW_LOG="${RAW_LOG}" \
+RAW_LOG_FILE="${RAW_LOG_FILE}" \
 MANUAL_CHANGELOG="${MANUAL_CHANGELOG}" \
 RELEASE_DATE="$(date -u +%Y-%m-%d)" \
 NOTES_FILE="${NOTES_FILE}" \
@@ -247,7 +254,8 @@ import sys
 version = os.environ['VERSION']
 release_date = os.environ['RELEASE_DATE']
 manual = os.environ.get('MANUAL_CHANGELOG', '')
-raw = os.environ.get('RAW_LOG', '')
+with open(os.environ['RAW_LOG_FILE']) as f:
+    raw = f.read()
 notes_path = os.environ['NOTES_FILE']
 changelog_path = os.environ['CHANGELOG_FILE']
 dry_run = os.environ.get('DRY_RUN') == '1'
@@ -411,14 +419,13 @@ mapfile -t CARRIERS < <("./${VERSION_FILES}" files)
 git add "${CARRIERS[@]}" "${CHANGELOG_FILE}"
 # The notes are multi-line, so they belong in the body; the subject has to
 # stay one short line.
-git commit -q -m "release: ${TAG}" -m "$(cat "${NOTES_FILE}")"
+{ printf 'release: %s\n\n' "${TAG}"; cat "${NOTES_FILE}"; } > "${COMMIT_MESSAGE}"
+git commit -q -F "${COMMIT_MESSAGE}"
 
 echo ""
 echo "Pushing ${RELEASE_BRANCH} to ${REMOTE}..."
 git push -q -u "${REMOTE}" "${RELEASE_BRANCH}"
 
-PR_BODY="$(mktemp)"
-trap 'rm -f "${PR_BODY}"' EXIT
 {
     echo "Releases Exciter ${TAG}. Merging this pull request tags its merge commit"
     echo "${TAG}, and the tag builds and publishes the images and the GitHub"
