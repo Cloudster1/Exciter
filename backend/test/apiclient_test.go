@@ -113,7 +113,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 	a := &apiServer{srv: srv, URL: base, accounts: accounts, sso: oidc.NewService(h.cluster, box, callback), store: store,
 		themes: theme.NewService(h.cluster, store), files: attachment.NewService(h.cluster, store, requirements).WithMaxSize(testUploadLimit), h: h}
 	server := &httpapi.Server{
-		DB: h.cluster, Log: discard(), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
+		DB: h.cluster, Log: testLog(t), Auth: accounts, Accounts: accounts, OIDC: a.sso, OIDCCallbackURL: callback,
 		Audit: audit.NewService(h.cluster), AuditRetention: config.DefaultRetainAudit, Installation: installation.NewService(h.cluster), Themes: a.themes, Projects: project.NewService(h.cluster).WithSeeder(risk.SeedProject), Perms: perm.NewService(h.cluster),
 		Requirements: requirements, Search: finder,
 		Attributes: attribute.NewService(h.cluster),
