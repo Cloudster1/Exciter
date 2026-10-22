@@ -50,7 +50,7 @@ func TestWhatArmatureLacksIsSaidWhereItIsNeeded(t *testing.T) {
 	}
 	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "connect a token")
 	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": capKey, "name": "Capabilities"}), http.StatusCreated, "make a project")
-	want(t, owner.post(t, "/api/v1/projects/"+capKey+"/requirements", map[string]any{"title": "Brakes"}), http.StatusCreated, "write a requirement")
+	req := obj(t, want(t, owner.post(t, "/api/v1/projects/"+capKey+"/requirements", map[string]any{"title": "Brakes"}), http.StatusCreated, "write a requirement"), "requirement")
 
 	t.Run("raw SQL claims no capability", func(t *testing.T) {
 		admin := h.appConn(t, home.user)
@@ -101,6 +101,25 @@ func TestWhatArmatureLacksIsSaidWhereItIsNeeded(t *testing.T) {
 		conn := obj(t, want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base}), http.StatusOK, "save again"), "connection")
 		if got := missingOf(t, conn); len(got) != 0 || conn["connected"] != float64(1) {
 			t.Errorf("after saving again: %v", conn)
+		}
+	})
+
+	// #297: what an issue implements reads apart from its pages once Armature takes relations.
+	t.Run("a link goes as a page until Armature takes relations, and the next sync corrects it", func(t *testing.T) {
+		url := testAppURL(t) + armature.RequirementPath + req["id"].(string)
+		want(t, owner.patch(t, "/api/v1/requirements/"+capKey+"-R1", map[string]any{"title": "Brakes hold", "baseRevision": 1}), http.StatusOK, "revise the requirement")
+		h.drained(t)
+		if got := linksOn(t, slug, url)["CP-1"]; got["relation"] != "page" {
+			t.Fatalf("without relations the link on CP-1 is %v", got)
+		}
+		armatureOffers(t, append(armature.Needs(), armature.CapabilityLinkRelations)...)
+		want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": base}), http.StatusOK, "save again")
+		want(t, owner.post(t, "/api/v1/requirements/"+capKey+"-R1/armature-links", map[string]any{"issueKey": "CP-2", "relation": "relates"}),
+			http.StatusCreated, "link another issue")
+		h.drained(t)
+		got := linksOn(t, slug, url)
+		if got["CP-1"]["relation"] != "requirement" || got["CP-2"]["relation"] != "page" {
+			t.Errorf("with relations CP-1 is %v and CP-2 is %v", got["CP-1"], got["CP-2"])
 		}
 	})
 }
