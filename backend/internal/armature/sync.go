@@ -49,10 +49,32 @@ func LinkTitle(reqKey, title string, relation Relation) string {
 	return string(head[:MaxLinkTitleLength-utf8.RuneCountInString(tail)]) + tail
 }
 
+// RemoteRelation is what a remote link is to its issue, in Armature's words; empty is sent without one.
+type RemoteRelation string
+
+const (
+	RemoteRelationNone        RemoteRelation = ""
+	RemoteRelationPage        RemoteRelation = "page"
+	RemoteRelationRequirement RemoteRelation = "requirement"
+)
+
+// RemoteRelationOf is what a trace makes the requirement to its issue: one the issue implements or verifies is a
+// requirement, any other a page. Without relations, it is sent without one.
+func RemoteRelationOf(relation Relation, relations bool) RemoteRelation {
+	switch {
+	case !relations:
+		return RemoteRelationNone
+	case relation == Implements || relation == Verifies:
+		return RemoteRelationRequirement
+	}
+	return RemoteRelationPage
+}
+
 // WantedLink is the remote link a requirement should have on one issue.
 type WantedLink struct {
-	URL   string
-	Title string
+	URL      string
+	Title    string
+	Relation RemoteRelation
 }
 
 // LinkRecord is what the last sync did for one issue.
@@ -61,6 +83,7 @@ type LinkRecord struct {
 	RemoteID *uuid.UUID
 	URL      string
 	Title    string
+	Relation RemoteRelation
 	State    SyncState
 }
 
@@ -81,10 +104,11 @@ func PlanLinks(want map[string]WantedLink, have []LinkRecord) []LinkStep {
 	var steps []LinkStep
 	for key, w := range want {
 		rec := held[key]
-		if rec != nil && rec.State == SyncSynced && rec.RemoteID != nil && rec.URL == w.URL && rec.Title == w.Title {
+		if rec != nil && rec.State == SyncSynced && rec.RemoteID != nil && rec.URL == w.URL && rec.Title == w.Title &&
+			rec.Relation == w.Relation {
 			continue
 		}
-		steps = append(steps, LinkStep{Key: key, Want: &WantedLink{URL: w.URL, Title: w.Title}, Have: rec})
+		steps = append(steps, LinkStep{Key: key, Want: &w, Have: rec})
 	}
 	for key, rec := range held {
 		if _, ok := want[key]; !ok {
@@ -96,8 +120,9 @@ func PlanLinks(want map[string]WantedLink, have []LinkRecord) []LinkStep {
 }
 
 // WantedLinks are the remote links a live requirement should have: one per issue it is traced to, titled with
-// the first relation in Relations' order. Broken and detached links want none, and a trashed requirement none.
-func WantedLinks(appURL string, req RequirementState, links []LinkedIssue) map[string]WantedLink {
+// the first relation in Relations' order and, where Armature takes relations, related by it. Broken and detached
+// links want none, and a trashed requirement none.
+func WantedLinks(appURL string, req RequirementState, links []LinkedIssue, relations bool) map[string]WantedLink {
 	want := map[string]WantedLink{}
 	if !req.Found || req.Trashed {
 		return want
@@ -113,7 +138,7 @@ func WantedLinks(appURL string, req RequirementState, links []LinkedIssue) map[s
 	}
 	target := strings.TrimSuffix(appURL, "/") + RequirementPath + req.ID.String()
 	for key, relation := range first {
-		want[key] = WantedLink{URL: target, Title: LinkTitle(req.Key, req.Title, relation)}
+		want[key] = WantedLink{URL: target, Title: LinkTitle(req.Key, req.Title, relation), Relation: RemoteRelationOf(relation, relations)}
 	}
 	return want
 }
@@ -137,10 +162,11 @@ type LinkedIssue struct {
 
 // RemoteLinkRequest is what link sync sends Armature to put a requirement on an issue.
 type RemoteLinkRequest struct {
-	URL     string `json:"url"`
-	Title   string `json:"title"`
-	Source  string `json:"source"`
-	IconURL string `json:"iconUrl"`
+	URL      string         `json:"url"`
+	Title    string         `json:"title"`
+	Source   string         `json:"source"`
+	IconURL  string         `json:"iconUrl"`
+	Relation RemoteRelation `json:"relation,omitempty"`
 }
 
 // LinkSync is the worker's handler for armature.links.
@@ -168,11 +194,12 @@ func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('armature-links:' || $1::text, 0))`, in.RequirementID); err != nil {
 			return err
 		}
-		connected, req, links, have, err := l.read(ctx, tx, in.RequirementID)
-		if err != nil || !connected {
+		offered, req, links, have, err := l.read(ctx, tx, in.RequirementID)
+		if err != nil || offered == nil {
 			return err
 		}
-		steps := PlanLinks(WantedLinks(l.svc.opts.AppURL, req, links), have)
+		relations := slices.Contains(*offered, CapabilityLinkRelations)
+		steps := PlanLinks(WantedLinks(l.svc.opts.AppURL, req, links, relations), have)
 		if len(steps) == 0 {
 			return nil
 		}
@@ -204,11 +231,15 @@ func (l *LinkSync) Handle(ctx context.Context, e events.Event) error {
 	return retry
 }
 
-func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, RequirementState, []LinkedIssue, []LinkRecord, error) {
+// read is nil offered without a connection, else what the connected Armature listed when last asked.
+func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (*Offered, RequirementState, []LinkedIssue, []LinkRecord, error) {
 	req := RequirementState{ID: id}
-	var connected bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM armature_connection)`).Scan(&connected); err != nil || !connected {
-		return false, req, nil, nil, err
+	var offered Offered
+	switch err := tx.QueryRow(ctx, `SELECT capabilities FROM armature_connection`).Scan(&offered); {
+	case errors.Is(err, pgx.ErrNoRows):
+		return nil, req, nil, nil, nil
+	case err != nil:
+		return nil, req, nil, nil, err
 	}
 	err := tx.QueryRow(ctx, `
 		SELECT p.key || '-R' || r.number, r.title, r.trashed_at IS NOT NULL
@@ -217,7 +248,7 @@ func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, Re
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 	case err != nil:
-		return false, req, nil, nil, fmt.Errorf("read the requirement: %w", err)
+		return nil, req, nil, nil, fmt.Errorf("read the requirement: %w", err)
 	default:
 		req.Found = true
 	}
@@ -225,20 +256,20 @@ func (l *LinkSync) read(ctx context.Context, tx db.DBTX, id uuid.UUID) (bool, Re
 		SELECT issue_key, relation, broken_at IS NOT NULL, detached_at IS NOT NULL
 		FROM armature_issue_link WHERE requirement_id = $1`, id)
 	if err != nil {
-		return false, req, nil, nil, err
+		return nil, req, nil, nil, err
 	}
 	links, err := pgx.CollectRows(rows, pgx.RowToStructByPos[LinkedIssue])
 	if err != nil {
-		return false, req, nil, nil, err
+		return nil, req, nil, nil, err
 	}
 	rows, err = tx.Query(ctx, `
-		SELECT issue_key, remote_link_id, COALESCE(url, ''), COALESCE(title, ''), state
+		SELECT issue_key, remote_link_id, COALESCE(url, ''), COALESCE(title, ''), COALESCE(relation, ''), state
 		FROM armature_remote_link WHERE requirement_id = $1`, id)
 	if err != nil {
-		return false, req, nil, nil, err
+		return nil, req, nil, nil, err
 	}
 	have, err := pgx.CollectRows(rows, pgx.RowToStructByPos[LinkRecord])
-	return true, req, links, have, err
+	return &offered, req, links, have, err
 }
 
 func actorName(ctx context.Context, tx db.DBTX, id uuid.UUID) (string, error) {
@@ -294,7 +325,7 @@ func (r *linkRun) apply(ctx context.Context, step LinkStep) (retry error, err er
 		} `json:"remoteLink"`
 	}
 	icon := strings.TrimSuffix(r.sync.svc.opts.AppURL, "/") + IconPath
-	body := RemoteLinkRequest{URL: step.Want.URL, Title: step.Want.Title, Source: LinkSource, IconURL: icon}
+	body := RemoteLinkRequest{URL: step.Want.URL, Title: step.Want.Title, Source: LinkSource, IconURL: icon, Relation: step.Want.Relation}
 	why, retry := r.call(ctx, http.MethodPost, linkPath(step.Key), body, &answer)
 	switch {
 	case retry != nil:
@@ -303,12 +334,12 @@ func (r *linkRun) apply(ctx context.Context, step LinkStep) (retry error, err er
 		return nil, r.fail(ctx, step, why)
 	}
 	_, err = r.tx.Exec(ctx, `
-		INSERT INTO armature_remote_link (requirement_id, issue_key, remote_link_id, url, title, state, error, synced_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, 'synced', NULL, now(), now())
+		INSERT INTO armature_remote_link (requirement_id, issue_key, remote_link_id, url, title, relation, state, error, synced_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), 'synced', NULL, now(), now())
 		ON CONFLICT (requirement_id, issue_key) DO UPDATE SET
-		    remote_link_id = EXCLUDED.remote_link_id, url = EXCLUDED.url, title = EXCLUDED.title,
+		    remote_link_id = EXCLUDED.remote_link_id, url = EXCLUDED.url, title = EXCLUDED.title, relation = EXCLUDED.relation,
 		    state = 'synced', error = NULL, synced_at = now(), updated_at = now()`,
-		r.requirementID, step.Key, answer.RemoteLink.ID, step.Want.URL, step.Want.Title)
+		r.requirementID, step.Key, answer.RemoteLink.ID, step.Want.URL, step.Want.Title, string(step.Want.Relation))
 	return nil, err
 }
 

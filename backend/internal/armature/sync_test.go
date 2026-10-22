@@ -34,20 +34,36 @@ func TestARequirementWantsOneLinkPerIssueTitledWithItsFirstRelation(t *testing.T
 		{Key: "CP-3", Relation: Implements, Broken: true},
 		{Key: "CP-4", Relation: Implements, Detached: true},
 	}
-	want := WantedLinks("https://exciter.example/", req, links)
+	want := WantedLinks("https://exciter.example/", req, links, true)
 	if len(want) != 2 {
 		t.Fatalf("wanted %v, want CP-1 and CP-2 alone", want)
 	}
-	if got := want["CP-1"]; got.Title != "CHK-R7 Log every login (verifies)" || got.URL != "https://exciter.example/r/"+id.String() {
+	if got := want["CP-1"]; got.Title != "CHK-R7 Log every login (verifies)" || got.URL != "https://exciter.example/r/"+id.String() ||
+		got.Relation != RemoteRelationRequirement {
 		t.Errorf("CP-1 wants %+v", got)
 	}
 	if got := want["CP-2"].Title; got != "CHK-R7 Log every login (implements)" {
 		t.Errorf("CP-2 wants %q", got)
 	}
 	for name, state := range map[string]RequirementState{"trashed": {ID: id, Found: true, Trashed: true}, "purged": {ID: id}} {
-		if got := WantedLinks("https://exciter.example", state, links); len(got) != 0 {
+		if got := WantedLinks("https://exciter.example", state, links, true); len(got) != 0 {
 			t.Errorf("a %s requirement wants %v", name, got)
 		}
+	}
+}
+
+func TestALinkIsARequirementOfWhatImplementsOrVerifiesItWhereArmatureTakesRelations(t *testing.T) {
+	for relation, want := range map[Relation]RemoteRelation{Implements: RemoteRelationRequirement, Verifies: RemoteRelationRequirement, Relates: RemoteRelationPage} {
+		if got := RemoteRelationOf(relation, true); got != want {
+			t.Errorf("%s is sent as %q, want %q", relation, got, want)
+		}
+		if got := RemoteRelationOf(relation, false); got != RemoteRelationNone {
+			t.Errorf("without relations %s is sent as %q", relation, got)
+		}
+	}
+	req := RequirementState{ID: uuid.New(), Found: true, Key: "CHK-R7", Title: "Log every login"}
+	if got := WantedLinks("https://exciter.example", req, []LinkedIssue{{Key: "CP-1", Relation: Implements}}, false)["CP-1"]; got.Relation != RemoteRelationNone {
+		t.Errorf("without relations CP-1 wants %+v", got)
 	}
 }
 
@@ -58,11 +74,13 @@ func TestPlanLinksChangesOnlyWhatDiffers(t *testing.T) {
 		"CP-2": {URL: "u", Title: "renamed"},
 		"CP-3": {URL: "u", Title: "failed before"},
 		"CP-4": {URL: "u", Title: "new"},
+		"CP-5": {URL: "u", Title: "kept", Relation: RemoteRelationRequirement},
 	}
 	have := []LinkRecord{
 		{Key: "CP-1", RemoteID: &remote, URL: "u", Title: "kept", State: SyncSynced},
 		{Key: "CP-2", RemoteID: &remote, URL: "u", Title: "old", State: SyncSynced},
 		{Key: "CP-3", URL: "u", Title: "failed before", State: SyncFailed},
+		{Key: "CP-5", RemoteID: &remote, URL: "u", Title: "kept", State: SyncSynced},
 		{Key: "CP-9", RemoteID: &remote, URL: "u", Title: "gone", State: SyncSynced},
 	}
 	var got []string
@@ -73,7 +91,7 @@ func TestPlanLinksChangesOnlyWhatDiffers(t *testing.T) {
 		}
 		got = append(got, step.Key+" "+what)
 	}
-	if strings.Join(got, ", ") != "CP-2 put, CP-3 put, CP-4 put, CP-9 take off" {
+	if strings.Join(got, ", ") != "CP-2 put, CP-3 put, CP-4 put, CP-5 put, CP-9 take off" {
 		t.Errorf("the plan is %v", got)
 	}
 	if steps := PlanLinks(map[string]WantedLink{"CP-1": {URL: "u", Title: "kept"}}, have[:1]); len(steps) != 0 {

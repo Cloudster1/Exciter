@@ -231,6 +231,10 @@ sees whether the work is done. It is written:
   `{EXCITER_APP_URL}/r/{requirementId}` (the permalink, which survives moves
   and rekeys), `title` `{KEY} {title} ({relation})` cut to Armature's 255
   characters, `source` `Exciter` and `iconUrl` `{EXCITER_APP_URL}/favicon-32.png`.
+  Where Armature lists `remote-link-relations@1`, it also sends `relation`:
+  `requirement` when the first relation is implements or verifies, `page`
+  otherwise (#297). A link synced with another relation, or none, is sent
+  again, which corrects it.
   A trashed or purged requirement, or a removed link, takes its remote link
   off with `DELETE /issues/{KEY}/remote-links/{id}`, a 404 counting as done.
   One remote link stands per requirement and issue, whatever the relations:

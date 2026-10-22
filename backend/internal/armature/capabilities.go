@@ -13,6 +13,10 @@ const (
 	CapabilityThemes      = "theme-export@1"
 )
 
+// CapabilityLinkRelations lets a remote link say it is a requirement (#297); without it a link is a page, so it
+// is sent only to an Armature that lists it, and is not among what Exciter needs.
+const CapabilityLinkRelations = "remote-link-relations@1"
+
 // needs says what Exciter cannot do without each capability, in the words of the sentence that says so.
 var needs = []struct{ capability, feature string }{
 	{CapabilityIssues, "show and find its issues on requirements"},
