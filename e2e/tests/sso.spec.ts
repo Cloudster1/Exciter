@@ -2,6 +2,7 @@ import { must } from "../fixtures/api";
 import { ANONYMOUS, expect, ME_PATH, ownerApi, signIn, standing, startSSO, submitKeycloak, test, USERS } from "../fixtures/auth";
 import { deadProvider } from "../fixtures/db";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
+import { openAccountMenu } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
@@ -20,6 +21,7 @@ test.describe("single sign-on", () => {
     await expect.poll(() => standing(page)).toEqual({ role: "admin" });
     await page.goto(MEMBERS_PATH);
     await expect(page.locator("[data-members]")).toBeVisible();
+    await openAccountMenu(page);
     await expect(page.locator("[data-account-name]")).toHaveText(USERS.alice.name);
   });
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, ty
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { cx } from "./cx";
-import { focusables, useAnchored, useEscape, useOutsidePress } from "./overlay";
+import { focusables, useAnchored, useEscape, useOutsidePress, type AnchoredSide } from "./overlay";
 
 export interface MenuItem {
   label: ReactNode;
@@ -32,12 +32,17 @@ export function Menu({
   items,
   label,
   align = "start",
+  side,
+  header,
   className,
 }: {
   trigger: (props: { open: boolean; toggle: () => void; "aria-haspopup": "menu"; "aria-expanded": boolean; "aria-controls": string | undefined }) => ReactNode;
   items: MenuItem[];
   label: string;
   align?: "start" | "end";
+  side?: AnchoredSide;
+  /** Drawn above the items and outside the menu's role, such as who the menu is about. */
+  header?: ReactNode;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -57,7 +62,7 @@ export function Menu({
   const outside = useRef([wrapRef, listRef]);
   useOutsidePress(open, outside.current, closeFromOutside);
 
-  const place = useAnchored(open, wrapRef, listRef, { align });
+  const place = useAnchored(open, wrapRef, listRef, { align, side });
 
   function toggle() {
     setHost(wrapRef.current?.closest<HTMLElement>(LANDMARK) ?? document.body);
@@ -174,30 +179,30 @@ export function Menu({
         createPortal(
           <div
             ref={listRef}
-            id={listId}
-            role="menu"
-            aria-label={label}
             onKeyDown={onKeyDown}
             style={place}
             className="fixed z-30 min-w-44 overflow-y-auto overscroll-contain rounded-overlay border border-border bg-surface-overlay p-1 shadow-2"
           >
-            {segments(items).flatMap((segment) =>
-              segment.group === undefined
-                ? segment.items.map(renderItem)
-                : [
-                    <div
-                      key={`group-${segment.start}`}
-                      role="group"
-                      aria-labelledby={`${listId}-${segment.start}`}
-                      className="mt-1 border-t border-border pt-1"
-                    >
-                      <div id={`${listId}-${segment.start}`} className="px-2 py-1 text-2xs font-medium tracking-wide text-ink-subtle uppercase">
-                        {segment.group}
-                      </div>
-                      {segment.items.map(renderItem)}
-                    </div>,
-                  ],
-            )}
+            {header && <div className="mb-1 border-b border-border px-2 pt-1 pb-2">{header}</div>}
+            <div id={listId} role="menu" aria-label={label}>
+              {segments(items).flatMap((segment) =>
+                segment.group === undefined
+                  ? segment.items.map(renderItem)
+                  : [
+                      <div
+                        key={`group-${segment.start}`}
+                        role="group"
+                        aria-labelledby={`${listId}-${segment.start}`}
+                        className="mt-1 border-t border-border pt-1"
+                      >
+                        <div id={`${listId}-${segment.start}`} className="px-2 py-1 text-2xs font-medium tracking-wide text-ink-subtle uppercase">
+                          {segment.group}
+                        </div>
+                        {segment.items.map(renderItem)}
+                      </div>,
+                    ],
+              )}
+            </div>
           </div>,
           host,
         )}

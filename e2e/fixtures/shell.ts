@@ -1,6 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 
+/** Below this width the shell is a drawer, as web/src/config.ts SIDEBAR_DRAWER_BELOW_PX says. */
+const DRAWER_BELOW_PX = 768;
+
+/** Opens a project's folded Project admin group in the sidebar, where its trash, settings and permissions are. */
+export async function openProjectAdmin(page: Page, projectKey: string): Promise<void> {
+  const fold = page.locator(`[data-project-nav="${projectKey}"]`).getByRole("button", { name: "Project admin" });
+  if ((await fold.getAttribute("aria-expanded")) !== "true") await fold.click();
+}
+
 /** The palettes the theme button steps through, as web/src/lib/theme.ts stores them. */
 export type ColourScheme = "light" | "dark";
 const THEME_STORAGE_KEY = "exciter.theme";
@@ -54,8 +63,9 @@ export async function scrollsSideways(page: Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 }
 
-/** Opens the account menu, which on a phone and at the desktop alike sits at the end of the top bar. */
+/** Opens the account menu from the avatar: at the foot of the rail on a wide screen, in the drawer's foot on a phone. */
 export async function openAccountMenu(page: Page): Promise<void> {
+  if ((page.viewportSize()?.width ?? DRAWER_BELOW_PX) < DRAWER_BELOW_PX) await page.locator('[data-action="drawer"]').click();
   await page.locator('[data-action="account"]').click();
   await expect(page.getByRole("menu")).toBeVisible();
 }

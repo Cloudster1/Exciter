@@ -26,7 +26,6 @@ function code(file: string): string {
 
 /** Controls drawn by hand before this test, with why each is not the kit's; a count may only go down. */
 const allowed: Record<string, { count: number; why: string }> = {
-  "features/shell/TopBar.tsx: <button": { count: 1, why: "the quick switcher's trigger is drawn as a search field, a shape the kit has no button for" },
   "features/shell/QuickSwitcher.tsx: <input": { count: 1, why: "the switcher's combobox sits bare in the dialog's head, without a field's frame" },
   "features/audit/AuditLog.tsx: <button": { count: 2, why: "the actor and the target of an entry are text that narrows the log when pressed" },
 };

@@ -12,6 +12,7 @@ import {
   MEMBERS_PATH,
   NOTIFICATION_SETTINGS_PATH,
   NOTIFICATIONS_PATH,
+  PROFILE_PATH,
   ALL_TOKENS_PATH,
   ALL_CONNECTED_APPS_PATH,
   CONNECTED_APPS_PATH,
@@ -26,7 +27,8 @@ import {
   TOKENS_PATH,
   WATCHING_PATH,
 } from "@/config";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { arrival, renderAt, signedIn, stubApi } from "@/test/app";
+import { SETTINGS_PATH } from "./places";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 
 beforeEach(() => localStorage.clear());
@@ -36,28 +38,42 @@ const member: Me = { ...signedIn, role: "member" };
 const membersList = { "GET /users": { status: 200, body: { members: [] } } };
 
 describe("the shell", () => {
-  it("draws the rail, the sidebar and the top bar around the page", async () => {
+  it("draws the rail and the sidebar around the page, with no top bar", async () => {
     await renderAt("/");
     const rail = document.querySelector<HTMLElement>("[data-rail]")!;
     const sidebar = document.querySelector<HTMLElement>('[data-sidebar="open"]')!;
     expect(sidebar).not.toBeNull();
-    expect(within(rail).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
-    expect(within(rail).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
-    expect(within(rail).getAllByRole("link")).toHaveLength(2);
-    expect(within(sidebar).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
-    expect(within(sidebar).getByRole("link", { name: "Members" })).toHaveAttribute("href", MEMBERS_PATH);
-    expect(within(sidebar).getByRole("link", { name: "Audit log" })).toHaveAttribute("href", AUDIT_PATH);
+    expect(
+      within(rail)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual(["/", SEARCH_PATH, PROJECTS_PATH]);
+    const order = Array.from(rail.querySelectorAll("a, button")).map((each) => each.getAttribute("data-action") ?? each.getAttribute("href"));
+    expect(order).toEqual(["sidebar", "/", SEARCH_PATH, "notifications", PROJECTS_PATH, "theme", "account"]);
+    expect(
+      within(sidebar)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Home", "Search", "Notifications", "Reviews", "Projects"]);
+    expect(within(sidebar).queryByRole("link", { name: "Members" })).toBeNull();
     expect(sidebar.querySelector("[data-sidebar-org]")).toHaveTextContent("Demo");
-    expect(document.querySelector("[data-top-bar]")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Your account" })).toBeInTheDocument();
+    expect(sidebar.querySelector("[data-build]")).not.toBeNull();
+    expect(document.querySelector("[data-top-bar]")).toBeNull();
+    expect(document.querySelector('[data-action="switcher"]')).toBeNull();
     expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
     expect(await screen.findByText("No projects yet")).toBeInTheDocument();
   });
 
-  it("keeps the settings from somebody who does not administer the installation", async () => {
-    await renderAt("/", { me: member });
-    expect(document.querySelector("[data-rail]")?.querySelectorAll("a")).toHaveLength(1);
-    expect(document.querySelector('[data-sidebar-group="settings"]')).toBeNull();
+  it("counts the unread notifications and the waiting reviews on their entries", async () => {
+    stubApi({
+      "GET /notifications/unread-count": { status: 200, body: { unread: 3 } },
+      "GET /reviews/waiting": { status: 200, body: { reviews: [], total: 2 } },
+    });
+    await renderAt("/");
+    const sidebar = document.querySelector<HTMLElement>("[data-sidebar]")!;
+    await waitFor(() => expect(sidebar.querySelector('[data-count="notifications"]')).toHaveTextContent("3"));
+    expect(sidebar.querySelector('[data-count="reviews"]')).toHaveTextContent("2");
+    expect(within(sidebar).getByRole("link", { name: /^Reviews.*2 reviews wait for you$/ })).toHaveAttribute("href", REVIEWS_PATH);
   });
 
   it("folds the sidebar to the rail and remembers it", async () => {
@@ -79,35 +95,103 @@ describe("the shell", () => {
     expect(JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "{}")).toEqual({ requirements: false });
   });
 
-  it("marks where the reader is, in the sidebar, the rail and the breadcrumbs", async () => {
+  it("puts the breadcrumbs in the page's strip, the Settings crumb leading to the settings area's hub", async () => {
     stubApi(membersList);
     await renderAt(MEMBERS_PATH);
-    const sidebar = document.querySelector<HTMLElement>("[data-sidebar]")!;
-    expect(within(sidebar).getByRole("link", { name: "Members" })).toHaveAttribute("data-status", "active");
-    expect(within(sidebar).getByRole("link", { name: "Home" })).not.toHaveAttribute("data-status", "active");
-    const rail = document.querySelector<HTMLElement>("[data-rail]")!;
-    expect(within(rail).getByRole("link", { name: "Settings" })).toHaveAttribute("data-status", "active");
-    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    const strip = document.querySelector<HTMLElement>("[data-shell-strip]")!;
+    const crumbs = within(strip).getByRole("navigation", { name: "Breadcrumb" });
     expect(
       within(crumbs)
         .getAllByRole("listitem")
         .map((item) => item.textContent?.replace("/", "").trim()),
     ).toEqual(["Demo", "Settings", "Members"]);
     expect(within(crumbs).getByRole("link", { name: "Demo" })).toHaveAttribute("href", "/");
+    expect(within(crumbs).getByRole("link", { name: "Settings" })).toHaveAttribute("href", SETTINGS_PATH);
     expect(within(crumbs).getByText("Members")).toHaveAttribute("aria-current", "page");
   });
+});
 
-  it("takes the settings entry of the rail to the members", async () => {
+describe("the settings area", () => {
+  it("swaps the sidebar for its own, You for everyone and Settings for an administrator, in order", async () => {
     stubApi(membersList);
-    const router = await renderAt("/");
-    await userEvent.click(within(document.querySelector<HTMLElement>("[data-rail]")!).getByRole("link", { name: "Settings" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(MEMBERS_PATH));
+    await renderAt(MEMBERS_PATH);
+    const sidebar = document.querySelector<HTMLElement>("[data-settings-sidebar]")!;
+    expect(sidebar).not.toBeNull();
+    expect(sidebar.querySelector("[data-sidebar-org]")).toBeNull();
+    const links = (group: string) =>
+      within(sidebar.querySelector<HTMLElement>(`[data-sidebar-group="${group}"]`)!)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href"));
+    expect(links("you")).toEqual([
+      PROFILE_PATH,
+      NOTIFICATION_SETTINGS_PATH,
+      WATCHING_PATH,
+      THEMES_PATH,
+      TOKENS_PATH,
+      CONNECTED_APPS_PATH,
+      ARMATURE_ACCOUNT_PATH,
+      STATOR_ACCOUNT_PATH,
+    ]);
+    expect(links("settings")).toEqual([
+      INSTALLATION_PATH,
+      MEMBERS_PATH,
+      SSO_PATH,
+      DEFAULT_THEME_PATH,
+      LINK_TYPES_PATH,
+      ALL_TOKENS_PATH,
+      ALL_CONNECTED_APPS_PATH,
+      ARMATURE_SETTINGS_PATH,
+      STATOR_SETTINGS_PATH,
+      WEBHOOKS_PATH,
+      AUDIT_PATH,
+    ]);
+    expect(within(sidebar).getByRole("link", { name: "Members" })).toHaveAttribute("data-status", "active");
+  });
+
+  it("keeps the installation's settings from a member", async () => {
+    await renderAt(PROFILE_PATH, { me: member });
+    const sidebar = document.querySelector<HTMLElement>("[data-settings-sidebar]")!;
+    expect(sidebar.querySelector('[data-sidebar-group="you"]')).not.toBeNull();
+    expect(sidebar.querySelector('[data-sidebar-group="settings"]')).toBeNull();
+  });
+
+  it("goes back to the last page outside it", async () => {
+    stubApi(membersList);
+    const router = await renderAt(SEARCH_PATH);
+    await router.navigate({ to: MEMBERS_PATH });
+    await arrival(router, MEMBERS_PATH);
+    await router.navigate({ to: PROFILE_PATH });
+    await arrival(router, PROFILE_PATH);
+    const back = screen.getByRole("link", { name: "Back to Exciter" });
+    expect(back).toHaveAttribute("href", SEARCH_PATH);
+    await userEvent.click(back);
+    await waitFor(() => expect(router.state.location.pathname).toBe(SEARCH_PATH));
+    expect(document.querySelector("[data-settings-sidebar]")).toBeNull();
+  });
+
+  it("opens on a hub of the person's pages, and the installation's for an administrator", async () => {
+    await renderAt(SETTINGS_PATH);
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
+    expect(within(document.querySelector<HTMLElement>('[data-hub-card="you"]')!).getByRole("link", { name: "Your profile" })).toHaveAttribute(
+      "href",
+      PROFILE_PATH,
+    );
+    expect(within(document.querySelector<HTMLElement>('[data-hub-card="settings"]')!).getByRole("link", { name: "Members" })).toHaveAttribute(
+      "href",
+      MEMBERS_PATH,
+    );
+  });
+
+  it("shows a member only the You card of the hub", async () => {
+    await renderAt(SETTINGS_PATH, { me: member });
+    expect(document.querySelector('[data-hub-card="you"]')).not.toBeNull();
+    expect(document.querySelector('[data-hub-card="settings"]')).toBeNull();
   });
 });
 
 describe("the installation in the shell", () => {
   it("names the installation at the head of the sidebar and the start of the trail, with no switcher", async () => {
-    await renderAt("/settings/members", { me: { ...signedIn, installation: { name: "Acme Rockets", oauthConnections: true } } });
+    await renderAt("/", { me: { ...signedIn, installation: { name: "Acme Rockets", oauthConnections: true } } });
     expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme Rockets");
     expect(screen.getByRole("link", { name: "Acme Rockets" })).toHaveAttribute("href", "/");
     expect(document.querySelector('[data-action="switch-org"]')).toBeNull();
@@ -115,18 +199,16 @@ describe("the installation in the shell", () => {
 });
 
 describe("the quick switcher", () => {
-  it("opens from the top bar and from Ctrl K, and hands focus back on Escape", async () => {
+  it("opens from Ctrl K, and hands focus back on Escape", async () => {
     await renderAt("/");
-    const box = document.querySelector<HTMLButtonElement>('[data-action="switcher"]')!;
-    await userEvent.click(box);
+    const home = within(document.querySelector<HTMLElement>("[data-sidebar]")!).getByRole("link", { name: "Home" });
+    home.focus();
+    await userEvent.keyboard("{Control>}k{/Control}");
     expect(screen.getByRole("dialog", { name: "Go to" })).toBeInTheDocument();
-    expect(box).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("combobox")).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
-    expect(box).toHaveFocus();
-
-    await userEvent.keyboard("{Control>}k{/Control}");
-    expect(screen.getByRole("combobox")).toHaveFocus();
+    expect(home).toHaveFocus();
   });
 
   it("lists the places, and moves through them from the keyboard", async () => {
@@ -137,9 +219,19 @@ describe("the quick switcher", () => {
     const options = () => within(screen.getByRole("listbox")).getAllByRole("option");
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
-      `place:${PROJECTS_PATH}`,
       `place:${SEARCH_PATH}`,
+      `place:${NOTIFICATIONS_PATH}`,
       `place:${REVIEWS_PATH}`,
+      `place:${PROJECTS_PATH}`,
+      `place:${PROFILE_PATH}`,
+      `place:${NOTIFICATION_SETTINGS_PATH}`,
+      `place:${WATCHING_PATH}`,
+      `place:${THEMES_PATH}`,
+      `place:${TOKENS_PATH}`,
+      `place:${CONNECTED_APPS_PATH}`,
+      `place:${ARMATURE_ACCOUNT_PATH}`,
+      `place:${STATOR_ACCOUNT_PATH}`,
+      `place:${INSTALLATION_PATH}`,
       `place:${MEMBERS_PATH}`,
       `place:${SSO_PATH}`,
       `place:${DEFAULT_THEME_PATH}`,
@@ -150,15 +242,6 @@ describe("the quick switcher", () => {
       `place:${STATOR_SETTINGS_PATH}`,
       `place:${WEBHOOKS_PATH}`,
       `place:${AUDIT_PATH}`,
-      `place:${INSTALLATION_PATH}`,
-      `place:${THEMES_PATH}`,
-      `place:${TOKENS_PATH}`,
-      `place:${CONNECTED_APPS_PATH}`,
-      `place:${ARMATURE_ACCOUNT_PATH}`,
-      `place:${STATOR_ACCOUNT_PATH}`,
-      `place:${NOTIFICATIONS_PATH}`,
-      `place:${NOTIFICATION_SETTINGS_PATH}`,
-      `place:${WATCHING_PATH}`,
     ]);
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[0]!.id);
@@ -167,9 +250,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[22]).toHaveAttribute("aria-selected", "true");
+    expect(options()[23]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[22]).toHaveAttribute("aria-selected", "true");
+    expect(options()[23]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
@@ -184,9 +267,12 @@ describe("the quick switcher", () => {
   it("offers only the places a member may go, and says when nothing matches", async () => {
     await renderAt("/", { me: member });
     await userEvent.keyboard("{Control>}k{/Control}");
-    // Home, the projects, the search, the reviews, and their own themes, tokens, connected apps, Armature and Stator
-    // accounts, notifications and watches.
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(12);
+    // Home, the search, the notifications, the reviews, the projects, and their own profile, notification settings,
+    // watches, themes, tokens, connected apps, and Armature and Stator accounts.
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(13);
+    await userEvent.type(screen.getByRole("combobox"), "prof");
+    expect(within(screen.getByRole("listbox")).getAllByRole("option")[0]).toHaveTextContent("Your profile");
+    await userEvent.clear(screen.getByRole("combobox"));
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     // Only the full search is left to offer.
     expect(within(screen.getByRole("listbox")).getByRole("option")).toHaveTextContent("Search everything for zzz");
@@ -208,18 +294,41 @@ describe("a path that leads nowhere", () => {
 });
 
 describe("the account menu", () => {
-  it("shows who is signed in and signs them out to the sign-in page", async () => {
+  it("heads with who is signed in, lists their own pages, and signs them out to the sign-in page", async () => {
     const sent = stubApi({
       "POST /auth/logout": { status: 204 },
       "GET /auth/me": { status: 401, body: { error: { code: "unauthorized", message: "Sign in to continue." } } },
     });
     const router = await renderAt("/");
-    expect(document.querySelector("[data-account-name]")).toHaveTextContent("Ada Lovelace");
-    await userEvent.click(screen.getByRole("button", { name: "Your account" }));
-    await userEvent.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Sign out" }));
+    await userEvent.click(within(document.querySelector<HTMLElement>("[data-rail]")!).getByRole("button", { name: "Your account" }));
+    const header = document.querySelector("[data-account-header]")!;
+    expect(header).toHaveTextContent("Ada Lovelace");
+    expect(header).toHaveTextContent("ada@exciter.test");
+    expect(header).toHaveTextContent("Administrator");
+    const menu = screen.getByRole("menu", { name: "Your account" });
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Your profile", "Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Settings", "Sign out"]);
+    expect(within(menu).queryByRole("menuitemradio")).toBeNull();
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Sign out" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(sent.some((r) => r.method === "POST" && r.path === "/auth/logout")).toBe(true);
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+  });
+
+  it("takes an administrator to the settings area", async () => {
+    const router = await renderAt("/");
+    await userEvent.click(screen.getByRole("button", { name: "Your account" }));
+    await userEvent.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Settings" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(SETTINGS_PATH));
+  });
+
+  it("offers a member no Settings", async () => {
+    await renderAt("/", { me: member });
+    await userEvent.click(screen.getByRole("button", { name: "Your account" }));
+    expect(within(screen.getByRole("menu", { name: "Your account" })).queryByRole("menuitem", { name: "Settings" })).toBeNull();
   });
 });
 

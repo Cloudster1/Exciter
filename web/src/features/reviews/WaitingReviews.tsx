@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useWaitingReviews } from "@/api/reviews";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { REVIEWS_PAGE_SIZE, REVIEWS_PATH, UNREAD_BADGE_MAX } from "@/config";
+import { REVIEWS_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
 import { MySessions } from "@/features/sessions/SessionList";
 import { localDateFormat } from "@/lib/format";
@@ -72,29 +72,5 @@ export function WaitingReviewsScreen() {
         </>
       )}
     </div>
-  );
-}
-
-/** The top bar's way to the reviews waiting on the reader, with their count; nothing while none wait. */
-export function WaitingReviewsButton() {
-  const { data } = useWaitingReviews();
-  const count = data?.total ?? 0;
-  if (count === 0) return null;
-  return (
-    <Link
-      to={REVIEWS_PATH}
-      aria-label={t.review.inboxButton(count)}
-      className="relative inline-flex size-8 items-center justify-center rounded-control text-ink-muted hover:bg-surface-raised hover:text-ink"
-      data-action="waiting-reviews"
-    >
-      <Icon.Check />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-accent px-1 text-center text-2xs leading-4 font-medium text-on-accent"
-        data-waiting-badge={count}
-      >
-        {count > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : count}
-      </span>
-    </Link>
   );
 }

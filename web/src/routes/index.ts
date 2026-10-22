@@ -47,7 +47,7 @@ import {
 import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from "./requirements";
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
-import { linkTypesRoute, membersRoute, settingsRoute } from "./settings";
+import { linkTypesRoute, membersRoute, profileRoute, settingsRoute } from "./settings";
 import { ssoRoute } from "./sso";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
@@ -113,6 +113,7 @@ const routeTree = rootRoute.addChildren([
     labelRoute,
     searchRoute,
     settingsRoute,
+    profileRoute,
     installationRoute,
     consentRoute,
     membersRoute,

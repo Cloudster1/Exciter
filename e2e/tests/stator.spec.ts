@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, menuItem, openAccountMenu, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
 import { statorURL } from "../fixtures/stack";
 
 // The Armature spec of the same flow, for Stator (#40).
@@ -51,8 +51,7 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expect(page.locator('[data-action="disconnect-stator"]')).toBeVisible();
       await expectAccessible(page);
 
-      await openAccountMenu(page);
-      await menuItem(page, "stator-account").click();
+      await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Stator account" }).click();
       await expect(page).toHaveURL(new RegExp(`${ACCOUNT_PATH}$`));
       const section = page.locator("[data-stator-account]");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Stator account" })).toBeVisible();

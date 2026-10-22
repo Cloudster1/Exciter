@@ -447,13 +447,23 @@ German.
   `api/openapi.json`. A 401 from any request sends the reader to `/login` and
   back afterwards.
 - Routes are defined in code (`routes/index.ts`); everything but `/login`
-  sits in the shell (`features/shell`): a rail, a sidebar that becomes a
-  drawer below the `shell` breakpoint, a top bar with breadcrumbs, the
-  account menu, and the Ctrl K quick switcher. The places
-  of a build are listed once, in `features/shell/places.ts`. The account
-  menu's "Switch to" links Armature and Stator, each at its home under the
-  address of the installation's connection, for everyone signed in
-  (`features/shell/tools.ts`, #298).
+  sits in the shell (`features/shell`), in the layout the three tools share
+  (#280): a rail with Home, Search, the bell and Projects, the theme and the
+  avatar at its foot; a sidebar for the work, its requirements' places and
+  the current or last project, whose administration folds under Project
+  admin; and the Ctrl K quick switcher. There is no top bar: the
+  breadcrumbs sit in the page's sticky strip, and below the `shell`
+  breakpoint a thin strip opens a drawer holding the sidebar, with the
+  theme, the avatar and the build in its foot. The avatar's menu, "Your
+  account", holds the person's own pages, "Switch to" with Armature and
+  Stator at the addresses of the installation's connections
+  (`features/shell/tools.ts`, #298), Settings for administrators and Sign
+  out. `/settings` and everything under it is the settings area, whose own
+  sidebar lists You for everyone and Settings for administrators under
+  "Back to Exciter", and whose hub `/settings` links both. The places of a
+  build are listed once, in `features/shell/places.ts`, which the sidebar,
+  the settings area, the avatar menu, the palette and the breadcrumbs all
+  read.
 - Theming (#8): `styles/index.css` holds the tokens, light and dark, which
   follow `prefers-color-scheme` unless the rail's theme button stamps
   `data-theme` on the root; `lib/theme.ts` remembers the choice. A custom

@@ -1,8 +1,10 @@
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { SIDEBAR_DRAWER_BELOW_PX, SIDEBAR_RAIL_BELOW_PX } from "@/config";
 
 export const SIDEBAR_KEY = "exciter.sidebar";
 export const GROUPS_KEY = "exciter.sidebar-groups";
+export const PROJECT_KEY = "exciter.last-project";
+export const OUTSIDE_KEY = "exciter.outside-settings";
 
 /** The ids the sidebar's switches name in aria-controls. */
 export const SIDEBAR_ID = "shell-sidebar";
@@ -79,4 +81,39 @@ export function useSidebarGroups(): [Record<string, boolean>, (id: string, defau
     });
   }, []);
   return [groups, toggle];
+}
+
+/** The project the sidebar shows: the one the route names, else the last one visited, as in Armature. */
+export function useLastProject(current: string | undefined): string | undefined {
+  const [last, setLast] = useState<string | undefined>(() => read(PROJECT_KEY) ?? undefined);
+  useEffect(() => {
+    if (current) {
+      write(PROJECT_KEY, current);
+      setLast(current);
+    }
+  }, [current]);
+  return current ?? last;
+}
+
+// Kept per tab, since "back" means where this tab came from.
+function readSession(key: string): string | null {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** Notes the last page outside the settings area, which "Back to Exciter" returns to. */
+export function rememberOutsideSettings(href: string) {
+  try {
+    window.sessionStorage.setItem(OUTSIDE_KEY, href);
+  } catch {
+    // Without storage the way back is the home page.
+  }
+}
+
+/** The last page outside the settings area this tab showed, or home. */
+export function lastOutsideSettings(): string {
+  return readSession(OUTSIDE_KEY) ?? "/";
 }

@@ -15,7 +15,7 @@ test.describe("signing in with a password", () => {
     await signInWithPassword(page);
     await expect(page).toHaveURL(`${WEB_URL}/`);
     await expect(page.locator("main#main")).toBeVisible();
-    await expect(page.locator("[data-top-bar]")).toBeVisible();
+    await expect(page.locator("[data-shell]")).toBeVisible();
     await expect(page.locator("[data-home]")).toBeVisible();
 
     await openAccountMenu(page);
@@ -45,7 +45,8 @@ test.describe("signing in with a password", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Themes" })).toBeVisible();
   });
 
-  test("a session that ends on the server sends the next step to sign in, and back", async ({ page, context }) => {
+  // On a phone the drawer's own reads already find the session gone, before any step is taken.
+  test("a session that ends on the server sends the next step to sign in, and back", { tag: "@desktop" }, async ({ page, context }) => {
     await signInWithPassword(page);
     await expect(page.locator("[data-home]")).toBeVisible();
 

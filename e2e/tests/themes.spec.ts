@@ -101,9 +101,10 @@ test.describe("themes", { tag: "@desktop" }, () => {
 
     await page.goto("/");
     await expect(customStyle(page)).toBeAttached();
-    await expect(page.locator('[data-action="switcher"]')).toHaveCSS("border-radius", "0px");
+    await expect(page.locator('[data-action="sidebar"]')).toHaveCSS("border-radius", "0px");
     await openAccountMenu(page);
-    const shadow = await page.getByRole("menu").evaluate((el) => getComputedStyle(el).boxShadow);
+    // The shadow is the list's panel, which holds the menu and its header.
+    const shadow = await page.getByRole("menu").evaluate((el) => getComputedStyle(el.parentElement!).boxShadow);
     expect(shadow).toMatch(/\b6px 6px 0px\b/);
   });
 
@@ -129,7 +130,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await expect(customStyle(page)).toBeAttached();
     expect(await rootVar(page, "--color-canvas")).toBe("#fbf8f3");
     expect(await rootVar(page, "--color-primary")).toBe("#b45309");
-    await expect(page.locator('[data-action="switcher"]')).toHaveCSS("border-radius", "3px");
+    await expect(page.locator('[data-action="sidebar"]')).toHaveCSS("border-radius", "3px");
 
     await page.goto(THEMES_PATH);
     await page.locator("[data-theme-file]").setInputFiles(MEADOW);

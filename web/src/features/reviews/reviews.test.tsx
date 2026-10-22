@@ -210,10 +210,10 @@ describe("a project's approval rules", () => {
 });
 
 describe("the reviews waiting on the reader", () => {
-  it("are counted in the top bar and listed oldest first", async () => {
+  it("are counted on the sidebar's Reviews and listed oldest first", async () => {
     stubApi({ "GET /reviews/waiting": { status: 200, body: { reviews: [aReview()], total: 1, limit: 20, offset: 0 } } });
     const router = await renderAt("/projects");
-    await userEvent.click(await screen.findByRole("link", { name: "1 review waits for you" }));
+    await userEvent.click(await screen.findByRole("link", { name: /^Reviews.*1 review waits for you$/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/reviews"));
     const list = await screen.findByRole("list", { name: "Reviews" });
     expect(within(list).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");

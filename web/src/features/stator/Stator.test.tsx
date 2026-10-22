@@ -208,12 +208,12 @@ describe("connecting one's own Stator account", () => {
     expect(sent.some((r) => r.method === "DELETE" && r.path === "/stator/account/token")).toBe(true);
   });
 
-  it("is reached from the account menu", async () => {
+  it("is reached from the settings area's You", async () => {
     stubApi({ "GET /stator/account": { status: 200, body: { account: account() } } });
     const user = userEvent.setup();
-    const router = await renderAt("/");
-    await user.click(screen.getByRole("button", { name: "Your account" }));
-    await user.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Stator account" }));
+    const router = await renderAt("/settings");
+    const you = document.querySelector<HTMLElement>('[data-settings-sidebar] [data-sidebar-group="you"]')!;
+    await user.click(within(you).getByRole("link", { name: "Stator account" }));
     await waitFor(() => expect(router.state.location.pathname).toBe(STATOR_ACCOUNT_PATH));
     expect(await screen.findByRole("heading", { level: 1, name: "Stator account" })).toBeInTheDocument();
   });

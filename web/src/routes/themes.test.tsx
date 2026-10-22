@@ -77,10 +77,10 @@ describe("the themes page", () => {
     expect(screen.getByText("3 people")).toBeInTheDocument();
   });
 
-  it("names Themes in the top bar of a theme's editor, as the way back", async () => {
+  it("names Themes in the breadcrumbs of a theme's editor, as the way back", async () => {
     await renderAt("/settings/themes/new");
-    const crumbs = await screen.findByRole("navigation", { name: "Breadcrumb" });
+    const crumbs = within(document.querySelector<HTMLElement>("[data-shell-strip]")!).getByRole("navigation", { name: "Breadcrumb" });
     expect(within(crumbs).getByRole("link", { name: "Themes" })).toHaveAttribute("href", "/settings/themes");
-    expect(within(crumbs).getByText("Your account")).toBeInTheDocument();
+    expect(within(crumbs).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
   });
 });
