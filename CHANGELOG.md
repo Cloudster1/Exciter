@@ -16,6 +16,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
   in sees them, guests included; a tool whose connection is removed leaves
   the list, and with none the group is not shown.
 
+### Fixed
+
+- An Armature issue shows the requirements it implements or verifies as
+  requirements, no longer among its pages (#297). Where the connected
+  Armature takes relations, link sync sends `requirement` for an implements
+  or verifies trace and `page` for any other; links synced before are
+  corrected by the requirement's next sync.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

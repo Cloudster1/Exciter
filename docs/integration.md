@@ -146,6 +146,7 @@ Armature:
 | `remote-links@1` | Putting requirements on their issues: the worker marks the link failed with the sentence, and the next change tries again. |
 | `webhooks@1` | Keeping linked issues' statuses current; the settings say so, and Exciter still accepts what Armature sends. |
 | `theme-export@1` | Following the theme Armature shows a person: following is refused with `409 armature_outdated`, and a follower keeps Exciter's theme with the sentence. |
+| `remote-link-relations@1` | Telling an issue's requirements from its pages: links go without a relation, so Armature shows them as pages. Not among what Exciter needs, so nothing is listed as missing; the next sync after Armature lists it corrects the links. |
 
 The settings page and each member's account page list what is missing, each
 as a sentence that names the capability, what goes without it, and to update
