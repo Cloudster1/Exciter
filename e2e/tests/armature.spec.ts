@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, menuItem, openAccountMenu, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
 // Stator's spec of the same flow (#26), with the account on a page of its own.
@@ -62,8 +62,7 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expect(page.locator('[data-action="disconnect-armature"]')).toBeVisible();
       await expectAccessible(page);
 
-      await openAccountMenu(page);
-      await menuItem(page, "armature-account").click();
+      await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Armature account" }).click();
       await expect(page).toHaveURL(new RegExp(`${ACCOUNT_PATH}$`));
       const section = page.locator("[data-armature-account]");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Armature account" })).toBeVisible();

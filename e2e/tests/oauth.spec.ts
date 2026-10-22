@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { request } from "@playwright/test";
 import { expect, test } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, openAccountMenu } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // Nothing listens there; the browser is stopped on its way back and answered by the test instead.
@@ -123,7 +123,7 @@ test.describe("connecting an app", { tag: "@desktop" }, () => {
     expect(await app.status()).toBe(200);
 
     await page.goto("/");
-    await page.locator('[data-action="account"]').click();
+    await openAccountMenu(page);
     await page.getByRole("menuitem", { name: "Connected apps" }).click();
     await expect(page).toHaveURL(/\/settings\/connected-apps$/);
     const row = page.locator('[data-app-row="Listed assistant"]');

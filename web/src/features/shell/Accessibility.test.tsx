@@ -11,6 +11,8 @@ import {
   MEMBERS_PATH,
   NEW_PROJECT_PATH,
   PROJECTS_PATH,
+  PROFILE_PATH,
+  SEARCH_PATH,
   SIDEBAR_DRAWER_BELOW_PX,
   SSO_PATH,
   STATOR_ACCOUNT_PATH,
@@ -136,13 +138,11 @@ describe("the skip link", () => {
 });
 
 describe("the landmarks", () => {
-  it("names the banner, the main content and every navigation", async () => {
+  it("names the main content and every navigation, with no banner outside the content", async () => {
     await renderAt("/");
     // A header inside main is no banner to a browser, but Testing Library
     // counts the page's own head as one; axe below knows the difference.
-    const banners = screen.getAllByRole("banner").filter((el) => !el.closest("main"));
-    expect(banners).toHaveLength(1);
-    expect(banners[0]).toHaveAttribute("data-top-bar");
+    expect(screen.getAllByRole("banner").filter((el) => !el.closest("main"))).toHaveLength(0);
     expect(screen.getByRole("main")).toHaveAttribute("id", "main");
     const navs = screen.getAllByRole("navigation");
     expect(navs.length).toBeGreaterThan(1);
@@ -189,19 +189,12 @@ describe("the account menu", () => {
     const menu = screen.getByRole("menu", { name: "Your account" });
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
-    const themes = within(menu).getByRole("menuitem", { name: "Themes" });
-    const tokens = within(menu).getByRole("menuitem", { name: "Access tokens" });
-    const apps = within(menu).getByRole("menuitem", { name: "Connected apps" });
-    const armature = within(menu).getByRole("menuitem", { name: "Armature account" });
-    const stator = within(menu).getByRole("menuitem", { name: "Stator account" });
-    const notifications = within(menu).getByRole("menuitem", { name: "Notification settings" });
-    const watching = within(menu).getByRole("menuitem", { name: "Watching" });
-    const [browser, english, german] = within(menu).getAllByRole("menuitemradio");
-    const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
-    expect(browser).toHaveAttribute("aria-checked", "true");
-    expect(english).toHaveAttribute("aria-checked", "false");
-    expect(themes).toHaveFocus();
-    for (const next of [tokens, apps, armature, stator, notifications, watching, browser, english, german, signOut, themes]) {
+    const item = (name: string) => within(menu).getByRole("menuitem", { name });
+    const profile = item("Your profile");
+    const order = ["Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Settings", "Sign out"].map(item);
+    expect(within(menu).queryAllByRole("menuitemradio")).toHaveLength(0);
+    expect(profile).toHaveFocus();
+    for (const next of [...order, profile]) {
       await userEvent.keyboard("{ArrowDown}");
       expect(next).toHaveFocus();
     }
@@ -241,7 +234,9 @@ describe("on a narrow screen", () => {
     expect(menuButton()).toHaveAttribute("aria-controls", panel?.id);
     expect(panel).toContainElement(document.activeElement as HTMLElement);
     const nav = within(panel as HTMLElement).getByRole("navigation", { name: "Where you are" });
-    expect(within(nav).getByRole("link", { name: "Members" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Members" })).toBeNull();
+    expect(within(panel as HTMLElement).getByRole("button", { name: "Your account" })).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
     expect(drawer()).toBeNull();
@@ -255,7 +250,7 @@ describe("on a narrow screen", () => {
     await userEvent.click(menuButton());
     const panel = drawer() as HTMLElement;
     const close = within(panel).getByRole("button", { name: "Close the navigation" });
-    const last = within(panel).getByRole("button", { name: "Auto" });
+    const last = within(panel).getByRole("button", { name: "Your account" });
 
     last.focus();
     await userEvent.tab();
@@ -283,13 +278,25 @@ describe("on a narrow screen", () => {
     settingsApi();
     const router = await renderAt("/");
     await userEvent.click(menuButton());
-    await userEvent.click(within(drawer() as HTMLElement).getByRole("link", { name: "Members" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(MEMBERS_PATH));
+    await userEvent.click(within(drawer() as HTMLElement).getByRole("link", { name: "Search" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(SEARCH_PATH));
     expect(drawer()).toBeNull();
 
     await userEvent.click(menuButton());
-    await userEvent.click(within(drawer() as HTMLElement).getByRole("link", { name: "Members" }));
+    await userEvent.click(within(drawer() as HTMLElement).getByRole("link", { name: "Search" }));
     expect(drawer()).toBeNull();
+  });
+
+  it("holds the settings sidebar in the settings area", async () => {
+    setViewportWidth(PHONE);
+    settingsApi();
+    await renderAt(MEMBERS_PATH);
+    await userEvent.click(menuButton());
+    const panel = drawer() as HTMLElement;
+    expect(within(panel).getByRole("link", { name: "Back to Exciter" })).toBeInTheDocument();
+    const nav = within(panel).getByRole("navigation", { name: "Settings" });
+    expect(within(nav).getByRole("link", { name: "Your profile" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Members" })).toBeInTheDocument();
   });
 
   it("closes when the route changes from elsewhere", async () => {
@@ -349,9 +356,13 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(menuButton());
     expect(await axeViolations()).toEqual([]);
+    await userEvent.click(within(drawer() as HTMLElement).getByRole("button", { name: "Your account" }));
+    expect(await axeViolations()).toEqual([]);
   });
 
   it.each([
+    "/settings",
+    PROFILE_PATH,
     MEMBERS_PATH,
     SSO_PATH,
     AUDIT_PATH,

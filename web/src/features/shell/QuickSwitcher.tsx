@@ -9,7 +9,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { QUICK_SEARCH_DEBOUNCE_MS, SEARCH_PATH } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
-import { placesFor } from "./places";
+import { areaTitle, placesFor } from "./places";
 
 interface Option {
   key: string;
@@ -45,7 +45,7 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
   const places: Option[] = placesFor(me).map((place) => ({
     key: `place:${place.path}`,
     label: place.label,
-    hint: place.section ?? "",
+    hint: place.area === "work" ? "" : areaTitle(place.area),
     icon: place.icon,
     pick: () => void navigate({ to: place.path }),
   }));

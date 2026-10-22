@@ -379,6 +379,8 @@ export const WORD_DEFAULT_KEYWORDS: Record<string, string> = { en: "shall, must"
 export const NOTIFICATIONS_PATH = "/notifications";
 export const NOTIFICATION_SETTINGS_PATH = "/settings/notifications";
 export const WATCHING_PATH = "/settings/watching";
+/** The person's own profile (#280): who they are and the language Exciter speaks to them in. */
+export const PROFILE_PATH = "/settings/profile";
 /** How often the bell asks for the unread count; it also asks when the window regains focus. */
 export const UNREAD_POLL_MS = 30_000;
 /** Above this many unread the badge shows the number with a plus. */

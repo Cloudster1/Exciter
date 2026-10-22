@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useLatestNotifications, useMarkRead, useUnreadCount } from "@/api/notifications";
 import { Button, ErrorBanner, IconButton, Skeleton } from "@/components/ui";
-import { useAnchored, useEscape, useFocusReturn, useOutsidePress } from "@/components/ui/overlay";
+import { useAnchored, useEscape, useFocusReturn, useOutsidePress, type AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { NOTIFICATION_SETTINGS_PATH, NOTIFICATIONS_PATH, UNREAD_BADGE_MAX } from "@/config";
 import { t } from "@/i18n";
@@ -10,8 +10,8 @@ import { NotificationRow } from "./NotificationRow";
 
 // The bell (#34), Stator's NotificationBell over requirements.
 
-/** The top bar's bell: the unread count as a badge, and the latest notifications in a panel. */
-export function NotificationBell() {
+/** The rail's bell: the unread count as a badge, and the latest notifications in a panel beside it. */
+export function NotificationBell({ side = "bottom" }: { side?: AnchoredSide }) {
   const [open, setOpen] = useState(false);
   const count = useUnreadCount();
   const unread = count.data ?? 0;
@@ -32,7 +32,7 @@ export function NotificationBell() {
   useEscape(open, close);
   useOutsidePress(open, outside.current, close);
   useFocusReturn(open, panelRef, false);
-  const place = useAnchored(open, wrapRef, panelRef, { align: "end" });
+  const place = useAnchored(open, wrapRef, panelRef, { align: "end", side });
   const badge = unread > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : String(unread);
 
   return (

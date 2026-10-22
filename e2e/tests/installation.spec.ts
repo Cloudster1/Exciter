@@ -29,6 +29,8 @@ test.describe("the installation", { tag: "@desktop" }, () => {
     await field.fill(name);
     await page.locator('[data-action="rename-installation"]').click();
     await expect(page.locator("[data-installation-notice]")).toHaveText("Saved.");
+    await expect(page.locator("[data-shell-strip]").getByRole("link", { name, exact: true })).toBeVisible();
+    await page.goto("/");
     await expect(page.locator("[data-sidebar-org]")).toHaveText(name);
 
     // Alice renamed it, so bob's read may come from a replica a moment behind.
