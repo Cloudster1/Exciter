@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { administers, useLogout, useMe } from "@/api/auth";
-import { Avatar, IconButton, Menu, Tooltip, type MenuItem } from "@/components/ui";
+import { Avatar, IconButton, Menu, type MenuItem } from "@/components/ui";
 import type { AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
@@ -57,20 +57,20 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
       side={side}
       align={align}
       header={header}
+      // No tooltip: focus comes back to the avatar when the menu closes, and a tooltip shown then sits outside
+      // every landmark. The button's title names it to the pointer.
       trigger={(props) => (
-        <Tooltip text={t.account.menu} side={side === "top" ? "top" : "right"}>
-          <IconButton
-            icon={<Avatar name={name} src={me?.user.avatarUrl} size="sm" />}
-            label={t.account.menu}
-            size="sm"
-            onClick={props.toggle}
-            aria-haspopup={props["aria-haspopup"]}
-            aria-expanded={props["aria-expanded"]}
-            aria-controls={props["aria-controls"]}
-            className="rounded-full"
-            data-action="account"
-          />
-        </Tooltip>
+        <IconButton
+          icon={<Avatar name={name} src={me?.user.avatarUrl} size="sm" />}
+          label={t.account.menu}
+          size="sm"
+          onClick={props.toggle}
+          aria-haspopup={props["aria-haspopup"]}
+          aria-expanded={props["aria-expanded"]}
+          aria-controls={props["aria-controls"]}
+          className="rounded-full"
+          data-action="account"
+        />
       )}
       items={items}
     />
