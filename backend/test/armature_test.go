@@ -141,6 +141,11 @@ func TestAnAdministratorConnectsArmatureAndMembersTheirTokens(t *testing.T) {
 	if bytes.Contains(saved.Raw, []byte(webhookSecret)) {
 		t.Error("the webhook secret was answered")
 	}
+	// The avatar menu links Armature for everyone signed in, guests too, at the connection's address (#298).
+	guest := api.as(t, h.addPerson(t, "guest"))
+	if got := obj(t, want(t, guest.get(t, "/api/v1/armature/account"), http.StatusOK, "a guest reads the connection's address"), "account"); got["configured"] != true || got["baseUrl"] != base {
+		t.Errorf("a guest reads the account as %v", got)
+	}
 	var sealed []byte
 	if err := h.super.QueryRow(context.Background(), `SELECT webhook_secret FROM armature_connection`).Scan(&sealed); err != nil || bytes.Contains(sealed, []byte(webhookSecret)) || len(sealed) == 0 {
 		t.Errorf("the webhook secret is not sealed at rest: %v", err)

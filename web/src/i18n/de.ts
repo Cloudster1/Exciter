@@ -114,6 +114,7 @@ export const de: Messages = {
     stator: "Stator-Konto",
     notifications: "Benachrichtigungseinstellungen",
     watching: "Beobachtet",
+    switchTo: "Wechseln zu",
     signOut: "Abmelden",
   },
   login: {

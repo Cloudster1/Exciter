@@ -9,6 +9,7 @@ import { WaitingReviewsButton } from "@/features/reviews/WaitingReviews";
 import { LANGUAGES, t, type LanguageChoice } from "@/i18n";
 import { crumbsFor, placeAbove } from "./places";
 import { DRAWER_ID } from "./state";
+import { useConnectedTools } from "./tools";
 
 // Ctrl or Cmd+K anywhere in the shell, fields included, as in Armature and
 // Stator: it is the product's one shortcut and a field has no other use for it.
@@ -96,10 +97,17 @@ function PlaceCrumbs() {
   return <Breadcrumbs crumbs={crumbs} className="hidden min-w-0 truncate sm:block [&_a]:hover:text-ink" />;
 }
 
-/** Who is signed in, their themes, the language they read in, and the way out. */
+/** Who is signed in, their themes, the language they read in, the other tools, and the way out. */
 function AccountMenu() {
   const navigate = useNavigate();
   const { data: me } = useMe();
+  const tools: MenuItem[] = useConnectedTools().map((tool) => ({
+    label: tool.name,
+    icon: <img src={tool.icon} alt="" className="size-4 rounded-sm" />,
+    href: tool.href,
+    group: t.account.switchTo,
+    attrs: { "data-tool": tool.id },
+  }));
   const logout = useLogout();
   const setLanguage = useSetLanguage();
   const name = me?.user.name || me?.user.email || t.account.menu;
@@ -140,6 +148,7 @@ function AccountMenu() {
     },
     { label: t.account.watching, icon: <Icon.Eye />, onSelect: () => navigate({ to: WATCHING_PATH }), attrs: { "data-action": "watching" } },
     ...languages,
+    ...tools,
     {
       label: t.account.signOut,
       icon: <Icon.External />,

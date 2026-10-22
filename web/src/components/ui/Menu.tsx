@@ -6,7 +6,11 @@ import { focusables, useAnchored, useEscape, useOutsidePress } from "./overlay";
 
 export interface MenuItem {
   label: ReactNode;
-  onSelect: () => void;
+  onSelect?: () => void;
+  /** Makes the item a plain link, so the browser can open it in a new tab too. */
+  href?: string;
+  /** Items in a row with the same group sit under its title, apart from the rest. */
+  group?: string;
   icon?: ReactNode;
   danger?: boolean;
   disabled?: boolean;
@@ -115,6 +119,53 @@ export function Menu({
     }
   }
 
+  function renderItem({ item, index }: { item: MenuItem; index: number }) {
+    const look = cx(
+      "flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left text-sm",
+      item.danger ? "text-danger hover:bg-danger-subtle" : "text-ink hover:bg-surface-raised",
+      "focus:bg-surface-raised focus-visible:-outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+    );
+    const content = (
+      <>
+        {item.checked !== undefined && (
+          <span className="size-4 text-accent" aria-hidden="true">
+            {item.checked && <Icon.Check />}
+          </span>
+        )}
+        {item.icon && <span className="text-ink-muted [&_svg]:size-4">{item.icon}</span>}
+        {item.label}
+      </>
+    );
+    if (item.href) {
+      return (
+        <a key={index} href={item.href} role="menuitem" tabIndex={-1} {...item.attrs} onClick={() => setOpen(false)} className={look}>
+          {content}
+        </a>
+      );
+    }
+    return (
+      <button
+        key={index}
+        type="button"
+        role={item.checked === undefined ? "menuitem" : "menuitemradio"}
+        aria-checked={item.checked}
+        // aria-disabled rather than disabled keeps the item in the
+        // arrow order, so the reader learns it exists.
+        aria-disabled={item.disabled || undefined}
+        tabIndex={-1}
+        {...item.attrs}
+        onClick={() => {
+          if (item.disabled) return;
+          setOpen(false);
+          item.onSelect?.();
+        }}
+        className={look}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <div ref={wrapRef} className={cx("relative inline-flex", className)}>
       {trigger({ open, toggle, "aria-haspopup": "menu", "aria-expanded": open, "aria-controls": open ? listId : undefined })}
@@ -130,40 +181,42 @@ export function Menu({
             style={place}
             className="fixed z-30 min-w-44 overflow-y-auto overscroll-contain rounded-overlay border border-border bg-surface-overlay p-1 shadow-2"
           >
-            {items.map((item, i) => (
-              <button
-                key={i}
-                type="button"
-                role={item.checked === undefined ? "menuitem" : "menuitemradio"}
-                aria-checked={item.checked}
-                // aria-disabled rather than disabled keeps the item in the
-                // arrow order, so the reader learns it exists.
-                aria-disabled={item.disabled || undefined}
-                tabIndex={-1}
-                {...item.attrs}
-                onClick={() => {
-                  if (item.disabled) return;
-                  setOpen(false);
-                  item.onSelect();
-                }}
-                className={cx(
-                  "flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left text-sm",
-                  item.danger ? "text-danger hover:bg-danger-subtle" : "text-ink hover:bg-surface-raised",
-                  "focus:bg-surface-raised focus-visible:-outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
-                )}
-              >
-                {item.checked !== undefined && (
-                  <span className="size-4 text-accent" aria-hidden="true">
-                    {item.checked && <Icon.Check />}
-                  </span>
-                )}
-                {item.icon && <span className="text-ink-muted [&_svg]:size-4">{item.icon}</span>}
-                {item.label}
-              </button>
-            ))}
+            {segments(items).flatMap((segment) =>
+              segment.group === undefined
+                ? segment.items.map(renderItem)
+                : [
+                    <div
+                      key={`group-${segment.start}`}
+                      role="group"
+                      aria-labelledby={`${listId}-${segment.start}`}
+                      className="mt-1 border-t border-border pt-1"
+                    >
+                      <div id={`${listId}-${segment.start}`} className="px-2 py-1 text-2xs font-medium tracking-wide text-ink-subtle uppercase">
+                        {segment.group}
+                      </div>
+                      {segment.items.map(renderItem)}
+                    </div>,
+                  ],
+            )}
           </div>,
           host,
         )}
     </div>
   );
+}
+
+interface Segment {
+  group?: string;
+  start: number;
+  items: { item: MenuItem; index: number }[];
+}
+
+function segments(items: MenuItem[]): Segment[] {
+  const out: Segment[] = [];
+  items.forEach((item, index) => {
+    const last = out.at(-1);
+    if (last && last.group === item.group) last.items.push({ item, index });
+    else out.push({ group: item.group, start: index, items: [{ item, index }] });
+  });
+  return out;
 }
