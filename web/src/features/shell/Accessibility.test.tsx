@@ -332,6 +332,15 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
+  it("finds nothing with the account menu open and the other tools listed", async () => {
+    const account = (baseUrl: string) => ({ status: 200, body: { account: { configured: true, baseUrl } } });
+    stubApi({ "GET /armature/account": account("https://armature.example"), "GET /stator/account": account("https://stator.example") });
+    await renderAt("/");
+    await userEvent.click(screen.getByRole("button", { name: "Your account" }));
+    await screen.findByRole("group", { name: "Switch to" });
+    expect(await axeViolations()).toEqual([]);
+  });
+
   it("finds nothing on the narrow shell, drawer shut or open", async () => {
     setViewportWidth(PHONE);
     settingsApi();

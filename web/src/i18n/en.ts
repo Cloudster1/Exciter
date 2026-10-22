@@ -116,6 +116,7 @@ export const en = {
     stator: "Stator account",
     notifications: "Notification settings",
     watching: "Watching",
+    switchTo: "Switch to",
     signOut: "Sign out",
   },
   login: {

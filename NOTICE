@@ -571,3 +571,9 @@ licensed under the Creative Commons Attribution 4.0 International license
 The pictures here are changed from the original design: the gopher is drawn
 anew in a scene with tools and books, and cropped and resized for the icons.
 These pictures are under that license, not under the license of the code.
+
+The avatar menu's links to Armature and Stator (#298) show their own icons,
+taken unchanged: web/public/tools/armature.webp is Armature's
+web/public/emblem.webp at 51eac53, web/public/tools/stator.png Stator's
+web/public/favicon-32.png at ffd3addb. Both show the Go gopher too, under the
+same license, as those products' NOTICE files say.

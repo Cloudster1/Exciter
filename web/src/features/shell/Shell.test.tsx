@@ -223,6 +223,48 @@ describe("the account menu", () => {
   });
 });
 
+describe("the other tools in the account menu", () => {
+  const account = (baseUrl: string | null) => ({ status: 200, body: { account: { configured: baseUrl !== null, baseUrl: baseUrl ?? "" } } });
+  const guest: Me = { ...signedIn, role: "guest" };
+
+  async function openMenu(me: Me = signedIn) {
+    await renderAt("/", { me });
+    await userEvent.click(screen.getByRole("button", { name: "Your account" }));
+    return screen.getByRole("menu", { name: "Your account" });
+  }
+
+  it("links each connected tool's home as a plain link under Switch to, for a guest too", async () => {
+    stubApi({ "GET /armature/account": account("https://armature.example/"), "GET /stator/account": account("https://stator.example") });
+    const menu = await openMenu(guest);
+    const group = await within(menu).findByRole("group", { name: "Switch to" });
+    const links = within(group).getAllByRole("menuitem");
+    expect(links.map((link) => link.textContent)).toEqual(["Armature", "Stator"]);
+    expect(links[0]).toHaveAttribute("href", "https://armature.example/");
+    expect(links[1]).toHaveAttribute("href", "https://stator.example/");
+    expect(links[0]?.tagName).toBe("A");
+    expect(links[0]?.querySelector("img")).toHaveAttribute("alt", "");
+  });
+
+  it("lists only the tool that is connected", async () => {
+    stubApi({ "GET /armature/account": account(null), "GET /stator/account": account("https://stator.example") });
+    const menu = await openMenu();
+    const group = await within(menu).findByRole("group", { name: "Switch to" });
+    expect(
+      within(group)
+        .getAllByRole("menuitem")
+        .map((link) => link.textContent),
+    ).toEqual(["Stator"]);
+  });
+
+  it("leaves the group out when no tool is connected", async () => {
+    const sent = stubApi({ "GET /armature/account": account(null) });
+    const menu = await openMenu();
+    await waitFor(() => expect(sent.some((r) => r.path === "/stator/account")).toBe(true));
+    expect(within(menu).queryByRole("group", { name: "Switch to" })).toBeNull();
+    expect(within(menu).queryByText("Switch to")).toBeNull();
+  });
+});
+
 describe("a session that ends while the page is open", () => {
   it("sends the reader to sign in, and back to the page afterwards", async () => {
     const unauthorized = { status: 401, body: { error: { code: "unauthorized", message: "Sign in to continue." } } };

@@ -450,7 +450,10 @@ German.
   sits in the shell (`features/shell`): a rail, a sidebar that becomes a
   drawer below the `shell` breakpoint, a top bar with breadcrumbs, the
   account menu, and the Ctrl K quick switcher. The places
-  of a build are listed once, in `features/shell/places.ts`.
+  of a build are listed once, in `features/shell/places.ts`. The account
+  menu's "Switch to" links Armature and Stator, each at its home under the
+  address of the installation's connection, for everyone signed in
+  (`features/shell/tools.ts`, #298).
 - Theming (#8): `styles/index.css` holds the tokens, light and dark, which
   follow `prefers-color-scheme` unless the rail's theme button stamps
   `data-theme` on the root; `lib/theme.ts` remembers the choice. A custom

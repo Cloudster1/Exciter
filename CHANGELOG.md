@@ -7,6 +7,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- The account menu links the other tools (#298). Under "Switch to" it lists
+  Armature and Stator, with their icons, once the installation is connected
+  to them, and each opens that tool's home at the connection's address. The
+  links are plain links, so they open in a new tab too, and everyone signed
+  in sees them, guests included; a tool whose connection is removed leaves
+  the list, and with none the group is not shown.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

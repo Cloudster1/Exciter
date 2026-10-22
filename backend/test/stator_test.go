@@ -144,6 +144,11 @@ func TestAnAdministratorConnectsStatorAndMembersTheirTokens(t *testing.T) {
 	if n := h.countRows(t, `SELECT count(*) FROM audit_log WHERE actor_user_id = $1 AND action = $2 AND data::text NOT LIKE '%stator_whs_%'`, home.user, stator.ActionConnectionSaved); n != 1 {
 		t.Errorf("connecting is audited %d times without the secret", n)
 	}
+	// The avatar menu links Stator for everyone signed in, guests too, at the connection's address (#298).
+	guest := api.as(t, h.addPerson(t, "guest"))
+	if got := obj(t, want(t, guest.get(t, "/api/v1/stator/account"), http.StatusOK, "a guest reads the connection's address"), "account"); got["configured"] != true || got["baseUrl"] != base {
+		t.Errorf("a guest reads the account as %v", got)
+	}
 
 	for _, tc := range []struct{ name, token, says string }{
 		{"not a Stator token", "armature_pat_something", stator.TokenPrefix},
