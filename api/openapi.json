@@ -6887,7 +6887,7 @@
     "/oauth/token": {
       "post": {
         "operationId": "oAuthToken",
-        "summary": "Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token.",
+        "summary": "Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token; or an access token of the client's own grant for a narrower, shorter access token alone (RFC 8693, exciter_expires_in, exciter_projects).",
         "tags": [
           "oauth"
         ],
@@ -35641,6 +35641,12 @@
           "code_verifier": {
             "type": "string"
           },
+          "exciter_expires_in": {
+            "type": "string"
+          },
+          "exciter_projects": {
+            "type": "string"
+          },
           "grant_type": {
             "type": "string"
           },
@@ -35696,7 +35702,6 @@
           "access_token",
           "token_type",
           "expires_in",
-          "refresh_token",
           "scope"
         ]
       },

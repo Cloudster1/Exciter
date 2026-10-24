@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,7 +39,7 @@ func (s *Service) clientFor(ctx context.Context, who ClientAuth) (*client, error
 var errGrant = refuse(ErrInvalidGrant, "The code or refresh token is not one this client may use: it expired, was used, or was ended. Connect the client again.")
 
 // Token trades a code and its verifier, a refresh token, or for a partner app a person's token from the identity
-// provider, for a new access and refresh token.
+// provider, for a new access and refresh token; an access token of the client's own grant, for a narrower one.
 func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*TokenResponse, error) {
 	if in.GrantType != GrantAuthorizationCode && in.GrantType != GrantRefreshToken && in.GrantType != GrantTokenExchange {
 		return nil, refuse(ErrUnsupportedGrantType, "The grants offered are authorization_code, refresh_token and "+GrantTokenExchange+".")
@@ -52,6 +53,10 @@ func (s *Service) Token(ctx context.Context, in TokenRequest, who ClientAuth) (*
 		if on, err := s.Enabled(ctx); err != nil || !on {
 			return nil, firstErr(err, refuse(ErrTemporarilyUnavailable, "OAuth connections are switched off on this server. Ask its administrators."))
 		}
+	}
+	// An access token of the client's own grant is narrowed (#235): owning the grant is what allows it.
+	if in.GrantType == GrantTokenExchange && strings.HasPrefix(in.SubjectToken, AccessTokenPrefix) {
+		return s.narrow(ctx, c, in)
 	}
 	if !c.grants(in.GrantType) {
 		return nil, refuse(ErrUnauthorizedClient, "The client did not register for "+in.GrantType+".")
@@ -203,9 +208,38 @@ func turnPartnerRefresh(ctx context.Context, tx db.DBTX, c *client, in TokenRequ
 	return nil
 }
 
+// accessToken is what an access token holds beside its grant: how long it lasts and, for a narrower one (#235), its
+// own limits.
+type accessToken struct {
+	ttl                     time.Duration
+	exchanged, projectsOnly bool
+	projects                []uuid.UUID
+}
+
+// issueAccess hands a grant one access token of the scope given; only its digest is kept.
+func issueAccess(ctx context.Context, tx db.DBTX, grant uuid.UUID, sc scope, t accessToken) (*TokenResponse, error) {
+	access, digest, err := secret(AccessTokenPrefix)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO oauth_token (token_hash, grant_id, kind, read_only, expires_at, exchanged, projects_only)
+		VALUES ($1, $2, 'access', $3, now() + make_interval(secs => $4), $5, $6)`,
+		digest, grant, sc.readOnly, t.ttl.Seconds(), t.exchanged, t.projectsOnly); err != nil {
+		return nil, err
+	}
+	if len(t.projects) > 0 {
+		if _, err := tx.Exec(ctx, `INSERT INTO oauth_token_project (token_hash, project_id) SELECT $1, unnest($2::uuid[])`,
+			digest, t.projects); err != nil {
+			return nil, err
+		}
+	}
+	return &TokenResponse{AccessToken: access, TokenType: "Bearer", ExpiresIn: expiresIn(t.ttl), Scope: sc.name()}, nil
+}
+
 // issue hands a grant a new access and refresh token; only their digests are kept.
 func (s *Service) issue(ctx context.Context, tx db.DBTX, grant uuid.UUID, sc scope) (*TokenResponse, error) {
-	access, accessDigest, err := secret(AccessTokenPrefix)
+	out, err := issueAccess(ctx, tx, grant, sc, accessToken{ttl: AccessTTL})
 	if err != nil {
 		return nil, err
 	}
@@ -215,12 +249,12 @@ func (s *Service) issue(ctx context.Context, tx db.DBTX, grant uuid.UUID, sc sco
 	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO oauth_token (token_hash, grant_id, kind, read_only, expires_at) VALUES
-			($1, $3, 'access', $4, now() + make_interval(secs => $5)),
-			($2, $3, 'refresh', $4, now() + make_interval(secs => $6))`,
-		accessDigest, refreshDigest, grant, sc.readOnly, AccessTTL.Seconds(), RefreshTTL.Seconds()); err != nil {
+			($1, $2, 'refresh', $3, now() + make_interval(secs => $4))`,
+		refreshDigest, grant, sc.readOnly, RefreshTTL.Seconds()); err != nil {
 		return nil, err
 	}
-	return &TokenResponse{AccessToken: access, TokenType: "Bearer", ExpiresIn: expiresIn(AccessTTL), RefreshToken: refresh, Scope: sc.name()}, nil
+	out.RefreshToken = refresh
+	return out, nil
 }
 
 // Revoke ends an access token, or a refresh token and with it the grant (RFC 7009); a token unknown, ended
@@ -276,10 +310,16 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
 			SELECT g.id, c.name, g.read_only OR t.read_only OR (c.kind = 'partner' AND NOT 'write' = ANY (c.scopes)),
-			       g.evidence, c.kind = 'partner', g.last_used_at, t.expires_at, g.projects_only,
-			       ARRAY(SELECT gp.project_id FROM oauth_grant_project gp WHERE gp.grant_id = g.id),
-			       ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id
-			             WHERE gp.grant_id = g.id ORDER BY p.key),
+			       g.evidence, c.kind = 'partner', g.last_used_at, t.expires_at, g.projects_only OR t.projects_only,
+			       -- A narrower token's own projects lie within its grant's (#235), so they are what it reaches.
+			       CASE WHEN t.projects_only
+			            THEN ARRAY(SELECT tp.project_id FROM oauth_token_project tp WHERE tp.token_hash = t.token_hash)
+			            ELSE ARRAY(SELECT gp.project_id FROM oauth_grant_project gp WHERE gp.grant_id = g.id) END,
+			       CASE WHEN t.projects_only
+			            THEN ARRAY(SELECT p.key FROM oauth_token_project tp JOIN project p ON p.id = tp.project_id
+			                       WHERE tp.token_hash = t.token_hash ORDER BY p.key)
+			            ELSE ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id
+			                       WHERE gp.grant_id = g.id ORDER BY p.key) END,
 			       u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
 			       i.name, u.role, i.oauth_connections
 			FROM oauth_token t

@@ -151,8 +151,10 @@ func checkMetadata(in *ClientMetadataInput) *Refusal {
 		in.GrantTypes = []string{GrantAuthorizationCode, GrantRefreshToken}
 	}
 	for _, g := range in.GrantTypes {
-		if !slices.Contains(GrantTypes, g) {
-			return refuse(ErrInvalidClientMetadata, "The grants offered are authorization_code and refresh_token; "+g+" is not one of them.")
+		// The exchange narrows a token of the client's own grant (#235), so a client may register for it.
+		if !slices.Contains(GrantTypes, g) && g != GrantTokenExchange {
+			return refuse(ErrInvalidClientMetadata, "The grants offered are authorization_code, refresh_token and "+GrantTokenExchange+
+				"; "+g+" is not one of them.")
 		}
 	}
 	if !slices.Contains(in.GrantTypes, GrantAuthorizationCode) {

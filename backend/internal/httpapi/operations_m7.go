@@ -57,7 +57,8 @@ var assistantOperations = []operation{
 		request: oauth.ConsentInput{}, responses: map[int]any{http.StatusOK: env{"redirectTo": ""}, http.StatusNotFound: errorEnvelope{},
 			http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "POST", path: "/oauth/token", handler: "handleOAuthToken", tag: "oauth", public: true, form: true,
-		summary: "Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token.",
+		summary: "Trade a code and its verifier, a refresh token, or for a partner app a person's access token from the identity provider (RFC 8693), for an hour's access token and the next refresh token; " +
+			"or an access token of the client's own grant for a narrower, shorter access token alone (RFC 8693, exciter_expires_in, exciter_projects).",
 		request: oauth.TokenRequest{}, responses: merge(ok(oauth.TokenResponse{}), oauthRefusals)},
 	{method: "POST", path: "/oauth/revoke", handler: "handleOAuthRevoke", tag: "oauth", public: true, form: true,
 		summary: "End an access or refresh token (RFC 7009); a token unknown or already ended is 200 as well.",

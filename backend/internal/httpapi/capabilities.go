@@ -91,7 +91,9 @@ var integrationCapabilities = []capability{
 		name: "oauth.token-exchange@1",
 		promise: "POST /oauth/token with grant_type urn:ietf:params:oauth:grant-type:token-exchange: subject_token an access token of the installation's identity provider " +
 			"whose azp is the partner app's keycloakClientId and whose aud holds Exciter's client, the app authenticating with its own id and secret; " +
-			"the answer an access and a refresh token within the person's rights, with no consent page.",
+			"the answer an access and a refresh token within the person's rights, with no consent page. " +
+			"Or subject_token an access token of the calling client's own grant: the answer an access token alone, no wider than the grant in scope " +
+			"and projects (exciter_projects), ending at most when the subject does (exciter_expires_in), the grant untouched.",
 		operations: []string{
 			"POST /oauth/token",
 		},
