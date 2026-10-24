@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 describe("the installation page", () => {
-  it("renames the installation, and the sidebar head follows", async () => {
+  it("renames the installation, and the breadcrumbs follow", async () => {
     let name = "Demo";
     const sent = stubApi({
       "GET /installation": () => ({ status: 200, body: { installation: { name, oauthConnections: true } } }),
@@ -34,7 +34,7 @@ describe("the installation page", () => {
 
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
     expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ name: "Acme requirements" });
-    await waitFor(() => expect(document.querySelector("[data-sidebar-org]")).toHaveTextContent("Acme requirements"));
+    await waitFor(() => expect(screen.getByRole("link", { name: "Acme requirements" })).toHaveAttribute("href", "/"));
   });
 
   it("switches OAuth connections off and says so", async () => {

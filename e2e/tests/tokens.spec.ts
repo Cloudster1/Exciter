@@ -3,7 +3,7 @@ import { request } from "@playwright/test";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, openAccountMenu } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 const KEY = uniqueKey("TOKS");
@@ -27,7 +27,7 @@ test.describe("personal access tokens", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Read by a script" } }));
 
     await page.goto("/");
-    await page.locator('[data-action="account"]').click();
+    await openAccountMenu(page);
     await page.getByRole("menuitem", { name: "Access tokens" }).click();
     await expect(page).toHaveURL(/\/settings\/tokens$/);
     await page.getByRole("textbox", { name: "Token name" }).fill("Nightly export");

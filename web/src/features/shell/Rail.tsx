@@ -1,17 +1,15 @@
-import { administers, useMe } from "@/api/auth";
 import { IconButton } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { SIDEBAR_RAIL_WIDTH } from "@/config";
+import { PROJECTS_PATH, SEARCH_PATH, SIDEBAR_RAIL_WIDTH } from "@/config";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { t } from "@/i18n";
+import { AccountMenu } from "./AccountMenu";
 import { NavItem } from "./nav";
-import { SETTINGS_PATH } from "./places";
-import { SIDEBAR_ID } from "./state";
 import { ThemeButton } from "./ThemeButton";
 
-// The rail is what is always there: the places every page reaches from, and the theme at the bottom. When the
-// sidebar is folded away, it is the whole chrome. Projects, search, reviews and baselines join it as they come.
-export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }) {
-  const { data: me } = useMe();
+// The rail is what is always there on a wide screen: the places every page reaches from, the bell, and at the
+// bottom the theme and the person. When the sidebar is folded away, it is the whole chrome.
+export function Rail({ open, onToggle, controls }: { open: boolean; onToggle: () => void; controls: string }) {
   return (
     <aside className="flex shrink-0 flex-col items-center border-r border-border bg-surface" style={{ width: SIDEBAR_RAIL_WIDTH }} data-rail data-print-hide>
       <div className="flex h-12 w-full items-center justify-center border-b border-border">
@@ -21,7 +19,7 @@ export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }
           size="sm"
           onClick={onToggle}
           aria-expanded={open}
-          aria-controls={open ? SIDEBAR_ID : undefined}
+          aria-controls={open ? controls : undefined}
           data-action="sidebar"
         />
       </div>
@@ -29,14 +27,17 @@ export function Rail({ open, onToggle }: { open: boolean; onToggle: () => void }
         <NavItem to="/" exact icon="Home" rail>
           {t.nav.home}
         </NavItem>
-        {administers(me?.role) && (
-          <NavItem to={SETTINGS_PATH} icon="Settings" rail>
-            {t.nav.settings}
-          </NavItem>
-        )}
+        <NavItem to={SEARCH_PATH} icon="Search" rail>
+          {t.nav.search}
+        </NavItem>
+        <NotificationBell side="right" />
+        <NavItem to={PROJECTS_PATH} icon="Folder" rail>
+          {t.nav.projects}
+        </NavItem>
       </nav>
       <div className="flex flex-col items-center gap-1 border-t border-border py-2">
         <ThemeButton />
+        <AccountMenu side="right" />
       </div>
     </aside>
   );

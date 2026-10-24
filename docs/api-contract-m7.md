@@ -726,7 +726,7 @@ holds a run to reading this way until a person confirms a write
   `authorization_code`, which it still needs; the exchange of its own token
   does not depend on it.
 - **The database.** `oauth_token.exchanged` and `projects_only` (migration
-  01400), and `oauth_token_project`, which only the admin role reads and
+  01420), and `oauth_token_project`, which only the admin role reads and
   writes, as the tokens. Authentication reads a token's own projects instead
   of its grant's when it has them; they lie within the grant's.
 - **The capability.** `oauth.token-exchange@1` promises this exchange too.

@@ -127,6 +127,7 @@ describe("the sidebar inside a project", () => {
       expect(found).not.toBeNull();
       return found!;
     });
+    await userEvent.click(within(nav).getByRole("button", { name: "Project admin" }));
     expect(within(nav).getByRole("link", { name: "Permissions" })).toHaveAttribute("href", "/p/CHK/permissions");
   });
 });

@@ -240,10 +240,26 @@ describe("the sidebar inside a project", () => {
       expect(found).not.toBeNull();
       return found!;
     });
+    const admin = within(nav).getByRole("button", { name: "Project admin" });
+    expect(admin).toHaveAttribute("aria-expanded", "false");
+    expect(within(nav).queryByRole("link", { name: "Project settings" })).toBeNull();
+    await userEvent.click(admin);
     expect(within(nav).getByRole("link", { name: "Project settings" })).toHaveAttribute("href", "/p/CHK/settings");
     await userEvent.click(within(nav).getByRole("button", { name: /Switch project/ }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Billing (BIL)" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/p/BIL"));
     await arrival(router, "/p/BIL");
+  });
+
+  it("shows the last project visited where the route names none", async () => {
+    stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: checkout } },
+      "GET /projects": { status: 200, body: { projects: [checkout] } },
+    });
+    const router = await renderAt("/p/CHK/settings");
+    await waitFor(() => expect(document.querySelector('[data-project-nav="CHK"]')).not.toBeNull());
+    await router.navigate({ to: "/search" });
+    await arrival(router, "/search");
+    expect(document.querySelector('[data-project-nav="CHK"]')).not.toBeNull();
   });
 });

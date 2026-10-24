@@ -7,6 +7,23 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The menus follow the layout Armature, Exciter and Stator share (#280).
+  The top bar is gone: the breadcrumbs sit above each page's title, the
+  bell, Search and Projects join Home on the rail, and the avatar at the
+  rail's foot opens "Your account" with a header naming the person, their
+  own pages, the other tools, Settings for administrators and Sign out. The
+  installation's settings left the sidebar for a settings area at
+  `/settings`, with a sidebar of its own that lists You and, for
+  administrators, Settings, and a way back to the page you came from;
+  `/settings` itself is a hub linking both. The sidebar counts unread
+  notifications and waiting reviews on their entries, keeps the last
+  project in view where the page names none, and folds Trash, Project
+  settings and Permissions under Project admin. A new Your profile page
+  shows who you are and is where the interface language is chosen, still
+  saved to your account.
+
 ### Added
 
 - A connected app can take a narrower, shorter access token for one run
@@ -16,6 +33,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
   (`exciter_expires_in`), never outliving the token it came from and with no
   refresh token. Revoking it ends it alone, and ending the grant ends it
   too. Apps may now register for the token exchange grant.
+- The account menu links the other tools (#298). Under "Switch to" it lists
+  Armature and Stator, with their icons, once the installation is connected
+  to them, and each opens that tool's home at the connection's address. The
+  links are plain links, so they open in a new tab too, and everyone signed
+  in sees them, guests included; a tool whose connection is removed leaves
+  the list, and with none the group is not shown.
+
+### Fixed
+
+- An Armature issue shows the requirements it implements or verifies as
+  requirements, no longer among its pages (#297). Where the connected
+  Armature takes relations, link sync sends `requirement` for an implements
+  or verifies trace and `page` for any other; links synced before are
+  corrected by the requirement's next sync.
 
 ## [0.1.0] - 2026-10-21
 

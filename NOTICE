@@ -562,6 +562,12 @@ Adapted from Stator at 6094b76, for diagrams (#284):
 - backend/internal/markdown import.go and export.go: a fence in the
   diagram's language read and written as a diagram
 
+Adapted from Armature at 51eac53, for the menu layout the tools share (#280):
+- web/src/features/shell/state.ts useLastProject: the project the sidebar
+  shows when the route names none, the last one visited
+- web/src/features/shell/Rail.tsx: the avatar and the theme at the rail's
+  foot
+
 The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
 titles and texts of the public GitHub issues of Armature, Exciter and Stator
 that carry a user story, as scripts/demo-snapshot.sh took them on the date
@@ -574,3 +580,9 @@ licensed under the Creative Commons Attribution 4.0 International license
 The pictures here are changed from the original design: the gopher is drawn
 anew in a scene with tools and books, and cropped and resized for the icons.
 These pictures are under that license, not under the license of the code.
+
+The avatar menu's links to Armature and Stator (#298) show their own icons,
+taken unchanged: web/public/tools/armature.webp is Armature's
+web/public/emblem.webp at 51eac53, web/public/tools/stator.png Stator's
+web/public/favicon-32.png at ffd3addb. Both show the Go gopher too, under the
+same license, as those products' NOTICE files say.

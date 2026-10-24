@@ -18,7 +18,7 @@ export const signedIn: Me = {
 
 /** The real router and the real shell, started at a path, signed in as `me`; null is nobody,
  * and then the page is wherever the router sends a visitor. `ready` is what shows the page arrived. */
-export async function renderAt(path: string, { me = signedIn, ready = "[data-top-bar], [data-login]" }: { me?: Me | null; ready?: string } = {}) {
+export async function renderAt(path: string, { me = signedIn, ready = "[data-shell], [data-login]" }: { me?: Me | null; ready?: string } = {}) {
   // A page that reads what every installation has still finds it behind it in a test that stubs nothing.
   if (!apiStubbed) stubApi({});
   const queryClient = createQueryClient((client) => sendToLogin(router, client));

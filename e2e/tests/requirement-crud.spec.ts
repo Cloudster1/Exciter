@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
 
 const KEY = uniqueKey("REQ");
 const LIST_PATH = `/p/${KEY}`;
@@ -62,6 +62,7 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await page.locator('[data-action="trash-requirement"]').click();
     await expect(page).toHaveURL(LIST_PATH);
     await expect(page.getByText("No requirements yet")).toBeVisible();
+    await openProjectAdmin(page, KEY);
     await page.locator(`[data-project-nav="${KEY}"]`).getByRole("link", { name: "Trash" }).click();
     await expect(page.locator(`[data-trash-item="${KEY}-R1"]`)).toBeVisible();
     await expectAccessible(page);

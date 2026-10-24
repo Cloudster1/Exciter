@@ -291,6 +291,9 @@ export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
 /** Where an administrator connects Stator, and where a person connects their own Stator account (#40). */
 export const STATOR_SETTINGS_PATH = "/settings/stator";
 export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
+/** The other tools' icons, served from Exciter itself since its pages load no image from elsewhere (#298). */
+export const ARMATURE_ICON_PATH = "/tools/armature.webp";
+export const STATOR_ICON_PATH = "/tools/stator.png";
 /** How a Stator personal access token and a webhook secret begin, the API's stator.TokenPrefix and WebhookSecretPrefix. */
 export const STATOR_TOKEN_PREFIX = "stator_pat_";
 export const STATOR_WEBHOOK_SECRET_PREFIX = "stator_whs_";
@@ -376,6 +379,8 @@ export const WORD_DEFAULT_KEYWORDS: Record<string, string> = { en: "shall, must"
 export const NOTIFICATIONS_PATH = "/notifications";
 export const NOTIFICATION_SETTINGS_PATH = "/settings/notifications";
 export const WATCHING_PATH = "/settings/watching";
+/** The person's own profile (#280): who they are and the language Exciter speaks to them in. */
+export const PROFILE_PATH = "/settings/profile";
 /** How often the bell asks for the unread count; it also asks when the window regains focus. */
 export const UNREAD_POLL_MS = 30_000;
 /** Above this many unread the badge shows the number with a plus. */

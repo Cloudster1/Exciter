@@ -5,11 +5,25 @@ import { Icon } from "@/components/icons";
 import { PROJECTS_PATH } from "@/config";
 import { NavItem } from "@/features/shell/nav";
 import { SidebarGroup } from "@/features/shell/SidebarGroup";
+import { useLastProject } from "@/features/shell/state";
 import { t } from "@/i18n";
 
-/** The project the reader is in, in the sidebar: a switcher to the others, and the project's pages. */
-export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onToggle: () => void; onNavigate?: () => void }) {
-  const { projectKey } = useParams({ strict: false });
+/** The project the reader is in, or was in last, in the sidebar: a switcher to the others, the project's pages, and
+ *  its administration folded under Project admin. */
+export function ProjectNav({
+  open,
+  onToggle,
+  adminOpen,
+  onToggleAdmin,
+  onNavigate,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  adminOpen: boolean;
+  onToggleAdmin: () => void;
+  onNavigate?: () => void;
+}) {
+  const projectKey = useLastProject(useParams({ strict: false }).projectKey);
   const { data: project } = useProject(projectKey ?? "");
   const { data: projects } = useProjects(false, Boolean(project));
   const navigate = useNavigate();
@@ -96,19 +110,21 @@ export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onTo
         <NavItem to={`/p/${project.key}/code-tags`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.evidence.codeTags.title}
         </NavItem>
-        {project.can.edit && (
-          <NavItem to={`/p/${project.key}/trash`} icon="Trash" rail={false} onNavigate={onNavigate}>
-            {t.requirements.trashTitle}
+        <SidebarGroup id="project-admin" title={t.nav.projectAdmin} open={adminOpen} onToggle={onToggleAdmin} nested>
+          {project.can.edit && (
+            <NavItem to={`/p/${project.key}/trash`} icon="Trash" rail={false} onNavigate={onNavigate}>
+              {t.requirements.trashTitle}
+            </NavItem>
+          )}
+          <NavItem to={`/p/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
+            {t.projects.settings}
           </NavItem>
-        )}
-        <NavItem to={`/p/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
-          {t.projects.settings}
-        </NavItem>
-        {project.can.administer && (
-          <NavItem to={`/p/${project.key}/permissions`} icon="Shield" rail={false} onNavigate={onNavigate}>
-            {t.permissions.navLabel}
-          </NavItem>
-        )}
+          {project.can.administer && (
+            <NavItem to={`/p/${project.key}/permissions`} icon="Shield" rail={false} onNavigate={onNavigate}>
+              {t.permissions.navLabel}
+            </NavItem>
+          )}
+        </SidebarGroup>
       </div>
     </SidebarGroup>
   );

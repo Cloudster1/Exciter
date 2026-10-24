@@ -224,11 +224,11 @@ func TestRequirementsAreTracedToArmatureIssues(t *testing.T) {
 		}
 		cp1 := got["CP-1"]
 		if cp1["title"] != lnkKey+"-R1 Brakes engage within 100 ms (implements)" || cp1["source"] != armature.LinkSource ||
-			cp1["createdByName"] != "Bob" || cp1["iconUrl"] != testAppURL(t)+armature.IconPath {
+			cp1["createdByName"] != "Bob" || cp1["iconUrl"] != testAppURL(t)+armature.IconPath || cp1["relation"] != "requirement" {
 			t.Errorf("the link on CP-1 is %v", cp1)
 		}
-		if got["CP-5"]["title"] != lnkKey+"-R1 Brakes engage within 100 ms (relates)" {
-			t.Errorf("the link on CP-5 is titled %v", got["CP-5"]["title"])
+		if got["CP-5"]["title"] != lnkKey+"-R1 Brakes engage within 100 ms (relates)" || got["CP-5"]["relation"] != "page" {
+			t.Errorf("the link on CP-5 is %v", got["CP-5"])
 		}
 		for key, l := range linkStates(t, bob, lnkKey+"-R1") {
 			if l["sync"] != "synced" {

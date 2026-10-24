@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
 
 const PROJECTS_PATH = "/projects";
 const NEW_PROJECT_PATH = "/projects/new";
@@ -41,6 +41,7 @@ test.describe("projects", { tag: "@desktop" }, () => {
     await page.locator('[data-action="create-project"]').click();
     await expect(page).toHaveURL(`/p/${SUGGESTED}`);
     await expect(page.getByText("No requirements yet")).toBeVisible();
+    await openProjectAdmin(page, SUGGESTED);
     await page.locator(`[data-project-nav="${SUGGESTED}"]`).getByRole("link", { name: "Project settings" }).click();
     await expect(page).toHaveURL(`/p/${SUGGESTED}/settings`);
     await expectAccessible(page);
@@ -93,6 +94,7 @@ test.describe("projects", { tag: "@desktop" }, () => {
 
     await bob.locator(`[data-project-row="${READ}"]`).getByRole("link", { name: "System" }).click();
     await expect(bob).toHaveURL(`/p/${READ}`);
+    await openProjectAdmin(bob, READ);
     await bob.locator(`[data-project-nav="${READ}"]`).getByRole("link", { name: "Project settings" }).click();
     await expect(bob).toHaveURL(`/p/${READ}/settings`);
     await expect(bob.getByText("Only the project's administrators change its settings.")).toBeVisible();
