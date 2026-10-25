@@ -302,6 +302,13 @@
   background: radial-gradient(120% 80% at 20% 0%, var(--color-backdrop-from), var(--color-backdrop-to));
 }
 
+/* A side panel that sticks just below the shell's strip and fits the part of main in view, so it scrolls on its own.
+ * AppShell measures both heights onto main; the fallbacks hold before the first measure. */
+@utility below-strip {
+  top: calc(var(--shell-strip, 0px) + --spacing(4));
+  max-height: calc(var(--shell-view, 100dvh) - var(--shell-strip, 0px) - --spacing(8));
+}
+
 /* A requirement's statement and rationale, in the editor and read-only alike, as Stator draws a page's document.
  * Every colour is a theme role, so a custom theme recolours it without knowing it exists. */
 @layer components {

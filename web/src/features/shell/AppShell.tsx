@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { IconButton, ShellHeaderContext } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -12,6 +12,9 @@ import { Sidebar } from "./Sidebar";
 import { DRAWER_ID, rememberOutsideSettings, useNarrow } from "./state";
 
 const MAIN_ID = "main";
+// Read by the below-strip utility in styles/index.css.
+const SHELL_STRIP_HEIGHT = "--shell-strip";
+const SHELL_VIEW_HEIGHT = "--shell-view";
 
 // Ctrl or Cmd+K anywhere in the shell, fields included, as in Armature and
 // Stator: it is the product's one shortcut and a field has no other use for it.
@@ -38,6 +41,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // The page's head is drawn into the strip over the content, which floats
   // as the content scrolls under it; the ref lands before first paint.
   const [strip, setStrip] = useState<HTMLElement | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  useShellSpace(mainRef, stripRef);
 
   const narrow = useNarrow();
   const [drawer, setDrawer] = useState(false);
@@ -84,9 +90,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         {/* Focusable only from the skip link, and not ringed then: it is where reading starts, not a control. */}
         <ThemeLoader />
-        <main id={MAIN_ID} tabIndex={-1} className="relative isolate min-h-0 flex-1 overflow-auto bg-backdrop focus:outline-none" data-backdrop-host>
+        <main
+          ref={mainRef}
+          id={MAIN_ID}
+          tabIndex={-1}
+          className="relative isolate min-h-0 flex-1 overflow-auto bg-backdrop focus:outline-none"
+          data-backdrop-host
+        >
           <BackdropEffect />
-          <div className="sticky top-0 z-20 border-b border-border/60 bg-surface-glass px-4 pt-3 backdrop-blur-md shell:px-8" data-shell-strip>
+          <div ref={stripRef} className="sticky top-0 z-20 border-b border-border/60 bg-surface-glass px-4 pt-3 backdrop-blur-md shell:px-8" data-shell-strip>
             <PlaceCrumbs />
             <div ref={setStrip} className="pt-2 empty:hidden" data-shell-header />
           </div>
@@ -98,6 +110,24 @@ export function AppShell({ children }: { children: ReactNode }) {
       {switching && <QuickSwitcher onClose={closeSwitcher} />}
     </div>
   );
+}
+
+/** Publishes on main how tall its sticky strip is and how much of main is in view, for panels that stick below
+ *  the strip: the strip grows as the crumbs and the page's head wrap, so it is measured rather than assumed. */
+function useShellSpace(mainRef: RefObject<HTMLElement | null>, stripRef: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const main = mainRef.current;
+    const strip = stripRef.current;
+    if (!main || !strip || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      main.style.setProperty(SHELL_STRIP_HEIGHT, `${strip.offsetHeight}px`);
+      main.style.setProperty(SHELL_VIEW_HEIGHT, `${main.clientHeight}px`);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(main);
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [mainRef, stripRef]);
 }
 
 // The router owns the address, so the skip link moves focus itself rather

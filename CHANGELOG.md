@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The specification's tree stays below the page's header and scrolls on its
+  own to its last entry, without moving the document (#361). On a wide
+  screen the tree sits at the left of the page, a little wider, and the
+  document beside it keeps a readable width.
 - Groups and their memberships are held to administrators in the database
   too, not only by the service (#335). Everybody still sees the groups a
   grant or a picker names, and sign-in through the identity provider keeps
