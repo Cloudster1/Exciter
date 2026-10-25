@@ -51,7 +51,8 @@ func (h *harness) signInRows(t *testing.T, m member) uuid.UUID {
 }
 
 // Straight through SQL as exciter_app: the provider, its mapping and the waiting people show only to an
-// administrator, nothing shows to a connection without the installation, and the tables that span it nothing.
+// administrator, groups and their members change only for one, nothing shows to a connection without the
+// installation, and the tables that span it nothing.
 func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 	h := newHarness(t)
 	h.singleSignOn(t)
@@ -60,6 +61,8 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 	ctx := context.Background()
 	tenantTables := []string{"groups", "group_member", "oidc_provider", "oidc_group_role", "join_request"}
 	adminTables := []string{"oidc_provider", "oidc_group_role", "join_request"}
+	// Everybody reads these, since grants, pickers and reviews name groups; only administrators write them.
+	adminWrittenTables := []string{"groups", "group_member"}
 	globalTables := []string{"user_session", "user_identity"}
 
 	t.Run("acting for nobody, the administrators' rows and the tables that span the installation stay hidden", func(t *testing.T) {
@@ -114,6 +117,18 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 		}
 		if _, err := plain.Exec(ctx, `INSERT INTO oidc_group_role (group_ref, role) VALUES ('mine', 'admin')`); !isPolicyViolation(err) {
 			t.Errorf("a plain member mapped a group: %v", err)
+		}
+	})
+
+	t.Run("a plain member reads the groups and changes none of them", func(t *testing.T) {
+		plain := h.appConn(t, h.addPerson(t, "member"))
+		for _, table := range adminWrittenTables {
+			var n int
+			if err := plain.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&n); err != nil || n != h.countRows(t, `SELECT count(*) FROM `+table) {
+				t.Errorf("a plain member sees %d rows in %s (%v), want all of them", n, table, err)
+			}
+			touchesNothing(t, plain, "a plain member changing "+table, `UPDATE `+table+` SET created_at = created_at`)
+			touchesNothing(t, plain, "a plain member emptying "+table, `DELETE FROM `+table)
 		}
 	})
 
