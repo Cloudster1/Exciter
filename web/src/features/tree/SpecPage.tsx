@@ -220,7 +220,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
   }
 
   return (
-    <div className="mx-auto max-w-6xl" data-spec={project.key}>
+    <div data-spec={project.key}>
       <PageHeader
         title={t.tree.specTitle}
         meta={t.projects.projectAndKey(project.name, project.key)}
@@ -253,14 +253,14 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
           description={mayWrite ? t.requirements.emptyBody : t.requirements.emptyBodyReader}
         />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          <nav aria-label={t.tree.navLabel} className="lg:sticky lg:top-4 lg:max-h-[80vh] lg:self-start lg:overflow-y-auto">
+        <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] 2xl:grid-cols-[22rem_minmax(0,1fr)]">
+          <nav aria-label={t.tree.navLabel} className="lg:below-strip lg:sticky lg:self-start lg:overflow-y-auto lg:overscroll-contain">
             {tree.data ? <RequirementTree project={project} nodes={tree.data} onMove={(node) => setMoving(placed(node))} /> : <Skeleton />}
           </nav>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: the keys steer between the entries, each of which is focusable */}
           <article
             ref={documentRef}
-            className="min-w-0 space-y-6"
+            className="min-w-0 max-w-5xl space-y-6"
             aria-label={t.tree.specTitle}
             aria-describedby="spec-keys"
             onKeyDown={keyDown}

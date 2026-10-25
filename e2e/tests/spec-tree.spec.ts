@@ -19,6 +19,14 @@ async function removeProjects(api: ExciterApi) {
   }
 }
 
+// Long enough that tree and document both overflow the desktop project's window.
+const LONG_SPEC = 40;
+const WHEEL_PAST_THE_END = 5000;
+const WIDE_SCREEN = { width: 2560, height: 1440 };
+// The document's max-w-5xl, and the content area's padding on a wide screen.
+const READABLE_WIDTH_PX = 1024;
+const CONTENT_GUTTER_PX = 32;
+
 const paragraph = (text: string) => ({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
 
 // The projects' keys are this worker's own, so they meet no other spec.
@@ -50,6 +58,46 @@ test.describe("the specification", { tag: "@desktop" }, () => {
     await page.getByLabel("Title", { exact: true }).fill("Ship the basket");
     await page.locator('[data-action="save-requirement"]').click();
     await expect(page.locator(`[data-spec-entry="${KEY}-R3"]`).getByRole("heading")).toHaveText("1.2 Ship the basket");
+  });
+
+  test("the tree stays below the header and scrolls on its own, and a wide screen keeps the document readable", async ({ page, api }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Specified" } }));
+    for (let n = 1; n <= LONG_SPEC; n++) {
+      must(
+        await api.POST("/projects/{projectKey}/requirements", {
+          params: { path: { projectKey: KEY } },
+          body: { title: `Need ${n}`, statement: paragraph(`The system meets need ${n}.`) },
+        }),
+      );
+    }
+
+    await page.goto(`/p/${KEY}/spec`);
+    const main = page.locator("main");
+    const tree = page.getByRole("navigation", { name: "Requirement tree" });
+    const last = tree.getByRole("treeitem", { name: `${LONG_SPEC} Need ${LONG_SPEC}` });
+    await expect(page.locator(`[data-spec-entry="${KEY}-R${LONG_SPEC}"]`)).toBeAttached();
+
+    // The tree scrolls to its last item by itself, and the document stays where it was.
+    await tree.hover();
+    await page.mouse.wheel(0, WHEEL_PAST_THE_END);
+    await expect(last).toBeInViewport();
+    expect(await main.evaluate((el) => el.scrollTop)).toBe(0);
+
+    // With the document read to its end, the tree starts below the strip and ends inside what is in view.
+    await main.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    const strip = (await page.locator("[data-shell-strip]").boundingBox())!;
+    const view = (await main.boundingBox())!;
+    await expect.poll(async () => (await tree.boundingBox())!.y).toBeGreaterThanOrEqual(strip.y + strip.height);
+    const panel = (await tree.boundingBox())!;
+    expect(panel.y + panel.height).toBeLessThanOrEqual(view.y + view.height);
+    await expectAccessible(page);
+
+    // A wide screen puts the tree at the left of the content and keeps the document at a readable width.
+    await page.setViewportSize(WIDE_SCREEN);
+    const article = page.locator("[data-spec-document]");
+    await expect.poll(async () => (await article.boundingBox())!.width).toBeLessThanOrEqual(READABLE_WIDTH_PX);
+    const wide = (await main.boundingBox())!;
+    expect((await tree.boundingBox())!.x - wide.x).toBeLessThanOrEqual(CONTENT_GUTTER_PX);
   });
 
   test("a move to another project gives a new key, and the old one still finds it", async ({ page, api }) => {
