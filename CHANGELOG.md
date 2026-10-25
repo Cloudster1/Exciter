@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Groups and their memberships are held to administrators in the database
+  too, not only by the service (#335). Everybody still sees the groups a
+  grant or a picker names, and sign-in through the identity provider keeps
+  joining, leaving and creating provider groups as before.
 - An Armature issue shows the requirements it implements or verifies as
   requirements, no longer among its pages (#297). Where the connected
   Armature takes relations, link sync sends `requirement` for an implements
