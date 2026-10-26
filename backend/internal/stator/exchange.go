@@ -62,13 +62,16 @@ func (s *Service) ExchangeAtSignIn(ctx context.Context, user uuid.UUID, subject 
 	if !s.opts.TokenExchange || subject == "" {
 		return 0
 	}
-	ctx, cancel := context.WithTimeout(ctx, tokenexchange.SignInTimeout)
+	exchangeCtx, cancel := context.WithTimeout(ctx, tokenexchange.SignInTimeout)
 	defer cancel()
-	connected, why := s.exchange(ctx, user, subject)
+	connected, why := s.exchange(exchangeCtx, user, subject)
 	if !connected && why == "" {
 		return 0
 	}
-	lsn, err := tokenexchange.Note(ctx, s.db, tokenexchange.PartnerStator, user, connected, why)
+	// An exchange that ran out of time has spent exchangeCtx, and that is the outcome the account page most needs.
+	noteCtx, cancelNote := context.WithTimeout(context.WithoutCancel(ctx), tokenexchange.NoteTimeout)
+	defer cancelNote()
+	lsn, err := tokenexchange.Note(noteCtx, s.db, tokenexchange.PartnerStator, user, connected, why)
 	if err != nil {
 		s.opts.Log.Warn("what the sign-in's exchange at Stator came to could not be kept", "user_id", user, "error", err)
 	}

@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- When Armature or Stator does not answer the token exchange at sign-in in
+  time, the account page now says so (#348). The outcome used to be lost
+  with the time that had run out.
 - A Stator page event that arrives late, for an older version than a link
   holds, no longer moves the link back to the space the page left (#347).
 - Sending a webhook delivery again by hand no longer ends its automatic
