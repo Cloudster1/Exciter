@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A mail relay that accepts the connection and then stops answering no
+  longer holds back every notification mail and digest after it (#356).
+  Each send gives up after 30 seconds, or sooner when the worker is
+  stopping, and the worker logs the mail it could not send and carries on.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the
