@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -86,8 +87,7 @@ func run() error {
 		return fmt.Errorf("point Armature at the suite's Keycloak: %w", err)
 	}
 	for _, p := range people {
-		err := armature.send(ctx, http.MethodPost, "/users", map[string]any{"email": p.email, "name": p.name, "role": p.role, "password": p.password}, nil)
-		if err != nil && !isConflict(err) {
+		if err := armature.armaturePerson(ctx, p); err != nil {
 			return fmt.Errorf("make %s a member of Armature: %w", p.email, err)
 		}
 	}
@@ -201,6 +201,34 @@ func signIn(ctx context.Context, base, email, password string) (*session, error)
 	}
 	s := &session{base: base, client: &http.Client{Jar: jar, Timeout: callTimeout}}
 	return s, s.send(ctx, http.MethodPost, "/auth/login", map[string]any{"email": email, "password": password}, nil)
+}
+
+// armaturePerson makes p an account of Armature, or brings an existing one to
+// p's role and password: Armature's own seed lets the realm's people in too.
+func (s *session) armaturePerson(ctx context.Context, p person) error {
+	err := s.send(ctx, http.MethodPost, "/users", map[string]any{"email": p.email, "name": p.name, "role": p.role, "password": p.password}, nil)
+	if !isConflict(err) {
+		return err
+	}
+	var page struct {
+		Users []struct {
+			ID    string `json:"id"`
+			Email string `json:"email"`
+		} `json:"users"`
+	}
+	if err := s.send(ctx, http.MethodGet, "/users?q="+url.QueryEscape(p.email), nil, &page); err != nil {
+		return err
+	}
+	for _, u := range page.Users {
+		if !strings.EqualFold(u.Email, p.email) {
+			continue
+		}
+		if err := s.send(ctx, http.MethodPatch, "/users/"+u.ID, map[string]any{"role": p.role, "isActive": true}, nil); err != nil {
+			return err
+		}
+		return s.send(ctx, http.MethodPut, "/users/"+u.ID+"/password", map[string]any{"password": p.password}, nil)
+	}
+	return fmt.Errorf("%s exists in Armature but is missing from its list of accounts", p.email)
 }
 
 // refusal is an answer of 400 or more, with the product's own sentence.
