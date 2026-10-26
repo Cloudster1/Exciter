@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -113,11 +114,56 @@ var (
 	// A url() reaches the theme's own files or carries the image inline;
 	// nothing else, so a theme cannot phone home.
 	urlCall = regexp.MustCompile(`(?i)url\(\s*["']?([^"')]*)["']?\s*\)`)
-	ownFile = regexp.MustCompile(`^/api/v1/themes/([0-9a-f-]{36})/assets/([0-9a-f-]{36})$`)
+	// These take a plain string as an image, which loads like a url() does.
+	imageCall = regexp.MustCompile(`(?i)(?:^|[^a-z0-9_-])((?:-[a-z]+-)?(?:image-set|image|cross-fade|src))\(`)
+	cssString = regexp.MustCompile(`"([^"]*)"|'([^']*)'`)
+	ownFile   = regexp.MustCompile(`^/api/v1/themes/([0-9a-f-]{36})/assets/([0-9a-f-]{36})$`)
 )
 
 // forbiddenCSS is what no stylesheet of ours needs and a hostile one would.
 var forbiddenCSS = []string{"@import", "expression(", "-moz-binding", "</", "behavior:", "@charset"}
+
+// cssLoads is every address the CSS loads, once: each url() target and each
+// string an image function takes.
+func cssLoads(css string) []string {
+	var out []string
+	for _, m := range urlCall.FindAllStringSubmatch(css, -1) {
+		out = append(out, strings.TrimSpace(m[1]))
+	}
+	for _, at := range imageCall.FindAllStringIndex(css, -1) {
+		for _, m := range cssString.FindAllStringSubmatch(callArguments(css[at[1]:]), -1) {
+			out = append(out, strings.TrimSpace(m[1]+m[2]))
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// callArguments is what follows an open parenthesis up to the one closing it,
+// or the rest when it is never closed; parentheses in strings do not count.
+func callArguments(rest string) string {
+	depth := 1
+	var quote byte
+	for i := 0; i < len(rest); i++ {
+		c := rest[i]
+		switch {
+		case quote != 0:
+			if c == quote {
+				quote = 0
+			}
+		case c == '"' || c == '\'':
+			quote = c
+		case c == '(':
+			depth++
+		case c == ')':
+			depth--
+			if depth == 0 {
+				return rest[:i]
+			}
+		}
+	}
+	return rest
+}
 
 // Validate refuses what the client would not compile or a browser would abuse.
 // The theme id and its assets say which url() targets are the theme's own.
@@ -229,14 +275,18 @@ func validateCSS(css string, themeID uuid.UUID, assets map[uuid.UUID]bool) error
 	if len(css) > MaxCSSBytes {
 		return fmt.Errorf("the extra CSS is at most %d KB", MaxCSSBytes/1024)
 	}
+	// An escape can spell any name or address, so what the checks below read
+	// is what the browser reads only without them.
+	if strings.Contains(css, "\\") {
+		return errors.New("the extra CSS cannot contain a backslash; write each character as itself rather than as a CSS escape")
+	}
 	lower := strings.ToLower(css)
 	for _, word := range forbiddenCSS {
 		if strings.Contains(lower, word) {
 			return fmt.Errorf("the extra CSS cannot contain %s", word)
 		}
 	}
-	for _, m := range urlCall.FindAllStringSubmatch(css, -1) {
-		target := strings.TrimSpace(m[1])
+	for _, target := range cssLoads(css) {
 		if strings.HasPrefix(strings.ToLower(target), "data:image/") {
 			continue
 		}
@@ -297,8 +347,8 @@ func (s *Spec) AssetIDs() []uuid.UUID {
 	if s.Backdrop != nil {
 		out = append(out, s.Backdrop.AssetID)
 	}
-	for _, m := range urlCall.FindAllStringSubmatch(s.CSS, -1) {
-		if parts := ownFile.FindStringSubmatch(strings.TrimSpace(m[1])); parts != nil {
+	for _, target := range cssLoads(s.CSS) {
+		if parts := ownFile.FindStringSubmatch(target); parts != nil {
 			if id, err := uuid.Parse(parts[2]); err == nil {
 				out = append(out, id)
 			}

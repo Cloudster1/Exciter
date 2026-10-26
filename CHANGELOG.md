@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A theme's extra CSS is held to loading only the theme's own files and
+  inline images through `image-set()`, `image()`, `cross-fade()` and `src()`
+  as through `url()`, and may no longer contain CSS escapes (#343). Write
+  each character as itself instead of a backslash escape.
 - A test result links its commit to where Armature shows it only when that
   address is a web address, `http` or `https` (#344); any other commit is
   shown by its SHA alone.
