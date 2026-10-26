@@ -58,6 +58,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A requirement in the trash comes back with Restore although its status
   was made to lock while it was there (#350). It returns locked as its
   status says; what it says still takes no change in the trash.
+- A review session of an archived project can no longer be changed, moved
+  to a new round or closed, by its moderator or the project's
+  administrators, in the app and in the database (#351). The session says
+  so and offers none of them until the project is unarchived.
 
 ## [0.1.0] - 2026-10-21
 

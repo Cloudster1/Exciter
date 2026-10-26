@@ -366,12 +366,13 @@ type sessionRow struct {
 	Session
 	projectID uuid.UUID
 	moderated bool
+	archived  bool
 }
 
 const selectSession = `
 SELECT s.id, p.key, s.project_id, s.title, s.description, s.scope_kind, COALESCE(rt.number, 0), s.scope_baseline, s.scope_query,
        s.since_base, s.since_baseline, s.state, s.round, s.quorum, s.deadline, COALESCE(u.name, ''), s.baseline_id, s.excluded,
-       s.opened_at, s.closed_at, review_session_moderated(s.id, $1::uuid)
+       s.opened_at, s.closed_at, review_session_moderated(s.id, $1::uuid), p.archived_at IS NOT NULL
 FROM review_session s
 JOIN project p ON p.id = s.project_id
 LEFT JOIN requirement rt ON rt.id = s.scope_root
@@ -388,7 +389,7 @@ func scanSession(row pgx.Row) (*sessionRow, error) {
 	s := &r.Session
 	err := row.Scan(&s.ID, &s.ProjectKey, &r.projectID, &s.Title, &s.Description, &s.Scope.Kind, &rootNumber, &s.Scope.BaselineID, &s.Scope.Query,
 		&sinceBase, &sinceBL, &s.State, &s.Round, &s.Quorum, &s.Deadline, &s.ModeratorName, &s.BaselineID, &excluded,
-		&s.OpenedAt, &s.ClosedAt, &r.moderated)
+		&s.OpenedAt, &s.ClosedAt, &r.moderated, &r.archived)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrSessionNotFound
 	}
@@ -404,7 +405,7 @@ func scanSession(row pgx.Row) (*sessionRow, error) {
 	if err := json.Unmarshal(excluded, &s.Excluded); err != nil {
 		return nil, fmt.Errorf("read what the session left out: %w", err)
 	}
-	open := s.State == SessionOpen
+	open := s.State == SessionOpen && !r.archived
 	s.Can = SessionCan{Edit: r.moderated && open, Round: r.moderated && open && s.Round < MaxSessionRounds, Close: r.moderated && open}
 	return &r, nil
 }
@@ -591,7 +592,8 @@ func (s *Service) Session(ctx context.Context, id uuid.UUID) (*Session, error) {
 	return out, err
 }
 
-// moderating reads a session for a change, refusing whoever does not moderate it and a session already closed.
+// moderating reads a session for a change, refusing whoever does not moderate it, a session already closed and one
+// of an archived project.
 func moderating(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*sessionRow, error) {
 	r, err := scanSession(tx.QueryRow(ctx, selectSession+` WHERE s.id = $2`, actor, id))
 	switch {
@@ -601,6 +603,8 @@ func moderating(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*sessionR
 		return nil, ErrNotModerator
 	case r.State != SessionOpen:
 		return nil, ErrSessionClosed
+	case r.archived:
+		return nil, project.ErrArchived
 	}
 	// Locked only now: a lock is held to the update policy, which would hide the session from whoever may not change it.
 	if _, err := tx.Exec(ctx, `SELECT 1 FROM review_session WHERE id = $1 FOR UPDATE`, id); err != nil {
