@@ -127,3 +127,24 @@ func TestGridAndViewsOverTheAPI(t *testing.T) {
 		sameList(t, "the member's after", views(f.plain), "My checkout")
 	})
 }
+
+// A shared view is only kept shared by who edits its project, so an owner who no longer does is told so (#355).
+func TestAnOwnerWhoNoLongerEditsIsToldWhyTheirSharedViewStays(t *testing.T) {
+	w := newCommentWorld(t, "VWL")
+	view := obj(t, want(t, w.bob.post(t, "/api/v1/projects/"+w.key+"/views", map[string]any{"name": "Team", "shared": true}),
+		http.StatusCreated, "bob shares a view"), "view")
+	path := "/api/v1/views/" + view["id"].(string)
+	if _, err := w.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND user_id = $2`, w.projectID, w.bobID); err != nil {
+		t.Fatal(err)
+	}
+	w.h.settle(t)
+
+	refuse(t, "the owner, now a viewer, renames the shared view", w.bob.patch(t, path, map[string]any{"name": "Mine now"}), http.StatusForbidden, "forbidden")
+	for _, each := range list(t, want(t, w.bob.get(t, "/api/v1/projects/"+w.key+"/views"), http.StatusOK, "list the views"), "views") {
+		if got := each.(map[string]any); got["id"] == view["id"] && (got["name"] != "Team" || got["shared"] != true) {
+			t.Errorf("the refused view reads %v", got)
+		}
+	}
+	want(t, w.bob.patch(t, path, map[string]any{"shared": false}), http.StatusOK, "the owner, now a viewer, takes it back")
+	want(t, w.bob.patch(t, path, map[string]any{"name": "Mine now"}), http.StatusOK, "and renames it, now their own")
+}

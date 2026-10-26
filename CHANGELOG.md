@@ -71,6 +71,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   the move dialog (#354). The dialog asks where the requirements in each
   such status go, and asks again for every status that moves when the
   server says a type's workflow there lacks one.
+- The owner of a shared view who no longer edits its project is told why
+  the view cannot be changed while it is shared, instead of getting a
+  server error (#355). Taking the view back still works, and then it is
+  theirs to change.
 
 ## [0.1.0] - 2026-10-21
 
