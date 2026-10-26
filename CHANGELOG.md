@@ -55,6 +55,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   Armature takes relations, link sync sends `requirement` for an implements
   or verifies trace and `page` for any other; links synced before are
   corrected by the requirement's next sync.
+- A requirement in the trash comes back with Restore although its status
+  was made to lock while it was there (#350). It returns locked as its
+  status says; what it says still takes no change in the trash.
 
 ## [0.1.0] - 2026-10-21
 
