@@ -60,13 +60,26 @@ func (s *Service) Commits(ctx context.Context, reader uuid.UUID, requirementID u
 		if err != nil {
 			return out, err
 		}
-		for _, c := range answer.Commits {
-			if sha := strings.ToLower(strings.TrimSpace(c.SHA)); sha != "" && c.URL != "" {
-				if _, seen := out[sha]; !seen {
-					out[sha] = testresult.CommitLink{IssueKey: key, URL: c.URL}
-				}
-			}
-		}
+		addCommits(out, key, answer.Commits)
 	}
 	return out, nil
+}
+
+// addCommits keeps the first issue naming each commit, and only commits whose address is a web address, since
+// it is shown as a link.
+func addCommits(out map[string]testresult.CommitLink, key string, commits []wireCommit) {
+	for _, c := range commits {
+		sha := strings.ToLower(strings.TrimSpace(c.SHA))
+		if sha == "" || !webAddress(c.URL) {
+			continue
+		}
+		if _, seen := out[sha]; !seen {
+			out[sha] = testresult.CommitLink{IssueKey: key, URL: c.URL}
+		}
+	}
+}
+
+func webAddress(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }

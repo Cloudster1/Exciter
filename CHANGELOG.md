@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A test result links its commit to where Armature shows it only when that
+  address is a web address, `http` or `https` (#344); any other commit is
+  shown by its SHA alone.
 - Outbound calls through a proxy from `HTTP_PROXY` or `HTTPS_PROXY` are
   checked for their destination as direct calls are (#341). A destination
   goes to the proxy only when none of its addresses lies inside the network,
