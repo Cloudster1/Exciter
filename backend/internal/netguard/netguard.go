@@ -84,16 +84,66 @@ func (a Allow) Names(host string) bool {
 }
 
 // Reserved says whether an address belongs to the network the server is in
-// rather than to the internet: loopback, private, link-local, and the rest.
+// rather than to the internet, by the IANA special-purpose address registries.
 func Reserved(addr netip.Addr) bool {
 	addr = addr.Unmap()
-	if !addr.IsValid() || addr.IsLoopback() || addr.IsPrivate() || addr.IsUnspecified() ||
-		addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast() || addr.IsMulticast() || addr.IsInterfaceLocalMulticast() {
+	if !addr.IsValid() {
 		return true
 	}
-	// Carrier grade NAT and the two ranges a cloud's metadata sits behind.
-	for _, prefix := range []string{"100.64.0.0/10", "169.254.0.0/16", "fd00::/8"} {
-		if netip.MustParsePrefix(prefix).Contains(addr) {
+	if addr.Is4() {
+		return inAny(addr, reserved4)
+	}
+	// A translation prefix carries an IPv4 address that a gateway reaches on
+	// the server's behalf, so that address is what is judged.
+	if embedded, ok := embeddedIPv4(addr); ok {
+		return Reserved(embedded)
+	}
+	return !globalUnicast6.Contains(addr) || inAny(addr, reserved6)
+}
+
+// reserved4 is every IPv4 special-purpose block that is not globally
+// reachable, with multicast and the future-use space beside them.
+var reserved4 = prefixes(
+	"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16",
+	"172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24", "192.168.0.0/16",
+	"198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
+)
+
+// globalUnicast6 is the only IPv6 space allocated for the internet; loopback,
+// unique local, link-local, multicast and the rest all lie outside it.
+var globalUnicast6 = netip.MustParsePrefix("2000::/3")
+
+// reserved6 is what the special-purpose registry sets aside inside it. The
+// anycast services within 2001::/23 are refused too: no call goes to them.
+var reserved6 = prefixes("2001::/23", "2001:db8::/32", "3fff::/20")
+
+var (
+	nat64     = netip.MustParsePrefix("64:ff9b::/96")
+	sixToFour = netip.MustParsePrefix("2002::/16")
+)
+
+func embeddedIPv4(addr netip.Addr) (netip.Addr, bool) {
+	b := addr.As16()
+	switch {
+	case nat64.Contains(addr):
+		return netip.AddrFrom4([4]byte(b[12:16])), true
+	case sixToFour.Contains(addr):
+		return netip.AddrFrom4([4]byte(b[2:6])), true
+	}
+	return netip.Addr{}, false
+}
+
+func prefixes(list ...string) []netip.Prefix {
+	out := make([]netip.Prefix, len(list))
+	for i, p := range list {
+		out[i] = netip.MustParsePrefix(p)
+	}
+	return out
+}
+
+func inAny(addr netip.Addr, list []netip.Prefix) bool {
+	for _, prefix := range list {
+		if prefix.Contains(addr) {
 			return true
 		}
 	}
@@ -103,9 +153,13 @@ func Reserved(addr netip.Addr) bool {
 // Transport reaches the internet and nothing else, unless the operator said
 // otherwise. It dials the address it checked, so a name cannot swap it after.
 func Transport(allow Allow) *http.Transport {
+	return transport(allow, http.ProxyFromEnvironment)
+}
+
+func transport(allow Allow, proxy func(*http.Request) (*url.URL, error)) *http.Transport {
 	dialer := &net.Dialer{Timeout: dialTimeout, KeepAlive: 30 * time.Second}
 	return &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
+		Proxy:               guardedProxy(allow, proxy),
 		DialContext:         guardedDial(dialer, allow),
 		TLSHandshakeTimeout: dialTimeout,
 		MaxIdleConns:        20,
@@ -132,6 +186,40 @@ func WithTransport(timeout time.Duration, transport http.RoundTripper) *http.Cli
 			return nil
 		},
 	}
+}
+
+// guardedProxy checks the destination of a request that goes through a proxy,
+// since the dial then reaches the proxy and never sees the destination.
+func guardedProxy(allow Allow, proxy func(*http.Request) (*url.URL, error)) func(*http.Request) (*url.URL, error) {
+	return func(req *http.Request) (*url.URL, error) {
+		via, err := proxy(req)
+		if err != nil || via == nil {
+			return via, err
+		}
+		if err := checkDestination(req.Context(), allow, req.URL.Hostname()); err != nil {
+			return nil, err
+		}
+		return via, nil
+	}
+}
+
+// checkDestination refuses a host if any of its addresses is reserved: the
+// proxy resolves the name again and may pick any of them.
+func checkDestination(ctx context.Context, allow Allow, host string) error {
+	if allow.hosts[strings.ToLower(host)] {
+		return nil
+	}
+	found, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return fmt.Errorf("%w: %s could not be resolved to check it", ErrBlocked, host)
+	}
+	for _, addr := range found {
+		addr = addr.Unmap()
+		if Reserved(addr) && !allow.permits(addr) {
+			return fmt.Errorf("%w: %s", ErrBlocked, addr)
+		}
+	}
+	return nil
 }
 
 func guardedDial(dialer *net.Dialer, allow Allow) func(context.Context, string, string) (net.Conn, error) {

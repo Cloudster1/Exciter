@@ -99,8 +99,43 @@ func TestRawSQLMovesStatusesOnlyByTransitions(t *testing.T) {
 			t.Errorf("a viewer reads %d statuses, want 7", n)
 		}
 		admin := h.appConn(t, a.user)
-		if _, err := admin.Exec(ctx, `DELETE FROM req_status WHERE id = $1`, status("Obsolete")); !refusedBy(err, "workflow_step_status_id_fkey") {
+		if _, err := admin.Exec(ctx, `DELETE FROM req_status WHERE id = $1`, status("Obsolete")); !refusedBy(err, "workflow_step_status_of_project") {
 			t.Errorf("an administrator deleted a status a workflow names: %v", err)
+		}
+	})
+
+	t.Run("a workflow names only its own project's statuses", func(t *testing.T) {
+		var other, foreign, flow uuid.UUID
+		if err := h.super.QueryRow(ctx, `INSERT INTO project (key, name, created_by) VALUES ($1, 'Elsewhere', $2) RETURNING id`,
+			projectKey(t, "FLOX"), a.user).Scan(&other); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.super.QueryRow(ctx, `SELECT id FROM req_status WHERE project_id = $1 AND name = 'Draft'`, other).Scan(&foreign); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.super.QueryRow(ctx, `SELECT id FROM workflow WHERE project_id = $1`, project).Scan(&flow); err != nil {
+			t.Fatal(err)
+		}
+		admin := h.appConn(t, a.user)
+		if _, err := admin.Exec(ctx, `INSERT INTO workflow_step (workflow_id, status_id) VALUES ($1, $2)`, flow, foreign); !refusedBy(err, "workflow_step_status_of_project") {
+			t.Errorf("a step named another project's status: %v", err)
+		}
+		if _, err := admin.Exec(ctx, `INSERT INTO workflow_step (workflow_id, status_id, project_id) VALUES ($1, $2, $3)`, flow, foreign, other); !refusedBy(err, "workflow_step_status_of_project") {
+			t.Errorf("a step that said it was the other project's named its status: %v", err)
+		}
+		if _, err := admin.Exec(ctx, `UPDATE workflow_step SET on_revision_status_id = $3 WHERE workflow_id = $1 AND status_id = $2`,
+			flow, status("Approved"), foreign); !refusedBy(err, "workflow_step_on_revision_status_of_project") {
+			t.Errorf("a step sent a new revision to another project's status: %v", err)
+		}
+		if _, err := admin.Exec(ctx, `UPDATE workflow_step SET project_id = $3 WHERE workflow_id = $1 AND status_id = $2`,
+			flow, status("Draft"), other); !refusedBy(err, "workflow_step_workflow_of_project") {
+			t.Errorf("a step moved to another project than its workflow's: %v", err)
+		}
+		if _, err := admin.Exec(ctx, `UPDATE req_status SET project_id = $2, name = 'Moved away' WHERE id = $1`, status("Rejected"), other); !refusedBy(err, "workflow_step_status_of_project") {
+			t.Errorf("a status a workflow names moved to another project: %v", err)
+		}
+		if n := h.countRows(t, `SELECT count(*) FROM workflow_step WHERE workflow_id = $1 AND project_id = $2`, flow, project); n != 7 {
+			t.Errorf("the workflow has %d steps in its project, want the 7 it started with", n)
 		}
 	})
 

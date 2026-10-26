@@ -113,15 +113,34 @@ func pick(types []LinkType, id uuid.UUID, fallback *LinkType) *LinkType {
 // UpdateType changes or retires a type; a retired one keeps its links and takes no new ones.
 func (s *Service) UpdateType(ctx context.Context, actor, id uuid.UUID, in LinkTypeInput) (*LinkType, db.LSN, error) {
 	if in.Acyclic != nil && !*in.Acyclic {
+		// Only whoever may change the type learns what reads it, and the search below reads every project.
+		if err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
+			_, err := managing(ctx, tx, actor, id)
+			return err
+		}); err != nil {
+			return nil, 0, err
+		}
 		// A formula that reads itself along the type is safe only while the type stays acyclic (#213), in any project.
-		var name string
+		var (
+			name    string
+			project uuid.UUID
+		)
 		if err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) (err error) {
-			name, err = attribute.FollowsAcyclic(ctx, tx, id)
+			name, project, err = attribute.FollowsAcyclic(ctx, tx, id)
 			return err
 		}); err != nil {
 			return nil, 0, err
 		}
 		if name != "" {
+			var sees bool
+			if err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
+				return tx.QueryRow(ctx, `SELECT perm_project_holds($1, $2, 'view')`, project, actor).Scan(&sees)
+			}); err != nil {
+				return nil, 0, err
+			}
+			if !sees {
+				name = ""
+			}
 			return nil, 0, &InFormulaError{Attribute: name}
 		}
 	}

@@ -42,6 +42,28 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The database holds a workflow to its own project's statuses, for every
+  step and the status a new revision sends it to, and keeps a status or a
+  workflow from moving to another project while a step names it (#340).
+- Turning a link type's acyclic flag off first checks that you may change
+  the type, and a refusal because a formula reads along it names the
+  computed attribute only when you may view its project (#339).
+- A theme's extra CSS is held to loading only the theme's own files and
+  inline images through `image-set()`, `image()`, `cross-fade()` and `src()`
+  as through `url()`, and may no longer contain CSS escapes (#343). Write
+  each character as itself instead of a backslash escape.
+- A test result links its commit to where Armature shows it only when that
+  address is a web address, `http` or `https` (#344); any other commit is
+  shown by its SHA alone.
+- Outbound calls through a proxy from `HTTP_PROXY` or `HTTPS_PROXY` are
+  checked for their destination as direct calls are (#341). A destination
+  goes to the proxy only when none of its addresses lies inside the network,
+  or `EXCITER_OUTBOUND_ALLOW` names it; a name this server cannot resolve
+  itself goes through a proxy only when `EXCITER_OUTBOUND_ALLOW` names it.
+- Outbound calls treat every address the special-purpose registries set
+  aside as inside the network, and judge an address under a translation
+  prefix by the IPv4 address it carries (#342). `EXCITER_OUTBOUND_ALLOW`
+  still lets a named range through.
 - The suite's seed makes Exciter's webhook at Stator, as an administrator
   connecting Stator does, and stores its secret on Exciter's Stator
   connection (#358). Page changes in the suite now reach Exciter, and the
