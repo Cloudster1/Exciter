@@ -62,6 +62,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
   to a new round or closed, by its moderator or the project's
   administrators, in the app and in the database (#351). The session says
   so and offers none of them until the project is unarchived.
+- Coverage follows a link type at once when what it counts changes or it is
+  retired (#352), instead of answering the old figures for up to a minute.
 
 ## [0.1.0] - 2026-10-21
 
