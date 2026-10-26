@@ -64,6 +64,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   so and offers none of them until the project is unarchived.
 - Coverage follows a link type at once when what it counts changes or it is
   retired (#352), instead of answering the old figures for up to a minute.
+- The notification settings list every kind of notification, so review
+  sessions, test executions, code scans, glossary terms and revised library
+  sources can be switched off in the app and by email too (#353).
 
 ## [0.1.0] - 2026-10-21
 

@@ -14,18 +14,32 @@ export type NotificationKind = Notification["kind"];
 export type Preferences = Wire["NotificationPreferences"];
 export type Digest = Preferences["digest"];
 
+// Keyed by the schema's kinds, so a kind the API adds and this leaves out fails the type check.
+const everyKind = {
+  mentioned: true,
+  review_requested: true,
+  reviewed: true,
+  suspect: true,
+  source_revised: true,
+  replied: true,
+  commented: true,
+  resolved: true,
+  revised: true,
+  transitioned: true,
+  session_invited: true,
+  session_round: true,
+  session_reminder: true,
+  session_closed: true,
+  code_orphaned: true,
+  code_outdated: true,
+  term_changed: true,
+  execution_assigned: true,
+  execution_reminder: true,
+  execution_closed: true,
+} satisfies Record<NotificationKind, true>;
+
 /** Every kind, in the order the preferences list them, as the API's notify.Kinds. */
-export const NOTIFICATION_KINDS: NotificationKind[] = [
-  "mentioned",
-  "review_requested",
-  "reviewed",
-  "suspect",
-  "replied",
-  "commented",
-  "resolved",
-  "revised",
-  "transitioned",
-];
+export const NOTIFICATION_KINDS = Object.keys(everyKind) as NotificationKind[];
 export const DIGESTS: Digest[] = ["off", "hourly", "daily"];
 
 /** Whether a switch map has a kind on; a kind it leaves out is on. */
