@@ -42,6 +42,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Something saved while its list is still loading for the first time now
+  shows in that list (#372). The list used to come back as it stood before
+  the change and kept that until the page was reloaded. It showed on a busy
+  server, for instance as a partner app missing from the list right after
+  it was registered.
 - The FMEA table and the risk matrix read their mitigations in one pass and
   work out each mitigating requirement's coverage once, rather than once for
   every risk it mitigates, so a project with a few hundred mitigations opens
