@@ -59,7 +59,8 @@ single sign-on.
   does.
 - **Armature, as its seed made it.** The override leaves out Git hosting, PDF export and mail over TLS. `suite-seed`
   then points Armature's identity provider at the suite's realm and makes alice and bob members with the realm's
-  passwords, so the realm signs them in.
+  passwords, so the realm signs them in; whom Armature's seed let in already it brings to the suite's role and
+  password.
 - **Connections to Armature.** Exciter and Stator connect to `http://localhost:30020`, the address people open, and
   reach it inside the network through `EXCITER_ARMATURE_BACKCHANNEL` and `STATOR_ARMATURE_BACKCHANNEL`, which the
   overrides add beside each product's stub.
@@ -70,8 +71,11 @@ single sign-on.
   it under Your account, Armature account in Stator to see issues as alice there.
 - **Connected at sign-in (#274).** `suite-seed` registers Exciter as a connected app of Armature, named by the
   realm's `exciter` client, stores its client id and secret on Exciter's Armature connection, and connects Exciter
-  to Stator, the same way once Stator lists `oauth.token-exchange@1`. Signing in to Exciter then connects alice to
-  Armature without a token; Stator follows when its exchange ships (praetorianer777/Stator#461).
+  to Stator the same way where Stator lists `oauth.token-exchange@1`, with the scopes `read` and `write`. Signing in
+  to Exciter then connects alice to both without a token. Stator shows an app's secret only when it is registered,
+  so a rerun registers Exciter there anew.
+- **A space in Stator.** `suite-seed` makes the space `SUITE`, "Suite architecture", whose home page Stator
+  publishes at once, so the smoke test finds a page to link without the demo.
 
 `make suite-seed` runs these steps again on a running suite; each finds what is already there and leaves it.
 

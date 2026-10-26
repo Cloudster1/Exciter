@@ -42,6 +42,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- `make suite-up` connects the suite again against current Armature and
+  Stator (#368). Alice and bob, whom Armature's own seed now lets in, get
+  the suite's role and password; Stator's Armature connection no longer
+  names an organization; Exciter is registered at Stator with the fields
+  and scopes Stator takes, and anew on a rerun, since Stator does not
+  rotate an app's secret; and Stator gets the space `SUITE`, so
+  `make suite-smoke` finds a page to link.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the
