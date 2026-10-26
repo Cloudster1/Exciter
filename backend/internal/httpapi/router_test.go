@@ -4,15 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 
+	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/observability"
 )
@@ -149,6 +154,31 @@ func TestAPanicIsA500InTheEnvelope(t *testing.T) {
 	resp, body := serve(t, h, httptest.NewRequest(http.MethodGet, "/", nil))
 	if resp.StatusCode != http.StatusInternalServerError || errorOf(t, body)["code"] != "internal_error" {
 		t.Fatalf("panic = %d %v", resp.StatusCode, body)
+	}
+}
+
+// A handler that runs past the request deadline is a busy server, not a fault, and says when to ask again (#370).
+func TestARequestThatRunsOutOfTimeAnswers503(t *testing.T) {
+	const deadline = 10 * time.Millisecond
+	h := requestID(logging(slog.New(slog.DiscardHandler))(middleware.Timeout(deadline)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+		respondError(w, r, fmt.Errorf("read the risks: %w", r.Context().Err()))
+	}))))
+	resp, body := serve(t, h, httptest.NewRequest(http.MethodGet, "/", nil))
+	if resp.StatusCode != http.StatusServiceUnavailable || errorOf(t, body)["code"] != "timed_out" {
+		t.Fatalf("timed out = %d %v", resp.StatusCode, body)
+	}
+	if got, want := resp.Header.Get("Retry-After"), strconv.Itoa(int(config.TimedOutRetryAfter.Seconds())); got != want {
+		t.Errorf("Retry-After = %q, want %q", got, want)
+	}
+
+	// A refusal stays what it is, even once the deadline has passed.
+	h = middleware.Timeout(deadline)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+		respondError(w, r, ErrNotFound(""))
+	}))
+	if resp, _ := serve(t, h, httptest.NewRequest(http.MethodGet, "/", nil)); resp.StatusCode != http.StatusNotFound {
+		t.Errorf("a refusal after the deadline = %d, want 404", resp.StatusCode)
 	}
 }
 

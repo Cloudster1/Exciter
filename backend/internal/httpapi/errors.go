@@ -2,11 +2,14 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/objectstore"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 	"github.com/cloudster1/exciter/backend/internal/rql"
@@ -95,6 +98,10 @@ func ErrInternal(cause error) *APIError {
 		cause:   cause,
 	}
 }
+
+// errTimedOut answers a request that ran past the request deadline, which a busy server, not a fault, can cause.
+var errTimedOut = &APIError{Status: http.StatusServiceUnavailable, Code: "timed_out",
+	Message: "The server took too long to answer. Try again in a moment, or ask for less at once if it keeps happening."}
 
 // errNotImplemented answers an operation the API describes but does not serve yet.
 var errNotImplemented = &APIError{Status: http.StatusNotImplemented, Code: "not_implemented",
@@ -306,6 +313,11 @@ func themeError(err error) *APIError {
 // worth seeing.
 func respondError(w http.ResponseWriter, r *http.Request, err error) {
 	apiErr := toAPIError(err)
+	timedOut := apiErr.Status == http.StatusInternalServerError && errors.Is(r.Context().Err(), context.DeadlineExceeded)
+	if timedOut {
+		apiErr = errTimedOut
+		w.Header().Set("Retry-After", strconv.Itoa(int(config.TimedOutRetryAfter.Seconds())))
+	}
 	body := *apiErr
 	body.RequestID = RequestIDFrom(r.Context())
 

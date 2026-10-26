@@ -20,10 +20,12 @@ const (
 
 // Defaults, named so the tests and the documentation can quote them.
 const (
-	DefaultHTTPAddr        = ":8080"
-	DefaultMetricsAddr     = ":9090"
-	DefaultAppBaseURL      = "http://localhost:5173"
-	DefaultRequestTimeout  = 30 * time.Second
+	DefaultHTTPAddr       = ":8080"
+	DefaultMetricsAddr    = ":9090"
+	DefaultAppBaseURL     = "http://localhost:5173"
+	DefaultRequestTimeout = 30 * time.Second
+	// TimedOutRetryAfter is how long a client is told to wait after a request ran past its deadline.
+	TimedOutRetryAfter     = 5 * time.Second
 	DefaultMaxConns        = 20
 	DefaultMinConns        = 2
 	DefaultConnMaxLifetime = time.Hour
