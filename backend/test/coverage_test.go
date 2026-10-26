@@ -11,6 +11,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+
+	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
 // Coverage and the traceability matrix (#38): rules say what each type is asked for, the levels follow the links
@@ -245,5 +249,50 @@ func TestRawSQLKeepsCoverageRulesToAdministrators(t *testing.T) {
 	}
 	if tag, err := owner.Exec(ctx, `DELETE FROM coverage_rule WHERE project_id = $1`, s.projectID); err != nil || tag.RowsAffected() != 0 {
 		t.Errorf("a rule of an archived project was removed: %v, %v", tag, err)
+	}
+}
+
+// What a link type counts decides the coverage, so changing or retiring it clears the cached figures (#352).
+func TestChangingWhatALinkTypeCountsChangesTheCoverage(t *testing.T) {
+	w := newCommentWorld(t, "COT")
+	made := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+w.key+"/link-types", map[string]any{
+		"key": "checks", "name": "Checks", "forward": "checks", "backward": "is checked by", "counts": "verification",
+	}), http.StatusCreated, "make a project's type that verifies"), "linkType")
+	checks := "/api/v1/link-types/" + made["id"].(string)
+	want(t, w.owner.post(t, "/api/v1/projects/"+w.key+"/requirements", map[string]any{"title": "Brake bench run"}), http.StatusCreated, "write R2")
+	want(t, w.bob.post(t, "/api/v1/requirements/"+w.key+"-R2/links", map[string]any{"typeKey": "checks", "otherKey": w.reqKey}),
+		http.StatusCreated, "R2 checks R1")
+	want(t, w.owner.put(t, "/api/v1/projects/"+w.key+"/coverage-rules", map[string]any{"verified": true}), http.StatusOK, "ask every type to be verified")
+	// Coverage read through the cache the stack's worker clears, as the stack's api reads it.
+	opts, err := redis.ParseURL(w.h.cfg.Valkey.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := redis.NewClient(opts)
+	t.Cleanup(func() { _ = store.Close() })
+	cached := newAPIServerWith(t, w.h, func(_ *apiServer, server *httpapi.Server) {
+		server.Trace = trace.NewService(w.h.cluster).WithCoverageCache(trace.NewCoverageCache(store, nil))
+	})
+	s := &coverageScene{commentWorld: w}
+	carol := cached.as(t, w.carolID)
+	verified := func() string {
+		t.Helper()
+		_, rows, _ := s.coverage(t, carol, "")
+		return strings.Fields(rows[w.reqKey] + " ? ? ?")[2]
+	}
+	s.h.drained(t)
+	if got := verified(); got != "full" {
+		t.Fatalf("R1 checked by R2 reads verified %q, want full", got)
+	}
+
+	want(t, w.owner.patch(t, checks, map[string]any{"counts": "nothing"}), http.StatusOK, "make checks count for nothing")
+	s.h.drained(t)
+	if got := verified(); got != "none" {
+		t.Errorf("R1 reads verified %q once checks counts for nothing, want none", got)
+	}
+	want(t, w.owner.patch(t, checks, map[string]any{"counts": "verification"}), http.StatusOK, "make checks verify again")
+	s.h.drained(t)
+	if got := verified(); got != "full" {
+		t.Errorf("R1 reads verified %q once checks verifies again, want full", got)
 	}
 }

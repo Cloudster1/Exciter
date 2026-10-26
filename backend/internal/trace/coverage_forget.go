@@ -14,11 +14,14 @@ import (
 // CoverageTopics are the events that change what a project's coverage counts or how its rows read: a requirement
 // written, moved, trashed or restored, a link made, removed or cleared, an Armature link changed, a project rekeyed,
 // a test run done or the branch whose results count named (#200), a code scan uploaded or the tag words set (#201),
-// a test execution's result recorded or the execution closed (#252).
+// a test execution's result recorded or the execution closed (#252), a link type changed or retired (#352).
 var CoverageTopics = []string{"requirement.created", "requirement.revised", "requirement.changed", "requirement.trashed",
 	"requirement.restored", "requirement.moved", "link.created", "link.removed", TopicLinkCleared, "armature.links",
 	"project.key_changed", "test_run.finished", "evidence_settings.saved", "code_scan.uploaded", "code_tag_words.saved",
-	"test_execution.recorded", "test_execution.closed"}
+	"test_execution.recorded", "test_execution.closed", TopicLinkTypeChanged}
+
+// TopicLinkTypeChanged is a link type changed or retired, which may change what its links count for.
+const TopicLinkTypeChanged = "link_type.changed"
 
 // CoverageForgetter clears the coverage of the projects an event touches. Clearing twice changes nothing, so it
 // runs ahead of each topic's other handlers.
@@ -37,6 +40,7 @@ type touched struct {
 	RequirementID uuid.UUID `json:"requirementId"`
 	SourceID      uuid.UUID `json:"sourceId"`
 	TargetID      uuid.UUID `json:"targetId"`
+	LinkTypeID    uuid.UUID `json:"linkTypeId"`
 }
 
 func (f *CoverageForgetter) Handle(ctx context.Context, e events.Event) error {
@@ -57,11 +61,15 @@ func (f *CoverageForgetter) Handle(ctx context.Context, e events.Event) error {
 			ids = append(ids, id)
 		}
 	}
-	if len(ids) > 0 {
+	if len(ids) > 0 || t.LinkTypeID != uuid.Nil {
 		// As the admin role: the projects are needed whoever may see the requirements, and a link's other end
 		// may be in a project its maker does not view.
 		err := f.db.ReadAdmin(db.PinPrimary(ctx), func(ctx context.Context, tx db.DBTX) error {
-			rows, err := tx.Query(ctx, `SELECT DISTINCT project_id FROM requirement WHERE id = ANY ($1)`, ids)
+			// A type's links count for the project of the requirement they cover, their target.
+			rows, err := tx.Query(ctx, `
+				SELECT project_id FROM requirement WHERE id = ANY ($1)
+				UNION
+				SELECT r.project_id FROM trace_link l JOIN requirement r ON r.id = l.target_id WHERE l.type_id = $2`, ids, t.LinkTypeID)
 			if err != nil {
 				return err
 			}

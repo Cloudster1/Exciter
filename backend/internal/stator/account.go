@@ -62,6 +62,8 @@ type tokenRow struct {
 	Source        string
 	RefreshSealed []byte
 	ExpiresAt     *time.Time
+	// RefreshFailedAt is when the partner last refused or did not answer a refresh, nil since one worked.
+	RefreshFailedAt *time.Time
 }
 
 func (r *tokenRow) exchanged() bool { return r.Source == sourceExchange }
@@ -78,10 +80,10 @@ func (s *Service) ownToken(ctx context.Context, tx db.DBTX) (*tokenRow, error) {
 	)
 	err := tx.QueryRow(ctx, `
 		SELECT id, token, status, stator_user_id, stator_user_name, stator_user_email, checked_at,
-		       source, refresh_token, access_expires_at
+		       source, refresh_token, access_expires_at, refresh_failed_at
 		FROM stator_token WHERE user_id = $1`, user,
 	).Scan(&row.ID, &row.Sealed, &row.Status, &statorUser, &statorName, &statorAt, &row.CheckedAt,
-		&row.Source, &row.RefreshSealed, &row.ExpiresAt)
+		&row.Source, &row.RefreshSealed, &row.ExpiresAt, &row.RefreshFailedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -168,7 +170,7 @@ func (s *Service) Check(ctx context.Context) (*Account, db.LSN, error) {
 	}
 	if row != nil && row.exchanged() {
 		user, _ := db.UserFrom(ctx)
-		renewed, _, err := s.renew(ctx, user, row.ID)
+		renewed, _, err := s.renew(ctx, user, row.ID, false)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -261,11 +263,13 @@ func (s *Service) Viewer(ctx context.Context) (*Viewer, Status, error) {
 		return nil, StatusNotConfigured, nil
 	case row == nil:
 		return nil, StatusNotConnected, nil
+	case row.exchanged() && row.RefreshFailedAt != nil && time.Since(*row.RefreshFailedAt) < tokenexchange.RefreshBackoff:
+		return nil, backedOff(row), nil
 	case row.exchanged() && (row.Status == StatusRejected || row.ExpiresAt == nil || tokenexchange.Due(*row.ExpiresAt, time.Now())):
 		// A grant from a sign-in is renewed here, where every read and the link worker meet it, so links are
 		// made as the person while they are away; a 401 from Stator is a reason to try its refresh token too.
 		var status Status
-		if row, status, err = s.renew(ctx, user, row.ID); err != nil || status != StatusOK {
+		if row, status, err = s.renew(ctx, user, row.ID, true); err != nil || status != StatusOK {
 			return nil, status, err
 		}
 	case row.Status == StatusRejected:

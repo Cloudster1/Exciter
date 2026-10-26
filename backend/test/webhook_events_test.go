@@ -168,6 +168,29 @@ func TestAFailingReceiverIsRetriedThenTurnedOff(t *testing.T) {
 	})
 }
 
+// A redelivery by hand while a retry is due takes no attempt number the automatic chain still needs (#346).
+func TestARedeliveryLeavesTheRetriesGoing(t *testing.T) {
+	w := newCommentWorld(t, "HKM")
+	w.h.keepWebhooks(t)
+	h := w.h
+	h.started(t)
+	bin, address := hookBin(t)
+	binAnswers(t, bin, http.StatusServiceUnavailable)
+	id, _ := makeHook(t, w.owner, "Flaky", address, []string{w.key}, webhook.TopicRequirementRevised)
+	want(t, w.bob.patch(t, "/api/v1/requirements/"+w.reqKey, map[string]any{"title": "Brakes engage within 90 ms", "baseRevision": 1}), http.StatusOK, "revise")
+	log := h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 2`, "pending", 2)
+
+	again := obj(t, want(t, w.owner.post(t, "/api/v1/webhooks/"+id+"/deliveries/"+log[0].ID.String()+"/redeliver", nil), http.StatusOK, "send it again"), "delivery")
+	if again["state"] != "failed" || again["manual"] != true {
+		t.Fatalf("the redelivery reads %v", again)
+	}
+	h.cleanupExec(t, h.super, `UPDATE webhook_delivery SET next_attempt_at = now() WHERE id = $1`, log[1].ID)
+	log = h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 2`, "pending", 4)
+	if len(log) != 4 || log[1].State != "failed" || log[2].State != "failed" {
+		t.Errorf("after the retry failed the log reads %+v, want a further retry pending", log)
+	}
+}
+
 func TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent(t *testing.T) {
 	w := newCommentWorld(t, "HKW")
 	w.h.keepWebhooks(t)

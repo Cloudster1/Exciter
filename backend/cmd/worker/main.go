@@ -158,6 +158,7 @@ func run() error {
 	go testresult.NewRetention(cluster, log).Run(ctx)
 	// Computed attributes (#213): what the database marked is worked out again, project by project.
 	go attribute.NewRecomputer(cluster, log, attribute.DefaultRecomputeInterval).Run(ctx)
+	go attribute.NewDayTurner(cluster, log, attribute.DefaultDayTurnInterval, nil).Run(ctx)
 	if objectstore.IsUnavailable(store) {
 		log.Warn("files are not removed: EXCITER_S3_ENDPOINT is not set")
 	} else {

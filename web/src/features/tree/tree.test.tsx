@@ -124,3 +124,79 @@ describe("moving and copying from a requirement's page", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/p/SYS/r/SYS-R1"));
   });
 });
+
+describe("moving into a project with other statuses", () => {
+  const other = aProject({ id: "0195f000-0000-7000-8000-0000000000f9", key: "SYS", name: "System" });
+  const draft = { id: "0195f000-0000-7000-8000-0000000005a1", name: "Draft", category: "draft" as const };
+  const status = (id: string, name: string, position: number) => ({ id, name, category: "draft", description: "", position, requirements: 0, locks: false });
+  const open = status("0195f000-0000-7000-8000-0000000005b2", "Open", 2);
+  const moved = { requirement: aRequirement({ id: "h", key: "SYS-R1", projectKey: "SYS", title: "Ship" }) };
+  const routes = (statuses: ReturnType<typeof status>[]) => ({
+    "GET /projects/CHK": { status: 200, body: { project } },
+    "GET /projects/SYS": { status: 200, body: { project: other } },
+    "GET /projects": { status: 200, body: { projects: [project, other] } },
+    "GET /projects/CHK/tree": { status: 200, body: { nodes: [scope, pay, { ...ship, status: draft }] } },
+    "GET /projects/SYS/tree": { status: 200, body: { nodes: [] } },
+    "GET /projects/SYS/statuses": { status: 200, body: { statuses } },
+    "GET /requirements/CHK-R3": { status: 200, body: { requirement: aRequirement({ id: "h", key: "CHK-R3", title: "Ship" }) } },
+    "GET /requirements/SYS-R1": { status: 200, body: moved },
+  });
+
+  async function openMove() {
+    await renderAt("/p/CHK/r/CHK-R3");
+    await userEvent.click(await screen.findByRole("button", { name: "Move" }));
+    const dialog = screen.getByRole("dialog", { name: "Move CHK-R3" });
+    await userEvent.selectOptions(within(dialog).getByLabelText("Project"), "SYS");
+    return dialog;
+  }
+
+  it("asks where a status goes that the project lacks, before sending", async () => {
+    const sent = stubApi({
+      ...routes([status("0195f000-0000-7000-8000-0000000005b1", "New", 1), open]),
+      "POST /requirements/CHK-R3/move": { status: 200, body: moved },
+    });
+    const dialog = await openMove();
+    const where = await within(dialog).findByLabelText("Requirements in Draft go to");
+    await userEvent.selectOptions(where, open.id);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+    await waitFor(() =>
+      expect(sent.find((r) => r.method === "POST")?.body).toEqual({
+        projectKey: "SYS",
+        place: { parentId: null, afterId: null },
+        statusMapping: { [draft.id]: open.id },
+      }),
+    );
+  });
+
+  it("asks for every status once the server refuses the move for one, and sends the mapping again", async () => {
+    let tries = 0;
+    const sent = stubApi({
+      ...routes([status("0195f000-0000-7000-8000-0000000005b1", "Draft", 1), open]),
+      "POST /requirements/CHK-R3/move": () => {
+        tries += 1;
+        return tries === 1
+          ? {
+              status: 422,
+              body: {
+                error: {
+                  code: "validation_failed",
+                  message: "Some fields need attention.",
+                  fields: { statusMapping: "System has no status called Draft. Map each to one of its statuses." },
+                },
+              },
+            }
+          : { status: 200, body: moved };
+      },
+    });
+    const dialog = await openMove();
+    await waitFor(() => expect(within(dialog).getByRole("option", { name: "The top of the project" })).toBeInTheDocument());
+    expect(within(dialog).queryByLabelText("Requirements in Draft go to")).toBeNull();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+    expect(await within(dialog).findByText("System has no status called Draft. Map each to one of its statuses.")).toBeInTheDocument();
+    await userEvent.selectOptions(within(dialog).getByLabelText("Requirements in Draft go to"), open.id);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move" }));
+    await waitFor(() => expect(sent.filter((r) => r.method === "POST")).toHaveLength(2));
+    expect(sent.filter((r) => r.method === "POST")[0]?.body).not.toHaveProperty("statusMapping");
+    expect(sent.filter((r) => r.method === "POST")[1]?.body).toMatchObject({ projectKey: "SYS", statusMapping: { [draft.id]: open.id } });
+  });
+});
