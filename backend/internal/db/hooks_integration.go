@@ -9,3 +9,10 @@ func (c *Cluster) AdmitReplicas() {
 		r.healthy.Store(true)
 	}
 }
+
+// ExpelReplicas takes every replica out of the rotation as a health pass that found it unfit would.
+func (c *Cluster) ExpelReplicas() {
+	for _, r := range c.replicas {
+		r.healthy.Store(false)
+	}
+}

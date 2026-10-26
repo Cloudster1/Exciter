@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -114,5 +115,42 @@ func PinLSN(ctx context.Context, lsn LSN) context.Context {
 
 func pinFrom(ctx context.Context) pin {
 	p, _ := ctx.Value(pinKey{}).(pin)
+	if t := trackerFrom(ctx); t != nil {
+		if seen := LSN(t.seen.Load()); seen > p.requiredLSN {
+			p.requiredLSN = seen
+		}
+	}
 	return p
+}
+
+type trackerKey struct{}
+
+// readTracker is how far the reads made with one context have seen, so none of them goes back (#374).
+type readTracker struct {
+	seen      atomic.Uint64
+	onPrimary func(LSN)
+}
+
+// TrackReads keeps every read made with ctx at least as fresh as the ones before it. onPrimary, when set, hears
+// where the primary stood when it answered a read in a replica's place, for the caller's next requests to require.
+func TrackReads(ctx context.Context, onPrimary func(LSN)) context.Context {
+	return context.WithValue(ctx, trackerKey{}, &readTracker{onPrimary: onPrimary})
+}
+
+func trackerFrom(ctx context.Context) *readTracker {
+	t, _ := ctx.Value(trackerKey{}).(*readTracker)
+	return t
+}
+
+// saw records that a read saw the database at lsn, and says whether that is further than any read before it.
+func (t *readTracker) saw(lsn LSN) bool {
+	for {
+		cur := t.seen.Load()
+		if uint64(lsn) <= cur {
+			return false
+		}
+		if t.seen.CompareAndSwap(cur, uint64(lsn)) {
+			return true
+		}
+	}
 }

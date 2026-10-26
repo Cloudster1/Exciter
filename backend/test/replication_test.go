@@ -6,12 +6,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/httpapi"
+	"github.com/cloudster1/exciter/backend/internal/installation"
 )
 
 // Settings for the clusters these tests open themselves: a lag bound small
@@ -308,5 +311,90 @@ func TestValkeyKeepsTheNewestPosition(t *testing.T) {
 	}
 	if got := tracker.Required(ctx, "c:"+uuid.NewString()); got != 0 {
 		t.Fatalf("a key that never wrote requires %v", got)
+	}
+}
+
+// A read the primary answered while the replica was out holds the reads after it to what it showed: in the same
+// request, and through the position it hands on, in the caller's next ones (#374).
+func TestAReadDoesNotGoBackOnceThePrimaryAnswered(t *testing.T) {
+	h := newHarness(t)
+	h.keepInstallationName(t)
+	needReplica(t, h)
+	c := h.openCluster(t, 0, neverHealth)
+	m := h.owner(t, "monotonic")
+
+	h.pauseReplay(t)
+	// The worker's write: nobody's own, so no request is pinned to it.
+	lsn := rename(t, c, m, "worker-wrote")
+
+	var noted db.LSN
+	ctx := db.TrackReads(m.ctx, func(at db.LSN) { noted = at })
+	c.ExpelReplicas()
+	if got := named(t, c, ctx, "worker-wrote"); got != 1 {
+		t.Fatalf("with the replica out the primary showed %d rows, want 1", got)
+	}
+	if noted < lsn {
+		t.Fatalf("the primary's answer was handed on as %v, before the write at %v", noted, lsn)
+	}
+
+	c.AdmitReplicas()
+	if got := named(t, c, m.ctx, "worker-wrote"); got != 0 {
+		t.Fatalf("the paused replica showed %d rows; it should not have the write yet", got)
+	}
+	before := c.Stats()
+	if got := named(t, c, ctx, "worker-wrote"); got != 1 {
+		t.Fatalf("a later read of the same request saw %d rows, going back to the replica", got)
+	}
+	if c.Stats().StaleFallbacks-before.StaleFallbacks != 1 {
+		t.Error("the later read was not kept off the replica that is behind")
+	}
+	if got := named(t, c, db.PinLSN(m.ctx, noted), "worker-wrote"); got != 1 {
+		t.Errorf("the next request, pinned to what was handed on, saw %d rows", got)
+	}
+
+	var pinned db.LSN
+	c.ExpelReplicas()
+	named(t, c, db.TrackReads(db.PinPrimary(m.ctx), func(at db.LSN) { pinned = at }), "worker-wrote")
+	if pinned != 0 {
+		t.Errorf("a read pinned to the primary handed on %v; it chose to see the latest and moves nobody", pinned)
+	}
+
+	h.resumeReplay(t)
+	if !h.waitForReplica(t, noted, replicaCaughtWait) {
+		t.Fatal("the replica did not catch up after replay resumed")
+	}
+	c.AdmitReplicas()
+	before = c.Stats()
+	if got := named(t, c, ctx, "worker-wrote"); got != 1 || c.Stats().ReadsToReplica-before.ReadsToReplica != 1 {
+		t.Errorf("once caught up the replica did not serve the request again (%d rows)", got)
+	}
+}
+
+// Through the API: a person who saw the worker's change from the primary still sees it on their next request,
+// while the replica is behind (#374).
+func TestTheNextRequestShowsWhatThePrimaryShowed(t *testing.T) {
+	h := newHarness(t)
+	h.keepInstallationName(t)
+	needReplica(t, h)
+	c := h.openCluster(t, 0, neverHealth)
+	api := newAPIServerWith(t, h, func(_ *apiServer, s *httpapi.Server) { s.Installation = installation.NewService(c) })
+	m := h.owner(t, "next-request")
+	alice := api.as(t, m.user)
+	name := func() string {
+		return obj(t, want(t, alice.get(t, "/api/v1/installation"), http.StatusOK, "read the installation"), "installation")["name"].(string)
+	}
+
+	h.pauseReplay(t)
+	rename(t, c, m, "worker-done")
+	c.ExpelReplicas()
+	if got := name(); got != "worker-done" {
+		t.Fatalf("with the replica out the installation is %q, want the primary's", got)
+	}
+	c.AdmitReplicas()
+	if got := named(t, c, m.ctx, "worker-done"); got != 0 {
+		t.Fatalf("the paused replica showed %d rows; it should not have the write yet", got)
+	}
+	if got := name(); got != "worker-done" {
+		t.Errorf("the next request read %q from the replica, going back on what the primary showed", got)
 	}
 }

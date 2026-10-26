@@ -45,6 +45,9 @@ func (c *Cluster) readConn(ctx context.Context) *pgxpool.Conn {
 		c.countFallback(outcome)
 		return nil
 	}
+	if t := trackerFrom(ctx); t != nil {
+		t.saw(s.replayLSN)
+	}
 	c.readsToReplica.Add(1)
 	return conn
 }

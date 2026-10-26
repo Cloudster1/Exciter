@@ -125,6 +125,8 @@ var installationWide = map[string]string{
 	"TestWriteReportsThePositionPastItsCommit":       installationName,
 	"TestReadYourWritesWhileReplayIsPaused":          installationName,
 	"TestALaggingConnectionFallsBackToThePrimary":    installationName,
+	"TestAReadDoesNotGoBackOnceThePrimaryAnswered":   installationName,
+	"TestTheNextRequestShowsWhatThePrimaryShowed":    installationName,
 	"TestALaggingReplicaLeavesTheRotationAndReturns": installationName,
 	"TestAReadSeesOneMomentThroughout":               installationName,
 
