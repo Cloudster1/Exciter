@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -42,6 +43,10 @@ const (
 	appName            = "Exciter"
 	exciterClient      = "exciter"
 	exchangeCapability = "oauth.token-exchange@1"
+
+	// statorSpace is the space the seed makes in Stator, so its people find a page to link without the demo. Its home
+	// page takes its name, whose "architecture" is what the smoke test's search for "a" finds.
+	statorSpace, statorSpaceName = "SUITE", "Suite architecture"
 
 	callTimeout = 30 * time.Second
 	// envFileMode keeps the file holding alice's token hers alone.
@@ -88,8 +93,7 @@ func run() error {
 		return fmt.Errorf("point Armature at the suite's Keycloak: %w", err)
 	}
 	for _, p := range people {
-		err := armature.send(ctx, http.MethodPost, "/users", map[string]any{"email": p.email, "name": p.name, "role": p.role, "password": p.password}, nil)
-		if err != nil && !isConflict(err) {
+		if err := armature.armaturePerson(ctx, p); err != nil {
 			return fmt.Errorf("make %s a member of Armature: %w", p.email, err)
 		}
 	}
@@ -100,16 +104,6 @@ func run() error {
 	token, err := alice.freshToken(ctx, "alice's Armature")
 	if err != nil {
 		return err
-	}
-	var me struct {
-		Principal struct {
-			Org struct {
-				Slug string `json:"slug"`
-			} `json:"org"`
-		} `json:"principal"`
-	}
-	if err := alice.send(ctx, http.MethodGet, "/auth/me", nil, &me); err != nil {
-		return fmt.Errorf("ask Armature who alice is: %w", err)
 	}
 
 	exciter, err := signIn(ctx, exciterAPI, exciterAdmin, exciterPassword)
@@ -123,7 +117,10 @@ func run() error {
 	exciterURL := "http://localhost:" + env("SUITE_EXCITER_WEB_PORT")
 	statorURL := "http://localhost:" + env("SUITE_STATOR_WEB_PORT")
 	toArmature := map[string]any{"baseUrl": armatureURL}
-	id, secret, err := armature.partnerApp(ctx, exciterURL+"/api/v1/armature/oauth/callback", []string{"read", "issue.write"})
+	id, secret, err := armature.partnerApp(ctx, map[string]any{
+		"name": appName, "redirectUris": []string{exciterURL + "/api/v1/armature/oauth/callback"},
+		"scopes": []string{"read", "issue.write"}, "confidential": true, "keycloakClientId": exciterClient,
+	}, true)
 	if err != nil {
 		return fmt.Errorf("register Exciter as a connected app of Armature: %w", err)
 	}
@@ -134,7 +131,7 @@ func run() error {
 		connection map[string]any
 	}{
 		{"Exciter", exciterHook, exciter, toArmature},
-		{"Stator", statorHook, stator, map[string]any{"baseUrl": armatureURL, "orgSlug": me.Principal.Org.Slug}},
+		{"Stator", statorHook, stator, map[string]any{"baseUrl": armatureURL}},
 	}
 	for _, p := range products {
 		var saved struct {
@@ -158,11 +155,17 @@ func run() error {
 
 	// Exciter reads Stator's pages as each person; it connects them at sign-in once Stator offers the exchange
 	// (praetorianer777/Stator#461), and until then each person pastes a Stator token.
+	if err := stator.statorSpace(ctx); err != nil {
+		return fmt.Errorf("make the suite's space in Stator: %w", err)
+	}
 	toStator := map[string]any{"baseUrl": statorURL}
 	if offers, err := offersExchange(ctx, statorAPI); err != nil {
 		return fmt.Errorf("ask Stator what it offers: %w", err)
 	} else if offers {
-		id, secret, err := stator.partnerApp(ctx, exciterURL+"/api/v1/stator/oauth/callback", nil)
+		// Exciter puts its links on the pages it traces, so it writes as well as reads.
+		id, secret, err := stator.partnerApp(ctx, map[string]any{
+			"name": appName, "scopes": []string{"read", "write"}, "keycloakClientId": exciterClient,
+		}, false)
 		if err != nil {
 			return fmt.Errorf("register Exciter as a connected app of Stator: %w", err)
 		}
@@ -200,7 +203,6 @@ func run() error {
 		"SUITE_EXCITER_URL=http://localhost:" + env("SUITE_EXCITER_WEB_PORT"),
 		"SUITE_ARMATURE_URL=" + armatureURL,
 		"SUITE_STATOR_URL=" + statorURL,
-		"SUITE_ARMATURE_ORG_SLUG=" + me.Principal.Org.Slug,
 		"SUITE_ALICE_ARMATURE_TOKEN=" + token,
 	}
 	return os.WriteFile(env("SUITE_ENV_FILE"), []byte(strings.Join(lines, "\n")+"\n"), envFileMode)
@@ -219,6 +221,34 @@ func signIn(ctx context.Context, base, email, password string) (*session, error)
 	}
 	s := &session{base: base, client: &http.Client{Jar: jar, Timeout: callTimeout}}
 	return s, s.send(ctx, http.MethodPost, "/auth/login", map[string]any{"email": email, "password": password}, nil)
+}
+
+// armaturePerson makes p an account of Armature, or brings an existing one to
+// p's role and password: Armature's own seed lets the realm's people in too.
+func (s *session) armaturePerson(ctx context.Context, p person) error {
+	err := s.send(ctx, http.MethodPost, "/users", map[string]any{"email": p.email, "name": p.name, "role": p.role, "password": p.password}, nil)
+	if !isConflict(err) {
+		return err
+	}
+	var page struct {
+		Users []struct {
+			ID    string `json:"id"`
+			Email string `json:"email"`
+		} `json:"users"`
+	}
+	if err := s.send(ctx, http.MethodGet, "/users?q="+url.QueryEscape(p.email), nil, &page); err != nil {
+		return err
+	}
+	for _, u := range page.Users {
+		if !strings.EqualFold(u.Email, p.email) {
+			continue
+		}
+		if err := s.send(ctx, http.MethodPatch, "/users/"+u.ID, map[string]any{"role": p.role, "isActive": true}, nil); err != nil {
+			return err
+		}
+		return s.send(ctx, http.MethodPut, "/users/"+u.ID+"/password", map[string]any{"password": p.password}, nil)
+	}
+	return fmt.Errorf("%s exists in Armature but is missing from its list of accounts", p.email)
 }
 
 // refusal is an answer of 400 or more, with the product's own sentence.
@@ -329,10 +359,10 @@ func (s *session) webhook(ctx context.Context, name, url string, topics []string
 	return answer.Webhook.Secret, err
 }
 
-// partnerApp registers Exciter as a connected app named by the realm's Exciter client, or gives the one an earlier
-// run registered a new secret, and answers its client id and secret, which the product shows only then. No scopes
-// is what Stator's registration gives by default.
-func (s *session) partnerApp(ctx context.Context, redirect string, scopes []string) (id, secret string, err error) {
+// partnerApp registers Exciter as the connected app body describes, named appName, and answers its client id and
+// secret, which the product shows only then. One an earlier run registered gets a new secret where the product
+// rotates one, and is registered anew where it does not, as Stator.
+func (s *session) partnerApp(ctx context.Context, body map[string]any, rotates bool) (id, secret string, err error) {
 	type client struct {
 		ID     string `json:"id"`
 		Name   string `json:"name"`
@@ -348,15 +378,27 @@ func (s *session) partnerApp(ctx context.Context, redirect string, scopes []stri
 		Client client `json:"client"`
 	}
 	if at := slices.IndexFunc(listed.Clients, func(c client) bool { return c.Name == appName }); at >= 0 {
-		err := s.send(ctx, http.MethodPost, "/oauth/clients/"+listed.Clients[at].ID+"/rotate-secret", nil, &answer)
-		return answer.Client.ID, answer.Client.Secret, err
-	}
-	body := map[string]any{"name": appName, "redirectUris": []string{redirect}, "confidential": true, "keycloakClientId": exciterClient}
-	if scopes != nil {
-		body["scopes"] = scopes
+		earlier := "/oauth/clients/" + listed.Clients[at].ID
+		if rotates {
+			err := s.send(ctx, http.MethodPost, earlier+"/rotate-secret", nil, &answer)
+			return answer.Client.ID, answer.Client.Secret, err
+		}
+		if err := s.send(ctx, http.MethodDelete, earlier, nil, nil); err != nil {
+			return "", "", err
+		}
 	}
 	err = s.send(ctx, http.MethodPost, "/oauth/clients", body, &answer)
 	return answer.Client.ID, answer.Client.Secret, err
+}
+
+// statorSpace makes the suite's space in Stator unless an earlier run made it; Stator publishes its home page at once.
+func (s *session) statorSpace(ctx context.Context) error {
+	err := s.send(ctx, http.MethodGet, "/spaces/"+statorSpace, nil, nil)
+	var r *refusal
+	if !errors.As(err, &r) || r.status != http.StatusNotFound {
+		return err
+	}
+	return s.send(ctx, http.MethodPost, "/spaces", map[string]any{"key": statorSpace, "name": statorSpaceName}, nil)
 }
 
 // offersExchange says whether the product at api lists the token exchange on its /meta, which anybody may read.
