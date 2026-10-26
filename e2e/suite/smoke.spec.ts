@@ -142,3 +142,52 @@ test("alice signs in to Exciter and links an issue and a page without connecting
   await page.request.delete(api(`/projects/${key}`));
   await context.close();
 });
+
+// Stator's page events reach Exciter through the webhook the suite's seed made at Stator, as an administrator makes
+// one when connecting (#358): a requirement's link to a page follows the page's next version.
+test("a requirement's link to a Stator page follows the page's next version", async ({ page }) => {
+  await signIn(page, EXCITER);
+  await signIn(page, STATOR);
+  const api = (path: string) => `${EXCITER}/api/v1${path}`;
+  const stator = (path: string) => `${STATOR}/api/v1${path}`;
+
+  let madeToken: string | undefined;
+  const account = (await (await page.request.get(api("/stator/account"))).json()) as { account: { status: string } };
+  if (account.account.status !== "ok") {
+    const made = await page.request.post(stator("/tokens"), { data: { name: "Suite smoke" } });
+    expect(made.ok(), "alice makes herself a Stator token").toBe(true);
+    const { token } = (await made.json()) as { token: { id: string; secret: string } };
+    madeToken = token.id;
+    expect((await page.request.put(api("/stator/account/token"), { data: { token: token.secret } })).ok()).toBe(true);
+  }
+
+  const key = `SST${Date.now().toString(36).toUpperCase().slice(-5)}`;
+  expect((await page.request.post(api("/projects"), { data: { key, name: "Stator webhook smoke" } })).ok()).toBe(true);
+  expect((await page.request.post(api(`/projects/${key}/requirements`), { data: { title: "Brakes engage within 100 ms" } })).ok()).toBe(true);
+  const found = (await (await page.request.get(api("/stator/search?q=a"))).json()) as { pages?: { id: string }[] };
+  const pageId = found.pages?.[0]?.id;
+  expect(pageId, "Stator shows alice a page to link").toBeDefined();
+  const linked = await page.request.post(api(`/requirements/${key}-R1/stator-links`), { data: { pageId, relation: "describes" } });
+  expect(linked.ok(), "alice links the page").toBe(true);
+
+  const version = async () => {
+    const { links } = (await (await page.request.get(api(`/requirements/${key}-R1/stator-links`))).json()) as {
+      links: { pageVersion: number | null }[];
+    };
+    return links[0]?.pageVersion ?? null;
+  };
+  // Reading the link caches the page for a minute, so only the webhook moves its version on within the wait.
+  await version();
+  const { page: current } = (await (await page.request.get(stator(`/pages/${pageId}`))).json()) as { page: { title: string; version: number } };
+  const published = await page.request.patch(stator(`/pages/${pageId}`), { data: { version: current.version, title: `${current.title} (smoke)` } });
+  expect(published.ok(), "alice publishes the page's next version in Stator").toBe(true);
+  await expect.poll(version, { timeout: FOLLOW_TIMEOUT_MS, message: "the link follows the page's next version" }).toBe(current.version + 1);
+
+  await page.request.patch(stator(`/pages/${pageId}`), { data: { version: current.version + 1, title: current.title } });
+  if (madeToken) {
+    await page.request.delete(api("/stator/account/token"));
+    await page.request.delete(stator(`/tokens/${madeToken}`));
+  }
+  await page.request.put(api(`/projects/${key}/archive`));
+  await page.request.delete(api(`/projects/${key}`));
+});

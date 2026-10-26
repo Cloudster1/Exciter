@@ -3,6 +3,7 @@ package tokenexchange
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -99,6 +100,7 @@ func TestAnswersAreToldApart(t *testing.T) {
 func TestEveryReasonIsASentenceNamingThePartner(t *testing.T) {
 	for _, err := range []error{
 		ErrUnreachable,
+		fmt.Errorf("%w: %w", ErrUnreachable, context.DeadlineExceeded),
 		&Refusal{Code: "invalid_client"},
 		&Refusal{Code: "unauthorized_client", Description: "Name the Keycloak client"},
 		&Refusal{Code: "invalid_grant", Description: "Ada has no Armature account yet."},

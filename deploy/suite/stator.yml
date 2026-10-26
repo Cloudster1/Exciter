@@ -1,5 +1,6 @@
 # The suite's Stator (#31), over Stator's own deploy/docker-compose.yml: it signs in at the suite's Keycloak, whose
-# realm and port are Exciter's, and reaches the suite's Armature beside its stub. mk/suite.mk applies it.
+# realm and port are Exciter's, and reaches the suite's Armature beside its stub, and Exciter's api with its page
+# events. mk/suite.mk applies it.
 networks:
   suite:
     name: exciter-suite
@@ -11,7 +12,7 @@ x-suite-auth: &auth
   STATOR_BOOTSTRAP_MEMBERS: alice@suite.test=admin,bob@suite.test=member
 
 x-suite-armature: &armature
-  STATOR_OUTBOUND_ALLOW: armature-stub,web,suite-armature-api
+  STATOR_OUTBOUND_ALLOW: armature-stub,web,suite-armature-api,suite-exciter-api
   STATOR_ARMATURE_BACKCHANNEL: >-
     http://localhost:${ARMATURE_STUB_PORT}=http://armature-stub:8080,http://localhost:${SUITE_ARMATURE_WEB_PORT}=http://suite-armature-api:8080
 
