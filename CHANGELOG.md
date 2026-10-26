@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The suite's seed makes Exciter's webhook at Stator, as an administrator
+  connecting Stator does, and stores its secret on Exciter's Stator
+  connection (#358). Page changes in the suite now reach Exciter, and the
+  suite smoke watches a link follow a page published in Stator.
 - A refresh of a sign-in's grant that Armature or Stator refused or did not
   answer is not asked again for two minutes (#349). Reads and the link worker
   answer rejected or unreachable meanwhile instead of asking the partner on

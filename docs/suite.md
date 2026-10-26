@@ -66,6 +66,9 @@ single sign-on.
 - **Armature's webhooks.** Armature has an endpoint for each product, posting to its api inside the network
   (`http://suite-exciter-api:8080/api/v1/armature/webhook`); each product stores the endpoint's secret. Exciter
   checks the signature, not the address it was posted to.
+- **Stator's webhook.** As an administrator connecting Stator does, `suite-seed` makes a webhook at Stator for the
+  topics Exciter's Stator connection names, posting to `http://suite-exciter-api:8080/api/v1/stator/webhook`, and
+  stores its secret on that connection; Stator's override lets its worker reach `suite-exciter-api`.
 - **Alice's Armature token.** `suite-seed` makes one and writes it to `.cache/suite.env`, with the addresses. Paste
   it under Your account, Armature account in Stator to see issues as alice there.
 - **Connected at sign-in (#274).** `suite-seed` registers Exciter as a connected app of Armature, named by the

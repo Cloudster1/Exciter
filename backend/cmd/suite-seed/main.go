@@ -33,6 +33,8 @@ const (
 	// Armature posts to each product's api by its suite alias; Exciter and Stator check the signature, not the address.
 	exciterHook = exciterAPI + "/armature/webhook"
 	statorHook  = statorAPI + "/armature/webhook"
+	// exciterStatorHook is where Stator posts its page events to Exciter, by Exciter's suite alias as well.
+	exciterStatorHook = exciterAPI + "/stator/webhook"
 	// tokenName names the token the seed makes for alice, so an earlier one is revoked rather than piling up.
 	tokenName = "Suite"
 	// appName is Exciter as a connected app of Armature and Stator, which connects people at sign-in (#274), by
@@ -168,9 +170,25 @@ func run() error {
 	} else {
 		slog.Info("Stator does not offer the token exchange yet, so people connect Exciter to it with a token")
 	}
-	if err := exciter.send(ctx, http.MethodPut, "/stator/connection", toStator, nil); err != nil {
+	var savedStator struct {
+		Connection struct {
+			WebhookTopics []string `json:"webhookTopics"`
+		} `json:"connection"`
+	}
+	if err := exciter.send(ctx, http.MethodPut, "/stator/connection", toStator, &savedStator); err != nil {
 		return fmt.Errorf("connect Exciter to Stator: %w", err)
 	}
+	// As an administrator connecting Stator does: a webhook at Stator for the topics the connection names, its
+	// secret pasted back into the connection.
+	hookSecret, err := stator.webhook(ctx, "Exciter", exciterStatorHook, savedStator.Connection.WebhookTopics)
+	if err != nil {
+		return fmt.Errorf("point Stator's webhooks at Exciter: %w", err)
+	}
+	toStator["webhookSecret"] = hookSecret
+	if err := exciter.send(ctx, http.MethodPut, "/stator/connection", toStator, nil); err != nil {
+		return fmt.Errorf("store Stator's webhook secret in Exciter: %w", err)
+	}
+	slog.Info("connected to Stator", "product", "Exciter")
 	if os.Getenv("SUITE_DEMO") == "1" {
 		if err := addDemo(ctx, exciter, armature, stator, token); err != nil {
 			return err
