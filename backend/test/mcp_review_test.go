@@ -87,8 +87,8 @@ func TestAnAssistantAsksForReviewsAndKeepsTraceInOrder(t *testing.T) {
 	suspect := suspects[0].(map[string]any)
 	cleared := author.call(t, "clear_suspect_link", map[string]any{"linkID": suspect["id"], "sourceRevision": suspect["source"].(map[string]any)["revision"],
 		"targetRevision": suspect["target"].(map[string]any)["revision"], "comment": "Wear is reported however fast the brakes release."})
-	if cleared["link"].(map[string]any)["suspect"] == true {
-		t.Errorf("clear_suspect_link answered %v", cleared)
+	if moved, ok := cleared["link"].(map[string]any)["suspect"].([]any); !ok || len(moved) != 0 {
+		t.Errorf("clear_suspect_link answered a link whose ends moved on: %v", cleared)
 	}
 	if left := list(t, response{Body: author.call(t, "list_suspect_links", map[string]any{"projectKey": key})}, "links"); len(left) != 0 {
 		t.Errorf("a cleared link is still suspect: %v", left)

@@ -96,6 +96,33 @@ and the versioning [Semantic Versioning](https://semver.org/).
   Armature takes relations, link sync sends `requirement` for an implements
   or verifies trace and `page` for any other; links synced before are
   corrected by the requirement's next sync.
+- A requirement in the trash comes back with Restore although its status
+  was made to lock while it was there (#350). It returns locked as its
+  status says; what it says still takes no change in the trash.
+- A review session of an archived project can no longer be changed, moved
+  to a new round or closed, by its moderator or the project's
+  administrators, in the app and in the database (#351). The session says
+  so and offers none of them until the project is unarchived.
+- Coverage follows a link type at once when what it counts changes or it is
+  retired (#352), instead of answering the old figures for up to a minute.
+- The notification settings list every kind of notification, so review
+  sessions, test executions, code scans, glossary terms and revised library
+  sources can be switched off in the app and by email too (#353).
+- Moving a requirement to a project that lacks one of its statuses works in
+  the move dialog (#354). The dialog asks where the requirements in each
+  such status go, and asks again for every status that moves when the
+  server says a type's workflow there lacks one.
+- The owner of a shared view who no longer edits its project is told why
+  the view cannot be changed while it is shared, instead of getting a
+  server error (#355). Taking the view back still works, and then it is
+  theirs to change.
+- The MCP test of clearing a suspect link checks that the link the tool
+  answers has no ends left that moved on (#357); it compared with a flag
+  the answer never has, so it could not fail.
+- Computed attributes whose formula calls `today()` are worked out again
+  each day (#360). Shortly after midnight UTC the worker marks the
+  requirements those formulas show on, and nothing else; what reads such a
+  value elsewhere follows as with any change.
 
 ## [0.1.0] - 2026-10-21
 

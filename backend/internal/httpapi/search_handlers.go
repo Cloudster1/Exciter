@@ -19,6 +19,8 @@ func searchError(err error) *APIError {
 		return ErrForbidden("Only a view's owner changes it, and the project's administrators once it is shared. Save a copy of your own instead.")
 	case errors.Is(err, search.ErrUnshareForbidden):
 		return ErrForbidden("Only a view's owner stops sharing it. Delete it instead, or ask its owner to take it back.")
+	case errors.Is(err, search.ErrSharedChangeForbidden):
+		return ErrForbidden("Only the project's editors change a shared view, and you do not edit this project now. Stop sharing the view to change it as your own, or ask an administrator to make you an editor.")
 	case errors.Is(err, search.ErrShareForbidden):
 		return ErrForbidden("Only the project's editors share views. Keep this one to yourself, or ask an administrator to make you an editor.")
 	}

@@ -22,6 +22,8 @@ export const treeDe: typeof treeEn = {
   moveHint:
     "Alles darunter wandert mit. In einem anderen Projekt bekommt jede verschobene Anforderung einen neuen Schlüssel, und der alte funktioniert weiter.",
   copyChildren: "Auch alles darunter kopieren",
+  mapIntro: "Das gewählte Projekt hat nicht jeden Status dessen, was verschoben wird. Wählen Sie, wohin die Anforderungen in jedem kommen.",
+  mapFrom: (status: string) => `Anforderungen in ${status} kommen nach`,
   moveSubmit: "Verschieben",
   copySubmit: "Kopieren",
   copiedFrom: (key: string) => `Kopiert von ${key}`,

@@ -117,4 +117,30 @@ test.describe("the specification", { tag: "@desktop" }, () => {
     await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R1`);
     await expect(page.locator("[data-former-keys]")).toContainText(`${KEY}-R1`);
   });
+
+  test("a move to a project without its status asks where the status goes", async ({ page, api }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Specified" } }));
+    must(await api.POST("/projects", { body: { key: OTHER, name: "Other" } }));
+    must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Travel" } }));
+    const other = { params: { path: { projectKey: OTHER } } };
+    const draft = must(await api.GET("/projects/{projectKey}/statuses", other)).statuses.find((status) => status.name === "Draft")!;
+    must(
+      await api.PATCH("/projects/{projectKey}/statuses/{statusID}", {
+        params: { path: { projectKey: OTHER, statusID: draft.id } },
+        body: { name: "Proposed" },
+      }),
+    );
+
+    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.locator('[data-action="move-requirement"]').click();
+    const dialog = page.locator('[data-place-dialog="move"]');
+    await dialog.getByLabel("Project", { exact: true }).selectOption(OTHER);
+    const where = dialog.getByLabel("Requirements in Draft go to");
+    await where.selectOption({ label: "Proposed" });
+    await expectAccessible(page);
+    await dialog.locator('[data-action="confirm-move"]').click();
+    await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R1`);
+    const moved = must(await api.GET("/requirements/{reqKey}", { params: { path: { reqKey: `${OTHER}-R1` } } })).requirement;
+    expect(moved.status?.name).toBe("Proposed");
+  });
 });

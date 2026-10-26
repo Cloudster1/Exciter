@@ -148,8 +148,11 @@ func TestAFormulaKnowsWhatItReadsAndIsKeptByID(t *testing.T) {
 		t.Fatal(err.Message)
 	}
 	if p.Kind != Number || len(p.Reads.Self) != 1 || p.Reads.Self[0] != weightID || !p.Reads.ReadsChildren ||
-		len(p.Reads.Children) != 1 || len(p.Reads.Links) != 1 || p.Reads.Links[0].Attributes[0] != dueID || !p.Reads.Links[0].Out {
+		len(p.Reads.Children) != 1 || len(p.Reads.Links) != 1 || p.Reads.Links[0].Attributes[0] != dueID || !p.Reads.Links[0].Out || !p.Reads.Today {
 		t.Errorf("reads = %+v", p.Reads)
+	}
+	if timeless, err := Compile(`"weight" * 2`, catalog); err != nil || timeless.Reads.Today {
+		t.Errorf("a formula without today() reads %+v, %v", timeless.Reads, err)
 	}
 	if strings.Contains(p.Stored(), "weight") || !strings.Contains(p.Stored(), `"@`+weightID.String()+`"`) || !strings.Contains(p.Stored(), `'@`+verifiesID.String()+`'`) {
 		t.Errorf("kept as %s", p.Stored())

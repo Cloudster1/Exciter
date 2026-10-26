@@ -22,7 +22,7 @@ var Topics = []string{"project.key_changed", "project.deleted", "requirement.cre
 	"comment.created", "comment.edited", "thread.resolved", "thread.reopened", "review.requested", "review.decided", "review.closed", "link.cleared", "baseline.taken", "reqif.requested",
 	"stator.links", "test_run.requested", "test_run.finished", "evidence_settings.saved",
 	"code_scan.uploaded", "code_tag_words.saved", "quality.recheck", "quality_settings.saved", "term.revised",
-	"test_execution.started", "test_execution.reminder", "test_execution.closed", "test_execution.recorded", "risk_scheme.saved"}
+	"test_execution.started", "test_execution.reminder", "test_execution.closed", "test_execution.recorded", "risk_scheme.saved", "link_type.changed"}
 
 // Event is one committed domain event.
 type Event struct {

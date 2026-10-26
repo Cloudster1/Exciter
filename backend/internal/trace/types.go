@@ -10,6 +10,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/project"
 )
 
@@ -161,7 +162,10 @@ func (s *Service) UpdateType(ctx context.Context, actor, id uuid.UUID, in LinkTy
 		if out, err = linkTypeByID(ctx, tx, id); err != nil {
 			return err
 		}
-		return record(ctx, tx, actor, audit.ActionLinkTypeChanged, out, map[string]any{"retired": out.Retired})
+		if err := record(ctx, tx, actor, audit.ActionLinkTypeChanged, out, map[string]any{"retired": out.Retired}); err != nil {
+			return err
+		}
+		return events.Emit(ctx, tx, TopicLinkTypeChanged, map[string]any{"actorId": actor, "linkTypeId": id})
 	})
 	return out, lsn, err
 }

@@ -25,6 +25,9 @@ var (
 	ErrViewForbidden = errors.New("only a view's owner changes it, and a project administrator once it is shared")
 	// ErrShareForbidden is sharing a view in a project the reader does not edit.
 	ErrShareForbidden = errors.New("only the project's editors share views")
+	// ErrSharedChangeForbidden is a change to a shared view by somebody who no longer edits its project, which the
+	// database refuses too: a shared view is everybody's, kept so only by who edits there.
+	ErrSharedChangeForbidden = errors.New("only the project's editors change a shared view")
 	// ErrUnshareForbidden is somebody but its owner taking a view back, which would leave it to nobody they can see.
 	ErrUnshareForbidden = errors.New("only a view's owner stops sharing it")
 )
@@ -242,8 +245,11 @@ func (s *Service) UpdateView(ctx context.Context, actor, id uuid.UUID, in ViewIn
 			return &FieldError{"kind", "A view keeps the kind it was saved as. Save a new view instead."}
 		}
 		apply(v, in)
-		if v.Shared && !wasShared && !p.Can.Edit {
-			return ErrShareForbidden
+		if v.Shared && !p.Can.Edit {
+			if !wasShared {
+				return ErrShareForbidden
+			}
+			return ErrSharedChangeForbidden
 		}
 		if wasShared && !v.Shared && v.OwnerID != actor {
 			return ErrUnshareForbidden
