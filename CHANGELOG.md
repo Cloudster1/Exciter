@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Filing a failed test run as an Armature issue on a step the case does not
+  have is refused, naming the step, before anything is filed (#345). It used
+  to leave an issue in Armature that Exciter never linked back to.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the
