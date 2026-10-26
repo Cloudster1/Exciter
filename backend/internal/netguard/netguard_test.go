@@ -18,7 +18,10 @@ func TestTheServersOwnNetworkIsNotTheInternet(t *testing.T) {
 			t.Errorf("%s is inside the server's network, and was treated as the internet", address)
 		}
 	}
-	for _, address := range []string{"93.184.216.34", "8.8.8.8", "2606:2800:220:1:248:1893:25c8:1946"} {
+	for _, address := range []string{
+		"93.184.216.34", "8.8.8.8", "2606:2800:220:1:248:1893:25c8:1946",
+		"64:ff9b::808:808", "2002:808:808::1", "192.31.196.1",
+	} {
 		if Reserved(netip.MustParseAddr(address)) {
 			t.Errorf("%s is on the internet, and was refused", address)
 		}
@@ -27,6 +30,22 @@ func TestTheServersOwnNetworkIsNotTheInternet(t *testing.T) {
 
 // An Armature address is something an administrator typed, so the one thing it
 // must not reach is whatever else answers on this network.
+// Each range the special-purpose registries set aside, and the translation
+// prefixes judged by the IPv4 address they carry.
+func TestSpecialPurposeRangesAreReserved(t *testing.T) {
+	for _, address := range []string{
+		"0.1.2.3", "192.0.0.8", "192.0.0.170", "192.0.2.1", "192.88.99.1",
+		"198.18.0.1", "198.19.255.254", "198.51.100.1", "203.0.113.1", "240.0.0.1", "255.255.255.255",
+		"::", "::1.2.3.4", "64:ff9b::7f00:1", "64:ff9b::a9fe:a9fe", "64:ff9b:1::808:808",
+		"100::1", "2001::1", "2001:2::1", "2001:db8::1", "2002:7f00:1::1", "2002:a00:1::1",
+		"3fff::1", "5f00::1", "fc00::1", "fe80::1", "fec0::1", "ff02::1",
+	} {
+		if !Reserved(netip.MustParseAddr(address)) {
+			t.Errorf("%s is set aside for special purposes, and was treated as the internet", address)
+		}
+	}
+}
+
 func TestAClientRefusesTheServersOwnNetwork(t *testing.T) {
 	inside := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("secrets"))
@@ -82,3 +101,4 @@ func TestAnAllowListReadsHostsAndRanges(t *testing.T) {
 		t.Error("an unreadable entry was kept as a host name")
 	}
 }
+

@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Outbound calls treat every address the special-purpose registries set
+  aside as inside the network, and judge an address under a translation
+  prefix by the IPv4 address it carries (#342). `EXCITER_OUTBOUND_ALLOW`
+  still lets a named range through.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the
