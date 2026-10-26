@@ -42,6 +42,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Outbound calls through a proxy from `HTTP_PROXY` or `HTTPS_PROXY` are
+  checked for their destination as direct calls are (#341). A destination
+  goes to the proxy only when none of its addresses lies inside the network,
+  or `EXCITER_OUTBOUND_ALLOW` names it; a name this server cannot resolve
+  itself goes through a proxy only when `EXCITER_OUTBOUND_ALLOW` names it.
 - Outbound calls treat every address the special-purpose registries set
   aside as inside the network, and judge an address under a translation
   prefix by the IPv4 address it carries (#342). `EXCITER_OUTBOUND_ALLOW`

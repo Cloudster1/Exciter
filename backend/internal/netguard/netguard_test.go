@@ -1,10 +1,13 @@
 package netguard
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -102,3 +105,37 @@ func TestAnAllowListReadsHostsAndRanges(t *testing.T) {
 	}
 }
 
+// Through a proxy the dial reaches the proxy, so the destination is checked
+// before anything is sent to it.
+func TestAProxiedRequestIsCheckedForItsDestination(t *testing.T) {
+	var proxied atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		proxied.Add(1)
+		_, _ = w.Write([]byte("forwarded"))
+	}))
+	defer proxy.Close()
+	via, err := url.Parse(proxy.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := WithTransport(2*time.Second, transport(ParseAllow("127.0.0.1/32"), http.ProxyURL(via)))
+
+	for _, target := range []string{"http://10.1.2.3/", "http://169.254.169.254/latest", "http://[64:ff9b::a00:1]/"} {
+		_, err := client.Get(target)
+		if !errors.Is(err, ErrBlocked) {
+			t.Errorf("%s through a proxy: error = %v, want it refused", target, err)
+		}
+	}
+	if n := proxied.Load(); n != 0 {
+		t.Fatalf("the proxy was sent %d requests for reserved destinations", n)
+	}
+
+	resp, err := client.Get("http://93.184.216.34/")
+	if err != nil {
+		t.Fatalf("a public destination through the proxy was refused: %v", err)
+	}
+	defer resp.Body.Close()
+	if proxied.Load() != 1 {
+		t.Fatal("a public destination did not go through the proxy")
+	}
+}

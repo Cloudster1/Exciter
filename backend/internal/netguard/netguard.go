@@ -153,9 +153,13 @@ func inAny(addr netip.Addr, list []netip.Prefix) bool {
 // Transport reaches the internet and nothing else, unless the operator said
 // otherwise. It dials the address it checked, so a name cannot swap it after.
 func Transport(allow Allow) *http.Transport {
+	return transport(allow, http.ProxyFromEnvironment)
+}
+
+func transport(allow Allow, proxy func(*http.Request) (*url.URL, error)) *http.Transport {
 	dialer := &net.Dialer{Timeout: dialTimeout, KeepAlive: 30 * time.Second}
 	return &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
+		Proxy:               guardedProxy(allow, proxy),
 		DialContext:         guardedDial(dialer, allow),
 		TLSHandshakeTimeout: dialTimeout,
 		MaxIdleConns:        20,
@@ -182,6 +186,40 @@ func WithTransport(timeout time.Duration, transport http.RoundTripper) *http.Cli
 			return nil
 		},
 	}
+}
+
+// guardedProxy checks the destination of a request that goes through a proxy,
+// since the dial then reaches the proxy and never sees the destination.
+func guardedProxy(allow Allow, proxy func(*http.Request) (*url.URL, error)) func(*http.Request) (*url.URL, error) {
+	return func(req *http.Request) (*url.URL, error) {
+		via, err := proxy(req)
+		if err != nil || via == nil {
+			return via, err
+		}
+		if err := checkDestination(req.Context(), allow, req.URL.Hostname()); err != nil {
+			return nil, err
+		}
+		return via, nil
+	}
+}
+
+// checkDestination refuses a host if any of its addresses is reserved: the
+// proxy resolves the name again and may pick any of them.
+func checkDestination(ctx context.Context, allow Allow, host string) error {
+	if allow.hosts[strings.ToLower(host)] {
+		return nil
+	}
+	found, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return fmt.Errorf("%w: %s could not be resolved to check it", ErrBlocked, host)
+	}
+	for _, addr := range found {
+		addr = addr.Unmap()
+		if Reserved(addr) && !allow.permits(addr) {
+			return fmt.Errorf("%w: %s", ErrBlocked, addr)
+		}
+	}
+	return nil
 }
 
 func guardedDial(dialer *net.Dialer, allow Allow) func(context.Context, string, string) (net.Conn, error) {
