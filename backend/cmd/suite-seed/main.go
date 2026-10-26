@@ -132,7 +132,7 @@ func run() error {
 		connection map[string]any
 	}{
 		{"Exciter", exciterHook, exciter, toArmature},
-		{"Stator", statorHook, stator, map[string]any{"baseUrl": armatureURL, "orgSlug": me.Principal.Org.Slug}},
+		{"Stator", statorHook, stator, map[string]any{"baseUrl": armatureURL}},
 	}
 	for _, p := range products {
 		var saved struct {
