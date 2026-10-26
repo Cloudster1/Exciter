@@ -494,6 +494,32 @@ spec:
     app.kubernetes.io/instance: r
     app.kubernetes.io/component: web
 ---
+# Source: exciter/templates/worker-service.yaml
+# The worker serves nothing but its metrics; this Service is how the
+# ServiceMonitor finds each worker pod. Headless, as nothing calls it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-worker
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: worker
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: worker
+---
 # Source: exciter/charts/seaweedfs/templates/s3/s3-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
