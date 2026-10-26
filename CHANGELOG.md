@@ -78,6 +78,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The MCP test of clearing a suspect link checks that the link the tool
   answers has no ends left that moved on (#357); it compared with a flag
   the answer never has, so it could not fail.
+- Computed attributes whose formula calls `today()` are worked out again
+  each day (#360). Shortly after midnight UTC the worker marks the
+  requirements those formulas show on, and nothing else; what reads such a
+  value elsewhere follows as with any change.
 
 ## [0.1.0] - 2026-10-21
 

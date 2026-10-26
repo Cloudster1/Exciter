@@ -358,3 +358,42 @@ func TestChangesGoThroughWhileValuesAreWorkedOut(t *testing.T) {
 	// Every shoe ends in Brakes beside Pedal travel (10) and Pedal force (5).
 	eventually(t, s.carol, a, s.total, "21")
 }
+
+// A formula calling today() is worked out again once the day moves on, though nothing it reads changed (#360).
+func TestAValueReadingTodayMovesOnWithTheDay(t *testing.T) {
+	s := &computedScene{commentWorld: newCommentWorld(t, "CMD")}
+	ctx := context.Background()
+	t.Cleanup(func() {
+		// Only the clock below runs ahead; whatever it turned goes back to the day the stack's worker keeps.
+		s.h.cleanupExec(t, s.h.super, `DELETE FROM computed_day WHERE day > (now() AT TIME ZONE 'UTC')::date`)
+	})
+	due := s.attribute(t, map[string]any{"name": "Due", "kind": "date"})
+	left := s.attribute(t, map[string]any{"name": "Days left", "formula": `days(today(), "Due")`})
+	now := time.Now().UTC()
+	r := s.write(t, map[string]any{"title": "Brakes are serviced", "attributes": map[string]any{due: now.AddDate(0, 0, 10).Format(time.DateOnly)}})
+	key := r["key"].(string)
+	eventually(t, s.carol, key, left, "10")
+
+	timeless := newCommentWorld(t, "CMN")
+	(&computedScene{commentWorld: timeless}).attribute(t, map[string]any{"name": "Score", "formula": `len(title)`})
+
+	log := slog.New(slog.DiscardHandler)
+	tomorrow := attribute.NewDayTurner(s.h.cluster, log, time.Minute, func() time.Time { return now.AddDate(0, 0, 1) })
+	if n, err := tomorrow.Once(ctx); err != nil || n < 1 {
+		t.Fatalf("turning to tomorrow marked %d projects: %v", n, err)
+	}
+	eventually(t, s.carol, key, left, "9")
+
+	if n, err := tomorrow.Once(ctx); err != nil || n != 0 {
+		t.Errorf("turning to tomorrow again marked %d projects: %v", n, err)
+	}
+	if n, err := attribute.NewDayTurner(s.h.cluster, log, time.Minute, nil).Once(ctx); err != nil || n != 0 {
+		t.Errorf("a worker whose clock is still at today marked %d projects: %v", n, err)
+	}
+	if n := s.h.countRows(t, `SELECT count(*) FROM computed_day WHERE project_id = $1`, timeless.projectID); n != 0 {
+		t.Errorf("a project whose formulas do not call today() was turned %d times", n)
+	}
+	want(t, s.owner.patch(t, "/api/v1/requirements/"+key, map[string]any{"attributes": map[string]any{due: now.AddDate(0, 0, 20).Format(time.DateOnly)},
+		"baseRevision": 1}), http.StatusOK, "move R2's due date")
+	eventually(t, s.carol, key, left, "19")
+}

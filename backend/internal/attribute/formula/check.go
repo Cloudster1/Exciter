@@ -43,6 +43,8 @@ type Reads struct {
 	ReadsChildren bool
 	Children      []uuid.UUID
 	Links         []LinkRead
+	// Today is a call of today(), whose value moves on each day without any change.
+	Today bool
 }
 
 // Program is a formula checked against a project: what it gives, what it reads, and its text as kept.
@@ -306,6 +308,7 @@ func (c *checker) call(v call) (Kind, *Error) {
 	case "len":
 		return Number, all(Text)
 	case "today":
+		c.reads.Today = true
 		return Date, nil
 	case "days":
 		return Number, all(Date)
