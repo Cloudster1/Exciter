@@ -273,6 +273,12 @@ func TestAFormulaIsCheckedAndRefusedWhereItCannotHold(t *testing.T) {
 			t.Fatal(err)
 		}
 		refuse(t, "letting derives cycle", s.owner.patch(t, "/api/v1/link-types/"+derives, map[string]any{"acyclic": false}), http.StatusConflict, "type_in_formula")
+		// Whoever may not change the type hears only that, nothing of the formulas that read it.
+		answer := s.bob.patch(t, "/api/v1/link-types/"+derives, map[string]any{"acyclic": false})
+		refuse(t, "bob, who does not manage derives, letting it cycle", answer, http.StatusForbidden, "forbidden")
+		if strings.Contains(string(answer.Raw), "Depth") {
+			t.Errorf("the refusal names the formula: %s", answer.Raw)
+		}
 	})
 }
 

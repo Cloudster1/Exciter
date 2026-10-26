@@ -32,6 +32,9 @@ func traceError(err error) *APIError {
 		inFormula *trace.InFormulaError
 	)
 	switch {
+	case errors.As(err, &inFormula) && inFormula.Attribute == "":
+		return &APIError{Status: http.StatusConflict, Code: "type_in_formula", Message: "A computed attribute in a project you cannot view " +
+			"reads itself along this link type, which is only safe while the type is acyclic. Ask that project's administrators to change its formula first."}
 	case errors.As(err, &inFormula):
 		return &APIError{Status: http.StatusConflict, Code: "type_in_formula", Message: fmt.Sprintf(
 			"The formula of %s reads itself along this link type, which is only safe while the type is acyclic. Change that formula first.", inFormula.Attribute)}

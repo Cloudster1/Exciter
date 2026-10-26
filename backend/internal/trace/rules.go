@@ -20,7 +20,7 @@ func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
 // InFormulaError refuses letting a link type cycle while a computed attribute reads itself along it (#213).
 type InFormulaError struct {
-	Attribute string
+	Attribute string // empty when the person changing the type may not view the attribute's project
 }
 
 func (e *InFormulaError) Error() string {

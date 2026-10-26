@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Turning a link type's acyclic flag off first checks that you may change
+  the type, and a refusal because a formula reads along it names the
+  computed attribute only when you may view its project (#339).
 - A theme's extra CSS is held to loading only the theme's own files and
   inline images through `image-set()`, `image()`, `cross-fade()` and `src()`
   as through `url()`, and may no longer contain CSS escapes (#343). Write
