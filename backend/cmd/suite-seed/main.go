@@ -42,6 +42,10 @@ const (
 	exciterClient      = "exciter"
 	exchangeCapability = "oauth.token-exchange@1"
 
+	// statorSpace is the space the seed makes in Stator, so its people find a page to link without the demo. Its home
+	// page takes its name, whose "architecture" is what the smoke test's search for "a" finds.
+	statorSpace, statorSpaceName = "SUITE", "Suite architecture"
+
 	callTimeout = 30 * time.Second
 	// envFileMode keeps the file holding alice's token hers alone.
 	envFileMode = 0o600
@@ -149,6 +153,9 @@ func run() error {
 
 	// Exciter reads Stator's pages as each person; it connects them at sign-in once Stator offers the exchange
 	// (praetorianer777/Stator#461), and until then each person pastes a Stator token.
+	if err := stator.statorSpace(ctx); err != nil {
+		return fmt.Errorf("make the suite's space in Stator: %w", err)
+	}
 	toStator := map[string]any{"baseUrl": statorURL}
 	if offers, err := offersExchange(ctx, statorAPI); err != nil {
 		return fmt.Errorf("ask Stator what it offers: %w", err)
@@ -364,6 +371,16 @@ func (s *session) partnerApp(ctx context.Context, body map[string]any, rotates b
 	}
 	err = s.send(ctx, http.MethodPost, "/oauth/clients", body, &answer)
 	return answer.Client.ID, answer.Client.Secret, err
+}
+
+// statorSpace makes the suite's space in Stator unless an earlier run made it; Stator publishes its home page at once.
+func (s *session) statorSpace(ctx context.Context) error {
+	err := s.send(ctx, http.MethodGet, "/spaces/"+statorSpace, nil, nil)
+	var r *refusal
+	if !errors.As(err, &r) || r.status != http.StatusNotFound {
+		return err
+	}
+	return s.send(ctx, http.MethodPost, "/spaces", map[string]any{"key": statorSpace, "name": statorSpaceName}, nil)
 }
 
 // offersExchange says whether the product at api lists the token exchange on its /meta, which anybody may read.
