@@ -75,6 +75,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   the view cannot be changed while it is shared, instead of getting a
   server error (#355). Taking the view back still works, and then it is
   theirs to change.
+- The MCP test of clearing a suspect link checks that the link the tool
+  answers has no ends left that moved on (#357); it compared with a flag
+  the answer never has, so it could not fail.
 
 ## [0.1.0] - 2026-10-21
 
