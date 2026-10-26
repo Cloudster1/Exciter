@@ -99,16 +99,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	var me struct {
-		Principal struct {
-			Org struct {
-				Slug string `json:"slug"`
-			} `json:"org"`
-		} `json:"principal"`
-	}
-	if err := alice.send(ctx, http.MethodGet, "/auth/me", nil, &me); err != nil {
-		return fmt.Errorf("ask Armature who alice is: %w", err)
-	}
 
 	exciter, err := signIn(ctx, exciterAPI, exciterAdmin, exciterPassword)
 	if err != nil {
@@ -121,7 +111,10 @@ func run() error {
 	exciterURL := "http://localhost:" + env("SUITE_EXCITER_WEB_PORT")
 	statorURL := "http://localhost:" + env("SUITE_STATOR_WEB_PORT")
 	toArmature := map[string]any{"baseUrl": armatureURL}
-	id, secret, err := armature.partnerApp(ctx, exciterURL+"/api/v1/armature/oauth/callback", []string{"read", "issue.write"})
+	id, secret, err := armature.partnerApp(ctx, map[string]any{
+		"name": appName, "redirectUris": []string{exciterURL + "/api/v1/armature/oauth/callback"},
+		"scopes": []string{"read", "issue.write"}, "confidential": true, "keycloakClientId": exciterClient,
+	}, true)
 	if err != nil {
 		return fmt.Errorf("register Exciter as a connected app of Armature: %w", err)
 	}
@@ -160,7 +153,10 @@ func run() error {
 	if offers, err := offersExchange(ctx, statorAPI); err != nil {
 		return fmt.Errorf("ask Stator what it offers: %w", err)
 	} else if offers {
-		id, secret, err := stator.partnerApp(ctx, exciterURL+"/api/v1/stator/oauth/callback", nil)
+		// Exciter puts its links on the pages it traces, so it writes as well as reads.
+		id, secret, err := stator.partnerApp(ctx, map[string]any{
+			"name": appName, "scopes": []string{"read", "write"}, "keycloakClientId": exciterClient,
+		}, false)
 		if err != nil {
 			return fmt.Errorf("register Exciter as a connected app of Stator: %w", err)
 		}
@@ -182,7 +178,6 @@ func run() error {
 		"SUITE_EXCITER_URL=http://localhost:" + env("SUITE_EXCITER_WEB_PORT"),
 		"SUITE_ARMATURE_URL=" + armatureURL,
 		"SUITE_STATOR_URL=" + statorURL,
-		"SUITE_ARMATURE_ORG_SLUG=" + me.Principal.Org.Slug,
 		"SUITE_ALICE_ARMATURE_TOKEN=" + token,
 	}
 	return os.WriteFile(env("SUITE_ENV_FILE"), []byte(strings.Join(lines, "\n")+"\n"), envFileMode)
@@ -339,10 +334,10 @@ func (s *session) webhook(ctx context.Context, name, url string, topics []string
 	return answer.Webhook.Secret, err
 }
 
-// partnerApp registers Exciter as a connected app named by the realm's Exciter client, or gives the one an earlier
-// run registered a new secret, and answers its client id and secret, which the product shows only then. No scopes
-// is what Stator's registration gives by default.
-func (s *session) partnerApp(ctx context.Context, redirect string, scopes []string) (id, secret string, err error) {
+// partnerApp registers Exciter as the connected app body describes, named appName, and answers its client id and
+// secret, which the product shows only then. One an earlier run registered gets a new secret where the product
+// rotates one, and is registered anew where it does not, as Stator.
+func (s *session) partnerApp(ctx context.Context, body map[string]any, rotates bool) (id, secret string, err error) {
 	type client struct {
 		ID     string `json:"id"`
 		Name   string `json:"name"`
@@ -358,12 +353,14 @@ func (s *session) partnerApp(ctx context.Context, redirect string, scopes []stri
 		Client client `json:"client"`
 	}
 	if at := slices.IndexFunc(listed.Clients, func(c client) bool { return c.Name == appName }); at >= 0 {
-		err := s.send(ctx, http.MethodPost, "/oauth/clients/"+listed.Clients[at].ID+"/rotate-secret", nil, &answer)
-		return answer.Client.ID, answer.Client.Secret, err
-	}
-	body := map[string]any{"name": appName, "redirectUris": []string{redirect}, "confidential": true, "keycloakClientId": exciterClient}
-	if scopes != nil {
-		body["scopes"] = scopes
+		earlier := "/oauth/clients/" + listed.Clients[at].ID
+		if rotates {
+			err := s.send(ctx, http.MethodPost, earlier+"/rotate-secret", nil, &answer)
+			return answer.Client.ID, answer.Client.Secret, err
+		}
+		if err := s.send(ctx, http.MethodDelete, earlier, nil, nil); err != nil {
+			return "", "", err
+		}
 	}
 	err = s.send(ctx, http.MethodPost, "/oauth/clients", body, &answer)
 	return answer.Client.ID, answer.Client.Secret, err
