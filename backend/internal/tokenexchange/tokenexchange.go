@@ -33,6 +33,8 @@ const (
 	// RefreshMargin is how long before its access token runs out a stored grant is refreshed, so a call that
 	// starts just before the hour does not meet a 401 halfway.
 	RefreshMargin = time.Minute
+	// RefreshBackoff is how long a refresh the partner refused or did not answer is left before reads try again.
+	RefreshBackoff = 2 * time.Minute
 	// maxAnswerBytes bounds the token endpoint's answer, a handful of short fields.
 	maxAnswerBytes = 64 << 10
 )

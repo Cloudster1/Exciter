@@ -42,6 +42,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A refresh of a sign-in's grant that Armature or Stator refused or did not
+  answer is not asked again for two minutes (#349). Reads and the link worker
+  answer rejected or unreachable meanwhile instead of asking the partner on
+  every use; checking the account asks at once.
 - When Armature or Stator does not answer the token exchange at sign-in in
   time, the account page now says so (#348). The outcome used to be lost
   with the time that had run out.

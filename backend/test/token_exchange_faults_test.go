@@ -22,7 +22,8 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/tokenexchange"
 )
 
-// A partner that is slow at its token endpoint, which the stubs never are: the sign-in keeps why it timed out (#348).
+// A partner that is slow or refuses at its token endpoint, which the stubs never are: the sign-in keeps why it timed
+// out (#348), and a refresh it refused or left unanswered is not asked again on every read (#349).
 
 // faultyPartner answers the exchange after exchangeDelay with an access token that is due at once, and every refresh
 // with refreshStatus, counting the refreshes.
@@ -137,5 +138,47 @@ func TestASignInWhoseExchangeTimesOutSaysSo(t *testing.T) {
 				t.Errorf("the timed out exchange is kept as %q", message)
 			}
 		})
+	}
+}
+
+func TestARefusedRefreshWaitsBeforeItIsAskedAgain(t *testing.T) {
+	h := newHarness(t)
+	h.keepArmature(t)
+	h.keepStator(t)
+	api := newAPIServer(t, h)
+	owner := api.as(t, h.owner(t, "refresh-backoff").user)
+	for _, svc := range faultyServices(t, h) {
+		for _, c := range []struct {
+			what   string
+			status int
+			want   string
+		}{
+			{"refused", http.StatusUnauthorized, "rejected"},
+			{"unanswered", http.StatusServiceUnavailable, "unreachable"},
+		} {
+			t.Run(svc.name+" "+c.what, func(t *testing.T) {
+				p := newFaultyPartner(t, 0, c.status)
+				svc.connect(t, h, owner, p)
+				user := h.addPerson(t, "member")
+				svc.exchange(context.Background(), user)
+				var connected bool
+				var message string
+				if err := h.super.QueryRow(context.Background(), `SELECT connected, message FROM partner_exchange WHERE partner = $1 AND user_id = $2`,
+					svc.partner, user).Scan(&connected, &message); err != nil || !connected {
+					t.Fatalf("the sign-in did not connect: %v %q", err, message)
+				}
+				h.settle(t)
+				ctx := db.WithUser(context.Background(), user)
+				for read := 1; read <= 2; read++ {
+					status, err := svc.viewer(ctx)
+					if err != nil || status != c.want {
+						t.Errorf("read %d answers %q %v, want %s", read, status, err, c.want)
+					}
+				}
+				if n := p.refreshes.Load(); n != 1 {
+					t.Errorf("two reads asked %s for a refresh %d times, want once", svc.name, n)
+				}
+			})
+		}
 	}
 }
