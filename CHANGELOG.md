@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Sending a webhook delivery again by hand no longer ends its automatic
+  retries (#346). The next retry after a failure takes the attempt after the
+  highest one logged, so a redelivery in between leaves it scheduled.
 - Filing a failed test run as an Armature issue on a step the case does not
   have is refused, naming the step, before anything is filed (#345). It used
   to leave an issue in Armature that Exciter never linked back to.

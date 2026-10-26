@@ -203,6 +203,11 @@ func (s *Service) Redeliver(ctx context.Context, webhookID, deliveryID uuid.UUID
 	var made uuid.UUID
 	system := asSystem(ctx)
 	lsn, err := s.db.WriteAdmin(system, func(ctx context.Context, tx db.DBTX) error {
+		// A failure schedules its retry holding the endpoint's row, so taking it here keeps the two from numbering the
+		// same attempt.
+		if _, err := tx.Exec(ctx, `SELECT 1 FROM webhook_endpoint WHERE id = $1 FOR UPDATE`, webhookID); err != nil {
+			return err
+		}
 		err := tx.QueryRow(ctx, `
 			INSERT INTO webhook_delivery (endpoint_id, event_id, topic, event, occurred_at, attempt, manual, next_attempt_at, version)
 			SELECT d.endpoint_id, d.event_id, d.topic, d.event, d.occurred_at,
@@ -373,12 +378,17 @@ func (s *Service) record(ctx context.Context, id uuid.UUID, c claimed, o outcome
 			if err != nil {
 				return err
 			}
-			if !disabled && c.attempt < MaxAttempts {
+			// A redelivery by hand may have taken attempt+1 already, and it is no try of the automatic chain.
+			var next, tried int
+			if err := tx.QueryRow(ctx, `SELECT max(attempt) + 1, count(*) FILTER (WHERE NOT manual)::int FROM webhook_delivery
+				WHERE endpoint_id = $1 AND event_id = $2`, c.endpointID, c.eventID).Scan(&next, &tried); err != nil {
+				return err
+			}
+			if !disabled && tried < MaxAttempts {
 				if _, err := tx.Exec(ctx, `
 					INSERT INTO webhook_delivery (endpoint_id, event_id, topic, event, occurred_at, attempt, next_attempt_at, version)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-					ON CONFLICT (endpoint_id, event_id, attempt) DO NOTHING`,
-					c.endpointID, c.eventID, c.topic, c.event, c.occurred, c.attempt+1, s.now().Add(NextWait(c.attempt)), c.version); err != nil {
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+					c.endpointID, c.eventID, c.topic, c.event, c.occurred, next, s.now().Add(NextWait(tried)), c.version); err != nil {
 					return err
 				}
 			}
