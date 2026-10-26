@@ -18,7 +18,7 @@ export function outlines(nodes: Numbered[]): Map<string, string> {
 }
 
 /** The node and everything below it, from a list in reading order. */
-export function subtreeOf(nodes: Numbered[], id: string): Numbered[] {
+export function subtreeOf<T extends Numbered>(nodes: T[], id: string): T[] {
   const start = nodes.findIndex((n) => n.id === id);
   if (start < 0) return [];
   const inside = new Set([id]);

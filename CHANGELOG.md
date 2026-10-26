@@ -67,6 +67,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The notification settings list every kind of notification, so review
   sessions, test executions, code scans, glossary terms and revised library
   sources can be switched off in the app and by email too (#353).
+- Moving a requirement to a project that lacks one of its statuses works in
+  the move dialog (#354). The dialog asks where the requirements in each
+  such status go, and asks again for every status that moves when the
+  server says a type's workflow there lacks one.
 
 ## [0.1.0] - 2026-10-21
 
