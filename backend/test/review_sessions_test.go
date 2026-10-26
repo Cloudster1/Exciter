@@ -282,3 +282,31 @@ func TestASessionsQuorumIsAShareOfItsApprovers(t *testing.T) {
 		t.Errorf("the second session left out %v", excluded)
 	}
 }
+
+// An archived project takes no change, so its sessions stay as they were until it is unarchived (#351).
+func TestASessionOfAnArchivedProjectTakesNoChange(t *testing.T) {
+	s := newSessionScene(t, "RSA")
+	session := obj(t, want(t, s.open(t, s.bob, s.body(nil)), http.StatusCreated, "bob opens a session"), "session")
+	id := session["id"].(string)
+	want(t, s.bob.patch(t, "/api/v1/requirements/"+s.req("3"), map[string]any{"title": "Brake lights follow the pedal at once", "baseRevision": 1}),
+		http.StatusOK, "bob revises R3, for a round")
+	want(t, s.owner.put(t, "/api/v1/projects/"+s.key+"/archive", nil), http.StatusOK, "archive the project")
+
+	sessionPath := "/api/v1/review-sessions/" + id
+	for _, who := range []struct {
+		name string
+		c    *client
+	}{{"the moderator", s.bob}, {"an administrator", s.owner}} {
+		refuse(t, who.name+" renames it", who.c.patch(t, sessionPath, map[string]any{"title": "Archived review"}), http.StatusConflict, "project_archived")
+		refuse(t, who.name+" starts a round", who.c.post(t, sessionPath+"/rounds", map[string]any{}), http.StatusConflict, "project_archived")
+		refuse(t, who.name+" closes it", who.c.post(t, sessionPath+"/close", map[string]any{}), http.StatusConflict, "project_archived")
+	}
+	got := obj(t, want(t, s.bob.get(t, sessionPath), http.StatusOK, "read the session"), "session")
+	if got["title"] != "Braking review" || got["round"] != float64(1) || got["state"] != "open" || got["can"].(map[string]any)["edit"] != false {
+		t.Errorf("the session of the archived project reads title %v, round %v, state %v, can %v", got["title"], got["round"], got["state"], got["can"])
+	}
+
+	bob := s.h.appConn(t, s.bobID)
+	touchesNothing(t, bob, "the moderator renames it through SQL", `UPDATE review_session SET title = 'Archived review' WHERE id = $1`, id)
+	touchesNothing(t, bob, "the moderator closes it through SQL", `UPDATE review_session SET state = 'closed', closed_at = now() WHERE id = $1`, id)
+}

@@ -399,3 +399,36 @@ func TestRawSQLKeepsLockedRequirements(t *testing.T) {
 		t.Errorf("an unlocked requirement refused a change: %v", err)
 	}
 }
+
+// A status that starts locking while a requirement sits in the trash cannot be left from there, so the restore
+// brings it back, locked as its status says (#350).
+func TestARequirementLockedByItsStatusComesBackFromTheTrash(t *testing.T) {
+	s := newLockScene(t, "LKT")
+	trash := "/api/v1/projects/" + s.key + "/trash/"
+	want(t, s.bob.delete(t, "/api/v1/requirements/"+s.req("1")), http.StatusNoContent, "trash R1")
+	want(t, s.bob.delete(t, "/api/v1/requirements/"+s.req("2")), http.StatusNoContent, "trash the section with R3")
+	s.lockDraft(t, true)
+
+	want(t, s.bob.post(t, trash+s.reqID+"/restore", nil), http.StatusOK, "restore R1 in the locking Draft")
+	want(t, s.bob.post(t, trash+s.sectionID+"/restore", nil), http.StatusOK, "restore the section and R3 in the locking Draft")
+	for _, n := range []string{"1", "3"} {
+		got := obj(t, want(t, s.bob.get(t, "/api/v1/requirements/"+s.req(n)), http.StatusOK, "read R"+n), "requirement")
+		if lock, _ := got["lock"].(map[string]any); got["trashedAt"] != nil || lock["by"] != "status" {
+			t.Errorf("restored R%s reads trashedAt %v, lock %v", n, got["trashedAt"], got["lock"])
+		}
+	}
+	refuse(t, "a new revision of the restored R1", s.bob.patch(t, "/api/v1/requirements/"+s.req("1"),
+		map[string]any{"title": "Brakes engage at once", "baseRevision": 1}), http.StatusConflict, "requirement_locked")
+
+	ctx := context.Background()
+	bob := s.h.appConn(t, s.bobID)
+	s.lockDraft(t, false)
+	want(t, s.bob.delete(t, "/api/v1/requirements/"+s.req("1")), http.StatusNoContent, "trash R1 again")
+	s.lockDraft(t, true)
+	if _, err := bob.Exec(ctx, `UPDATE requirement SET title = 'Changed' WHERE id = $1`, s.reqID); !refusedBy(err, "requirement_locked") {
+		t.Errorf("a new title for the status-locked R1 in the trash: %v", err)
+	}
+	if _, err := bob.Exec(ctx, `UPDATE requirement SET trashed_at = NULL, trashed_by = NULL, trash_id = NULL WHERE id = $1`, s.reqID); err != nil {
+		t.Errorf("an editor restores the status-locked R1 through SQL: %v", err)
+	}
+}

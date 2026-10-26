@@ -130,7 +130,11 @@ func (r *Recomputer) batch(ctx context.Context, tx db.DBTX, project uuid.UUID) (
 	for _, id := range ids {
 		stopped[id] = steps[id] >= formula.MaxSteps
 	}
-	w, err := newWorld(ctx, tx, project, day(r.now()))
+	today, err := projectDay(ctx, tx, project, day(r.now()))
+	if err != nil {
+		return 0, err
+	}
+	w, err := newWorld(ctx, tx, project, today)
 	if err != nil {
 		return 0, err
 	}
@@ -173,6 +177,22 @@ func (r *Recomputer) batch(ctx context.Context, tx db.DBTX, project uuid.UUID) (
 	_, err = tx.Exec(ctx, `UPDATE attribute_recompute SET finished_at = now()
 		WHERE project_id = $1 AND finished_at IS NULL AND NOT EXISTS (SELECT 1 FROM computed_dirty WHERE project_id = $1)`, project)
 	return len(ids), err
+}
+
+// projectDay is the later of today by the clock and the day the project was last turned to, so a worker whose clock
+// is behind the one that turned it does not work yesterday out again.
+func projectDay(ctx context.Context, tx db.DBTX, project uuid.UUID, clock time.Time) (time.Time, error) {
+	var turned time.Time
+	err := tx.QueryRow(ctx, `SELECT day FROM computed_day WHERE project_id = $1`, project).Scan(&turned)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return clock, nil
+	case err != nil:
+		return time.Time{}, err
+	case turned.After(clock):
+		return day(turned), nil
+	}
+	return clock, nil
 }
 
 // mark marks again whatever reads the requirements given: their parents, and those whose links lead to them.

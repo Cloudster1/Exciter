@@ -19,6 +19,8 @@ export const treeEn = {
   loadingPlaces: "Loading the tree...",
   moveHint: "Everything below it moves along. In another project each moved requirement gets a new key, and the old key keeps working.",
   copyChildren: "Copy everything below it too",
+  mapIntro: "The chosen project does not have every status of what moves. Choose where the requirements in each go.",
+  mapFrom: (status: string) => `Requirements in ${status} go to`,
   moveSubmit: "Move",
   copySubmit: "Copy",
   copiedFrom: (key: string) => `Copied from ${key}`,

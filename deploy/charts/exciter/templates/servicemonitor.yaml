@@ -12,7 +12,10 @@ spec:
   selector:
     matchLabels:
       {{- include "exciter.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: api
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [api, worker]
   endpoints:
     - port: metrics
       interval: {{ .Values.telemetry.serviceMonitor.interval }}

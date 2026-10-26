@@ -34,6 +34,26 @@ migrate_url() { # rendered
     grep -A1 -- '- name: EXCITER_DB_PRIMARY_URL$' <<<"$1" | grep -F DB_OWNER_PASSWORD | sed -n 's/^ *value: "\(.*\)"$/\1/p' | sort -u
 }
 
+# One rendered manifest, picked by its kind and name.
+manifest() { # rendered kind name
+    awk -v kind="$2" -v name="$3" '
+        /^---$/ { if (k && n) printf "%s", doc; doc = ""; k = n = 0; next }
+        { doc = doc $0 "\n" }
+        $0 == "kind: " kind { k = 1 }
+        $0 == "  name: " name { n = 1 }
+        END { if (k && n) printf "%s", doc }' <<<"$1"
+}
+
+# The names of the Services that offer a port of the given name.
+services_with_port() { # rendered port
+    awk -v port="$2" '
+        /^---$/ { if (svc && has) print name; svc = has = 0; name = ""; next }
+        /^kind: Service$/ { svc = 1 }
+        /^  name: / && name == "" { name = $2 }
+        $0 == "    - name: " port { has = 1 }
+        END { if (svc && has) print name }' <<<"$1" | sort -u | paste -sd ' '
+}
+
 # lint and template with the same settings, which must both succeed.
 render() { # description args...
     local what="$1"
@@ -241,9 +261,18 @@ check "no SeaweedFS is rendered" "$(grep -c 'seaweedfs' <<<"${RENDERED}")" "0"
 refused "SeaweedFS reading keys the api does not have" "must be \"exciter-s3\" and \"exciter-s3-read\"" \
     "${SWFS[@]}" --set seaweedfs.s3.credentials.admin.existingSecret=elsewhere
 
+echo "== Monitoring"
+render "the ServiceMonitor" "${WIRED[@]}" --set telemetry.serviceMonitor.enabled=true
+check "the worker's metrics have a Service" \
+    "$(manifest "${RENDERED}" Service "${FULL}-worker" | grep -cE '^    - name: metrics$|^    app.kubernetes.io/component: worker$')" "3"
+check "the ServiceMonitor selects the api and the worker" \
+    "$(manifest "${RENDERED}" ServiceMonitor "${FULL}" | grep -c '^        values: \[api, worker\]$')" "1"
+check "the Services with a metrics port are the api's and the worker's" \
+    "$(services_with_port "${RENDERED}" metrics)" "${FULL}-api ${FULL}-worker"
+
 echo "== The golden renders"
 golden demo -f /chart/values-demo.yaml
-golden production "${WIRED[@]}" --set bootstrap.oidc.issuer=https://sso.example.com/realms/dynamo \
+golden production "${WIRED[@]}" --set telemetry.serviceMonitor.enabled=true --set bootstrap.oidc.issuer=https://sso.example.com/realms/dynamo \
     --set bootstrap.oidc.clientId=exciter --set bootstrap.oidc.clientSecret.name=dynamo-oidc
 
 if [[ ${FAILED} -ne 0 ]]; then

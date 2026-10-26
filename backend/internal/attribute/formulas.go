@@ -171,25 +171,25 @@ func recompute(ctx context.Context, tx db.DBTX, projectID uuid.UUID) error {
 	return err
 }
 
-// FollowsAcyclic names a computed attribute whose formula is only safe while a link type stays acyclic, empty when
-// none is, for the link type's change to refuse.
-func FollowsAcyclic(ctx context.Context, tx db.DBTX, typeID uuid.UUID) (string, error) {
+// FollowsAcyclic names a computed attribute, and its project, whose formula is only safe while a link type stays
+// acyclic, empty when none is, for the link type's change to refuse.
+func FollowsAcyclic(ctx context.Context, tx db.DBTX, typeID uuid.UUID) (string, uuid.UUID, error) {
 	rows, err := tx.Query(ctx, `SELECT DISTINCT project_id FROM attribute_def WHERE formula LIKE '%''@' || $1::text || '''%'`, typeID)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 	projects, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 	for _, p := range projects {
 		defs, err := Defs(ctx, tx, p)
 		if err != nil {
-			return "", err
+			return "", uuid.Nil, err
 		}
 		links, err := linkTypesOf(ctx, tx, p)
 		if err != nil {
-			return "", err
+			return "", uuid.Nil, err
 		}
 		for i := range links {
 			if links[i].ID == typeID {
@@ -199,12 +199,12 @@ func FollowsAcyclic(ctx context.Context, tx db.DBTX, typeID uuid.UUID) (string, 
 		if cyclesOf(defs, links, programs(defs, links)) != nil {
 			for _, d := range defs {
 				if d.Computed() && strings.Contains(d.stored, "'@"+typeID.String()+"'") {
-					return d.Name, nil
+					return d.Name, p, nil
 				}
 			}
 		}
 	}
-	return "", nil
+	return "", uuid.Nil, nil
 }
 
 // checkComputed refuses on a computed attribute what only a typed one has.

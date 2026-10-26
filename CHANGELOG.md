@@ -49,6 +49,54 @@ and the versioning [Semantic Versioning](https://semver.org/).
   and scopes Stator takes, and anew on a rerun, since Stator does not
   rotate an app's secret; and Stator gets the space `SUITE`, so
   `make suite-smoke` finds a page to link.
+- With `telemetry.serviceMonitor.enabled`, the chart's ServiceMonitor
+  scrapes the worker's metrics as well as the api's (#359). The worker has
+  a headless Service of its own, `<release>-worker`, for the scraper.
+- A mail relay that accepts the connection and then stops answering no
+  longer holds back every notification mail and digest after it (#356).
+  Each send gives up after 30 seconds, or sooner when the worker is
+  stopping, and the worker logs the mail it could not send and carries on.
+- The database holds a workflow to its own project's statuses, for every
+  step and the status a new revision sends it to, and keeps a status or a
+  workflow from moving to another project while a step names it (#340).
+- Turning a link type's acyclic flag off first checks that you may change
+  the type, and a refusal because a formula reads along it names the
+  computed attribute only when you may view its project (#339).
+- A theme's extra CSS is held to loading only the theme's own files and
+  inline images through `image-set()`, `image()`, `cross-fade()` and `src()`
+  as through `url()`, and may no longer contain CSS escapes (#343). Write
+  each character as itself instead of a backslash escape.
+- A test result links its commit to where Armature shows it only when that
+  address is a web address, `http` or `https` (#344); any other commit is
+  shown by its SHA alone.
+- Outbound calls through a proxy from `HTTP_PROXY` or `HTTPS_PROXY` are
+  checked for their destination as direct calls are (#341). A destination
+  goes to the proxy only when none of its addresses lies inside the network,
+  or `EXCITER_OUTBOUND_ALLOW` names it; a name this server cannot resolve
+  itself goes through a proxy only when `EXCITER_OUTBOUND_ALLOW` names it.
+- Outbound calls treat every address the special-purpose registries set
+  aside as inside the network, and judge an address under a translation
+  prefix by the IPv4 address it carries (#342). `EXCITER_OUTBOUND_ALLOW`
+  still lets a named range through.
+- The suite's seed makes Exciter's webhook at Stator, as an administrator
+  connecting Stator does, and stores its secret on Exciter's Stator
+  connection (#358). Page changes in the suite now reach Exciter, and the
+  suite smoke watches a link follow a page published in Stator.
+- A refresh of a sign-in's grant that Armature or Stator refused or did not
+  answer is not asked again for two minutes (#349). Reads and the link worker
+  answer rejected or unreachable meanwhile instead of asking the partner on
+  every use; checking the account asks at once.
+- When Armature or Stator does not answer the token exchange at sign-in in
+  time, the account page now says so (#348). The outcome used to be lost
+  with the time that had run out.
+- A Stator page event that arrives late, for an older version than a link
+  holds, no longer moves the link back to the space the page left (#347).
+- Sending a webhook delivery again by hand no longer ends its automatic
+  retries (#346). The next retry after a failure takes the attempt after the
+  highest one logged, so a redelivery in between leaves it scheduled.
+- Filing a failed test run as an Armature issue on a step the case does not
+  have is refused, naming the step, before anything is filed (#345). It used
+  to leave an issue in Armature that Exciter never linked back to.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the
@@ -62,6 +110,33 @@ and the versioning [Semantic Versioning](https://semver.org/).
   Armature takes relations, link sync sends `requirement` for an implements
   or verifies trace and `page` for any other; links synced before are
   corrected by the requirement's next sync.
+- A requirement in the trash comes back with Restore although its status
+  was made to lock while it was there (#350). It returns locked as its
+  status says; what it says still takes no change in the trash.
+- A review session of an archived project can no longer be changed, moved
+  to a new round or closed, by its moderator or the project's
+  administrators, in the app and in the database (#351). The session says
+  so and offers none of them until the project is unarchived.
+- Coverage follows a link type at once when what it counts changes or it is
+  retired (#352), instead of answering the old figures for up to a minute.
+- The notification settings list every kind of notification, so review
+  sessions, test executions, code scans, glossary terms and revised library
+  sources can be switched off in the app and by email too (#353).
+- Moving a requirement to a project that lacks one of its statuses works in
+  the move dialog (#354). The dialog asks where the requirements in each
+  such status go, and asks again for every status that moves when the
+  server says a type's workflow there lacks one.
+- The owner of a shared view who no longer edits its project is told why
+  the view cannot be changed while it is shared, instead of getting a
+  server error (#355). Taking the view back still works, and then it is
+  theirs to change.
+- The MCP test of clearing a suspect link checks that the link the tool
+  answers has no ends left that moved on (#357); it compared with a flag
+  the answer never has, so it could not fail.
+- Computed attributes whose formula calls `today()` are worked out again
+  each day (#360). Shortly after midnight UTC the worker marks the
+  requirements those formulas show on, and nothing else; what reads such a
+  value elsewhere follows as with any change.
 
 ## [0.1.0] - 2026-10-21
 

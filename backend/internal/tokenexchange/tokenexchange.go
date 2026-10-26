@@ -28,9 +28,13 @@ const (
 	// SignInTimeout bounds the exchange a sign-in waits for: a partner that does not answer costs the person at
 	// most this, and they are signed in all the same.
 	SignInTimeout = 3 * time.Second
+	// NoteTimeout bounds the write of what a sign-in's exchange came to, made after SignInTimeout may have run out.
+	NoteTimeout = 2 * time.Second
 	// RefreshMargin is how long before its access token runs out a stored grant is refreshed, so a call that
 	// starts just before the hour does not meet a 401 halfway.
 	RefreshMargin = time.Minute
+	// RefreshBackoff is how long a refresh the partner refused or did not answer is left before reads try again.
+	RefreshBackoff = 2 * time.Minute
 	// maxAnswerBytes bounds the token endpoint's answer, a handful of short fields.
 	maxAnswerBytes = 64 << 10
 )
@@ -153,6 +157,9 @@ func Why(partner string, err error) string {
 		return partner + " does not let Exciter connect people at sign-in yet: " + sentence(r.Description) + " Connect with a token below meanwhile."
 	case errors.As(err, &r):
 		return partner + " did not connect you at sign-in: " + sentence(r.Description) + " Connect with a token below, or ask " + partner + "'s administrator."
+	case errors.Is(err, context.DeadlineExceeded):
+		return fmt.Sprintf("%s did not answer within %d seconds when you signed in, so you were not connected there. Sign in again later, or connect with a token below.",
+			partner, int(SignInTimeout.Seconds()))
 	default:
 		return partner + " did not answer when you signed in, so you were not connected there. Sign in again later, or connect with a token below."
 	}

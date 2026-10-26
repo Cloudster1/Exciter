@@ -62,13 +62,16 @@ func (s *Service) ExchangeAtSignIn(ctx context.Context, user uuid.UUID, subject 
 	if !s.opts.TokenExchange || subject == "" {
 		return 0
 	}
-	ctx, cancel := context.WithTimeout(ctx, tokenexchange.SignInTimeout)
+	exchangeCtx, cancel := context.WithTimeout(ctx, tokenexchange.SignInTimeout)
 	defer cancel()
-	connected, why := s.exchange(ctx, user, subject)
+	connected, why := s.exchange(exchangeCtx, user, subject)
 	if !connected && why == "" {
 		return 0
 	}
-	lsn, err := tokenexchange.Note(ctx, s.db, tokenexchange.PartnerArmature, user, connected, why)
+	// An exchange that ran out of time has spent exchangeCtx, and that is the outcome the account page most needs.
+	noteCtx, cancelNote := context.WithTimeout(context.WithoutCancel(ctx), tokenexchange.NoteTimeout)
+	defer cancelNote()
+	lsn, err := tokenexchange.Note(noteCtx, s.db, tokenexchange.PartnerArmature, user, connected, why)
 	if err != nil {
 		s.opts.Log.Warn("what the sign-in's exchange at Armature came to could not be kept", "user_id", user, "error", err)
 	}
@@ -158,8 +161,8 @@ func (s *Service) storeExchanged(ctx context.Context, app *partnerApp, user uuid
 
 // renew refreshes the person's grant from a sign-in, one refresh at a time: the row is locked while Armature is
 // asked, as a rotated refresh token presented twice ends the grant there. A grant Armature ended is forgotten, and
-// the account page says so.
-func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID) (*tokenRow, Status, error) {
+// the account page says so. patient leaves a refresh that failed within RefreshBackoff as it is.
+func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID, patient bool) (*tokenRow, Status, error) {
 	var (
 		row    *tokenRow
 		status = StatusOK
@@ -180,6 +183,10 @@ func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID) (*tokenRow, 
 		}
 		// Another request renewed it while this one waited for the lock.
 		if row.Status == StatusOK && row.ExpiresAt != nil && !tokenexchange.Due(*row.ExpiresAt, time.Now()) {
+			return nil
+		}
+		if patient && row.RefreshFailedAt != nil && time.Since(*row.RefreshFailedAt) < tokenexchange.RefreshBackoff {
+			status = backedOff(row)
 			return nil
 		}
 		app, err := s.partnerApp(ctx, tx)
@@ -205,12 +212,13 @@ func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID) (*tokenRow, 
 		case errors.As(err, &refused):
 			s.opts.Log.Warn("Armature refused to refresh a grant from a sign-in", "token_id", row.ID, "error", err)
 			status = StatusRejected
-			_, err = tx.Exec(ctx, `UPDATE armature_token SET status = 'rejected', checked_at = now() WHERE id = $1`, row.ID)
+			_, err = tx.Exec(ctx, `UPDATE armature_token SET status = 'rejected', checked_at = now(), refresh_failed_at = now() WHERE id = $1`, row.ID)
 			return err
 		case err != nil:
 			s.opts.Log.Info("Armature did not answer a refresh", "token_id", row.ID, "error", err)
 			status = StatusUnreachable
-			return nil
+			_, err = tx.Exec(ctx, `UPDATE armature_token SET refresh_failed_at = now() WHERE id = $1`, row.ID)
+			return err
 		}
 		access, err := s.box.Seal([]byte(tokens.Access), tokenContext(app.Installation, user))
 		if err != nil {
@@ -221,11 +229,12 @@ func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID) (*tokenRow, 
 			return err
 		}
 		if _, err := tx.Exec(ctx, `
-			UPDATE armature_token SET token = $2, refresh_token = $3, access_expires_at = $4, status = 'ok', checked_at = now()
+			UPDATE armature_token SET token = $2, refresh_token = $3, access_expires_at = $4, status = 'ok', checked_at = now(),
+			    refresh_failed_at = NULL
 			WHERE id = $1`, row.ID, access, rotated, tokens.ExpiresAt); err != nil {
 			return err
 		}
-		row.Sealed, row.RefreshSealed, row.ExpiresAt, row.Status = access, rotated, &tokens.ExpiresAt, StatusOK
+		row.Sealed, row.RefreshSealed, row.ExpiresAt, row.Status, row.RefreshFailedAt = access, rotated, &tokens.ExpiresAt, StatusOK, nil
 		return nil
 	})
 	if err != nil {
@@ -241,4 +250,12 @@ func (s *Service) renew(ctx context.Context, user, rowID uuid.UUID) (*tokenRow, 
 		return nil, status, nil
 	}
 	return row, StatusOK, nil
+}
+
+// backedOff is what a grant whose refresh failed lately answers while it waits: refused, or not answered.
+func backedOff(row *tokenRow) Status {
+	if row.Status == StatusRejected {
+		return StatusRejected
+	}
+	return StatusUnreachable
 }

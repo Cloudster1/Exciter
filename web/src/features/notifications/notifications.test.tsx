@@ -1,9 +1,13 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Thread } from "@/api/comments";
-import type { Notification, Preferences } from "@/api/notifications";
+import { NOTIFICATION_KINDS, type Notification, type Preferences } from "@/api/notifications";
 import { UNREAD_POLL_MS } from "@/config";
+import { notificationsDe } from "@/i18n/notifications.de";
+import { notificationsEn } from "@/i18n/notifications.en";
 import { renderAt, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -282,6 +286,22 @@ describe("the notification settings", () => {
       digest: "daily",
       autoWatch: false,
     });
+  });
+
+  it("offer every kind the API tells, in its order, worded in both languages", async () => {
+    const openapi = JSON.parse(readFileSync(resolve(process.cwd(), "../api/openapi.json"), "utf8")) as {
+      components: { schemas: { Notification: { properties: { kind: { enum: string[] } } } } };
+    };
+    const told = openapi.components.schemas.Notification.properties.kind.enum;
+    expect(NOTIFICATION_KINDS).toEqual(told);
+    for (const kind of NOTIFICATION_KINDS) {
+      expect(notificationsEn.kinds[kind], `the English words for ${kind}`).toBeTruthy();
+      expect(notificationsDe.kinds[kind], `the German words for ${kind}`).toBeTruthy();
+    }
+    stubShell({ "GET /notification-preferences": { status: 200, body: { preferences: defaults } } });
+    await renderAt("/settings/notifications");
+    expect(await screen.findByRole("checkbox", { name: "In the app: Somebody asks you to take part in a review session" })).toBeChecked();
+    expect(document.querySelectorAll("[data-preference]")).toHaveLength(told.length);
   });
 
   it("read a kind the stored switches leave out as on", async () => {

@@ -494,6 +494,9 @@ func TestAResultLinksToItsCommitInArmature(t *testing.T) {
 		http.StatusCreated, "link CP-1")
 	stubControl(t, http.MethodPost, slug+"/issues/CP-1/commits", map[string]any{"repository": "acme/checkout", "sha": aCommit + "0000",
 		"url": "https://git.example/acme/checkout/commit/" + aCommit})
+	other := strings.Repeat("b", len(aCommit))
+	stubControl(t, http.MethodPost, slug+"/issues/CP-1/commits", map[string]any{"repository": "acme/checkout", "sha": other + "0000",
+		"url": "data:text/html,commit"})
 	ran(t, owner, key, runForm("main"), junit([2]string{"engage [verifies " + key + "-R1]", "passed"}))
 	results := list(t, want(t, owner.get(t, "/api/v1/requirements/"+key+"-R1/test-results"), http.StatusOK, "read the results"), "results")
 	if len(results) != 1 {
@@ -502,5 +505,17 @@ func TestAResultLinksToItsCommitInArmature(t *testing.T) {
 	link, _ := results[0].(map[string]any)["armature"].(map[string]any)
 	if link["issueKey"] != "CP-1" || link["url"] != "https://git.example/acme/checkout/commit/"+aCommit {
 		t.Errorf("the result's commit links to %v", link)
+	}
+
+	// A commit whose address is not a web address is shown without a link.
+	fields := runForm("main")
+	fields["commit"] = other
+	ran(t, owner, key, fields, junit([2]string{"engage [verifies " + key + "-R1]", "passed"}))
+	results = list(t, want(t, owner.get(t, "/api/v1/requirements/"+key+"-R1/test-results"), http.StatusOK, "read the results again"), "results")
+	if len(results) != 1 || results[0].(map[string]any)["commit"] != other {
+		t.Fatalf("R1's results after the second run: %v", results)
+	}
+	if link := results[0].(map[string]any)["armature"]; link != nil {
+		t.Errorf("a commit without a web address links to %v", link)
 	}
 }

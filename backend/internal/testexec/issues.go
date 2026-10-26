@@ -97,7 +97,7 @@ func failureDraft(e *executionRow, c *Case, in FailureIssueInput, keys []string,
 	if e.Version != "" || e.Configuration != "" {
 		paragraphs = append(paragraphs, fmt.Sprintf("Version: %s. Configuration: %s.", e.Version, e.Configuration))
 	}
-	if in.Step != nil && *in.Step >= 1 && *in.Step <= len(c.Steps) {
+	if in.Step != nil {
 		s := c.Steps[*in.Step-1]
 		paragraphs = append(paragraphs, fmt.Sprintf("Step %d: %s", *in.Step, plain(s.Action)))
 		if expected := plain(s.Expected); expected != "" {
@@ -141,6 +141,9 @@ func (s *Service) FileIssue(ctx context.Context, actor, execution uuid.UUID, key
 		}
 		if c.Run.Outcome == nil || *c.Run.Outcome != Failed {
 			return ErrNotFailed
+		}
+		if in.Step != nil && (*in.Step < 1 || *in.Step > len(c.Steps)) {
+			return &FieldError{"step", fmt.Sprintf("The case has steps 1 to %d at the revision it runs. File the issue on one of those, or on the case.", len(c.Steps))}
 		}
 		keys, err := verified(ctx, tx, id)
 		if err != nil {

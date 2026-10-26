@@ -54,6 +54,12 @@ func TestAThemeIsValidatedPartByPart(t *testing.T) {
 		{"css that loads another theme's file", Spec{CSS: ".x { background: url(/api/v1/themes/" + stranger.String() + "/assets/" + file.String() + ") }"}, "only load its own files"},
 		{"css that closes the style element", Spec{CSS: "</style><script>"}, "</"},
 		{"css beyond the limit", Spec{CSS: strings.Repeat("a", MaxCSSBytes+1)}, "at most"},
+		{"css that loads from elsewhere through image-set", Spec{CSS: ".x { background: image-set(\"https://evil/pixel.png\" 1x) }"}, "only load its own files"},
+		{"css that loads from elsewhere through a prefixed image-set", Spec{CSS: ".x { background: -webkit-image-set('//evil/a.png' 1x, url(\"data:image/png,x\") 2x) }"}, "only load its own files"},
+		{"css that loads from elsewhere through image()", Spec{CSS: ".x { background: image('https://evil/a.png') }"}, "only load its own files"},
+		{"css that loads from elsewhere through src()", Spec{CSS: ".x { background: SRC(\"https://evil/a.png\") }"}, "only load its own files"},
+		{"css that spells url( with an escape", Spec{CSS: ".x { background: \\75 rl(https://evil/pixel.png) }"}, "backslash"},
+		{"css that spells a forbidden word with an escape", Spec{CSS: "@\\69mport 'x.css';"}, "backslash"},
 	}
 	for _, each := range refused {
 		spec := each.spec
@@ -69,6 +75,17 @@ func TestAThemeIsValidatedPartByPart(t *testing.T) {
 		spec := Spec{CSS: ".x { background: url(\"data:image/svg+xml,%3Csvg%3E\") }"}
 		if err := Validate(&spec, themeID, assets); err != nil {
 			t.Errorf("an inline image was refused: %v", err)
+		}
+	})
+
+	t.Run("an image-set may name the theme's own files and inline images", func(t *testing.T) {
+		own := "/api/v1/themes/" + themeID.String() + "/assets/" + file.String()
+		spec := Spec{CSS: ".x { background: image-set(\"" + own + "\" 1x, url(\"data:image/png;base64,AAAA\") 2x) }"}
+		if err := Validate(&spec, themeID, assets); err != nil {
+			t.Fatalf("an image-set of the theme's own file was refused: %v", err)
+		}
+		if ids := spec.AssetIDs(); len(ids) != 1 || ids[0] != file {
+			t.Errorf("AssetIDs = %v, want the file the image-set names", ids)
 		}
 	})
 
