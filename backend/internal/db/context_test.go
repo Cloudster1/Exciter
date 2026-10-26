@@ -55,3 +55,27 @@ func TestPinsOnlyEverRise(t *testing.T) {
 		t.Error("pinning to the primary lost the position")
 	}
 }
+
+// What one read saw holds every later read made with the context to it, and only a step forward is news (#374).
+func TestAReadNeverGoesBackOnWhatAnEarlierOneSaw(t *testing.T) {
+	ctx := TrackReads(PinLSN(context.Background(), 100), nil)
+	tracker := trackerFrom(ctx)
+	if got := pinFrom(ctx).requiredLSN; got != 100 {
+		t.Fatalf("before any read the pin is %d, want the caller's own 100", got)
+	}
+	if !tracker.saw(300) {
+		t.Error("a read seeing further than any before was not news")
+	}
+	if tracker.saw(200) || tracker.saw(300) {
+		t.Error("a read seeing less, or as much, was taken for news")
+	}
+	if got := pinFrom(ctx).requiredLSN; got != 300 {
+		t.Errorf("after a read saw 300 the pin is %d, want 300", got)
+	}
+	if got := pinFrom(PinLSN(ctx, 400)).requiredLSN; got != 400 {
+		t.Errorf("a later write's 400 gave %d", got)
+	}
+	if trackerFrom(context.Background()) != nil {
+		t.Error("an untracked context has a tracker")
+	}
+}

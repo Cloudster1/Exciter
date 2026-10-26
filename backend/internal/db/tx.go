@@ -54,8 +54,15 @@ func (c *Cluster) refusedLSN(ctx context.Context) LSN {
 // committedLSN is read after the commit, never inside the transaction: the
 // commit record lands past any position read before it.
 func (c *Cluster) committedLSN(ctx context.Context, pool *pgxpool.Pool) (LSN, error) {
+	return position(ctx, pool)
+}
+
+// position is where the primary q reaches stands in its write ahead log.
+func position(ctx context.Context, q interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}) (LSN, error) {
 	var text string
-	if err := pool.QueryRow(ctx, currentLSNSQL).Scan(&text); err != nil {
+	if err := q.QueryRow(ctx, currentLSNSQL).Scan(&text); err != nil {
 		return 0, fmt.Errorf("read wal position: %w", err)
 	}
 	return ParseLSN(text)
@@ -69,13 +76,32 @@ var readOnly = pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadO
 // there is one, otherwise on the primary.
 func (c *Cluster) Read(ctx context.Context, fn func(context.Context, DBTX) error) error {
 	var on beginner = c.primary
-	if conn := c.readConn(ctx); conn != nil {
+	conn := c.readConn(ctx)
+	if conn != nil {
 		defer conn.Release()
 		on = conn
 	}
-	return c.inTx(ctx, on, readOnly, func(ctx context.Context, tx pgx.Tx) error {
-		return fn(ctx, tx)
+	// The primary answering in a replica's place shows more than the replica may have yet; a read pinned to the
+	// primary chose to see the latest, and moves nobody else's reads.
+	t := trackerFrom(ctx)
+	instead := conn == nil && t != nil && len(c.replicas) > 0 && !pinFrom(ctx).forcePrimary
+	var at LSN
+	err := c.inTx(ctx, on, readOnly, func(ctx context.Context, tx pgx.Tx) error {
+		if err := fn(ctx, tx); err != nil {
+			return err
+		}
+		if !instead {
+			return nil
+		}
+		// Read after the snapshot was taken, so every commit the read saw lies before it.
+		var err error
+		at, err = position(ctx, tx)
+		return err
 	})
+	if err == nil && at != 0 && t.saw(at) && t.onPrimary != nil {
+		t.onPrimary(at)
+	}
+	return err
 }
 
 // beginner is a pool or one connection taken from it.

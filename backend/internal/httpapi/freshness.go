@@ -44,7 +44,7 @@ func noteWrite(ctx context.Context, lsn db.LSN) {
 }
 
 // readYourWrites keeps a caller's reads off any replica that has not replayed
-// their own last write, by pinning the request to that write's position.
+// their own last write or what the primary last showed them, by pinning the request.
 func (s *Server) readYourWrites(next http.Handler) http.Handler {
 	if s.Fresh == nil {
 		return next
@@ -52,13 +52,17 @@ func (s *Server) readYourWrites(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := s.freshnessKey(w, r)
 		if key == "" {
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(db.TrackReads(r.Context(), nil)))
 			return
 		}
 		ctx := r.Context()
 		if lsn := s.Fresh.Required(ctx, key); lsn != 0 {
 			ctx = db.PinLSN(ctx, lsn)
 		}
+		// What the primary showed in a lagging replica's place, such as the worker's import done, is kept like a
+		// write, so the caller's next request does not go back to the replica's older answer (#374).
+		asked := ctx
+		ctx = db.TrackReads(ctx, func(lsn db.LSN) { s.Fresh.Note(asked, key, lsn) })
 		ctx = context.WithValue(ctx, ctxFreshnessKey{}, &writeNote{fresh: s.Fresh, key: key})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -42,6 +42,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Once a page has shown you something the server finished in the
+  background, such as a ReqIF import done, the next pages show it too
+  (#374). While the database's read replica was behind, one page could be
+  answered from the primary and the next from the replica, so an import read
+  as done and the project's tree came back empty until a reload.
 - Something saved while its list is still loading for the first time now
   shows in that list (#372). The list used to come back as it stood before
   the change and kept that until the page was reloaded. It showed on a busy
