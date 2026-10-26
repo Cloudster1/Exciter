@@ -42,6 +42,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A Stator page event that arrives late, for an older version than a link
+  holds, no longer moves the link back to the space the page left (#347).
 - Sending a webhook delivery again by hand no longer ends its automatic
   retries (#346). The next retry after a failure takes the attempt after the
   highest one logged, so a redelivery in between leaves it scheduled.

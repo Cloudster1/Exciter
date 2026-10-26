@@ -266,12 +266,18 @@ func TestRequirementsAreTracedToStatorPages(t *testing.T) {
 		if l := linkTo(t, timing); l["pageVersion"] != float64(4) {
 			t.Errorf("an older version went back: %v", l)
 		}
-		send("a move", statorHook{id: uuid.New(), topic: stator.TopicPageMoved, payload: pageRef(timing, 4, "SEC")}, http.StatusNoContent, "")
+		send("a version published in another space", statorHook{id: uuid.New(), topic: stator.TopicPagePublished, payload: pageRef(timing, 5, "QA")}, http.StatusNoContent, "")
+		send("an older version from the space it left, late", statorHook{id: uuid.New(), topic: stator.TopicPagePublished, payload: pageRef(timing, 4, "ENG")},
+			http.StatusNoContent, "")
+		if l := linkTo(t, timing); l["pageVersion"] != float64(5) || l["spaceKey"] != "QA" || l["url"] != base+"/s/QA/p/"+timing {
+			t.Errorf("a late page.published moved the link back: %v", l)
+		}
+		send("a move", statorHook{id: uuid.New(), topic: stator.TopicPageMoved, payload: pageRef(timing, 5, "SEC")}, http.StatusNoContent, "")
 		if l := linkTo(t, timing); l["spaceKey"] != "SEC" || l["url"] != base+"/s/SEC/p/"+timing {
 			t.Errorf("after page.moved the link reads %v", l)
 		}
 		send("a move in the CloudEvents envelope", statorHook{id: uuid.New(), topic: stator.TopicPageMoved, version: webhook.VersionCloudEvents,
-			versionHeader: strconv.Itoa(webhook.VersionCloudEvents), payload: pageRef(timing, 4, "OPS")}, http.StatusNoContent, "")
+			versionHeader: strconv.Itoa(webhook.VersionCloudEvents), payload: pageRef(timing, 5, "OPS")}, http.StatusNoContent, "")
 		if l := linkTo(t, timing); l["spaceKey"] != "OPS" {
 			t.Errorf("after page.moved in version 2 the link reads %v", l)
 		}
