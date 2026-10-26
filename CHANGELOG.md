@@ -42,6 +42,25 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The suite's seed makes Exciter's webhook at Stator, as an administrator
+  connecting Stator does, and stores its secret on Exciter's Stator
+  connection (#358). Page changes in the suite now reach Exciter, and the
+  suite smoke watches a link follow a page published in Stator.
+- A refresh of a sign-in's grant that Armature or Stator refused or did not
+  answer is not asked again for two minutes (#349). Reads and the link worker
+  answer rejected or unreachable meanwhile instead of asking the partner on
+  every use; checking the account asks at once.
+- When Armature or Stator does not answer the token exchange at sign-in in
+  time, the account page now says so (#348). The outcome used to be lost
+  with the time that had run out.
+- A Stator page event that arrives late, for an older version than a link
+  holds, no longer moves the link back to the space the page left (#347).
+- Sending a webhook delivery again by hand no longer ends its automatic
+  retries (#346). The next retry after a failure takes the attempt after the
+  highest one logged, so a redelivery in between leaves it scheduled.
+- Filing a failed test run as an Armature issue on a step the case does not
+  have is refused, naming the step, before anything is filed (#345). It used
+  to leave an issue in Armature that Exciter never linked back to.
 - The specification's tree stays below the page's header and scrolls on its
   own to its last entry, without moving the document (#361). On a wide
   screen the tree sits at the left of the page, a little wider, and the

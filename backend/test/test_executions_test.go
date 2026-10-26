@@ -5,7 +5,10 @@ package test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -217,6 +220,12 @@ func TestAFailedCaseIsFiledAsAnIssue(t *testing.T) {
 	base := "/api/v1/test-executions/" + s.execution + "/cases/" + s.key + "-R2"
 	want(t, s.f.plain.put(t, base+"/result", map[string]any{"iteration": 1, "steps": []any{map[string]any{"step": 2, "outcome": "failed", "note": "It slid."}}}),
 		http.StatusOK, "fail a step")
+	for _, step := range []int{0, 3, 101} {
+		refuse422(t, "an issue on step "+strconv.Itoa(step), s.f.plain.post(t, base+"/issues", map[string]any{"iteration": 1, "step": step, "armatureProject": "cp"}), "step")
+	}
+	if filed := stubSearch(t, slug, "bob", s.key+"-R2"); len(filed) != 0 {
+		t.Fatalf("a refused step still filed %v in Armature", filed)
+	}
 	issue := obj(t, want(t, s.f.plain.post(t, base+"/issues", map[string]any{"iteration": 1, "step": 2, "armatureProject": "cp"}), http.StatusCreated, "file it"), "issue")
 	key := issue["key"].(string)
 	links := list(t, want(t, s.f.plain.get(t, "/api/v1/requirements/"+s.key+"-R1/armature-links"), http.StatusOK, "the requirement's issues"), "links")
@@ -230,6 +239,25 @@ func TestAFailedCaseIsFiledAsAnIssue(t *testing.T) {
 	if !strings.Contains(stub["summary"].(string), s.key+"-R2") {
 		t.Errorf("the issue's summary: %v", stub["summary"])
 	}
+}
+
+// stubSearch answers the stub's issues a person sees whose summary holds text.
+func stubSearch(t *testing.T, tenant, person, text string) []any {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, os.Getenv(envArmatureStub)+"/api/v1/issues?text="+url.QueryEscape(text), nil)
+	req.Header.Set("Authorization", "Bearer "+patFor(tenant, person))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var got struct {
+		Issues []any `json:"issues"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("search the stub: %d %v", resp.StatusCode, err)
+	}
+	return got.Issues
 }
 
 // Straight through SQL as exciter_app: cases are pinned by the start alone, results are recorded by testers as

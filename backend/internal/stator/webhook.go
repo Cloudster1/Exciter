@@ -187,14 +187,16 @@ func notePublished(ctx context.Context, tx db.DBTX, baseURL string, page Webhook
 	return err
 }
 
-// noteMoved follows a page to its space now, under the connection's address rather than the one Stator writes.
+// noteMoved follows a page to its space now, under the connection's address rather than the one Stator writes. A
+// delivery older than the version a link holds arrived late and may name a space the page has left.
 func noteMoved(ctx context.Context, tx db.DBTX, baseURL string, page WebhookPage) error {
 	if page.Space.Key == "" || len(page.Space.Key) > MaxSpaceKeyLength {
 		return nil
 	}
 	_, err := tx.Exec(ctx, `
 		UPDATE stator_page_link SET space_key = $2, url = $3
-		WHERE page_id = $1 AND (space_key <> $2 OR url <> $3)`, page.ID, page.Space.Key, PageURL(baseURL, page.Space.Key, page.ID))
+		WHERE page_id = $1 AND (space_key <> $2 OR url <> $3) AND (page_version IS NULL OR page_version <= $4)`,
+		page.ID, page.Space.Key, PageURL(baseURL, page.Space.Key, page.ID), page.Version)
 	return err
 }
 
