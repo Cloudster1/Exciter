@@ -42,6 +42,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The FMEA table and the risk matrix read their mitigations in one pass and
+  work out each mitigating requirement's coverage once, rather than once for
+  every risk it mitigates, so a project with a few hundred mitigations opens
+  several times faster and no longer runs a busy server out of time (#370).
+- A request that runs past the server's time limit answers 503 `timed_out`
+  with a `Retry-After` header, saying to try again in a moment, instead of a
+  500 that reads like a fault (#370).
 - `make suite-up` connects the suite again against current Armature and
   Stator (#368). Alice and bob, whom Armature's own seed now lets in, get
   the suite's role and password; Stator's Armature connection no longer
