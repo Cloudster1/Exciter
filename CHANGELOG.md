@@ -42,6 +42,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- With `telemetry.serviceMonitor.enabled`, the chart's ServiceMonitor
+  scrapes the worker's metrics as well as the api's (#359). The worker has
+  a headless Service of its own, `<release>-worker`, for the scraper.
+- A mail relay that accepts the connection and then stops answering no
+  longer holds back every notification mail and digest after it (#356).
+  Each send gives up after 30 seconds, or sooner when the worker is
+  stopping, and the worker logs the mail it could not send and carries on.
 - The database holds a workflow to its own project's statuses, for every
   step and the status a new revision sends it to, and keeps a status or a
   workflow from moving to another project while a step names it (#340).

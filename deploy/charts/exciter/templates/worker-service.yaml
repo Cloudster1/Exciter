@@ -1,0 +1,18 @@
+# The worker serves nothing but its metrics; this Service is how the
+# ServiceMonitor finds each worker pod. Headless, as nothing calls it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "exciter.fullname" . }}-worker
+  labels:
+    {{- include "exciter.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: {{ .Values.telemetry.metricsPort }}
+      targetPort: metrics
+  selector:
+    {{- include "exciter.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: worker

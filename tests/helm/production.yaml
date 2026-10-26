@@ -209,6 +209,32 @@ spec:
     app.kubernetes.io/instance: r
     app.kubernetes.io/component: web
 ---
+# Source: exciter/templates/worker-service.yaml
+# The worker serves nothing but its metrics; this Service is how the
+# ServiceMonitor finds each worker pod. Headless, as nothing calls it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: r-exciter-worker
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+    app.kubernetes.io/component: worker
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/component: worker
+---
 # Source: exciter/templates/api-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -681,6 +707,31 @@ spec:
       memory: 256Mi
   storage:
     size: 10Gi
+---
+# Source: exciter/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: r-exciter
+  labels:
+    helm.sh/chart: exciter-0.1.0
+    app.kubernetes.io/name: exciter
+    app.kubernetes.io/instance: r
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: exciter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exciter
+      app.kubernetes.io/instance: r
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [api, worker]
+  endpoints:
+    - port: metrics
+      interval: 30s
 ---
 # Source: exciter/templates/job-secrets.yaml
 apiVersion: v1
