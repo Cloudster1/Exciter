@@ -42,6 +42,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The database holds a workflow to its own project's statuses, for every
+  step and the status a new revision sends it to, and keeps a status or a
+  workflow from moving to another project while a step names it (#340).
 - Turning a link type's acyclic flag off first checks that you may change
   the type, and a refusal because a formula reads along it names the
   computed attribute only when you may view its project (#339).
