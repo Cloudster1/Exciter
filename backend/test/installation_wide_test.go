@@ -33,9 +33,11 @@ var keepers = map[string]string{
 // installationWide is every test that changes a setting of the whole installation. The suite runs one test at a
 // time, so another test never sees the change, and each puts it back, so the next starts from the same place.
 var installationWide = map[string]string{
-	"TestLinkTypesOverTheAPI":                       linkTypes,
-	"TestRawSQLGuardsTraceLinks":                    linkTypes,
-	"TestRawSQLKeepsLinkTypesToTheirAdministrators": linkTypes,
+	"TestLinkTypesOverTheAPI":                                    linkTypes,
+	"TestRawSQLGuardsTraceLinks":                                 linkTypes,
+	"TestRawSQLKeepsLinkTypesToTheirAdministrators":              linkTypes,
+	"TestATypeForAllProjectsIsTheAdministratorsAlone":            linkTypes,
+	"TestRawSQLKeepsLinkTypeNamesAndScopesToTheirAdministrators": linkTypes,
 
 	"TestThemesOverTheAPI":               defaultTheme,
 	"TestRawSQLKeepsThemesToTheirPeople": defaultTheme,

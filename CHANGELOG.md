@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves trace links, link types and suspect links to their last
+  control: a type for all projects is refused to a project's administrator,
+  a taken name is refused in either scope, a type comes back from
+  retirement, a link past a requirement's share and links of an archived
+  project are refused with nothing changed, the suspect list is paged and
+  keeps to what its reader sees, every revision of a watched end turns a
+  link, `list_links` answers as its route does, and the database's own
+  guards on names, scopes, types and the trash are tried as `exciter_app`.
+  In the browser every control of the links panel, the link types, their
+  pairs and the suspect list is used (#313).
 - The suite proves the grid's and the search's pages, filters and views:
   every window of the grid and the search holds each row once in the order
   asked for, the search narrows by owner and day, a token limited to one
