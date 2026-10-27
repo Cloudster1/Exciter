@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the writing rules, the glossary and duplicates beyond
+  the first look: linking and merging a pair are refused for a reader, a
+  stale side, the same requirement twice, another project's side, an
+  unknown link type, a long comment and a locked side, with no row
+  written; the pairs are paged and narrowed; taking back an acceptance
+  and changing a term are refused with their codes, the term as it was;
+  and `get_quality_findings`, `check_requirement_text`, `list_terms` and
+  `get_similar_requirements` answer as their routes do. In the browser a
+  finding is shown, accepted and taken back, rules and word lists are
+  saved, a term is added, redefined, confirmed, reloaded, linked by hand
+  and deleted, a library glossary is chosen, and pairs are linked,
+  merged, filtered, paged, read again and listed by the threshold (#320).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
