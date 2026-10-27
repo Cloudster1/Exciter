@@ -204,6 +204,8 @@ func TestPreferencesEachHaveTheirEffect(t *testing.T) {
 		if n := h.countRows(t, watches, w.bobID, w.reqID); n != 0 {
 			t.Errorf("being made the owner made bob watch R1: %d", n)
 		}
+		// Carol watches next, and must not hear of this revision should the worker come to it late.
+		h.drained(t)
 	})
 
 	t.Run("a kind switched off by email alone is told in the app and not mailed", func(t *testing.T) {
