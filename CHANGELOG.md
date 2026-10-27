@@ -59,6 +59,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   refused as archived (409 `project_archived`), saying to unarchive the
   project, rather than telling an administrator to ask for edit rights
   (#311). Taking a view back from sharing still works there.
+- An assistant whose query is refused through `list_requirements` or
+  another tool is told the character it went wrong at, as the grid points
+  at it, beside the sentence (#311).
 - A requirement out of the trash no longer goes below one in the trash, even
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such
