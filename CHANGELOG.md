@@ -20,6 +20,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   In the browser every control of the coverage and trace graph pages is
   used, by keyboard too, and a reader walks the report a page at a time
   (#314).
+- The suite proves trace links, link types and suspect links to their last
+  control: a type for all projects is refused to a project's administrator,
+  a taken name is refused in either scope, a type comes back from
+  retirement, a link past a requirement's share and links of an archived
+  project are refused with nothing changed, the suspect list is paged and
+  keeps to what its reader sees, every revision of a watched end turns a
+  link, `list_links` answers as its route does, and the database's own
+  guards on names, scopes, types and the trash are tried as `exciter_app`.
+  In the browser every control of the links panel, the link types, their
+  pairs and the suspect list is used (#313).
 - The suite proves the edges of comments, files, watching and
   notifications: every refusal leaves the comments, threads, files and
   watches as they were, a mention and the mention picker reach only who
@@ -94,6 +104,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The impact file of a trace graph marks an item suspect only when the
   link that reached it is, as the graph's page does (#314). It marked a
   requirement suspect for a suspect link leading on from it as well.
+- Linking a requirement of an archived project, or removing a link whose
+  ends are all in archived projects, is refused as archived (409
+  `project_archived`), as confirming such a link already was, rather than
+  telling an administrator to ask for edit rights (#313).
 - Watching a project that cannot be changed now says so on the project's
   page, as the requirement's watch menu does, instead of nothing (#312).
 - Stopping the last watch on a later page of Watching goes back to the
