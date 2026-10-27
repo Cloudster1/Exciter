@@ -20,11 +20,11 @@ export function keepsBaselines(project: Project): boolean {
   return project.can.administer && !project.archivedAt;
 }
 
-/** A project's baselines, newest first, with a way for its administrators to take one. */
-export function BaselineList({ project }: { project: Project }) {
+/** A project's baselines, newest first, with a way for its administrators to take one; deleted names one just deleted. */
+export function BaselineList({ project, deleted }: { project: Project; deleted?: string }) {
   const { data, error, refetch } = useBaselines(project.key);
   const [taking, setTaking] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(deleted ? t.baseline.deleted(deleted) : "");
   const mayKeep = keepsBaselines(project);
   return (
     <div className="mx-auto max-w-3xl space-y-4" data-baselines={project.key}>

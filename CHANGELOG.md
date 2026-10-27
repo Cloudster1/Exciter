@@ -9,6 +9,37 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the traceability matrix and the trace model to their
+  edges: another project's requirements as columns both ways and in the
+  files, every combination the matrix refuses, a matrix too wide for a
+  file, the trace model refused a retired type, a link type turned off or
+  another project's, too many levels, a reader and an archived project,
+  chains paged and ending in Stator pages or Armature issues, views that
+  lost a link type or a level, and `get_matrix` and `list_trace_chains`
+  answering as their routes do. In the browser issue columns, paging, a
+  suspect cell, moved and removed levels, levels of tests and code, and
+  chains narrowed, downloaded and shared are used (#315).
+- The suite proves baselines and their signatures to every refusal: a
+  baseline of an archived project is neither taken, renamed, deleted nor
+  signed, a root or a comparison outside its project is refused, a
+  baseline being signed keeps its name, a signer who left the frozen group
+  or cannot read the project is refused, a provider sign-in signs once and
+  wrong passwords count with reviews, and the database keeps a baseline's
+  root, project, rule and held links. In the browser a baseline is
+  renamed, deleted, taken of a section and compared with another, its
+  matrix downloads as a workbook, and two signers sign under a changed rule
+  (#316).
+- The suite proves coverage and the trace graph against every way they are
+  narrowed: coverage rules are refused to a reader, for an id that is none
+  and in an archived project, and the rules stay as they were; the report's
+  window is checked; each reader's coverage is cached apart; a link type's
+  count changes the next read; the graph draws Stator pages, follows a
+  project's own link types and answers a section and the trash; neither
+  the graph, coverage nor the query language names an end the reader may
+  not see; `get_trace_graph` and `get_coverage` answer as their routes do.
+  In the browser every control of the coverage and trace graph pages is
+  used, by keyboard too, and a reader walks the report a page at a time
+  (#314).
 - The suite proves trace links, link types and suspect links to their last
   control: a type for all projects is refused to a project's administrator,
   a taken name is refused in either scope, a type comes back from
@@ -96,6 +127,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The suite demo links each requirement it made, also when the replica a
   step reads from has not caught up with the steps before it (#365). It
   then said its links waited for issues Armature did not have yet.
+- Deleting a baseline on its own page leads back to the project's
+  baselines and says "The baseline <name> is deleted." (#316). The page
+  asked for the deleted baseline again and stayed on "That baseline was
+  not found" instead.
+- The impact file of a trace graph marks an item suspect only when the
+  link that reached it is, as the graph's page does (#314). It marked a
+  requirement suspect for a suspect link leading on from it as well.
 - Linking a requirement of an archived project, or removing a link whose
   ends are all in archived projects, is refused as archived (409
   `project_archived`), as confirming such a link already was, rather than

@@ -221,6 +221,30 @@ describe("a baseline", () => {
     await waitFor(() => expect(sent.find((each) => each.method === "PATCH")?.body).toEqual({ locked: true }));
   });
 
+  it("is deleted by its administrators, and the list it returns to names it", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    let deleted = false;
+    const sent = stubBaseline(aBaseline(), {
+      [`GET /baselines/${id}`]: () =>
+        deleted
+          ? { status: 404, body: { error: { code: "not_found", message: "That baseline was not found." } } }
+          : { status: 200, body: { baseline: aBaseline() } },
+      [`DELETE /baselines/${id}`]: () => {
+        deleted = true;
+        return { status: 204 };
+      },
+    });
+    const router = await renderAt(`/p/CHK/baselines/${id}`);
+    await screen.findByRole("list", { name: "Release 1.0" });
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/baselines"));
+    expect(await screen.findByText("The baseline Release 1.0 is deleted.")).toHaveAttribute("role", "status");
+    // Asked for again, the deleted baseline would turn its page into a refusal before it led here.
+    const deletedAt = sent.findIndex((each) => each.method === "DELETE" && each.path === `/baselines/${id}`);
+    expect(deletedAt).toBeGreaterThan(-1);
+    expect(sent.slice(deletedAt).filter((each) => each.method === "GET" && each.path.startsWith(`/baselines/${id}`))).toEqual([]);
+  });
+
   it("is compared with another baseline of the project, picked by its name", async () => {
     stubBaseline();
     const router = await renderAt(`/p/CHK/baselines/${id}`);
