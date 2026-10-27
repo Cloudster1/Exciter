@@ -194,7 +194,15 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 	home := h.owner(t, "suite-steps")
 	ctx := context.Background()
 	fixture := demoFixture()
-	svc := h.demoService(t).WithSnapshot(fixture, demoTopic, []string{arm, exc})
+	on := h
+	if h.replica != nil {
+		// Under load the replica falls behind the steps run back to back (#365). Here it is taken however far it
+		// lags and its replay is held below, so a step that reads an earlier step's work from it fails every time.
+		held := *h
+		held.cluster = h.openCluster(t, 0, neverHealth)
+		on = &held
+	}
+	svc := on.demoService(t).WithSnapshot(fixture, demoTopic, []string{arm, exc})
 	steps := demo.StepCount(demo.Make(fixture), demo.KindBuild)
 	if _, err := h.super.Exec(ctx, `INSERT INTO suite_demo (taken, project_keys, steps, requested_by) VALUES ('2026-10-20', $1, $2, $3)`,
 		[]string{arm, exc}, steps, home.user); err != nil {
@@ -202,6 +210,10 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 	}
 	h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic)
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic) })
+	if h.replica != nil {
+		h.settle(t)
+		h.pauseReplay(t)
+	}
 	read := func(t *testing.T) *demo.Demo {
 		t.Helper()
 		d, err := svc.Status(db.PinPrimary(home.ctx))

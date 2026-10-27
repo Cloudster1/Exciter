@@ -90,6 +90,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The suite demo links each requirement it made, also when the replica a
+  step reads from has not caught up with the steps before it (#365). It
+  then said its links waited for issues Armature did not have yet.
 - Linking a requirement of an archived project, or removing a link whose
   ends are all in archived projects, is refused as archived (409
   `project_archived`), as confirming such a link already was, rather than
