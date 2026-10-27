@@ -166,8 +166,8 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 			v.Kind = *in.Kind
 		}
 		apply(&v, in)
-		if v.Shared && !p.Can.Edit {
-			return ErrShareForbidden
+		if err := shareable(p, v); err != nil {
+			return err
 		}
 		defs, err := attribute.Defs(ctx, tx, p.ID)
 		if err != nil {
@@ -197,6 +197,20 @@ func (s *Service) CreateView(ctx context.Context, actor uuid.UUID, projectKey st
 		return dropLost(ctx, tx, actor, p, out)
 	})
 	return out, lsn, err
+}
+
+// shareable refuses a view that would be shared in a project the actor does not edit: an archived one says so, as
+// no right of the actor's would let them change it.
+func shareable(p *project.Project, v View) error {
+	switch {
+	case !v.Shared:
+		return nil
+	case p.ArchivedAt != nil:
+		return project.ErrArchived
+	case !p.Can.Edit:
+		return ErrShareForbidden
+	}
+	return nil
 }
 
 // apply sets on v what in names.
@@ -245,11 +259,11 @@ func (s *Service) UpdateView(ctx context.Context, actor, id uuid.UUID, in ViewIn
 			return &FieldError{"kind", "A view keeps the kind it was saved as. Save a new view instead."}
 		}
 		apply(v, in)
-		if v.Shared && !p.Can.Edit {
-			if !wasShared {
-				return ErrShareForbidden
+		if err := shareable(p, *v); err != nil {
+			if wasShared && errors.Is(err, ErrShareForbidden) {
+				return ErrSharedChangeForbidden
 			}
-			return ErrSharedChangeForbidden
+			return err
 		}
 		if wasShared && !v.Shared && v.OwnerID != actor {
 			return ErrUnshareForbidden

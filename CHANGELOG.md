@@ -55,6 +55,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Sharing a view, or changing a shared one, in an archived project is
+  refused as archived (409 `project_archived`), saying to unarchive the
+  project, rather than telling an administrator to ask for edit rights
+  (#311). Taking a view back from sharing still works there.
 - A requirement out of the trash no longer goes below one in the trash, even
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such
