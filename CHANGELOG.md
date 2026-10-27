@@ -22,6 +22,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   changed and removed, a signature given at Keycloak and cancelled, and
   sessions opened over a baseline and a query and their report downloaded
   (#317).
+- The suite proves the traceability matrix and the trace model to their
+  edges: another project's requirements as columns both ways and in the
+  files, every combination the matrix refuses, a matrix too wide for a
+  file, the trace model refused a retired type, a link type turned off or
+  another project's, too many levels, a reader and an archived project,
+  chains paged and ending in Stator pages or Armature issues, views that
+  lost a link type or a level, and `get_matrix` and `list_trace_chains`
+  answering as their routes do. In the browser issue columns, paging, a
+  suspect cell, moved and removed levels, levels of tests and code, and
+  chains narrowed, downloaded and shared are used (#315).
 - The suite proves baselines and their signatures to every refusal: a
   baseline of an archived project is neither taken, renamed, deleted nor
   signed, a root or a comparison outside its project is refused, a
