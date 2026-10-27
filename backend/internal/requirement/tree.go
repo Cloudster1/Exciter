@@ -332,11 +332,21 @@ func placeError(field, message string) error { return &FieldError{"place." + fie
 // noCycle is the sentence the tree guard's refusal is answered with.
 const noCycle = "A requirement cannot go below itself or below one of the requirements under it."
 
+// parentGone is the sentence a parent of another project, or in the trash, is refused with.
+const parentGone = "That parent is not in this project, or it is in the trash. Pick another place."
+
 // treeRefusal answers the database's refusal of a parent with the sentence the author reads.
 func treeRefusal(err error) error {
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && (pgErr.ConstraintName == "requirement_tree_no_cycle" || pgErr.ConstraintName == "requirement_parent_same_project") {
+	if !errors.As(err, &pgErr) {
+		return err
+	}
+	switch pgErr.ConstraintName {
+	case "requirement_tree_no_cycle", "requirement_parent_same_project":
 		return placeError("parentId", noCycle)
+	case "requirement_parent_live":
+		// The parent went to the trash after the place was checked.
+		return placeError("parentId", parentGone)
 	}
 	return err
 }
@@ -354,7 +364,7 @@ func rankAt(ctx context.Context, tx db.DBTX, projectID uuid.UUID, place Place, m
 			return "", err
 		}
 		if !live {
-			return "", placeError("parentId", "That parent is not in this project, or it is in the trash. Pick another place.")
+			return "", placeError("parentId", parentGone)
 		}
 	}
 	siblings := `FROM requirement WHERE project_id = $1 AND parent_id IS NOT DISTINCT FROM $2

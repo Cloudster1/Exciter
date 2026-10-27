@@ -48,6 +48,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A requirement out of the trash no longer goes below one in the trash, even
+  when written straight to the database (#310). It vanished from the tree
+  and the specification without showing in the trash. The API refused such
+  a place already; the database now refuses it too.
 - Once a page has shown you something the server finished in the
   background, such as a ReqIF import done, the next pages show it too
   (#374). While the database's read replica was behind, one page could be
