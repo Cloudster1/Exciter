@@ -134,6 +134,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Saving the writing rules or the word lists says so (#320). The cards
+  started again from the settings saved and lost their notice, so a save
+  looked as if nothing had happened.
 - Changing a term somebody may only read, or one of an archived project,
   is refused as not theirs to change or as archived (#320). It answered
   that the term was not found, though the same person could read it.
