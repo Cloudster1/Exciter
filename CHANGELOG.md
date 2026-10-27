@@ -62,6 +62,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - An assistant whose query is refused through `list_requirements` or
   another tool is told the character it went wrong at, as the grid points
   at it, beside the sentence (#311).
+- The grid no longer offers to edit a title its reader may not change in
+  the requirement's status, which the server refused after it was typed
+  (#311). The title shows as it is, as the other fields a rule closes do.
 - A requirement out of the trash no longer goes below one in the trash, even
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such
