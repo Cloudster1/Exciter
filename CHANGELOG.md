@@ -55,6 +55,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
   keeps them, as a script's or an assistant's do; and a save changing
   several attributes the rules refuse is now refused on the same one every
   time.
+- A requirement carries at most 50 labels also when written straight
+  through the database (#309). Only the server held the bound before.
 - Once a page has shown you something the server finished in the
   background, such as a ReqIF import done, the next pages show it too
   (#374). While the database's read replica was behind, one page could be
