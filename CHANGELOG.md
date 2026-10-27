@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves every workflow rule and the shaping of a project: each
+  rule refuses or acts on a transition saved in a workflow, a rule that
+  could never run is refused on save, workflows, statuses, types and
+  attributes are reached only through their project, an archived project
+  takes no new shape, field rules keep to the fixed fields and the
+  project's roles, an assistant lists and takes transitions, and the
+  database keeps rules and steps to the administrators. In the browser
+  types, attributes, field rules, statuses and workflows are made,
+  changed and deleted, the designer's inspector draws a workflow, and
+  each change is checked on a requirement (#322).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
