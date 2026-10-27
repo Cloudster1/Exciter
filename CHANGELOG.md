@@ -63,6 +63,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The discussion of a requirement in the trash or of an archived project
+  says it takes no comments while it is there (#312). It told an editor
+  to ask for a role they already held.
 - A file is no longer attached to a requirement in the trash straight
   through SQL (#312). The service refused it, but the database let an
   editor attach one there.
