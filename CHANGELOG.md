@@ -21,6 +21,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
   and started again, a downloaded .reqif goes into another project, a
   Word pattern changes the preview, and a template is shared and deleted
   (#318).
+- The suite proves reviews, signed approvals and review sessions through
+  every role and scope: an editor sets no rule and moderates nobody else's
+  session, an archived project takes no rule or review, a rule of one type
+  comes first, an author approves where the rule lets them, a signature
+  keeps its German meaning, sessions open over a query and since an
+  approval or a baseline, refuse an empty scope, a bad quorum, too many
+  requirements, approvers or rounds and a taken baseline name, the
+  reminder tells only who still decides, the sessions list and its MCP
+  tools keep to their readers, and the database holds a session to its
+  opening. In the browser a review is rejected and withdrawn, a typed rule
+  changed and removed, a signature given at Keycloak and cancelled, and
+  sessions opened over a baseline and a query and their report downloaded
+  (#317).
 - The suite proves the traceability matrix and the trace model to their
   edges: another project's requirements as columns both ways and in the
   files, every combination the matrix refuses, a matrix too wide for a
@@ -146,6 +159,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   it is" until answered, and picking Nobody answers it (#318). The list
   showed Nobody already, which a browser does not let anyone pick again,
   so the import could not start.
+- An earlier review on a requirement's page names who decided it and what
+  they said (#317), so its author reads why a revision was rejected. Only
+  the review still waiting showed its decisions.
 - The people offered after an at sign are listed inside the page's main
   content, or the dialog the editor is in, so a screen reader finds them
   where the text is written rather than at the end of the page (#377).

@@ -348,3 +348,22 @@ describe("a signed approval", () => {
     expect(decisions).toHaveTextContent(`with the password: ${meanings.approve}`);
   });
 });
+
+describe("an earlier review", () => {
+  it("keeps who decided it and why, so the author reads why it was rejected", async () => {
+    const rejected = aReview({
+      state: "rejected",
+      approvals: 0,
+      finishedAt: "2026-10-02T09:00:00Z",
+      can: { decide: false, withdraw: false },
+      decisions: [
+        { reviewerId: dave.id, reviewerName: dave.name, decision: "reject", comment: "Say how fast.", decidedAt: "2026-10-02T09:00:00Z", signature: null },
+      ],
+    });
+    stubRequirement([rejected]);
+    await renderAt("/p/CHK/r/CHK-R1");
+    const past = await within(await panel()).findByRole("list", { name: "Earlier reviews" });
+    const row = past.querySelector('[data-past-review="rejected"]') as HTMLElement;
+    expect(within(row).getByRole("list", { name: "Decisions" })).toHaveTextContent("Dave Decider rejected: Say how fast.");
+  });
+});
