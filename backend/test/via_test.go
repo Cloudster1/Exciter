@@ -112,3 +112,84 @@ func TestWhatIsWrittenThroughATokenSaysSo(t *testing.T) {
 		}
 	})
 }
+
+// A review asked for and a test run uploaded through a token name it; the same done in the browser name nothing (#321).
+func TestAReviewAndATestRunNameTheTokenTheyCameThrough(t *testing.T) {
+	s := newReviewScene(t, "VRV")
+	s.setRules(t)
+	want(t, s.owner.post(t, "/api/v1/projects/"+s.key+"/requirements", map[string]any{"title": "Lights dim at night"}), http.StatusCreated, "write R2")
+	_, secret := makeToken(t, s.bob, map[string]any{"name": "Review script"})
+	script := s.bob.api.withToken(s.bobID, secret)
+	s.h.settle(t)
+
+	t.Run("a review", func(t *testing.T) {
+		through := obj(t, want(t, script.post(t, s.req+"/reviews", map[string]any{"revision": 1}), http.StatusCreated, "ask through the token"), "review")
+		byHand := obj(t, want(t, s.bob.post(t, "/api/v1/requirements/"+s.key+"-R2/reviews", map[string]any{"revision": 1}), http.StatusCreated, "ask in the browser"), "review")
+		read := func(id string) map[string]any {
+			return obj(t, want(t, s.owner.get(t, "/api/v1/reviews/"+id), http.StatusOK, "read the review"), "review")
+		}
+		if !throughToken(read(through["id"].(string)), "Review script") || viaIn(read(byHand["id"].(string))) != nil {
+			t.Errorf("the reviews read %v and %v", viaIn(read(through["id"].(string))), viaIn(read(byHand["id"].(string))))
+		}
+	})
+
+	t.Run("a test run", func(t *testing.T) {
+		report := junit([2]string{"engage [verifies " + s.key + "-R1]", "passed"})
+		through, byHand := ran(t, script, s.key, runForm("main"), report), ran(t, s.bob, s.key, runForm("main"), report)
+		if !throughToken(through, "Review script") || viaIn(byHand) != nil {
+			t.Errorf("the runs read %v and %v", viaIn(through), viaIn(byHand))
+		}
+	})
+}
+
+// An Armature link made through a token names it; one made in the browser names nothing (#321).
+func TestAnArmatureLinkNamesTheTokenItCameThrough(t *testing.T) {
+	key := projectKey(t, "VAL")
+	h := newHarness(t)
+	h.keepArmature(t)
+	api := newAPIServer(t, h)
+	owner := api.as(t, h.owner(t, "via-armature").user)
+	slug := stubTenant(t)
+	stubControl(t, http.MethodDelete, slug, nil)
+	want(t, owner.put(t, "/api/v1/armature/connection", map[string]any{"baseUrl": armatureURL(t)}), http.StatusOK, "connect Armature")
+	want(t, owner.put(t, "/api/v1/armature/account/token", map[string]any{"token": patFor(slug, "alice")}), http.StatusOK, "the owner connects as alice")
+	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
+	want(t, owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Brakes engage"}), http.StatusCreated, "write R1")
+	_, secret := makeToken(t, owner, map[string]any{"name": "Link script"})
+	h.settle(t)
+	links := "/api/v1/requirements/" + key + "-R1/armature-links"
+	want(t, api.withToken(owner.user, secret).post(t, links, map[string]any{"issueKey": "CP-1", "relation": "implements"}), http.StatusCreated, "link through the token")
+	want(t, owner.post(t, links, map[string]any{"issueKey": "CP-2", "relation": "relates"}), http.StatusCreated, "link in the browser")
+	got := linkStates(t, owner, key+"-R1")
+	if !throughToken(got["CP-1 implements"], "Link script") || viaIn(got["CP-2 relates"]) != nil {
+		t.Errorf("the links read %v and %v", viaIn(got["CP-1 implements"]), viaIn(got["CP-2 relates"]))
+	}
+}
+
+// A Stator link made through a token names it; one made in the browser names nothing (#321).
+func TestAStatorLinkNamesTheTokenItCameThrough(t *testing.T) {
+	key := projectKey(t, "VSL")
+	h := newHarness(t)
+	h.keepStator(t)
+	statorOffersItsOwn(t)
+	api := newAPIServer(t, h)
+	owner := api.as(t, h.owner(t, "via-stator").user)
+	tenant := stubTenant(t)
+	statorStub(t, http.MethodDelete, tenant, nil)
+	t.Cleanup(func() { statorStub(t, http.MethodDelete, tenant, nil) })
+	want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t), "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
+	want(t, owner.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "admin")}), http.StatusOK, "the owner connects")
+	want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key)
+	want(t, owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Brakes engage"}), http.StatusCreated, "write R1")
+	_, secret := makeToken(t, owner, map[string]any{"name": "Page script"})
+	h.settle(t)
+	pages := statorPages(t, tenant)
+	timing, braking := pages["Brake timing"], pages["Braking system"]
+	links := "/api/v1/requirements/" + key + "-R1/stator-links"
+	want(t, api.withToken(owner.user, secret).post(t, links, map[string]any{"pageId": timing, "relation": "specifies"}), http.StatusCreated, "link through the token")
+	want(t, owner.post(t, links, map[string]any{"pageId": braking, "relation": "describes"}), http.StatusCreated, "link in the browser")
+	got := statorLinkStates(t, owner, key+"-R1")
+	if !throughToken(got[timing+" specifies"], "Page script") || viaIn(got[braking+" describes"]) != nil {
+		t.Errorf("the links read %v and %v", viaIn(got[timing+" specifies"]), viaIn(got[braking+" describes"]))
+	}
+}

@@ -9,6 +9,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the guards on reuse and the via stamp (#321): a reuse
+  is refused into a project its person only reads or that is archived, a
+  take and a variant are refused in the trash and while locked, a take
+  brings only the files, steps and rating values its source shows, and
+  reviews, test runs, Armature and Stator links name the token they came
+  through, also when written straight through SQL.
 - The menus follow the layout Armature, Exciter and Stator share (#280).
   The top bar is gone: the breadcrumbs sit above each page's title, the
   bell, Search and Projects join Home on the rail, and the avatar at the
