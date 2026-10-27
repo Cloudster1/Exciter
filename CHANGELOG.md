@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the edges of comments, files, watching and
+  notifications: every refusal leaves the comments, threads, files and
+  watches as they were, a mention and the mention picker reach only who
+  may read, an edit and a reopening tell whom they concern, watches and
+  notifications follow what a person may still view, each preference and
+  the hourly digest have their effect, and the trash and an archive hold
+  straight through SQL. In the browser comments are edited, reopened and
+  moderated, projects watched, the Watching and Notifications pages used,
+  and files dropped on the panel (#312).
 - The suite proves what a requirement's restore, copy, hand lock and trash
   refuse (#309), each with its status and code and the rows left as they
   were; that an archived project, a name forged on a revision or a change
