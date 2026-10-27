@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves imports past their happy path: a CSV and a ReqIF import
+  stopped while they run end cancelled and keep what they made; another
+  administrator reads and stops an import but neither maps nor starts it;
+  an archived project takes no import and no template and keeps its
+  templates as they are; a start reads the project again; a CSV export
+  carries an attribute by its name and an import maps it back; a .reqifz,
+  a Word document and a template small to upload and large to unpack are
+  refused; and a shared template is changed only in its own project. In
+  the browser problems are answered, and imports are discarded, stopped
+  and started again, a downloaded .reqif goes into another project, a
+  Word pattern changes the preview, and a template is shared and deleted
+  (#318).
 - The suite proves the traceability matrix and the trace model to their
   edges: another project's requirements as columns both ways and in the
   files, every combination the matrix refuses, a matrix too wide for a
