@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves dashboards and computed attributes to their edges: a
+  reader neither orders nor adds widgets, the 51st dashboard and the 31st
+  widget are refused, every widget setting out of bounds is refused on its
+  field, whoever leaves the project loses even their own dashboards while
+  its administrators keep the shared ones, the database keeps widgets to
+  whoever may change them and a dashboard to its project, the MCP tools
+  read as the API does, and a sum over children follows a child to the
+  trash and back. In the browser a dashboard is shared, read by a second
+  person, copied, printed, renamed, rearranged, deleted and made the home,
+  and a computed attribute is refused, recomputed and sorted by (#319).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
