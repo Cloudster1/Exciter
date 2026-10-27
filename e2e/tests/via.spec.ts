@@ -70,8 +70,8 @@ test.describe("what a token wrote", { tag: "@desktop" }, () => {
     must(await api.POST("/requirements/{reqKey}/reviews", { ...byHand, body: { revision: 1 } }));
 
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
-    await expect(page.locator("[data-comment] [data-via=\"token\"]")).toContainText(`through ${TOKEN}`);
-    await expect(page.locator("[data-pending-review] [data-via=\"token\"]")).toContainText(`through ${TOKEN}`);
+    await expect(page.locator('[data-comment] [data-via="token"]')).toContainText(`through ${TOKEN}`);
+    await expect(page.locator('[data-pending-review] [data-via="token"]')).toContainText(`through ${TOKEN}`);
     await expectAccessible(page);
     await page.goto(`/p/${KEY}/r/${KEY}-R2`);
     await expect(page.locator("[data-comment]")).toContainText("Written by hand.");

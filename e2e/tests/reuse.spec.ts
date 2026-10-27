@@ -71,7 +71,12 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
   test("alice makes a variant with words of its own, then follows the source again", async ({ page, api }) => {
     await libraryAndProduct(api);
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: LIB } }, body: { title: "Brakes engage within 100 ms" } }));
-    must(await api.POST("/requirements/{reqKey}/reuse", { params: { path: { reqKey: `${LIB}-R1` } }, body: { projectKey: APP, children: false, place: { parentId: null, afterId: null } } }));
+    must(
+      await api.POST("/requirements/{reqKey}/reuse", {
+        params: { path: { reqKey: `${LIB}-R1` } },
+        body: { projectKey: APP, children: false, place: { parentId: null, afterId: null } },
+      }),
+    );
 
     await page.goto(`/p/${APP}/r/${APP}-R1`);
     const banner = page.locator("[data-reuse]");
@@ -124,7 +129,10 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     const lib = { params: { path: { projectKey: LIB } } };
     const section = must(await api.POST("/projects/{projectKey}/requirements", { ...lib, body: { kind: "section", title: "Braking" } })).requirement;
     const first = must(
-      await api.POST("/projects/{projectKey}/requirements", { ...lib, body: { title: "Brakes engage within 100 ms", place: { parentId: section.id, afterId: null } } }),
+      await api.POST("/projects/{projectKey}/requirements", {
+        ...lib,
+        body: { title: "Brakes engage within 100 ms", place: { parentId: section.id, afterId: null } },
+      }),
     ).requirement;
     must(
       await api.POST("/projects/{projectKey}/requirements", {
