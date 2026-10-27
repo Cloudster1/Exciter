@@ -134,6 +134,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Linking a pair of duplicates by a link type the project does not use
+  says why in the dialog (#320). The refusal named a field the dialog
+  does not have, so nothing was shown and the link was simply not made.
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.
