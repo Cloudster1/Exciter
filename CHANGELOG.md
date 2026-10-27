@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves what a requirement's restore, copy, hand lock and trash
+  refuse (#309), each with its status and code and the rows left as they
+  were; that an archived project, a name forged on a revision or a change
+  and a 51st label are refused straight through SQL; and that the history
+  tools answer as their routes do. In the browser it locks and unlocks by
+  hand, copies with what is below, takes an owner off, empties the trash,
+  walks a long history, and writes with every tool of the editor, a link
+  and a mention.
 - The suite proves the moves in the tree, the specification page and its
   exports: every refusal of a move leaves the tree as it was, a mapped move
   lands in the status mapped, `requirement.moved` is posted once for each
@@ -55,6 +63,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Saving a link in the editor saves only the link (#309). "Save link" also
+  submitted the form around the editor, so a new requirement was written
+  before the rest of it was typed, an edit was saved as a revision, and a
+  comment was posted.
+- A save that sends a requirement's statement back as it was read no
+  longer counts as changing it (#309). Where the field rules kept the
+  statement from a role, its saves of the title were refused whenever the
+  statement came back with its keys in another order than the database
+  keeps them, as a script's or an assistant's do; and a save changing
+  several attributes the rules refuse is now refused on the same one every
+  time.
+- A requirement carries at most 50 labels also when written straight
+  through the database (#309). Only the server held the bound before.
 - A requirement out of the trash no longer goes below one in the trash, even
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such

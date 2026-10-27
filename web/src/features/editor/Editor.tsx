@@ -259,6 +259,8 @@ function LinkDialog({ editor, onClose }: { editor: TiptapEditor; onClose: () => 
   useEffect(() => setProblem(""), [href]);
   function save(event: FormEvent) {
     event.preventDefault();
+    // The dialog sits inside the requirement's form in React's tree, which the submit would otherwise save.
+    event.stopPropagation();
     if (href.trim() === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       onClose();
