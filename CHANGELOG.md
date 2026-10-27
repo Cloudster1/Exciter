@@ -124,6 +124,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A .reqifz whose document unpacks past what one import takes is refused
   as the file, naming the document, as a Word document that does is
   (#318). It answered with a server error.
+- Only the person who uploaded a file maps and starts its import, straight
+  through SQL too (#318). The database let another administrator of the
+  project change an import's mapping or choices and start it; they still
+  read and stop it.
 - Deleting a baseline on its own page leads back to the project's
   baselines and says "The baseline <name> is deleted." (#316). The page
   asked for the deleted baseline again and stayed on "That baseline was
