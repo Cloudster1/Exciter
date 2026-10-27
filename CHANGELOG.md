@@ -63,6 +63,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Watching a project that cannot be changed now says so on the project's
+  page, as the requirement's watch menu does, instead of nothing (#312).
+- Stopping the last watch on a later page of Watching goes back to the
+  page before, instead of saying you watch nothing (#312).
 - The discussion of a requirement in the trash or of an archived project
   says it takes no comments while it is there (#312). It told an editor
   to ask for a role they already held.
