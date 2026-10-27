@@ -134,6 +134,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A transition one of its conditions keeps from somebody is refused with
+  that condition (#322), such as "Only the requirement's owner may take
+  it.". It said they might read the project but not change its
+  requirements, also to an editor.
+- A workflow's rule asking for links of a type takes only a link type of
+  its own project or of every project (#322). One of another project was
+  saved, and no requirement could ever meet it.
+- Saving a fixed field's rule says it is saved (#322). The form was drawn
+  again with the saved rule and the notice was lost. A status or a
+  workflow still used once says "once" rather than "1 times".
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.

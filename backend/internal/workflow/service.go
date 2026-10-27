@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -116,6 +117,9 @@ func (s *Service) CreateWorkflow(ctx context.Context, actor uuid.UUID, projectKe
 		if err := ValidateGraph(in, names); err != nil {
 			return err
 		}
+		if err := linkTypesHeld(ctx, tx, p.ID, in); err != nil {
+			return err
+		}
 		var id uuid.UUID
 		err = tx.QueryRow(ctx, `INSERT INTO workflow (project_id, name, description) VALUES ($1, $2, $3) RETURNING id`,
 			p.ID, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description)).Scan(&id)
@@ -157,6 +161,9 @@ func (s *Service) SaveWorkflow(ctx context.Context, actor uuid.UUID, projectKey 
 		if err := ValidateGraph(in, names); err != nil {
 			return err
 		}
+		if err := linkTypesHeld(ctx, tx, p.ID, in); err != nil {
+			return err
+		}
 		kept := map[uuid.UUID]bool{}
 		for _, st := range in.Steps {
 			kept[st.StatusID] = true
@@ -191,6 +198,31 @@ func (s *Service) SaveWorkflow(ctx context.Context, actor uuid.UUID, projectKey 
 		return err
 	})
 	return out, lsn, err
+}
+
+// linkTypesHeld refuses a links rule naming a link type the project cannot have: one of another project's, or none.
+func linkTypesHeld(ctx context.Context, tx db.DBTX, projectID uuid.UUID, in GraphInput) error {
+	for _, t := range in.Transitions {
+		for _, r := range t.Rules {
+			if r.Kind != KindValidator || r.Type != ruleLinksExist {
+				continue
+			}
+			c, err := readLinks(json.RawMessage(r.Config))
+			if err != nil {
+				return err
+			}
+			var held bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM link_type WHERE id = $1 AND (project_id IS NULL OR project_id = $2))`,
+				c.LinkTypeID, projectID).Scan(&held); err != nil {
+				return err
+			}
+			if !held {
+				return invalid("transitions", "%s: the rule Links of a type names a link type this project does not have. Pick one of its link types.",
+					strings.TrimSpace(t.Name))
+			}
+		}
+	}
+	return nil
 }
 
 // writeGraph puts a checked graph in place: the transitions it does not name go, the steps it does not hold go
