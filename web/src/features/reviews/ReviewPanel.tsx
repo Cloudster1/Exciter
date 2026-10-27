@@ -115,10 +115,7 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
   const decide = useDecide(requirement.key);
   const withdraw = useWithdrawReview(requirement.key);
   // A signature the identity provider interrupted comes back here, once, to be finished (#46).
-  const [resumed] = useState(() => {
-    const back = resumeSigning();
-    return back?.reviewId === review.id ? back : undefined;
-  });
+  const [resumed] = useState(() => resumeSigning(review.id));
   const [comment, setComment] = useState(resumed?.comment ?? "");
   const [signing, setSigning] = useState<Pick<Resumed, "decision" | "proof" | "failure"> | undefined>(resumed);
   const send = (decision: Decision) => {

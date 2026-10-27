@@ -52,6 +52,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such
   a place already; the database now refuses it too.
+- A signature interrupted by a sign-in at the identity provider is finished
+  on the requirement it was for when the specification shows several
+  reviews waiting (#310). The first review of the document took the way
+  back for itself and dropped it, so the signature never reopened.
 - Once a page has shown you something the server finished in the
   background, such as a ReqIF import done, the next pages show it too
   (#374). While the database's read replica was behind, one page could be
