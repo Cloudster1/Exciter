@@ -14,9 +14,8 @@ const PAGED_KEY = uniqueKey("MWPG");
 const SUSPECT_KEY = uniqueKey("MWSU");
 // One more than a page of rows and of columns, MATRIX_PAGE_SIZE and MATRIX_COLUMN_PAGE_SIZE in web/src/config.ts.
 const PAGED_REQUIREMENTS = 101;
-// Written this many at a time, which the keys do not depend on, so the setup does not eat the test's time.
-const WRITES_AT_ONCE = 10;
-// A hundred writes and a page of a hundred columns by fifty rows take longer than a test is given by default.
+// Written one after another, since rows and columns follow the outline the writes leave, which with a page of a
+// hundred columns by fifty rows takes longer than a test is given by default.
 const PAGED_TIMEOUT_MS = 60_000;
 
 async function removeProject(api: ExciterApi, projectKey: string) {
@@ -71,10 +70,11 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
   test("alice pages the rows and the columns of a column filter, and the address stays", async ({ page, api }) => {
     test.setTimeout(PAGED_TIMEOUT_MS);
     must(await api.POST("/projects", { body: { key: PAGED_KEY, name: "Paged" } }));
-    const titles = Array.from({ length: PAGED_REQUIREMENTS }, (_, i) => `Brake check ${i + 1}`);
-    for (let at = 0; at < titles.length; at += WRITES_AT_ONCE) {
-      await Promise.all(titles.slice(at, at + WRITES_AT_ONCE).map((title) => write(api, PAGED_KEY, [title])));
-    }
+    await write(
+      api,
+      PAGED_KEY,
+      Array.from({ length: PAGED_REQUIREMENTS }, (_, i) => `Brake check ${i + 1}`),
+    );
 
     await page.goto(`/p/${PAGED_KEY}/matrix?columnQuery=${encodeURIComponent("kind = requirement")}`);
     const address = page.url();
