@@ -136,7 +136,9 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
             loading={remove.isPending}
             onClick={() => {
               if (!window.confirm(t.baseline.confirmDelete)) return;
-              remove.mutate(baseline.id, { onSuccess: () => void navigate({ to: "/p/$projectKey/baselines", params: { projectKey: project.key } }) });
+              remove.mutate(baseline.id, {
+                onSuccess: () => void navigate({ to: "/p/$projectKey/baselines", params: { projectKey: project.key }, search: { deleted: baseline.name } }),
+              });
             }}
             data-action="delete-baseline"
           >

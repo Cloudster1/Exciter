@@ -109,6 +109,7 @@ var installationWide = map[string]string{
 	"TestSignInThroughKeycloak":                              singleSignOn,
 	"TestPeopleAreConnectedToArmatureAndStatorAtSignIn":      singleSignOn,
 	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
+	"TestABaselineIsSignedAfterSigningInAgainAtTheProvider":  singleSignOn,
 	"TestSignInRefusals":                                     singleSignOn,
 	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":   singleSignOn,
 	"TestOnlyExistingGroupsAreJoinedWhenCreationIsOff":       singleSignOn,

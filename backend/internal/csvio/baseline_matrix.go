@@ -9,8 +9,6 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 )
 
-// WriteBaselineMatrix writes a baseline's matrix as CSV (#153): a row per requirement it holds, its key and title
-// first, a column per column, each cell naming its links, a suspect one marked and, when compared, how each changed.
 // SigningNote says where a baseline's signing stands, empty while nobody signed it.
 func SigningNote(s *baseline.Signing) string {
 	switch {
@@ -22,6 +20,8 @@ func SigningNote(s *baseline.Signing) string {
 	return fmt.Sprintf("This baseline is being signed: %d of %d signatures so far. It never changes.", s.Signatures, s.Required)
 }
 
+// WriteBaselineMatrix writes a baseline's matrix as CSV (#153): a row per requirement it holds, its key and title
+// first, a column per column, each cell naming its links, a suspect one marked and, when compared, how each changed.
 func WriteBaselineMatrix(w io.Writer, m *baseline.Matrix) error {
 	out := csv.NewWriter(w)
 	header := []string{"Key", "Title"}

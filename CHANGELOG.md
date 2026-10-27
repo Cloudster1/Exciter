@@ -19,6 +19,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The suite proves baselines and their signatures to every refusal: a
+  baseline of an archived project is neither taken, renamed, deleted nor
+  signed, a root or a comparison outside its project is refused, a
+  baseline being signed keeps its name, a signer who left the frozen group
+  or cannot read the project is refused, a provider sign-in signs once and
+  wrong passwords count with reviews, and the database keeps a baseline's
+  root, project, rule and held links. In the browser a baseline is
+  renamed, deleted, taken of a section and compared with another, its
+  matrix downloads as a workbook, and two signers sign under a changed rule
+  (#316).
 - The suite proves coverage and the trace graph against every way they are
   narrowed: coverage rules are refused to a reader, for an id that is none
   and in an archived project, and the rules stay as they were; the report's
@@ -111,6 +121,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Deleting a baseline on its own page leads back to the project's
+  baselines and says "The baseline <name> is deleted." (#316). The page
+  asked for the deleted baseline again and stayed on "That baseline was
+  not found" instead.
 - The impact file of a trace graph marks an item suspect only when the
   link that reached it is, as the graph's page does (#314). It marked a
   requirement suspect for a suspect link leading on from it as well.

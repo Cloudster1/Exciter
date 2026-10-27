@@ -204,9 +204,19 @@ export const sessionRoute = createRoute({
 export const baselinesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/p/$projectKey/baselines",
+  // A baseline deleted on its own page names itself here, where its page leads once it is gone.
+  validateSearch: (search: Record<string, unknown>): { deleted?: string } =>
+    typeof search.deleted === "string" && search.deleted ? { deleted: search.deleted } : {},
   component: function ProjectBaselinesPage() {
     const { projectKey } = baselinesRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/baselines" render={(project) => <BaselineList key={project.id} project={project} />} />;
+    const { deleted } = baselinesRoute.useSearch();
+    return (
+      <ProjectPage
+        projectKey={projectKey}
+        to="/p/$projectKey/baselines"
+        render={(project) => <BaselineList key={project.id} project={project} deleted={deleted} />}
+      />
+    );
   },
 });
 
