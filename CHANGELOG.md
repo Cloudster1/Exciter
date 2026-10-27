@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves coverage and the trace graph against every way they are
+  narrowed: coverage rules are refused to a reader, for an id that is none
+  and in an archived project, and the rules stay as they were; the report's
+  window is checked; each reader's coverage is cached apart; a link type's
+  count changes the next read; the graph draws Stator pages, follows a
+  project's own link types and answers a section and the trash; neither
+  the graph, coverage nor the query language names an end the reader may
+  not see; `get_trace_graph` and `get_coverage` answer as their routes do.
+  In the browser every control of the coverage and trace graph pages is
+  used, by keyboard too, and a reader walks the report a page at a time
+  (#314).
 - The suite proves the edges of comments, files, watching and
   notifications: every refusal leaves the comments, threads, files and
   watches as they were, a mention and the mention picker reach only who
