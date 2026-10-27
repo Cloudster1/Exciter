@@ -63,6 +63,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A file is no longer attached to a requirement in the trash straight
+  through SQL (#312). The service refused it, but the database let an
+  editor attach one there.
 - Saving a link in the editor saves only the link (#309). "Save link" also
   submitted the form around the editor, so a new requirement was written
   before the rest of it was typed, an edit was saved as a revision, and a
