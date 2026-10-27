@@ -18,6 +18,7 @@ const changedAt = localDateFormat({ dateStyle: "medium" });
 export function RequirementList({ project, label }: { project: Project; label?: string }) {
   const navigate = useNavigate();
   const [offset, setOffset] = useState(0);
+  const [watchFailed, setWatchFailed] = useState(false);
   const { data, error, isLoading, refetch } = useRequirements(project.key, { limit: REQUIREMENT_PAGE_SIZE, offset, label });
   const mayWrite = project.can.edit;
   const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
@@ -28,7 +29,7 @@ export function RequirementList({ project, label }: { project: Project; label?: 
         meta={t.projects.projectAndKey(project.name, project.key)}
         actions={
           <>
-            <ProjectWatchButton project={project} />
+            <ProjectWatchButton project={project} onFailure={setWatchFailed} />
             {mayWrite && (
               <Button icon={<Icon.Plus />} onClick={create} data-action="new-requirement">
                 {t.requirements.create}
@@ -37,6 +38,7 @@ export function RequirementList({ project, label }: { project: Project; label?: 
           </>
         }
       />
+      {watchFailed && <ErrorBanner>{t.watch.failed}</ErrorBanner>}
       {project.archivedAt && (
         <p role="status" className="mb-4 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-archived-notice>
           {t.projects.archivedNotice}

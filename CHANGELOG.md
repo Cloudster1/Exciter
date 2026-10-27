@@ -19,6 +19,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
   guards on names, scopes, types and the trash are tried as `exciter_app`.
   In the browser every control of the links panel, the link types, their
   pairs and the suspect list is used (#313).
+- The suite proves the edges of comments, files, watching and
+  notifications: every refusal leaves the comments, threads, files and
+  watches as they were, a mention and the mention picker reach only who
+  may read, an edit and a reopening tell whom they concern, watches and
+  notifications follow what a person may still view, each preference and
+  the hourly digest have their effect, and the trash and an archive hold
+  straight through SQL. In the browser comments are edited, reopened and
+  moderated, projects watched, the Watching and Notifications pages used,
+  and files dropped on the panel (#312).
 - The suite proves the grid's and the search's pages, filters and views:
   every window of the grid and the search holds each row once in the order
   asked for, the search narrows by owner and day, a token limited to one
@@ -85,6 +94,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   ends are all in archived projects, is refused as archived (409
   `project_archived`), as confirming such a link already was, rather than
   telling an administrator to ask for edit rights (#313).
+- Watching a project that cannot be changed now says so on the project's
+  page, as the requirement's watch menu does, instead of nothing (#312).
+- Stopping the last watch on a later page of Watching goes back to the
+  page before, instead of saying you watch nothing (#312).
+- The discussion of a requirement in the trash or of an archived project
+  says it takes no comments while it is there (#312). It told an editor
+  to ask for a role they already held.
+- A file is no longer attached to a requirement in the trash straight
+  through SQL (#312). The service refused it, but the database let an
+  editor attach one there.
 - Sharing a view, or changing a shared one, in an archived project is
   refused as archived (409 `project_archived`), saying to unarchive the
   project, rather than telling an administrator to ask for edit rights

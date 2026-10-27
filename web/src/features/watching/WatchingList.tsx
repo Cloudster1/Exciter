@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useStopWatching, useWatches, type Watch } from "@/api/watching";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Td, Th } from "@/components/ui";
@@ -18,11 +18,17 @@ function named(watch: Watch): string {
 /** The requirements and projects the caller watches, the latest first, each with a way to stop. */
 export function WatchingList() {
   const [offset, setOffset] = useState(0);
-  const { data, error, isLoading, refetch } = useWatches(offset);
+  const { data, error, isLoading, isPlaceholderData, refetch } = useWatches(offset);
   const stop = useStopWatching();
   const [notice, setNotice] = useState("");
   const rows = data?.watches ?? [];
   const total = data?.total ?? 0;
+  // Stopping the last watch of a later page leaves that page empty; the earlier ones still hold watches.
+  const emptiedPage = Boolean(data) && rows.length === 0 && offset > 0;
+  const settledEmpty = emptiedPage && !isPlaceholderData;
+  useEffect(() => {
+    if (settledEmpty) setOffset(Math.max(0, offset - WATCHES_PAGE_SIZE));
+  }, [settledEmpty, offset]);
 
   return (
     <div className="mx-auto max-w-3xl" data-watching-list="">
@@ -33,7 +39,7 @@ export function WatchingList() {
       </p>
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
-      ) : isLoading || !data ? (
+      ) : isLoading || !data || emptiedPage ? (
         <Skeleton />
       ) : rows.length === 0 ? (
         <EmptyState icon={<Icon.Eye />} title={t.watch.listEmpty} description={t.watch.listEmptyBody} />
