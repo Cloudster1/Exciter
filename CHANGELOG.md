@@ -134,6 +134,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Changing a term somebody may only read, or one of an archived project,
+  is refused as not theirs to change or as archived (#320). It answered
+  that the term was not found, though the same person could read it.
 - Linking a pair of duplicates by a link type the project does not use
   says why in the dialog (#320). The refusal named a field the dialog
   does not have, so nothing was shown and the link was simply not made.
