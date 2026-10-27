@@ -54,6 +54,7 @@ export function ReviewPanel({ requirement }: { requirement: Requirement }) {
                       <Tag>{t.review.states[each.state]}</Tag>
                       <span>{t.review.pastRow(each.revision, when.format(new Date(each.requestedAt)))}</span>
                       <span>· {t.review.approvals(each.approvals, each.required)}</span>
+                      {each.decisions.length > 0 && <Decisions review={each} />}
                     </li>
                   ))}
                 </ul>
@@ -111,6 +112,25 @@ function AskForReview({ requirement }: { requirement: Requirement }) {
   );
 }
 
+/** Who decided a review and what they said, which an earlier review keeps so its author reads why it was rejected. */
+function Decisions({ review }: { review: Review }) {
+  return (
+    <ul className="w-full space-y-1 text-sm" aria-label={t.review.decisions}>
+      {review.decisions.map((d) => (
+        <li key={d.reviewerId} data-review-decision={d.decision}>
+          <span className="font-medium text-ink">{d.reviewerName || t.review.formerMember}</span> {t.review.decided[d.decision]}
+          {d.comment && <span className="text-ink-muted">: {d.comment}</span>}
+          {d.signature && (
+            <p className="text-xs text-ink-muted" data-review-signature={d.signature.method}>
+              {t.review.signed(d.signature.meaning, t.review.signedWith[d.signature.method] ?? d.signature.method, when.format(new Date(d.signature.signedAt)))}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function PendingReview({ requirement, review }: { requirement: Requirement; review: Review }) {
   const decide = useDecide(requirement.key);
   const withdraw = useWithdrawReview(requirement.key);
@@ -138,25 +158,7 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
         <span className="text-ink-muted">{t.review.approvers}: </span>
         <span data-review-approvers="">{review.approvers.map((a) => a.name).join(", ")}</span>
       </div>
-      {review.decisions.length > 0 && (
-        <ul className="space-y-1 text-sm" aria-label={t.review.decisions}>
-          {review.decisions.map((d) => (
-            <li key={d.reviewerId} data-review-decision={d.decision}>
-              <span className="font-medium text-ink">{d.reviewerName || t.review.formerMember}</span> {t.review.decided[d.decision]}
-              {d.comment && <span className="text-ink-muted">: {d.comment}</span>}
-              {d.signature && (
-                <p className="text-xs text-ink-muted" data-review-signature={d.signature.method}>
-                  {t.review.signed(
-                    d.signature.meaning,
-                    t.review.signedWith[d.signature.method] ?? d.signature.method,
-                    when.format(new Date(d.signature.signedAt)),
-                  )}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {review.decisions.length > 0 && <Decisions review={review} />}
       {review.can.decide && (
         <div className="space-y-2">
           <Field
