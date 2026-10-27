@@ -130,6 +130,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   read and stop it.
 - A CSV or ReqIF import that could not be stopped says why under its
   progress (#318). Stop went back to waiting without a word.
+- A person a CSV file names who is nobody in the project shows "Pick who
+  it is" until answered, and picking Nobody answers it (#318). The list
+  showed Nobody already, which a browser does not let anyone pick again,
+  so the import could not start.
 - Deleting a baseline on its own page leads back to the project's
   baselines and says "The baseline <name> is deleted." (#316). The page
   asked for the deleted baseline again and stayed on "That baseline was
