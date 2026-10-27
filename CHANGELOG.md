@@ -128,6 +128,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
   through SQL too (#318). The database let another administrator of the
   project change an import's mapping or choices and start it; they still
   read and stop it.
+- A CSV or ReqIF import that could not be stopped says why under its
+  progress (#318). Stop went back to waiting without a word.
 - Deleting a baseline on its own page leads back to the project's
   baselines and says "The baseline <name> is deleted." (#316). The page
   asked for the deleted baseline again and stayed on "That baseline was

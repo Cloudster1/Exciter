@@ -174,6 +174,7 @@ export function Progress({ found, onAnother }: { found: ReqIFImport; onAnother: 
       </div>
       <progress className="h-1.5 w-full accent-accent" max={100} value={percent} aria-label={t.reqif.progress(found.done, found.total)} />
       {found.error && <ErrorBanner>{found.error}</ErrorBanner>}
+      {actions.cancel.error && <ErrorBanner>{actions.cancel.error.message}</ErrorBanner>}
       {reqifEnded(found.state) && (
         <ul className="space-y-1 text-sm text-ink" data-reqif-result>
           <li>{t.reqif.imported(found.imported.length)}</li>
