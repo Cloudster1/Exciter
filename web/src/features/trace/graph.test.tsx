@@ -163,6 +163,27 @@ describe("the trace graph", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
+  it("says where a graph too large stops, and offers to zoom and fit it", async () => {
+    stubGraph({ "GET /requirements/CHK-R1/graph": { status: 200, body: { graph: { ...graph, truncated: true } } } });
+    await renderAt("/p/CHK/r/CHK-R1/trace");
+    const stop = await screen.findByText("The graph stops at 5 nodes. Follow fewer levels or link types to see the rest.");
+    expect(stop).toHaveAttribute("role", "status");
+    for (const name of ["Zoom in", "Zoom out", "Fit the graph"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeEnabled();
+      await userEvent.click(button);
+    }
+    expect(screen.getByRole("group", { name: /The trace graph of CHK-R1/ }).querySelectorAll("[data-graph-node]")).toHaveLength(5);
+    expect(await axeViolations()).toEqual([]);
+  });
+
+  it("says nothing of a stop when the whole graph is drawn", async () => {
+    stubGraph();
+    await renderAt("/p/CHK/r/CHK-R1/trace");
+    await screen.findByRole("group", { name: /The trace graph of CHK-R1/ });
+    expect(screen.queryByText(/The graph stops at/)).not.toBeInTheDocument();
+  });
+
   it("is reached from the requirement's page", async () => {
     stubGraph({ "GET /requirements/CHK-R1/links": { status: 200, body: { links: [] } } });
     await renderAt("/p/CHK/r/CHK-R1");

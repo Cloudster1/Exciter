@@ -35,7 +35,8 @@ func WriteImpact(w io.Writer, g *trace.Graph) error {
 		if n.Test != nil {
 			status = n.Test.Outcome
 		}
-		record := []string{fmt.Sprint(n.Level), string(n.Kind), name, title, kind, status, reachedBy(g, byID, n), strings.Join(marks(g, n), "; ")}
+		via, suspect := reachedBy(g, byID, n)
+		record := []string{fmt.Sprint(n.Level), string(n.Kind), name, title, kind, status, via, strings.Join(marks(n, suspect), "; ")}
 		for i := range record {
 			record[i] = Cell(record[i])
 		}
@@ -68,10 +69,11 @@ func impactName(n trace.GraphNode) (name, title string) {
 	return n.IssueKey, ""
 }
 
-// reachedBy names the link a node was reached by, from a node nearer the centre, and that node.
-func reachedBy(g *trace.Graph, byID map[string]trace.GraphNode, n trace.GraphNode) string {
+// reachedBy names the link a node was reached by, from a node nearer the centre, and that node, and says whether
+// that link is suspect.
+func reachedBy(g *trace.Graph, byID map[string]trace.GraphNode, n trace.GraphNode) (string, bool) {
 	if n.Level == 0 {
-		return ""
+		return "", false
 	}
 	for _, e := range g.Edges {
 		other := e.From
@@ -89,19 +91,17 @@ func reachedBy(g *trace.Graph, byID map[string]trace.GraphNode, n trace.GraphNod
 		if via == "" {
 			via = e.Relation
 		}
-		return via + " " + name
+		return via + " " + name, e.Suspect
 	}
-	return ""
+	return "", false
 }
 
-// marks are what the graph marks on a node, and on the link that reached it.
-func marks(g *trace.Graph, n trace.GraphNode) []string {
+// marks are what the graph marks on a node, and suspect when the link that reached it is, as the graph's page marks
+// them: a suspect link further on is marked on the node it reaches.
+func marks(n trace.GraphNode, suspect bool) []string {
 	var out []string
-	for _, e := range g.Edges {
-		if (e.To == n.ID || e.From == n.ID) && e.Suspect && n.Level != 0 {
-			out = append(out, "suspect")
-			break
-		}
+	if suspect {
+		out = append(out, "suspect")
 	}
 	if n.Broken {
 		out = append(out, "broken")

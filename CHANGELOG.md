@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves coverage and the trace graph against every way they are
+  narrowed: coverage rules are refused to a reader, for an id that is none
+  and in an archived project, and the rules stay as they were; the report's
+  window is checked; each reader's coverage is cached apart; a link type's
+  count changes the next read; the graph draws Stator pages, follows a
+  project's own link types and answers a section and the trash; neither
+  the graph, coverage nor the query language names an end the reader may
+  not see; `get_trace_graph` and `get_coverage` answer as their routes do.
+  In the browser every control of the coverage and trace graph pages is
+  used, by keyboard too, and a reader walks the report a page at a time
+  (#314).
 - The suite proves trace links, link types and suspect links to their last
   control: a type for all projects is refused to a project's administrator,
   a taken name is refused in either scope, a type comes back from
@@ -90,6 +101,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The impact file of a trace graph marks an item suspect only when the
+  link that reached it is, as the graph's page does (#314). It marked a
+  requirement suspect for a suspect link leading on from it as well.
 - Linking a requirement of an archived project, or removing a link whose
   ends are all in archived projects, is refused as archived (409
   `project_archived`), as confirming such a link already was, rather than
