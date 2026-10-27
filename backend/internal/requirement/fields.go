@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"maps"
+	"reflect"
 	"slices"
 
 	"github.com/google/uuid"
@@ -31,13 +32,14 @@ func fieldsOf(l *loaded) fields {
 	return f
 }
 
-// sameJSON compares two documents by what they say, not how they are spaced.
+// sameJSON compares two documents by what they say, not how they are spaced or in which order jsonb keeps their
+// keys.
 func sameJSON(a, b json.RawMessage) bool {
-	var x, y bytes.Buffer
-	if json.Compact(&x, a) != nil || json.Compact(&y, b) != nil {
+	var x, y any
+	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
 		return bytes.Equal(a, b)
 	}
-	return bytes.Equal(x.Bytes(), y.Bytes())
+	return reflect.DeepEqual(x, y)
 }
 
 func samePriority(a, b *Priority) bool { return priorityText(a) == priorityText(b) }
@@ -63,12 +65,14 @@ func changed(before, after fields) []string {
 	if !samePriority(before.priority, after.priority) {
 		out = append(out, "priority")
 	}
-	keys := slices.Sorted(maps.Keys(before.attributes))
+	// Sorted, so a save that changes several is refused on the same one every time.
+	keys := slices.Collect(maps.Keys(before.attributes))
 	for key := range after.attributes {
 		if _, ok := before.attributes[key]; !ok {
 			keys = append(keys, key)
 		}
 	}
+	slices.Sort(keys)
 	for _, key := range keys {
 		if !sameJSON(before.attributes[key], after.attributes[key]) {
 			out = append(out, key)

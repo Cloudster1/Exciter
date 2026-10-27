@@ -48,6 +48,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A save that sends a requirement's statement back as it was read no
+  longer counts as changing it (#309). Where the field rules kept the
+  statement from a role, its saves of the title were refused whenever the
+  statement came back with its keys in another order than the database
+  keeps them, as a script's or an assistant's do; and a save changing
+  several attributes the rules refuse is now refused on the same one every
+  time.
 - Once a page has shown you something the server finished in the
   background, such as a ReqIF import done, the next pages show it too
   (#374). While the database's read replica was behind, one page could be
