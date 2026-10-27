@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves what a requirement's restore, copy, hand lock and trash
+  refuse (#309), each with its status and code and the rows left as they
+  were; that an archived project, a name forged on a revision or a change
+  and a 51st label are refused straight through SQL; and that the history
+  tools answer as their routes do. In the browser it locks and unlocks by
+  hand, copies with what is below, takes an owner off, empties the trash,
+  walks a long history, and writes with every tool of the editor, a link
+  and a mention.
 - The suite proves the guards on reuse and the via stamp (#321): a reuse
   is refused into a project its person only reads or that is archived, a
   take and a variant are refused in the trash and while locked, a take
