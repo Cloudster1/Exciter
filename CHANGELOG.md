@@ -134,6 +134,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A dashboard widget counting by an attribute is refused when it is saved
+  with formatted text or another project's attribute (#319), on the
+  attribute's field. It was saved and then could not be read.
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.
