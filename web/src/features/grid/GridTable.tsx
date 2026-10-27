@@ -155,7 +155,14 @@ function Cell({
         </span>
       );
     case "title":
-      return <TitleCell projectKey={projectKey} row={row} onSave={(title) => save({ title, baseRevision: row.revision })} />;
+      return (
+        <TitleCell
+          projectKey={projectKey}
+          row={row}
+          editable={row.can.edit && access("title", row.status).edit}
+          onSave={(title) => save({ title, baseRevision: row.revision })}
+        />
+      );
     case "type":
       return row.type ? (
         <span className="inline-flex items-center gap-1 text-ink-muted">
@@ -217,7 +224,7 @@ function Cell({
   );
 }
 
-function TitleCell({ projectKey, row, onSave }: { projectKey: string; row: RequirementRow; onSave: (title: string) => void }) {
+function TitleCell({ projectKey, row, editable, onSave }: { projectKey: string; row: RequirementRow; editable: boolean; onSave: (title: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(row.title);
   if (editing) {
@@ -252,7 +259,7 @@ function TitleCell({ projectKey, row, onSave }: { projectKey: string; row: Requi
       <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey, reqKey: row.key }} className="font-medium text-ink hover:text-accent hover:underline">
         {row.title}
       </Link>
-      {row.can.edit && (
+      {editable && (
         <IconButton
           icon={<Icon.Edit className="size-3" />}
           label={t.grid.editTitle(row.key)}

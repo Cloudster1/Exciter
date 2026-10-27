@@ -18,6 +18,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
   straight through SQL. In the browser comments are edited, reopened and
   moderated, projects watched, the Watching and Notifications pages used,
   and files dropped on the panel (#312).
+- The suite proves the grid's and the search's pages, filters and views:
+  every window of the grid and the search holds each row once in the order
+  asked for, the search narrows by owner and day, a token limited to one
+  project searches only there, `search_requirements` and
+  `list_requirements` answer as the API does, a view is refused when
+  changed or deleted by who may not and stays as it was, and every control
+  of the grid and the search page is used in the browser, a shared view
+  also by a second person (#311).
 - The suite proves what a requirement's restore, copy, hand lock and trash
   refuse (#309), each with its status and code and the rows left as they
   were; that an archived project, a name forged on a revision or a change
@@ -82,6 +90,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A file is no longer attached to a requirement in the trash straight
   through SQL (#312). The service refused it, but the database let an
   editor attach one there.
+- Sharing a view, or changing a shared one, in an archived project is
+  refused as archived (409 `project_archived`), saying to unarchive the
+  project, rather than telling an administrator to ask for edit rights
+  (#311). Taking a view back from sharing still works there.
+- An assistant whose query is refused through `list_requirements` or
+  another tool is told the character it went wrong at, as the grid points
+  at it, beside the sentence (#311).
+- The grid no longer offers to edit a title its reader may not change in
+  the requirement's status, which the server refused after it was typed
+  (#311). The title shows as it is, as the other fields a rule closes do.
+- A view whose delete is refused after a refused save now says why the
+  delete was refused, not the save's reason again (#311).
 - Saving a link in the editor saves only the link (#309). "Save link" also
   submitted the form around the editor, so a new requirement was written
   before the rest of it was typed, an edit was saved as a revision, and a

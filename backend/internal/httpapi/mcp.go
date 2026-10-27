@@ -323,6 +323,14 @@ func scalar(raw json.RawMessage) string {
 	return string(raw)
 }
 
+// refusalText is a refusal's sentence, and where a query went wrong, which an assistant has no caret to point at.
+func refusalText(e APIError) string {
+	if e.Position == nil {
+		return e.Message
+	}
+	return fmt.Sprintf("%s The query goes wrong at character %d.", e.Message, *e.Position)
+}
+
 func refusal(message string) toolResult {
 	return toolResult{Content: []toolContent{{Type: "text", Text: message}}, IsError: true}
 }
@@ -352,7 +360,7 @@ func (c *capture) toolResult() toolResult {
 	if status >= http.StatusBadRequest {
 		var envelope errorEnvelope
 		if json.Unmarshal(body, &envelope) == nil && envelope.Error.Message != "" {
-			return refusal(envelope.Error.Message)
+			return refusal(refusalText(envelope.Error))
 		}
 		return refusal(http.StatusText(status) + ".")
 	}
