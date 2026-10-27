@@ -3,6 +3,7 @@ import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
+import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
@@ -97,8 +98,9 @@ test.describe("test executions in traceability", { tag: "@desktop" }, () => {
     await coverageReads(page, "Verified: Partial");
     await uploadAsCI(token.secret!, made.key);
 
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}`);
-    await expect(page.locator("[data-execution-progress]")).toContainText("1 of 1 run, 0 failed");
+    await openUntil(page, `/p/${KEY}/tests/executions/${execution.id}`, () =>
+      expect(page.locator("[data-execution-progress]")).toContainText("1 of 1 run, 0 failed", ONE_LOOK),
+    );
     await coverageReads(page, "Verified: Full");
 
     await page.goto(`/p/${KEY}/matrix`);
