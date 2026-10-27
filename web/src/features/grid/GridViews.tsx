@@ -68,7 +68,11 @@ export function GridViews({
             variant="secondary"
             size="sm"
             loading={actions.update.isPending}
-            onClick={() => actions.update.mutate({ id: open.id, body: body(kind, state) }, { onSuccess: (view) => onNotice(t.grid.viewSaved(view.name)) })}
+            onClick={() => {
+              // The banner says why the last action failed, never an earlier one's reason.
+              actions.remove.reset();
+              actions.update.mutate({ id: open.id, body: body(kind, state) }, { onSuccess: (view) => onNotice(t.grid.viewSaved(view.name)) });
+            }}
             data-action="update-view"
           >
             {t.grid.saveChanges}
@@ -78,14 +82,15 @@ export function GridViews({
             size="sm"
             icon={<Icon.Trash />}
             loading={actions.remove.isPending}
-            onClick={() =>
+            onClick={() => {
+              actions.update.reset();
               actions.remove.mutate(open.id, {
                 onSuccess: () => {
                   onNotice(t.grid.viewDeleted(open.name));
                   onOpen(undefined);
                 },
-              })
-            }
+              });
+            }}
             data-action="delete-view"
           >
             {t.grid.deleteView}

@@ -65,6 +65,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The grid no longer offers to edit a title its reader may not change in
   the requirement's status, which the server refused after it was typed
   (#311). The title shows as it is, as the other fields a rule closes do.
+- A view whose delete is refused after a refused save now says why the
+  delete was refused, not the save's reason again (#311).
 - A requirement out of the trash no longer goes below one in the trash, even
   when written straight to the database (#310). It vanished from the tree
   and the specification without showing in the trash. The API refused such
