@@ -9,6 +9,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves reviews, signed approvals and review sessions through
+  every role and scope: an editor sets no rule and moderates nobody else's
+  session, an archived project takes no rule or review, a rule of one type
+  comes first, an author approves where the rule lets them, a signature
+  keeps its German meaning, sessions open over a query and since an
+  approval or a baseline, refuse an empty scope, a bad quorum, too many
+  requirements, approvers or rounds and a taken baseline name, the
+  reminder tells only who still decides, the sessions list and its MCP
+  tools keep to their readers, and the database holds a session to its
+  opening. In the browser a review is rejected and withdrawn, a typed rule
+  changed and removed, a signature given at Keycloak and cancelled, and
+  sessions opened over a baseline and a query and their report downloaded
+  (#317).
 - The suite proves baselines and their signatures to every refusal: a
   baseline of an archived project is neither taken, renamed, deleted nor
   signed, a root or a comparison outside its project is refused, a
