@@ -71,6 +71,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Linking a requirement of an archived project, or removing a link whose
+  ends are all in archived projects, is refused as archived (409
+  `project_archived`), as confirming such a link already was, rather than
+  telling an administrator to ask for edit rights (#313).
 - Sharing a view, or changing a shared one, in an archived project is
   refused as archived (409 `project_archived`), saying to unarchive the
   project, rather than telling an administrator to ask for edit rights
