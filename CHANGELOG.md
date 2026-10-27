@@ -9,6 +9,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the moves in the tree, the specification page and its
+  exports: every refusal of a move leaves the tree as it was, a mapped move
+  lands in the status mapped, `requirement.moved` is posted once for each
+  requirement moved, `get_tree` answers as the tree does, each entry says
+  what its reader may do, a document is read for a nested section, past
+  its 1000 entries and without the links its reader may not follow, and
+  every control of the specification page is used in the browser (#310).
 - The suite proves the guards on reuse and the via stamp (#321): a reuse
   is refused into a project its person only reads or that is archived, a
   take and a variant are refused in the trash and while locked, a take

@@ -60,6 +60,7 @@ var installationWide = map[string]string{
 	"TestRequirementEventsReachTheReceiverAsTheOwnerMayReadThem": webhookEndpoints,
 	"TestAFailingReceiverIsRetriedThenTurnedOff":                 webhookEndpoints,
 	"TestARedeliveryLeavesTheRetriesGoing":                       webhookEndpoints,
+	"TestAMoveToAnotherProjectIsPostedOncePerRequirement":        webhookEndpoints,
 	"TestASignInWhoseExchangeTimesOutSaysSo":                     armatureLink,
 	"TestARefusedRefreshWaitsBeforeItIsAskedAgain":               armatureLink,
 	"TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent":   webhookEndpoints,
