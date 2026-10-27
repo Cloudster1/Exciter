@@ -134,6 +134,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Saving a project's details says "Saved." (#319). The form started again
+  from the saved project and lost the word before anyone read it.
 - The grid shows a computed attribute's value as text (#319). It offered a
   box to type a value in, which every save then refused.
 - A dashboard widget counting by an attribute is refused when it is saved
