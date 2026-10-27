@@ -121,6 +121,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A .reqifz whose document unpacks past what one import takes is refused
+  as the file, naming the document, as a Word document that does is
+  (#318). It answered with a server error.
 - Deleting a baseline on its own page leads back to the project's
   baselines and says "The baseline <name> is deleted." (#316). The page
   asked for the deleted baseline again and stayed on "That baseline was
