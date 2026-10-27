@@ -9,6 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the grid's and the search's pages, filters and views:
+  every window of the grid and the search holds each row once in the order
+  asked for, the search narrows by owner and day, a token limited to one
+  project searches only there, `search_requirements` and
+  `list_requirements` answer as the API does, a view is refused when
+  changed or deleted by who may not and stays as it was, and every control
+  of the grid and the search page is used in the browser, a shared view
+  also by a second person (#311).
 - The suite proves the moves in the tree, the specification page and its
   exports: every refusal of a move leaves the tree as it was, a mapped move
   lands in the status mapped, `requirement.moved` is posted once for each
