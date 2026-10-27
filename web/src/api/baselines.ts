@@ -95,7 +95,8 @@ export function useBaselineActions(projectKey: string) {
       mutationFn: async (id: string) => {
         await api.DELETE("/baselines/{baselineID}", { params: { path: { baselineID: id } } });
       },
-      onSuccess: refresh,
+      // The deleted baseline is not asked for again: its page would show it gone before it leads to the list.
+      onSuccess: (_, id) => queryClient.invalidateQueries({ queryKey: baselinesKey, predicate: (query) => query.queryKey[1] !== id }),
     }),
   };
 }

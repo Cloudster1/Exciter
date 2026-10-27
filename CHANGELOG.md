@@ -101,6 +101,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Deleting a baseline on its own page leads back to the project's
+  baselines and says "The baseline <name> is deleted." (#316). The page
+  asked for the deleted baseline again and stayed on "That baseline was
+  not found" instead.
 - The impact file of a trace graph marks an item suspect only when the
   link that reached it is, as the graph's page does (#314). It marked a
   requirement suspect for a suspect link leading on from it as well.
