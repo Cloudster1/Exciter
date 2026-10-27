@@ -125,6 +125,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
     // Bob's address is his alone; his first name is every spec's bob's.
     await statement.pressSequentially(`@${people.bob.email.split("@")[0]}`);
     await expect(page.locator(`[data-mention-option="${people.bob.name}"]`)).toBeVisible();
+    await expectAccessible(page);
     await page.keyboard.press("Enter");
     await expect(page.locator("[data-mention-list]")).toHaveCount(0);
     await page.keyboard.type("about the pads.");

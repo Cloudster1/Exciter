@@ -240,7 +240,7 @@ func Handler(s *Service) events.HandlerFunc {
 // repeated one changes nothing.
 func (s *Service) Step(ctx context.Context, actor uuid.UUID, at int) error {
 	var d *Demo
-	if _, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+	claimed, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		tag, err := tx.Exec(ctx, `UPDATE suite_demo SET state = 'running', started_at = coalesce(started_at, now())
 			WHERE step = $1 AND step < steps AND state IN ('queued', 'running')`, at)
 		if err != nil || tag.RowsAffected() == 0 {
@@ -248,9 +248,13 @@ func (s *Service) Step(ctx context.Context, actor uuid.UUID, at int) error {
 		}
 		d, err = readDemo(ctx, tx)
 		return err
-	}); err != nil || d == nil {
+	})
+	if err != nil || d == nil {
 		return err
 	}
+	// A step reads what the steps before it made, such as the requirement a link in Armature starts from, and a
+	// replica that has not replayed them yet would answer that it is not there.
+	ctx = db.PinLSN(ctx, claimed)
 	snap, err := s.snapshotOf()
 	if err != nil {
 		return s.fail(ctx, err)

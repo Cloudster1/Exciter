@@ -6,6 +6,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
+import { PRINTED } from "../fixtures/stack";
 
 const KEY = uniqueKey("DOC");
 
@@ -20,7 +21,7 @@ async function cleanUp(api: ExciterApi) {
 
 /** Exports from the menu the page shows, and answers the file the browser saved. */
 async function exportAs(page: Page, format: "PDF" | "Word", within = page.locator("main")) {
-  const download = page.waitForEvent("download");
+  const download = page.waitForEvent("download", PRINTED);
   await within.locator('[data-action="export-menu"]').first().click();
   await page.getByRole("menuitem", { name: format }).click();
   const saved = await download;

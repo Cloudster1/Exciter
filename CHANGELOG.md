@@ -137,6 +137,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.
+- The people offered after an at sign are listed inside the page's main
+  content, or the dialog the editor is in, so a screen reader finds them
+  where the text is written rather than at the end of the page (#377).
+- The suite demo links each requirement it made, also when the replica a
+  step reads from has not caught up with the steps before it (#365). It
+  then said its links waited for issues Armature did not have yet.
 - Deleting a baseline on its own page leads back to the project's
   baselines and says "The baseline <name> is deleted." (#316). The page
   asked for the deleted baseline again and stayed on "That baseline was
