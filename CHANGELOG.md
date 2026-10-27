@@ -134,6 +134,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The grid shows a computed attribute's value as text (#319). It offered a
+  box to type a value in, which every save then refused.
 - A dashboard widget counting by an attribute is refused when it is saved
   with formatted text or another project's attribute (#319), on the
   attribute's field. It was saved and then could not be read.
