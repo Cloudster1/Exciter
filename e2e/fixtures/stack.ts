@@ -51,3 +51,7 @@ export function statorURL(): string {
 export function superuserURL(): string {
   return setting("EXCITER_TEST_SUPERUSER_URL");
 }
+
+/** A print may take as long as the api gives it, EXCITER_RENDER_TIMEOUT's 20 seconds, while the suite keeps the
+ *  stack busy; a print the api gives up on then fails on its own answer rather than on the wait. */
+export const PRINTED = { timeout: 25_000 } as const;

@@ -5,6 +5,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { PRINTED } from "../fixtures/stack";
 
 // Test executions (#251): alice starts an execution of a plan, runs its case step by step, fails a step with a
 // file, closes it and downloads its report.
@@ -88,7 +89,7 @@ test.describe("test executions", { tag: "@desktop" }, () => {
     await page.getByRole("dialog").locator('[data-action="close-execution-send"]').click();
     await expect(page.locator("[data-execution-page]")).toHaveAttribute("data-execution-state", "closed");
 
-    const download = page.waitForEvent("download");
+    const download = page.waitForEvent("download", PRINTED);
     await page.locator('[data-action="export-menu"]').click();
     await page.getByRole("menuitem", { name: "PDF" }).click();
     const saved = await download;
