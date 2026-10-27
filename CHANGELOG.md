@@ -80,6 +80,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The impact file of a trace graph marks an item suspect only when the
+  link that reached it is, as the graph's page does (#314). It marked a
+  requirement suspect for a suspect link leading on from it as well.
 - Watching a project that cannot be changed now says so on the project's
   page, as the requirement's watch menu does, instead of nothing (#312).
 - Stopping the last watch on a later page of Watching goes back to the
