@@ -74,6 +74,8 @@ var installationWide = map[string]string{
 	"TestTheMatrixShowsItsGaps":                                  armatureLink,
 	"TestTheMatrixFollowsLinksMadeFromItsCells":                  armatureLink,
 	"TestTheMatrixLaysOutStatorPages":                            statorLink,
+	"TestChainsEndInStatorPages":                                 statorLink,
+	"TestChainsEndInArmatureIssues":                              armatureLink,
 	"TestAStatorLinkNamesTheTokenItCameThrough":                  statorLink,
 	"TestATraceModelIsSetAndItsChainsFollowed":                   armatureLink,
 	"TestATraceGraphFollowsTheLinksUpAndDownAsFarAsAsked":        armatureLink,
