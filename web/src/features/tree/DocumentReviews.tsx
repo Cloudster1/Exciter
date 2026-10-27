@@ -54,10 +54,7 @@ export function EntryReview({ project, entry, onDecided }: { project: Project; e
   const review = entry.review;
   const decide = useDecide(entry.node.key);
   // A signature the identity provider interrupted comes back here, once, to be finished (#46).
-  const [resumed] = useState(() => {
-    const back = resumeSigning();
-    return review && back?.reviewId === review.id ? back : undefined;
-  });
+  const [resumed] = useState(() => (review ? resumeSigning(review.id) : undefined));
   const [comment, setComment] = useState(resumed?.comment ?? "");
   const [signing, setSigning] = useState<Pick<Resumed, "decision" | "proof" | "failure"> | undefined>(resumed);
   const full = useReview(signing ? review?.id : undefined);

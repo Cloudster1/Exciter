@@ -23,12 +23,13 @@ export interface Resumed {
   comment: string;
 }
 
-/** Reads, once, a signature the browser came back to finish, and takes it out of the address. */
-export function resumeSigning(): Resumed | undefined {
+/** Reads, once, a signature the browser came back to finish for this review, and takes it out of the address; one
+ * for another review stays there for that review's own reader, as a document shows several. */
+export function resumeSigning(forReview: string): Resumed | undefined {
   const url = new URL(window.location.href);
   const reviewId = url.searchParams.get("review");
   const decision = url.searchParams.get("sign");
-  if (!reviewId || (decision !== "approve" && decision !== "reject")) return undefined;
+  if (reviewId !== forReview || (decision !== "approve" && decision !== "reject")) return undefined;
   let comment = "";
   try {
     const kept = JSON.parse(sessionStorage.getItem(KEPT) ?? "null") as { reviewId?: string; comment?: string } | null;

@@ -17,6 +17,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   hand, copies with what is below, takes an owner off, empties the trash,
   walks a long history, and writes with every tool of the editor, a link
   and a mention.
+- The suite proves the moves in the tree, the specification page and its
+  exports: every refusal of a move leaves the tree as it was, a mapped move
+  lands in the status mapped, `requirement.moved` is posted once for each
+  requirement moved, `get_tree` answers as the tree does, each entry says
+  what its reader may do, a document is read for a nested section, past
+  its 1000 entries and without the links its reader may not follow, and
+  every control of the specification page is used in the browser (#310).
 - The suite proves the guards on reuse and the via stamp (#321): a reuse
   is refused into a project its person only reads or that is archived, a
   take and a variant are refused in the trash and while locked, a take
@@ -69,6 +76,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
   time.
 - A requirement carries at most 50 labels also when written straight
   through the database (#309). Only the server held the bound before.
+- A requirement out of the trash no longer goes below one in the trash, even
+  when written straight to the database (#310). It vanished from the tree
+  and the specification without showing in the trash. The API refused such
+  a place already; the database now refuses it too.
+- A signature interrupted by a sign-in at the identity provider is finished
+  on the requirement it was for when the specification shows several
+  reviews waiting (#310). The first review of the document took the way
+  back for itself and dropped it, so the signature never reopened.
 - Once a page has shown you something the server finished in the
   background, such as a ReqIF import done, the next pages show it too
   (#374). While the database's read replica was behind, one page could be
