@@ -12,6 +12,7 @@ import {
   type Comment,
   type Thread,
 } from "@/api/comments";
+import { useProject } from "@/api/projects";
 import type { Requirement } from "@/api/requirements";
 import { Avatar, Button, Card, ErrorBanner, SectionTitle, Skeleton, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -99,7 +100,10 @@ export function CommentsSection({ requirement }: { requirement: Requirement }) {
   const addRef = useRef<HTMLButtonElement>(null);
   const focusWhenRendered = useFocusWhenRendered();
   const threads = data ?? [];
-  const open = requirement.can.comment && !requirement.trashedAt;
+  // The server says only that nobody may comment in the trash or an archive, so the reason is read here.
+  const archived = Boolean(useProject(requirement.projectKey).data?.archivedAt);
+  const closed = Boolean(requirement.trashedAt) || archived;
+  const open = requirement.can.comment && !closed;
   const hash = useRouterState({ select: (state) => state.location.hash });
   // The thread a link names arrives with the discussion, after the router looked for it.
   useEffect(() => {
@@ -136,7 +140,7 @@ export function CommentsSection({ requirement }: { requirement: Requirement }) {
             )}
             {!open ? (
               <p className="text-sm text-ink-muted" data-comments-read-only="">
-                {requirement.can.comment ? t.comments.closed : t.comments.readOnly}
+                {closed ? t.comments.closed : t.comments.readOnly}
               </p>
             ) : composing ? (
               <Composer
