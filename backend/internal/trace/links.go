@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/db"
+	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/via"
 )
@@ -174,6 +175,8 @@ func LinkIn(ctx context.Context, tx db.DBTX, actor uuid.UUID, key string, in Lin
 		return nil, ErrSection
 	case here.Trashed:
 		return nil, requirement.ErrTrashed
+	case here.Archived:
+		return nil, project.ErrArchived
 	case !here.Linkable:
 		return nil, requirement.ErrForbidden
 	}
@@ -359,20 +362,28 @@ func linkRefusal(err error, here, other *requirement.Endpoint) error {
 func (s *Service) Unlink(ctx context.Context, actor, id uuid.UUID) (db.LSN, error) {
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
 		var (
-			source, target uuid.UUID
-			editable       bool
+			source, target     uuid.UUID
+			editable, archived bool
 		)
 		err := tx.QueryRow(ctx, `
-			SELECT source_id, target_id,
-			       perm_requirement_editable(source_id, $2) OR perm_requirement_editable(target_id, $2)
-			FROM trace_link WHERE id = $1 AND deleted_at IS NULL`, id, actor).Scan(&source, &target, &editable)
+			SELECT l.source_id, l.target_id,
+			       perm_requirement_editable(l.source_id, $2) OR perm_requirement_editable(l.target_id, $2),
+			       sp.archived_at IS NOT NULL AND tp.archived_at IS NOT NULL
+			FROM trace_link l
+			JOIN requirement s ON s.id = l.source_id JOIN project sp ON sp.id = s.project_id
+			JOIN requirement t ON t.id = l.target_id JOIN project tp ON tp.id = t.project_id
+			WHERE l.id = $1 AND l.deleted_at IS NULL`, id, actor).Scan(&source, &target, &editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
 		}
 		if err != nil {
 			return err
 		}
-		if !editable {
+		// As clearing does: a link whose ends are all archived waits for its project, not for a right.
+		switch {
+		case !editable && archived:
+			return project.ErrArchived
+		case !editable:
 			return requirement.ErrForbidden
 		}
 		if _, err := tx.Exec(ctx, `UPDATE trace_link SET deleted_at = now(), deleted_by = $2 WHERE id = $1`, id, actor); err != nil {

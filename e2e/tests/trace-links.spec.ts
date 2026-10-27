@@ -6,6 +6,7 @@ import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
 const KEY = uniqueKey("TRC");
+const ELSEWHERE = uniqueKey("TRE");
 // Link types for all projects are the installation's, so this one is named with a word of this worker's own.
 const WORD = uniqueKey("W").toLowerCase();
 const NAME = `Mitigates ${WORD}`;
@@ -14,9 +15,10 @@ const READS = `mitigates ${WORD}`;
 
 /** Removes the project and the link type the test made, so each test starts without them. */
 async function cleanUp(api: ExciterApi) {
-  const path = { params: { path: { projectKey: KEY } } };
-  const found = await api.GET("/projects/{projectKey}", path);
-  if (found.data) {
+  for (const projectKey of [KEY, ELSEWHERE]) {
+    const path = { params: { path: { projectKey } } };
+    const found = await api.GET("/projects/{projectKey}", path);
+    if (!found.data) continue;
     if (!found.data.project.archivedAt) await api.PUT("/projects/{projectKey}/archive", path);
     await api.DELETE("/projects/{projectKey}", path);
   }
@@ -69,6 +71,33 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     await expect(panel).toContainText("Nothing is linked to this requirement yet.");
     await page.goto(`/p/${KEY}/r/${KEY}-R2/history?tab=activity`);
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`${KEY}-R1`);
+  });
+
+  test("alice picks another requirement, then links one of another project, and the link reads from both ends", async ({ page, api }) => {
+    await makeProject(api);
+    must(await api.POST("/projects", { body: { key: ELSEWHERE, name: "Ledger" } }));
+    must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: ELSEWHERE } }, body: { title: "Ledger keeps every payment" } }));
+
+    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    const form = page.getByRole("form", { name: "Add a link" });
+    const picker = form.getByRole("combobox", { name: "Requirement" });
+    await form.getByRole("combobox", { name: "Link type" }).selectOption({ label: "This requirement derives from" });
+    await picker.fill(`${KEY}-R2`);
+    await page.locator(`[data-picker-option="${KEY}-R2"]`).click();
+    await expect(form.locator(`[data-link-picked="${KEY}-R2"]`)).toBeVisible();
+    await form.locator('[data-action="pick-another"]').click();
+    await expect(form.locator("[data-link-picked]")).toHaveCount(0);
+    await picker.fill(`${ELSEWHERE}-R1`);
+    await page.locator(`[data-picker-option="${ELSEWHERE}-R1"]`).click();
+    await expect(form.locator(`[data-link-picked="${ELSEWHERE}-R1"]`)).toContainText("Ledger keeps every payment");
+    await expectAccessible(page);
+    await form.locator('[data-action="create-link"]').click();
+    const panel = page.locator("[data-requirement-links]");
+    await expect(panel.locator(`[data-link-group="derives:outgoing"] [data-link="${ELSEWHERE}-R1"]`)).toContainText("Ledger keeps every payment");
+    await expect(panel.locator(`[data-link="${KEY}-R2"]`)).toHaveCount(0);
+
+    await page.goto(`/p/${ELSEWHERE}/r/${ELSEWHERE}-R1`);
+    await expect(panel.locator(`[data-link-group="derives:incoming"] [data-link="${KEY}-R1"]`)).toContainText("Pay the basket");
   });
 
   test("alice makes a link type for all projects, and a project turns it off", async ({ page, api }) => {
