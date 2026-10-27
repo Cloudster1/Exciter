@@ -69,4 +69,23 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     await expect(panel.getByText(/No issue yet/)).toBeVisible();
     await expect.poll(async () => (await stubLinks(TENANT)).filter((l) => l.issueKey === "CP-1").length).toBe(0);
   });
+
+  test("alice opens a traced issue in Armature from the requirement's trace graph (#314)", async ({ page, api }) => {
+    must(
+      await api.POST("/requirements/{reqKey}/armature-links", {
+        params: { path: { reqKey: `${KEY}-R1` } },
+        body: { issueKey: "CP-1", relation: "implements" },
+      }),
+    );
+    await page.goto(`/p/${KEY}/r/${KEY}-R1/trace`);
+    await page.locator("[data-graph-canvas] [data-graph-node]", { hasText: "CP-1" }).click();
+    const chosen = page.locator('[data-graph-chosen="CP-1"]');
+    await expect(chosen).toContainText("Set up the build pipeline");
+    const open = chosen.locator('[data-action="graph-open"]');
+    await expect(open).toHaveAttribute("target", "_blank");
+    await expect(open).toHaveAttribute("href", /CP-1/);
+    const opened = page.waitForEvent("popup");
+    await open.click();
+    expect((await opened).url()).toContain("CP-1");
+  });
 });
