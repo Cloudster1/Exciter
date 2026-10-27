@@ -48,6 +48,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Saving a link in the editor saves only the link (#309). "Save link" also
+  submitted the form around the editor, so a new requirement was written
+  before the rest of it was typed, an edit was saved as a revision, and a
+  comment was posted.
 - A save that sends a requirement's statement back as it was read no
   longer counts as changing it (#309). Where the field rules kept the
   statement from a role, its saves of the title were refused whenever the
