@@ -158,6 +158,11 @@ demo-snapshot: ## Take the suite demo's snapshot of the three tools' issues agai
 stack-up: stack-env ## The gate's stack: build and start it, and wait until every service is healthy
 	docker compose up -d --build --wait --quiet-pull
 
+.PHONY: stack-db-log
+stack-db-log: ## Keep the primary database's log in reports/, where a failed gate's lock waits are named (#405)
+	@mkdir -p $(REPORTS)
+	docker compose logs --no-color postgres-primary > $(REPORTS)/postgres-primary.log 2>&1
+
 .PHONY: stack-down
 stack-down: ## Remove the gate's stack and its volumes
 	docker compose down -v --remove-orphans
