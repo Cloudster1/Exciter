@@ -21,13 +21,8 @@ export function FixedFieldRules({ project }: { project: Project }) {
       {!mayChange && <p className="text-sm text-ink-muted">{t.fieldRules.readOnlySettings}</p>}
       <div className="divide-y divide-border">
         {rules.map((rule) => (
-          <RuleForm
-            key={`${rule.field}-${rule.requiredFrom}-${rule.editableBy.length}`}
-            project={project}
-            rule={rule}
-            statuses={statuses ?? []}
-            mayChange={mayChange}
-          />
+          // Keyed by the field alone: a key following the saved rule remounted the form and dropped its notice.
+          <RuleForm key={rule.field} project={project} rule={rule} statuses={statuses ?? []} mayChange={mayChange} />
         ))}
       </div>
     </Card>

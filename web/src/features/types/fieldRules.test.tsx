@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Attribute, FieldRule } from "@/api/attributes";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -46,7 +46,7 @@ const FIXED = ["title", "statement", "rationale", "type", "owner", "priority"] a
 const fixed = (own: Partial<Record<FieldRule["field"], Partial<FieldRule>>> = {}): FieldRule[] =>
   FIXED.map((field) => ({ field, requiredFrom: null, editableBy: [], ...own[field] }));
 
-function stubSettings(more: Record<string, Answer> = {}) {
+function stubSettings(more: Parameters<typeof stubApi>[0] = {}) {
   return stubApi({
     "GET /projects/CHK": { status: 200, body: { project: aProject() } },
     "GET /projects/CHK/types": { status: 200, body: { types: [] } },
@@ -85,8 +85,14 @@ describe("the field rules' settings", () => {
   });
 
   it("set a fixed field's rule, and keep a title and a statement required always", async () => {
+    // The rules read again after the save are the saved ones, as the server's are.
+    let rules = fixed();
     const sent = stubSettings({
-      "PUT /projects/CHK/field-rules/owner": { status: 200, body: { rule: { field: "owner", requiredFrom: review.id, editableBy: [] } } },
+      "GET /projects/CHK/field-rules": () => ({ status: 200, body: { rules } }),
+      "PUT /projects/CHK/field-rules/owner": () => {
+        rules = fixed({ owner: { requiredFrom: review.id } });
+        return { status: 200, body: { rule: { field: "owner", requiredFrom: review.id, editableBy: [] } } };
+      },
     });
     await renderAt("/p/CHK/settings?tab=fields");
     const title = await screen.findByRole("form", { name: "Title" });
@@ -96,7 +102,10 @@ describe("the field rules' settings", () => {
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(owner).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ requiredFrom: review.id, editableBy: [] }));
-    expect(await within(owner).findByText("The rule of Owner is saved.")).toBeInTheDocument();
+    await waitFor(() => expect(sent.filter((r) => r.method === "GET" && r.path === "/projects/CHK/field-rules").length).toBeGreaterThan(1));
+    const saved = screen.getByRole("form", { name: "Owner" });
+    expect(await within(saved).findByText("The rule of Owner is saved.")).toBeInTheDocument();
+    expect(within(saved).getByLabelText("Required from")).toHaveValue(review.id);
   });
 });
 

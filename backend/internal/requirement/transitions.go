@@ -147,8 +147,6 @@ func (s *Service) transition(ctx context.Context, actor uuid.UUID, key string, i
 				status = l.Status.Name
 			}
 			return &TransitionConflict{Key: l.Key, Status: status}
-		case errors.Is(err, workflow.ErrNotYours):
-			return ErrForbidden
 		case err != nil:
 			return err
 		}
