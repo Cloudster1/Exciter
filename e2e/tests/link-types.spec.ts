@@ -77,6 +77,8 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(guards.locator('[data-action="restore-link-type"]')).toHaveText("Use again");
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
     await expect(page.locator(`[data-link-group="${GUARDS.key}:outgoing"] [data-link="${KEY}-R2"]`)).toContainText("Brakes hold");
+    // The options load apart from the links, so a type still in use shows first that they are there.
+    await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${CHECKS.forward}` })).toHaveCount(1);
     await expect(linkTypeOptions(page).filter({ hasText: SHIELDS })).toHaveCount(0);
 
     await page.goto("/settings/link-types");
