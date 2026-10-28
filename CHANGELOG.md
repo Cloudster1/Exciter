@@ -169,6 +169,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   date kept are checked by their own sentence and value, and the dashboard
   list, the home dashboard, the home executions, the start dialog's
   refusals and a live Armature chip each fail when what they name breaks.
+- The integration suite fails when a write was never refused 403 with a
+  code, an operation taking a body never refused 422 on a field, or an MCP
+  tool never answered or never refused, unless it says why (#334). Every
+  tool is now called with a key nobody has, and refuses it.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result
