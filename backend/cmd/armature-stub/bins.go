@@ -24,16 +24,27 @@ type binDelivery struct {
 	At   time.Time `json:"at"`
 }
 
+// maxHold bounds how long a bin keeps a sender waiting, past any sender's timeout.
+const maxHold = time.Minute
+
+// binAnswer is what a bin answers: a status, a Location to send the sender on to, and how long it waits first, so a
+// suite can make a receiver that redirects or never answers in time.
+type binAnswer struct {
+	Status   int    `json:"status"`
+	Location string `json:"location"`
+	HoldMs   int    `json:"holdMs"`
+}
+
 // bins are named mailboxes for deliveries: each keeps what it was sent and
-// answers with the status it was told, 204 until then.
+// answers as it was told, 204 at once until then.
 type bins struct {
 	mu       sync.Mutex
 	received map[string][]binDelivery
-	status   map[string]int
+	answer   map[string]binAnswer
 }
 
 func newBins() *bins {
-	return &bins{received: map[string][]binDelivery{}, status: map[string]int{}}
+	return &bins{received: map[string][]binDelivery{}, answer: map[string]binAnswer{}}
 }
 
 func (b *bins) routes(mux *http.ServeMux) {
@@ -58,12 +69,24 @@ func (b *bins) receive(w http.ResponseWriter, r *http.Request) {
 	bin := r.PathValue("bin")
 	b.mu.Lock()
 	b.received[bin] = append(b.received[bin], binDelivery{Headers: headers, Body: string(body), At: time.Now().UTC()})
-	status, set := b.status[bin]
+	answer, set := b.answer[bin]
 	b.mu.Unlock()
 	if !set {
-		status = http.StatusNoContent
+		answer.Status = http.StatusNoContent
 	}
-	w.WriteHeader(status)
+	if answer.HoldMs > 0 {
+		hold := time.NewTimer(time.Duration(answer.HoldMs) * time.Millisecond)
+		defer hold.Stop()
+		select {
+		case <-hold.C:
+		case <-r.Context().Done():
+			return
+		}
+	}
+	if answer.Location != "" {
+		w.Header().Set("Location", answer.Location)
+	}
+	w.WriteHeader(answer.Status)
 }
 
 func (b *bins) list(w http.ResponseWriter, r *http.Request) {
@@ -74,15 +97,17 @@ func (b *bins) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *bins) setStatus(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Status int `json:"status"`
-	}
+	var req binAnswer
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxBody)).Decode(&req); err != nil || req.Status < 200 || req.Status > 599 {
 		refuse(w, http.StatusBadRequest, "bad_request", "Send the status the bin should answer, 200 to 599.")
 		return
 	}
+	if req.HoldMs < 0 || time.Duration(req.HoldMs)*time.Millisecond > maxHold {
+		refuse(w, http.StatusBadRequest, "bad_request", "Send a holdMs between 0 and a minute.")
+		return
+	}
 	b.mu.Lock()
-	b.status[r.PathValue("bin")] = req.Status
+	b.answer[r.PathValue("bin")] = req
 	b.mu.Unlock()
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -90,7 +115,7 @@ func (b *bins) setStatus(w http.ResponseWriter, r *http.Request) {
 func (b *bins) forget(w http.ResponseWriter, r *http.Request) {
 	b.mu.Lock()
 	delete(b.received, r.PathValue("bin"))
-	delete(b.status, r.PathValue("bin"))
+	delete(b.answer, r.PathValue("bin"))
 	b.mu.Unlock()
 	w.WriteHeader(http.StatusNoContent)
 }

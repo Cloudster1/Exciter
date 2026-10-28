@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves outbound webhooks to the end of their delivery chain: a
+  receiver that never recovers is tried six times on the documented waits
+  and then left; turning a webhook off cancels what was due, and the worker
+  turning one off keeps an attempt asked for by hand; the log is pruned
+  but keeps what is still due; a timeout, a host that does not resolve, a
+  secret that no longer opens, an unknown envelope version and a redirect
+  into the network each say why; two senders post a delivery once; a save
+  and a rotation are audited without the secret. In the browser a failed
+  delivery is sent again, a rotated secret copied and checked by a ping,
+  and a webhook the worker turned off turned on and deleted (#328).
 - The suite proves the Armature integration to its edges: a viewer with
   an Armature token, an archived project and the trash change no trace,
   the lookup and the search keep to their bounds, only a session stores
