@@ -144,6 +144,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The FMEA workbook names a mitigation from a project its reader may not
+  view as "A requirement you may not view", with its coverage and whether
+  it is in effect, as the table and the Word report do (#325). Its row
+  was empty, so the risk read as mitigated by nothing.
 - A mitigation keeps joining a requirement that is no risk to a risk when
   either end changes its type (#325). A risk could be given a type of
   requirements, its mitigating requirement a type of risks, or that

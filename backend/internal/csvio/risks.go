@@ -89,14 +89,21 @@ func levelCell(level *requirement.RiskLevel) xlsx.Cell {
 	return xlsx.Cell{Text: level.Name, Fill: strings.ToUpper(strings.TrimPrefix(level.Colour, "#"))}
 }
 
+// HiddenMitigation names a mitigating requirement the reader may not view, as the FMEA table and the report do.
+const HiddenMitigation = "A requirement you may not view"
+
 func mitigationCells(m risks.Mitigation) []xlsx.Cell {
-	if m.Source.Key == "" {
+	if m.Source.Key == "" && !m.Source.Hidden {
 		return []xlsx.Cell{xlsx.Text("", xlsx.Plain), xlsx.Text("", xlsx.Plain), xlsx.Text("", xlsx.Plain), xlsx.Text("", xlsx.Plain)}
 	}
 	style := xlsx.Gap
 	if m.InEffect {
 		style = xlsx.Linked
 	}
-	return []xlsx.Cell{xlsx.Text(m.Source.Key+" "+m.Source.Title, xlsx.Plain), xlsx.Text(string(m.Implemented), xlsx.Plain),
+	source := m.Source.Key + " " + m.Source.Title
+	if m.Source.Hidden {
+		source = HiddenMitigation
+	}
+	return []xlsx.Cell{xlsx.Text(source, xlsx.Plain), xlsx.Text(string(m.Implemented), xlsx.Plain),
 		xlsx.Text(string(m.Verified), xlsx.Plain), xlsx.Text(strconv.FormatBool(m.InEffect), style)}
 }
