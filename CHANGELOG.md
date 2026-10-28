@@ -144,6 +144,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The audit log records an FMEA workbook as it records every other export,
+  naming its project under project and its kind as risks (#325). It named
+  them projectKey and of, so a search of the log for a project's exports
+  missed its workbooks.
 - The risk matrix of a project without a risk scheme names its two scales
   as the API document says it does (#325). They came without a dimension,
   which the document does not allow. The document now also names the
