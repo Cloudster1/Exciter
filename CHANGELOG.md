@@ -9,6 +9,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Eight tests of the coverage work assert what their items state, not
+  less (#406): every field refusal the integration suite checks is a 422,
+  and the toolbar, quick search, watchers, link types, trace graph and
+  baseline signer tests each fail when what they name breaks.
 - The suite proves verification evidence to its edges: an archived project
   takes no run, scan, counting branch or tag words, every upload limit and
   field is refused with nothing queued, a run the worker cannot read ends
