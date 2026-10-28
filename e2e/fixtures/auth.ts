@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { test as base, expect, request, type Browser, type Page } from "@playwright/test";
 import { createExciterApi, type ExciterApi, type Session } from "./api";
 import { KEYCLOAK_URL, WEB_URL } from "./stack";
+import { noteReach } from "./reach";
 
 // Everything about signing in lives in this file, so when the login page
 // changes this is the one place to follow it.
@@ -115,16 +116,21 @@ interface SessionFixtures {
 
 /** The test for the shell: alice's page in the installation, with bob's and the API beside it. */
 export const test = base.extend<SessionFixtures>({
+  context: async ({ context }, use, testInfo) => {
+    await noteReach(context, testInfo.parallelIndex);
+    await use(context);
+  },
   sessionOf: async ({}, use) => {
     await use(stateFile);
   },
   storageState: async ({ sessionOf }, use) => {
     await use(sessionOf("alice"));
   },
-  pageAs: async ({ browser, viewport, hasTouch, isMobile, sessionOf }, use) => {
+  pageAs: async ({ browser, viewport, hasTouch, isMobile, sessionOf }, use, testInfo) => {
     const opened: Array<{ close: () => Promise<void> }> = [];
     await use(async (user) => {
       const context = await browser.newContext({ baseURL: WEB_URL, storageState: sessionOf(user), viewport, hasTouch, isMobile });
+      await noteReach(context, testInfo.parallelIndex);
       opened.push(context);
       return context.newPage();
     });

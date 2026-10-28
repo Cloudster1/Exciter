@@ -1,29 +1,12 @@
 import { ANONYMOUS, expect, LOGIN_PATH } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible, openShell, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { NEW_PROJECT_PATH, PLACE_PATHS, THEMES_PATH } from "../../web/src/config";
 
-// Contrast needs real layout and real colours, which is why these run here and not in the jsdom suite. Every
-// place of web/src/features/shell/places.ts, a new theme's editor and a path that leads nowhere, as the spec's own
-// alice, an admin on the built-in theme whatever default another spec sets.
-const PATHS = [
-  "/",
-  "/projects",
-  "/projects/new",
-  "/search",
-  "/settings/members",
-  "/settings/sso",
-  "/settings/default-theme",
-  "/settings/link-types",
-  "/settings/all-tokens",
-  "/settings/audit",
-  "/settings/installation",
-  "/settings/themes",
-  "/settings/themes/new",
-  "/settings/tokens",
-  "/settings/armature",
-  "/settings/armature-account",
-  "/no-such-page",
-];
+// Contrast needs real layout and real colours, which is why these run here and not in the jsdom suite. Every place
+// of web/src/features/shell/places.ts by PLACE_PATHS, a new project, a new theme's editor and a path that leads
+// nowhere, as the spec's own alice, an admin on the built-in theme whatever default another spec sets.
+const PATHS = [...PLACE_PATHS, "/settings", NEW_PROJECT_PATH, `${THEMES_PATH}/new`, "/no-such-page"];
 const SCHEMES: ColourScheme[] = ["light", "dark"];
 
 for (const scheme of SCHEMES) {

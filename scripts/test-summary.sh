@@ -76,3 +76,6 @@ if [[ -n "$suite_rows" ]]; then
   printf '%s' "$suite_rows"
   printf '%s' "$slowest_sections"
 fi
+
+# What the browser suite reached of the routes and data-action controls, when a whole run was checked (#334).
+for f in $(find_reports e2e-reach.md); do echo; cat "$f"; done
