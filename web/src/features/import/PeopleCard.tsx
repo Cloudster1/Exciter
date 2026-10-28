@@ -6,6 +6,9 @@ import { t } from "@/i18n";
 /** The answer to a name of the file: a member's id, or nobody, which the API takes as an empty choice. */
 export type PersonChoices = Record<string, { member?: string }>;
 
+// Nobody has a value of its own, so a name not answered yet shows that it is not and picking Nobody answers it.
+const NOBODY = "nobody";
+
 /** Who the file's names are in the project, Armature's card without making accounts. */
 export function PeopleCard({ people, choices, onChange }: { people: ImportPerson[]; choices: PersonChoices; onChange: (choices: PersonChoices) => void }) {
   const { people: members } = useSubjectSearch("", people.length > 0, false);
@@ -13,7 +16,7 @@ export function PeopleCard({ people, choices, onChange }: { people: ImportPerson
 
   function valueFor(person: ImportPerson): string {
     const picked = choices[person.name];
-    if (picked) return picked.member ?? "";
+    if (picked) return picked.member ?? NOBODY;
     return person.member ?? "";
   }
 
@@ -39,10 +42,11 @@ export function PeopleCard({ people, choices, onChange }: { people: ImportPerson
                   aria-label={t.imports.whoIs(person.name)}
                   controlSize="sm"
                   value={valueFor(person)}
-                  onChange={(event) => onChange({ ...choices, [person.name]: event.target.value ? { member: event.target.value } : {} })}
+                  onChange={(event) => onChange({ ...choices, [person.name]: event.target.value === NOBODY ? {} : { member: event.target.value } })}
                   data-import-person-choice={person.name}
                 >
-                  <option value="">{t.imports.nobody}</option>
+                  {valueFor(person) === "" && <option value="">{t.imports.pickPerson}</option>}
+                  <option value={NOBODY}>{t.imports.nobody}</option>
                   {person.member && !members.some((m) => m.id === person.member) && <option value={person.member}>{person.email}</option>}
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>

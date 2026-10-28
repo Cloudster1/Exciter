@@ -146,6 +146,7 @@ function Progress({ found, onAnother }: { found: Import; onAnother: () => void }
       </div>
       <progress className="h-1.5 w-full accent-accent" max={100} value={percent} aria-label={t.imports.progress(found.done, found.total)} />
       {found.error && <ErrorBanner>{found.error}</ErrorBanner>}
+      {actions.cancel.error && <ErrorBanner>{actions.cancel.error.message}</ErrorBanner>}
       {ended(found.state) && (
         <ul className="space-y-1 text-sm text-ink" data-import-result>
           <li>{t.imports.imported(found.imported.length)}</li>
