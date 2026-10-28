@@ -19,6 +19,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   deleted, an execution changed, aborted and printed, a case's iterations
   walked with its outcome set by hand and a file deleted, and a failure
   filed in Armature (#324).
+- The suite proves verification evidence to its edges: an archived project
+  takes no run, scan, counting branch or tag words, every upload limit and
+  field is refused with nothing queued, a run the worker cannot read ends
+  failed, code tags and a requirement's code keep to one branch and page,
+  the trace check fails on gaps only when asked, the evidence MCP tools
+  answer as their routes do, and the database keeps runs, results, scans
+  and both settings to their rules. In the browser the counting branch and
+  a tag word are set and take effect and the code tags are filtered and
+  paged, and the gate runs the exciter-ci image through its make targets
+  against the stack (#323).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
@@ -151,6 +161,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   execution, and its manager changing or closing it, are told the project
   is archived (#324), as is whoever changes or deletes one of its plans.
   They were told it was not theirs to do.
+- The project's trace settings say "Saved." once the counting branch or
+  the tag words are saved (#323). The form started again from what was
+  saved and lost the notice, so nothing said the save had gone through.
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.
