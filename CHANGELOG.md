@@ -144,6 +144,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The risk matrix of a project without a risk scheme names its two scales
+  as the API document says it does (#325). They came without a dimension,
+  which the document does not allow. The document now also names the
+  severity and probability that narrow the FMEA workbook to one cell.
 - The FMEA workbook names a mitigation from a project its reader may not
   view as "A requirement you may not view", with its coverage and whether
   it is in effect, as the table and the Word report do (#325). Its row

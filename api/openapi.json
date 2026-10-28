@@ -15547,6 +15547,22 @@
                 "effective"
               ]
             }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "description": "Only risks of this severity on the side read.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "probability",
+            "in": "query",
+            "description": "Only risks of this probability on the side read.",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
