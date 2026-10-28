@@ -246,6 +246,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A member made a project's administrator by a grant can save its
+  permissions (#330). Saving cleared the table before writing it again, so
+  their own grant was gone by the time the first row was written, and the
+  database refused it with "Something went wrong".
 - The database refuses a Stator page link whose address is not under the
   connected Stator's (#327). The service always wrote it there, but a
   writer straight through SQL could point a link everyone clicks anywhere.
