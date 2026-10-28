@@ -5,6 +5,7 @@ package test
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -175,6 +176,9 @@ func TestWatchingFollowsWhatOneMayView(t *testing.T) {
 		want(t, w.bob.post(t, "/api/v1/projects/"+w.key+"/trash/"+w.reqID+"/restore", nil), http.StatusOK, "restore R1")
 		if got := sees(t, w.carol); countOf(got.watched, r1) != 1 || countOf(got.told, r1) != 2 || got.unread != before.unread {
 			t.Errorf("with R1 back carol sees %+v, before %+v", got, before)
+		}
+		if ids := watcherIDs(t, w.bob, r1); !slices.Contains(ids, w.carolID.String()) {
+			t.Errorf("the watchers of R1 back from the trash leave carol out: %v", ids)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM notification WHERE requirement_id = $1`, r2ID); n == 0 {
 			t.Error("nothing was told about R2")
