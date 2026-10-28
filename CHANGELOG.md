@@ -292,6 +292,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The chart refuses `auth.secureCookies: false` outside development, in the
+  sentence the api gives, instead of rendering a release whose api and
+  worker then refuse to start (#333).
 - The Ctrl K palette no longer offers the requirements found for an earlier
   word while the answer for the word now typed is still on its way (#331).
   Pressing Enter then could open a requirement that does not match it.

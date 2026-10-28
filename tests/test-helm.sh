@@ -249,6 +249,14 @@ refused "a member with no such role" "use owner, admin or member" \
     "${BOOT[@]}" --set "bootstrap.members[0].email=a@acme.example" --set "bootstrap.members[0].role=root"
 refused "the seed and the bootstrap together" "turn one of them off" \
     "${BOOT[@]}" --set jobs.seed.enabled=true --set env=development
+echo "== Session cookies outside development"
+refused "plain cookies in production" \
+    "auth.secureCookies is false and env is production, so the api and the worker would refuse to start. Set auth.secureCookies to true outside development" \
+    --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false
+refused "plain cookies in staging" "auth.secureCookies is false and env is staging" \
+    --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=staging
+render "plain cookies in development" --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=development
+check "development may send the cookie over plain HTTP" "$(config_value "${RENDERED}" EXCITER_SECURE_COOKIES)" "false"
 
 echo "== The bundled SeaweedFS"
 SWFS=(--set database.host=db.example "${VALKEY[@]}" --set seaweedfs.enabled=true)
