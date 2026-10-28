@@ -148,6 +148,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A requirement's link to a Stator page stays in the space the page was
+  moved to when Stator delivers the publish of that version late (#327).
+  The move did not keep its version, so the late publish moved the link
+  back to the space the page had left, with that space's address.
 - The exciter-ci check against the stack reads a scan's tags and a run's
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing
