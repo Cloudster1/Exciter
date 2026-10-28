@@ -9,16 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- The suite proves every workflow rule and the shaping of a project: each
-  rule refuses or acts on a transition saved in a workflow, a rule that
-  could never run is refused on save, workflows, statuses, types and
-  attributes are reached only through their project, an archived project
-  takes no new shape, field rules keep to the fixed fields and the
-  project's roles, an assistant lists and takes transitions, and the
-  database keeps rules and steps to the administrators. In the browser
-  types, attributes, field rules, statuses and workflows are made,
-  changed and deleted, the designer's inspector draws a workflow, and
-  each change is checked on a requirement (#322).
+- The suite proves the Armature integration to its edges: a viewer with
+  an Armature token, an archived project and the trash change no trace,
+  the lookup and the search keep to their bounds, only a session stores
+  a token, the app's secret is never audited, every sentence a sign-in's
+  exchange keeps is produced, two reads at once renew a grant once, a
+  refused refresh waits, the development panel and the MCP tools ask
+  Armature only as the reader may, and the database guards clearances,
+  sync records and the tokens of people without a role. In the browser a
+  suspect trace is confirmed, a chip's connect hint followed, an issue
+  picked again, a requirement left out of a round, a round partly refused
+  and the webhook address copied (#326).
 - The suite proves dashboards and computed attributes to their edges: a
   reader neither orders nor adds widgets, the 51st dashboard and the 31st
   widget are refused, every widget setting out of bounds is refused on its
@@ -118,6 +119,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   straight through SQL. In the browser comments are edited, reopened and
   moderated, projects watched, the Watching and Notifications pages used,
   and files dropped on the panel (#312).
+- The suite proves every workflow rule and the shaping of a project: each
+  rule refuses or acts on a transition saved in a workflow, a rule that
+  could never run is refused on save, workflows, statuses, types and
+  attributes are reached only through their project, an archived project
+  takes no new shape, field rules keep to the fixed fields and the
+  project's roles, an assistant lists and takes transitions, and the
+  database keeps rules and steps to the administrators. In the browser
+  types, attributes, field rules, statuses and workflows are made,
+  changed and deleted, the designer's inspector draws a workflow, and
+  each change is checked on a requirement (#322).
 - The suite proves the grid's and the search's pages, filters and views:
   every window of the grid and the search holds each row once in the order
   asked for, the search narrows by owner and day, a token limited to one
@@ -180,16 +191,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- A transition one of its conditions keeps from somebody is refused with
-  that condition (#322), such as "Only the requirement's owner may take
-  it.". It said they might read the project but not change its
-  requirements, also to an editor.
-- A workflow's rule asking for links of a type takes only a link type of
-  its own project or of every project (#322). One of another project was
-  saved, and no requirement could ever meet it.
-- Saving a fixed field's rule says it is saved (#322). The form was drawn
-  again with the saved rule and the notice was lost. A status or a
-  workflow still used once says "once" rather than "1 times".
+- The matrix paging browser test waits up to 20 seconds for each page of
+  five thousand cells to show (#391). On a busy shard they rendered for
+  longer than the default five seconds after the page had arrived.
+- Tracing a requirement to an Armature issue, removing such a trace or
+  filing issues from an archived project says the project is archived
+  (409 `project_archived`), as confirming a trace there already did
+  (#326). It answered 403 and told an editor to ask for edit rights.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - The grid shows a computed attribute's value as text (#319). It offered a
@@ -218,6 +226,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing
   and fail the integration job on main.
+- A transition one of its conditions keeps from somebody is refused with
+  that condition (#322), such as "Only the requirement's owner may take
+  it.". It said they might read the project but not change its
+  requirements, also to an editor.
+- A workflow's rule asking for links of a type takes only a link type of
+  its own project or of every project (#322). One of another project was
+  saved, and no requirement could ever meet it.
+- Saving a fixed field's rule says it is saved (#322). The form was drawn
+  again with the saved rule and the notice was lost. A status or a
+  workflow still used once says "once" rather than "1 times".
 - The project's trace settings say "Saved." once the counting branch or
   the tag words are saved (#323). The form started again from what was
   saved and lost the notice, so nothing said the save had gone through.
