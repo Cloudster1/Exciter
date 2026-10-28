@@ -270,6 +270,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The Ctrl K palette no longer offers the requirements found for an earlier
+  word while the answer for the word now typed is still on its way (#331).
+  Pressing Enter then could open a requirement that does not match it.
 - The database refuses a Stator page link whose address is not under the
   connected Stator's (#327). The service always wrote it there, but a
   writer straight through SQL could point a link everyone clicks anywhere.
