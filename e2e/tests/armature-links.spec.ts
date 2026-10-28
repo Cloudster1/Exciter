@@ -104,6 +104,13 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     await expect(chip.getByRole("link", { name: "CP-1", exact: true })).toBeVisible();
     await expect(chip.locator('[data-status-category="done"]')).toHaveText(/Done/);
     await expect(chip).not.toContainText("Set up the build pipeline");
+    // Armature moves the issue on, so the chip shows its status now only when it asks Armature.
+    const moved = await fetch(`${armatureURL()}/_stub/${TENANT}/issues/CP-1`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ statusCategory: "in_progress" }),
+    });
+    expect(moved.status).toBe(200);
 
     await chip.locator('[data-action="connect-armature-hint"]').click();
     await expect(bob).toHaveURL(/\/settings\/armature-account$/);
@@ -116,6 +123,8 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     await expect(live).toHaveAttribute("data-state", "issue");
     await expect(live).toContainText("Set up the build pipeline");
     await expect(live).toContainText("Alice");
+    await expect(live.locator("[data-status-category]")).toHaveAttribute("data-status-category", "in_progress");
+    await expect(live.locator("[data-status-category]")).toHaveText(/In progress/);
   });
 
   test("alice picks another issue, and one she may not see is never offered to trace (#326)", async ({ page, api }) => {

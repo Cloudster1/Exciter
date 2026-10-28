@@ -94,6 +94,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- Nine more tests of the coverage work assert what their items state
+  (#416): a draft's statement that is no document and a reader's bulk
+  transition are refused with nothing moved, the tester bounds and a due
+  date kept are checked by their own sentence and value, and the dashboard
+  list, the home dashboard, the home executions, the start dialog's
+  refusals and a live Armature chip each fail when what they name breaks.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result

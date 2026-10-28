@@ -358,6 +358,25 @@ func TestWorkflowsAndStatusesStayInTheirProject(t *testing.T) {
 		}
 	})
 
+	t.Run("a reader's bulk transition is refused on each requirement, and nothing moves", func(t *testing.T) {
+		keys := []string{s.write(t, "Brakes hold in the wet"), s.write(t, "Brakes hold in the cold")}
+		submit := s.transitionID(t, keys[0], "Submit for review")
+		// The bulk route answers 200 as a whole and refuses each requirement as the single route would.
+		results := list(t, want(t, s.reader.post(t, s.in(s.key, "/transitions"), map[string]any{"transitionId": submit, "keys": keys}),
+			http.StatusOK, "a reader submits two"), "results")
+		if len(results) != len(keys) {
+			t.Fatalf("the reader's bulk transition answers %v", results)
+		}
+		for i, key := range keys {
+			r := results[i].(map[string]any)
+			refusal, _ := r["error"].(map[string]any)
+			if r["key"] != key || r["outcome"] != "refused" || refusal == nil || refusal["code"] != "forbidden" {
+				t.Errorf("the reader's result for %s is %v", key, r)
+			}
+			s.stays(t, key, "Draft")
+		}
+	})
+
 	t.Run("a workflow id that is none is a bad address, and a followed one stays", func(t *testing.T) {
 		refuse(t, "deleting a workflow id that is none", owner.delete(t, s.in(s.key, "/workflows/nope")), http.StatusBadRequest, "bad_request")
 		mine := s.workflowsOf(t, s.key)["Default workflow"]
