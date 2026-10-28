@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves outbound webhooks to the end of their delivery chain: a
+  receiver that never recovers is tried six times on the documented waits
+  and then left; turning a webhook off cancels what was due, and the worker
+  turning one off keeps an attempt asked for by hand; the log is pruned
+  but keeps what is still due; a timeout, a host that does not resolve, a
+  secret that no longer opens, an unknown envelope version and a redirect
+  into the network each say why; two senders post a delivery once; a save
+  and a rotation are audited without the secret. In the browser a failed
+  delivery is sent again, a rotated secret copied and checked by a ping,
+  and a webhook the worker turned off turned on and deleted (#328).
 - The integration suite's cleanup tries a statement again when it loses a
   deadlock to the stack's worker, which on a slow runner still writes the
   notifications of the project being removed (#405).
@@ -227,6 +237,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A webhook listening to a project hears that a requirement moved out of
+  it to another project (#328). Only the webhooks of the project it moved
+  to, or of every project, were posted `requirement.moved`.
 - The matrix paging browser test waits up to 20 seconds for each page of
   five thousand cells to show (#391). On a busy shard they rendered for
   longer than the default five seconds after the page had arrived.

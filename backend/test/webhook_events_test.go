@@ -181,13 +181,16 @@ func TestARedeliveryLeavesTheRetriesGoing(t *testing.T) {
 	log := h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 2`, "pending", 2)
 
 	again := obj(t, want(t, w.owner.post(t, "/api/v1/webhooks/"+id+"/deliveries/"+log[0].ID.String()+"/redeliver", nil), http.StatusOK, "send it again"), "delivery")
-	if again["state"] != "failed" || again["manual"] != true {
-		t.Fatalf("the redelivery reads %v", again)
+	if again["state"] != "failed" || again["manual"] != true || asNumber(again["attempt"]) != 3 {
+		t.Fatalf("the redelivery reads %v, want attempt 3 by hand", again)
 	}
 	h.cleanupExec(t, h.super, `UPDATE webhook_delivery SET next_attempt_at = now() WHERE id = $1`, log[1].ID)
 	log = h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 2`, "pending", 4)
-	if len(log) != 4 || log[1].State != "failed" || log[2].State != "failed" {
+	if len(log) != 4 || log[1].State != "failed" || log[2].State != "failed" || log[3].Attempt != 4 {
 		t.Errorf("after the retry failed the log reads %+v, want a further retry pending", log)
+	}
+	if n := h.countRows(t, `SELECT count(*) FROM webhook_delivery WHERE id = $1 AND NOT manual`, log[3].ID); n != 1 {
+		t.Error("the retry queued after the redelivery is not the automatic chain's")
 	}
 }
 
