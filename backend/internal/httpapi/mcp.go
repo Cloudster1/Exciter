@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -323,12 +324,18 @@ func scalar(raw json.RawMessage) string {
 	return string(raw)
 }
 
-// refusalText is a refusal's sentence, and where a query went wrong, which an assistant has no caret to point at.
+// refusalText is a refusal's sentence with what a form would show beside each field, and where a query went wrong,
+// which an assistant has no caret to point at.
 func refusalText(e APIError) string {
-	if e.Position == nil {
-		return e.Message
+	text := e.Message
+	fields := slices.Sorted(maps.Keys(e.Fields))
+	for _, field := range fields {
+		text += " " + field + ": " + e.Fields[field]
 	}
-	return fmt.Sprintf("%s The query goes wrong at character %d.", e.Message, *e.Position)
+	if e.Position == nil {
+		return text
+	}
+	return fmt.Sprintf("%s The query goes wrong at character %d.", text, *e.Position)
 }
 
 func refusal(message string) toolResult {

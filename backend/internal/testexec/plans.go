@@ -221,6 +221,9 @@ func changingPlan(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*planRo
 	if err != nil {
 		return nil, err
 	}
+	if err := stillOpen(ctx, tx, p.projectID); err != nil {
+		return nil, err
+	}
 	if !p.Can.Edit {
 		return nil, ErrForbidden
 	}
