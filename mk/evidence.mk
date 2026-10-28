@@ -20,6 +20,11 @@ trace-check: ## Ask the stack's trace check for a verdict: make trace-check [BRA
 GIT_SAFE = -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*'
 
 .PHONY: code-scan
-code-scan: ## Upload the requirement tags of this checkout, or of DIR inside it, to the stack: make code-scan [DIR=backend] [BRANCH=main]
+code-scan: ## Upload the requirement tags of this checkout, or of DIR inside it, to the stack: make code-scan [DIR=backend] [BRANCH=main] [COMMIT=<sha>]
 	docker compose --profile tools run --build --rm -e EXCITER_TOKEN -e EXCITER_PROJECT $(GIT_SAFE) ci scan \
-		$(if $(BRANCH),--branch "$(BRANCH)") $(if $(REPOSITORY),--repository "$(REPOSITORY)") $(or $(DIR),.)
+		$(if $(BRANCH),--branch "$(BRANCH)") $(if $(COMMIT),--commit "$(COMMIT)") $(if $(REPOSITORY),--repository "$(REPOSITORY)") $(or $(DIR),.)
+
+# The integration layer runs it after the suite, so the image and the targets above are tried as a pipeline runs them.
+.PHONY: test-exciter-ci
+test-exciter-ci: ## Run the ci image through the targets above against this checkout's running stack
+	$(ROOT)/tests/exciter-ci-stack.sh

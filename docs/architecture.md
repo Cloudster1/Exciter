@@ -566,7 +566,10 @@ installation's name) puts it back through a keeper (`keepLinkTypes` and the
 like), and `installationWide` lists each with its reason, which
 `TestInstallationWideTestsAreListedAndRunAlone` holds to the code. The rules
 of the last active administrator need an installation with one, so those tests
-migrate a database of their own.
+migrate a database of their own. After the whole suite, `make test-exciter-ci`
+(#323) builds the `ci` image and runs `make test-results`, `make code-scan`
+and `make trace-check` against the stack with an evidence token, holding the
+command's exit codes to what a pipeline reads.
 | test-e2e | Playwright against the compose stack, with axe | #9 |
 
 The browser suite (#9, `e2e/`, run by `mk/e2e.mk`) drives Chromium in

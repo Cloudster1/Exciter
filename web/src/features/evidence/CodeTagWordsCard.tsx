@@ -15,16 +15,36 @@ const listOf = (text: string) =>
 /** The words a project's code tags use for implements and verifies (#201); its administrators set them. */
 export function CodeTagWordsCard({ project }: { project: Project }) {
   const { data, error, refetch } = useCodeTagWords(project.key);
+  // Kept above the form, which starts again from the words it saved, so the word that it saved outlives it.
+  const save = useSaveCodeTagWords(project.key);
+  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!data) return <Skeleton />;
-  return <WordsForm key={data.updatedAt ?? "default"} project={project} implementsWords={data.implements} verifiesWords={data.verifies} />;
+  return (
+    <WordsForm
+      key={data.updatedAt ?? "default"}
+      project={project}
+      implementsWords={data.implements}
+      verifiesWords={data.verifies}
+      save={save}
+      notice={notice}
+      setNotice={setNotice}
+    />
+  );
 }
 
-function WordsForm({ project, implementsWords, verifiesWords }: { project: Project; implementsWords: string[]; verifiesWords: string[] }) {
+interface FormProps {
+  project: Project;
+  implementsWords: string[];
+  verifiesWords: string[];
+  save: ReturnType<typeof useSaveCodeTagWords>;
+  notice: string;
+  setNotice: (notice: string) => void;
+}
+
+function WordsForm({ project, implementsWords, verifiesWords, save, notice, setNotice }: FormProps) {
   const [implementing, setImplementing] = useState(implementsWords.join(", "));
   const [verifying, setVerifying] = useState(verifiesWords.join(", "));
-  const [notice, setNotice] = useState("");
-  const save = useSaveCodeTagWords(project.key);
   const may = project.can.administer && !project.archivedAt;
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const l = t.evidence.words;
