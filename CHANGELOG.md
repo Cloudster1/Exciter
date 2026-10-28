@@ -113,6 +113,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- Nine more tests of the coverage work assert what their items state
+  (#416): a draft's statement that is no document and a reader's bulk
+  transition are refused with nothing moved, the tester bounds and a due
+  date kept are checked by their own sentence and value, and the dashboard
+  list, the home dashboard, the home executions, the start dialog's
+  refusals and a live Armature chip each fail when what they name breaks.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result
@@ -263,6 +269,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
   (#326). It answered 403 and told an editor to ask for edit rights.
+- Starting a test execution with testers it refuses reads the refusal out
+  with the testers (#416). It showed below them, but a screen reader did
+  not tie it to them.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - Saving the writing rules or the word lists says so (#320). The cards
