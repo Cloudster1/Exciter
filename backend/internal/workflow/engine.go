@@ -38,15 +38,33 @@ func rulesOf(t Transition, kind RuleKind) []Rule {
 	return out
 }
 
-// allowed says whether every condition of a transition lets the actor take it.
-func allowed(t Transition, s Subject, a Actor) bool {
+// NotYoursError is a transition a condition keeps from the actor, saying which.
+type NotYoursError struct {
+	Transition, Reason string
+}
+
+func (e *NotYoursError) Error() string { return e.Transition + ": " + e.Reason }
+
+func (e *NotYoursError) Unwrap() error { return ErrNotYours }
+
+// failing is the first condition of a transition that keeps the actor from taking it.
+func failing(t Transition, s Subject, a Actor) (*NotYoursError, bool) {
 	for _, r := range rulesOf(t, KindCondition) {
 		known, ok := lookup(r.Kind, r.Type)
-		if !ok || !known.allow(r.Config, s, a) {
-			return false
+		if !ok {
+			return &NotYoursError{t.Name, "It carries a condition this server does not know."}, true
+		}
+		if !known.allow(r.Config, s, a) {
+			return &NotYoursError{t.Name, known.Description}, true
 		}
 	}
-	return true
+	return nil, false
+}
+
+// allowed says whether every condition of a transition lets the actor take it.
+func allowed(t Transition, s Subject, a Actor) bool {
+	_, fails := failing(t, s, a)
+	return !fails
 }
 
 // Offer answers the transitions the actor may take from the subject's status, in the workflow's order; one
@@ -75,8 +93,8 @@ func Decide(w *Workflow, id uuid.UUID, s Subject, a Actor, in Input) (*Transitio
 	if !leaves(t, s.StatusID) {
 		return nil, nil, ErrUnavailable
 	}
-	if !allowed(t, s, a) {
-		return nil, nil, ErrNotYours
+	if refusal, fails := failing(t, s, a); fails {
+		return nil, nil, refusal
 	}
 	in.Comment = strings.TrimSpace(in.Comment)
 	for _, r := range rulesOf(t, KindValidator) {

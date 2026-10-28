@@ -18,6 +18,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   nowhere and writes nothing, and the stub's token endpoint fits Stator's
   document. In the browser a page deleted and moved in Stator, the connect
   hint, picking another page and the webhook card are driven (#327).
+- The integration suite's cleanup tries a statement again when it loses a
+  deadlock to the stack's worker, which on a slow runner still writes the
+  notifications of the project being removed (#405).
 - The suite proves the Armature integration to its edges: a viewer with
   an Armature token, an archived project and the trash change no trace,
   the lookup and the search keep to their bounds, only a session stores
@@ -51,6 +54,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
   and started again, a downloaded .reqif goes into another project, a
   Word pattern changes the preview, and a template is shared and deleted
   (#318).
+- The suite proves the writing rules, the glossary and duplicates beyond
+  the first look: linking and merging a pair are refused for a reader, a
+  stale side, the same requirement twice, another project's side, an
+  unknown link type, a long comment and a locked side, with no row
+  written; the pairs are paged and narrowed; taking back an acceptance
+  and changing a term are refused with their codes, the term as it was;
+  and `get_quality_findings`, `check_requirement_text`, `list_terms` and
+  `get_similar_requirements` answer as their routes do. In the browser a
+  finding is shown, accepted and taken back, rules and word lists are
+  saved, a term is added, redefined, confirmed, reloaded, linked by hand
+  and deleted, a library glossary is chosen, and pairs are linked,
+  merged, filtered, paged, read again and listed by the threshold (#320).
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and
@@ -88,6 +103,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The suite proves test plans and executions past the happy path: every
+  field a start, a plan, a result, a file and an issue refuses, a reader's
+  403 and the archived project with nothing written, aborting so a result
+  counts for nothing, the due reminder once per due date, a group testing
+  through its members, all eleven MCP tools answering as their routes do,
+  and each guard of the executions' tables through SQL. In the browser a
+  plan's cases are moved, removed and found by a changed query, a plan is
+  deleted, an execution changed, aborted and printed, a case's iterations
+  walked with its outcome set by hand and a file deleted, and a failure
+  filed in Armature (#324).
 - The suite proves baselines and their signatures to every refusal: a
   baseline of an archived project is neither taken, renamed, deleted nor
   signed, a root or a comparison outside its project is refused, a
@@ -128,6 +153,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   straight through SQL. In the browser comments are edited, reopened and
   moderated, projects watched, the Watching and Notifications pages used,
   and files dropped on the panel (#312).
+- The suite proves every workflow rule and the shaping of a project: each
+  rule refuses or acts on a transition saved in a workflow, a rule that
+  could never run is refused on save, workflows, statuses, types and
+  attributes are reached only through their project, an archived project
+  takes no new shape, field rules keep to the fixed fields and the
+  project's roles, an assistant lists and takes transitions, and the
+  database keeps rules and steps to the administrators. In the browser
+  types, attributes, field rules, statuses and workflows are made,
+  changed and deleted, the designer's inspector draws a workflow, and
+  each change is checked on a requirement (#322).
 - The suite proves the grid's and the search's pages, filters and views:
   every window of the grid and the search holds each row once in the order
   asked for, the search narrows by owner and day, a token limited to one
@@ -206,6 +241,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
   (#326). It answered 403 and told an editor to ask for edit rights.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
+- Saving the writing rules or the word lists says so (#320). The cards
+  started again from the settings saved and lost their notice, so a save
+  looked as if nothing had happened.
+- Changing a term somebody may only read, or one of an archived project,
+  is refused as not theirs to change or as archived (#320). It answered
+  that the term was not found, though the same person could read it.
+- Linking a pair of duplicates by a link type the project does not use
+  says why in the dialog (#320). The refusal named a field the dialog
+  does not have, so nothing was shown and the link was simply not made.
 - The grid shows a computed attribute's value as text (#319). It offered a
   box to type a value in, which every save then refused.
 - A dashboard widget counting by an attribute is refused when it is saved
@@ -218,6 +262,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   through SQL too (#318). The database let another administrator of the
   project change an import's mapping or choices and start it; they still
   read and stop it.
+- A tool call refused on its fields tells the assistant what each field
+  needs (#324), as a form shows it beside the field. It said only that some
+  fields need attention.
+- A tester recording, uploading or filing an issue in an archived project's
+  execution, and its manager changing or closing it, are told the project
+  is archived (#324), as is whoever changes or deletes one of its plans.
+  They were told it was not theirs to do.
 - A CSV or ReqIF import that could not be stopped says why under its
   progress (#318). Stop went back to waiting without a word.
 - A person a CSV file names who is nobody in the project shows "Pick who
@@ -232,6 +283,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing
   and fail the integration job on main.
+- A transition one of its conditions keeps from somebody is refused with
+  that condition (#322), such as "Only the requirement's owner may take
+  it.". It said they might read the project but not change its
+  requirements, also to an editor.
+- A workflow's rule asking for links of a type takes only a link type of
+  its own project or of every project (#322). One of another project was
+  saved, and no requirement could ever meet it.
+- Saving a fixed field's rule says it is saved (#322). The form was drawn
+  again with the saved rule and the notice was lost. A status or a
+  workflow still used once says "once" rather than "1 times".
 - The project's trace settings say "Saved." once the counting branch or
   the tag words are saved (#323). The form started again from what was
   saved and lost the notice, so nothing said the save had gone through.

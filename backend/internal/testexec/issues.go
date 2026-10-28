@@ -97,7 +97,7 @@ func failureDraft(e *executionRow, c *Case, in FailureIssueInput, keys []string,
 	if e.Version != "" || e.Configuration != "" {
 		paragraphs = append(paragraphs, fmt.Sprintf("Version: %s. Configuration: %s.", e.Version, e.Configuration))
 	}
-	if in.Step != nil {
+	if in.Step != nil && *in.Step >= 1 && *in.Step <= len(c.Steps) {
 		s := c.Steps[*in.Step-1]
 		paragraphs = append(paragraphs, fmt.Sprintf("Step %d: %s", *in.Step, plain(s.Action)))
 		if expected := plain(s.Expected); expected != "" {

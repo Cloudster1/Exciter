@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { DuplicatePair, SimilarRequirement } from "@/api/duplicates";
+import { DUPLICATES_PAGE_SIZE } from "@/config";
 import { arrival, renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
+import { derives, relates } from "@/test/links";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
 
@@ -221,6 +223,99 @@ describe("the duplicates page", () => {
     await userEvent.click(within(result).getByRole("button", { name: "Done" }));
     expect(await screen.findByText("No likely duplicates.")).toBeInTheDocument();
     expect(screen.getByText("CHK-R1 is in the trash, and CHK-R2 is kept.")).toBeInTheDocument();
+  });
+
+  it("links a pair by the way chosen and takes it off the list", async () => {
+    let linked = false;
+    const retired = { ...relates, id: "0195f000-0000-7000-8000-0000000001a9", key: "old", retired: true };
+    const sent = pageStubs(() => (linked ? [] : [pair]), {
+      "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [derives, relates, retired] } },
+      "POST /projects/CHK/duplicates/link": () => {
+        linked = true;
+        return { status: 201, body: { decision: {} } };
+      },
+    });
+    await renderAt("/p/CHK/duplicates");
+    const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
+    await userEvent.click(within(card).getByRole("button", { name: "Link CHK-R1 and CHK-R2" }));
+    const dialog = await screen.findByRole("dialog", { name: "Link the two" });
+    const way = within(dialog).getByRole("combobox", { name: "Link" });
+    // A retired type offers no way, and a symmetric one reads the same both ways, so it is offered once.
+    expect(
+      within(way)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["CHK-R1 derives from CHK-R2", "CHK-R1 is derived into CHK-R2", "CHK-R1 relates to CHK-R2"]);
+    await userEvent.selectOptions(way, "CHK-R1 is derived into CHK-R2");
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Link" }));
+    // The incoming way makes the second side the link's source.
+    await waitFor(() =>
+      expect(sent.find((r) => r.method === "POST")?.body).toEqual({
+        source: { key: "CHK-R2", revision: 1 },
+        target: { key: "CHK-R1", revision: 1 },
+        linkTypeKey: "derives",
+      }),
+    );
+    expect(await screen.findByText("CHK-R1 and CHK-R2 are linked.")).toBeInTheDocument();
+    expect(await screen.findByText("No likely duplicates.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows a link type the project refuses where the way is chosen", async () => {
+    const refused = "CHK does not use the link type Relates. Pick another, or ask an administrator of CHK to enable it.";
+    pageStubs(() => [pair], {
+      "GET /projects/CHK/link-types": { status: 200, body: { linkTypes: [relates] } },
+      "POST /projects/CHK/duplicates/link": {
+        status: 422,
+        body: { error: { code: "validation_failed", message: "Some fields are not valid.", fields: { linkTypeKey: refused } } },
+      },
+    });
+    await renderAt("/p/CHK/duplicates");
+    const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
+    await userEvent.click(within(card).getByRole("button", { name: "Link CHK-R1 and CHK-R2" }));
+    const dialog = await screen.findByRole("dialog", { name: "Link the two" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Link" }));
+    expect(await within(dialog).findByText(refused)).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Link" })).toHaveAccessibleDescription(refused);
+  });
+
+  it("reads the next page with the cursor the last one answered, and narrows the pairs by a section, a type and a query", async () => {
+    const third = { a: ref("CHK-R3", "Lights dim at dusk"), b: ref("CHK-R4", "Lights dim at dusk automatically"), score: 0.7 };
+    const functional = { id: "0195f000-0000-7000-8000-0000000000c1", name: "Functional", retired: false };
+    const asked: URLSearchParams[] = [];
+    pageStubs(() => [], {
+      "GET /projects/CHK/types": { status: 200, body: { types: [functional] } },
+      "GET /projects/CHK/duplicates": (request) => {
+        const query = new URL(request.url).searchParams;
+        asked.push(query);
+        const later = Boolean(query.get("cursor"));
+        return { status: 200, body: { pairs: later ? [third] : [pair], next: later ? "" : "1", threshold: 0.6 } };
+      },
+      "GET /requirements/CHK-R3": { status: 200, body: { requirement: aRequirement({ id: third.a.id, key: "CHK-R3", number: 3, title: third.a.title }) } },
+      "GET /requirements/CHK-R4": { status: 200, body: { requirement: aRequirement({ id: third.b.id, key: "CHK-R4", number: 4, title: third.b.title }) } },
+    });
+    await renderAt("/p/CHK/duplicates");
+    await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
+    expect(asked[0]?.get("limit")).toBe(String(DUPLICATES_PAGE_SIZE));
+    expect(asked[0]?.has("cursor")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "More" }));
+    expect(await screen.findByRole("region", { name: "CHK-R3 and CHK-R4" })).toBeInTheDocument();
+    expect(asked.at(-1)?.get("cursor")).toBe("1");
+    expect(screen.getByRole("region", { name: "CHK-R1 and CHK-R2" })).toBeInTheDocument();
+    expect(screen.getByText("2 pairs shown.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More" })).toBeNull();
+
+    const filters = screen.getByRole("form", { name: "Narrow the pairs" });
+    await userEvent.selectOptions(within(filters).getByRole("combobox", { name: "Type" }), "Functional");
+    await userEvent.type(within(filters).getByRole("textbox", { name: "Section" }), "chk-r9");
+    await userEvent.click(within(filters).getByRole("button", { name: "Filter" }));
+    await waitFor(() => expect(asked.at(-1)?.get("section")).toBe("CHK-R9"));
+    expect(asked.at(-1)?.getAll("type")).toEqual([functional.id]);
+    expect(asked.at(-1)?.has("cursor")).toBe(false);
+    await userEvent.type(screen.getByRole("combobox", { name: "Query either side matches" }), 'title ~ "Lights"{Enter}');
+    await waitFor(() => expect(asked.at(-1)?.get("query")).toBe('title ~ "Lights"'));
+    expect(asked.at(-1)?.get("section")).toBe("CHK-R9");
   });
 
   it("lets a reader read the pairs without deciding", async () => {
