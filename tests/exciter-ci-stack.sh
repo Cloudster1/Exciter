@@ -16,7 +16,7 @@ WEB_URL="$(sed -n 's/^EXCITER_WEB_URL=//p' "$STACK_ENV")"
 API="$WEB_URL/api/v1"
 # The installation's owner, as the seed makes it; README.md names the same account.
 OWNER='{"email":"admin@exciter.test","password":"exciter admin password"}'
-# How long the worker may take to land a run, and how often to look.
+# How long the worker may take to land a run, or a replica to show it, and how often to look.
 LAND_TRIES=60
 LAND_PAUSE=0.5
 
@@ -35,6 +35,18 @@ api() {
   cat "$TMP/body"
 }
 status() { cat "$TMP/status"; }
+
+# settled reads a GET through filter until it gives want or LAND_TRIES runs out, printing the last reading: the
+# owner's session may reach a replica that has not yet replayed what the evidence token wrote.
+settled() {
+  local path="$1" filter="$2" want="$3" got=""
+  for _ in $(seq "$LAND_TRIES"); do
+    got="$(api GET "$path" | jq -r "$filter")"
+    [[ "$got" == "$want" ]] && break
+    sleep "$LAND_PAUSE"
+  done
+  echo "$got"
+}
 
 cleanup() {
   rm -rf "${SRC:?}/$WORK"
@@ -98,12 +110,12 @@ if [[ "$code" == 0 ]] && grep -q "2 test cases read, 2 name a requirement" "$TMP
 else
   fail "make test-results exits $code: $(cat "$TMP/ci.out")"
 fi
-outcome="$(api GET "/requirements/$KEY-R1/test-results" | jq -r '[.results[] | "\(.branch) \(.outcome)"] | join(",")')"
+outcome="$(settled "/requirements/$KEY-R1/test-results" '[.results[] | "\(.branch) \(.outcome)"] | join(",")' "main passed")"
 [[ "$outcome" == "main passed" ]] && pass "the run shows on the requirement it verifies" || fail "$KEY-R1's results read '$outcome'"
 
 code="$(ci "$SECRET" code-scan DIR="$WORK/src" COMMIT="$COMMIT" BRANCH=main REPOSITORY=exciter/local)"
 [[ "$code" == 0 ]] && pass "make code-scan uploads the tags and exits 0" || fail "make code-scan exits $code: $(cat "$TMP/ci.out")"
-link="$(api GET "/requirements/$KEY-R1/code-links" | jq -r '[.links[] | "\(.path | split("/") | last):\(.line) \(.relation)"] | join(",")')"
+link="$(settled "/requirements/$KEY-R1/code-links" '[.links[] | "\(.path | split("/") | last):\(.line) \(.relation)"] | join(",")' "brakes.go:1 implements")"
 [[ "$link" == "brakes.go:1 implements" ]] && pass "the tag shows on the requirement it implements" || fail "$KEY-R1's code reads '$link'"
 
 code="$(ci "$SECRET" trace-check BRANCH=main FAIL=failing QUERY="key = $KEY-R1")"
