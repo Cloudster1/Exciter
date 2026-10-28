@@ -90,6 +90,9 @@ services:
       # suite waits; a crash loses under a second of writes, never consistency. Never in a deployment.
       - -c
       - synchronous_commit=off
+      # A statement that waits on a lock past deadlock_timeout, a second, is logged with who holds it (#405).
+      - -c
+      - log_lock_waits=on
     volumes:
       - primary-data:/var/lib/postgresql/18/docker
       - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
