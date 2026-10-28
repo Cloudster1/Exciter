@@ -60,6 +60,26 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
     await api.DELETE("/armature/connection");
   });
 
+  test("an administrator copies the webhook address, and once the secret is forgotten no delivery is taken (#326)", async ({ page, api }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/settings/armature");
+    await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(webhookUrl);
+    await page.locator('[data-action="copy-webhook-url"]').click();
+    await expect(page.locator("[data-copy-status]")).toHaveText("Copied the address.");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(webhookUrl);
+
+    await page.getByLabel("Forget the stored secret", { exact: true }).check();
+    await page.locator('[data-action="save-armature"]').click();
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Forget the stored secret", { exact: true })).toHaveCount(0);
+
+    await stub("PATCH", "/issues/CP-4", { statusCategory: "done" });
+    expect(await lastDelivery()).toMatchObject({ topic: "issue.transitioned", status: 401 });
+    // Refused, the delivery wrote nothing, so the category stored for everyone is still the one the link was made with.
+    const stored = must(await api.GET("/requirements/{reqKey}/armature-links", { params: { path: { reqKey: `${KEY}-R1` } } })).links;
+    expect(stored).toMatchObject([{ issueKey: "CP-4", statusCategory: "todo", statusStale: false }]);
+  });
+
   test("a requirement follows its issue as it moves on, loses its link and goes", async ({ page }) => {
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
