@@ -134,6 +134,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A tester recording, uploading or filing an issue in an archived project's
+  execution, and its manager changing or closing it, are told the project
+  is archived (#324), as is whoever changes or deletes one of its plans.
+  They were told it was not theirs to do.
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.

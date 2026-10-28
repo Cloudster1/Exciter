@@ -193,6 +193,9 @@ func recording(ctx context.Context, tx db.DBTX, actor, execution uuid.UUID, key 
 	if e.State != Open {
 		return nil, uuid.Nil, ErrClosed
 	}
+	if err := stillOpen(ctx, tx, e.projectID); err != nil {
+		return nil, uuid.Nil, err
+	}
 	if !e.Can.Record {
 		return nil, uuid.Nil, ErrForbidden
 	}
