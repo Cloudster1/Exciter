@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /** Below this width the shell is a drawer, as web/src/config.ts SIDEBAR_DRAWER_BELOW_PX says. */
 const DRAWER_BELOW_PX = 768;
@@ -44,8 +44,14 @@ const KNOWN_FINDINGS: Array<{ rule: string; matches: (page: Page, node: AxeNode)
 
 type AxeNode = Awaited<ReturnType<AxeBuilder["analyze"]>>["violations"][number]["nodes"][number];
 
-/** Runs axe over the whole page and fails with every violation it finds. */
+// What one axe run may add to its test's time: traces of busy CI shards show a run taking 12 to 13 of the 20
+// seconds a test has, which ran tests out of time with nothing wrong in them (#389).
+const AXE_ALLOWANCE_MS = 15_000;
+
+/** Runs axe over the whole page and fails with every violation it finds, adding its time to the test's own. */
 export async function expectAccessible(page: Page): Promise<void> {
+  const info = test.info();
+  info.setTimeout(info.timeout + AXE_ALLOWANCE_MS);
   const results = await new AxeBuilder({ page }).options({ rules: RULES_ON }).analyze();
   const found: string[] = [];
   for (const violation of results.violations) {

@@ -9,15 +9,24 @@ import { t } from "@/i18n";
 /** The branch whose test results count for a project's coverage, matrix and queries; its administrators name it. */
 export function EvidenceSettingsCard({ project }: { project: Project }) {
   const { data, error, refetch } = useEvidenceSettings(project.key);
+  // Kept above the form, which starts again from the branch it saved, so the word that it saved outlives it.
+  const save = useSaveEvidenceSettings(project.key);
+  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!data) return <Skeleton />;
-  return <SettingsForm key={data.countingBranch} project={project} branch={data.countingBranch} />;
+  return <SettingsForm key={data.countingBranch} project={project} branch={data.countingBranch} save={save} notice={notice} setNotice={setNotice} />;
 }
 
-function SettingsForm({ project, branch: saved }: { project: Project; branch: string }) {
+interface FormProps {
+  project: Project;
+  branch: string;
+  save: ReturnType<typeof useSaveEvidenceSettings>;
+  notice: string;
+  setNotice: (notice: string) => void;
+}
+
+function SettingsForm({ project, branch: saved, save, notice, setNotice }: FormProps) {
   const [branch, setBranch] = useState(saved);
-  const [notice, setNotice] = useState("");
-  const save = useSaveEvidenceSettings(project.key);
   const may = project.can.administer && !project.archivedAt;
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const l = t.evidence.settings;
