@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite calls every MCP tool through the protocol's own client, each
+  answer held to its schema and to the route it stands for, and proves the
+  rest of OAuth and tokens: a consent answered twice or past its time, a
+  denial over the API, a code and an access token that ran out, another
+  client's refresh and revocation, a second consent replacing the first
+  grant, a member refused every partner app write, a rotated secret, the
+  sweeper, and a metadata document fetched from its own address alone. In
+  the browser an administrator revokes a token and disconnects an app of
+  somebody else's, a token and a partner secret are copied, a partner
+  secret rotated, and a consent narrowed to one project (#329).
 - The suite proves the Stator integration's refusals and deliveries: a
   reader holding a Stator token, the trash and an archived project change
   no link, the lookup and search keep to their bounds, a webhook past its

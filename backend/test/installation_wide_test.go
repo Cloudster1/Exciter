@@ -117,6 +117,8 @@ var installationWide = map[string]string{
 	"TestAGrantFromASignInIsRenewedOnceAndRefusedAsArmatureSays":      singleSignOn,
 	"TestRawSQLGuardsArmatureClearancesAndSyncRecords":                armatureLink,
 	"TestAPersonWithoutARoleHoldsNoArmatureToken":                     armatureLink,
+	"TestAnAssistantLinksAnArmatureIssue":                             armatureLink,
+	"TestAnAssistantClearsASuspectStatorLink":                         statorLink,
 
 	"TestAnAdministratorConnectsStatorAndMembersTheirTokens": statorLink,
 	"TestTheConnectionKnowsWhatStatorOffers":                 statorLink,
