@@ -47,6 +47,8 @@ mkdir -p "$REPORTS"
 stack_started=""
 finish() {
   local rc=$?
+  # The database's log goes with the stack, and names what a failed layer's statements waited on.
+  if [[ -n "$stack_started" ]] && (( rc != 0 )); then make --no-print-directory stack-db-log >/dev/null 2>&1 || true; fi
   [[ -z "$stack_started" ]] || make stack-down >/dev/null 2>&1 || true
   ./scripts/test-summary.sh "$REPORTS" > "$REPORTS/summary.md" 2>/dev/null || true
   # The hook shows only the last lines of a failed gate, which belong to the failure.

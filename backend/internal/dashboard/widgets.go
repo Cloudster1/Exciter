@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/search"
@@ -132,6 +133,9 @@ func (s *Service) AddWidget(ctx context.Context, actor, dashboardID uuid.UUID, i
 		if err := s.checkSource(ctx, tx, actor, f, in.Config.Source); err != nil {
 			return err
 		}
+		if err := checkAttribute(ctx, tx, f.projectID, in.Kind, in.Config); err != nil {
+			return err
+		}
 		if err := insertWidget(ctx, tx, dashboardID, len(f.Widgets), in); err != nil {
 			return err
 		}
@@ -169,6 +173,20 @@ func (s *Service) checkSource(ctx context.Context, tx db.DBTX, reader uuid.UUID,
 		return err
 	}
 	_, err = search.Keep(ctx, tx, reader, p, search.Filter{Query: src.Query}, search.Sort{})
+	return err
+}
+
+// checkAttribute refuses a breakdown by an attribute the project does not have, or one it cannot count by value, as
+// its reader would be refused it.
+func checkAttribute(ctx context.Context, tx db.DBTX, projectID uuid.UUID, kind Kind, c Config) error {
+	if kind != Breakdown || c.GroupBy != ByAttribute {
+		return nil
+	}
+	defs, err := attribute.Defs(ctx, tx, projectID)
+	if err != nil {
+		return err
+	}
+	_, _, err = groupingOf(defs, c)
 	return err
 }
 
@@ -222,6 +240,11 @@ func (s *Service) UpdateWidget(ctx context.Context, actor, id uuid.UUID, in Widg
 		}
 		if next, err = checkWidget(next); err != nil {
 			return err
+		}
+		if in.Config != nil {
+			if err := checkAttribute(ctx, tx, f.projectID, next.Kind, next.Config); err != nil {
+				return err
+			}
 		}
 		config, err := json.Marshal(next.Config)
 		if err != nil {
