@@ -20,6 +20,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
   administrators. In the browser the method, detection, levels, values,
   rating in the table, its pages, the matrix's sides and every download
   are used and their effect checked (#325).
+- The suite proves the Armature integration to its edges: a viewer with
+  an Armature token, an archived project and the trash change no trace,
+  the lookup and the search keep to their bounds, only a session stores
+  a token, the app's secret is never audited, every sentence a sign-in's
+  exchange keeps is produced, two reads at once renew a grant once, a
+  refused refresh waits, the development panel and the MCP tools ask
+  Armature only as the reader may, and the database guards clearances,
+  sync records and the tokens of people without a role. In the browser a
+  suspect trace is confirmed, a chip's connect hint followed, an issue
+  picked again, a requirement left out of a round, a round partly refused
+  and the webhook address copied (#326).
 - The suite proves dashboards and computed attributes to their edges: a
   reader neither orders nor adds widgets, the 51st dashboard and the 31st
   widget are refused, every widget setting out of bounds is refused on its
@@ -198,6 +209,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   requirements, its mitigating requirement a type of risks, or that
   requirement's type marked as risks, after the link was made; each is
   now refused, through the API and straight through SQL alike.
+- Tracing a requirement to an Armature issue, removing such a trace or
+  filing issues from an archived project says the project is archived
+  (409 `project_archived`), as confirming a trace there already did
+  (#326). It answered 403 and told an editor to ask for edit rights.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - The grid shows a computed attribute's value as text (#319). It offered a
