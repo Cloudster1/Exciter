@@ -24,12 +24,11 @@ function chip(state: ChipState, storedCategory = "", stale = false) {
   return document.querySelector('[data-armature-issue="CP-1"]')!;
 }
 
-const SENTENCES = [
-  "Connect your Armature account to see this issue",
-  "Not available to you in Armature",
-  "Armature did not answer",
-  "Armature needs an update to show this issue",
-];
+const CONNECT = "Connect your Armature account to see this issue";
+const HIDDEN = "Not available to you in Armature";
+const UNREACHABLE = "Armature did not answer";
+const OUTDATED = "Armature needs an update to show this issue";
+const SENTENCES = [CONNECT, HIDDEN, UNREACHABLE, OUTDATED];
 
 describe("what a chip can show", () => {
   it("asks to connect whenever the viewer's token cannot be used", () => {
@@ -65,15 +64,15 @@ describe("a chip", () => {
     const shown = chip({ kind: "connect" }, "todo");
     const hint = shown.querySelector('[data-action="connect-armature-hint"]');
     expect(hint).toHaveAttribute("href", ARMATURE_ACCOUNT_PATH);
-    expect(hint).toHaveTextContent(SENTENCES[0]!);
+    expect(hint).toHaveTextContent(CONNECT);
     expect(screen.getByRole("link", { name: "CP-1" })).toHaveAttribute("href", `${BASE}/issues/CP-1`);
     expect(shown.querySelector('[data-status-category="todo"]')).toHaveTextContent("To do");
   });
 
   for (const [kind, sentence] of [
-    ["hidden", SENTENCES[1]],
-    ["unreachable", SENTENCES[2]],
-    ["outdated", SENTENCES[3]],
+    ["hidden", HIDDEN],
+    ["unreachable", UNREACHABLE],
+    ["outdated", OUTDATED],
   ] as const) {
     it(`says only why it cannot show the issue when ${kind}`, () => {
       const shown = chip({ kind });
