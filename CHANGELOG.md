@@ -117,6 +117,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The stack's primary database logs the plan of any statement that runs
+  past three seconds, with the rows each step gave, and a failed gate
+  keeps it with its reports (#405). The FMEA table's query has run past
+  ten seconds on CI's runners with nothing to say why.
 - Nine more tests of the coverage work assert what their items state
   (#416): a draft's statement that is no document and a reader's bulk
   transition are refused with nothing moved, the tester bounds and a due
