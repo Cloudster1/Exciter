@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
 import type { ExciterApi } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
@@ -37,6 +38,30 @@ async function busyTarget(api: ExciterApi, name: string): Promise<{ id: string; 
   return { id, name };
 }
 
+// Three days long ago, at noon in UTC so each is that day wherever the browser is, one entry a day and a kind of
+// target each, all by one person nobody else's entries name.
+const STRETCH = [
+  { day: "2003-05-10", action: "theme.default_set", targetType: "theme" },
+  { day: "2003-05-11", action: "project.created", targetType: "project" },
+  { day: "2003-05-12", action: "member.role_changed", targetType: "user" },
+];
+
+/** A person of the test's own, and the stretch planted in their name. */
+async function stretchBy(api: ExciterApi, name: string): Promise<{ id: string; name: string }> {
+  const email = `${randomUUID()}@e2e.exciter.test`;
+  const made = (await api.POST("/users", { body: { email, name, role: "member", password: "" } })).data!.member;
+  await withDatabase(async (db) => {
+    for (const entry of STRETCH) {
+      await db.query(
+        `INSERT INTO audit_log (actor_user_id, action, target_type, target_id, data, created_at)
+         VALUES ($1, $2, $3, $4, jsonb_build_object('name', $5::text), ($6::date + time '12:00') AT TIME ZONE 'UTC')`,
+        [made.userId, entry.action, entry.targetType, randomUUID(), `${name} ${entry.targetType}`, entry.day],
+      );
+    }
+  });
+  return { id: made.userId, name };
+}
+
 // A page of the log holds two buttons a row, so reaching the pager takes a hundred presses and more.
 const MAX_TABS = 300;
 
@@ -65,6 +90,44 @@ async function openLog(page: Page, name: string): Promise<void> {
     await expect(plantedRow(page, name)).toBeVisible(ONE_LOOK);
     await expect(page.locator(FACET_PLANTED)).toBeAttached(ONE_LOOK);
   });
+}
+
+/** Narrows the log by the person, the kind of target and days, then exports one action and reads the file. */
+async function narrowAndExport(page: Page, actor: { id: string; name: string }): Promise<void> {
+  const rows = page.locator("[data-audit-row]");
+  await openUntil(page, AUDIT_PATH, () => expect(page.locator(`#audit-actor option[value="${actor.id}"]`)).toBeAttached(ONE_LOOK));
+
+  await page.getByLabel("Person", { exact: true }).selectOption(actor.id);
+  await expect(rows).toHaveCount(STRETCH.length);
+  await expect(rows.locator("[data-audit-actor]")).toHaveText(STRETCH.map(() => actor.name));
+  expect(await rows.evaluateAll((all) => all.map((row) => row.getAttribute("data-audit-row")))).toEqual(STRETCH.map((e) => e.action).reverse());
+
+  await page.getByLabel("Kind of target", { exact: true }).selectOption("user");
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toHaveAttribute("data-audit-row", "member.role_changed");
+
+  await page.getByLabel("Kind of target", { exact: true }).selectOption("");
+  await page.getByLabel("From", { exact: true }).fill(STRETCH[1]!.day);
+  await page.getByLabel("To", { exact: true }).fill(STRETCH[1]!.day);
+  await expect(rows).toHaveCount(1);
+  await expect(rows).toHaveAttribute("data-audit-row", STRETCH[1]!.action);
+  await page.getByLabel("From", { exact: true }).fill(STRETCH[0]!.day);
+  await expect(rows).toHaveCount(2);
+  expect(await rows.evaluateAll((all) => all.map((row) => row.getAttribute("data-audit-row")))).toEqual([STRETCH[1]!.action, STRETCH[0]!.action]);
+
+  await page.locator('[data-action="clear-audit-filters"]').click();
+  await page.getByLabel("Action").selectOption("member.role_changed");
+  await expect(rows.first()).toHaveAttribute("data-audit-row", "member.role_changed");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator('[data-action="export-audit"]').click()]);
+  expect(new URL(download.url()).searchParams.get("action")).toBe("member.role_changed");
+  const lines = readFileSync((await download.path())!, "utf8")
+    .trim()
+    .split("\n");
+  expect(lines[0]).toBe(CSV_HEADER);
+  // The time and the action come first and hold no comma, so the first two fields read without a parser.
+  const actions = new Set(lines.slice(1).map((line) => line.split(",")[1]));
+  expect([...actions]).toEqual(["member.role_changed"]);
+  expect(lines.some((line) => line.split(",")[2] === actor.id)).toBe(true);
 }
 
 test.describe("the audit log", () => {
@@ -107,6 +170,16 @@ test.describe("the audit log", () => {
     await page.locator('[data-action="clear-audit-filters"]').click();
     await expect(page.getByLabel("Action")).toHaveValue("");
     await expect(page.locator("[data-audit-target-filter]")).toHaveCount(0);
+  });
+
+  test("an administrator narrows it by person, kind of target and days, and exports one action", { tag: "@desktop" }, async ({ page, api }, testInfo) => {
+    const actor = await stretchBy(api, uniqueName(testInfo, "Pia Planted"));
+    try {
+      await narrowAndExport(page, actor);
+    } finally {
+      // Switched off, they stay named in the record as everybody who acted is.
+      await api.DELETE("/users/{userID}", { params: { path: { userID: actor.id } } });
+    }
   });
 
   test("bob, a member, is refused it", async ({ apiAs, pageAs }) => {
