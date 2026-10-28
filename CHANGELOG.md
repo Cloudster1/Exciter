@@ -148,6 +148,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The database refuses a Stator page link whose address is not under the
+  connected Stator's (#327). The service always wrote it there, but a
+  writer straight through SQL could point a link everyone clicks anywhere.
 - A requirement's link to a Stator page stays in the space the page was
   moved to when Stator delivers the publish of that version late (#327).
   The move did not keep its version, so the late publish moved the link
