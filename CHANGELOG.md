@@ -19,6 +19,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   deleted, an execution changed, aborted and printed, a case's iterations
   walked with its outcome set by hand and a file deleted, and a failure
   filed in Armature (#324).
+- The suite proves dashboards and computed attributes to their edges: a
+  reader neither orders nor adds widgets, the 51st dashboard and the 31st
+  widget are refused, every widget setting out of bounds is refused on its
+  field, whoever leaves the project loses even their own dashboards while
+  its administrators keep the shared ones, the database keeps widgets to
+  whoever may change them and a dashboard to its project, the MCP tools
+  read as the API does, and a sum over children follows a child to the
+  trash and back. In the browser a dashboard is shared, read by a second
+  person, copied, printed, renamed, rearranged, deleted and made the home,
+  and a computed attribute is refused, recomputed and sorted by (#319).
 - The suite proves imports past their happy path: a CSV and a ReqIF import
   stopped while they run end cancelled and keep what they made; another
   administrator reads and stops an import but neither maps nor starts it;
@@ -177,6 +187,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   execution, and its manager changing or closing it, are told the project
   is archived (#324), as is whoever changes or deletes one of its plans.
   They were told it was not theirs to do.
+- Saving a project's details says "Saved." (#319). The form started again
+  from the saved project and lost the word before anyone read it.
+- The grid shows a computed attribute's value as text (#319). It offered a
+  box to type a value in, which every save then refused.
+- A dashboard widget counting by an attribute is refused when it is saved
+  with formatted text or another project's attribute (#319), on the
+  attribute's field. It was saved and then could not be read.
 - A .reqifz whose document unpacks past what one import takes is refused
   as the file, naming the document, as a Word document that does is
   (#318). It answered with a server error.

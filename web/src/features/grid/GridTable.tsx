@@ -212,7 +212,14 @@ function Cell({
   }
   const attribute = attributes.find((each) => each.id === column);
   if (!attribute) return null;
-  const editable = row.can.edit && requirement && !attribute.retired && showsOn(attribute, row.type?.id) && access(attribute.id, row.status).edit;
+  // A computed value is worked out from its formula, and the server refuses any typed in.
+  const editable =
+    row.can.edit &&
+    requirement &&
+    attribute.formula === null &&
+    !attribute.retired &&
+    showsOn(attribute, row.type?.id) &&
+    access(attribute.id, row.status).edit;
   return (
     <ValueCell
       attribute={attribute}
