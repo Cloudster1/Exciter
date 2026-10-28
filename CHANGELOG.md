@@ -9,6 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the risk scheme, the FMEA table and the risk report to
+  their edges: an archived project keeps its scheme, a save is audited
+  with its actor, detection stays on while a rating gives it, the table
+  pages and refuses a page or a cell off its bounds, a project without a
+  scheme rates nothing and reports nothing, a query narrows the matrix,
+  the report and the workbook, every download is audited, a hidden
+  mitigation counts but names nothing, the five risk MCP tools answer as
+  their routes do, and the database keeps the scheme to its
+  administrators. In the browser the method, detection, levels, values,
+  rating in the table, its pages, the matrix's sides and every download
+  are used and their effect checked (#325).
 - The suite proves verification evidence to its edges: an archived project
   takes no run, scan, counting branch or tag words, every upload limit and
   field is refused with nothing queued, a run the worker cannot read ends
