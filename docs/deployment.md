@@ -24,7 +24,9 @@ Three things come from outside the chart:
 - **Postgres.** Either a CloudNativePG cluster the chart renders
   (`cnpg.enabled`, with the operator already installed), whose `-rw` service
   takes writes and whose `-ro` service takes reads, or a database of your own
-  at `database.host`, with read replicas at `database.replicaHosts`. The roles
+  at `database.host`, with read replicas at `database.replicaHosts`; give
+  those `hot_standby_feedback = on`, as the chart does its own, or a long
+  read on one is cancelled when the primary cleans up what it sees. The roles
   Job makes `exciter_app` and `exciter_admin`, the migrate Job runs the
   migrations as the owner before every upgrade. They create the extensions
   `citext`, `unaccent` and `pg_trgm`, all shipped with Postgres and trusted,

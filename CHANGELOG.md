@@ -326,6 +326,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
   (#326). It answered 403 and told an editor to ask for edit rights.
+- A long read on a read replica, such as a large project's document, no
+  longer answers "Something went wrong" when the primary cleans up rows
+  it still sees (#435). The standby now tells the primary what its reads
+  see, in the compose stack and the chart's CloudNativePG cluster, and the
+  deployment guide asks the same of replicas of your own.
 - Starting a test execution with testers it refuses reads the refusal out
   with the testers (#416). It showed below them, but a screen reader did
   not tie it to them.

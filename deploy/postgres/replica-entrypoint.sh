@@ -43,4 +43,6 @@ if [ ! -s "$PGDATA/PG_VERSION" ]; then
     echo "replica: base backup complete"
 fi
 
-exec docker-entrypoint.sh postgres
+# The standby tells the primary which rows its reads still see, so the primary keeps them and replay never has to
+# cancel a long read for a conflict with recovery (#435).
+exec docker-entrypoint.sh postgres -c hot_standby_feedback=on

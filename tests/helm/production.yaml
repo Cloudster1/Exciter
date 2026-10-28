@@ -698,6 +698,7 @@ spec:
     enablePodMonitor: false
   postgresql:
     parameters:
+      hot_standby_feedback: "on"
       track_commit_timestamp: "on"
   resources:
     limits:
