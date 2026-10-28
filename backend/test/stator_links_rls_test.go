@@ -31,7 +31,7 @@ func TestRawSQLGuardsStatorLinks(t *testing.T) {
 	ctx := context.Background()
 	page := uuid.New()
 	insert := `INSERT INTO stator_page_link (requirement_id, relation, page_id, space_key, url, created_by)
-		VALUES ($1, 'specifies', $2, 'ENG', 'https://stator.example/s/ENG/p/x', $3) RETURNING id`
+		VALUES ($1, 'specifies', $2, 'ENG', '` + statorURL(t) + `/s/ENG/p/x', $3) RETURNING id`
 	mine := func(sql string) string { return sql + ` AND requirement_id = '` + live["id"].(string) + `'` }
 
 	editor := h.appConn(t, editorID)
@@ -52,9 +52,9 @@ func TestRawSQLGuardsStatorLinks(t *testing.T) {
 		refusedOutright(t, editor, "a link on a section", insert, section["id"], uuid.New(), editorID)
 		refusedOutright(t, editor, "a link on a trashed requirement", insert, trashed["id"], uuid.New(), editorID)
 		refusedOutright(t, editor, "a version of their own", `INSERT INTO stator_page_link (requirement_id, relation, page_id, space_key, url, created_by, page_version, page_version_seen)
-			VALUES ($1, 'relates', $2, 'ENG', 'https://stator.example/s/ENG/p/y', $3, 9, 9)`, live["id"], uuid.New(), editorID)
+			VALUES ($1, 'relates', $2, 'ENG', '`+statorURL(t)+`/s/ENG/p/y', $3, 9, 9)`, live["id"], uuid.New(), editorID)
 		refusedOutright(t, editor, "a revision of their own", `INSERT INTO stator_page_link (requirement_id, relation, page_id, space_key, url, created_by, reviewed_rev)
-			VALUES ($1, 'relates', $2, 'ENG', 'https://stator.example/s/ENG/p/y', $3, 99)`, live["id"], uuid.New(), editorID)
+			VALUES ($1, 'relates', $2, 'ENG', '`+statorURL(t)+`/s/ENG/p/y', $3, 99)`, live["id"], uuid.New(), editorID)
 		refusedOutright(t, editor, "confirming the version seen", `UPDATE stator_page_link SET page_version_seen = 5 WHERE id = $1`, linkID)
 		refusedOutright(t, editor, "breaking the link", `UPDATE stator_page_link SET broken_at = now() WHERE id = $1`, linkID)
 		refusedOutright(t, editor, "a clearance of their own", `INSERT INTO trace_link_clearance (stator_link_id, source_rev, page_version, comment, cleared_by)

@@ -176,28 +176,40 @@ func (s *Service) act(ctx context.Context, baseURL string, env *webhook.Inbound)
 	return nil
 }
 
-// notePublished stores a page's new version on its links, which turns each suspect whose confirmed one is older.
+// notePublished stores a page's newer version on its links, turning suspect each whose confirmed one is older, and
+// its space; a version no newer than a link's arrived after a move that named where the page is now.
 func notePublished(ctx context.Context, tx db.DBTX, baseURL string, page WebhookPage) error {
-	if err := noteMoved(ctx, tx, baseURL, page); err != nil {
+	if !placed(page) {
+		_, err := tx.Exec(ctx, `
+			UPDATE stator_page_link SET page_version = $2, page_version_seen = COALESCE(page_version_seen, $2)
+			WHERE page_id = $1 AND (page_version IS NULL OR page_version < $2)`, page.ID, page.Version)
 		return err
 	}
 	_, err := tx.Exec(ctx, `
-		UPDATE stator_page_link SET page_version = $2, page_version_seen = COALESCE(page_version_seen, $2)
-		WHERE page_id = $1 AND (page_version IS NULL OR page_version < $2)`, page.ID, page.Version)
+		UPDATE stator_page_link SET space_key = $2, url = $3, page_version = $4, page_version_seen = COALESCE(page_version_seen, $4)
+		WHERE page_id = $1 AND (page_version IS NULL OR page_version < $4)`,
+		page.ID, page.Space.Key, PageURL(baseURL, page.Space.Key, page.ID), page.Version)
 	return err
 }
 
-// noteMoved follows a page to its space now, under the connection's address rather than the one Stator writes. A
-// delivery older than the version a link holds arrived late and may name a space the page has left.
+// noteMoved follows a page to its space under the connection's address, keeping the version the move names so a late
+// publish of it cannot move the link back; a move older than a link's version may name a space the page has left.
 func noteMoved(ctx context.Context, tx db.DBTX, baseURL string, page WebhookPage) error {
-	if page.Space.Key == "" || len(page.Space.Key) > MaxSpaceKeyLength {
+	if !placed(page) {
 		return nil
 	}
 	_, err := tx.Exec(ctx, `
-		UPDATE stator_page_link SET space_key = $2, url = $3
-		WHERE page_id = $1 AND (space_key <> $2 OR url <> $3) AND (page_version IS NULL OR page_version <= $4)`,
+		UPDATE stator_page_link SET space_key = $2, url = $3, page_version = GREATEST(page_version, $4),
+		    page_version_seen = COALESCE(page_version_seen, $4)
+		WHERE page_id = $1 AND (page_version IS NULL OR page_version <= $4)
+		  AND (space_key <> $2 OR url <> $3 OR page_version IS DISTINCT FROM GREATEST(page_version, $4))`,
 		page.ID, page.Space.Key, PageURL(baseURL, page.Space.Key, page.ID), page.Version)
 	return err
+}
+
+// placed says whether a delivery names a space a link can hold.
+func placed(page WebhookPage) bool {
+	return page.Space.Key != "" && len(page.Space.Key) <= MaxSpaceKeyLength
 }
 
 // breakLinks marks the links to a page Stator deleted; they stay until somebody removes them. The remote links on it
