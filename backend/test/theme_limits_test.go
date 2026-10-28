@@ -399,6 +399,8 @@ func TestExportsSpeakTheReadersLanguage(t *testing.T) {
 	}
 	want(t, s.f.owner.post(t, "/api/v1/projects/"+s.key+"/terms", map[string]any{"name": "Caliper", "definition": docOf("The part that grips the disc.")}),
 		http.StatusCreated, "define a term")
+	// bob reads the exports, and read-your-writes holds only for the owner who defined the term.
+	s.f.h.settle(t)
 	spy := &renderSpy{inner: s.f.h.renderer()}
 	api := newAPIServerWith(t, s.f.h, func(_ *apiServer, server *httpapi.Server) { server.Renderer = spy })
 	bob, alice := api.as(t, s.f.plain.user), api.as(t, s.f.owner.user)
