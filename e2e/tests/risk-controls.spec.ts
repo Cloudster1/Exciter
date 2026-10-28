@@ -123,8 +123,11 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     expect(saved.scales.find((s) => s.dimension === "detection")?.values[0]?.name).toBe("Found at once");
 
     await page.goto(`/p/${key}/risks`);
+    // The row rates detection only once it has loaded under the saved scheme; only then does no level tag mean none.
+    const detectionBefore = row.getByRole("combobox", { name: `Detection before mitigation of ${risk}` });
+    await expect(detectionBefore).toBeVisible();
     await expect(row.locator("[data-risk-level-tag]")).toHaveCount(0);
-    await row.getByRole("combobox", { name: `Detection before mitigation of ${risk}` }).selectOption("2");
+    await detectionBefore.selectOption("2");
     // 4 x 3 x 2 is 24: Medium from 10, High only from 30.
     await expect(row.locator('[data-risk-level-tag="Medium"]')).toHaveCount(2);
     await expect(row.locator('[data-risk-level-tag="High"]')).toHaveCount(0);

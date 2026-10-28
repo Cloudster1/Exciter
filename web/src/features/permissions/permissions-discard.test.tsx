@@ -38,12 +38,15 @@ describe("a project's permissions before they are saved", () => {
     expect(screen.getByRole("button", { name: t.permissions.save })).toBeEnabled();
 
     await userEvent.selectOptions(screen.getByRole("combobox", { name: t.permissions.roleOf("Everyone") }), "viewer");
+    // A discard that read the grants again would restore the table too; only the count shows it asked nothing.
+    const sentBefore = sent.length;
     await userEvent.click(screen.getByRole("button", { name: t.permissions.discard }));
     expect(rows()).toEqual(["Everyone", ada.name, bob.name]);
     expect(screen.getByRole("combobox", { name: t.permissions.roleOf("Everyone") })).toHaveValue("editor");
     expect(screen.queryByRole("button", { name: t.permissions.discard })).not.toBeInTheDocument();
     expect(status()).toHaveTextContent("");
     expect(screen.getByRole("button", { name: t.permissions.save })).toBeDisabled();
+    expect(sent.slice(sentBefore)).toEqual([]);
     expect(sent.filter((request) => request.method !== "GET")).toEqual([]);
   });
 });
