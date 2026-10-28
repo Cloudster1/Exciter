@@ -9,16 +9,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- The suite proves test plans and executions past the happy path: every
-  field a start, a plan, a result, a file and an issue refuses, a reader's
-  403 and the archived project with nothing written, aborting so a result
-  counts for nothing, the due reminder once per due date, a group testing
-  through its members, all eleven MCP tools answering as their routes do,
-  and each guard of the executions' tables through SQL. In the browser a
-  plan's cases are moved, removed and found by a changed query, a plan is
-  deleted, an execution changed, aborted and printed, a case's iterations
-  walked with its outcome set by hand and a file deleted, and a failure
-  filed in Armature (#324).
+- The suite proves the Armature integration to its edges: a viewer with
+  an Armature token, an archived project and the trash change no trace,
+  the lookup and the search keep to their bounds, only a session stores
+  a token, the app's secret is never audited, every sentence a sign-in's
+  exchange keeps is produced, two reads at once renew a grant once, a
+  refused refresh waits, the development panel and the MCP tools ask
+  Armature only as the reader may, and the database guards clearances,
+  sync records and the tokens of people without a role. In the browser a
+  suspect trace is confirmed, a chip's connect hint followed, an issue
+  picked again, a requirement left out of a round, a round partly refused
+  and the webhook address copied (#326).
 - The suite proves dashboards and computed attributes to their edges: a
   reader neither orders nor adds widgets, the 51st dashboard and the 31st
   widget are refused, every widget setting out of bounds is refused on its
@@ -78,6 +79,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The suite proves test plans and executions past the happy path: every
+  field a start, a plan, a result, a file and an issue refuses, a reader's
+  403 and the archived project with nothing written, aborting so a result
+  counts for nothing, the due reminder once per due date, a group testing
+  through its members, all eleven MCP tools answering as their routes do,
+  and each guard of the executions' tables through SQL. In the browser a
+  plan's cases are moved, removed and found by a changed query, a plan is
+  deleted, an execution changed, aborted and printed, a case's iterations
+  walked with its outcome set by hand and a file deleted, and a failure
+  filed in Armature (#324).
 - The suite proves baselines and their signatures to every refusal: a
   baseline of an archived project is neither taken, renamed, deleted nor
   signed, a root or a comparison outside its project is refused, a
@@ -180,13 +191,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- A tool call refused on its fields tells the assistant what each field
-  needs (#324), as a form shows it beside the field. It said only that some
-  fields need attention.
-- A tester recording, uploading or filing an issue in an archived project's
-  execution, and its manager changing or closing it, are told the project
-  is archived (#324), as is whoever changes or deletes one of its plans.
-  They were told it was not theirs to do.
+- The matrix paging browser test waits up to 20 seconds for each page of
+  five thousand cells to show (#391). On a busy shard they rendered for
+  longer than the default five seconds after the page had arrived.
+- Tracing a requirement to an Armature issue, removing such a trace or
+  filing issues from an archived project says the project is archived
+  (409 `project_archived`), as confirming a trace there already did
+  (#326). It answered 403 and told an editor to ask for edit rights.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - The grid shows a computed attribute's value as text (#319). It offered a
@@ -201,6 +212,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   through SQL too (#318). The database let another administrator of the
   project change an import's mapping or choices and start it; they still
   read and stop it.
+- A tool call refused on its fields tells the assistant what each field
+  needs (#324), as a form shows it beside the field. It said only that some
+  fields need attention.
+- A tester recording, uploading or filing an issue in an archived project's
+  execution, and its manager changing or closing it, are told the project
+  is archived (#324), as is whoever changes or deletes one of its plans.
+  They were told it was not theirs to do.
 - A CSV or ReqIF import that could not be stopped says why under its
   progress (#318). Stop went back to waiting without a word.
 - A person a CSV file names who is nobody in the project shows "Pick who
