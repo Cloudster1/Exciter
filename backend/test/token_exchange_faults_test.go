@@ -25,9 +25,6 @@ import (
 // A partner that is slow or refuses at its token endpoint, which the stubs never are: the sign-in keeps why it timed
 // out (#348), and a refresh it refused or left unanswered is not asked again on every read (#349).
 
-// signInSlack is what a sign-in may take past SignInTimeout to keep why its exchange ran out of time.
-const signInSlack = time.Second
-
 // faultyPartner answers the exchange after exchangeDelay with an access token that is due at once, and every refresh
 // with refreshStatus, counting the refreshes.
 type faultyPartner struct {
