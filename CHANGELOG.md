@@ -19,6 +19,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
   the browser an administrator revokes a token and disconnects an app of
   somebody else's, a token and a partner secret are copied, a partner
   secret rotated, and a consent narrowed to one project (#329).
+- The suite proves the Stator integration's refusals and deliveries: a
+  reader holding a Stator token, the trash and an archived project change
+  no link, the lookup and search keep to their bounds, a webhook past its
+  size or of no envelope changes nothing, a late publish never moves a
+  link back, every link sync sentence is written, the sign-in exchange at
+  Stator fails, forgets and renews on its own, a print's token is listed
+  nowhere and writes nothing, and the stub's token endpoint fits Stator's
+  document. In the browser a page deleted and moved in Stator, the connect
+  hint, picking another page and the webhook card are driven (#327).
 - The suite proves outbound webhooks to the end of their delivery chain: a
   receiver that never recovers is tried six times on the documented waits
   and then left; turning a webhook off cancels what was due, and the worker
@@ -247,6 +256,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The database refuses a Stator page link whose address is not under the
+  connected Stator's (#327). The service always wrote it there, but a
+  writer straight through SQL could point a link everyone clicks anywhere.
+- A requirement's link to a Stator page stays in the space the page was
+  moved to when Stator delivers the publish of that version late (#327).
+  The move did not keep its version, so the late publish moved the link
+  back to the space the page had left, with that space's address.
 - A webhook listening to a project hears that a requirement moved out of
   it to another project (#328). Only the webhooks of the project it moved
   to, or of every project, were posted `requirement.moved`.

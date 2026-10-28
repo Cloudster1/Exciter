@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
+import { openShowing } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL, statorURL } from "../fixtures/stack";
@@ -101,6 +102,77 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     await page.getByRole("link", { name: "Download CSV" }).click();
     const file = await readFile((await (await download).path()) ?? "", "utf8");
     expect(file).toContain("Key,Title,Links,Brake timing");
+  });
+
+  // What Stator says of a page reaches its links (#327): a page deleted there marks its link, and a page moved there
+  // opens in its new space, which alice may not read, so the chip falls back on the stored address.
+  test("a page deleted in Stator says so, and a page moved there opens in its new space", async ({ page, api }) => {
+    must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Brakes report wear" } }));
+    const timing = await pageId("Brake timing");
+    const braking = await pageId("Braking system");
+    must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "specifies" } }));
+    must(
+      await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R2` } }, body: { pageId: braking, relation: "describes" } }),
+    );
+
+    await stub(`/pages/${timing}`, { method: "DELETE" });
+    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    const deleted = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${timing}"]`);
+    await expect
+      .poll(async () => {
+        await page.reload();
+        await deleted.waitFor();
+        return deleted.getByText("Deleted in Stator").isVisible();
+      })
+      .toBe(true);
+    await expectAccessible(page);
+
+    await stub(`/pages/${braking}/move`, { method: "POST", body: JSON.stringify({ spaceKey: "SEC" }) });
+    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    const moved = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${braking}"]`);
+    await expect
+      .poll(async () => {
+        await page.reload();
+        await moved.waitFor();
+        return moved
+          .getByRole("link", { name: "SEC Page in Stator" })
+          .getAttribute("href", { timeout: 1_000 })
+          .catch(() => null);
+      })
+      .toBe(`${statorURL()}/s/SEC/p/${braking}`);
+    await expect(moved.getByText("Deleted in Stator")).toBeHidden();
+  });
+
+  // Without a token of his own bob still sees what everybody may know of the page, and is told where to connect.
+  test("bob without a Stator token sees the page's space and version, and follows the hint to connect", async ({ pageAs, api }) => {
+    const timing = await pageId("Brake timing");
+    must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "specifies" } }));
+    const bob = await pageAs("bob");
+    const chip = bob.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-page="${timing}"]`);
+    // Alice's link and her project may reach bob's reads a replica later.
+    await openShowing(bob, `/p/${KEY}/r/${KEY}-R1`, chip);
+    await expect(chip).toHaveAttribute("data-state", "connect");
+    await expect(chip.getByRole("link", { name: "ENG Page in Stator" })).toHaveAttribute("href", `${statorURL()}/s/ENG/p/${timing}`);
+    await expect(chip).toContainText("Version 2");
+    await expectAccessible(bob);
+    await chip.locator('[data-action="connect-stator-hint"]').click();
+    await expect(bob).toHaveURL(/\/settings\/stator-account$/);
+    await expect(bob.getByLabel("Stator token", { exact: true })).toBeVisible();
+  });
+
+  test("alice picks a page, then picks another before linking", async ({ page }) => {
+    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    const form = page.getByRole("region", { name: "Stator pages" }).getByRole("form", { name: "Link a Stator page" });
+    await form.getByRole("combobox", { name: "Page" }).fill("brake tim");
+    await form.getByRole("option", { name: /Brake timing/ }).click();
+    await expect(form.locator("[data-stator-picked]")).toContainText("Brake timing");
+    await form.locator('[data-action="pick-another-page"]').click();
+    await expect(form.locator("[data-stator-picked]")).toHaveCount(0);
+    const picker = form.getByRole("combobox", { name: "Page" });
+    await expect(picker).toHaveValue("");
+    await picker.fill("braking");
+    await form.getByRole("option", { name: /Braking system/ }).click();
+    await expect(form.locator("[data-stator-picked]")).toContainText("Braking system");
   });
 
   // The way back (#42): the worker puts the requirement on the page as alice, and a person taking it off in Stator
