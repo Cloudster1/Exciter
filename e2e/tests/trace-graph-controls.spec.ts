@@ -44,6 +44,13 @@ async function impact(page: Page): Promise<string[]> {
   return page.locator("[data-impact-item]").evaluateAll((items) => items.map((item) => item.getAttribute("data-impact-item") ?? ""));
 }
 
+/** The CSV the graph downloads as it is narrowed now, without the byte order mark it starts with. */
+async function downloaded(page: Page): Promise<string> {
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download as CSV" }).click();
+  return (await readFile((await (await download).path()) ?? "", "utf8")).trim();
+}
+
 /** A list the page keeps in its address, which holds it as JSON. */
 function searched(page: Page, name: string): string[] | undefined {
   const raw = new URL(page.url()).searchParams.get(name);
@@ -71,6 +78,9 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
     await page.reload();
     await expect(page.getByLabel("Direction")).toHaveValue("up");
     await expect(nodes).toHaveCount(2);
+    const upward = await downloaded(page);
+    expect(upward).toContain(r1);
+    expect(upward).not.toContain(r3);
 
     await page.getByLabel("Direction").selectOption({ label: "Up and down" });
     await page.getByLabel("Depth").selectOption({ label: "1 level" });
@@ -78,6 +88,9 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
     await expect(page).not.toHaveURL(/direction=/);
     await expect(nodes).toHaveCount(4);
     await expect.poll(() => impact(page)).toEqual([r1, r3, result]);
+    const oneLevel = await downloaded(page);
+    expect(oneLevel).toContain(r3);
+    expect(oneLevel).not.toContain(r4);
 
     const types = page.locator("[data-graph-types]");
     await types.locator("summary").click();
@@ -103,10 +116,7 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
     await expect(nodes).toHaveCount(2);
     await expect.poll(() => impact(page)).toEqual([r1]);
 
-    const download = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Download as CSV" }).click();
-    // trim drops the byte order mark the file starts with too.
-    const file = (await readFile((await (await download).path()) ?? "", "utf8")).trim();
+    const file = await downloaded(page);
     const rows = file.split("\n");
     expect(rows).toHaveLength(3);
     expect(rows[1]).toContain(`${KEY}-R2`);

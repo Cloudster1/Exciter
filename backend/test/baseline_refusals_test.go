@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -195,7 +196,11 @@ func TestASigningRuleNamesOnlyThoseWhoMaySign(t *testing.T) {
 		"more signers than allowed": {"required": 1, "signers": tooMany},
 	} {
 		t.Run(what, func(t *testing.T) {
-			fieldError(t, s.owner.put(t, s.signingPath(), body), "signers")
+			msg := fieldError(t, s.owner.put(t, s.signingPath(), body), "signers")
+			// The length is checked before anybody is looked up, so only its own sentence shows the bound held.
+			if what == "more signers than allowed" && !strings.Contains(msg, fmt.Sprintf("Name 1 to %d", baseline.MaxSigners)) {
+				t.Errorf("too many signers are refused with %q", msg)
+			}
 		})
 	}
 	if r := want(t, s.carol.get(t, s.signingPath()), http.StatusOK, "read the rule"); r.Body["rule"] != nil {
@@ -551,7 +556,10 @@ func TestRawSQLKeepsWhatABaselineIsOfAndWhoSignsIt(t *testing.T) {
 	})
 
 	t.Run("the app writes no signer a baseline froze, not even its administrators", func(t *testing.T) {
-		refusedOutright(t, owner, "the owner freezes a signer", `INSERT INTO baseline_signer (baseline_id, subject_type, user_id) VALUES ($1, 'user', $2)`, id, s.ownerID)
+		// The grant is checked before the foreign key, so this refusal is the missing grant, not the unsigned baseline.
+		if _, err := owner.Exec(ctx, `INSERT INTO baseline_signer (baseline_id, subject_type, user_id) VALUES ($1, 'user', $2)`, id, s.ownerID); !isPermissionDenied(err) {
+			t.Errorf("the owner freezes a signer: %v", err)
+		}
 		for what, sql := range map[string]string{
 			"the owner changes a frozen signer": `UPDATE baseline_signer SET user_id = $2 WHERE baseline_id = $1`,
 			"the owner removes a frozen signer": `DELETE FROM baseline_signer WHERE baseline_id = $1 AND user_id <> $2`,
