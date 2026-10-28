@@ -147,6 +147,9 @@ type tooLargeError struct {
 	whole bool
 }
 
+// Unwrap lets the refusal be answered as the file's, which is what it is to the person who uploaded it.
+func (e *tooLargeError) Unwrap() error { return &e.FileError }
+
 func openBundle(zr *zip.Reader) *bundle { return &bundle{ziplimit.Open(zr, MaxUnpackedBytes)} }
 
 func (b *bundle) read(name string, limit int64) ([]byte, error) {
