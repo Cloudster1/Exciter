@@ -25,6 +25,7 @@ export function StartExecutionDialog({ project, plan, onClose }: { project: Proj
   const [problem, setProblem] = useState("");
   const fields = start.error instanceof ApiError ? start.error.fields : {};
   const general = start.error && Object.keys(fields).length === 0;
+  const testersError = problem || fields.testers;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -82,7 +83,7 @@ export function StartExecutionDialog({ project, plan, onClose }: { project: Proj
           />
         </div>
         <Field type="datetime-local" label={t.tests.due} value={due} error={fields.dueAt} onChange={(e) => setDue(e.target.value)} />
-        <fieldset className="space-y-2" aria-describedby="execution-testers-hint">
+        <fieldset className="space-y-2" aria-describedby={testersError ? "execution-testers-hint execution-testers-error" : "execution-testers-hint"}>
           <legend className="text-sm font-medium text-ink">{t.tests.testers}</legend>
           <p id="execution-testers-hint" className="text-xs text-ink-muted">
             {t.tests.testersHint}
@@ -111,7 +112,11 @@ export function StartExecutionDialog({ project, plan, onClose }: { project: Proj
               setTesters([...testers, picked]);
             }}
           />
-          {(problem || fields.testers) && <p className="text-sm text-danger">{problem || fields.testers}</p>}
+          {testersError && (
+            <p id="execution-testers-error" className="text-sm text-danger">
+              {testersError}
+            </p>
+          )}
         </fieldset>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

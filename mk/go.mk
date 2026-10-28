@@ -37,8 +37,9 @@ vet: | $(GO_CACHE) ## Run go vet over the backend
 	$(DOCKER_GO) go vet -tags integration ./...
 
 .PHONY: test-go
-test-go: | $(GO_CACHE) ## Run the Go unit tests with the race detector
-	$(ROOT)/scripts/go-test.sh $(REPORTS)/go-unit.json $(DOCKER_GO) go test -race -json $(TESTFLAGS) $(PKG)
+test-go: | $(GO_CACHE) ## Run the Go unit tests with the race detector, and hold the whole run to its coverage floor
+	$(ROOT)/scripts/go-test.sh $(REPORTS)/go-unit.json $(DOCKER_GO) go test -race -json -coverprofile=../reports/go-unit.cover $(TESTFLAGS) $(PKG)
+	@if [ "$(PKG)" = "./..." ] && [ -z "$(TESTFLAGS)" ]; then $(ROOT)/scripts/coverage.sh go go-unit $(REPORTS)/go-unit.cover; fi
 
 .PHONY: build-go
 build-go: | $(GO_CACHE) ## Build every backend binary into backend/bin, stamped with the version and commit
@@ -75,5 +76,7 @@ INTEGRATION_TIMEOUT ?= 20m
 test-integration: | $(GO_CACHE) ## Run the integration suite against this checkout's running stack
 	@docker compose ps --status running --services 2>/dev/null | grep -qx api \
 		|| { echo "The stack for this checkout is not running. Start it with make up or make stack-up, then run this again."; exit 1; }
-	$(ROOT)/scripts/go-test.sh $(REPORTS)/integration.json $(DOCKER_GO_STACK) go test -race -json -tags integration -count=1 -timeout $(INTEGRATION_TIMEOUT) $(TESTFLAGS) ./test/...
+	$(ROOT)/scripts/go-test.sh $(REPORTS)/integration.json $(DOCKER_GO_STACK) go test -race -json -tags integration -count=1 -timeout $(INTEGRATION_TIMEOUT) \
+		-coverpkg=./... -coverprofile=../reports/go-integration.cover $(TESTFLAGS) ./test/...
+	@[ -n "$(TESTFLAGS)" ] || $(ROOT)/scripts/coverage.sh go go-integration $(REPORTS)/go-integration.cover
 	@[ -n "$(TESTFLAGS)" ] || $(MAKE) --no-print-directory test-exciter-ci

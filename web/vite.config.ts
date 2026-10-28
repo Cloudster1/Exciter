@@ -22,6 +22,9 @@ const cores = availableParallelism();
 const [busyCores = 0] = loadavg();
 const idleCores = cores - Math.round(busyCores);
 const testWorkers = Math.max(TEST_MIN_WORKERS, Math.min(Math.floor(cores * TEST_CORE_SHARE), idleCores));
+// Measuring coverage slows every test, and gates beside each other slow them again; vitest's five seconds then
+// ended tests that pass in one.
+const TEST_TIMEOUT_MS = 15_000;
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -55,5 +58,15 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     maxWorkers: testWorkers,
+    testTimeout: TEST_TIMEOUT_MS,
+    // Measured when asked with --coverage, as check-web does. The string tables and the constants hold no logic
+    // and would lift the figure without anything being tested; the schema is generated.
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/i18n/**", "src/config.ts", "src/api/schema.d.ts", "src/test/**", "src/**/*.test.{ts,tsx}", "src/**/*.d.ts"],
+      reporter: ["text-summary", "json-summary"],
+      reportsDirectory: "../reports/vitest-coverage",
+    },
   },
 });

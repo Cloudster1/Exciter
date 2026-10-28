@@ -21,6 +21,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   and removing grants, switching OAuth off, linking the demo again and
   every audit filter are driven, and the home screen's empty states and the
   permissions table's discard are unit tested (#330).
+- The suite calls every MCP tool through the protocol's own client, each
+  answer held to its schema and to the route it stands for, and proves the
+  rest of OAuth and tokens: a consent answered twice or past its time, a
+  denial over the API, a code and an access token that ran out, another
+  client's refresh and revocation, a second consent replacing the first
+  grant, a member refused every partner app write, a rotated secret, the
+  sweeper, and a metadata document fetched from its own address alone. In
+  the browser an administrator revokes a token and disconnects an app of
+  somebody else's, a token and a partner secret are copied, a partner
+  secret rotated, and a consent narrowed to one project (#329).
 - The suite proves the Stator integration's refusals and deliveries: a
   reader holding a Stator token, the trash and an archived project change
   no link, the lookup and search keep to their bounds, a webhook past its
@@ -88,6 +98,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   saved, a term is added, redefined, confirmed, reloaded, linked by hand
   and deleted, a library glossary is chosen, and pairs are linked,
   merged, filtered, paged, read again and listed by the threshold (#320).
+- Every pull request shows Go unit, Go integration and web coverage, in
+  total and per package, and fails below floors kept in `coverage/`,
+  which only rise (#334). They start at 35.5% unit, 76% integration and
+  91.5% of the web client's lines, leaving out its strings and constants.
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and
@@ -125,6 +139,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The stack's primary database logs the plan of any statement that runs
+  past three seconds, with the rows each step gave, and a failed gate
+  keeps it with its reports (#405). The FMEA table's query has run past
+  ten seconds on CI's runners with nothing to say why.
+- Nine more tests of the coverage work assert what their items state
+  (#416): a draft's statement that is no document and a reader's bulk
+  transition are refused with nothing moved, the tester bounds and a due
+  date kept are checked by their own sentence and value, and the dashboard
+  list, the home dashboard, the home executions, the start dialog's
+  refusals and a live Armature chip each fail when what they name breaks.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result
@@ -279,6 +303,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
   (#326). It answered 403 and told an editor to ask for edit rights.
+- Starting a test execution with testers it refuses reads the refusal out
+  with the testers (#416). It showed below them, but a screen reader did
+  not tie it to them.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - Saving the writing rules or the word lists says so (#320). The cards

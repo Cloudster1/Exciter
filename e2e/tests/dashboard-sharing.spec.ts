@@ -79,6 +79,10 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
     await expect(bob.locator('[data-action="arrange-dashboard"]')).toHaveCount(0);
     await expect(bob.locator('[data-action="share-dashboard"]')).toHaveCount(0);
     await expectAccessible(bob);
+    // While shared, Brakes is in bob's list, so its absence later is the unsharing and not a list that never shows it.
+    const sharedWithBob = bob.getByRole("region", { name: "Shared with the project" }).locator('[data-dashboard-item="Brakes"]');
+    await openUntil(bob, `/p/${KEY}/dashboards`, () => expect(sharedWithBob).toBeVisible(ONE_LOOK));
+    await expect(sharedWithBob).toContainText("By Alice");
 
     await page.locator('[data-action="arrange-dashboard"]').click();
     await page.locator('[data-action="share-dashboard"]').click();
@@ -170,6 +174,12 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
     const home = page.locator("[data-home-dashboard]");
     await expect(home.locator('[data-widget-card="breakdown"] [data-bar]')).toHaveCount(2);
     await expect(home.locator('[data-widget-card="count"]')).toBeVisible();
+    const rows = page.locator("[data-requirement-row]");
+    await expect(rows).toHaveCount(3);
+    for (const n of [1, 2, 3]) await expect(page.locator(`[data-requirement-row="${KEY}-R${n}"]`)).toBeVisible();
+    const dashboardBox = await home.boundingBox();
+    const listBox = await page.getByRole("table", { name: "Requirements of the project" }).boundingBox();
+    expect(dashboardBox && listBox && dashboardBox.y + dashboardBox.height <= listBox.y, "the dashboard ends above the requirements").toBe(true);
     await expectAccessible(page);
     await home.getByRole("link", { name: "Overview" }).click();
     await expect(page).toHaveURL(new RegExp(`/p/${KEY}/dashboards/${dashboard.id}$`));

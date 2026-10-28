@@ -23,7 +23,7 @@ async function removeProject(api: ExciterApi) {
 }
 
 /** A project with a requirement and a test case verifying it, an execution of a plan of the case that alice tests,
- * and the case's key. */
+ * the case's key and the plan's id. */
 async function anExecution(api: ExciterApi, testCase: { parameters: { name: string; values: string[] }[] }) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Brakes" } }));
   const type = must(
@@ -62,7 +62,7 @@ async function anExecution(api: ExciterApi, testCase: { parameters: { name: stri
       },
     }),
   ).execution;
-  return { caseKey: made.key, execution };
+  return { caseKey: made.key, execution, planId: plan.id };
 }
 
 async function coverageReads(page: Page, said: string) {
@@ -78,7 +78,7 @@ test.describe("running a test execution", { tag: "@desktop" }, () => {
 
   test("alice changes an execution, aborts it so it verifies nothing, and prints it", async ({ page, api }) => {
     test.setTimeout(90_000);
-    const { caseKey, execution } = await anExecution(api, { parameters: [] });
+    const { caseKey, execution, planId } = await anExecution(api, { parameters: [] });
     must(
       await api.PUT("/projects/{projectKey}/coverage-rules", {
         ...path,
@@ -121,8 +121,16 @@ test.describe("running a test execution", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-execution-page]")).toHaveAttribute("data-execution-state", "aborted");
     await coverageReads(page, "Verified: Partial");
 
+    // The home list shows nothing until it loads, so an execution still open must show before the closed one's absence counts.
+    const me = must(await api.GET("/auth/me")).user;
+    must(
+      await api.POST("/projects/{projectKey}/test-executions", {
+        ...path,
+        body: { title: "Release 2 on dry roads", planId, testers: [{ subjectType: "user", userId: me.id }] },
+      }),
+    );
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Your projects" })).toBeVisible();
+    await expect(page.locator('[data-execution="Release 2 on dry roads"]')).toBeVisible();
     await expect(page.locator('[data-execution="Release 1 on wet roads"]')).toHaveCount(0);
 
     await page.goto(`/print/executions/${execution.id}`);
