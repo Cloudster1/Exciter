@@ -213,10 +213,17 @@ func TestATokenLimitedToOneProjectSearchesOnlyThere(t *testing.T) {
 	if other := want(t, script.get(t, "/api/v1/search?q="+s.word+"&project="+s.b), http.StatusOK, "the token searches the other project"); other.Body["total"] != float64(0) {
 		t.Errorf("the token found %v in the other project", other.Body["total"])
 	}
+	ours := 0
 	for _, each := range list(t, want(t, script.get(t, "/api/v1/search/quick?q=lantern&limit=20"), http.StatusOK, "the token's quick search"), "requirements") {
-		if key := each.(map[string]any)["requirement"].(map[string]any)["key"].(string); strings.HasPrefix(key, s.b+"-") {
+		key := each.(map[string]any)["requirement"].(map[string]any)["key"].(string)
+		if !strings.HasPrefix(key, s.a+"-") {
 			t.Errorf("the quick search found %s", key)
+			continue
 		}
+		ours++
+	}
+	if ours != 5 {
+		t.Errorf("the token's quick search found %d of the five lanterns of its project", ours)
 	}
 	if found := list(t, want(t, script.get(t, "/api/v1/search/quick?q=lantern&project="+s.b), http.StatusOK, "quick, in the other project"), "requirements"); len(found) != 0 {
 		t.Errorf("the quick search found %v in the other project", found)

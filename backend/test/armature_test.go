@@ -78,6 +78,9 @@ func patFor(tenant, person string) string { return armature.TokenPrefix + tenant
 
 func fieldError(t *testing.T, r response, field string) string {
 	t.Helper()
+	if r.Status != http.StatusUnprocessableEntity {
+		t.Fatalf("status %d, want 422 on %s: %s", r.Status, field, r.Raw)
+	}
 	if code := errorCode(t, r); code != "validation_failed" {
 		t.Fatalf("code %s, want validation_failed: %s", code, r.Raw)
 	}
