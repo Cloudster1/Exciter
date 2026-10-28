@@ -59,7 +59,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
   merged, filtered, paged, read again and listed by the threshold (#320).
 - Every pull request shows Go unit, Go integration and web coverage, in
   total and per package, and fails below floors kept in `coverage/`,
-  which only rise (#334). They start at 35.5% unit, 74% integration and
+  which only rise (#334). They start at 35.5% unit, 76% integration and
   91.5% of the web client's lines, leaving out its strings and constants.
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
