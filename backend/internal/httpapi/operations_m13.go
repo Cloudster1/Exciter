@@ -49,7 +49,7 @@ var riskOperations = []operation{
 		responses: map[int]any{http.StatusOK: risk.Rows{}, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/projects/{projectKey}/risks.xlsx", handler: "handleRisksXLSX", tag: "risks",
 		summary: "The FMEA table as an Excel workbook, every risk the filter keeps, a row a mitigation, each level in its colour.",
-		query:   append(append([]param{}, gridQuery...), riskSideQuery),
+		query:   append(append(append([]param{}, gridQuery...), riskSideQuery), riskCellQuery...),
 		binary:  true, responses: map[int]any{http.StatusOK: nil, http.StatusBadRequest: errorEnvelope{}, http.StatusUnprocessableEntity: errorEnvelope{}}},
 	{method: "GET", path: "/projects/{projectKey}/risk-matrix", handler: "handleRiskMatrix", tag: "risks",
 		tool: "get_risk_matrix", toolHelp: "A project's risk matrix: how many risks fall in each cell of severity and probability, before mitigation or in effect, with each cell's level.",

@@ -143,7 +143,7 @@ func (s *Server) handleRisksXLSX(w http.ResponseWriter, r *http.Request) {
 	}
 	key := requirement.NormalizedProjectKey(projectKeyParam(r))
 	if !s.noteExport(w, r, audit.Entry{Action: audit.ActionSpecificationExported, TargetType: "project", TargetID: &out.ProjectID, Actor: userFrom(r),
-		Data: map[string]any{"projectKey": key, "format": "xlsx", "of": "risks", "risks": len(out.Rows)}}) {
+		Data: map[string]any{"project": key, "kind": "risks", "format": "xlsx", "risks": len(out.Rows)}}) {
 		return
 	}
 	sendWorkbook(w, r, key+"-risks.xlsx", csvio.RisksSheet(key+" risks", out.Rows, out.Defs, out.People), false)

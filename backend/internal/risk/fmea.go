@@ -222,8 +222,10 @@ func (s *Service) Rows(ctx context.Context, reader uuid.UUID, projectKey string,
 
 // Matrix counts the project's risks the filter keeps in each cell of severity and probability on one side.
 func (s *Service) Matrix(ctx context.Context, reader uuid.UUID, projectKey string, f search.Filter, sort search.Sort, side Side) (*Matrix, error) {
-	out := &Matrix{Side: side, Cells: []MatrixCount{}, Severity: Scale{Values: []ScaleValue{}, Held: []int{}},
-		Probability: Scale{Values: []ScaleValue{}, Held: []int{}}}
+	// Without a scheme the scales are empty but still name their dimensions, as the API document says they do.
+	out := &Matrix{Side: side, Cells: []MatrixCount{},
+		Severity:    Scale{Dimension: Severity, Label: defaultLabels[Severity], Values: []ScaleValue{}, Held: []int{}},
+		Probability: Scale{Dimension: Probability, Label: defaultLabels[Probability], Values: []ScaleValue{}, Held: []int{}}}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		p, err := project.Find(ctx, tx, reader, projectKey)
 		if err != nil {

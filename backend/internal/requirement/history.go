@@ -462,7 +462,7 @@ func (s *Service) RestoreRevision(ctx context.Context, actor uuid.UUID, key stri
 			UPDATE requirement SET title = $2, statement = $3, rationale = $4, type_id = $5, attributes = $6, normative_hash = $7, updated_by = $8,
 			    preconditions = $9, steps = $10, parameters = $11, risk = $12
 			WHERE id = $1`, cur.ID, content.Title, content.Statement, content.Rationale, content.TypeID, attrs, hash, actor, pre, steps, params, rating); err != nil {
-			return fmt.Errorf("restore revision %d of %s: %w", number, cur.Key, err)
+			return fmt.Errorf("restore revision %d of %s: %w", number, cur.Key, ratingRefusal(err))
 		}
 		next := cur.Revision + 1
 		if err := revisionOf(ctx, tx, actor, cur.ID, next, content, hash, comment, &number); err != nil {
