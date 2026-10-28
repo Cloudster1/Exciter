@@ -181,6 +181,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A webhook listening to a project hears that a requirement moved out of
+  it to another project (#328). Only the webhooks of the project it moved
+  to, or of every project, were posted `requirement.moved`.
 - Tracing a requirement to an Armature issue, removing such a trace or
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
