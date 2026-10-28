@@ -235,6 +235,39 @@ describe("the writing rules of a project", () => {
     expect(body.rules).toContainEqual({ rule: "vague", enabled: true, severity: "error", typeIds: [functional.id] });
     expect(body.rules).toContainEqual({ rule: "passive", enabled: false, severity: "warning", typeIds: [] });
     expect(body.words.vague).toEqual({ add: ["snappy"], except: [] });
+    // The saved settings start the form again, and the notice outlives it.
+    expect(await screen.findByText("Saved. The scores follow.")).toBeInTheDocument();
+  });
+
+  it("take the words an administrator adds and the ones removed, every list at once, with the rules as they are", async () => {
+    const sent = stubApi({
+      "GET /projects/CHK": { status: 200, body: { project: aProject() } },
+      "GET /projects/CHK/types": { status: 200, body: { types: [] } },
+      "GET /projects/CHK/quality-settings": { status: 200, body: { settings } },
+      "GET /quality-rules": { status: 200, body: { rules } },
+      "PUT /projects/CHK/quality-settings": { status: 200, body: { settings: { ...settings, updatedAt: "2026-10-18T08:00:00Z" } } },
+    });
+    await renderAt("/p/CHK/settings?tab=quality");
+    const card = await screen.findByRole("form", { name: "Word lists" });
+    const vague = within(card).getByRole("textbox", { name: "Vague word: words to add" });
+    expect(vague).toHaveValue("snappy");
+    await userEvent.clear(vague);
+    await userEvent.type(vague, "zippy, , brisk ");
+    await userEvent.type(within(card).getByRole("textbox", { name: "Vague word: built-in words not to find" }), "quickly");
+    await userEvent.type(within(card).getByRole("textbox", { name: "Unbounded word: words to add" }), "every");
+    expect(await axeViolations()).toEqual([]);
+    await userEvent.click(within(card).getByRole("button", { name: "Save word lists" }));
+    await waitFor(() => expect(sent.find((r) => r.method === "PUT")).toBeDefined());
+    const body = sent.find((r) => r.method === "PUT")!.body as { rules: unknown[]; words: Record<string, unknown> };
+    expect(body.words).toEqual({
+      vague: { add: ["zippy", "brisk"], except: ["quickly"] },
+      unbounded: { add: ["every"], except: [] },
+      escape: { add: [], except: [] },
+      placeholder: { add: [], except: [] },
+    });
+    expect(body.rules).toContainEqual({ rule: "vague", enabled: true, severity: "warning", typeIds: [] });
+    expect(body.rules).toContainEqual({ rule: "passive", enabled: true, severity: "warning", typeIds: [] });
+    expect(await screen.findByText("Saved. The requirements are being checked again.")).toBeInTheDocument();
   });
 
   it("are read but not changed by somebody who does not administer the project", async () => {

@@ -42,6 +42,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
   and started again, a downloaded .reqif goes into another project, a
   Word pattern changes the preview, and a template is shared and deleted
   (#318).
+- The suite proves the writing rules, the glossary and duplicates beyond
+  the first look: linking and merging a pair are refused for a reader, a
+  stale side, the same requirement twice, another project's side, an
+  unknown link type, a long comment and a locked side, with no row
+  written; the pairs are paged and narrowed; taking back an acceptance
+  and changing a term are refused with their codes, the term as it was;
+  and `get_quality_findings`, `check_requirement_text`, `list_terms` and
+  `get_similar_requirements` answer as their routes do. In the browser a
+  finding is shown, accepted and taken back, rules and word lists are
+  saved, a term is added, redefined, confirmed, reloaded, linked by hand
+  and deleted, a library glossary is chosen, and pairs are linked,
+  merged, filtered, paged, read again and listed by the threshold (#320).
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and
@@ -190,6 +202,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
   (#326). It answered 403 and told an editor to ask for edit rights.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
+- Saving the writing rules or the word lists says so (#320). The cards
+  started again from the settings saved and lost their notice, so a save
+  looked as if nothing had happened.
+- Changing a term somebody may only read, or one of an archived project,
+  is refused as not theirs to change or as archived (#320). It answered
+  that the term was not found, though the same person could read it.
+- Linking a pair of duplicates by a link type the project does not use
+  says why in the dialog (#320). The refusal named a field the dialog
+  does not have, so nothing was shown and the link was simply not made.
 - The grid shows a computed attribute's value as text (#319). It offered a
   box to type a value in, which every save then refused.
 - A dashboard widget counting by an attribute is refused when it is saved

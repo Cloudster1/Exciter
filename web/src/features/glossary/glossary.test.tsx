@@ -347,6 +347,53 @@ describe("terms while a requirement is written", () => {
     expect(JSON.stringify(editor.getJSON())).toContain(`{"type":"text","marks":[{"type":"term","attrs":{"termId":"${TERM_ID}"}}],"text":"stop lever"}`);
     editor.destroy();
   });
+
+  it("take the link off words already linked, keeping the words", async () => {
+    stubApi({ "GET /projects/CHK/terms": { status: 200, body: { terms: [aTerm()], total: 1, limit: 20, offset: 0 } } });
+    const linked = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "The " },
+            { type: "text", text: "stop lever", marks: [{ type: "term", attrs: { termId: TERM_ID } }] },
+            { type: "text", text: " shall return." },
+          ],
+        },
+      ],
+    };
+    const editor = new TiptapEditor({ element: document.createElement("div"), extensions: editorExtensions(), content: linked });
+    // The cursor inside the linked words, with nothing selected: the link is still the one to take off.
+    editor.commands.setTextSelection(8);
+    const closed = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TermPickerDialog projectKey="CHK" editor={editor as unknown as ReactEditor} onClose={closed} />
+      </QueryClientProvider>,
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Link the words to a term" });
+    expect(within(dialog).getByRole("combobox", { name: "Find a term" })).toBeInTheDocument();
+    expect(await axeViolations({ popupOpen: true })).toEqual([]);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Remove the link" }));
+    expect(closed).toHaveBeenCalled();
+    expect(editor.getJSON()).toEqual({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "The stop lever shall return." }] }] });
+    editor.destroy();
+  });
+
+  it("offer no removal where the words carry no link", async () => {
+    stubApi({ "GET /projects/CHK/terms": { status: 200, body: { terms: [aTerm()], total: 1, limit: 20, offset: 0 } } });
+    const editor = new TiptapEditor({ element: document.createElement("div"), extensions: editorExtensions(), content: paragraph("The stop lever.") });
+    editor.commands.setTextSelection({ from: 5, to: 15 });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TermPickerDialog projectKey="CHK" editor={editor as unknown as ReactEditor} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Link the words to a term" });
+    expect(within(dialog).queryByRole("button", { name: "Remove the link" })).toBeNull();
+    editor.destroy();
+  });
 });
 
 describe("the print view's glossary", () => {
