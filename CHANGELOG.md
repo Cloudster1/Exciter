@@ -194,6 +194,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A webhook listening to a project hears that a requirement moved out of
   it to another project (#328). Only the webhooks of the project it moved
   to, or of every project, were posted `requirement.moved`.
+- The matrix paging browser test waits up to 20 seconds for each page of
+  five thousand cells to show (#391). On a busy shard they rendered for
+  longer than the default five seconds after the page had arrived.
 - Tracing a requirement to an Armature issue, removing such a trace or
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
