@@ -75,9 +75,15 @@ describe("the toolbar", () => {
     expect(screen.queryByRole("button", { name: "Link to term" })).toBeNull();
     unmount();
 
-    shown(<Editor id="full" value={null} onChange={() => {}} upload={vi.fn()} glossary="CHK" aria-label="Statement" />);
+    // Each prop alone, so a button shown by the other one, or by either, is caught.
+    const withUpload = shown(<Editor id="upload" value={null} onChange={() => {}} upload={vi.fn()} aria-label="Statement" />);
     expect(await screen.findByRole("button", { name: "Attach a file here" })).toHaveAttribute("data-action", "format-attach");
-    expect(screen.getByRole("button", { name: "Link to term" })).toHaveAttribute("data-action", "format-term");
+    expect(screen.queryByRole("button", { name: "Link to term" })).toBeNull();
+    withUpload.unmount();
+
+    shown(<Editor id="glossary" value={null} onChange={() => {}} glossary="CHK" aria-label="Statement" />);
+    expect(await screen.findByRole("button", { name: "Link to term" })).toHaveAttribute("data-action", "format-term");
+    expect(screen.queryByRole("button", { name: "Attach a file here" })).toBeNull();
   });
 
   it("offers a comment no divider, table, diagram, file or term", async () => {

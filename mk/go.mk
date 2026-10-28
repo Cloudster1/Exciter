@@ -69,9 +69,11 @@ check-go: fmt-check vet test-go openapi-check reqif-schema ## The backend gate: 
 # The suite runs one test at a time and has outgrown go test's ten minutes; a hung test still ends the run.
 INTEGRATION_TIMEOUT ?= 20m
 
-# The suite runs against the compose stack (mk/stack.mk) rather than a database of its own.
+# The suite runs against the compose stack (mk/stack.mk) rather than a database of its own. The whole suite also runs
+# exciter-ci against the stack (mk/evidence.mk); tests chosen with TESTFLAGS leave it out.
 .PHONY: test-integration
 test-integration: | $(GO_CACHE) ## Run the integration suite against this checkout's running stack
 	@docker compose ps --status running --services 2>/dev/null | grep -qx api \
 		|| { echo "The stack for this checkout is not running. Start it with make up or make stack-up, then run this again."; exit 1; }
 	$(ROOT)/scripts/go-test.sh $(REPORTS)/integration.json $(DOCKER_GO_STACK) go test -race -json -tags integration -count=1 -timeout $(INTEGRATION_TIMEOUT) $(TESTFLAGS) ./test/...
+	@[ -n "$(TESTFLAGS)" ] || $(MAKE) --no-print-directory test-exciter-ci

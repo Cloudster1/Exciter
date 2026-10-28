@@ -19,6 +19,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
   trash and back. In the browser a dashboard is shared, read by a second
   person, copied, printed, renamed, rearranged, deleted and made the home,
   and a computed attribute is refused, recomputed and sorted by (#319).
+- Eight tests of the coverage work assert what their items state, not
+  less (#406): every field refusal the integration suite checks is a 422,
+  and the toolbar, quick search, watchers, link types, trace graph and
+  baseline signer tests each fail when what they name breaks.
+- The suite proves verification evidence to its edges: an archived project
+  takes no run, scan, counting branch or tag words, every upload limit and
+  field is refused with nothing queued, a run the worker cannot read ends
+  failed, code tags and a requirement's code keep to one branch and page,
+  the trace check fails on gaps only when asked, the evidence MCP tools
+  answer as their routes do, and the database keeps runs, results, scans
+  and both settings to their rules. In the browser the counting branch and
+  a tag word are set and take effect and the code tags are filtered and
+  paged, and the gate runs the exciter-ci image through its make targets
+  against the stack (#323).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
@@ -151,6 +165,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A dashboard widget counting by an attribute is refused when it is saved
   with formatted text or another project's attribute (#319), on the
   attribute's field. It was saved and then could not be read.
+- Each accessibility check in the browser suite adds 15 seconds to its
+  test's time (#389). On busy CI shards axe took 12 to 13 of the 20
+  seconds a test has, so the members and specification tests ran out of
+  time with nothing wrong in them.
+- The exciter-ci check against the stack reads a scan's tags and a run's
+  results until a replica shows them, rather than once (#401). Read as
+  the owner, not the token that wrote them, they could still be missing
+  and fail the integration job on main.
+- The project's trace settings say "Saved." once the counting branch or
+  the tag words are saved (#323). The form started again from what was
+  saved and lost the notice, so nothing said the save had gone through.
 - An earlier review on a requirement's page names who decided it and what
   they said (#317), so its author reads why a revision was rejected. Only
   the review still waiting showed its decisions.
