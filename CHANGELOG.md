@@ -147,6 +147,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The matrix paging browser test waits up to 20 seconds for each page of
   five thousand cells to show (#391). On a busy shard they rendered for
   longer than the default five seconds after the page had arrived.
+- The exciter-ci check against the stack reads a scan's tags and a run's
+  results until a replica shows them, rather than once (#401). Read as
+  the owner, not the token that wrote them, they could still be missing
+  and fail the integration job on main.
 - The project's trace settings say "Saved." once the counting branch or
   the tag words are saved (#323). The form started again from what was
   saved and lost the notice, so nothing said the save had gone through.
