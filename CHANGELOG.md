@@ -197,6 +197,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   moved to when Stator delivers the publish of that version late (#327).
   The move did not keep its version, so the late publish moved the link
   back to the space the page had left, with that space's address.
+- The matrix paging browser test waits up to 20 seconds for each page of
+  five thousand cells to show (#391). On a busy shard they rendered for
+  longer than the default five seconds after the page had arrived.
 - Tracing a requirement to an Armature issue, removing such a trace or
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
