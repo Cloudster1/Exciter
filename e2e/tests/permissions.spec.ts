@@ -8,6 +8,7 @@ import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
 
 const KEY = uniqueKey("PERM");
 const PERMISSIONS_PATH = `/p/${KEY}/permissions`;
+const PROJECTS_PATH = "/projects";
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -56,6 +57,51 @@ test.describe("permissions", { tag: "@desktop" }, () => {
     await expect(bob.locator(`[data-project-nav="${KEY}"]`).getByRole("link", { name: "Permissions" })).toHaveCount(0);
     await bob.goto(PERMISSIONS_PATH);
     await expect(bob.getByText("Only the project's administrators see and change who may do what in it.")).toBeVisible();
+  });
+
+  test("a change discarded asks nothing, and bob removed and saved loses the project", async ({ page, api, apiAs, pageAs, people }) => {
+    must(await api.POST("/projects", { body: { key: KEY, name: "Permitted" } }));
+    must(
+      await api.PUT("/projects/{projectKey}/grants", {
+        params: { path: { projectKey: KEY } },
+        body: {
+          grants: [
+            { subject: { type: "user", id: people.alice.id }, role: "admin" },
+            { subject: { type: "user", id: people.bob.id }, role: "editor" },
+          ],
+        },
+      }),
+    );
+    const bobApi = await apiAs("bob");
+    const bobSees = async () => (await bobApi.GET("/projects")).data!.projects.some((each) => each.key === KEY);
+    await expect.poll(bobSees).toBe(true);
+
+    const writes: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() !== "GET" && request.url().includes("/grants")) writes.push(`${request.method()} ${request.url()}`);
+    });
+    await page.goto(PERMISSIONS_PATH);
+    const bobRole = page.getByRole("combobox", { name: `Role of ${people.bob.name}` });
+    await expect(bobRole).toHaveValue("editor");
+    await bobRole.selectOption("viewer");
+    await expect(page.getByText("Not saved yet.")).toBeVisible();
+    await page.locator('[data-action="discard-grants"]').click();
+    await expect(bobRole).toHaveValue("editor");
+    await expect(page.locator('[data-action="discard-grants"]')).toHaveCount(0);
+    await expect(page.locator('[data-action="save-grants"]')).toBeDisabled();
+    expect(writes).toEqual([]);
+
+    await page.getByRole("button", { name: `Remove ${people.bob.name}` }).click();
+    await expect(page.locator(`[data-grant="${people.bob.name}"]`)).toHaveCount(0);
+    await page.locator('[data-action="save-grants"]').click();
+    await expect(page.getByText("Permissions saved.")).toBeVisible();
+    expect(writes).toHaveLength(1);
+    await expect.poll(bobSees).toBe(false);
+    const bob = await pageAs("bob");
+    await openUntil(bob, PROJECTS_PATH, async () => {
+      await expect(bob.locator("main").getByRole("heading", { level: 1 })).toBeVisible(ONE_LOOK);
+      await expect(bob.locator(`[data-project-row="${KEY}"]`)).toHaveCount(0, ONE_LOOK);
+    });
   });
 
   test("the last administrator cannot be removed", async ({ page, api, people }) => {

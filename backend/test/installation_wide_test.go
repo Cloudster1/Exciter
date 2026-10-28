@@ -165,6 +165,11 @@ var installationWide = map[string]string{
 	"TestAnExchangeIsRefusedWhatTheRealmDidNotVouchFor":      singleSignOn,
 	"TestAnExchangeLetsInWhomTheMappingLetsIn":               singleSignOn,
 
+	"TestAGroupRoleIsChangedInPlaceAndKeptFromMembers":           singleSignOn,
+	"TestAJoinRequestIsAnsweredByAnAdministratorAsMemberOrAdmin": singleSignOn,
+	"TestAProviderWithoutAClientIDIsRefusedAndTheSavedOneKept":   singleSignOn,
+	"TestAMemberCannotLinkTheSuiteDemoAgain":                     suiteDemo,
+
 	"TestTheInstallationIsRenamedByAnAdministrator":  installationName,
 	"TestWriteReportsThePositionPastItsCommit":       installationName,
 	"TestReadYourWritesWhileReplayIsPaused":          installationName,

@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves projects, access, sign-on and the audit log to their
+  edges: an administrator by grant renames, rekeys, archives, deletes and
+  hands over a project while an editor changes none of it; a member removes
+  no group mapping, turns nobody away and links no demo again; a mapped
+  group posted again changes in place; a provider without a client id and
+  a join as guest are refused; the log narrows and walks over HTTP and an
+  export by action holds that action; and a plain member switches nothing
+  of the installation's through SQL. In the browser the provider, group
+  mapping, joining, roles and switching off, copying a password, discarding
+  and removing grants, switching OAuth off, linking the demo again and
+  every audit filter are driven, and the home screen's empty states and the
+  permissions table's discard are unit tested (#330).
 - The suite proves the Stator integration's refusals and deliveries: a
   reader holding a Stator token, the trash and an archived project change
   no link, the lookup and search keep to their bounds, a webhook past its
