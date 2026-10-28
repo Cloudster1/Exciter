@@ -53,6 +53,8 @@ export function isSettingsTab(value: unknown): value is SettingsTab {
 export function ProjectSettings({ project, tab: opened }: { project: Project; tab?: SettingsTab }) {
   const readOnly = !project.can.administer;
   const [tab, setTab] = useState<SettingsTab>(opened ?? "details");
+  // The details form starts again from each saved project, so what it says about its save is kept here.
+  const [saved, setSaved] = useState("");
   return (
     <div className="mx-auto max-w-3xl space-y-6" data-project-settings={project.key}>
       <PageHeader
@@ -92,7 +94,13 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
       <TabPanel id="project-settings-panel" className="space-y-6">
         {tab === "details" && (
           <>
-            <Details key={`${project.id}-${project.updatedAt}`} project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
+            <Details
+              key={`${project.id}-${project.updatedAt}`}
+              project={project}
+              readOnly={readOnly || Boolean(project.archivedAt)}
+              notice={saved}
+              onNotice={setSaved}
+            />
             <KeySection project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
             {!readOnly && <ArchiveSection project={project} />}
             {!readOnly && project.archivedAt && <DeleteSection project={project} />}
@@ -134,7 +142,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
   );
 }
 
-function Details({ project, readOnly }: { project: Project; readOnly: boolean }) {
+function Details({ project, readOnly, notice, onNotice }: { project: Project; readOnly: boolean; notice: string; onNotice: (notice: string) => void }) {
   const update = useUpdateProject(project.key);
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
@@ -146,18 +154,22 @@ function Details({ project, readOnly }: { project: Project; readOnly: boolean })
   const [home, setHome] = useState(project.settings.homeDashboardId ?? "");
   const { data: dashboards } = useDashboards(project.key);
   const { data: types } = useTypes(project.key);
-  const [notice, setNotice] = useState("");
   const fields = update.error instanceof ApiError ? update.error.fields : {};
 
   function save(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
+    onNotice("");
     const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals, library };
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
     // The language is sent only when it changes, since a change checks every requirement again (#207).
     if (language !== (project.settings.language ?? "en")) settings.language = language;
     if (home !== (project.settings.homeDashboardId ?? "")) settings.homeDashboardId = home || null;
-    update.mutate({ name, description, settings }, { onSuccess: () => setNotice(t.projects.saved) });
+    // This form is gone by the time mutate's own callbacks would run, so the promise says it saved; a refusal shows
+    // through update.error.
+    update.mutateAsync({ name, description, settings }).then(
+      () => onNotice(t.projects.saved),
+      () => undefined,
+    );
   }
 
   return (
