@@ -9,6 +9,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The integration suite's cleanup tries a statement again when it loses a
+  deadlock to the stack's worker, which on a slow runner still writes the
+  notifications of the project being removed (#405).
 - The suite proves the Armature integration to its edges: a viewer with
   an Armature token, an archived project and the trash change no trace,
   the lookup and the search keep to their bounds, only a session stores
