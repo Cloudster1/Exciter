@@ -134,6 +134,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A tool call refused on its fields tells the assistant what each field
+  needs (#324), as a form shows it beside the field. It said only that some
+  fields need attention.
 - A tester recording, uploading or filing an issue in an archived project's
   execution, and its manager changing or closing it, are told the project
   is archived (#324), as is whoever changes or deletes one of its plans.
