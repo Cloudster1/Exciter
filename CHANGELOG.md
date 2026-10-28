@@ -585,6 +585,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   requirements those formulas show on, and nothing else; what reads such a
   value elsewhere follows as with any change.
 
+### Security
+
+- The web app takes seroval 1.7.3, which closes the high-severity advisories
+  npm reported for 1.6.8 (#436).
+
 ## [0.1.0] - 2026-10-21
 
 ### Added
