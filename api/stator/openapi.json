@@ -46,6 +46,9 @@
       "name": "drafts"
     },
     {
+      "name": "exciter"
+    },
+    {
       "name": "health"
     },
     {
@@ -71,6 +74,9 @@
     },
     {
       "name": "notifications"
+    },
+    {
+      "name": "oauth"
     },
     {
       "name": "pages"
@@ -143,6 +149,99 @@
     }
   ],
   "paths": {
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "oAuthMetadata",
+        "summary": "RFC 8414's metadata: the issuer, the authorization, token, revocation and registration endpoints, the scopes, grants and PKCE method. Lives at the origin, outside /api/v1; partners may keep it for five minutes.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "operationId": "getResourceMetadata",
+        "summary": "The MCP endpoint's metadata again, for a client that asks at the origin's well-known address.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/api/v1/mcp": {
+      "get": {
+        "operationId": "getMCPResourceMetadata",
+        "summary": "RFC 9728's metadata of the MCP endpoint, the one resource a consented app's token is for: its address, Stator as its authorization server, the scopes. A 401 at the endpoint points here. Lives at the origin.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceMetadata"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/access/me": {
       "get": {
         "operationId": "myAccess",
@@ -263,7 +362,7 @@
     "/armature/account/token": {
       "delete": {
         "operationId": "disconnectArmatureAccount",
-        "summary": "Forget the caller's Armature token.",
+        "summary": "Forget the caller's Armature token, or end their connected app's grant, in Armature too.",
         "tags": [
           "armature"
         ],
@@ -653,6 +752,362 @@
         }
       }
     },
+    "/armature/connection/app": {
+      "delete": {
+        "operationId": "removeArmatureApp",
+        "summary": "Forget the connected app and every member's grant of it; the next member to connect registers Stator again. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveArmatureApp",
+        "summary": "Store the connected app an Armature administrator registered for Stator by hand, where Armature registers none itself; a new client id forgets every member's grant of the old one. The secret is never answered. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/Connection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/connection/check": {
+      "post": {
+        "operationId": "checkArmatureConnection",
+        "summary": "Ask an address what answers there before saving it: the Armature version and what it offers, or a sentence on baseUrl saying what is wrong. Stores nothing. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionCheckInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "check": {
+                      "$ref": "#/components/schemas/ConnectionCheck"
+                    }
+                  },
+                  "required": [
+                    "check"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/connection/webhook/connect": {
+      "get": {
+        "operationId": "startArmatureWebhookConnect",
+        "summary": "Connect Armature in one step: send the browser to Armature's consent page for every scope Stator needs, webhooks.partner among them, and on the way back make Stator's own webhook in Armature and store its secret. Needs a session and webhooks.partner@1; lands on Settings, Armature with armature naming the outcome. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/connection/webhook/rotate-secret": {
+      "post": {
+        "operationId": "rotateArmatureWebhook",
+        "summary": "Give Stator's own webhook in Armature a new secret and store it; one Armature no longer has is made again. Needs the caller's own grant to hold webhooks.partner. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/Connection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/connection/webhook/test": {
+      "post": {
+        "operationId": "testArmatureWebhook",
+        "summary": "Have Armature post a ping to Stator's webhook receiver now, and answer what the receiver said. Needs the caller's own grant to hold webhooks.partner. For administrators.",
+        "tags": [
+          "armature"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "test": {
+                      "$ref": "#/components/schemas/PartnerWebhookTest"
+                    }
+                  },
+                  "required": [
+                    "test"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/find": {
+      "get": {
+        "operationId": "findArmatureIssues",
+        "summary": "Issues whose summary or description holds the words, or whose key they are, as the caller may see them in Armature: the most recently updated first, at most 10.",
+        "tags": [
+          "armature"
+        ],
+        "parameters": [
+          {
+            "name": "words",
+            "in": "query",
+            "description": "The words to look for, or an issue key, at most 200 characters.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Issue"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "issues",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/armature/issue-types": {
       "get": {
         "operationId": "listArmatureIssueTypes",
@@ -929,6 +1384,101 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/oauth/callback": {
+      "get": {
+        "operationId": "finishArmatureConnect",
+        "summary": "Where Armature sends the browser back: checks the state and the issuer, stores the grant and lands on the profile page with armature naming the outcome; an administrator's connect makes Stator's webhook too and lands on Settings, Armature.",
+        "tags": [
+          "armature"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "iss",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error_description",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/armature/oauth/start": {
+      "get": {
+        "operationId": "startArmatureConnect",
+        "summary": "Send the browser to Armature's consent page to connect the caller's account, registering Stator first when it is not yet. Needs a session; a refusal lands on the profile page with armature naming why.",
+        "tags": [
+          "armature"
+        ],
+        "parameters": [
+          {
+            "name": "return",
+            "in": "query",
+            "description": "A path of this application to go back to once connected.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -1847,6 +2397,12 @@
                 "org.brand_set",
                 "armature.connection_saved",
                 "armature.connection_removed",
+                "armature.app_saved",
+                "armature.app_removed",
+                "exciter.connection_saved",
+                "exciter.connection_removed",
+                "exciter.app_saved",
+                "exciter.app_removed",
                 "page.exported",
                 "audit.exported",
                 "page.owner_set",
@@ -1884,7 +2440,14 @@
                 "org.imported",
                 "review.rule_set",
                 "review.rule_removed",
-                "review.skipped"
+                "review.skipped",
+                "oauth.client_created",
+                "oauth.client_updated",
+                "oauth.client_removed",
+                "oauth.grant_created",
+                "oauth.client_registered",
+                "oauth.client_allowed",
+                "oauth.grant_consented"
               ]
             }
           },
@@ -2030,6 +2593,12 @@
                 "org.brand_set",
                 "armature.connection_saved",
                 "armature.connection_removed",
+                "armature.app_saved",
+                "armature.app_removed",
+                "exciter.connection_saved",
+                "exciter.connection_removed",
+                "exciter.app_saved",
+                "exciter.app_removed",
                 "page.exported",
                 "audit.exported",
                 "page.owner_set",
@@ -2067,7 +2636,14 @@
                 "org.imported",
                 "review.rule_set",
                 "review.rule_removed",
-                "review.skipped"
+                "review.skipped",
+                "oauth.client_created",
+                "oauth.client_updated",
+                "oauth.client_removed",
+                "oauth.grant_created",
+                "oauth.client_registered",
+                "oauth.client_allowed",
+                "oauth.grant_consented"
               ]
             }
           },
@@ -3221,6 +3797,48 @@
         }
       }
     },
+    "/connected-tools": {
+      "get": {
+        "operationId": "connectedTools",
+        "summary": "The other tools of the installation Stator is connected to, each at the address people open it at, for any member including guests; the other tool decides what they may see there.",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConnectedTool"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tools"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/example-space": {
       "get": {
         "operationId": "getExampleSpace",
@@ -3351,6 +3969,1015 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/account": {
+      "get": {
+        "operationId": "getExciterAccount",
+        "summary": "Whether the caller connected their Exciter token, whom it acts as, and what the connected Exciter does not offer.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "$ref": "#/components/schemas/ExciterAccount"
+                    }
+                  },
+                  "required": [
+                    "account"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/account/check": {
+      "post": {
+        "operationId": "checkExciterAccount",
+        "summary": "Ask Exciter now whether the caller's stored token still works.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "$ref": "#/components/schemas/ExciterAccount"
+                    }
+                  },
+                  "required": [
+                    "account"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/account/token": {
+      "delete": {
+        "operationId": "disconnectExciterAccount",
+        "summary": "Forget the caller's Exciter token.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "connectExciterAccount",
+        "summary": "Store the caller's Exciter personal access token, once Exciter accepts it; it is never answered again.",
+        "tags": [
+          "exciter"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExciterTokenInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "$ref": "#/components/schemas/ExciterAccount"
+                    }
+                  },
+                  "required": [
+                    "account"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/connection": {
+      "delete": {
+        "operationId": "removeExciterConnection",
+        "summary": "Disconnect Exciter, forgetting every stored token and the webhook secret. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExciterConnection",
+        "summary": "The Exciter installation Stator is connected to and what to enter in Exciter's webhook settings, or null. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/ExciterConnection"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveExciterConnection",
+        "summary": "Connect an Exciter installation, which answers product exciter at /meta; a new address forgets every stored token. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExciterConnectionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/ExciterConnection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/connection/app": {
+      "delete": {
+        "operationId": "removeExciterApp",
+        "summary": "Forget the partner app and every grant of it; people paste an Exciter token again. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveExciterApp",
+        "summary": "Store the partner app an Exciter administrator registered for Stator with Stator's Keycloak client, so people are connected to Exciter at sign-in by token exchange; a new client id forgets every grant of the old one. The secret is never answered. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExciterAppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connection": {
+                      "$ref": "#/components/schemas/ExciterConnection"
+                    }
+                  },
+                  "required": [
+                    "connection"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/connection/check": {
+      "post": {
+        "operationId": "checkExciterConnection",
+        "summary": "Ask an address what answers there before saving it: the Exciter version and what it offers, or a sentence on baseUrl saying what is wrong. Stores nothing. For administrators.",
+        "tags": [
+          "exciter"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExciterConnectionCheckInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "check": {
+                      "$ref": "#/components/schemas/ExciterConnectionCheck"
+                    }
+                  },
+                  "required": [
+                    "check"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/projects": {
+      "get": {
+        "operationId": "listExciterProjects",
+        "summary": "The Exciter projects the caller may view, archived ones left out, for a list block's editor.",
+        "tags": [
+          "exciter"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExciterProject"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "projects",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/projects/{projectKey}/requirements": {
+      "get": {
+        "operationId": "listExciterRequirements",
+        "summary": "A window of the requirements a query in Exciter's query language finds in one project, as the caller may see them, for a list block; currentUser() is the caller. Kept at most 60 seconds. Refused with bad_query and its position; found is false for a project the caller may not view.",
+        "tags": [
+          "exciter"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "description": "A query such as status = Approved ORDER BY key, at most 2000 characters; every requirement of the project when blank.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 500; 20 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "How many matches to skip; 0 when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    },
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExciterRow"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "limit",
+                    "offset",
+                    "requirements",
+                    "status",
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/projects/{projectKey}/requirements/suggest": {
+      "get": {
+        "operationId": "suggestExciterQuery",
+        "summary": "What may come next at the caret of a list block's query, as Exciter answers the caller: the slot, the characters a pick replaces, the words the language takes there and the requirements the text finds.",
+        "tags": [
+          "exciter"
+        ],
+        "parameters": [
+          {
+            "name": "projectKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "The query typed so far.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "The caret, in characters from 0; the end of the query when absent.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    },
+                    "suggestions": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/ExciterSuggestions"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "suggestions"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/requirements": {
+      "get": {
+        "operationId": "lookupExciterRequirements",
+        "summary": "Requirements by key for chips, read with the caller's own token and kept at most 60 seconds; a former key answers the requirement under its current key, and status says why there are none.",
+        "tags": [
+          "exciter"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Requirement keys such as CHK-R42, 1 to 50.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RequirementResult"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requirements",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/requirements/{reqKey}": {
+      "get": {
+        "operationId": "getExciterRequirement",
+        "summary": "One requirement by key with its statement and rationale, for a requirement block, as the caller may see it; null when they may not. Shares the chips' cache.",
+        "tags": [
+          "exciter"
+        ],
+        "parameters": [
+          {
+            "name": "reqKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirement": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/RequirementDetail"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requirement",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/search": {
+      "get": {
+        "operationId": "searchExciterRequirements",
+        "summary": "Requirements whose key or title start with the words, or the one a key named before a move, as the caller may see them in Exciter, sections left out: at most 10, for the picker.",
+        "tags": [
+          "exciter"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "The words or the key typed so far, at most 200 characters.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requirements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ExciterHit"
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "not_configured",
+                        "not_connected",
+                        "rejected",
+                        "unreachable",
+                        "outdated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "requirements",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exciter/webhook": {
+      "post": {
+        "operationId": "exciterWebhook",
+        "summary": "Where Exciter posts requirement events, signed with the webhook secret saved in Stator, the time within 5 minutes of Stator's clock; envelope version 1 with source exciter only. Clears the cached requirements they name, by key and by id, and ignores fields and topics it does not know.",
+        "tags": [
+          "exciter"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExciterWebhookEnvelope"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -3932,7 +5559,7 @@
     "/mcp": {
       "post": {
         "operationId": "mcp",
-        "summary": "The Model Context Protocol endpoint: the marked operations of this API as tools, run as the caller.",
+        "summary": "The Model Context Protocol endpoint: the marked operations of this API as tools, run as the caller. A 401 carries WWW-Authenticate: Bearer with resource_metadata, as RFC 9728 says, so a client can connect through OAuth.",
         "tags": [
           "mcp"
         ],
@@ -3959,6 +5586,16 @@
           },
           "202": {
             "description": "Accepted"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "default": {
             "description": "An error, in the one shape every endpoint uses.",
@@ -4225,6 +5862,621 @@
                   "required": [
                     "unread"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "operationId": "oAuthAuthorize",
+        "summary": "The authorization endpoint: sends the browser to the consent page with the query whole, through the sign-in when nobody is signed in. The page answers at the app's return address with code, state and iss (RFC 9207), or error.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "description": "code",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "description": "One the app registered; a loopback one at any port.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "read, or read write; what the app registered when absent.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "The app's own, returned with the answer.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "description": "The base64url SHA-256 of the app's verifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "description": "S256",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "query",
+            "description": "The MCP endpoint (RFC 8707).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found: the browser is sent on."
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/clients": {
+      "get": {
+        "operationId": "listOAuthClients",
+        "summary": "The connected apps by name: partner apps that exchange people's identity provider tokens, and apps that registered themselves, pending or allowed. For administrators.",
+        "tags": [
+          "oauth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clients": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Client"
+                      }
+                    }
+                  },
+                  "required": [
+                    "clients"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createOAuthClient",
+        "summary": "Register a partner app with the Keycloak client it signs people in with; its secret, stator_ocs_..., is in this answer and never again. For administrators.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/clients/{clientID}": {
+      "delete": {
+        "operationId": "deleteOAuthClient",
+        "summary": "Remove a partner app; every grant of it ends. For administrators.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateOAuthClient",
+        "summary": "Change a partner app; what is left out keeps its value. A new name follows into its grants, narrower scopes narrow them at once. For administrators.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "clientID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientChanges"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "$ref": "#/components/schemas/Client"
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/consent": {
+      "get": {
+        "operationId": "getOAuthConsent",
+        "summary": "What the consent page shows for the authorize query it was opened with: the app, where the browser goes back to, the scopes asked, whether the app waits for an administrator and whether the caller may allow it; or redirectTo, an error answered at the app. Needs a session.",
+        "tags": [
+          "oauth"
+        ],
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "And the rest of the authorize query, as it came.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentAnswer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "decideOAuthConsent",
+        "summary": "The person's decision on the consent page: allow, read alone or what was asked, for every space they see or the spaces named; or deny. Answers where the browser goes back to. An administrator allowing an app that waits allows it for everybody. Needs a session.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "redirectTo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "redirectTo"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "operationId": "oAuthRegister",
+        "summary": "RFC 7591: an app registers itself with its name, return addresses (https, or http on a loopback address at any port) and how it authenticates; a confidential app's secret, stator_ocs_..., is in this answer and never again. The app is pending until a Stator administrator allows it by connecting it once, and is removed after a day otherwise. grant_types holds authorization_code, and may name refresh_token and the token exchange. At most 10 from one address in 15 minutes.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "operationId": "oAuthRevoke",
+        "summary": "RFC 7009: a grant's access or refresh token ends the whole grant, a narrower token exchanged from it only itself. Every token is answered alike.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "oAuthToken",
+        "summary": "The token endpoint, for an app with its client id and secret, by HTTP Basic or in the form, or its client id alone for a public app. grant_type authorization_code redeems a code from the consent page with its PKCE verifier and return address, for a grant that acts at the MCP endpoint only; a code used twice ends that grant. grant_type urn:ietf:params:oauth:grant-type:token-exchange trades a person's access token of the instance's identity provider, issued to a partner app's Keycloak client and naming Stator's client in aud, for a grant within the person's rights; the same grant with an app's own grant's access token, stator_oat_..., as subject_token answers a narrower access token for one run and no refresh token: scope read from a grant that writes, stator_spaces some of the grant's spaces by key, stator_expires_in 1 to 3600 seconds and never past the subject's end; it is never a subject itself. refresh_token rotates a grant's tokens, and a rotated refresh token presented again ends the grant. Access tokens last an hour. Refusals are OAuth's: invalid_request, invalid_client, invalid_grant, invalid_scope, invalid_target, unauthorized_client, unsupported_grant_type.",
+        "tags": [
+          "oauth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -17847,7 +20099,7 @@
     "/webhooks/{webhookID}/deliveries/{deliveryID}/redeliver": {
       "post": {
         "operationId": "redeliverWebhook",
-        "summary": "Send a logged delivery's event again, now, as its next attempt, with the payload read afresh as the owner. For administrators.",
+        "summary": "Send a logged delivery's event again, now, as a send by hand numbered apart from the automatic attempts, with the payload read afresh as the owner. For administrators.",
         "tags": [
           "webhooks"
         ],
@@ -18167,6 +20419,13 @@
           "allSpaces": {
             "type": "boolean"
           },
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -18219,7 +20478,8 @@
           "allSpaces",
           "lastUsedAt",
           "expiresAt",
-          "createdAt"
+          "createdAt",
+          "clientId"
         ]
       },
       "AccessPage": {
@@ -18382,6 +20642,9 @@
       "Account": {
         "type": "object",
         "properties": {
+          "app": {
+            "$ref": "#/components/schemas/AccountApp"
+          },
           "baseUrl": {
             "type": [
               "string",
@@ -18427,16 +20690,64 @@
                 "type": "null"
               }
             ]
+          },
+          "via": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "app",
+              "token"
+            ]
           }
         },
         "required": [
           "configured",
           "baseUrl",
           "connected",
+          "via",
           "status",
+          "app",
           "user",
           "checkedAt",
           "missing"
+        ]
+      },
+      "AccountApp": {
+        "type": "object",
+        "properties": {
+          "offered": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "boolean"
+          },
+          "refusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signInRefusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "offered",
+          "pending",
+          "refusal",
+          "scopes",
+          "signInRefusal"
         ]
       },
       "AccountUser": {
@@ -18553,6 +20864,21 @@
           "page",
           "title",
           "snippet"
+        ]
+      },
+      "AppInput": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "clientSecret"
         ]
       },
       "Appearance": {
@@ -18773,6 +21099,16 @@
           "versions": {
             "type": "integer"
           },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "width": {
             "type": [
               "integer",
@@ -18794,7 +21130,8 @@
           "versions",
           "restoredFrom",
           "editedFrom",
-          "preview"
+          "preview",
+          "via"
         ]
       },
       "AuditActor": {
@@ -18845,6 +21182,12 @@
               "org.brand_set",
               "armature.connection_saved",
               "armature.connection_removed",
+              "armature.app_saved",
+              "armature.app_removed",
+              "exciter.connection_saved",
+              "exciter.connection_removed",
+              "exciter.app_saved",
+              "exciter.app_removed",
               "page.exported",
               "audit.exported",
               "page.owner_set",
@@ -18882,7 +21225,14 @@
               "org.imported",
               "review.rule_set",
               "review.rule_removed",
-              "review.skipped"
+              "review.skipped",
+              "oauth.client_created",
+              "oauth.client_updated",
+              "oauth.client_removed",
+              "oauth.grant_created",
+              "oauth.client_registered",
+              "oauth.client_allowed",
+              "oauth.grant_consented"
             ]
           },
           "actorId": {
@@ -18918,6 +21268,16 @@
           },
           "targetType": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -18929,7 +21289,8 @@
           "actorName",
           "data",
           "ip",
-          "createdAt"
+          "createdAt",
+          "via"
         ]
       },
       "AuditFacets": {
@@ -18966,6 +21327,12 @@
                 "org.brand_set",
                 "armature.connection_saved",
                 "armature.connection_removed",
+                "armature.app_saved",
+                "armature.app_removed",
+                "exciter.connection_saved",
+                "exciter.connection_removed",
+                "exciter.app_saved",
+                "exciter.app_removed",
                 "page.exported",
                 "audit.exported",
                 "page.owner_set",
@@ -19003,7 +21370,14 @@
                 "org.imported",
                 "review.rule_set",
                 "review.rule_removed",
-                "review.skipped"
+                "review.skipped",
+                "oauth.client_created",
+                "oauth.client_updated",
+                "oauth.client_removed",
+                "oauth.grant_created",
+                "oauth.client_registered",
+                "oauth.client_allowed",
+                "oauth.grant_consented"
               ]
             }
           },
@@ -19540,6 +21914,112 @@
           "themeId"
         ]
       },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "confidential": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grants": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scopes",
+          "kind",
+          "status",
+          "keycloakClientId",
+          "clientUri",
+          "redirectUris",
+          "confidential",
+          "grants",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ClientChanges": {
+        "type": "object",
+        "properties": {
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ClientInput": {
+        "type": "object",
+        "properties": {
+          "keycloakClientId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "scopes",
+          "keycloakClientId"
+        ]
+      },
       "Comment": {
         "type": "object",
         "properties": {
@@ -19592,6 +22072,16 @@
           "threadId": {
             "type": "string",
             "format": "uuid"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -19604,6 +22094,7 @@
           "deleted",
           "createdAt",
           "editedAt",
+          "via",
           "reactions",
           "can"
         ]
@@ -19704,21 +22195,43 @@
           "schemas"
         ]
       },
+      "ConnectedTool": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "armature",
+              "exciter"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product",
+          "url"
+        ]
+      },
       "Connection": {
         "type": "object",
         "properties": {
-          "armatureOrgId": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
+          "app": {
+            "$ref": "#/components/schemas/ConnectionApp"
           },
           "baseUrl": {
             "type": "string"
           },
           "connected": {
             "type": "integer"
+          },
+          "installationId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           },
           "lastDelivery": {
             "oneOf": [
@@ -19730,11 +22243,11 @@
               }
             ]
           },
-          "orgSlug": {
-            "type": "string"
-          },
           "partner": {
             "$ref": "#/components/schemas/Partner"
+          },
+          "partnerWebhook": {
+            "$ref": "#/components/schemas/PartnerWebhook"
           },
           "updatedAt": {
             "type": "string",
@@ -19755,15 +22268,99 @@
         },
         "required": [
           "baseUrl",
-          "orgSlug",
-          "armatureOrgId",
+          "installationId",
           "webhookSecretSet",
           "webhookUrl",
           "webhookTopics",
           "lastDelivery",
           "connected",
           "updatedAt",
+          "partner",
+          "app",
+          "partnerWebhook"
+        ]
+      },
+      "ConnectionApp": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registeredBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "stator",
+              "admin"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "active",
+              "refused"
+            ]
+          }
+        },
+        "required": [
+          "offered",
+          "status",
+          "clientId",
+          "registeredBy",
+          "refusal",
+          "redirectUri",
+          "scopes"
+        ]
+      },
+      "ConnectionCheck": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/Partner"
+          }
+        },
+        "required": [
+          "baseUrl",
           "partner"
+        ]
+      },
+      "ConnectionCheckInput": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl"
         ]
       },
       "ConnectionInput": {
@@ -19772,16 +22369,111 @@
           "baseUrl": {
             "type": "string"
           },
-          "orgSlug": {
-            "type": "string"
-          },
           "webhookSecret": {
             "type": "string"
           }
         },
         "required": [
-          "baseUrl",
-          "orgSlug"
+          "baseUrl"
+        ]
+      },
+      "Consent": {
+        "type": "object",
+        "properties": {
+          "allowsApp": {
+            "type": "boolean"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ConsentClient"
+          },
+          "mayAllow": {
+            "type": "boolean"
+          },
+          "mayCancel": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "boolean"
+          },
+          "person": {
+            "type": "string"
+          },
+          "redirectHost": {
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "client",
+          "redirectHost",
+          "person",
+          "scopes",
+          "pending",
+          "allowsApp",
+          "mayAllow",
+          "mayCancel"
+        ]
+      },
+      "ConsentAnswer": {
+        "type": "object",
+        "properties": {
+          "consent": {
+            "$ref": "#/components/schemas/Consent"
+          },
+          "redirectTo": {
+            "type": "string"
+          }
+        }
+      },
+      "ConsentClient": {
+        "type": "object",
+        "properties": {
+          "clientUri": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ConsentRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "spaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "decision"
         ]
       },
       "Contributor": {
@@ -20594,6 +23286,21 @@
           "payload"
         ]
       },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "error_description"
+        ]
+      },
       "ErrorEnvelope": {
         "type": "object",
         "properties": {
@@ -20875,6 +23582,524 @@
           "id",
           "name",
           "text"
+        ]
+      },
+      "ExciterAccount": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "checkedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExciterMissingFeature"
+            }
+          },
+          "signInRefusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "not_configured",
+              "not_connected",
+              "rejected",
+              "unreachable",
+              "outdated"
+            ]
+          },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AccountUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "via": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "token",
+              "sign_in"
+            ]
+          }
+        },
+        "required": [
+          "configured",
+          "baseUrl",
+          "connected",
+          "via",
+          "status",
+          "signInRefusal",
+          "user",
+          "checkedAt",
+          "missing"
+        ]
+      },
+      "ExciterAppInput": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "clientSecret"
+        ]
+      },
+      "ExciterCompletion": {
+        "type": "object",
+        "properties": {
+          "custom": {
+            "type": "boolean"
+          },
+          "field": {
+            "type": "string"
+          },
+          "from": {
+            "type": "integer"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "quoted": {
+            "type": "boolean"
+          },
+          "slot": {
+            "type": "string"
+          },
+          "to": {
+            "type": "integer"
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "slot",
+          "prefix",
+          "from",
+          "to",
+          "quoted",
+          "words"
+        ]
+      },
+      "ExciterConnection": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "$ref": "#/components/schemas/ExciterConnectionApp"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "integer"
+          },
+          "lastDelivery": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WebhookReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partner": {
+            "$ref": "#/components/schemas/ExciterPartner"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "webhookSecretSet": {
+            "type": "boolean"
+          },
+          "webhookTopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl",
+          "webhookSecretSet",
+          "webhookUrl",
+          "webhookTopics",
+          "lastDelivery",
+          "connected",
+          "updatedAt",
+          "partner",
+          "app"
+        ]
+      },
+      "ExciterConnectionApp": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "exchanging": {
+            "type": "boolean"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "secretSet": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "clientId",
+          "secretSet",
+          "offered",
+          "exchanging"
+        ]
+      },
+      "ExciterConnectionCheck": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/ExciterPartner"
+          }
+        },
+        "required": [
+          "baseUrl",
+          "partner"
+        ]
+      },
+      "ExciterConnectionCheckInput": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl"
+        ]
+      },
+      "ExciterConnectionInput": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "webhookSecret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl"
+        ]
+      },
+      "ExciterHit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "url",
+          "projectKey",
+          "title",
+          "status",
+          "revision",
+          "trashed",
+          "projectName"
+        ]
+      },
+      "ExciterMissingFeature": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "feature": {
+            "type": "string",
+            "enum": [
+              "requirements",
+              "lists",
+              "projects",
+              "webhooks"
+            ]
+          }
+        },
+        "required": [
+          "feature",
+          "capability"
+        ]
+      },
+      "ExciterPartner": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExciterMissingFeature"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "not_configured",
+              "not_connected",
+              "rejected",
+              "unreachable",
+              "outdated"
+            ]
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "capabilities",
+          "missing"
+        ]
+      },
+      "ExciterProject": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ]
+      },
+      "ExciterRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashed": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "url",
+          "projectKey",
+          "title",
+          "status",
+          "revision",
+          "trashed"
+        ]
+      },
+      "ExciterSuggestions": {
+        "type": "object",
+        "properties": {
+          "completion": {
+            "$ref": "#/components/schemas/ExciterCompletion"
+          },
+          "requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExciterHit"
+            }
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExciterWord"
+            }
+          }
+        },
+        "required": [
+          "completion",
+          "words",
+          "requirements"
+        ]
+      },
+      "ExciterTokenInput": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ExciterWebhookEnvelope": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "description": "A JSON value."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "exciter"
+            ]
+          },
+          "topic": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "id",
+          "source",
+          "topic",
+          "occurredAt",
+          "payload"
+        ]
+      },
+      "ExciterWord": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "label",
+          "detail"
         ]
       },
       "ExportRequest": {
@@ -22082,6 +25307,90 @@
           "capabilities"
         ]
       },
+      "Metadata": {
+        "type": "object",
+        "properties": {
+          "authorization_endpoint": {
+            "type": "string"
+          },
+          "authorization_response_iss_parameter_supported": {
+            "type": "boolean"
+          },
+          "code_challenge_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "grant_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "registration_endpoint": {
+            "type": "string"
+          },
+          "response_modes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revocation_endpoint": {
+            "type": "string"
+          },
+          "revocation_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "service_documentation": {
+            "type": "string"
+          },
+          "token_endpoint": {
+            "type": "string"
+          },
+          "token_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "issuer",
+          "authorization_endpoint",
+          "token_endpoint",
+          "revocation_endpoint",
+          "registration_endpoint",
+          "scopes_supported",
+          "response_types_supported",
+          "response_modes_supported",
+          "grant_types_supported",
+          "code_challenge_methods_supported",
+          "token_endpoint_auth_methods_supported",
+          "revocation_endpoint_auth_methods_supported",
+          "authorization_response_iss_parameter_supported",
+          "service_documentation"
+        ]
+      },
       "MissingFeature": {
         "type": "object",
         "properties": {
@@ -22971,6 +26280,16 @@
           },
           "url": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -22982,7 +26301,8 @@
           "createdBy",
           "createdByName",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "via"
         ]
       },
       "PageRemoteLinkInput": {
@@ -23433,6 +26753,65 @@
           "version",
           "capabilities",
           "missing"
+        ]
+      },
+      "PartnerWebhook": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "manageable": {
+            "type": "boolean"
+          },
+          "offered": {
+            "type": "boolean"
+          },
+          "refusal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "offered",
+          "connected",
+          "url",
+          "refusal",
+          "manageable"
+        ]
+      },
+      "PartnerWebhookTest": {
+        "type": "object",
+        "properties": {
+          "deliveredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "error",
+          "deliveredAt"
         ]
       },
       "PermissionCopyInput": {
@@ -24077,11 +27456,22 @@
           },
           "name": {
             "type": "string"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "via"
         ]
       },
       "ReadConfirmation": {
@@ -24313,6 +27703,103 @@
           "home"
         ]
       },
+      "RegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "client_name": {
+            "type": "string"
+          },
+          "client_uri": {
+            "type": "string"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_name",
+          "redirect_uris"
+        ]
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_id_issued_at": {
+            "type": "integer"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "client_secret_expires_at": {
+            "type": "integer"
+          },
+          "client_uri": {
+            "type": "string"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret_expires_at",
+          "client_id_issued_at",
+          "client_name",
+          "redirect_uris",
+          "scope",
+          "token_endpoint_auth_method",
+          "grant_types",
+          "response_types"
+        ]
+      },
       "RenewExampleSpaceRequest": {
         "type": "object",
         "properties": {
@@ -24396,6 +27883,200 @@
         },
         "required": [
           "content"
+        ]
+      },
+      "Requirement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "url",
+          "projectKey",
+          "title",
+          "status",
+          "revision",
+          "trashedAt"
+        ]
+      },
+      "RequirementDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "rationale": {
+            "description": "A JSON value."
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "statement": {
+            "description": "A JSON value."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RequirementStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "trashedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "url",
+          "projectKey",
+          "title",
+          "status",
+          "revision",
+          "trashedAt",
+          "statement",
+          "rationale"
+        ]
+      },
+      "RequirementResult": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "requirement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Requirement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "requirement"
+        ]
+      },
+      "RequirementStatus": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "review",
+              "approved",
+              "done",
+              "closed"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "category"
+        ]
+      },
+      "ResourceMetadata": {
+        "type": "object",
+        "properties": {
+          "authorization_servers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bearer_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resource": {
+            "type": "string"
+          },
+          "resource_documentation": {
+            "type": "string"
+          },
+          "resource_name": {
+            "type": "string"
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "resource",
+          "authorization_servers",
+          "scopes_supported",
+          "bearer_methods_supported",
+          "resource_name",
+          "resource_documentation"
         ]
       },
       "Response": {
@@ -24679,6 +28360,26 @@
             "type": "boolean"
           }
         }
+      },
+      "RevokeRequest": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "token_type_hint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
       },
       "Roadmap": {
         "type": "object",
@@ -25205,6 +28906,13 @@
           "allSpaces": {
             "type": "boolean"
           },
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -25261,6 +28969,7 @@
           "lastUsedAt",
           "expiresAt",
           "createdAt",
+          "clientId",
           "owner"
         ]
       },
@@ -27072,6 +30781,85 @@
           "token"
         ]
       },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "code_verifier": {
+            "type": "string"
+          },
+          "grant_type": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "requested_token_type": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "stator_expires_in": {
+            "type": "string"
+          },
+          "stator_spaces": {
+            "type": "string"
+          },
+          "subject_token": {
+            "type": "string"
+          },
+          "subject_token_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_type"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer"
+          },
+          "issued_token_type": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "scope"
+        ]
+      },
       "TrashItem": {
         "type": "object",
         "properties": {
@@ -27448,6 +31236,16 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -27463,6 +31261,7 @@
           "coEditors",
           "originalAuthor",
           "review",
+          "via",
           "body"
         ]
       },
@@ -27526,6 +31325,16 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "via": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Via"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -27540,7 +31349,8 @@
           "updatedAt",
           "coEditors",
           "originalAuthor",
-          "review"
+          "review",
+          "via"
         ]
       },
       "VersionReview": {
@@ -27568,6 +31378,25 @@
           "approvedBy",
           "skippedByName",
           "skipReason"
+        ]
+      },
+      "Via": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "token",
+              "oauth"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
         ]
       },
       "ViewCounts": {
@@ -28268,6 +32097,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "via": {
+            "$ref": "#/components/schemas/Via"
           }
         },
         "required": [

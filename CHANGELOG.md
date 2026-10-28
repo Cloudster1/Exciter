@@ -9,6 +9,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves the Stator integration's refusals and deliveries: a
+  reader holding a Stator token, the trash and an archived project change
+  no link, the lookup and search keep to their bounds, a webhook past its
+  size or of no envelope changes nothing, a late publish never moves a
+  link back, every link sync sentence is written, the sign-in exchange at
+  Stator fails, forgets and renews on its own, a print's token is listed
+  nowhere and writes nothing, and the stub's token endpoint fits Stator's
+  document. In the browser a page deleted and moved in Stator, the connect
+  hint, picking another page and the webhook card are driven (#327).
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and

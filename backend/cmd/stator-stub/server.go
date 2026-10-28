@@ -112,8 +112,8 @@ func (s *stub) handler() http.Handler {
 		mux.HandleFunc(rt.Method+" "+apiPrefix+rt.Path, s.serve(rt))
 	}
 	mux.HandleFunc("GET "+stubPrefix+"/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
-	// Stator's token exchange is being built in its #461, so its document has no such route yet and the route is kept
-	// out of routes, which the contract test holds to the document; it answers as Armature's does (docs/oauth.md).
+	// Stator's token endpoint (its #461) takes the app's client and secret rather than a person's token, so it is kept
+	// out of routes and the contract test checks it against Stator's document on its own.
 	mux.HandleFunc("POST "+apiPrefix+"/oauth/token", s.exchange.ServeToken)
 	mux.HandleFunc("PUT "+stubPrefix+"/capabilities", s.setCapabilities)
 	mux.HandleFunc("PUT "+stubPrefix+"/{tenant}/oauth-app", s.control((*stub).setApp))

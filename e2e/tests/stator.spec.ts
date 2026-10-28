@@ -1,9 +1,10 @@
 import type { Page } from "@playwright/test";
+import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
 import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
-import { statorURL } from "../fixtures/stack";
+import { WEB_URL, statorURL } from "../fixtures/stack";
 
 // The Armature spec of the same flow, for Stator (#40).
 
@@ -80,6 +81,43 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expect(page.getByText("Stator is disconnected.")).toBeVisible();
     });
   }
+
+  // The webhook card (#327): the address goes to the clipboard, the topics are Stator's, and once the secret is
+  // forgotten a delivery the stub signs with it is refused.
+  test("an administrator copies the webhook address, and a forgotten secret refuses the next delivery", async ({ page, context, api }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    must(await api.PUT("/stator/connection", { body: { baseUrl: statorURL(), webhookSecret: WEBHOOK_SECRET } }));
+    const control = async (path: string, init: RequestInit) => {
+      const res = await fetch(`${statorURL()}/_stub/${TENANT}${path}`, { ...init, headers: { "Content-Type": "application/json" } });
+      expect(res.ok, `${init.method} /_stub/${TENANT}${path} answered ${res.status}`).toBe(true);
+      return res;
+    };
+    await control("/webhook", { method: "PUT", body: JSON.stringify({ url: `${WEB_URL}/api/v1/stator/webhook`, secret: WEBHOOK_SECRET }) });
+    const ping = async () =>
+      ((await (await control("/webhooks", { method: "POST", body: JSON.stringify({ topic: "ping" }) })).json()) as { status: number }).status;
+    expect(await ping(), "a delivery signed with the stored secret").toBe(204);
+
+    await page.goto(SETTINGS_PATH);
+    await page.locator('[data-action="copy-webhook-url"]').click();
+    await expect(page.locator("[data-copy-status]")).toHaveText("Copied the address.");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/^https?:\/\/[^/]+\/api\/v1\/stator\/webhook$/);
+    expect(copied).toBe(await page.getByLabel("Webhook address", { exact: true }).inputValue());
+    await expect(page.getByRole("list", { name: "Topics" }).getByRole("listitem")).toHaveText([
+      "page.published",
+      "page.moved",
+      "page.deleted",
+      "page.remote_link.removed",
+    ]);
+    await expectAccessible(page);
+
+    await page.getByLabel("Forget the stored secret", { exact: true }).check();
+    await page.locator('[data-action="save-stator"]').click();
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Forget the stored secret", { exact: true })).toHaveCount(0);
+    expect(await ping(), "a delivery once the secret is forgotten").toBe(401);
+    await control("/webhook", { method: "PUT", body: JSON.stringify({ url: "" }) });
+  });
 
   test("a member is told to ask an administrator until Stator is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");

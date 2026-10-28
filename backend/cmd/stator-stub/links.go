@@ -40,6 +40,8 @@ func linkView(l *remoteLink) map[string]any {
 	return map[string]any{
 		"id": l.ID, "url": l.URL, "title": l.Title, "source": l.Source, "iconUrl": l.IconURL,
 		"createdBy": l.CreatedBy.ID, "createdByName": l.CreatedBy.Display, "createdAt": l.CreatedAt, "updatedAt": l.UpdatedAt,
+		// Stator names the token a link came through; Exciter's sync puts its links with a person's own token.
+		"via": nil,
 	}
 }
 

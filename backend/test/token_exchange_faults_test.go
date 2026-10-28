@@ -25,6 +25,9 @@ import (
 // A partner that is slow or refuses at its token endpoint, which the stubs never are: the sign-in keeps why it timed
 // out (#348), and a refresh it refused or left unanswered is not asked again on every read (#349).
 
+// signInSlack is what a sign-in may take past SignInTimeout to keep why its exchange ran out of time.
+const signInSlack = time.Second
+
 // faultyPartner answers the exchange after exchangeDelay with an access token that is due at once, and every refresh
 // with refreshStatus, counting the refreshes.
 type faultyPartner struct {
@@ -128,7 +131,12 @@ func TestASignInWhoseExchangeTimesOutSaysSo(t *testing.T) {
 			p := newFaultyPartner(t, tokenexchange.SignInTimeout+2*time.Second, http.StatusUnauthorized)
 			svc.connect(t, h, owner, p)
 			user := h.addPerson(t, "member")
+			started := time.Now()
 			svc.exchange(context.Background(), user)
+			// The sign-in waits for the exchange, so a partner that does not answer costs it SignInTimeout and no more.
+			if took := time.Since(started); took > tokenexchange.SignInTimeout+signInSlack {
+				t.Errorf("the sign-in waited %v for %s, want about %v", took, svc.name, tokenexchange.SignInTimeout)
+			}
 			var message string
 			if err := h.super.QueryRow(context.Background(), `SELECT message FROM partner_exchange WHERE partner = $1 AND user_id = $2`,
 				svc.partner, user).Scan(&message); err != nil {
