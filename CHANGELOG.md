@@ -21,6 +21,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   the install shows the worker, the bucket and a PDF at work and runs for
   every input of the images, and the realm's return addresses are checked
   (#333).
+- The suite proves themes and the German interface end to end: a theme is
+  made from an example, previewed, given a backdrop file, shared, unshared,
+  deleted and named the default from the Themes page in a real browser,
+  where a member may change none of it; a browser asking for German gets
+  it, at phone width and under axe too; over the API, deleting the default
+  or unsharing a chosen theme returns people to the built-in one, and a
+  read-only token and every file limit are refused with their status and
+  code; exports speak the reader's language; and
+  the editor's tabs, the row menu, the plurals and the words the server
+  sends are checked in both catalogues (#332).
 - The suite drives the shell in a real browser: every place it lists, read
   from its own sidebars, passes axe in light and dark; the folded sidebar
   and a folded group survive a reload; a review and the notifications are

@@ -39,8 +39,10 @@ var installationWide = map[string]string{
 	"TestATypeForAllProjectsIsTheAdministratorsAlone":            linkTypes,
 	"TestRawSQLKeepsLinkTypeNamesAndScopesToTheirAdministrators": linkTypes,
 
-	"TestThemesOverTheAPI":               defaultTheme,
-	"TestRawSQLKeepsThemesToTheirPeople": defaultTheme,
+	"TestThemesOverTheAPI":                       defaultTheme,
+	"TestRawSQLKeepsThemesToTheirPeople":         defaultTheme,
+	"TestDeletingTheDefaultThemeLeavesNoDefault": defaultTheme,
+	"TestAChosenThemeTakenPrivateLapses":         defaultTheme,
 
 	"TestAnAdministratorConnectsArmatureAndMembersTheirTokens": armatureLink,
 	"TestAReadOnlyArmatureTokenIsNamedSo":                      armatureLink,
