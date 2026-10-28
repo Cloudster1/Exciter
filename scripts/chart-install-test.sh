@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Installs deploy/charts/exciter into a throwaway kind cluster and checks what a render cannot: the hook Jobs, ready
-# workloads, sign-in, connected partners and an upgrade without a failed health check. Run by make test-chart-install.
+# workloads, sign-in, connected partners, the work the worker and the bucket do, a PDF printed by the render service,
+# and an upgrade without a failed health check. Run by make test-chart-install.
 set -euo pipefail
 
 ROOT="${ROOT:-/work}"
@@ -10,6 +11,10 @@ RELEASE=trial
 NS=exciter
 FULL="${RELEASE}-exciter"
 LOCAL_PORT="${LOCAL_PORT:-18080}"
+# How long the worker may take to finish an import, and to drain the outbox after it.
+WORKER_WAIT="${WORKER_WAIT:-180}"
+# How long one PDF may take to print, the first start of the browser included.
+PDF_WAIT="${PDF_WAIT:-120}"
 KUBECONFIG="$(mktemp)"
 export KUBECONFIG
 FORWARD_PID=""
@@ -60,12 +65,12 @@ say "The images, built from this checkout and loaded into the cluster"
 # make passes the stamp in: the tools image has no git to read it with.
 BUILD_VERSION="${EXCITER_BUILD_VERSION:-$("$ROOT/scripts/build-stamp.sh" version)}"
 BUILD_COMMIT="${EXCITER_BUILD_COMMIT:-$("$ROOT/scripts/build-stamp.sh" commit)}"
-for image in backend web; do
+for image in backend web render; do
   docker build -q -f "$ROOT/deploy/Dockerfile.$image" -t "exciter-test/$image:ci" \
     --build-arg VERSION="$BUILD_VERSION" --build-arg COMMIT="$BUILD_COMMIT" "$ROOT" >/dev/null
 done
-kind load docker-image --name "$CLUSTER" exciter-test/backend:ci exciter-test/web:ci
-ok "backend and web are on the node"
+kind load docker-image --name "$CLUSTER" exciter-test/backend:ci exciter-test/web:ci exciter-test/render:ci
+ok "backend, web and render are on the node"
 
 say "Install"
 kubectl create namespace "$NS"
@@ -85,10 +90,10 @@ ok "the roles, secrets, migrate and bootstrap Jobs all succeeded"
 
 # The api and worker start before the hooks have made the database and crash
 # until they have, so kubelet's back-off, up to five minutes, is in this wait.
-for workload in api worker web kroki; do
+for workload in api worker web kroki render; do
   kubectl rollout status "deploy/${FULL}-${workload}" -n "$NS" --timeout=360s >/dev/null || fail "$workload is not ready"
 done
-ok "api, worker, web and the diagram renderer are ready"
+ok "api, worker, web, the diagram renderer and the render service are ready"
 
 say "Through the web server"
 kubectl port-forward -n "$NS" "svc/${FULL}-web" "${LOCAL_PORT}:80" >/dev/null 2>&1 &
@@ -124,6 +129,55 @@ for partner in armature stator; do
 done
 ok "the bootstrap Job connected Armature and Stator, which do not answer yet"
 
+say "The work the worker and the bucket do"
+api() { curl -s -b "$JAR" "$@"; }
+KEY=CHART
+created="$(api -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d "{\"key\":\"$KEY\",\"name\":\"Chart\"}" \
+  "http://127.0.0.1:${LOCAL_PORT}/api/v1/projects")"
+[[ "$created" == 201 ]] || fail "the administrator could not make a project: $created"
+req="$(api -H 'Content-Type: application/json' -d '{"title":"The chart installs","statementMarkdown":"The chart installs in one go."}' \
+  "http://127.0.0.1:${LOCAL_PORT}/api/v1/projects/${KEY}/requirements" | jq -r '.requirement.key // empty')"
+[[ "$req" == "${KEY}-R1" ]] || fail "the administrator could not write a requirement: [$req]"
+
+FILE="$(mktemp)"
+printf 'Kept in the bundled bucket %s\n' "$(date +%s%N)" >"$FILE"
+attachment="$(api -F "file=@${FILE};filename=evidence.txt;type=text/plain" \
+  "http://127.0.0.1:${LOCAL_PORT}/api/v1/requirements/${req}/attachments" | jq -r '.attachment.id // empty')"
+[[ -n "$attachment" ]] || fail "the attachment was not taken"
+api -o "$FILE.back" "http://127.0.0.1:${LOCAL_PORT}/api/v1/attachments/${attachment}"
+cmp -s "$FILE" "$FILE.back" || fail "the attachment read back is not the file uploaded: $(head -c 200 "$FILE.back")"
+ok "an attachment goes into the bundled SeaweedFS and comes back the same"
+
+printf 'Title,Statement\nImported by the worker,The worker imports this row.\nAnd this one,The worker imports this row too.\n' >"$FILE.csv"
+import="$(api -F "file=@${FILE}.csv;filename=chart.csv;type=text/csv" "http://127.0.0.1:${LOCAL_PORT}/api/v1/projects/${KEY}/import" | jq -r '.import.id // empty')"
+[[ -n "$import" ]] || fail "the CSV file was not taken for an import"
+started="$(api -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${LOCAL_PORT}/api/v1/imports/${import}/start")"
+[[ "$started" == 202 ]] || fail "the import did not start: $started"
+state=""
+for _ in $(seq 1 "$WORKER_WAIT"); do
+  state="$(api "http://127.0.0.1:${LOCAL_PORT}/api/v1/imports/${import}" | jq -r '.import.state + " " + (.import.imported | length | tostring)')"
+  [[ "$state" == "done "* || "$state" == "failed "* ]] && break
+  sleep 1
+done
+[[ "$state" == "done 2" ]] || fail "the import reads [$state] after ${WORKER_WAIT}s, want done with two rows: only the worker finishes one"
+ok "the worker imported both rows of a CSV file"
+
+psql_count() { kubectl exec -n "$NS" "statefulset/${FULL}-postgresql" -c postgresql -- psql -U postgres -d exciter -tAc "$1"; }
+left=""
+for _ in $(seq 1 "$WORKER_WAIT"); do
+  left="$(psql_count 'SELECT count(*) FROM outbox_event WHERE processed_at IS NULL')"
+  [[ "$left" == 0 ]] && break
+  sleep 1
+done
+[[ "$left" == 0 ]] || fail "$left outbox events are still unprocessed after ${WORKER_WAIT}s: $(psql_count "SELECT string_agg(topic || ' ' || attempts || ' ' || coalesce(last_error, ''), '; ') FROM outbox_event WHERE processed_at IS NULL")"
+[[ "$(psql_count 'SELECT count(*) FROM outbox_event WHERE processed_at IS NOT NULL')" -gt 0 ]] || fail "the outbox has no event done, so the worker did nothing"
+ok "the worker has handled every event in the outbox"
+
+pdf="$(api --max-time "$PDF_WAIT" -o "$FILE.pdf" -w '%{http_code}' "http://127.0.0.1:${LOCAL_PORT}/api/v1/projects/${KEY}/document.pdf")"
+[[ "$pdf" == 200 && "$(head -c 4 "$FILE.pdf")" == "%PDF" ]] || fail "the project's PDF export answered $pdf: $(head -c 300 "$FILE.pdf")"
+ok "the render service prints the project as a PDF"
+rm -f "$FILE" "$FILE.back" "$FILE.csv" "$FILE.pdf"
+
 say "Upgrade"
 before="$(kubectl get jobs -n "$NS" -o json | jq -r '[.items[] | select(.metadata.name | test("-migrate")) | .metadata.uid][0]')"
 ( while :; do
@@ -142,4 +196,4 @@ failed="$(grep -vc '^200$' "$JAR.health" || true)"
 [[ "$failed" == 0 ]] || fail "$failed health checks failed during the upgrade"
 ok "no health check failed while the api rolled ($(wc -l <"$JAR.health") made)"
 
-say "The chart installs, upgrades, connects its partners and signs its administrator in"
+say "The chart installs, upgrades, connects its partners, signs its administrator in and does its work"

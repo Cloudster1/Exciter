@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves what the worker runs and how things fail: the review
+  reminder reminds a due session once, outbox pruning deletes only done
+  events past retention, a panicking handler, a worker stopped mid batch
+  and a lapsed lease leave the outbox as they should, and a request's trace
+  reaches the worker's span. Every migration runs down and up again to the
+  same schema, `/readyz` and the healthcheck follow the primary, Kroki
+  fetches nothing, the worker refuses a bad Valkey, a mention lands without
+  mail, `migrate`, `seed` and the SMTP mailer have unit tests, and the
+  render service its own. The chart refuses and renders what was unchecked,
+  the install shows the worker, the bucket and a PDF at work and runs for
+  every input of the images, and the realm's return addresses are checked
+  (#333).
 - The suite drives the shell in a real browser: every place it lists, read
   from its own sidebars, passes axe in light and dark; the folded sidebar
   and a folded group survive a reload; a review and the notifications are

@@ -37,7 +37,7 @@ fi
 
 # Chained rather than relying on set -e, which a call from run_layer turns off.
 shell_tests() {
-  ./tests/test-release.sh && ./tests/test-release-workflow.sh && ./tests/test-build-stamp.sh && ./tests/test-helm.sh && ./tests/test-ci.sh && ./tests/test-ports.sh && ./tests/test-stack.sh && make --no-print-directory realm-check && ./tests/test-suite.sh && ./tests/test-coverage-floors.sh \
+  ./tests/test-release.sh && ./tests/test-release-workflow.sh && ./tests/test-build-stamp.sh && ./tests/test-helm.sh && ./tests/test-ci.sh && ./tests/test-ports.sh && ./tests/test-stack.sh && make --no-print-directory realm-check && make --no-print-directory test-render && ./tests/test-suite.sh && ./tests/test-coverage-floors.sh \
     && ./.claude/hooks/tests/branch-guard-test.sh
 }
 

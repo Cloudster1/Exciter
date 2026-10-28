@@ -44,5 +44,66 @@ else
     || fail "no browser job runs part$missing"
 fi
 
+echo "== chart-install.yml runs for what an install is built from"
+
+INSTALL="$SRC/.github/workflows/chart-install.yml"
+# The paths a trigger lists, one per line.
+trigger_paths() { # pull_request|push
+  awk -v want="$1" '
+    /^  [a-z_]+:/ { in_trigger = ($1 == want ":"); in_paths = 0; next }
+    in_trigger && /^    paths:/ { in_paths = 1; next }
+    in_trigger && in_paths && /^      - / { sub(/^      - /, ""); print; next }
+    in_trigger && in_paths && !/^      / { in_paths = 0 }' "$INSTALL"
+}
+# Whether a workflow path pattern takes in a file: ** is any path, * is anything within one segment.
+covered() { # file patterns...
+  local file="$1" pattern regex
+  shift
+  for pattern in "$@"; do
+    regex="$(sed -e 's/[.+?^${}()|]/\\&/g' -e 's/\*\*/\x01/g' -e 's/\*/[^\/]*/g' -e 's/\x01/.*/g' <<< "$pattern")"
+    [[ "$file" =~ ^${regex}$ ]] && return 0
+  done
+  return 1
+}
+# A file in each source the images copy. backend/ as a whole would run the install for every change to a feature,
+# so it stands for the entry points the chart runs, the configuration they load and the schema.
+install_inputs() {
+  local dockerfile source bin
+  for dockerfile in backend web render; do
+    sed -n 's/^COPY \([^-][^ ]*\( [^ ]*\)*\) [^ ]*$/\1/p' "$SRC/deploy/Dockerfile.$dockerfile" | tr ' ' '\n'
+  done | sort -u | while read -r source; do
+    if [[ "$source" == backend/ ]]; then
+      for bin in $(grep -rhoE '"/app/[a-z-]+"' "$SRC/deploy/charts/exciter/templates" "$SRC/deploy/Dockerfile.backend" | tr -d '"' | sed 's|/app/||' | sort -u); do
+        echo "backend/cmd/$bin/main.go"
+      done
+      echo backend/internal/config/config.go
+      echo backend/migrations/00001_foundation.sql
+    elif [[ "$source" == */ ]]; then
+      echo "${source}any/file"
+    else
+      echo "$source"
+    fi
+  done
+}
+
+inputs="$(install_inputs)"
+[[ "$(wc -l <<< "$inputs")" -ge 10 ]] && pass "the Dockerfiles name $(wc -l <<< "$inputs") inputs of an install" \
+  || fail "only $(wc -l <<< "$inputs") inputs read from the Dockerfiles, so the check below sees too little: $inputs"
+for trigger in pull_request push; do
+  mapfile -t patterns < <(trigger_paths "$trigger")
+  missing=""
+  while read -r input; do
+    covered "$input" "${patterns[@]}" || missing+=" $input"
+  done <<< "$inputs"
+  for own in scripts/chart-install-test.sh scripts/chart-install-values.yaml scripts/kind/Dockerfile mk/kind.mk .github/workflows/chart-install.yml; do
+    covered "$own" "${patterns[@]}" || missing+=" $own"
+  done
+  [[ -z "$missing" ]] && pass "its $trigger trigger covers every input of an install and the test itself" \
+    || fail "its $trigger trigger leaves out:$missing"
+done
+covered backend/internal/requirement/service.go $(trigger_paths pull_request) \
+  && fail "a feature package alone runs the install, which backend/ as a whole would" \
+  || pass "a feature package alone does not run the install"
+
 if [[ $FAILED -eq 0 ]]; then echo "ci.yml tests passed"; else echo "ci.yml tests failed"; fi
 exit $FAILED
