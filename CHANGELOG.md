@@ -148,6 +148,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Tracing a requirement to an Armature issue, removing such a trace or
+  filing issues from an archived project says the project is archived
+  (409 `project_archived`), as confirming a trace there already did
+  (#326). It answered 403 and told an editor to ask for edit rights.
 - The exciter-ci check against the stack reads a scan's tags and a run's
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing
