@@ -95,7 +95,8 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
     await control("/webhook", { method: "PUT", body: JSON.stringify({ url: `${WEB_URL}/api/v1/stator/webhook`, secret: WEBHOOK_SECRET }) });
     const ping = async () =>
       ((await (await control("/webhooks", { method: "POST", body: JSON.stringify({ topic: "ping" }) })).json()) as { status: number }).status;
-    expect(await ping(), "a delivery signed with the stored secret").toBe(204);
+    // The webhook reads the secret as nobody signed in, so the saved one may reach it a replica later.
+    await expect.poll(ping, { message: "a delivery signed with the stored secret" }).toBe(204);
 
     await page.goto(SETTINGS_PATH);
     await page.locator('[data-action="copy-webhook-url"]').click();
@@ -115,7 +116,7 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
     await page.locator('[data-action="save-stator"]').click();
     await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Forget the stored secret", { exact: true })).toHaveCount(0);
-    expect(await ping(), "a delivery once the secret is forgotten").toBe(401);
+    await expect.poll(ping, { message: "a delivery once the secret is forgotten" }).toBe(401);
     await control("/webhook", { method: "PUT", body: JSON.stringify({ url: "" }) });
   });
 

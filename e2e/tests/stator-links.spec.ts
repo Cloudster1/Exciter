@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
+import { openShowing } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL, statorURL } from "../fixtures/stack";
@@ -147,8 +148,9 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     const timing = await pageId("Brake timing");
     must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "specifies" } }));
     const bob = await pageAs("bob");
-    await bob.goto(`/p/${KEY}/r/${KEY}-R1`);
     const chip = bob.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-page="${timing}"]`);
+    // Alice's link and her project may reach bob's reads a replica later.
+    await openShowing(bob, `/p/${KEY}/r/${KEY}-R1`, chip);
     await expect(chip).toHaveAttribute("data-state", "connect");
     await expect(chip.getByRole("link", { name: "ENG Page in Stator" })).toHaveAttribute("href", `${statorURL()}/s/ENG/p/${timing}`);
     await expect(chip).toContainText("Version 2");
