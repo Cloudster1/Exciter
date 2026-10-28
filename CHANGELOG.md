@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves imports past their happy path: a CSV and a ReqIF import
+  stopped while they run end cancelled and keep what they made; another
+  administrator reads and stops an import but neither maps nor starts it;
+  an archived project takes no import and no template and keeps its
+  templates as they are; a start reads the project again; a CSV export
+  carries an attribute by its name and an import maps it back; a .reqifz,
+  a Word document and a template small to upload and large to unpack are
+  refused; and a shared template is changed only in its own project. In
+  the browser problems are answered, and imports are discarded, stopped
+  and started again, a downloaded .reqif goes into another project, a
+  Word pattern changes the preview, and a template is shared and deleted
+  (#318).
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and
@@ -148,6 +160,19 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A .reqifz whose document unpacks past what one import takes is refused
+  as the file, naming the document, as a Word document that does is
+  (#318). It answered with a server error.
+- Only the person who uploaded a file maps and starts its import, straight
+  through SQL too (#318). The database let another administrator of the
+  project change an import's mapping or choices and start it; they still
+  read and stop it.
+- A CSV or ReqIF import that could not be stopped says why under its
+  progress (#318). Stop went back to waiting without a word.
+- A person a CSV file names who is nobody in the project shows "Pick who
+  it is" until answered, and picking Nobody answers it (#318). The list
+  showed Nobody already, which a browser does not let anyone pick again,
+  so the import could not start.
 - Each accessibility check in the browser suite adds 15 seconds to its
   test's time (#389). On busy CI shards axe took 12 to 13 of the 20
   seconds a test has, so the members and specification tests ran out of

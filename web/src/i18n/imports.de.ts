@@ -55,6 +55,7 @@ export const importsDe: typeof importsEn = {
   isPerson: "Ist",
   whoIs: (name: string) => `Wer ${name} ist`,
   nobody: "Niemand",
+  pickPerson: "Wählen Sie, wer es ist",
   problemsTitle: "Was den Start verhindert",
   problemOnLine: (line: number, message: string) => `Zeile ${line}: ${message}`,
   noProblems: "Nichts hält den Import vom Start ab.",

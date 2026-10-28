@@ -52,6 +52,7 @@ export const importsEn = {
   isPerson: "Is",
   whoIs: (name: string) => `Who ${name} is`,
   nobody: "Nobody",
+  pickPerson: "Pick who it is",
   problemsTitle: "What keeps it from starting",
   problemOnLine: (line: number, message: string) => `Line ${line}: ${message}`,
   noProblems: "Nothing keeps the import from starting.",
