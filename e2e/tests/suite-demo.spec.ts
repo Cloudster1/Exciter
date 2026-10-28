@@ -9,7 +9,9 @@ const INSTALLATION_PATH = "/settings/installation";
 const DEMO_KEYS = ["ARM", "EXC", "STA"];
 // The stack's worker builds the whole demo, about 1,500 requirements, a step at a time beside every other spec's work.
 const BUILD_TIMEOUT_MS = 8 * 60_000;
-const SPEC_TIMEOUT_MS = BUILD_TIMEOUT_MS + 60_000;
+// Linking again asks Armature and Stator about every requirement once more, a step at a time.
+const RELINK_TIMEOUT_MS = 3 * 60_000;
+const SPEC_TIMEOUT_MS = BUILD_TIMEOUT_MS + RELINK_TIMEOUT_MS + 60_000;
 
 // The demo is the installation's one, so the spec runs alone; one it added is taken away again, one it found stays.
 async function takeAway(api: ExciterApi) {
@@ -56,5 +58,18 @@ test.describe("the suite demo", { tag: "@desktop" }, () => {
     }
     const baselines = must(await api.GET("/projects/{projectKey}/baselines", { params: { path: { projectKey: "EXC" } } })).baselines;
     expect(baselines.map((b) => b.name)).toContain(`Snapshot ${must(await api.GET("/installation/suite-demo")).demo!.taken}`);
+
+    // Linked again with nothing new to reach, the demo runs to done and holds what it held.
+    const built = must(await api.GET("/installation/suite-demo")).demo!;
+    await page.goto(INSTALLATION_PATH);
+    await page.locator('[data-action="link-suite-demo"]').click();
+    // Asking queues a run of the links, which the card shows at once and follows until the worker is done.
+    await expect(card).toHaveAttribute("data-suite-demo", /^(queued|running)$/);
+    await expect(card.locator("[data-suite-demo-status]")).toHaveText("The demo is being linked to Armature and Stator.");
+    await expect(card).toHaveAttribute("data-suite-demo", "done", { timeout: RELINK_TIMEOUT_MS });
+    const relinked = must(await api.GET("/installation/suite-demo")).demo!;
+    expect(relinked).toMatchObject({ state: "done", kind: "links", requirements: built.requirements, links: built.links });
+    expect(relinked.finishedAt).not.toBe(built.finishedAt);
+    await expect(card.locator("[data-suite-demo-status]")).toContainText("The demo holds");
   });
 });

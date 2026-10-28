@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
+import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
-import { openShowing } from "../fixtures/replica";
+import { ONE_LOOK, openShowing, openUntil } from "../fixtures/replica";
 import { chooseTheme, createTheme, themeSpec, uniqueName } from "../fixtures/seed";
 import { openAccountMenu } from "../fixtures/shell";
 
@@ -160,5 +161,60 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await bob.locator('[data-action="built-in-theme"]').click();
     await expect(bob.getByText(`You are using the built-in theme, over ${name}, the default for everyone.`)).toBeVisible();
     await expect(customStyle(bob)).toHaveCount(0);
+  });
+
+  test("the default is named and taken back from the Themes page, and bob steps between it, his choice and the built-in", async ({
+    page,
+    api,
+    apiAs,
+    pageAs,
+  }, testInfo) => {
+    const bobApi = await apiAs("bob");
+    await chooseTheme(bobApi, null);
+    const name = uniqueName(testInfo, "house");
+    const house = await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
+    const using = (who: Page, words: string) => openShowing(who, THEMES_PATH, who.getByText(words, { exact: true }));
+
+    await page.goto(THEMES_PATH);
+    await rowAction(page, name, "default-theme");
+    await expect(notice(page)).toHaveText(`${name} is what everybody sees until they choose.`);
+    await expect(row(page, name)).toHaveAttribute("data-theme-default", "true");
+    const bob = await pageAs("bob");
+    await using(bob, `You are using ${name}, the default for everyone.`);
+    await expect(customStyle(bob)).toBeAttached();
+
+    await rowAction(page, name, "undefault-theme");
+    await expect(notice(page)).toHaveText("Everyone sees the built-in theme again.");
+    await expect(row(page, name)).toHaveAttribute("data-theme-default", "false");
+    await using(bob, "You are using the built-in theme.");
+    await expect(customStyle(bob)).toHaveCount(0);
+
+    // Bob chooses it for himself while it is the default, then stops, and lands on the default.
+    must(await api.PUT("/themes/default", { body: { themeId: house.id } }));
+    await openUntil(bob, THEMES_PATH, async () => {
+      await bob.locator('[data-themes-view="shared"]').click();
+      await expect(row(bob, name)).toHaveAttribute("data-theme-default", "true", ONE_LOOK);
+    });
+    await rowAction(bob, name, "use-theme");
+    await expect(notice(bob)).toHaveText(`Now using ${name}.`);
+    await rowAction(bob, name, "stop-theme");
+    await expect(notice(bob)).toHaveText("Back to the default for everyone.");
+    await expect(bob.getByText(`You are using ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+
+    await bob.locator('[data-action="built-in-theme"]').click();
+    await expect(bob.getByText(`You are using the built-in theme, over ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+    await expect(customStyle(bob)).toHaveCount(0);
+    await bob.locator('[data-action="org-default-theme"]').click();
+    await expect(notice(bob)).toHaveText(`Now using ${name}.`);
+    await expect(bob.getByText(`You are using ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+    await expect(customStyle(bob)).toBeAttached();
+
+    // The page must know the default bob just used, or choosing the built-in one would look like no change.
+    await openShowing(page, DEFAULT_THEME_PATH, page.locator(`[data-default-theme-choice="${name}"][aria-checked="true"]`));
+    await page.locator('[data-default-theme-choice="built-in"]').click();
+    await expect(page.locator("[data-default-theme-notice]")).toHaveText("Everyone sees the built-in theme again.");
+    await using(bob, "You are using the built-in theme.");
+    await expect(customStyle(bob)).toHaveCount(0);
+    await expect.poll(async () => must(await bobApi.GET("/themes/default")).theme).toBeNull();
   });
 });

@@ -160,22 +160,8 @@ func (s *Service) ReplaceGrants(ctx context.Context, actor, project uuid.UUID, i
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1`, project); err != nil {
-			return fmt.Errorf("clear the grants: %w", err)
-		}
-		for _, g := range out {
-			var user, group *uuid.UUID
-			switch g.Subject.Type {
-			case SubjectUser:
-				user = g.Subject.ID
-			case SubjectGroup:
-				group = g.Subject.ID
-			}
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO project_grant (project_id, subject_type, user_id, group_id, role)
-				VALUES ($1, $2, $3, $4, $5)`, project, g.Subject.Type, user, group, g.Role); err != nil {
-				return fmt.Errorf("grant %s to %s: %w", g.Role, g.Subject.Name, err)
-			}
+		if err := putGrants(ctx, tx, project, out); err != nil {
+			return err
 		}
 		slices.SortFunc(out, compareGrants)
 		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionProjectGrantsChanged, TargetType: "project",
@@ -185,6 +171,37 @@ func (s *Service) ReplaceGrants(ctx context.Context, actor, project uuid.UUID, i
 		return nil, 0, err
 	}
 	return out, lsn, nil
+}
+
+// putGrants makes the project's grants the table given in one statement, so the policies judge each row by the
+// grants it started from: an administrator only by grant would otherwise lose the right part way through.
+func putGrants(ctx context.Context, tx db.DBTX, project uuid.UUID, grants []Grant) error {
+	types, roles := make([]string, len(grants)), make([]string, len(grants))
+	users, groups := make([]*uuid.UUID, len(grants)), make([]*uuid.UUID, len(grants))
+	for i, g := range grants {
+		types[i], roles[i] = string(g.Subject.Type), string(g.Role)
+		switch g.Subject.Type {
+		case SubjectUser:
+			users[i] = g.Subject.ID
+		case SubjectGroup:
+			groups[i] = g.Subject.ID
+		}
+	}
+	if _, err := tx.Exec(ctx, `
+		WITH wanted AS (
+			SELECT * FROM unnest($2::text[], $3::uuid[], $4::uuid[], $5::text[]) AS w (subject_type, user_id, group_id, role)
+		), dropped AS (
+			DELETE FROM project_grant g WHERE g.project_id = $1 AND NOT EXISTS (
+				SELECT 1 FROM wanted w WHERE w.subject_type = g.subject_type
+				   AND w.user_id IS NOT DISTINCT FROM g.user_id AND w.group_id IS NOT DISTINCT FROM g.group_id)
+		)
+		INSERT INTO project_grant (project_id, subject_type, user_id, group_id, role)
+		SELECT $1, subject_type, user_id, group_id, role FROM wanted
+		ON CONFLICT ON CONSTRAINT project_grant_one_per_subject DO UPDATE SET role = EXCLUDED.role`,
+		project, types, users, groups, roles); err != nil {
+		return fmt.Errorf("replace the grants: %w", err)
+	}
+	return nil
 }
 
 // grantLog is how the audit log keeps grants: ids and names as they were, since either may change later.

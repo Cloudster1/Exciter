@@ -155,8 +155,12 @@ describe("starting an execution", () => {
     await userEvent.type(within(dialog).getByLabelText("Due"), "2020-01-01T10:00");
     await userEvent.click(within(dialog).getByRole("button", { name: "Start" }));
     expect(await within(dialog).findByLabelText("Due")).toHaveAccessibleDescription(/Set the due date ahead, within a year/);
-    expect(within(dialog).getByText("Name each tester once.")).toBeInTheDocument();
-    expect(within(dialog).getByText(/The plan holds no test case to run here/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("group", { name: "Testers" })).toHaveAccessibleDescription(/Name each tester once\./);
+    expect(within(dialog).getByLabelText("Due")).not.toHaveAccessibleDescription(/Name each tester once/);
+    // The plan is the page's own and has no control here, so its sentence is the dialog's one banner, and no field reads it.
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(/^The plan holds no test case to run here\. Add cases to it, or pick another baseline\.$/);
+    expect(within(dialog).getByLabelText("Baseline")).not.toHaveAccessibleDescription(/The plan holds/);
+    expect(within(dialog).getByRole("group", { name: "Testers" })).not.toHaveAccessibleDescription(/The plan holds/);
     expect(within(dialog).queryByText("Some fields need attention.")).not.toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
   });

@@ -52,9 +52,10 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
   const typed = text.trim();
   const words = useDebounced(typed, QUICK_SEARCH_DEBOUNCE_MS);
   const quick = useQuickSearch(typed ? words : "");
-  // The server matched these already; an answer to an earlier word is not offered for a newer one.
+  // The server matched these already; an answer to an earlier word, kept on show while the newer one loads, is not
+  // offered for it.
   const requirements: Option[] =
-    typed && words === typed
+    typed && words === typed && !quick.isPlaceholderData
       ? (quick.data ?? []).map((hit) => ({
           key: `requirement:${hit.requirement.id}`,
           label: `${hit.requirement.key} ${hit.requirement.title}`,

@@ -96,22 +96,28 @@ func TestAnExecutionStartsOnlyOverWhatItCanRun(t *testing.T) {
 	}
 	before := s.executions(t)
 
+	// The crowd's ids are nobody's, so every tester sentence is refused on testers; only a check's own sentence shows it held.
+	bounds := fmt.Sprintf("Name 1 to %d people or groups who test.", testexec.MaxTesters)
 	for _, tc := range []struct {
 		what   string
 		change map[string]any
 		field  string
+		says   string
 	}{
-		{"no tester", map[string]any{"testers": []any{}}, "testers"},
-		{"one tester too many", map[string]any{"testers": crowd}, "testers"},
-		{"the same tester twice", map[string]any{"testers": []any{tester(s.f.plain.user), tester(s.f.plain.user)}}, "testers"},
-		{"a tester who is a role", map[string]any{"testers": []any{map[string]any{"subjectType": "role", "userId": s.f.plain.user}}}, "testers"},
-		{"a due date gone by", map[string]any{"dueAt": due(-time.Hour)}, "dueAt"},
-		{"a due date over a year ahead", map[string]any{"dueAt": due(testexec.MaxDueAhead + 24*time.Hour)}, "dueAt"},
-		{"a plan of another project", map[string]any{"planId": other.plan}, "planId"},
-		{"a plan nobody has", map[string]any{"planId": uuid.NewString()}, "planId"},
-		{"a baseline of another project", map[string]any{"baselineId": other.baseline}, "baselineId"},
+		{"no tester", map[string]any{"testers": []any{}}, "testers", bounds},
+		{"one tester too many", map[string]any{"testers": crowd}, "testers", bounds},
+		{"the same tester twice", map[string]any{"testers": []any{tester(s.f.plain.user), tester(s.f.plain.user)}}, "testers", "Name each tester once."},
+		{"a tester who is a role", map[string]any{"testers": []any{map[string]any{"subjectType": "role", "userId": s.f.plain.user}}}, "testers",
+			"A tester is a person or a group."},
+		{"a due date gone by", map[string]any{"dueAt": due(-time.Hour)}, "dueAt", ""},
+		{"a due date over a year ahead", map[string]any{"dueAt": due(testexec.MaxDueAhead + 24*time.Hour)}, "dueAt", ""},
+		{"a plan of another project", map[string]any{"planId": other.plan}, "planId", ""},
+		{"a plan nobody has", map[string]any{"planId": uuid.NewString()}, "planId", ""},
+		{"a baseline of another project", map[string]any{"baselineId": other.baseline}, "baselineId", ""},
 	} {
-		refuse422(t, tc.what, start(owner, tc.change), tc.field)
+		if msg := refuse422(t, tc.what, start(owner, tc.change), tc.field); tc.says != "" && msg != tc.says {
+			t.Errorf("%s: the refusal says %q, want %q", tc.what, msg, tc.says)
+		}
 	}
 	msg := refuse422(t, "a plan whose cases the baseline does not hold", start(owner, map[string]any{"planId": onlyNew, "baselineId": s.baseline}), "planId")
 	if !strings.HasPrefix(msg, "The plan holds no test case to run here.") {
@@ -343,12 +349,16 @@ func TestAnExecutionIsChangedAndClosedWithinItsBounds(t *testing.T) {
 	s := newExecutionScene(t, "TXC")
 	owner := s.f.owner
 	base := "/api/v1/test-executions/" + s.execution
+	dueAt := obj(t, want(t, owner.get(t, base), http.StatusOK, "read it first"), "execution")["dueAt"]
+	if dueAt == nil {
+		t.Fatal("the execution was started with no due date")
+	}
 	refuse422(t, "a due date gone by", owner.patch(t, base, map[string]any{"dueAt": due(-time.Hour)}), "dueAt")
 	refuse422(t, "a title of nothing", owner.patch(t, base, map[string]any{"title": " "}), "title")
 	refuse422(t, "a version too long", owner.patch(t, base, map[string]any{"version": strings.Repeat("v", testexec.MaxVersionLength+1)}), "version")
 	refuse422(t, "a close comment too long", owner.post(t, base+"/close", map[string]any{"comment": strings.Repeat("c", testexec.MaxDescriptionLength+1)}), "comment")
 	e := obj(t, want(t, owner.get(t, base), http.StatusOK, "read it"), "execution")
-	if e["state"] != "open" || e["title"] != "Release 1 on wet roads" || e["version"] != "2.3" {
+	if e["state"] != "open" || e["title"] != "Release 1 on wet roads" || e["version"] != "2.3" || e["dueAt"] != dueAt {
 		t.Errorf("the refusals left %v", e)
 	}
 }

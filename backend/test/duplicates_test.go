@@ -69,6 +69,11 @@ func TestDuplicatesAreFoundDismissedLinkedAndMerged(t *testing.T) {
 			t.Errorf("a requirement being revised is like itself: %v", got)
 		}
 		refuse(t, "carol checking a draft", w.carol.post(t, "/api/v1/projects/"+w.key+"/similar", draft), http.StatusForbidden, "forbidden")
+		// The route writes nothing, so the statement's own sentence is all a refusal leaves.
+		nonsense := map[string]any{"title": "x", "statement": map[string]any{"type": "nonsense"}}
+		if msg := fieldError(t, w.bob.post(t, "/api/v1/projects/"+w.key+"/similar", nonsense), "statement"); !strings.Contains(msg, `"type":"doc"`) {
+			t.Errorf("a statement that is no document is refused with %q", msg)
+		}
 		if got := pairsOf(t, w.carol, w.key, ""); !slices.Contains(got, pair) {
 			t.Errorf("the pairs are %v", got)
 		}

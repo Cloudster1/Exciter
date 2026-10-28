@@ -1,11 +1,17 @@
+import { randomBytes } from "node:crypto";
 import type { Page, TestInfo } from "@playwright/test";
 import { must } from "../fixtures/api";
 import { ANONYMOUS, expect, ME_PATH, signInWithPassword } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
+import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { expectAccessible } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 const MEMBERS_PATH = "/settings/members";
+const SETTINGS_PATH = "/settings";
+const LOGIN_API = "/api/v1/auth/login";
+// Enough random bytes for a password past the minimum once written out.
+const PASSWORD_BYTES = 18;
 // auth.MinPasswordLength: a made password is at least this long, and a typed one has to be.
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -90,5 +96,72 @@ test.describe("members", { tag: "@desktop" }, () => {
     await member(page, email).locator('[data-action="switch-on-member"]').click();
     await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was switched on and can sign in again.");
     await expect(member(page, email)).toHaveAttribute("data-member-active", "true");
+  });
+
+  test("a role given and taken back shows on the person's own pages, and switching them off ends their session", async ({ browser, page, api }, testInfo) => {
+    const email = freshEmail(testInfo, "standing");
+    added.push(email);
+    const password = randomBytes(PASSWORD_BYTES).toString("base64url");
+    must(await api.POST("/users", { body: { email, name: "Stan Standing", role: "member", password } }));
+    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    try {
+      const theirs = await context.newPage();
+      // The account was just made, so a replica may not hold it at the first try.
+      await expect.poll(async () => (await theirs.request.post(LOGIN_API, { data: { email, password }, headers: { Origin: WEB_URL } })).status()).toBe(200);
+
+      await page.goto(MEMBERS_PATH);
+      await member(page, email).getByLabel("Role of Stan Standing").selectOption("admin");
+      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing is now Administrator.");
+      await openUntil(theirs, SETTINGS_PATH, () => expect(theirs.locator('[data-hub-card="settings"]')).toBeVisible(ONE_LOOK));
+      await theirs.goto(MEMBERS_PATH);
+      await expect(theirs.locator("[data-members]")).toBeVisible();
+
+      await member(page, email).getByLabel("Role of Stan Standing").selectOption("member");
+      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing is now Member.");
+      await openUntil(theirs, SETTINGS_PATH, async () => {
+        await expect(theirs.locator('[data-hub-card="you"]')).toBeVisible(ONE_LOOK);
+        await expect(theirs.locator('[data-hub-card="settings"]')).toHaveCount(0, ONE_LOOK);
+      });
+      await theirs.goto(MEMBERS_PATH);
+      await expect(theirs.locator("[data-admins-only]")).toBeVisible();
+      await expect(theirs.locator("[data-members]")).toHaveCount(0);
+
+      await member(page, email).locator('[data-action="switch-off-member"]').click();
+      await page.locator('[data-action="confirm-switch-off-member"]').click();
+      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing was switched off.");
+      await theirs.goto("/");
+      await expect(theirs).toHaveURL(/\/login(\?|$)/);
+      expect((await theirs.request.get(ME_PATH)).status()).toBe(401);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("the password shown once is copied, and the copy signs the new person in", async ({ browser, page }, testInfo) => {
+    const email = freshEmail(testInfo, "copied");
+    added.push(email);
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: WEB_URL });
+
+    await page.goto(MEMBERS_PATH);
+    await page.locator('[data-action="add-member"]').click();
+    const dialog = page.locator("[data-add-member]");
+    await dialog.getByLabel("Email address", { exact: true }).fill(email);
+    await dialog.locator('[data-action="create-member"]').click();
+    const shown = (await dialog.locator("[data-new-password]").textContent())!.trim();
+    await dialog.locator('[data-action="copy-password"]').click();
+    await expect(dialog.locator('[data-action="copy-password"]')).toHaveText("Copied");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toBe(shown);
+    expect(copied.length).toBeGreaterThanOrEqual(MIN_PASSWORD_LENGTH);
+    await dialog.locator('[data-action="done"]').click();
+
+    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    try {
+      const fresh = await context.newPage();
+      await signInWithPassword(fresh, email, copied);
+      expect((await fresh.request.get(ME_PATH)).status()).toBe(200);
+    } finally {
+      await context.close();
+    }
   });
 });

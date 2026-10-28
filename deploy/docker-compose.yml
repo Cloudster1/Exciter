@@ -93,6 +93,18 @@ services:
       # A statement that waits on a lock past deadlock_timeout, a second, is logged with who holds it (#405).
       - -c
       - log_lock_waits=on
+      # And one that runs past three seconds is logged with the plan it ran, nested function bodies included, with
+      # the rows each step gave; without timings, which would slow every statement (#405).
+      - -c
+      - shared_preload_libraries=auto_explain
+      - -c
+      - auto_explain.log_min_duration=3s
+      - -c
+      - auto_explain.log_nested_statements=on
+      - -c
+      - auto_explain.log_analyze=on
+      - -c
+      - auto_explain.log_timing=off
     volumes:
       - primary-data:/var/lib/postgresql/18/docker
       - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
