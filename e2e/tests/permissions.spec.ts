@@ -77,19 +77,24 @@ test.describe("permissions", { tag: "@desktop" }, () => {
     await expect.poll(bobSees).toBe(true);
 
     const writes: string[] = [];
+    // Every request about the project, reads too: a discard that read the grants again would restore the table as well.
+    const asked: string[] = [];
     page.on("request", (request) => {
       if (request.method() !== "GET" && request.url().includes("/grants")) writes.push(`${request.method()} ${request.url()}`);
+      if (request.url().includes(`/api/v1/projects/${KEY}`)) asked.push(`${request.method()} ${request.url()}`);
     });
     await page.goto(PERMISSIONS_PATH);
     const bobRole = page.getByRole("combobox", { name: `Role of ${people.bob.name}` });
     await expect(bobRole).toHaveValue("editor");
     await bobRole.selectOption("viewer");
     await expect(page.getByText("Not saved yet.")).toBeVisible();
+    const askedBefore = asked.length;
     await page.locator('[data-action="discard-grants"]').click();
     await expect(bobRole).toHaveValue("editor");
     await expect(page.locator('[data-action="discard-grants"]')).toHaveCount(0);
     await expect(page.locator('[data-action="save-grants"]')).toBeDisabled();
     expect(writes).toEqual([]);
+    expect(asked.slice(askedBefore)).toEqual([]);
 
     await page.getByRole("button", { name: `Remove ${people.bob.name}` }).click();
     await expect(page.locator(`[data-grant="${people.bob.name}"]`)).toHaveCount(0);

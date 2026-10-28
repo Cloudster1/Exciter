@@ -149,6 +149,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   changed and removed, a signature given at Keycloak and cancelled, and
   sessions opened over a baseline and a query and their report downloaded
   (#317).
+- Six more tests of the coverage work assert what their items state
+  (#432): ending anybody's connected app by an id that is none is refused
+  400, an editor neither deletes nor unarchives an archived project, a
+  discarded permissions table asks the server nothing at all, the German
+  exports' glossary is named in German and not in English, and the FMEA
+  table has loaded before a hazard is found without a level.
 - The suite proves the traceability matrix and the trace model to their
   edges: another project's requirements as columns both ways and in the
   files, every combination the matrix refuses, a matrix too wide for a

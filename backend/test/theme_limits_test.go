@@ -399,6 +399,8 @@ func TestExportsSpeakTheReadersLanguage(t *testing.T) {
 	}
 	want(t, s.f.owner.post(t, "/api/v1/projects/"+s.key+"/terms", map[string]any{"name": "Caliper", "definition": docOf("The part that grips the disc.")}),
 		http.StatusCreated, "define a term")
+	// bob reads the exports, and read-your-writes holds only for the owner who defined the term.
+	s.f.h.settle(t)
 	spy := &renderSpy{inner: s.f.h.renderer()}
 	api := newAPIServerWith(t, s.f.h, func(_ *apiServer, server *httpapi.Server) { server.Renderer = spy })
 	bob, alice := api.as(t, s.f.plain.user), api.as(t, s.f.owner.user)
@@ -411,13 +413,14 @@ func TestExportsSpeakTheReadersLanguage(t *testing.T) {
 			all.Write(page)
 		}
 		site := all.String()
-		for _, word := range []string{">Inhalt<", ">Suchen<", "Glossar"} {
+		// Whole labels, as "Glossar" begins "Glossary"; the page title is the site's own, the heading the print's.
+		for _, word := range []string{">Inhalt<", ">Suchen<", "<title>Glossar</title>"} {
 			if !strings.Contains(site, word) {
 				t.Errorf("the site lacks %q", word)
 			}
 		}
-		if strings.Contains(site, ">Contents<") || strings.Contains(site, ">Search<") {
-			t.Error("the site still says Contents or Search")
+		if strings.Contains(site, ">Contents<") || strings.Contains(site, ">Search<") || strings.Contains(site, ">Glossary<") {
+			t.Error("the site still says Contents, Search or Glossary")
 		}
 	})
 
@@ -428,17 +431,19 @@ func TestExportsSpeakTheReadersLanguage(t *testing.T) {
 		}
 		german, germanStyles := words(bob, "bob")
 		english, englishStyles := words(alice, "alice")
-		for _, word := range []string{"Spezifikation von Brakes", "Begründung", "Glossar"} {
+		// The glossary's bookmark is named _Glossary in both, so only the heading's own run tells the languages apart.
+		for _, word := range []string{"Spezifikation von Brakes", "Begründung", ">Glossar<"} {
 			if !strings.Contains(german, word) {
 				t.Errorf("bob's Word lacks %q", word)
 			}
 		}
-		for _, word := range []string{"Specification of Brakes", "Rationale", "Glossary"} {
+		for _, word := range []string{"Specification of Brakes", "Rationale", ">Glossary<"} {
 			if !strings.Contains(english, word) {
 				t.Errorf("alice's Word lacks %q", word)
 			}
 		}
-		if strings.Contains(german, "Rationale") || strings.Contains(english, "Begründung") {
+		if strings.Contains(german, "Rationale") || strings.Contains(german, ">Glossary<") || strings.Contains(english, "Begründung") ||
+			strings.Contains(english, ">Glossar<") {
 			t.Error("a Word export mixes the two languages")
 		}
 		if !strings.Contains(germanStyles, `w:lang w:val="de-DE"`) || !strings.Contains(englishStyles, `w:lang w:val="en-US"`) {

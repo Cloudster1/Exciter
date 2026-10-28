@@ -83,6 +83,11 @@ func TestAConnectedAppIsListedAndEnded(t *testing.T) {
 		}
 		refuse(t, "a member ending anybody's", member.delete(t, "/api/v1/oauth/grants/everyone/"+g["id"].(string)), http.StatusForbidden, "forbidden")
 		refuse(t, "ending nobody's", admin.delete(t, "/api/v1/oauth/grants/everyone/"+uuid.NewString()), http.StatusNotFound, "not_found")
+		refuse(t, "ending one that is no id", admin.delete(t, "/api/v1/oauth/grants/everyone/nothing"), http.StatusBadRequest, "bad_request")
+		if _, kept := grantsIn(t, want(t, admin.get(t, "/api/v1/oauth/grants/everyone"), http.StatusOK, "list everybody's again"))["Phone assistant"]; !kept ||
+			endedBy(t, h, g["id"], "administrator") != 0 {
+			t.Fatal("a refused end ended the app")
+		}
 		want(t, admin.delete(t, "/api/v1/oauth/grants/everyone/"+g["id"].(string)), http.StatusNoContent, "end their app")
 		if resp := mcpAs(t, a, theirs["access_token"].(string), "tools/list", nil); resp.StatusCode != http.StatusUnauthorized {
 			t.Errorf("an app an administrator ended still works: %d", resp.StatusCode)
