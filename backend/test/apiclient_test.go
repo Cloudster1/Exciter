@@ -147,7 +147,7 @@ func newAPIServerWith(t *testing.T, h *harness, configure func(*apiServer, *http
 	if configure != nil {
 		configure(a, server)
 	}
-	srv.Config.Handler = observed(t, server.Routes(nil))
+	srv.Config.Handler = observed(t, watched(t, h, server.Routes(nil)))
 	srv.Start()
 	t.Cleanup(srv.Close)
 	return a

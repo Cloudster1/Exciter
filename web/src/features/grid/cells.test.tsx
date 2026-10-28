@@ -164,4 +164,14 @@ describe("a value in the grid", () => {
     expect(within(row).queryByRole("button", { name: "Title of CHK-R1" })).toBeNull();
     expect(within(row).getByRole("spinbutton", { name: "Cost of CHK-R1" })).toBeInTheDocument();
   });
+
+  it("shows a computed value as text, since its formula works it out and nobody types it", async () => {
+    const worked: Attribute[] = [note, { ...cost, formula: `"Weight" * 2` }, legacy, elsewhere];
+    stubCells(rowOf(), { "GET /projects/CHK/attributes": { status: 200, body: { attributes: worked } } });
+    await renderAt(at);
+    const row = (await screen.findByRole("link", { name: "Pay the basket" })).closest("tr") as HTMLElement;
+    expect(within(row).getByText("5")).toBeInTheDocument();
+    expect(within(row).queryByRole("spinbutton", { name: "Cost of CHK-R1" })).toBeNull();
+    expect(within(row).getByRole("textbox", { name: "Note of CHK-R1" })).toBeInTheDocument();
+  });
 });

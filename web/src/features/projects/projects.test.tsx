@@ -140,12 +140,13 @@ describe("a project's settings", () => {
     expect(await screen.findByText("Former keys, which still work: CHK")).toBeInTheDocument();
   });
 
-  it("saves the details and the revision comment setting", async () => {
+  it("saves the details and the revision comment setting, and says so once the form shows the saved project", async () => {
     const sent = stubApi({
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
       "PATCH /projects/CHK": async (request) => {
         const body = (await request.json()) as { name: string };
-        return { status: 200, body: { project: aProject({ name: body.name, settings: { ...checkout.settings, requireRevisionComment: true } }) } };
+        const changed = aProject({ name: body.name, settings: { ...checkout.settings, requireRevisionComment: true }, updatedAt: "2026-10-02T08:00:00Z" });
+        return { status: 200, body: { project: changed } };
       },
     });
     await renderAt("/p/CHK/settings");
@@ -161,6 +162,8 @@ describe("a project's settings", () => {
         settings: { requireRevisionComment: true, signedApprovals: false, library: false },
       }),
     );
+    expect(await screen.findByText("Saved.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Checkout and payment");
   });
 
   it("turns signed approvals on", async () => {
