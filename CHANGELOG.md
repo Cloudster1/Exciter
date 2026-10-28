@@ -164,6 +164,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   moved to when Stator delivers the publish of that version late (#327).
   The move did not keep its version, so the late publish moved the link
   back to the space the page had left, with that space's address.
+- Each accessibility check in the browser suite adds 15 seconds to its
+  test's time (#389). On busy CI shards axe took 12 to 13 of the 20
+  seconds a test has, so the members and specification tests ran out of
+  time with nothing wrong in them.
 - The exciter-ci check against the stack reads a scan's tags and a run's
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing
