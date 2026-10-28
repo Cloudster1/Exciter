@@ -105,6 +105,8 @@ func linkable(ctx context.Context, tx db.DBTX, actor uuid.UUID, reqKey string) (
 		return nil, ErrSection
 	case r.Trashed:
 		return nil, requirement.ErrTrashed
+	case r.Archived:
+		return nil, project.ErrArchived
 	case !r.Linkable:
 		return nil, requirement.ErrForbidden
 	}
@@ -208,17 +210,22 @@ func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 		return 0, err
 	}
 	return s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		var editable bool
+		var editable, archived bool
 		err := tx.QueryRow(ctx, `
-			SELECT perm_requirement_editable(requirement_id, $2) FROM armature_issue_link
-			WHERE id = $1`, id, actor).Scan(&editable)
+			SELECT perm_requirement_editable(l.requirement_id, $2), p.archived_at IS NOT NULL
+			FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id JOIN project p ON p.id = r.project_id
+			WHERE l.id = $1`, id, actor).Scan(&editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
 		}
 		if err != nil {
 			return err
 		}
-		if !editable {
+		// As clearing does: a link in an archived project waits for its project, not for a right.
+		switch {
+		case !editable && archived:
+			return project.ErrArchived
+		case !editable:
 			return requirement.ErrForbidden
 		}
 		_, err = tx.Exec(ctx, `DELETE FROM armature_issue_link WHERE id = $1`, id)
