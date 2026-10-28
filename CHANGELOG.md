@@ -144,6 +144,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A mitigation keeps joining a requirement that is no risk to a risk when
+  either end changes its type (#325). A risk could be given a type of
+  requirements, its mitigating requirement a type of risks, or that
+  requirement's type marked as risks, after the link was made; each is
+  now refused, through the API and straight through SQL alike.
 - The project's trace settings say "Saved." once the counting branch or
   the tag words are saved (#323). The form started again from what was
   saved and lost the notice, so nothing said the save had gone through.

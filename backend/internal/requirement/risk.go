@@ -148,6 +148,8 @@ var (
 	errNoScheme = &FieldError{"risk", "This project has no risk scheme yet. Ask one of its administrators to set one under Settings, Risks."}
 	// errOffScale refuses a value the project's scales lack.
 	errOffScale = &FieldError{"risk", "The rating uses a value the project's scales lack. Pick values from its risk scheme."}
+	// errMitigationHeld refuses a type that would leave a mitigation joining two risks, or two requirements (#325).
+	errMitigationHeld = &FieldError{"typeId", "A mitigation joins this requirement to a risk, which only a requirement that is no risk mitigates. Remove the link first, or keep a type of the same role."}
 )
 
 // ErrRatingsDoNotFit refuses moving a rated risk to a project whose scales lack its values.
@@ -251,6 +253,8 @@ func ratingRefusal(err error) error {
 			return errNotRisk
 		case "requirement_risk_scale":
 			return errOffScale
+		case "requirement_mitigation_held":
+			return errMitigationHeld
 		}
 	}
 	return err
