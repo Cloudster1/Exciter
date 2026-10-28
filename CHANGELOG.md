@@ -234,6 +234,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
   (#326). It answered 403 and told an editor to ask for edit rights.
+- Starting a test execution with testers it refuses reads the refusal out
+  with the testers (#416). It showed below them, but a screen reader did
+  not tie it to them.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - Saving the writing rules or the word lists says so (#320). The cards
