@@ -1,9 +1,10 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { BrowserContext } from "@playwright/test";
 
 /** Where each worker notes the addresses its pages showed and the data-action controls they clicked (#334). */
-export const REACH_DIR = join(__dirname, "..", "..", "reports", "e2e-reach");
+export const REACH_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../reports/e2e-reach");
 
 const CLICKED_BINDING = "__exciterReached";
 

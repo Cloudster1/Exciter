@@ -200,6 +200,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   In the browser every control of the coverage and trace graph pages is
   used, by keyboard too, and a reader walks the report a page at a time
   (#314).
+- A whole browser run fails when a route of the web client was never a
+  page's address or a control with a `data-action` was never clicked,
+  unless `e2e/reach-exemptions.json` says why (#334). It reaches 68 of 70
+  routes and 341 of 352 controls; #440 holds the rest.
 - The suite proves trace links, link types and suspect links to their last
   control: a type for all projects is refused to a project's administrator,
   a taken name is refused in either scope, a type comes back from
