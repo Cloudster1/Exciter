@@ -17,6 +17,9 @@ const PAGED_REQUIREMENTS = 101;
 // Written one after another, since rows and columns follow the outline the writes leave, which with a page of a
 // hundred columns by fifty rows takes longer than a test is given by default.
 const PAGED_TIMEOUT_MS = 60_000;
+// A page of fifty rows by a hundred columns is five thousand cells: on a busy shard they render for longer after the
+// page arrives than the five seconds an expectation waits by default.
+const PAGE_SHOWN = { timeout: 20_000 };
 
 async function removeProject(api: ExciterApi, projectKey: string) {
   const path = { params: { path: { projectKey } } };
@@ -81,26 +84,26 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
     const matrix = page.getByRole("table", { name: "Matrix" });
     const rows = page.getByRole("navigation", { name: "Matrix" });
     const columns = page.getByRole("navigation", { name: "Columns" });
-    await expect(rows).toContainText(`1 to 50 of ${PAGED_REQUIREMENTS}`);
+    await expect(rows).toContainText(`1 to 50 of ${PAGED_REQUIREMENTS}`, PAGE_SHOWN);
     await expect(columns).toContainText(`1 to 100 of ${PAGED_REQUIREMENTS}`);
     await expect(rows.getByRole("button", { name: "Previous" })).toBeDisabled();
 
     await rows.getByRole("button", { name: "Next" }).click();
     await expect(rows).toContainText(`51 to 100 of ${PAGED_REQUIREMENTS}`);
-    await expect(matrix.getByRole("rowheader", { name: new RegExp(`${PAGED_KEY}-R51 `) })).toBeVisible();
+    await expect(matrix.getByRole("rowheader", { name: new RegExp(`${PAGED_KEY}-R51 `) })).toBeVisible(PAGE_SHOWN);
     await expect(matrix.getByRole("rowheader", { name: new RegExp(`${PAGED_KEY}-R1 `) })).toHaveCount(0);
     await rows.getByRole("button", { name: "Next" }).click();
-    await expect(rows).toContainText(`101 to 101 of ${PAGED_REQUIREMENTS}`);
+    await expect(rows).toContainText(`101 to 101 of ${PAGED_REQUIREMENTS}`, PAGE_SHOWN);
     await expect(rows.getByRole("button", { name: "Next" })).toBeDisabled();
     await rows.getByRole("button", { name: "Previous" }).click();
-    await expect(rows).toContainText(`51 to 100 of ${PAGED_REQUIREMENTS}`);
+    await expect(rows).toContainText(`51 to 100 of ${PAGED_REQUIREMENTS}`, PAGE_SHOWN);
 
     await columns.getByRole("button", { name: "Next" }).click();
     await expect(columns).toContainText(`101 to 101 of ${PAGED_REQUIREMENTS}`);
-    await expect(matrix.getByRole("columnheader", { name: `${PAGED_KEY}-R101` })).toBeVisible();
+    await expect(matrix.getByRole("columnheader", { name: `${PAGED_KEY}-R101` })).toBeVisible(PAGE_SHOWN);
     await expect(matrix.getByRole("columnheader", { name: `${PAGED_KEY}-R1`, exact: true })).toHaveCount(0);
     await columns.getByRole("button", { name: "Previous" }).click();
-    await expect(matrix.getByRole("columnheader", { name: `${PAGED_KEY}-R1`, exact: true })).toBeVisible();
+    await expect(matrix.getByRole("columnheader", { name: `${PAGED_KEY}-R1`, exact: true })).toBeVisible(PAGE_SHOWN);
     expect(page.url()).toBe(address);
   });
 
