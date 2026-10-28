@@ -81,6 +81,18 @@ func editing(ctx context.Context, tx db.DBTX, actor uuid.UUID, projectKey string
 	return p, nil
 }
 
+// stillOpen refuses a change in an archived project before asking who may make it, as editing does.
+func stillOpen(ctx context.Context, tx db.DBTX, projectID uuid.UUID) error {
+	var open bool
+	if err := tx.QueryRow(ctx, `SELECT project_open($1)`, projectID).Scan(&open); err != nil {
+		return err
+	}
+	if !open {
+		return project.ErrArchived
+	}
+	return nil
+}
+
 // caseIDs resolves the keys of test cases of a project, in order, each once; a key that names nothing of the
 // project, or what is no live test case, is refused by name.
 func caseIDs(ctx context.Context, tx db.DBTX, projectID uuid.UUID, projectKey string, keys []string) ([]uuid.UUID, error) {

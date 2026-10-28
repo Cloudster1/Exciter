@@ -417,6 +417,11 @@ func (s *Service) Link(ctx context.Context, actor uuid.UUID, projectKey string, 
 			return err
 		}
 		link, err := trace.LinkIn(ctx, tx, actor, x.Key, trace.LinkInput{TypeKey: in.LinkTypeKey, OtherKey: y.Key})
+		// The trace links name the type by its id; this request names it by its key, where the refusal belongs.
+		var field *trace.FieldError
+		if errors.As(err, &field) && field.Field == "typeId" {
+			return &FieldError{"linkTypeKey", field.Message}
+		}
 		if err != nil {
 			return err
 		}

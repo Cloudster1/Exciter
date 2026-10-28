@@ -184,10 +184,13 @@ func (s *Service) DeleteFile(ctx context.Context, actor, id uuid.UUID) (db.LSN, 
 		if err != nil {
 			return err
 		}
-		switch {
-		case e.State != Open:
+		if e.State != Open {
 			return ErrClosed
-		case f.UploadedBy.ID != actor:
+		}
+		if err := stillOpen(ctx, tx, e.projectID); err != nil {
+			return err
+		}
+		if f.UploadedBy.ID != actor {
 			return ErrForbidden
 		}
 		_, err = tx.Exec(ctx, `DELETE FROM test_execution_file WHERE id = $1`, id)

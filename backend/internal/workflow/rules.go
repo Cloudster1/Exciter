@@ -112,6 +112,9 @@ var (
 	Dimensions = []string{"decomposed", "implemented", "verified"}
 )
 
+// ruleLinksExist names a link type in its config, which only the service can hold to the project.
+const ruleLinksExist = "validator.links_exist"
+
 type linksConfig struct {
 	LinkTypeID uuid.UUID `json:"linkTypeId"`
 	Direction  string    `json:"direction"`
@@ -234,7 +237,7 @@ var registry = []rule{
 		},
 	},
 	{
-		RuleType: RuleType{Kind: KindValidator, Type: "validator.links_exist", Label: "Links of a type",
+		RuleType: RuleType{Kind: KindValidator, Type: ruleLinksExist, Label: "Links of a type",
 			Description: "The requirement needs at least one link of a type, from it or to it, first.",
 			Options: []Option{{Name: "linkTypeId", Label: "Link type", Kind: OptionLinkType, Required: true},
 				{Name: "direction", Label: "Direction", Kind: OptionDirection, Required: true, Choices: Directions}}},
