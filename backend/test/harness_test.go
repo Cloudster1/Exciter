@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -49,6 +50,11 @@ const (
 	testWatchdog = 2 * time.Minute
 	// lockReportTimeout bounds taking the report itself.
 	lockReportTimeout = 5 * time.Second
+	// cleanupTries is how often a cleanup statement runs when the stack's worker, still handling the test's
+	// events, deadlocks with it; Postgres aborts one side, and the other has gone through by the next try (#405).
+	cleanupTries = 3
+	// cleanupRetryPause lets the worker's transaction end before the next try.
+	cleanupRetryPause = 200 * time.Millisecond
 	// superuserAppName marks the harness's sessions in pg_stat_activity.
 	superuserAppName = "exciter-test-superuser"
 )
@@ -167,6 +173,11 @@ func (h *harness) execBounded(t *testing.T, pool *pgxpool.Pool, b bound, sql str
 func (h *harness) cleanupExec(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) {
 	t.Helper()
 	report, err := h.execBounded(t, pool, statementBound, sql, args...)
+	for try := 1; try < cleanupTries && isDeadlock(err); try++ {
+		t.Logf("%q lost a deadlock, try %d of %d: %v", sql, try+1, cleanupTries, err)
+		time.Sleep(cleanupRetryPause)
+		report, err = h.execBounded(t, pool, statementBound, sql, args...)
+	}
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		t.Errorf("a cleanup gave up: %v. Find the session that blocks it below and make it finish:\n%s", err, report)
@@ -407,4 +418,10 @@ func (h *harness) freshnessUnder(t *testing.T, prefix string) *freshness.ValkeyT
 		t.Fatalf("reach Valkey: %v", err)
 	}
 	return tracker
+}
+
+// isDeadlock recognises the error of a statement Postgres aborted to end a deadlock.
+func isDeadlock(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "40P01"
 }

@@ -252,6 +252,14 @@ func refusalOf(r *http.Request, err error) *requirement.BulkRefusal {
 	return &requirement.BulkRefusal{Code: apiErr.Code, Message: message}
 }
 
+// times says how often, as a sentence does.
+func times(n int) string {
+	if n == 1 {
+		return "once"
+	}
+	return fmt.Sprintf("%d times", n)
+}
+
 // workflowError maps the workflows' refusals; nil when err is none of theirs.
 func workflowError(err error) *APIError {
 	var (
@@ -260,15 +268,18 @@ func workflowError(err error) *APIError {
 		inUse    *workflow.InUseError
 		dropped  *workflow.ErrStatusInUse
 		conflict *requirement.TransitionConflict
+		notYours *workflow.NotYoursError
 	)
 	switch {
+	case errors.As(err, &notYours):
+		return ErrForbidden(fmt.Sprintf("%s is not yours to take. %s Pick a transition you are offered.", notYours.Transition, notYours.Reason))
 	case errors.As(err, &invalid):
 		return ErrValidation(map[string]string{invalid.Field: invalid.Message})
 	case errors.As(err, &field):
 		return ErrValidation(map[string]string{field.Field: field.Message})
 	case errors.As(err, &inUse):
 		return &APIError{Status: http.StatusConflict, Code: "in_use", Message: fmt.Sprintf(
-			"This %s is still used %d times. Assign another in its place first.", inUse.What, inUse.Count)}
+			"This %s is still used %s. Assign another in its place first.", inUse.What, times(inUse.Count))}
 	case errors.As(err, &dropped):
 		return &APIError{Status: http.StatusConflict, Code: "status_in_use", Message: fmt.Sprintf(
 			"%d requirements under this workflow are in %s. Move them first, or assign another workflow with a mapping.", dropped.Count, dropped.Status)}

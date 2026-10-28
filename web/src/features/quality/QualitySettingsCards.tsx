@@ -44,14 +44,17 @@ function wordLists(settings: QualitySettings): Record<WordRule, QualityWords> {
 export function QualityRulesCard({ project }: { project: Project }) {
   const { data: settings, error, refetch } = useQualitySettings(project.key);
   const { data: catalogue } = useQualityRules();
+  // The notice outlives the form, which starts again from the settings saved.
+  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!settings || !catalogue) return <Skeleton />;
-  return <RulesForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} />;
+  return <RulesForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} notice={notice} onNotice={setNotice} />;
 }
 
-function RulesForm({ project, settings, catalogue }: { project: Project; settings: QualitySettings; catalogue: QualityRule[] }) {
+type FormProps = { project: Project; settings: QualitySettings; catalogue: QualityRule[]; notice: string; onNotice: (notice: string) => void };
+
+function RulesForm({ project, settings, catalogue, notice, onNotice }: FormProps) {
   const [rules, setRules] = useState(() => ruleSettings(settings, catalogue));
-  const [notice, setNotice] = useState("");
   const { data: types } = useTypes(project.key);
   const save = useSaveQualitySettings(project.key);
   const may = project.can.administer && !project.archivedAt;
@@ -60,8 +63,12 @@ function RulesForm({ project, settings, catalogue }: { project: Project; setting
   const change = (rule: string, next: Partial<QualityRuleSetting>) => setRules(rules.map((each) => (each.rule === rule ? { ...each, ...next } : each)));
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
-    save.mutate({ rules, words: wordLists(settings) }, { onSuccess: () => setNotice(l.saved) });
+    onNotice("");
+    // The saved settings remount this form, which drops a mutate call's own onSuccess; the promise resolves regardless.
+    void save
+      .mutateAsync({ rules, words: wordLists(settings) })
+      .then(() => onNotice(l.saved))
+      .catch(() => {});
   }
   const offered = (types ?? []).filter((type) => !type.retired);
   return (
@@ -146,16 +153,16 @@ function RulesForm({ project, settings, catalogue }: { project: Project; setting
 export function QualityWordsCard({ project }: { project: Project }) {
   const { data: settings, error, refetch } = useQualitySettings(project.key);
   const { data: catalogue } = useQualityRules();
+  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!settings || !catalogue) return <Skeleton />;
-  return <WordsForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} />;
+  return <WordsForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} notice={notice} onNotice={setNotice} />;
 }
 
-function WordsForm({ project, settings, catalogue }: { project: Project; settings: QualitySettings; catalogue: QualityRule[] }) {
+function WordsForm({ project, settings, catalogue, notice, onNotice }: FormProps) {
   const [lists, setLists] = useState(() =>
     Object.fromEntries(Object.entries(wordLists(settings)).map(([rule, words]) => [rule, { add: words.add.join(", "), except: words.except.join(", ") }])),
   );
-  const [notice, setNotice] = useState("");
   const save = useSaveQualitySettings(project.key);
   const may = project.can.administer && !project.archivedAt;
   const fields = save.error instanceof ApiError ? save.error.fields : {};
@@ -163,9 +170,12 @@ function WordsForm({ project, settings, catalogue }: { project: Project; setting
   const most = QUALITY_MAX_WORDS * (QUALITY_WORD_MAX_LENGTH + 2);
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
+    onNotice("");
     const words = Object.fromEntries(WORD_RULES.map((rule) => [rule, { add: listOf(lists[rule]?.add ?? ""), except: listOf(lists[rule]?.except ?? "") }]));
-    save.mutate({ rules: ruleSettings(settings, catalogue), words }, { onSuccess: () => setNotice(l.saved) });
+    void save
+      .mutateAsync({ rules: ruleSettings(settings, catalogue), words })
+      .then(() => onNotice(l.saved))
+      .catch(() => {});
   }
   // A refusal names the list as words.<rule>.add or words.<rule>.except.
   const problem = (rule: string, list: "add" | "except") => fields[`words.${rule}.${list}`] ?? fields[`words.${rule}`];

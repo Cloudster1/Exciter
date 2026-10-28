@@ -342,6 +342,9 @@ func managing(ctx context.Context, tx db.DBTX, actor, id uuid.UUID) (*executionR
 	if e.State != Open {
 		return nil, ErrClosed
 	}
+	if err := stillOpen(ctx, tx, e.projectID); err != nil {
+		return nil, err
+	}
 	if !e.Can.Manage {
 		return nil, ErrForbidden
 	}

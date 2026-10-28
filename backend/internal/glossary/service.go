@@ -329,8 +329,10 @@ func recheck(ctx context.Context, tx db.DBTX, actor, projectID uuid.UUID) error 
 func (s *Service) Update(ctx context.Context, actor uuid.UUID, id uuid.UUID, in TermPatch) (*Term, db.LSN, error) {
 	var out *Term
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
+		// FOR UPDATE reads through the update policy, which hides the term from whoever may only read it, so the
+		// right is judged on a plain read first: a reader is refused, not told the term is not there.
 		var projectID uuid.UUID
-		if err := tx.QueryRow(ctx, `SELECT project_id FROM glossary_term WHERE id = $1 FOR UPDATE`, id).Scan(&projectID); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT project_id FROM glossary_term WHERE id = $1`, id).Scan(&projectID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -338,6 +340,9 @@ func (s *Service) Update(ctx context.Context, actor uuid.UUID, id uuid.UUID, in 
 		}
 		if err := editable(ctx, tx, actor, projectID, "edit"); err != nil {
 			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT 1 FROM glossary_term WHERE id = $1 FOR UPDATE`, id); err != nil {
+			return fmt.Errorf("hold the term: %w", err)
 		}
 		cur, err := termByID(ctx, tx, id)
 		if err != nil {
