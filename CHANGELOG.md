@@ -18,6 +18,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   nowhere and writes nothing, and the stub's token endpoint fits Stator's
   document. In the browser a page deleted and moved in Stator, the connect
   hint, picking another page and the webhook card are driven (#327).
+- The suite proves outbound webhooks to the end of their delivery chain: a
+  receiver that never recovers is tried six times on the documented waits
+  and then left; turning a webhook off cancels what was due, and the worker
+  turning one off keeps an attempt asked for by hand; the log is pruned
+  but keeps what is still due; a timeout, a host that does not resolve, a
+  secret that no longer opens, an unknown envelope version and a redirect
+  into the network each say why; two senders post a delivery once; a save
+  and a rotation are audited without the secret. In the browser a failed
+  delivery is sent again, a rotated secret copied and checked by a ping,
+  and a webhook the worker turned off turned on and deleted (#328).
 - The integration suite's cleanup tries a statement again when it loses a
   deadlock to the stack's worker, which on a slow runner still writes the
   notifications of the project being removed (#405).
@@ -163,6 +173,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
   types, attributes, field rules, statuses and workflows are made,
   changed and deleted, the designer's inspector draws a workflow, and
   each change is checked on a requirement (#322).
+- The suite proves the risk scheme, the FMEA table and the risk report to
+  their edges: an archived project keeps its scheme, a save is audited
+  with its actor, detection stays on while a rating gives it, the table
+  pages and refuses a page or a cell off its bounds, a project without a
+  scheme rates nothing and reports nothing, a query narrows the matrix,
+  the report and the workbook, every download is audited, a hidden
+  mitigation counts but names nothing, the five risk MCP tools answer as
+  their routes do, and the database keeps the scheme to its
+  administrators. In the browser the method, detection, levels, values,
+  rating in the table, its pages, the matrix's sides and every download
+  are used and their effect checked (#325).
 - The suite proves the grid's and the search's pages, filters and views:
   every window of the grid and the search holds each row once in the order
   asked for, the search narrows by owner and day, a token limited to one
@@ -232,6 +253,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   moved to when Stator delivers the publish of that version late (#327).
   The move did not keep its version, so the late publish moved the link
   back to the space the page had left, with that space's address.
+- A webhook listening to a project hears that a requirement moved out of
+  it to another project (#328). Only the webhooks of the project it moved
+  to, or of every project, were posted `requirement.moved`.
 - The matrix paging browser test waits up to 20 seconds for each page of
   five thousand cells to show (#391). On a busy shard they rendered for
   longer than the default five seconds after the page had arrived.
@@ -279,6 +303,23 @@ and the versioning [Semantic Versioning](https://semver.org/).
   test's time (#389). On busy CI shards axe took 12 to 13 of the 20
   seconds a test has, so the members and specification tests ran out of
   time with nothing wrong in them.
+- The audit log records an FMEA workbook as it records every other export,
+  naming its project under project and its kind as risks (#325). It named
+  them projectKey and of, so a search of the log for a project's exports
+  missed its workbooks.
+- The risk matrix of a project without a risk scheme names its two scales
+  as the API document says it does (#325). They came without a dimension,
+  which the document does not allow. The document now also names the
+  severity and probability that narrow the FMEA workbook to one cell.
+- The FMEA workbook names a mitigation from a project its reader may not
+  view as "A requirement you may not view", with its coverage and whether
+  it is in effect, as the table and the Word report do (#325). Its row
+  was empty, so the risk read as mitigated by nothing.
+- A mitigation keeps joining a requirement that is no risk to a risk when
+  either end changes its type (#325). A risk could be given a type of
+  requirements, its mitigating requirement a type of risks, or that
+  requirement's type marked as risks, after the link was made; each is
+  now refused, through the API and straight through SQL alike.
 - The exciter-ci check against the stack reads a scan's tags and a run's
   results until a replica shows them, rather than once (#401). Read as
   the owner, not the token that wrote them, they could still be missing

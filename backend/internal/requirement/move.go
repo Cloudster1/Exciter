@@ -356,7 +356,9 @@ func (s *Service) moveAcross(ctx context.Context, tx db.DBTX, actor uuid.UUID, c
 		if err := logChange(ctx, tx, actor, id, ChangeKey, l.Key, moved); err != nil {
 			return err
 		}
-		if err := events.Emit(ctx, tx, TopicMoved, map[string]any{"actorId": actor, "requirementId": id, "fromKey": l.Key, "toKey": moved}); err != nil {
+		// The project it left is named too, since by the time the event is read the requirement is in the other one,
+		// and what listens to the first must still hear that it went.
+		if err := events.Emit(ctx, tx, TopicMoved, map[string]any{"actorId": actor, "requirementId": id, "projectId": cur.projectID, "fromKey": l.Key, "toKey": moved}); err != nil {
 			return err
 		}
 	}

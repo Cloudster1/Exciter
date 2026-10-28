@@ -18915,6 +18915,10 @@ export interface operations {
                 desc?: boolean;
                 /** @description before, or effective: after once every mitigation is in effect; effective when absent. */
                 side?: "before" | "effective";
+                /** @description Only risks of this severity on the side read. */
+                severity?: number;
+                /** @description Only risks of this probability on the side read. */
+                probability?: number;
             };
             header?: never;
             path: {
