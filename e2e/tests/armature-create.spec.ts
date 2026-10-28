@@ -45,6 +45,73 @@ test.describe("creating Armature issues from requirements", { tag: "@desktop" },
     await api.DELETE("/armature/connection");
   });
 
+  test("alice leaves a requirement out of the round, and clears a selection she does not want (#326)", async ({ page, api }) => {
+    await page.goto(`/p/${KEY}/spec`);
+    const document = page.getByRole("article", { name: "Specification" });
+    const bar = page.locator("[data-selection-bar]");
+    await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
+    await document.getByRole("checkbox", { name: `Select ${KEY}-R2` }).check();
+    await expect(bar.getByText("2 requirements selected")).toBeVisible();
+    await bar.locator('[data-action="clear-selection"]').click();
+    await expect(bar).toHaveCount(0);
+    await expect(document.getByRole("checkbox", { name: `Select ${KEY}-R1` })).not.toBeChecked();
+    await expect(document.getByRole("checkbox", { name: `Select ${KEY}-R2` })).not.toBeChecked();
+
+    await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
+    await document.getByRole("checkbox", { name: `Select ${KEY}-R2` }).check();
+    await page.getByRole("button", { name: "Create Armature issues" }).click();
+    await expect(page.getByRole("dialog", { name: "Create 2 Armature issues" })).toBeVisible();
+    // The title counts what is left in the round, so the dialog is found by its role alone.
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: `Leave out ${KEY}-R2` }).click();
+    await expect(page.getByRole("dialog", { name: "Create an Armature issue" })).toBeVisible();
+    await expect(dialog.locator(`[data-create-requirement="${KEY}-R2"]`)).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: `Leave out ${KEY}-R1` })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Create 1 issue" }).click();
+    await expect(dialog.getByText("The issue was made.")).toBeVisible();
+    await expect(dialog.locator("[data-result]")).toHaveCount(1);
+    await expect(dialog.locator(`[data-requirement="${KEY}-R1"]`)).toHaveAttribute("data-result", "created");
+
+    for (const [reqKey, count] of [
+      [`${KEY}-R1`, 1],
+      [`${KEY}-R2`, 0],
+    ] as const) {
+      const links = must(await api.GET("/requirements/{reqKey}/armature-links", { params: { path: { reqKey } } })).links;
+      expect(links, `${reqKey}'s traces`).toHaveLength(count);
+    }
+  });
+
+  test("a round Armature refuses halfway says which issue was made and why the other was not (#326)", async ({ page, api }) => {
+    const refused = `${KEY}-R2 Log every login`;
+    const steer = (summary: string) =>
+      fetch(`${armatureURL()}/_stub/${TENANT}/refused-summary`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary }),
+      });
+    expect((await steer(refused)).status).toBe(204);
+    try {
+      await page.goto(`/p/${KEY}/spec`);
+      const document = page.getByRole("article", { name: "Specification" });
+      await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
+      await document.getByRole("checkbox", { name: `Select ${KEY}-R2` }).check();
+      await page.getByRole("button", { name: "Create Armature issues" }).click();
+      const dialog = page.getByRole("dialog", { name: "Create 2 Armature issues" });
+      await dialog.getByRole("button", { name: "Create 2 issues" }).click();
+
+      await expect(dialog.getByText("1 of 2 issues were made.")).toBeVisible();
+      await expect(dialog.locator(`[data-requirement="${KEY}-R1"]`)).toHaveAttribute("data-result", "created");
+      const failed = dialog.locator(`[data-requirement="${KEY}-R2"]`);
+      await expect(failed).toHaveAttribute("data-result", "failed");
+      await expect(failed).toContainText("Armature refuses this summary.");
+      await expectAccessible(page);
+      const r2 = must(await api.GET("/requirements/{reqKey}/armature-links", { params: { path: { reqKey: `${KEY}-R2` } } })).links;
+      expect(r2).toEqual([]);
+    } finally {
+      await steer("");
+    }
+  });
+
   test("alice files an issue per picked requirement, and each requirement shows its issue", async ({ page }) => {
     await page.goto(`/p/${KEY}/spec`);
     const document = page.getByRole("article", { name: "Specification" });
