@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite drives the shell in a real browser: every place it lists, read
+  from its own sidebars, passes axe in light and dark; the folded sidebar
+  and a folded group survive a reload; a review and the notifications are
+  counted on bob's entries and fall as he reads and decides; Back to
+  Exciter keeps the whole address; the palette reaches the audit log and
+  the full search, and offers a member no settings; the drawer's links,
+  close button, Escape and theme button work at phone width; the profile
+  names who is signed in; and a sign-in never follows `next` off the site.
+  Home's states, the palette's failures and a refused profile save have
+  component tests (#331).
 - The suite proves projects, access, sign-on and the audit log to their
   edges: an administrator by grant renames, rekeys, archives, deletes and
   hands over a project while an editor changes none of it; a member removes
@@ -282,6 +292,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The Ctrl K palette no longer offers the requirements found for an earlier
+  word while the answer for the word now typed is still on its way (#331).
+  Pressing Enter then could open a requirement that does not match it.
 - A member made a project's administrator by a grant can save its
   permissions (#330). Saving cleared the table before writing it again, so
   their own grant was gone by the time the first row was written, and the
