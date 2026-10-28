@@ -79,3 +79,25 @@ fi
 
 # What the browser suite reached of the routes and data-action controls, when a whole run was checked (#334).
 for f in $(find_reports e2e-reach.md); do echo; cat "$f"; done
+
+# Each coverage figure beside its floor, and per package or folder below it (#334).
+coverage_files=$(find_reports 'coverage-*.tsv')
+if [[ -n "$coverage_files" ]]; then
+  echo
+  echo "## Coverage"
+  echo
+  echo "| Measure | Total | Floor |"
+  echo "| --- | ---: | ---: |"
+  for f in $coverage_files; do
+    name=$(basename "$f" .tsv); name=${name#coverage-}
+    awk -F'\t' -v n="$name" '$1 == "total" { t = $2 } $1 == "floor" { fl = $2 } END { printf "| %s | %s%% | %s%% |\n", n, t, fl }' "$f"
+  done
+  for f in $coverage_files; do
+    name=$(basename "$f" .tsv); name=${name#coverage-}
+    printf '\n<details><summary>%s by package</summary>\n\n| Package | Covered | Statements |\n| --- | ---: | ---: |\n' "$name"
+    awk -F'\t' '$1 != "total" && $1 != "floor" { printf "| %s | %s%% | %s |\n", $1, $2, $3 }' "$f"
+    printf '\n</details>\n'
+  done
+  echo
+  echo "A floor in coverage/ only rises. Once a change lifts a total, raise its floor to the new figure, rounded down."
+fi

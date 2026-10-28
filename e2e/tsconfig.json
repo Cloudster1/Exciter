@@ -17,5 +17,5 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["playwright.config.ts", "merge.config.ts", "fixtures", "tests", "../web/src/api/schema.d.ts", "../web/src/config.ts"]
+  "include": ["playwright.config.ts", "merge.config.ts", "fixtures", "tests", "../web/src/api/schema.d.ts"]
 }

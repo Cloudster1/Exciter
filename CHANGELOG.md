@@ -9,6 +9,57 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves themes and the German interface end to end: a theme is
+  made from an example, previewed, given a backdrop file, shared, unshared,
+  deleted and named the default from the Themes page in a real browser,
+  where a member may change none of it; a browser asking for German gets
+  it, at phone width and under axe too; over the API, deleting the default
+  or unsharing a chosen theme returns people to the built-in one, and a
+  read-only token and every file limit are refused with their status and
+  code; exports speak the reader's language; and
+  the editor's tabs, the row menu, the plurals and the words the server
+  sends are checked in both catalogues (#332).
+- The suite drives the shell in a real browser: every place it lists, read
+  from its own sidebars, passes axe in light and dark; the folded sidebar
+  and a folded group survive a reload; a review and the notifications are
+  counted on bob's entries and fall as he reads and decides; Back to
+  Exciter keeps the whole address; the palette reaches the audit log and
+  the full search, and offers a member no settings; the drawer's links,
+  close button, Escape and theme button work at phone width; the profile
+  names who is signed in; and a sign-in never follows `next` off the site.
+  Home's states, the palette's failures and a refused profile save have
+  component tests (#331).
+- The suite proves projects, access, sign-on and the audit log to their
+  edges: an administrator by grant renames, rekeys, archives, deletes and
+  hands over a project while an editor changes none of it; a member removes
+  no group mapping, turns nobody away and links no demo again; a mapped
+  group posted again changes in place; a provider without a client id and
+  a join as guest are refused; the log narrows and walks over HTTP and an
+  export by action holds that action; and a plain member switches nothing
+  of the installation's through SQL. In the browser the provider, group
+  mapping, joining, roles and switching off, copying a password, discarding
+  and removing grants, switching OAuth off, linking the demo again and
+  every audit filter are driven, and the home screen's empty states and the
+  permissions table's discard are unit tested (#330).
+- The suite calls every MCP tool through the protocol's own client, each
+  answer held to its schema and to the route it stands for, and proves the
+  rest of OAuth and tokens: a consent answered twice or past its time, a
+  denial over the API, a code and an access token that ran out, another
+  client's refresh and revocation, a second consent replacing the first
+  grant, a member refused every partner app write, a rotated secret, the
+  sweeper, and a metadata document fetched from its own address alone. In
+  the browser an administrator revokes a token and disconnects an app of
+  somebody else's, a token and a partner secret are copied, a partner
+  secret rotated, and a consent narrowed to one project (#329).
+- The suite proves the Stator integration's refusals and deliveries: a
+  reader holding a Stator token, the trash and an archived project change
+  no link, the lookup and search keep to their bounds, a webhook past its
+  size or of no envelope changes nothing, a late publish never moves a
+  link back, every link sync sentence is written, the sign-in exchange at
+  Stator fails, forgets and renews on its own, a print's token is listed
+  nowhere and writes nothing, and the stub's token endpoint fits Stator's
+  document. In the browser a page deleted and moved in Stator, the connect
+  hint, picking another page and the webhook card are driven (#327).
 - The suite proves outbound webhooks to the end of their delivery chain: a
   receiver that never recovers is tried six times on the documented waits
   and then left; turning a webhook off cancels what was due, and the worker
@@ -67,6 +118,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   saved, a term is added, redefined, confirmed, reloaded, linked by hand
   and deleted, a library glossary is chosen, and pairs are linked,
   merged, filtered, paged, read again and listed by the threshold (#320).
+- Every pull request shows Go unit, Go integration and web coverage, in
+  total and per package, and fails below floors kept in `coverage/`,
+  which only rise (#334). They start at 35.5% unit, 76% integration and
+  91.5% of the web client's lines, leaving out its strings and constants.
 - Eight tests of the coverage work assert what their items state, not
   less (#406): every field refusal the integration suite checks is a 422,
   and the toolbar, quick search, watchers, link types, trace graph and
@@ -104,6 +159,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
   answering as their routes do. In the browser issue columns, paging, a
   suspect cell, moved and removed levels, levels of tests and code, and
   chains narrowed, downloaded and shared are used (#315).
+- The stack's primary database logs the plan of any statement that runs
+  past three seconds, with the rows each step gave, and a failed gate
+  keeps it with its reports (#405). The FMEA table's query has run past
+  ten seconds on CI's runners with nothing to say why.
+- Nine more tests of the coverage work assert what their items state
+  (#416): a draft's statement that is no document and a reader's bulk
+  transition are refused with nothing moved, the tester bounds and a due
+  date kept are checked by their own sentence and value, and the dashboard
+  list, the home dashboard, the home executions, the start dialog's
+  refusals and a live Armature chip each fail when what they name breaks.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result
@@ -237,6 +302,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The Ctrl K palette no longer offers the requirements found for an earlier
+  word while the answer for the word now typed is still on its way (#331).
+  Pressing Enter then could open a requirement that does not match it.
+- A member made a project's administrator by a grant can save its
+  permissions (#330). Saving cleared the table before writing it again, so
+  their own grant was gone by the time the first row was written, and the
+  database refused it with "Something went wrong".
+- The database refuses a Stator page link whose address is not under the
+  connected Stator's (#327). The service always wrote it there, but a
+  writer straight through SQL could point a link everyone clicks anywhere.
+- A requirement's link to a Stator page stays in the space the page was
+  moved to when Stator delivers the publish of that version late (#327).
+  The move did not keep its version, so the late publish moved the link
+  back to the space the page had left, with that space's address.
 - A webhook listening to a project hears that a requirement moved out of
   it to another project (#328). Only the webhooks of the project it moved
   to, or of every project, were posted `requirement.moved`.
@@ -247,6 +326,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   filing issues from an archived project says the project is archived
   (409 `project_archived`), as confirming a trace there already did
   (#326). It answered 403 and told an editor to ask for edit rights.
+- Starting a test execution with testers it refuses reads the refusal out
+  with the testers (#416). It showed below them, but a screen reader did
+  not tie it to them.
 - Saving a project's details says "Saved." (#319). The form started again
   from the saved project and lost the word before anyone read it.
 - Saving the writing rules or the word lists says so (#320). The cards

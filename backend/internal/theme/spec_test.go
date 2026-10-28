@@ -60,6 +60,9 @@ func TestAThemeIsValidatedPartByPart(t *testing.T) {
 		{"css that loads from elsewhere through src()", Spec{CSS: ".x { background: SRC(\"https://evil/a.png\") }"}, "only load its own files"},
 		{"css that spells url( with an escape", Spec{CSS: ".x { background: \\75 rl(https://evil/pixel.png) }"}, "backslash"},
 		{"css that spells a forbidden word with an escape", Spec{CSS: "@\\69mport 'x.css';"}, "backslash"},
+		// The two forms #332 named, written as a theme would carry them.
+		{"css that reaches another origin through image-set", Spec{CSS: ".x { background: image-set(\"https://evil.example/p.png\" 1x) }"}, "loads \"https://evil.example/p.png\""},
+		{"css that spells url( with an escaped r", Spec{CSS: ".x { background: u\\72l(https://evil.example/p.png) }"}, "backslash"},
 	}
 	for _, each := range refused {
 		spec := each.spec

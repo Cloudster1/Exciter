@@ -563,32 +563,3 @@ export const RISK_DEFAULT_LEVELS = [
 ] as const;
 /** How many risks a page of the FMEA table holds; the server's risk.DefaultRows. */
 export const RISK_PAGE_SIZE = 50;
-
-/** Every place of features/shell/places.ts by its path, for the browser suite's accessibility check (#334); a
- *  unit test holds the two lists together. */
-export const PLACE_PATHS = [
-  "/",
-  SEARCH_PATH,
-  NOTIFICATIONS_PATH,
-  REVIEWS_PATH,
-  PROJECTS_PATH,
-  PROFILE_PATH,
-  NOTIFICATION_SETTINGS_PATH,
-  WATCHING_PATH,
-  THEMES_PATH,
-  TOKENS_PATH,
-  CONNECTED_APPS_PATH,
-  ARMATURE_ACCOUNT_PATH,
-  STATOR_ACCOUNT_PATH,
-  INSTALLATION_PATH,
-  MEMBERS_PATH,
-  SSO_PATH,
-  DEFAULT_THEME_PATH,
-  LINK_TYPES_PATH,
-  ALL_TOKENS_PATH,
-  ALL_CONNECTED_APPS_PATH,
-  ARMATURE_SETTINGS_PATH,
-  STATOR_SETTINGS_PATH,
-  WEBHOOKS_PATH,
-  AUDIT_PATH,
-] as const;
