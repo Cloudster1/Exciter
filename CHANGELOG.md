@@ -304,6 +304,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The chart's render service starts: its pod now runs as the Chrome
+  image's user by number, which the kubelet needs under `runAsNonRoot`,
+  so `render.enabled` no longer leaves PDF export waiting on a pod that
+  never comes up (#333).
 - The chart refuses `auth.secureCookies: false` outside development, in the
   sentence the api gives, instead of rendering a release whose api and
   worker then refuse to start (#333).

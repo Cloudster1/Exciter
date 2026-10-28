@@ -149,6 +149,9 @@ check "enabled, the render service runs beside the web and the api prints throug
     "$(config_value "${with_render}" EXCITER_RENDER_URL) $(grep -c "^  name: ${RELEASE}-exciter-render\$" <<<"${with_render}") $(grep -c 'name: RENDER_APP_URL' <<<"${with_render}")" \
     "http://${RELEASE}-exciter-render:8090 2 1"
 check "its image is the one a release pushes" "$(grep -c 'image: ghcr.io/cloudster1/exciter-render:' <<<"${with_render}")" "1"
+# The image's user is a name, chrome, which the kubelet refuses under runAsNonRoot unless its number is given.
+check "it runs as the image's own user, by number" \
+    "$(manifest "${with_render}" Deployment "${FULL}-render" | grep -cE '^        runAsNonRoot: true$|^        runAsUser: 1000$|^        runAsGroup: 1000$')" "3"
 check "diagrams are drawn by a pinned Kroki in its secure mode, which the api reaches in the cluster" \
     "$(config_value "${RENDERED}" EXCITER_KROKI_URL) $(grep -c "^  name: ${RELEASE}-exciter-kroki\$" <<<"${RENDERED}") $(grep -c 'image: yuzutech/kroki:0.33.0' <<<"${RENDERED}") $(grep -A1 'name: KROKI_SAFE_MODE' <<<"${RENDERED}" | grep -c 'value: secure')" \
     "http://${RELEASE}-exciter-kroki:8000 2 1 1"
