@@ -13,6 +13,8 @@ const START_TIMEOUT_MS = 120_000;
 const SHORT_BUDGET_MS = 1_500;
 /** How long the browser's going may take to show on /healthz. */
 const GONE_WAIT_MS = 15_000;
+/** How long a print may take to open its page. */
+const PAGE_WAIT_MS = 15_000;
 const POLL_MS = 100;
 const TOKEN = "render-test-token";
 
@@ -145,7 +147,11 @@ describe("a print", () => {
   it("beyond RENDER_CONCURRENCY answers 503 at once, while the first goes on", async () => {
     app.asked.length = 0;
     const first = ask("/pdf", { path: "/never", budgetMs: SHORT_BUDGET_MS * 2 });
-    while (!app.asked.some((r) => r.path === "/never")) await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+    const opened = Date.now() + PAGE_WAIT_MS;
+    while (!app.asked.some((r) => r.path === "/never")) {
+      assert.ok(Date.now() < opened, `the first print did not open its page within ${PAGE_WAIT_MS}ms`);
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+    }
     assert.deepEqual(await refusal(await ask("/pdf", { path: "/ready" })), { status: 503, error: "1 pages are being printed already" });
     assert.equal((await first).status, 504);
     assert.equal((await ask("/pdf", { path: "/ready" })).status, 200, "the slot was not given back");
