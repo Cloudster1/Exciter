@@ -9,6 +9,16 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves test plans and executions past the happy path: every
+  field a start, a plan, a result, a file and an issue refuses, a reader's
+  403 and the archived project with nothing written, aborting so a result
+  counts for nothing, the due reminder once per due date, a group testing
+  through its members, all eleven MCP tools answering as their routes do,
+  and each guard of the executions' tables through SQL. In the browser a
+  plan's cases are moved, removed and found by a changed query, a plan is
+  deleted, an execution changed, aborted and printed, a case's iterations
+  walked with its outcome set by hand and a file deleted, and a failure
+  filed in Armature (#324).
 - The suite proves reviews, signed approvals and review sessions through
   every role and scope: an editor sets no rule and moderates nobody else's
   session, an archived project takes no rule or review, a rule of one type
