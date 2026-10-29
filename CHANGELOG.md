@@ -7,6 +7,8 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
 ### Changed
 
 - The suite proves what the worker runs and how things fail: the review
