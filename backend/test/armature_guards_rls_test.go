@@ -50,11 +50,6 @@ func TestRawSQLGuardsArmatureClearancesAndSyncRecords(t *testing.T) {
 		t.Fatalf("an editor links in their own name: %v", err)
 	}
 	want(t, owner.patch(t, "/api/v1/requirements/"+key+"-R1", map[string]any{"title": "Live and revised", "baseRevision": 1}), http.StatusOK, "revise the requirement")
-	if _, err := h.super.Exec(ctx, `
-		INSERT INTO armature_remote_link (requirement_id, issue_key, remote_link_id, url, title, state, synced_at)
-		VALUES ($1, 'CP-1', $2, 'https://exciter.example/r/x', 'ACW-R1 Live (implements)', 'synced', now())`, live["id"], uuid.New()); err != nil {
-		t.Fatal(err)
-	}
 	h.settle(t)
 	clear := `SELECT armature_issue_link_clear($1, $2, 'Still holds.')`
 	cleared := func() int {
@@ -104,6 +99,16 @@ func TestRawSQLGuardsArmatureClearancesAndSyncRecords(t *testing.T) {
 	})
 
 	t.Run("only the worker writes the sync records", func(t *testing.T) {
+		// The worker rewrites the record while it handles the revision and the
+		// clearance, so the record is made once it has nothing left to handle.
+		h.drained(t)
+		if _, err := h.super.Exec(ctx, `
+			INSERT INTO armature_remote_link (requirement_id, issue_key, remote_link_id, url, title, state, synced_at)
+			VALUES ($1, 'CP-1', $2, 'https://exciter.example/r/x', 'ACW-R1 Live (implements)', 'synced', now())
+			ON CONFLICT ON CONSTRAINT armature_remote_link_pkey DO UPDATE SET state = 'synced', error = NULL`, live["id"], uuid.New()); err != nil {
+			t.Fatal(err)
+		}
+		h.settle(t)
 		if _, err := editor.Exec(ctx, `UPDATE armature_remote_link SET state = 'failed', error = 'No.' WHERE requirement_id = $1`, live["id"]); !isPermissionDenied(err) {
 			t.Errorf("an editor marking a record = %v, want permission denied", err)
 		}
