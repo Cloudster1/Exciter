@@ -57,7 +57,11 @@ test-e2e: ## Run the browser suite against this checkout's running stack: ONLY=<
 	@mkdir -p $(E2E_NPM_CACHE)
 	@since=$$(date +%s); \
 	$(DOCKER_PLAYWRIGHT) sh -c '$(E2E_INSTALL) && npx tsc --noEmit && { npx playwright test --workers=$(WORKERS) $${ONLY:+--grep "$$ONLY"} $${REPEAT:+--repeat-each "$$REPEAT"} $${SHARD:+--shard "$$SHARD"}; rc=$$?; $(E2E_OOM_REPORT); exit $$rc; }'; \
-	rc=$$?; [ $$rc -eq 0 ] || $(E2E_CORE_REPORT); exit $$rc
+	rc=$$?; [ $$rc -eq 0 ] || $(E2E_CORE_REPORT); [ $$rc -ne 0 ] || [ -n "$(ONLY)$(SHARD)$(REPEAT)" ] || $(MAKE) --no-print-directory e2e-reach || rc=$$?; exit $$rc
+
+.PHONY: e2e-reach
+e2e-reach: ## After a whole browser run: fail on a route never shown or a data-action never clicked that no exemption explains
+	$(DOCKER_PLAYWRIGHT) node /src/scripts/e2e-reach.mjs /src/reports
 
 .PHONY: e2e-report
 e2e-report: ## Serve the last browser run's HTML report, traces included

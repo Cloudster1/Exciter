@@ -77,6 +77,9 @@ if [[ -n "$suite_rows" ]]; then
   printf '%s' "$slowest_sections"
 fi
 
+# What the browser suite reached of the routes and data-action controls, when a whole run was checked (#334).
+for f in $(find_reports e2e-reach.md); do echo; cat "$f"; done
+
 # Each coverage figure beside its floor, and per package or folder below it (#334).
 coverage_files=$(find_reports 'coverage-*.tsv')
 if [[ -n "$coverage_files" ]]; then

@@ -139,7 +139,13 @@ jobs:
           find reports -path '*/e2e-blob/*.zip' -exec cp {} reports/e2e-blobs/ \;
           if [ -n "$(ls reports/e2e-blobs)" ]; then make e2e-merge-reports; fi
 
+      # Only over a whole run: a shard that failed stopped before reaching what its other tests would have.
+      - name: Check what the browser suite reached
+        if: needs.gate.result == 'success'
+        run: if [ -n "$(ls reports/e2e-blobs)" ]; then make e2e-reach; fi
+
       - name: Write the summary
+        if: ${{ !cancelled() }}
         run: ./scripts/test-summary.sh reports | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the timings
