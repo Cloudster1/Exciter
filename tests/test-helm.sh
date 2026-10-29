@@ -140,6 +140,7 @@ check "admin work goes to -rw" "$(env_value "${RENDERED}" EXCITER_DB_ADMIN_URL)"
 check "reads go to -ro" "$(env_value "${RENDERED}" EXCITER_DB_REPLICA_URLS)" "$(app_url "${RO}" require)"
 check "migrations run as the owner on -rw" "$(migrate_url "${RENDERED}")" "$(owner_url exciter_owner "${RW}" require)"
 check "the Cluster is rendered with three instances" "$(grep -c '^kind: Cluster$' <<<"${RENDERED}") $(grep -c '^  instances: 3$' <<<"${RENDERED}")" "1 1"
+check "standbys keep what their reads see (#435)" "$(grep -c 'hot_standby_feedback: "on"' <<<"${RENDERED}") $(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set-string cnpg.spec.postgresql.parameters.hot_standby_feedback=off 2>&1 | grep -c 'hot_standby_feedback: "off"')" "1 1"
 check "the operator makes both runtime roles" "$(grep -cE '^    - (name: exciter_app|name: exciter_admin)|^      name: exciter_(app|admin)$' <<<"${RENDERED}")" "2"
 check "the operator gives the owner BYPASSRLS, with its own password" \
     "$(grep -B3 -A2 '^      name: exciter_owner$' <<<"${RENDERED}" | grep -cE '^    - bypassrls: true$|^        name: r-exciter-db-owner$')" "2"

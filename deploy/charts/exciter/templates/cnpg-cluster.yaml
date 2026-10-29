@@ -58,6 +58,13 @@ Surfaces a standby's replay position on the primary, as in the compose stack.
 The pool reads it either way.
 */}}
 {{- $_ := set $parameters "track_commit_timestamp" "on" }}
+{{/*
+A standby tells the primary which rows its reads still see, so replay never cancels a long read (#435); a values
+file may still turn it off.
+*/}}
+{{- if not (hasKey $parameters "hot_standby_feedback") }}
+{{- $_ := set $parameters "hot_standby_feedback" "on" }}
+{{- end }}
 {{- $_ := set $postgresql "parameters" $parameters }}
 {{- $_ := set $spec "postgresql" $postgresql }}
 apiVersion: postgresql.cnpg.io/v1
