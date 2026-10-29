@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves what the worker runs and how things fail: the review
+  reminder reminds a due session once, outbox pruning deletes only done
+  events past retention, a panicking handler, a worker stopped mid batch
+  and a lapsed lease leave the outbox as they should, and a request's trace
+  reaches the worker's span. Every migration runs down and up again to the
+  same schema, `/readyz` and the healthcheck follow the primary, Kroki
+  fetches nothing, the worker refuses a bad Valkey, a mention lands without
+  mail, `migrate`, `seed` and the SMTP mailer have unit tests, and the
+  render service its own. The chart refuses and renders what was unchecked,
+  the install shows the worker, the bucket and a PDF at work and runs for
+  every input of the images, and the realm's return addresses are checked
+  (#333).
 - The suite proves themes and the German interface end to end: a theme is
   made from an example, previewed, given a backdrop file, shared, unshared,
   deleted and named the default from the Themes page in a real browser,
@@ -149,6 +161,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   changed and removed, a signature given at Keycloak and cancelled, and
   sessions opened over a baseline and a query and their report downloaded
   (#317).
+- Six more tests of the coverage work assert what their items state
+  (#432): ending anybody's connected app by an id that is none is refused
+  400, an editor neither deletes nor unarchives an archived project, a
+  discarded permissions table asks the server nothing at all, the German
+  exports' glossary is named in German and not in English, and the FMEA
+  table has loaded before a hazard is found without a level.
 - The suite proves the traceability matrix and the trace model to their
   edges: another project's requirements as columns both ways and in the
   files, every combination the matrix refuses, a matrix too wide for a
@@ -169,6 +187,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   date kept are checked by their own sentence and value, and the dashboard
   list, the home dashboard, the home executions, the start dialog's
   refusals and a live Armature chip each fail when what they name breaks.
+- The integration suite fails when a write was never refused 403 with a
+  code, an operation taking a body never refused 422 on a field, or an MCP
+  tool never answered or never refused, unless it says why (#334). Every
+  tool is now called with a key nobody has, and refuses it.
 - The suite proves test plans and executions past the happy path: every
   field a start, a plan, a result, a file and an issue refuses, a reader's
   403 and the archived project with nothing written, aborting so a result
@@ -302,6 +324,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The chart's render service starts: its pod now runs as the Chrome
+  image's user by number, which the kubelet needs under `runAsNonRoot`,
+  so `render.enabled` no longer leaves PDF export waiting on a pod that
+  never comes up (#333).
+- The chart refuses `auth.secureCookies: false` outside development, in the
+  sentence the api gives, instead of rendering a release whose api and
+  worker then refuse to start (#333).
 - The Ctrl K palette no longer offers the requirements found for an earlier
   word while the answer for the word now typed is still on its way (#331).
   Pressing Enter then could open a requirement that does not match it.
@@ -578,6 +607,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   each day (#360). Shortly after midnight UTC the worker marks the
   requirements those formulas show on, and nothing else; what reads such a
   value elsewhere follows as with any change.
+
+### Security
+
+- The web app takes seroval 1.7.3, which closes the high-severity advisories
+  npm reported for 1.6.8 (#436).
 
 ## [0.1.0] - 2026-10-21
 

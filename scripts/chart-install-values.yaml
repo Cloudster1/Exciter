@@ -46,3 +46,8 @@ images:
   pullPolicy: IfNotPresent
   backend: { repository: exciter-test/backend, tag: ci }
   web: { repository: exciter-test/web, tag: ci }
+  render: { repository: exciter-test/render, tag: ci }
+
+# On, so the install test prints a PDF through it.
+render:
+  enabled: true

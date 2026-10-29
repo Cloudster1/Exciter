@@ -98,10 +98,22 @@ func TestAProjectAdministratorByGrantRunsItAndAnEditorDoesNot(t *testing.T) {
 	})
 
 	t.Run("an archived project is deleted by its administrator alone", func(t *testing.T) {
+		// Eddie is an editor again, so the refusals below are an editor's and not a viewer's.
+		regranted := want(t, admin.put(t, "/api/v1/projects/"+moved+"/grants", map[string]any{"grants": []any{
+			grantRow(subjectOf("user", f.home.user), "admin"),
+			grantRow(subjectOf("user", adminID), "admin"),
+			grantRow(subjectOf("user", editorID), "editor"),
+		}}), http.StatusOK, "make him an editor again")
+		if rows := rolesOf(t, regranted); !slices.Contains(rows, "user:Eddie Editor=editor") {
+			t.Fatalf("Eddie is not an editor again: %v", rows)
+		}
+		if can := obj(t, want(t, editor.get(t, "/api/v1/projects/"+moved), http.StatusOK, "read as the editor again"), "project", "can"); can["edit"] != true || can["administer"] != false {
+			t.Fatalf("the editor's rights read %v", can)
+		}
 		want(t, admin.put(t, "/api/v1/projects/"+moved+"/archive", nil), http.StatusOK, "archive")
 		before := f.h.projectRow(t, id)
-		refuse(t, "the viewer deletes it", editor.delete(t, "/api/v1/projects/"+moved), http.StatusForbidden, "forbidden")
-		refuse(t, "the viewer unarchives it", editor.delete(t, "/api/v1/projects/"+moved+"/archive"), http.StatusForbidden, "forbidden")
+		refuse(t, "the editor deletes it", editor.delete(t, "/api/v1/projects/"+moved), http.StatusForbidden, "forbidden")
+		refuse(t, "the editor unarchives it", editor.delete(t, "/api/v1/projects/"+moved+"/archive"), http.StatusForbidden, "forbidden")
 		if after := f.h.projectRow(t, id); after != before {
 			t.Errorf("the refusals changed the archived project from %s to %s", before, after)
 		}
