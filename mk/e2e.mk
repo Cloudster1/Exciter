@@ -42,6 +42,10 @@ E2E_CORE_REPORT = { command -v coredumpctl >/dev/null \
 	&& coredumpctl --no-pager --since=@$$since list 2>/dev/null | grep -E "chrome|node" \
 	&& echo "These browser or test processes crashed during this run; coredumpctl info <PID> shows the stack. Rerun with DEBUG=pw:browser to see Chromium's own message."; true; }
 
+# The reach check, which test-e2e runs inline: a $(MAKE) on that recipe's line would make the `make -n test-e2e`
+# run-tests.sh asks before the stack is up run the whole suite there, fail, and the layer be skipped as absent.
+E2E_REACH = $(DOCKER_PLAYWRIGHT) node /src/scripts/e2e-reach.mjs /src/reports
+
 # npm ci only when the lock file changed since the last install, which keeps a rerun of one spec to a couple of seconds.
 E2E_INSTALL = [ node_modules/.package-lock.json -nt package-lock.json ] || npm ci --no-audit --no-fund
 
@@ -57,11 +61,11 @@ test-e2e: ## Run the browser suite against this checkout's running stack: ONLY=<
 	@mkdir -p $(E2E_NPM_CACHE)
 	@since=$$(date +%s); \
 	$(DOCKER_PLAYWRIGHT) sh -c '$(E2E_INSTALL) && npx tsc --noEmit && { npx playwright test --workers=$(WORKERS) $${ONLY:+--grep "$$ONLY"} $${REPEAT:+--repeat-each "$$REPEAT"} $${SHARD:+--shard "$$SHARD"}; rc=$$?; $(E2E_OOM_REPORT); exit $$rc; }'; \
-	rc=$$?; [ $$rc -eq 0 ] || $(E2E_CORE_REPORT); [ $$rc -ne 0 ] || [ -n "$(ONLY)$(SHARD)$(REPEAT)" ] || $(MAKE) --no-print-directory e2e-reach || rc=$$?; exit $$rc
+	rc=$$?; [ $$rc -eq 0 ] || $(E2E_CORE_REPORT); [ $$rc -ne 0 ] || [ -n "$(ONLY)$(SHARD)$(REPEAT)" ] || $(E2E_REACH) || rc=$$?; exit $$rc
 
 .PHONY: e2e-reach
 e2e-reach: ## After a whole browser run: fail on a route never shown or a data-action never clicked that no exemption explains
-	$(DOCKER_PLAYWRIGHT) node /src/scripts/e2e-reach.mjs /src/reports
+	$(E2E_REACH)
 
 .PHONY: e2e-report
 e2e-report: ## Serve the last browser run's HTML report, traces included

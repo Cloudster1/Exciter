@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Page, TestInfo } from "@playwright/test";
 import { must } from "../fixtures/api";
-import { ANONYMOUS, expect, ME_PATH, signInWithPassword } from "../fixtures/auth";
+import { anonymousContext, expect, ME_PATH, signInWithPassword } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { expectAccessible } from "../fixtures/shell";
@@ -52,7 +52,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     await dialog.locator('[data-action="done"]').click();
     await expect(member(page, email)).toBeVisible();
 
-    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    const context = await anonymousContext(browser);
     const fresh = await context.newPage();
     await signInWithPassword(fresh, email, password);
     expect((await fresh.request.get(ME_PATH)).status()).toBe(200);
@@ -103,7 +103,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     added.push(email);
     const password = randomBytes(PASSWORD_BYTES).toString("base64url");
     must(await api.POST("/users", { body: { email, name: "Stan Standing", role: "member", password } }));
-    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    const context = await anonymousContext(browser);
     try {
       const theirs = await context.newPage();
       // The account was just made, so a replica may not hold it at the first try.
@@ -155,7 +155,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     expect(copied.length).toBeGreaterThanOrEqual(MIN_PASSWORD_LENGTH);
     await dialog.locator('[data-action="done"]').click();
 
-    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    const context = await anonymousContext(browser);
     try {
       const fresh = await context.newPage();
       await signInWithPassword(fresh, email, copied);

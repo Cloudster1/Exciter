@@ -109,6 +109,18 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(items.locator(`[data-item-change="${SECTION_KEY}-R3"]`)).toHaveAttribute("data-change", "removed");
     await expect(items.locator(`[data-item-change="${SECTION_KEY}-R4"]`)).toHaveAttribute("data-change", "added");
     await expectAccessible(page);
+
+    // The print view the PDF is made of holds what the baseline held when taken, not what the project reads now.
+    await page.goto(`/print/baselines/${before.id}`);
+    await expect(page.locator("html[data-print-ready]")).toBeAttached();
+    const printed = page.locator('[data-print-view] [data-print-document="baseline"]');
+    await expect(printed.locator("[data-print-cover]")).toContainText(`Baseline of Sections (${SECTION_KEY})`);
+    await expect(printed.locator("[data-print-entry]")).toHaveCount(3);
+    await expect(printed.locator(`[data-print-entry="${SECTION_KEY}-R2"]`)).toContainText("Brakes engage within 100 ms");
+    await expect(printed.locator(`[data-print-entry="${SECTION_KEY}-R3"]`)).toContainText("Lights follow the pedal");
+    await expect(printed.locator(`[data-print-entry="${SECTION_KEY}-R4"]`)).toHaveCount(0);
+    await expect(printed).not.toContainText("within 80 ms");
+    await expectAccessible(page);
   });
 
   test("alice downloads a baseline's matrix compared with now as a workbook", async ({ page, api }) => {

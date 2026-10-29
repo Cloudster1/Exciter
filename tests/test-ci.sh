@@ -44,6 +44,26 @@ else
     || fail "no browser job runs part$missing"
 fi
 
+echo "== asking whether a layer exists runs none of it"
+
+# run-tests.sh asks make -n, before the stack is up; make runs a recipe line that holds $(MAKE) even then, and a
+# layer whose line failed so was skipped as absent while the gate passed (#440).
+stub="$(mktemp -d)"
+printf '#!/bin/sh\necho "$*" >> "%s/ran"\nexit 1\n' "$stub" > "$stub/docker"
+chmod +x "$stub/docker"
+for layer in $("$SRC/run-tests.sh" --list) stack-up; do
+  [[ "$layer" == shell ]] && continue
+  rm -f "$stub/ran"
+  if ! PATH="$stub:$PATH" make -n -C "$SRC" "$layer" > /dev/null 2>&1; then
+    fail "make -n $layer fails, so run-tests.sh would skip $layer as a layer that does not exist"
+  elif [[ -s "$stub/ran" ]]; then
+    fail "make -n $layer runs docker $(head -c 80 "$stub/ran"); keep \$(MAKE) off a recipe line that runs anything else"
+  else
+    pass "make -n $layer runs nothing"
+  fi
+done
+rm -rf "$stub"
+
 echo "== chart-install.yml runs for what an install is built from"
 
 INSTALL="$SRC/.github/workflows/chart-install.yml"

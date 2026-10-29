@@ -70,6 +70,13 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await expect(page.getByText(`${KEY}-R1 is back.`)).toBeVisible();
     await page.goto(LIST_PATH);
     await expect(page.locator(`[data-requirement-row="${KEY}-R1"]`)).toBeVisible();
+    await page.locator('[data-action="new-requirement"]').click();
+    await expect(page).toHaveURL(`${LIST_PATH}/new`);
+    await page.getByLabel("Title", { exact: true }).fill("Refund the basket");
+    await page.locator('[data-action="create-requirement"]').click();
+    await expect(page).toHaveURL(`${LIST_PATH}/r/${KEY}-R2`);
+    await page.goto(LIST_PATH);
+    await expect(page.locator(`[data-requirement-row="${KEY}-R2"]`)).toContainText("Refund the basket");
 
     expect((await api.DELETE("/requirements/{reqKey}", { params: { path: { reqKey: `${KEY}-R1` } } })).response.status).toBe(204);
     await page.goto(`${LIST_PATH}/trash`);

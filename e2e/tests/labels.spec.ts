@@ -12,6 +12,9 @@ const TYPED = `Safety ${WORD}`;
 const LABEL = `safety-${WORD}`;
 // Enough of the label typed to suggest it among any others that begin alike.
 const SUGGEST_FROM = LABEL.length - 2;
+const PAGED = `paged-${WORD}`;
+// web/src/config.ts LABEL_PAGE_SIZE: one requirement past it makes a second page.
+const LABEL_PAGE_SIZE = 20;
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -56,6 +59,13 @@ test.describe("labels", { tag: "@desktop" }, () => {
     await expect(page.locator(`[data-requirement-row="${KEY}-R3"]`)).toHaveCount(0);
     await expectAccessible(page);
 
+    await page.locator('[data-label-filter] [data-action="clear-label"]').click();
+    await expect(page).toHaveURL(`/p/${KEY}`);
+    await expect(page.locator("[data-label-filter]")).toHaveCount(0);
+    await expect(page.locator("[data-requirement-row]")).toHaveCount(3);
+    await page.goBack();
+    await expect(page.locator("[data-requirement-row]")).toHaveCount(2);
+
     await page.locator('[data-label-filter] [data-action="label-everywhere"]').click();
     await expect(page).toHaveURL(`/labels/${LABEL}`);
     await expect(page.locator("[data-label-count]")).toHaveText("2 requirements");
@@ -67,5 +77,38 @@ test.describe("labels", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-requirement-labels]")).toContainText("No labels yet.");
     await page.goto(`/p/${KEY}/r/${KEY}-R1/history?tab=activity`);
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`changed the labels from ${LABEL} to nothing`);
+  });
+
+  test("alice steps through the requirements carrying a label a page at a time, and back", async ({ page, api }) => {
+    test.setTimeout(60_000);
+    const path = { params: { path: { projectKey: KEY } } };
+    must(await api.POST("/projects", { body: { key: KEY, name: "Paged" } }));
+    const last = LABEL_PAGE_SIZE + 1;
+    for (let n = 1; n <= last; n++) must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: `Step ${n}`, labels: [PAGED] } }));
+
+    await page.goto(`/labels/${PAGED}?project=${KEY}`);
+    const count = page.locator("[data-label-count]");
+    const paging = page.locator("[data-label-paging]");
+    const listed = page.locator("[data-labelled-requirement]");
+    const previous = page.locator('[data-action="previous-labelled"]');
+    const next = page.locator('[data-action="next-labelled"]');
+    await expect(count).toHaveText(`1 to ${LABEL_PAGE_SIZE} of ${last} requirements`);
+    await expect(paging).toContainText("Page 1 of 2");
+    await expect(listed).toHaveCount(LABEL_PAGE_SIZE);
+    await expect(previous).toBeDisabled();
+
+    await next.click();
+    await expect(page).toHaveURL(/[?&]page=2(&|$)/);
+    await expect(count).toHaveText(`${last} to ${last} of ${last} requirements`);
+    await expect(paging).toContainText("Page 2 of 2");
+    await expect(listed).toHaveCount(1);
+    await expect(page.locator(`[data-labelled-requirement="${KEY}-R${last}"]`)).toContainText(`Step ${last}`);
+    await expect(next).toBeDisabled();
+    await expectAccessible(page);
+
+    await previous.click();
+    await expect(page).not.toHaveURL(/[?&]page=/);
+    await expect(count).toHaveText(`1 to ${LABEL_PAGE_SIZE} of ${last} requirements`);
+    await expect(page.locator(`[data-labelled-requirement="${KEY}-R1"]`)).toContainText("Step 1");
   });
 });

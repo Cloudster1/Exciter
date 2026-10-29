@@ -1,8 +1,8 @@
 import { must } from "../fixtures/api";
-import { ANONYMOUS, expect, signIn, test } from "../fixtures/auth";
+import { anonymousContext, expect, signIn, test } from "../fixtures/auth";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
-import { armatureURL, statorURL, WEB_URL } from "../fixtures/stack";
+import { armatureURL, statorURL } from "../fixtures/stack";
 
 // Connecting people at sign-in (#274): Exciter is a partner app of both stubs, and alice, signing in through the
 // stack's Keycloak, links a requirement to an Armature issue and a Stator page without connecting her accounts.
@@ -52,7 +52,7 @@ test.describe("connecting alice to Armature and Stator as she signs in", { tag: 
   });
 
   test("alice signs in and traces a requirement to an issue and a page, having pasted no token", async ({ browser }) => {
-    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    const context = await anonymousContext(browser);
     const page = await context.newPage();
     await signIn(page, "alice");
 

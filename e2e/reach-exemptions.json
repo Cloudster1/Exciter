@@ -1,19 +1,6 @@
 {
-  "routes": {
-    "/print/baselines/$baselineId": "not reached by a spec yet: #440",
-    "/print/sessions/$sessionId": "not reached by a spec yet: #440"
-  },
+  "routes": {},
   "actions": {
-    "add-theme-file": "not reached by a spec yet: #440",
-    "admit-request": "not reached by a spec yet: #440",
-    "clear-label": "not reached by a spec yet: #440",
-    "decline-request": "not reached by a spec yet: #440",
-    "first-project": "not reached by a spec yet: #440",
-    "format-attach": "not reached by a spec yet: #440",
-    "map-group": "not reached by a spec yet: #440",
-    "new-requirement": "not reached by a spec yet: #440",
-    "next-labelled": "not reached by a spec yet: #440",
-    "previous-labelled": "not reached by a spec yet: #440",
-    "unmap-group": "not reached by a spec yet: #440"
+    "first-project": "needs an installation without a project, which the shared stack never is while specs run beside each other; web/src/features/home/HomeScreen.test.tsx clicks it"
   }
 }
