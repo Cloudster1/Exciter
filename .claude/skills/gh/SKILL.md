@@ -77,5 +77,7 @@ commit and publish. Never create a tag or a `release/` branch by hand. See
 - A push with `run_in_background` spends the whole gate before it is reported as started, then
   finishes in seconds; that is the gate having passed, not skipped. Every guard decision and gate
   duration is in `$(git rev-parse --git-common-dir)/branch-guard.log`.
+- A layer `./run-tests.sh` passed on a clean checkout is recorded against the commit's tree, and the
+  hook does not run it again for a push of that tree; commit before testing, so the run counts.
 - Parallel work happens in worktrees under `.claude/worktrees/`; each gets its own compose
   project and ports from `run-tests.sh`, so gates never collide.

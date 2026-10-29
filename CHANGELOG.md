@@ -14,6 +14,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   toolbar's attach button, join requests and group roles, label filters and
   pages, and New requirement. Only the first-project button stays exempt,
   as the shared stack is never an installation without projects (#440).
+- A push from Claude Code no longer runs the gate's layers again when
+  `./run-tests.sh` already passed them on a clean checkout of the same
+  commit; it says "Gate passed earlier on this tree" instead (#454).
 
 ### Fixed
 

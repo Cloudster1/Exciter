@@ -180,6 +180,14 @@ run_tests() {
   plan="$(changed_files "$repo" | "$HOOK_DIR/gate-layers.sh" "$mode")"
   layers="$(sed -n 's/^run: //p' <<< "$plan")"
   skipped="$(sed -n 's/^skipped: //p' <<< "$plan")"
+  # A clean run of these layers on the tree being pushed already said what the gate would.
+  # shellcheck disable=SC2086 # the layers are words
+  if (cd "$repo" && "$HOOK_DIR/gate-passes.sh" covers $layers); then
+    gate_log=$'\t'"gate=$repo"$'\t'"gate_reused=1"
+    gate_notes+=("Gate passed earlier on this tree: $layers. Skipped: $skipped.")
+    return 0
+  fi
+
   # Below the hook's own timeout, which kills it silently and lets the push through: a gate that has
   # not finished by then did not pass.
   limit="${EXCITER_GATE_LIMIT:-$([[ "$mode" == full ]] && echo 1700 || echo 1200)}"

@@ -44,6 +44,9 @@ shell_tests() {
 rm -rf "$REPORTS"
 mkdir -p "$REPORTS"
 
+# The commit a clean run tests, so a push of it can trust the layers that pass (see .claude/hooks/gate-passes.sh).
+gate_tree="$(./.claude/hooks/gate-passes.sh tree 2>/dev/null || true)"
+
 stack_started=""
 finish() {
   local rc=$?
@@ -95,6 +98,14 @@ if [[ -n "$needs_stack" ]] && has_target stack-up; then
       run_layer "$layer" make "$layer"
     fi
   done
+fi
+
+if [[ -n "$gate_tree" && -f "$LAYER_LOG" ]]; then
+  passed=()
+  while IFS=$'\t' read -r label status _; do
+    if [[ "$status" == passed ]]; then passed+=("$label"); fi
+  done < "$LAYER_LOG"
+  ./.claude/hooks/gate-passes.sh record "$gate_tree" "${passed[@]}" || true
 fi
 
 echo "All tests passed"

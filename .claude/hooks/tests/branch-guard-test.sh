@@ -326,6 +326,22 @@ if jq -e '.systemMessage | contains("Skipped:") and contains("test-e2e")' <<< "$
 out="$(push_json | EXCITER_GATE=full .claude/hooks/branch-guard.sh)"
 if [[ "$(cat "$GATE_ARGS")" == "shell check-format check-go test-integration test-e2e" ]]; then echo "ok    gate  EXCITER_GATE=full runs the browser suite"; else echo "FAIL  full gate ran '$(cat "$GATE_ARGS")'"; fail=1; fi
 
+echo "== a pass recorded on the pushed tree is not run again"
+tree="$(git rev-parse 'HEAD^{tree}')"
+printf '%s\tshell\n%s\tcheck-format\n%s\tcheck-go\n' "$tree" "$tree" "$tree" > "$(git rev-parse --git-path exciter-gate-passed)"
+rm -f "$GATE_ARGS"
+out="$(push_json | env -u EXCITER_GATE .claude/hooks/branch-guard.sh)"
+if [[ ! -e "$GATE_ARGS" ]] && jq -e '.systemMessage | contains("Gate passed earlier on this tree")' <<< "$out" > /dev/null; then echo "ok    reuse  a recorded pass skipped the gate and said so"; else echo "FAIL  reuse  the gate ran or did not say: $out"; fail=1; fi
+[[ "$(tail -n 1 "$W3/r/.git/branch-guard.log")" == *$'\tdecision=allow\t'*$'\tgate_reused=1'* ]] && echo "ok    reuse  logged" || { echo "FAIL  reuse  not logged"; fail=1; }
+rm -f "$GATE_ARGS"
+push_json | EXCITER_GATE=full .claude/hooks/branch-guard.sh > /dev/null
+[[ -e "$GATE_ARGS" ]] && echo "ok    reuse  a layer with no pass recorded runs the gate" || { echo "FAIL  reuse  the full gate trusted layers that never ran"; fail=1; }
+printf '%s\tshell\n%s\tcheck-format\n%s\tcheck-go\n' 0000 0000 0000 > "$(git rev-parse --git-path exciter-gate-passed)"
+rm -f "$GATE_ARGS"
+push_json | env -u EXCITER_GATE .claude/hooks/branch-guard.sh > /dev/null
+[[ -e "$GATE_ARGS" ]] && echo "ok    reuse  a pass on another tree runs the gate" || { echo "FAIL  reuse  a pass on another tree was trusted"; fail=1; }
+rm -f "$(git rev-parse --git-path exciter-gate-passed)"
+
 echo "== a gate that does not finish blocks the push"
 printf '#!/bin/sh\nexec sleep 37\n' > run-tests.sh
 got="$(push_json | EXCITER_GATE_LIMIT=3 .claude/hooks/branch-guard.sh | jq -r '.hookSpecificOutput | .permissionDecision + " " + .permissionDecisionReason')"
@@ -333,6 +349,32 @@ if [[ "$got" == deny\ *"did not finish within"* ]]; then echo "ok    timeout  de
 sleep 1
 if pgrep -f '^sleep 37$' > /dev/null; then echo "FAIL  timeout  the gate was left running"; fail=1; pkill -f '^sleep 37$'; else echo "ok    timeout  nothing was left running"; fi
 grep -q $'\tgate_timeout=3' "$W3/r/.git/branch-guard.log" && echo "ok    timeout  logged" || { echo "FAIL  timeout  not logged"; fail=1; }
+echo "== a clean run records its layers for the tree it tested"
+W4=$(mktemp -d)
+trap 'rm -rf "$W" "$W2" "$W3" "$W4"' EXIT
+GP="$SRC/.claude/hooks/gate-passes.sh"
+cd "$W4" && git init -q && echo a > a && git add a && git commit -qm a
+passes() { # label expect(yes|no) layers...
+  local label="$1" exp="$2" got=no; shift 2
+  "$GP" covers "$@" && got=yes
+  if [[ "$got" == "$exp" ]]; then echo "ok    record  $label"; else echo "FAIL  record  $label: covers $* gave $got"; fail=1; fi
+}
+t="$("$GP" tree)"
+[[ -n "$t" && "$t" == "$(git rev-parse 'HEAD^{tree}')" ]] && echo "ok    record  a clean checkout names its tree" || { echo "FAIL  record  a clean checkout gave '$t'"; fail=1; }
+"$GP" record "$t" shell check-go "test-e2e 2/4"
+passes "the layers that passed"     yes shell check-go
+passes "a shard is not the suite"    no  test-e2e
+"$GP" record "$t" check-web
+passes "runs on one tree add up"     yes shell check-go check-web
+echo b > b
+[[ -z "$("$GP" tree)" ]] && echo "ok    record  an untracked file names no tree" || { echo "FAIL  record  a dirty checkout named a tree"; fail=1; }
+"$GP" record "$t" test-integration
+passes "nothing over a dirty tree"   no  test-integration
+rm b && echo c > a && git commit -qam c
+"$GP" record "$t" test-integration
+passes "a tree that moved on is not trusted" no shell
+passes "nor the run that began on the old one" no test-integration
+"$GP" bogus 2> /dev/null; [[ $? == 2 ]] && echo "ok    record  an unknown verb is refused" || { echo "FAIL  record  an unknown verb was accepted"; fail=1; }
 cd "$W"
 
 if (( fail )); then

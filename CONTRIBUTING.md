@@ -105,5 +105,6 @@ The repository carries a [Claude Code](https://claude.com/claude-code) setup:
 [`CLAUDE.md`](CLAUDE.md), `.claude/skills/gh` and the hooks in
 `.claude/settings.json`. When the repository is opened in Claude Code, its
 hooks refuse edits on a branch that is not named `<type>/<issue>-<slug>` and
-run the layers of the gate a push can affect before every push. Nothing of it
-runs outside Claude Code.
+run the layers of the gate a push can affect before every push, unless
+`./run-tests.sh` already passed them on a clean checkout of the commit being
+pushed. Nothing of it runs outside Claude Code.

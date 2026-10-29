@@ -3,6 +3,24 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-29: The push gate trusts a clean run on the same tree, unlike Stator (#454)
+
+`./run-tests.sh` records each layer that passed against the tree of `HEAD`,
+in the checkout's own git directory, when the working tree was clean from
+start to end. The push hook runs only if a layer it needs has no pass
+recorded for the tree being pushed.
+
+- **Why.** Most pushes followed a run of the same layers on the same
+  commit, so the gate repeated about four minutes of work each time.
+- **Why a tree.** It names exactly what was tested: an amend or a rebase
+  with no change keeps it, any changed file gives a new one.
+- **What it does not guard.** Anyone can write the record. The hook catches
+  forgetting to test, not cheating; CI runs every layer and blocks the merge.
+
+**Reconsider if** a layer comes to depend on anything outside the
+repository's tree, such as a changing image, so the same tree could pass
+once and fail later.
+
 ## 2026-10-20: The suite demo draws each tool's architecture by hand (#286)
 
 Each project of the suite demo gets a section "Architecture" after its
