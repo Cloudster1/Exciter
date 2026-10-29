@@ -2,6 +2,7 @@ import type { Browser, Page } from "@playwright/test";
 import { must } from "../fixtures/api";
 import {
   ANONYMOUS,
+  anonymousContext,
   expect,
   LOGIN_PATH,
   ME_PATH,
@@ -17,7 +18,6 @@ import {
 import { deadProvider, withDatabase } from "../fixtures/db";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { openAccountMenu } from "../fixtures/shell";
-import { WEB_URL } from "../fixtures/stack";
 
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
 const ADMINS_GROUP = "exciter-administrators";
@@ -33,7 +33,7 @@ const DAVE = { username: "dave", password: "dave password", email: "dave@suite.t
 
 /** A browser of its own, so Keycloak's session from an earlier sign-in never skips the form. */
 async function freshPage(browser: Browser): Promise<{ page: Page; close: () => Promise<void> }> {
-  const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+  const context = await anonymousContext(browser);
   return { page: await context.newPage(), close: () => context.close() };
 }
 
@@ -95,7 +95,7 @@ test.describe("roles from the provider's groups", { tag: "@desktop" }, () => {
     expect(alice, "the seed let alice in").toBeDefined();
     const aliceId = alice!.userId;
     let mappingId: string | undefined;
-    const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+    const context = await anonymousContext(browser);
     try {
       must(await owner.PATCH("/users/{userID}", { params: { path: { userID: aliceId } }, body: { role: "member" } }));
       mappingId = must(await owner.POST("/oidc-provider/group-roles", { body: { group: ADMINS_GROUP, role: "admin" } })).groupRole.id;

@@ -14,6 +14,8 @@ const THEMES_PATH = "/settings/themes";
 const PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
 // web/src/config.ts THEME_ASSET_MAX_BYTES, which the editor holds a file to before it sends it.
 const ASSET_MAX_BYTES = 12 * 1024 * 1024;
+// Handing a file past that limit to the page through the browser's protocol outlasts an action's 5 s on a busy shard (#452).
+const HAND_OVER_HUGE_FILE = { timeout: 30_000 } as const;
 const MAGENTA = "#ff0066";
 const CHOSEN_ACCENT = "#00aa00";
 
@@ -126,6 +128,8 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
   });
 
   test("a file is added, drawn as the backdrop, kept while in use and then removed; a scripted or huge one is not", async ({ page, api }, testInfo) => {
+    // The huge file's hand-over may take most of its own budget, which the test's must hold beside the rest.
+    test.setTimeout(60_000);
     const name = uniqueName(testInfo, "files");
     const made = await createTheme(api, name);
     const files = page.locator("[data-theme-file-input]");
@@ -138,7 +142,9 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
     };
     await openEditor(page, made.id, name);
     await tab("files");
-    await files.setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: PIXEL });
+    const chooser = page.waitForEvent("filechooser");
+    await page.locator('[data-action="add-theme-file"]').click();
+    await (await chooser).setFiles({ name: "pixel.png", mimeType: "image/png", buffer: PIXEL });
     await expect(editorNotice(page)).toHaveText("Added pixel.png.");
     await expect(pixel).toContainText("image/png");
     await expect(pixel).toContainText("1 KB");
@@ -182,7 +188,7 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
     page.on("request", (request) => {
       if (request.method() === "POST" && request.url().includes("/assets")) uploads.push(request.url());
     });
-    await files.setInputFiles({ name: "huge.png", mimeType: "image/png", buffer: Buffer.alloc(ASSET_MAX_BYTES + 1) });
+    await files.setInputFiles({ name: "huge.png", mimeType: "image/png", buffer: Buffer.alloc(ASSET_MAX_BYTES + 1) }, HAND_OVER_HUGE_FILE);
     await expect(page.getByRole("alert").filter({ hasText: "That file is over 12 MB. Make it smaller and try again." })).toBeVisible();
     expect(uploads, "a file over the limit is never sent").toEqual([]);
     // The removal was the page's, so the API's read may see it a replica later.

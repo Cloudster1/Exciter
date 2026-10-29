@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test as base, expect, request, type Browser, type Page } from "@playwright/test";
+import { test as base, expect, request, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createExciterApi, type ExciterApi, type Session } from "./api";
 import { KEYCLOAK_URL, WEB_URL } from "./stack";
 import { noteReach } from "./reach";
@@ -28,6 +28,13 @@ const PASSWORD_SUBMIT = '[data-action="password-sign-in"]';
 
 /** A browser nobody has signed in to. */
 export const ANONYMOUS = { cookies: [], origins: [] };
+
+/** A browser of its own that nobody has signed in to, whose pages the reach check notes as the fixtures' are. */
+export async function anonymousContext(browser: Browser): Promise<BrowserContext> {
+  const context = await browser.newContext({ baseURL: WEB_URL, storageState: ANONYMOUS });
+  await noteReach(context, base.info().parallelIndex);
+  return context;
+}
 
 // A click that starts a navigation waits for it within the action timeout.
 // The sign-in hops outlast that on a busy machine, so the next step waits instead.

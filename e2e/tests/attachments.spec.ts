@@ -49,7 +49,9 @@ test.describe("attachments", { tag: "@desktop" }, () => {
 
     await page.getByRole("button", { name: "Edit" }).click();
     const frame = page.locator("[data-editor-frame]").filter({ has: page.locator("#edit-statement") });
-    await frame.locator("[data-editor-file-input]").setInputFiles({ name: "diagram.png", mimeType: "image/png", buffer: PIXEL });
+    const chooser = page.waitForEvent("filechooser");
+    await frame.locator('[data-action="format-attach"]').click();
+    await (await chooser).setFiles({ name: "diagram.png", mimeType: "image/png", buffer: PIXEL });
     await expect(frame.locator("figure[data-image] img")).toBeVisible();
     await page.locator('[data-action="save-requirement"]').click();
     await expect(page.getByText("Saved as revision 2.")).toBeAttached();

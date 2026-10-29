@@ -7,6 +7,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The browser suite reaches the rest of the routes and controls #334 left
+  out: a baseline's and a review session's print views, theme files and the
+  toolbar's attach button, join requests and group roles, label filters and
+  pages, and New requirement. Only the first-project button stays exempt,
+  as the shared stack is never an installation without projects (#440).
+
 ## [0.2.0] - 2026-10-29
 
 ### Changed

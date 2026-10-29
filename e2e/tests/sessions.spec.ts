@@ -96,5 +96,20 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     await closing.getByRole("button", { name: "Close session" }).click();
     await expect(page.getByText("The session is closed.")).toBeVisible();
     await expect.poll(async () => must(await api.GET("/projects/{projectKey}/baselines", project)).baselines.map((b) => b.name)).toContain("Braking agreed");
+
+    // The report the render service prints: who took part, and each requirement's decisions round by round.
+    await page.goto(`/print/sessions/${new URL(sessionURL).pathname.split("/").pop()}`);
+    await expect(page.locator("html[data-print-ready]")).toBeAttached();
+    const report = page.locator('[data-print-view] [data-print-document="session"]');
+    await expect(report.getByRole("heading", { level: 1, name: "Braking review" })).toBeVisible();
+    await expect(report).toContainText("Baseline taken: Braking agreed");
+    await expect(report.getByRole("row", { name: new RegExp(people.bob.name) })).toBeVisible();
+    await expect(report.locator(`[data-report-item="${pads.key}"]`)).toContainText("Round 1, Revision 1: Approved");
+    const revised = report.locator(`[data-report-item="${lights.key}"]`);
+    await expect(revised).toContainText("Lights follow the pedal within 50 ms");
+    await expect(revised).toContainText("Round 1, Revision 1: Rejected");
+    await expect(revised).toContainText("Say how fast.");
+    await expect(revised).toContainText("Round 2, Revision 2: Approved");
+    await expectAccessible(page);
   });
 });
