@@ -5,10 +5,10 @@ kind: ServiceAccount
 metadata:
   name: r-exciter
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
   annotations:
@@ -20,10 +20,10 @@ kind: ConfigMap
 metadata:
   name: r-exciter-env
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
   annotations:
@@ -67,10 +67,10 @@ kind: ConfigMap
 metadata:
   name: r-exciter-nginx
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
 data:
@@ -142,10 +142,10 @@ kind: Service
 metadata:
   name: r-exciter-api
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: api
@@ -171,10 +171,10 @@ kind: Service
 metadata:
   name: r-exciter-kroki
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: kroki
@@ -195,10 +195,10 @@ kind: Service
 metadata:
   name: r-exciter-web
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: web
@@ -221,10 +221,10 @@ kind: Service
 metadata:
   name: r-exciter-worker
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: worker
@@ -245,10 +245,10 @@ kind: Deployment
 metadata:
   name: r-exciter-api
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: api
@@ -268,7 +268,7 @@ spec:
       annotations:
         # Rolls the pods when the configuration changes, which an edited
         # ConfigMap alone would not.
-        checksum/env: 17c914d9e894832e182811c9113884677580eda7577b583054720c6d4b2ad456
+        checksum/env: 8733602166574f130c6b41dffde15056bd1cac1aef359a7ca96d1d99d39edce0
     spec:
       serviceAccountName: r-exciter
       securityContext:
@@ -281,7 +281,7 @@ spec:
       terminationGracePeriodSeconds: 40
       containers:
         - name: api
-          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          image: ghcr.io/cloudster1/exciter-backend:0.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -352,10 +352,10 @@ kind: Deployment
 metadata:
   name: r-exciter-kroki
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: kroki
@@ -427,10 +427,10 @@ kind: Deployment
 metadata:
   name: r-exciter-web
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: web
@@ -448,7 +448,7 @@ spec:
         app.kubernetes.io/instance: r
         app.kubernetes.io/component: web
       annotations:
-        checksum/nginx: e0be82dfd01fafd39a380cb5ca51085e7a46178ca73e0fc31810a05f76b42f48
+        checksum/nginx: 0e603ca477c5faefa8653f45a4efb1313f07ac108dd8f490ec5b2c4317234155
     spec:
       serviceAccountName: r-exciter
       # Stock nginx as its own nginx user rather than root, which is why it
@@ -461,7 +461,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: web
-          image: ghcr.io/cloudster1/exciter-web:0.1.0
+          image: ghcr.io/cloudster1/exciter-web:0.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -513,10 +513,10 @@ kind: Deployment
 metadata:
   name: r-exciter-worker
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: worker
@@ -534,7 +534,7 @@ spec:
         app.kubernetes.io/instance: r
         app.kubernetes.io/component: worker
       annotations:
-        checksum/env: 17c914d9e894832e182811c9113884677580eda7577b583054720c6d4b2ad456
+        checksum/env: 8733602166574f130c6b41dffde15056bd1cac1aef359a7ca96d1d99d39edce0
     spec:
       serviceAccountName: r-exciter
       securityContext:
@@ -547,7 +547,7 @@ spec:
       terminationGracePeriodSeconds: 20
       containers:
         - name: worker
-          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          image: ghcr.io/cloudster1/exciter-backend:0.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -605,10 +605,10 @@ kind: Ingress
 metadata:
   name: r-exciter
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
 spec:
@@ -656,10 +656,10 @@ kind: Cluster
 metadata:
   name: r-exciter-postgres
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: postgresql
@@ -718,10 +718,10 @@ kind: ServiceMonitor
 metadata:
   name: r-exciter
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
 spec:
@@ -743,10 +743,10 @@ kind: ServiceAccount
 metadata:
   name: r-exciter-secrets-generator
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
   annotations:
@@ -763,10 +763,10 @@ kind: Role
 metadata:
   name: r-exciter-secrets-generator
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
   annotations:
@@ -798,10 +798,10 @@ kind: RoleBinding
 metadata:
   name: r-exciter-secrets-generator
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
   annotations:
@@ -826,10 +826,10 @@ kind: Job
 metadata:
   name: r-exciter-bootstrap
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: bootstrap
@@ -860,7 +860,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: bootstrap
-          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          image: ghcr.io/cloudster1/exciter-backend:0.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -927,10 +927,10 @@ kind: Job
 metadata:
   name: r-exciter-migrate
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: migrate
@@ -961,7 +961,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: ghcr.io/cloudster1/exciter-backend:0.1.0
+          image: ghcr.io/cloudster1/exciter-backend:0.0.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -988,10 +988,10 @@ kind: Job
 metadata:
   name: r-exciter-roles
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: roles
@@ -1068,10 +1068,10 @@ kind: Job
 metadata:
   name: r-exciter-secrets-generator
   labels:
-    helm.sh/chart: exciter-0.1.0
+    helm.sh/chart: exciter-0.0.0
     app.kubernetes.io/name: exciter
     app.kubernetes.io/instance: r
-    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/version: "0.0.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: exciter
     app.kubernetes.io/component: secrets

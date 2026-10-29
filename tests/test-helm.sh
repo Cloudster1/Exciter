@@ -90,12 +90,23 @@ refused() { # description expected-message args...
     fi
 }
 
+# The goldens are rendered from a copy of the chart at a fixed version: a release raises the version without rendering
+# anything, and the version reaches the labels and the ConfigMap checksums.
+GOLDEN_CHART="$(mktemp -d)"
+trap 'rm -rf "${GOLDEN_CHART}"' EXIT
+cp -R "${CHART}/." "${GOLDEN_CHART}/"
+sed -i -e 's/^version: .*/version: 0.0.0/' -e 's/^appVersion: .*/appVersion: "0.0.0"/' "${GOLDEN_CHART}/Chart.yaml"
+
+golden_helm() {
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "${GOLDEN_CHART}:/chart:ro" "${HELM_IMAGE}" "$@"
+}
+
 # A render compared with its golden file; UPDATE=1 writes the file instead.
 golden() { # name args...
     local name="$1" file="${GOLDEN}/$1.yaml"
     shift
     local out
-    if ! out=$(helm template "${RELEASE}" /chart "$@" 2>&1); then
+    if ! out=$(golden_helm template "${RELEASE}" /chart "$@" 2>&1); then
         fail "golden ${name}: helm template"
         echo "${out}" | sed 's/^/      /'
         return
