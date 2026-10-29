@@ -51,7 +51,7 @@ total="$(awk -F'\t' '$1 == "total" { print $2 }' "$out")"
 floor="$(tr -d '[:space:]' < "$floor_file" 2>/dev/null || echo 0)"
 printf 'floor\t%s\n' "$floor" >> "$out"
 if awk -v t="$total" -v f="$floor" 'BEGIN { exit !(t + 0 < f + 0) }'; then
-  echo "$name coverage is $total%, below its floor of $floor% in coverage/$name.floor. Test what the change added, or say in the pull request why the floor must go down."
+  echo "$name coverage is $total%, below its floor of $floor% in coverage/$name.floor. Test what the change added, or, if the measurement itself changed, lower the floor in a commit whose Floor-lowered trailer says why (CONTRIBUTING.md, Testing)."
   exit 1
 fi
 echo "$name coverage is $total% (floor $floor%)."
