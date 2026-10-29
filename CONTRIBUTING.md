@@ -60,7 +60,9 @@ Releases are cut by the maintainers with `./release.sh`, as
 A feature is finished when every layer passes, not when the code is written.
 The Go unit, Go integration and web layers also measure coverage, and fail
 below the floors kept in `coverage/`. A floor only rises: when a change lifts
-a total, raise its floor to the new figure, rounded down.
+a total, raise its floor to the new figure, rounded down. A floor goes down
+only when the measurement itself changes, and the commit lowering it says why
+in a trailer, `Floor-lowered: <name> <reason>`.
 A new layer joins the gate in the change that introduces it, through a make
 target of the same name.
 
