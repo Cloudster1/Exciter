@@ -17,6 +17,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A push from Claude Code no longer runs the gate's layers again when
   `./run-tests.sh` already passed them on a clean checkout of the same
   commit; it says "Gate passed earlier on this tree" instead (#454).
+- The web client's tests run on vitest 5. Its coverage counts only the
+  lines that run code, so the same tests over the same files read about 86%
+  where vitest 3 read 92.8%, and the web floor moves to 86. A floor may go
+  down only through a commit whose `Floor-lowered` trailer says why (#457).
 
 ### Fixed
 
