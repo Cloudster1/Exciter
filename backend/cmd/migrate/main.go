@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,6 +30,39 @@ const (
 	connectTimeout  = 3 * time.Second
 )
 
+// commands are what migrate does, in the order its refusal names them.
+var commands = []string{"up", "up-to", "down", "status", "version"}
+
+// request is one run of migrate: a command, and for up-to the version to stop at.
+type request struct {
+	command string
+	version int64
+}
+
+// parseArgs reads the command before anything connects, so a typo is refused at once and not after the wait.
+func parseArgs(args []string) (request, error) {
+	if len(args) == 0 {
+		return request{command: "up"}, nil
+	}
+	r := request{command: args[0]}
+	switch r.command {
+	case "up", "down", "status", "version":
+		return r, nil
+	case "up-to":
+		if len(args) < 2 {
+			return r, errors.New("up-to needs a version, such as: migrate up-to 1")
+		}
+		v, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			return r, fmt.Errorf("%q is not a migration version; give its number, such as 1", args[1])
+		}
+		r.version = v
+		return r, nil
+	}
+	last := len(commands) - 1
+	return r, fmt.Errorf("%q is not a migrate command; use %s or %s", r.command, strings.Join(commands[:last], ", "), commands[last])
+}
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("migration failed", "error", err)
@@ -40,18 +74,17 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	asked, err := parseArgs(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	command := asked.command
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	args := os.Args[1:]
-	if len(args) == 0 {
-		args = []string{"up"}
-	}
-	command := args[0]
-
-	pool, err := waitForPrimary(ctx, cfg.DB.PrimaryURL)
+	pool, err := waitForPrimary(ctx, cfg.DB.PrimaryURL, connectPause)
 	if err != nil {
 		return err
 	}
@@ -82,14 +115,7 @@ func run() error {
 			return err
 		}
 	case "up-to":
-		if len(args) < 2 {
-			return errors.New("up-to needs a version, such as: migrate up-to 1")
-		}
-		v, err := strconv.ParseInt(args[1], 10, 64)
-		if err != nil {
-			return fmt.Errorf("%q is not a migration version; give its number, such as 1", args[1])
-		}
-		if err := goose.UpToContext(ctx, sqlDB, ".", v, allowMissing); err != nil {
+		if err := goose.UpToContext(ctx, sqlDB, ".", asked.version, allowMissing); err != nil {
 			return err
 		}
 	case "down":
@@ -106,8 +132,6 @@ func run() error {
 		}
 		fmt.Println(v)
 		return nil
-	default:
-		return fmt.Errorf("%q is not a migrate command; use up, up-to, down, status or version", command)
 	}
 
 	v, err := goose.GetDBVersionContext(ctx, sqlDB)
@@ -118,7 +142,8 @@ func run() error {
 	return nil
 }
 
-func waitForPrimary(ctx context.Context, url string) (*pgxpool.Pool, error) {
+// waitForPrimary tries connectAttempts times, pause apart, and then gives up saying how often it tried.
+func waitForPrimary(ctx context.Context, url string, pause time.Duration) (*pgxpool.Pool, error) {
 	var lastErr error
 	for i := range connectAttempts {
 		pool, err := pgxpool.New(ctx, url)
@@ -136,7 +161,7 @@ func waitForPrimary(ctx context.Context, url string) (*pgxpool.Pool, error) {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(connectPause):
+		case <-time.After(pause):
 		}
 	}
 	return nil, fmt.Errorf("the database did not answer after %d attempts: %w", connectAttempts, lastErr)

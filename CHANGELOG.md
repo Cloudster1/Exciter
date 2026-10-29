@@ -9,6 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite proves what the worker runs and how things fail: the review
+  reminder reminds a due session once, outbox pruning deletes only done
+  events past retention, a panicking handler, a worker stopped mid batch
+  and a lapsed lease leave the outbox as they should, and a request's trace
+  reaches the worker's span. Every migration runs down and up again to the
+  same schema, `/readyz` and the healthcheck follow the primary, Kroki
+  fetches nothing, the worker refuses a bad Valkey, a mention lands without
+  mail, `migrate`, `seed` and the SMTP mailer have unit tests, and the
+  render service its own. The chart refuses and renders what was unchecked,
+  the install shows the worker, the bucket and a PDF at work and runs for
+  every input of the images, and the realm's return addresses are checked
+  (#333).
 - The suite proves themes and the German interface end to end: a theme is
   made from an example, previewed, given a backdrop file, shared, unshared,
   deleted and named the default from the Themes page in a real browser,
@@ -308,6 +320,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The chart's render service starts: its pod now runs as the Chrome
+  image's user by number, which the kubelet needs under `runAsNonRoot`,
+  so `render.enabled` no longer leaves PDF export waiting on a pod that
+  never comes up (#333).
+- The chart refuses `auth.secureCookies: false` outside development, in the
+  sentence the api gives, instead of rendering a release whose api and
+  worker then refuse to start (#333).
 - The Ctrl K palette no longer offers the requirements found for an earlier
   word while the answer for the word now typed is still on its way (#331).
   Pressing Enter then could open a requirement that does not match it.

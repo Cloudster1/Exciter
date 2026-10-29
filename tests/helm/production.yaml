@@ -35,6 +35,8 @@ data:
   EXCITER_APP_URL: "https://exciter.example.com"
   EXCITER_HTTP_ADDR: ":8080"
   EXCITER_METRICS_ADDR: ":9090"
+  EXCITER_OTEL_ENDPOINT: "http://otel-collector.monitoring.svc:4318/v1/traces"
+  EXCITER_OTEL_SAMPLE_RATIO: "1"
   EXCITER_OUTBOUND_ALLOW: "10.40.0.0/16,armature-api.armature.svc,stator-api.stator.svc,keycloak.sso.svc"
   EXCITER_ARMATURE_BACKCHANNEL: "https://armature.example.com=http://armature-api.armature.svc:8080"
   EXCITER_STATOR_BACKCHANNEL: "https://wiki.example.com=http://stator-api.stator.svc:8080"
@@ -56,6 +58,8 @@ data:
   EXCITER_KROKI_TIMEOUT: "10s"
   EXCITER_KROKI_CONCURRENCY: "4"
   EXCITER_RETAIN_AUDIT: "8760h"
+  EXCITER_SMTP_ADDR: "smtp.example.com:587"
+  EXCITER_MAIL_FROM: "Exciter <no-reply@exciter.example.com>"
 ---
 # Source: exciter/templates/configmap-nginx.yaml
 apiVersion: v1
@@ -264,7 +268,7 @@ spec:
       annotations:
         # Rolls the pods when the configuration changes, which an edited
         # ConfigMap alone would not.
-        checksum/env: 5c00bfbe7b0dc0cb49c2899420c5b3befdf0a779aeac62664068ec8241be3081
+        checksum/env: 17c914d9e894832e182811c9113884677580eda7577b583054720c6d4b2ad456
     spec:
       serviceAccountName: r-exciter
       securityContext:
@@ -530,7 +534,7 @@ spec:
         app.kubernetes.io/instance: r
         app.kubernetes.io/component: worker
       annotations:
-        checksum/env: 5c00bfbe7b0dc0cb49c2899420c5b3befdf0a779aeac62664068ec8241be3081
+        checksum/env: 17c914d9e894832e182811c9113884677580eda7577b583054720c6d4b2ad456
     spec:
       serviceAccountName: r-exciter
       securityContext:

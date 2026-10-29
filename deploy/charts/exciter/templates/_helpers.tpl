@@ -214,6 +214,9 @@ not here; exciter.secretEnv hands them over by reference.
 {{- if and (or .Values.armature.url .Values.stator.url) (not .Values.jobs.bootstrap.enabled) -}}
 {{- fail "armature.url and stator.url are connected by the bootstrap Job, which is off. Turn jobs.bootstrap.enabled on, or leave them blank and connect the partners under Settings." -}}
 {{- end -}}
+{{- if and (ne .Values.env "development") (not .Values.auth.secureCookies) -}}
+{{- fail (printf "auth.secureCookies is false and env is %s, so the api and the worker would refuse to start. Set auth.secureCookies to true outside development, so the session cookie never travels in clear." .Values.env) -}}
+{{- end -}}
 EXCITER_ENV: {{ .Values.env | quote }}
 EXCITER_LOG_LEVEL: {{ .Values.logLevel | quote }}
 EXCITER_APP_URL: {{ include "exciter.appURL" . | quote }}

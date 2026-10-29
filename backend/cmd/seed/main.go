@@ -31,21 +31,51 @@ func main() {
 	}
 }
 
+// mode is what a run of seed makes: a development stack's installation, that with the suite demo, or a real one's.
+type mode int
+
+const (
+	development mode = iota
+	withDemo
+	bootstrap
+)
+
+// parseMode reads the command before the configuration, so a typo is refused whatever the environment holds.
+func parseMode(args []string) (mode, error) {
+	if len(args) == 0 {
+		return development, nil
+	}
+	switch args[0] {
+	case "demo":
+		return withDemo, nil
+	case "bootstrap":
+		return bootstrap, nil
+	}
+	return development, fmt.Errorf("unknown command %q; run seed bare or seed demo on a development stack, or seed bootstrap", args[0])
+}
+
+// allowed refuses a mode the configuration cannot carry out, before anything connects.
+func (m mode) allowed(cfg config.Config) error {
+	if cfg.IsProduction() && m != bootstrap {
+		return errors.New("bare, seed is for a development stack; in production run seed bootstrap, which asks for a first administrator")
+	}
+	if m == bootstrap && cfg.Bootstrap.AdminEmail == "" {
+		return errors.New("seed bootstrap needs EXCITER_BOOTSTRAP_ADMIN_EMAIL and EXCITER_BOOTSTRAP_ADMIN_PASSWORD: without them nobody could sign in to the installation it makes")
+	}
+	return nil
+}
+
 func run() error {
-	bootstrap := len(os.Args) > 1 && os.Args[1] == "bootstrap"
-	withDemo := len(os.Args) > 1 && os.Args[1] == "demo"
-	if len(os.Args) > 1 && !bootstrap && !withDemo {
-		return fmt.Errorf("unknown command %q; run seed bare or seed demo on a development stack, or seed bootstrap", os.Args[1])
+	asked, err := parseMode(os.Args[1:])
+	if err != nil {
+		return err
 	}
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
-	if cfg.IsProduction() && !bootstrap {
-		return errors.New("bare, seed is for a development stack; in production run seed bootstrap, which asks for a first administrator")
-	}
-	if bootstrap && cfg.Bootstrap.AdminEmail == "" {
-		return errors.New("seed bootstrap needs EXCITER_BOOTSTRAP_ADMIN_EMAIL and EXCITER_BOOTSTRAP_ADMIN_PASSWORD: without them nobody could sign in to the installation it makes")
+	if err := asked.allowed(cfg); err != nil {
+		return err
 	}
 	boot := cfg.Bootstrap
 	log := observability.NewLogger(cfg.LogLevel, cfg.IsProduction())
@@ -79,7 +109,7 @@ func run() error {
 		}
 		ctx = db.WithUser(ctx, admin)
 	}
-	if err := populate(ctx, cfg, cluster, accounts, log); err != nil || !withDemo {
+	if err := populate(ctx, cfg, cluster, accounts, log); err != nil || asked != withDemo {
 		return err
 	}
 	return addDemo(ctx, cluster, log)

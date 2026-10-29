@@ -4,12 +4,26 @@
 name: Chart install
 
 on:
+  # What the images are built from and what decides whether the pods start: the entry points the chart runs, the
+  # configuration they load, the schema, the web and render images, and the test itself. tests/test-ci.sh checks
+  # that both lists cover the Dockerfiles' sources.
   pull_request:
     paths:
       - deploy/**
-      - backend/migrations/**
+      - VERSION
+      - api/**
+      - backend/go.mod
+      - backend/go.sum
+      - backend/cmd/api/**
+      - backend/cmd/worker/**
       - backend/cmd/seed/**
+      - backend/cmd/migrate/**
+      - backend/internal/config/**
+      - backend/migrations/**
+      - render/**
+      - web/**
       - scripts/chart-install-*
+      - scripts/build-stamp.sh
       - scripts/kind/**
       - mk/helm.mk
       - mk/kind.mk
@@ -18,7 +32,24 @@ on:
     branches: [main]
     paths:
       - deploy/**
+      - VERSION
+      - api/**
+      - backend/go.mod
+      - backend/go.sum
+      - backend/cmd/api/**
+      - backend/cmd/worker/**
+      - backend/cmd/seed/**
+      - backend/cmd/migrate/**
+      - backend/internal/config/**
       - backend/migrations/**
+      - render/**
+      - web/**
+      - scripts/chart-install-*
+      - scripts/build-stamp.sh
+      - scripts/kind/**
+      - mk/helm.mk
+      - mk/kind.mk
+      - .github/workflows/chart-install.yml
   workflow_dispatch:
 
 concurrency:
