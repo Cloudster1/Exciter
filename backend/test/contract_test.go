@@ -4,8 +4,10 @@ package test
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"sort"
@@ -32,13 +34,17 @@ type contract struct {
 	mu     sync.Mutex
 	// hits counts responses per operation and status.
 	hits map[string]map[int]int
+	// refusals counts the codes each operation was refused with, as "403 forbidden" (#334).
+	refusals map[string]map[string]int
+	// tools counts each MCP tool's calls by whether the result was an error (#334).
+	tools map[string]map[bool]int
 }
 
 var apiContract = newContract()
 
 func newContract() *contract {
 	doc := httpapi.Spec()
-	c := &contract{doc: doc, hits: map[string]map[int]int{}}
+	c := &contract{doc: doc, hits: map[string]map[int]int{}, refusals: map[string]map[string]int{}, tools: map[string]map[bool]int{}}
 	for _, r := range httpapi.Catalog() {
 		item := doc.Paths[r.Path]
 		c.routes = append(c.routes, route{Route: r, pattern: templatePattern(r.Path), op: item[strings.ToLower(r.Method)]})
@@ -111,6 +117,18 @@ func (c *contract) observe(t *testing.T, method, path string, status int, conten
 		c.hits[r.key()] = map[int]int{}
 	}
 	c.hits[r.key()][status]++
+	if status == http.StatusForbidden || status == http.StatusUnprocessableEntity {
+		var envelope struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		_ = json.Unmarshal(body, &envelope)
+		if c.refusals[r.key()] == nil {
+			c.refusals[r.key()] = map[string]int{}
+		}
+		c.refusals[r.key()][fmt.Sprintf("%d %s", status, envelope.Error.Code)]++
+	}
 	c.mu.Unlock()
 
 	if r.op == nil {
@@ -205,13 +223,45 @@ func runFiltered() bool {
 // answer is checked whoever asked for it.
 func observed(t *testing.T, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var call []byte
+		if r.Method == http.MethodPost && r.URL.Path == httpapi.APIPrefix+"/mcp" && r.Body != nil {
+			call, _ = io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewReader(call))
+		}
 		rec := &teeWriter{ResponseWriter: w}
 		next.ServeHTTP(rec, r)
 		if rec.status == 0 {
 			rec.status = http.StatusOK
 		}
 		apiContract.observe(t, r.Method, r.URL.Path, rec.status, rec.Header().Get("Content-Type"), rec.body.Bytes())
+		if call != nil {
+			apiContract.observeTool(call, rec.body.Bytes())
+		}
 	})
+}
+
+// observeTool counts a tools/call by its tool and whether its result was an error; other methods are not tools.
+func (c *contract) observeTool(call, answer []byte) {
+	var req struct {
+		Method string `json:"method"`
+		Params struct {
+			Name string `json:"name"`
+		} `json:"params"`
+	}
+	var resp struct {
+		Result *struct {
+			IsError bool `json:"isError"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(call, &req) != nil || req.Method != "tools/call" || req.Params.Name == "" || json.Unmarshal(answer, &resp) != nil || resp.Result == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.tools[req.Params.Name] == nil {
+		c.tools[req.Params.Name] = map[bool]int{}
+	}
+	c.tools[req.Params.Name][resp.Result.IsError]++
 }
 
 // teeWriter passes a response on and keeps a copy of it.
@@ -237,3 +287,41 @@ func (w *teeWriter) Write(b []byte) (int, error) {
 }
 
 func (w *teeWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// unrefusedFor lists the operations matching which that were never refused with status and a code that passes ok.
+func (c *contract) unrefusedFor(which func(httpapi.Route) bool, status int, ok func(code string) bool) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var out []string
+	for _, r := range c.routes {
+		if !which(r.Route) {
+			continue
+		}
+		refused := false
+		for seen := range c.refusals[r.key()] {
+			got, code, _ := strings.Cut(seen, " ")
+			if got == fmt.Sprint(status) && ok(code) {
+				refused = true
+			}
+		}
+		if !refused {
+			out = append(out, r.key())
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// toolsUncalled lists the tools never answered with a result of that kind, an error or not.
+func (c *contract) toolsUncalled(names []string, isError bool) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var out []string
+	for _, name := range names {
+		if c.tools[name][isError] == 0 {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}

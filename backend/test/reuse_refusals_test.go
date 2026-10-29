@@ -3,12 +3,15 @@
 package test
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
 
 // reuseScene is a library with a section of two requirements, and a product everybody reads where only the editor
@@ -190,6 +193,14 @@ func TestATakeAndAVariantAreRefusedWhereTheReuseMayNotChange(t *testing.T) {
 		key := s.reuse(t, source)
 		s.revise(t, source, "Warn before the brakes fade on a descent")
 		want(t, s.editor.delete(t, "/api/v1/requirements/"+source["key"].(string)), http.StatusNoContent, "trash the source")
+		long := s.editor.post(t, "/api/v1/requirements/"+key+"/reuse/take",
+			map[string]any{"revision": 2, "comment": strings.Repeat("x", requirement.MaxCommentLength+1)})
+		if msg := fieldError(t, long, "comment"); !strings.Contains(msg, fmt.Sprint(requirement.MaxCommentLength)) {
+			t.Errorf("a long comment is refused with %q", msg)
+		}
+		if s.revisions(t, key) != 1 {
+			t.Error("a take refused for its comment wrote a revision")
+		}
 		// The source may come back from the trash, so its words are still the ones to follow.
 		taken := obj(t, want(t, take(s.editor, key, 2), http.StatusOK, "take a trashed source"), "requirement")
 		if taken["title"] != "Warn before the brakes fade on a descent" || taken["revision"] != float64(2) {

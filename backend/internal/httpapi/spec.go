@@ -454,13 +454,17 @@ type Route struct {
 	Pending bool
 	// OrgWide operations are refused a token limited to projects.
 	OrgWide bool
+	// Body says the operation takes a request body; Tool is its MCP tool, when it has one.
+	Body bool
+	Tool string
 }
 
 // Catalog lists every operation in the table.
 func Catalog() []Route {
 	out := make([]Route, 0, len(operations))
 	for _, op := range operations {
-		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Binary: op.binary, Redirect: op.redirect, Pending: op.pending, OrgWide: op.orgWide})
+		out = append(out, Route{Method: op.method, Path: op.path, ID: op.operationID(), Public: op.public, Binary: op.binary, Redirect: op.redirect,
+			Pending: op.pending, OrgWide: op.orgWide, Body: op.request != nil, Tool: op.tool})
 	}
 	return out
 }

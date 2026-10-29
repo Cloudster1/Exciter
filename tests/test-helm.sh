@@ -150,6 +150,9 @@ check "enabled, the render service runs beside the web and the api prints throug
     "$(config_value "${with_render}" EXCITER_RENDER_URL) $(grep -c "^  name: ${RELEASE}-exciter-render\$" <<<"${with_render}") $(grep -c 'name: RENDER_APP_URL' <<<"${with_render}")" \
     "http://${RELEASE}-exciter-render:8090 2 1"
 check "its image is the one a release pushes" "$(grep -c 'image: ghcr.io/cloudster1/exciter-render:' <<<"${with_render}")" "1"
+# The image's user is a name, chrome, which the kubelet refuses under runAsNonRoot unless its number is given.
+check "it runs as the image's own user, by number" \
+    "$(manifest "${with_render}" Deployment "${FULL}-render" | grep -cE '^        runAsNonRoot: true$|^        runAsUser: 1000$|^        runAsGroup: 1000$')" "3"
 check "diagrams are drawn by a pinned Kroki in its secure mode, which the api reaches in the cluster" \
     "$(config_value "${RENDERED}" EXCITER_KROKI_URL) $(grep -c "^  name: ${RELEASE}-exciter-kroki\$" <<<"${RENDERED}") $(grep -c 'image: yuzutech/kroki:0.33.0' <<<"${RENDERED}") $(grep -A1 'name: KROKI_SAFE_MODE' <<<"${RENDERED}" | grep -c 'value: secure')" \
     "http://${RELEASE}-exciter-kroki:8000 2 1 1"
@@ -250,6 +253,19 @@ refused "a member with no such role" "use owner, admin or member" \
     "${BOOT[@]}" --set "bootstrap.members[0].email=a@acme.example" --set "bootstrap.members[0].role=root"
 refused "the seed and the bootstrap together" "turn one of them off" \
     "${BOOT[@]}" --set jobs.seed.enabled=true --set env=development
+refused "a client id without its issuer" "bootstrap.oidc.clientId is set without bootstrap.oidc.issuer. Set both, or neither." \
+    "${BOOT[@]}" --set bootstrap.oidc.clientId=exciter
+refused "a client secret without its issuer" "bootstrap.oidc.clientSecret.name is set without bootstrap.oidc.issuer" \
+    "${BOOT[@]}" --set bootstrap.oidc.clientSecret.name=dynamo-oidc
+
+echo "== Session cookies outside development"
+refused "plain cookies in production" \
+    "auth.secureCookies is false and env is production, so the api and the worker would refuse to start. Set auth.secureCookies to true outside development" \
+    --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false
+refused "plain cookies in staging" "auth.secureCookies is false and env is staging" \
+    --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=staging
+render "plain cookies in development" --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=development
+check "development may send the cookie over plain HTTP" "$(config_value "${RENDERED}" EXCITER_SECURE_COOKIES)" "false"
 
 echo "== The bundled SeaweedFS"
 SWFS=(--set database.host=db.example "${VALKEY[@]}" --set seaweedfs.enabled=true)
@@ -261,6 +277,35 @@ check "the endpoint is the one given" "$(config_value "${RENDERED}" EXCITER_S3_E
 check "no SeaweedFS is rendered" "$(grep -c 'seaweedfs' <<<"${RENDERED}")" "0"
 refused "SeaweedFS reading keys the api does not have" "must be \"exciter-s3\" and \"exciter-s3-read\"" \
     "${SWFS[@]}" --set seaweedfs.s3.credentials.admin.existingSecret=elsewhere
+for key in admin.accessKeyKey admin.secretKeyKey read.accessKeyKey read.secretKeyKey; do
+    refused "SeaweedFS reading its ${key} from another key of the Secret" \
+        "seaweedfs.s3.credentials.admin and .read must read the keys username and password" \
+        "${SWFS[@]}" --set "seaweedfs.s3.credentials.${key}=access"
+done
+
+echo "== Settings every workload is given"
+SET=(--set database.host=db.example "${VALKEY[@]}")
+check "with nothing set, no trace leaves and no proxy or origin is trusted" \
+    "$(helm template "${RELEASE}" /chart "${SET[@]}" 2>&1 | grep -cE 'EXCITER_(OTEL_ENDPOINT|OTEL_SAMPLE_RATIO|TRUSTED_PROXIES|CORS_ORIGINS)')" "0"
+render "mail, traces, proxies and origins" "${SET[@]}" --set mail.smtpAddr=smtp.acme.example:587 \
+    --set telemetry.otel.endpoint=http://otel.acme.example:4318/v1/traces --set telemetry.otel.sampleRatio=0.25 \
+    --set 'network.trustedProxies={10.0.0.0/8,192.168.1.10}' --set 'network.corsOrigins={https://a.acme.example,https://b.acme.example}' \
+    --set retention.audit=0
+check "the worker mails through the relay, from the chart's sender" \
+    "$(config_value "${RENDERED}" EXCITER_SMTP_ADDR)|$(config_value "${RENDERED}" EXCITER_MAIL_FROM)" \
+    "smtp.acme.example:587|Exciter <no-reply@exciter.example.com>"
+check "traces go to the collector, sampled as set" \
+    "$(config_value "${RENDERED}" EXCITER_OTEL_ENDPOINT) $(config_value "${RENDERED}" EXCITER_OTEL_SAMPLE_RATIO)" \
+    "http://otel.acme.example:4318/v1/traces 0.25"
+check "trusted proxies and browser origins are comma lists" \
+    "$(config_value "${RENDERED}" EXCITER_TRUSTED_PROXIES) $(config_value "${RENDERED}" EXCITER_CORS_ORIGINS)" \
+    "10.0.0.0/8,192.168.1.10 https://a.acme.example,https://b.acme.example"
+check "an audit retention of 0 keeps the audit log forever" "$(config_value "${RENDERED}" EXCITER_RETAIN_AUDIT)" "0"
+check "the api and the worker both read that ConfigMap" \
+    "$(manifest "${RENDERED}" Deployment "${FULL}-api" | grep -c "name: ${FULL}-env\$") $(manifest "${RENDERED}" Deployment "${FULL}-worker" | grep -c "name: ${FULL}-env\$")" \
+    "1 1"
+check "a sender of one's own" \
+    "$(helm template "${RELEASE}" /chart "${SET[@]}" --set mail.smtpAddr=smtp.acme.example:587 --set 'mail.from=Acme <req@acme.example>' 2>&1 | grep -c 'EXCITER_MAIL_FROM: "Acme <req@acme.example>"')" "1"
 
 echo "== Monitoring"
 render "the ServiceMonitor" "${WIRED[@]}" --set telemetry.serviceMonitor.enabled=true
@@ -270,11 +315,19 @@ check "the ServiceMonitor selects the api and the worker" \
     "$(manifest "${RENDERED}" ServiceMonitor "${FULL}" | grep -c '^        values: \[api, worker\]$')" "1"
 check "the Services with a metrics port are the api's and the worker's" \
     "$(services_with_port "${RENDERED}" metrics)" "${FULL}-api ${FULL}-worker"
+check "it scrapes the metrics port every 30s by default" \
+    "$(manifest "${RENDERED}" ServiceMonitor "${FULL}" | grep -cE '^    - port: metrics$|^      interval: 30s$')" "2"
+monitored=$(helm template "${RELEASE}" /chart "${WIRED[@]}" --set telemetry.serviceMonitor.enabled=true \
+    --set telemetry.serviceMonitor.interval=15s --set telemetry.serviceMonitor.labels.release=kube-prometheus 2>&1)
+check "its interval and labels are the ones given" \
+    "$(manifest "${monitored}" ServiceMonitor "${FULL}" | grep -cE '^      interval: 15s$|^    release: kube-prometheus$')" "2"
+check "it is off until asked for" "$(grep -c '^kind: ServiceMonitor$' <<<"$(helm template "${RELEASE}" /chart "${WIRED[@]}" 2>&1)")" "0"
 
 echo "== The golden renders"
 golden demo -f /chart/values-demo.yaml
 golden production "${WIRED[@]}" --set telemetry.serviceMonitor.enabled=true --set bootstrap.oidc.issuer=https://sso.example.com/realms/dynamo \
-    --set bootstrap.oidc.clientId=exciter --set bootstrap.oidc.clientSecret.name=dynamo-oidc
+    --set bootstrap.oidc.clientId=exciter --set bootstrap.oidc.clientSecret.name=dynamo-oidc \
+    --set mail.smtpAddr=smtp.example.com:587 --set telemetry.otel.endpoint=http://otel-collector.monitoring.svc:4318/v1/traces
 
 if [[ ${FAILED} -ne 0 ]]; then
     echo "chart tests failed"

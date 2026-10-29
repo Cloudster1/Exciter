@@ -27,9 +27,12 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      # The Chrome image's own user, not ours: it owns the browser it ships.
+      # The Chrome image's own user, not ours: it owns the browser it ships. The image names it chrome, which the
+      # kubelet cannot prove is not root, so its number is given.
       securityContext:
         runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: render
