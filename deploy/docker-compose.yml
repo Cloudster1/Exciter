@@ -93,12 +93,12 @@ services:
       # A statement that waits on a lock past deadlock_timeout, a second, is logged with who holds it (#405).
       - -c
       - log_lock_waits=on
-      # And one that runs past three seconds is logged with the plan it ran, nested function bodies included, with
+      # And one that runs past a second is logged with the plan it ran, nested function bodies included, with
       # the rows each step gave; without timings, which would slow every statement (#405).
       - -c
       - shared_preload_libraries=auto_explain
       - -c
-      - auto_explain.log_min_duration=3s
+      - auto_explain.log_min_duration=1s
       - -c
       - auto_explain.log_nested_statements=on
       - -c
