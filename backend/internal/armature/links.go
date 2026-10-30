@@ -203,6 +203,12 @@ func (s *Service) issueToLink(ctx context.Context, key string) (*Issue, error) {
 	return issue, nil
 }
 
+// linkedRequirement is link l's requirement r in project p, each looked up by id: joined freely, the planner may
+// walk the whole requirement index to meet the link, weighing the reader's view of every row on the way.
+const linkedRequirement = `
+	CROSS JOIN LATERAL (SELECT * FROM requirement WHERE id = l.requirement_id OFFSET 0) r
+	CROSS JOIN LATERAL (SELECT * FROM project WHERE id = r.project_id OFFSET 0) p`
+
 // Unlink removes a trace to an issue; the worker takes the link off the issue.
 func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 	actor, err := actorOf(ctx)
@@ -213,7 +219,7 @@ func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 		var editable, archived bool
 		err := tx.QueryRow(ctx, `
 			SELECT perm_requirement_editable(l.requirement_id, $2), p.archived_at IS NOT NULL
-			FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id JOIN project p ON p.id = r.project_id
+			FROM armature_issue_link l`+linkedRequirement+`
 			WHERE l.id = $1`, id, actor).Scan(&editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
@@ -254,7 +260,7 @@ func (s *Service) Clear(ctx context.Context, id uuid.UUID, in ClearInput) (*Link
 		err := tx.QueryRow(ctx, `
 			SELECT r.id, p.key, r.number, r.revision, r.trashed_at IS NOT NULL, perm_requirement_editable(r.id, $2),
 			       p.archived_at IS NOT NULL
-			FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id JOIN project p ON p.id = r.project_id
+			FROM armature_issue_link l`+linkedRequirement+`
 			WHERE l.id = $1`, id, actor).Scan(&r.ID, &r.ProjectKey, &number, &r.Revision, &r.Trashed, &editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound

@@ -85,10 +85,7 @@ func (s *Service) Clear(ctx context.Context, actor, id uuid.UUID, in ClearInput)
 			       t.trashed_at IS NOT NULL,
 			       perm_requirement_editable(s.id, $2) OR perm_requirement_editable(t.id, $2),
 			       sp.archived_at IS NOT NULL AND tp.archived_at IS NOT NULL
-			FROM trace_link l
-			JOIN requirement s ON s.id = l.source_id JOIN project sp ON sp.id = s.project_id
-			JOIN requirement t ON t.id = l.target_id JOIN project tp ON tp.id = t.project_id
-			WHERE l.id = $1 AND l.deleted_at IS NULL`, id, actor).
+			`+linkWithEnds, id, actor).
 			Scan(&source.ID, &source.ProjectKey, &sourceNumber, &source.Revision, &source.Trashed, &target.ID, &target.ProjectKey,
 				&targetNum, &target.Revision, &target.Trashed, &editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
