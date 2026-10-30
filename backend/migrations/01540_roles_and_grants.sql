@@ -302,7 +302,7 @@ $$;
 CREATE TRIGGER group_member_keeps_everyone BEFORE DELETE ON group_member
     FOR EACH ROW EXECUTE FUNCTION group_member_keeps_everyone();
 
--- Nobody but a member joins Everyone, and a guest no group the installation keeps.
+-- Nobody but a member joins Everyone.
 -- +goose StatementBegin
 CREATE FUNCTION group_member_everyone_members() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp

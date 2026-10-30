@@ -102,6 +102,8 @@ export const OAUTH_CONSENT_PATH = "/oauth/consent";
 
 /** Where an administrator decides who may do what: roles, the matrix, members, groups and single sign-on, a tab each. */
 export const ACCESS_PATH = "/settings/access";
+/** One tab of the Access page, named by its key; a plain string, which scripts/e2e-reach.mjs reads routes by. */
+export const ACCESS_TAB_PATH = "/settings/access/$tab";
 /** Where the members and single sign-on had pages of their own, which now lead to their tabs. */
 export const MEMBERS_PATH = "/settings/members";
 export const SSO_PATH = "/settings/sso";

@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { createRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Button, Page, PageHeader, TabPanel, Tabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { ACCESS_PATH, MEMBERS_PATH, SSO_PATH } from "@/config";
+import { ACCESS_PATH, ACCESS_TAB_PATH, MEMBERS_PATH, SSO_PATH } from "@/config";
 import { GroupList } from "@/features/access/GroupList";
 import { MemberList } from "@/features/access/MemberList";
 import { NewRoleDialog, RoleMatrix } from "@/features/access/RoleMatrix";
@@ -23,23 +23,21 @@ function isTab(value: string): value is AccessTab {
 // The tests find a tab by these words, whatever language the page speaks.
 const tabHooks: Record<AccessTab, string> = { roles: "Roles", matrix: "Matrix", members: "Members", groups: "Groups", sso: "Single sign-on" };
 
-const TAB_PATH = `${ACCESS_PATH}/$tab` as const;
-
 /** The Access page opens on its first tab. */
 export const accessRoute = createRoute({
   getParentRoute: () => appRoute,
   path: ACCESS_PATH,
   beforeLoad: () => {
-    throw redirect({ to: TAB_PATH, params: { tab: "roles" }, replace: true });
+    throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "roles" }, replace: true });
   },
 });
 
 /** Each tab is a route of its own, so a tab can be linked, survives a reload and steps back with Back. */
 export const accessTabRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: TAB_PATH,
+  path: ACCESS_TAB_PATH,
   beforeLoad: ({ params }) => {
-    if (!isTab(params.tab)) throw redirect({ to: TAB_PATH, params: { tab: "roles" }, replace: true });
+    if (!isTab(params.tab)) throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "roles" }, replace: true });
   },
   component: () => (
     <AdminsOnly title={t.accessAdmin.title} refusal={t.accessAdmin.notAdmin}>
@@ -53,7 +51,7 @@ export const membersRedirectRoute = createRoute({
   getParentRoute: () => appRoute,
   path: MEMBERS_PATH,
   beforeLoad: () => {
-    throw redirect({ to: TAB_PATH, params: { tab: "members" }, replace: true });
+    throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "members" }, replace: true });
   },
 });
 
@@ -62,7 +60,7 @@ export const ssoRedirectRoute = createRoute({
   getParentRoute: () => appRoute,
   path: SSO_PATH,
   beforeLoad: () => {
-    throw redirect({ to: TAB_PATH, params: { tab: "sso" }, replace: true });
+    throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "sso" }, replace: true });
   },
 });
 
@@ -78,7 +76,7 @@ function AccessPage() {
       <Tabs
         label={t.accessAdmin.title}
         value={tab}
-        onChange={(next) => void navigate({ to: TAB_PATH, params: { tab: next } })}
+        onChange={(next) => void navigate({ to: ACCESS_TAB_PATH, params: { tab: next } })}
         panelId={panelId}
         className="mb-4"
         tabs={tabs.map((each) => ({ value: each, label: t.accessAdmin.tabs[each], attrs: { "data-access-tab": tabHooks[each] } }))}
