@@ -2,8 +2,8 @@ apiVersion: v2
 name: exciter
 description: Requirements management that works hand in hand with Armature and Stator
 type: application
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 home: https://github.com/Cloudster1/Exciter
 sources:
   - https://github.com/Cloudster1/Exciter
