@@ -83,8 +83,10 @@ CREATE TABLE role_assignment (
 CREATE UNIQUE INDEX role_assignment_unique_idx ON role_assignment (role, project_id, user_id, group_id) NULLS NOT DISTINCT;
 CREATE INDEX role_assignment_project_idx ON role_assignment (project_id) WHERE project_id IS NOT NULL;
 CREATE INDEX role_assignment_installation_idx ON role_assignment (role) WHERE project_id IS NULL;
-CREATE INDEX role_assignment_user_idx ON role_assignment (user_id) WHERE user_id IS NOT NULL;
-CREATE INDEX role_assignment_group_idx ON role_assignment (group_id) WHERE group_id IS NOT NULL;
+-- With the project beside the subject, the grants across the installation that reach somebody are found from them,
+-- not by reading every grant across it, which grows with the people.
+CREATE INDEX role_assignment_user_idx ON role_assignment (user_id, project_id) WHERE user_id IS NOT NULL;
+CREATE INDEX role_assignment_group_idx ON role_assignment (group_id, project_id) WHERE group_id IS NOT NULL;
 
 CREATE TRIGGER role_assignment_held_by_a_member BEFORE INSERT OR UPDATE OF user_id ON role_assignment
     FOR EACH ROW EXECUTE FUNCTION held_by_a_member('user_id');
@@ -376,13 +378,14 @@ CREATE FUNCTION perm_installation_grants(actor uuid) RETURNS text[]
     LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
     SELECT COALESCE(array_agg(DISTINCT p.word ORDER BY p.word), '{}')
-    FROM role_assignment a
-    JOIN role r ON r.key = a.role
+    FROM (SELECT a.role FROM role_assignment a WHERE a.user_id = actor AND a.project_id IS NULL
+          UNION ALL
+          SELECT a.role FROM group_member gm
+          JOIN role_assignment a ON a.group_id = gm.group_id AND a.project_id IS NULL
+          WHERE gm.user_id = actor) held
+    JOIN role r ON r.key = held.role
     CROSS JOIN LATERAL unnest(r.permissions) AS p (word)
-    WHERE a.project_id IS NULL
-      AND EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member')
-      AND (a.user_id = actor OR (a.group_id IS NOT NULL AND EXISTS (
-          SELECT 1 FROM group_member gm WHERE gm.group_id = a.group_id AND gm.user_id = actor)))
+    WHERE EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member')
 $$;
 -- +goose StatementEnd
 
@@ -423,20 +426,31 @@ ALTER POLICY project_made_by_admins ON project
 -- What a person may do in a project: what the grants that reach them add up to, those in the project and, for a
 -- member, those across the installation. An archived project allows only view, and administer, which is what
 -- unarchives and deletes it.
+-- The policies ask this of every row they weigh, so it is plpgsql: each step plans once a session and runs only
+-- when the one before it has not answered, where one SQL statement set up all of its parts at every call.
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION perm_project_holds(project uuid, actor uuid, permission text) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
+    LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
-    SELECT perm_token_reaches(actor, perm_project_holds.project) AND EXISTS (
-        SELECT 1 FROM project p
-        JOIN app_user m ON m.id = actor AND m.role IS NOT NULL
-        WHERE p.id = perm_project_holds.project AND (p.archived_at IS NULL OR permission IN ('view', 'administer'))
-          AND EXISTS (
-              SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
-              WHERE (a.project_id = p.id OR (a.project_id IS NULL AND m.role = 'member'))
-                AND (a.user_id = actor OR (a.group_id IS NOT NULL AND EXISTS (
-                    SELECT 1 FROM group_member gm WHERE gm.group_id = a.group_id AND gm.user_id = actor)))
-                AND permission = ANY (perm_role_held(m.role, r.permissions))))
+DECLARE
+    standing text;
+BEGIN
+    IF NOT perm_token_reaches(actor, perm_project_holds.project) THEN
+        RETURN false;
+    END IF;
+    SELECT m.role INTO standing FROM project p, app_user m
+    WHERE p.id = perm_project_holds.project AND m.id = actor AND m.role IS NOT NULL
+      AND (p.archived_at IS NULL OR permission IN ('view', 'administer'));
+    IF standing IS NULL THEN
+        RETURN false;
+    END IF;
+    RETURN EXISTS (
+            SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
+            WHERE a.project_id = perm_project_holds.project
+              AND (a.user_id = actor OR a.group_id IN (SELECT gm.group_id FROM group_member gm WHERE gm.user_id = actor))
+              AND permission = ANY (perm_role_held(standing, r.permissions)))
+        OR (standing = 'member' AND permission = ANY (perm_installation_grants(actor)));
+END
 $$;
 -- +goose StatementEnd
 
@@ -455,10 +469,19 @@ AS $$
         FROM role_assignment a
         JOIN role r ON r.key = a.role
         JOIN app_user m ON m.id = actor AND m.role IS NOT NULL
-        WHERE (a.project_id = target OR (a.project_id IS NULL AND m.role = 'member' AND NOT r.installation_wide_only
-                                         AND EXISTS (SELECT 1 FROM project p WHERE p.id = target)))
-          AND (a.user_id = actor OR (a.group_id IS NOT NULL AND EXISTS (
-              SELECT 1 FROM group_member gm WHERE gm.group_id = a.group_id AND gm.user_id = actor)))
+        WHERE a.project_id = target
+          AND (a.user_id = actor OR a.group_id IN (SELECT gm.group_id FROM group_member gm WHERE gm.user_id = actor))
+        UNION ALL
+        SELECT held.role
+        FROM (SELECT a.role FROM role_assignment a WHERE a.user_id = actor AND a.project_id IS NULL
+              UNION ALL
+              SELECT a.role FROM group_member gm
+              JOIN role_assignment a ON a.group_id = gm.group_id AND a.project_id IS NULL
+              WHERE gm.user_id = actor) held
+        JOIN role r ON r.key = held.role
+        WHERE NOT r.installation_wide_only
+          AND EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member')
+          AND EXISTS (SELECT 1 FROM project p WHERE p.id = target)
     ) roles
 $$;
 -- +goose StatementEnd
