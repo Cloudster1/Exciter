@@ -36471,6 +36471,9 @@
       "Provider": {
         "type": "object",
         "properties": {
+          "admitByGroup": {
+            "type": "boolean"
+          },
           "clientId": {
             "type": "string"
           },
@@ -36504,6 +36507,7 @@
           "groupsClaim",
           "scopes",
           "createGroups",
+          "admitByGroup",
           "enabled",
           "updatedAt"
         ]
@@ -40215,6 +40219,9 @@
       "SaveOIDCProviderRequest": {
         "type": "object",
         "properties": {
+          "admitByGroup": {
+            "type": "boolean"
+          },
           "clientId": {
             "type": "string"
           },
@@ -40241,6 +40248,7 @@
           "issuer",
           "clientId",
           "createGroups",
+          "admitByGroup",
           "enabled"
         ]
       },

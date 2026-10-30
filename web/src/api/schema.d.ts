@@ -7073,6 +7073,7 @@ export interface components {
             settings?: components["schemas"]["ProjectSettingsInput"];
         };
         Provider: {
+            admitByGroup: boolean;
             clientId: string;
             createGroups: boolean;
             enabled: boolean;
@@ -7961,6 +7962,7 @@ export interface components {
             type: string;
         };
         SaveOIDCProviderRequest: {
+            admitByGroup: boolean;
             clientId: string;
             clientSecret?: string;
             createGroups: boolean;

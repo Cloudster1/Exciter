@@ -616,7 +616,8 @@ shared realm for a grant here (RFC 8693), as it does at Armature
   - The person is the one the token names, matched as a sign-in matches
     them, by issuer and subject and else by the verified address, and
     somebody not yet in Exciter is let in by the group mapping, as at
-    sign-in, their groups synced. Somebody the mapping does not let in is
+    sign-in, their groups synced, while the provider's `admitByGroup` is on.
+    Somebody the mapping does not let in is
     `invalid_grant`, "Ada Lovelace has no Exciter account yet. Sign in to
     Exciter once, or ask an administrator to let them in.", and no account
     is left behind.

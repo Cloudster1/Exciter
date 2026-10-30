@@ -15,7 +15,9 @@ const when = localDateFormat({ dateStyle: "medium", timeStyle: "medium" });
 /** The words a reader knows a target by, as the entry kept them, else its id. */
 export function targetName(entry: AuditEntry): string {
   const data = entry.data as Record<string, unknown>;
-  for (const key of ["title", "name", "key", "group", "issuer", "baseUrl"]) {
+  // A person's entry may name the group that let them in, which is not them.
+  const keys = entry.targetType === "user" ? ["title", "name", "key", "issuer", "baseUrl"] : ["title", "name", "key", "group", "issuer", "baseUrl"];
+  for (const key of keys) {
     const value = data[key];
     if (typeof value === "string" && value) return value;
   }
@@ -25,7 +27,11 @@ export function targetName(entry: AuditEntry): string {
 /** What the entry's data says to a reader, without the ids and the target's own name. */
 export function describe(entry: AuditEntry): string {
   const parts: string[] = [];
-  for (const [key, value] of Object.entries(entry.data as Record<string, unknown>)) {
+  const data = entry.data as Record<string, unknown>;
+  const admittedBy = entry.action === "member.joined" && typeof data.group === "string" ? data.group : "";
+  if (admittedBy) parts.push(t.audit.admittedByGroup(admittedBy));
+  for (const [key, value] of Object.entries(data)) {
+    if (admittedBy && (key === "group" || key === "groups")) continue;
     if (/id$/i.test(key) || value === null || value === undefined || value === "") continue;
     if (Array.isArray(value)) {
       const plain = value.every((each) => typeof each !== "object" || each === null);

@@ -63,7 +63,7 @@ func (s *Service) noteJoinRequest(ctx context.Context, identity *Identity) error
 func (s *Service) signIn(ctx context.Context, identity *Identity, ttl time.Duration, userAgent, ip string) (*Session, error) {
 	out := Session{ExpiresAt: time.Now().Add(ttl)}
 	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		admitted, err := admit(ctx, tx, identity)
+		admitted, err := admit(ctx, tx, identity, viaSignIn)
 		if err != nil {
 			return err
 		}
@@ -90,10 +90,10 @@ type Admission struct {
 // token from the shared realm (#273) is them signing in there. Somebody not let in is ErrNotAMember, and noted
 // nowhere, since they asked the partner rather than Exciter.
 func (s *Service) Admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, error) {
-	return admit(ctx, tx, identity)
+	return admit(ctx, tx, identity, viaTokenExchange)
 }
 
-func admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, error) {
+func admit(ctx context.Context, tx db.DBTX, identity *Identity, via string) (*Admission, error) {
 	userID, err := upsertUser(ctx, tx, identity)
 	if err != nil {
 		return nil, err
@@ -110,8 +110,8 @@ func admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, err
 		return nil, auth.ErrSwitchedOff
 	}
 
-	var create bool
-	err = tx.QueryRow(ctx, `SELECT create_groups FROM oidc_provider WHERE enabled`).Scan(&create)
+	var create, admitByGroup bool
+	err = tx.QueryRow(ctx, `SELECT create_groups, admit_by_group FROM oidc_provider WHERE enabled`).Scan(&create, &admitByGroup)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotConfigured
 	}
@@ -119,8 +119,8 @@ func admit(ctx context.Context, tx db.DBTX, identity *Identity) (*Admission, err
 		return nil, err
 	}
 	// Before the groups, whose rows need a membership to hang off: a mapped
-	// group is an administrator's yes given in advance.
-	if out.Role, err = followMapping(ctx, tx, userID, identity.Groups); err != nil {
+	// group is an administrator's yes given in advance, once they say so.
+	if out.Role, err = followMapping(ctx, tx, userID, identity.Groups, admitByGroup, via); err != nil {
 		return nil, err
 	}
 	// A guest is in no group, whatever the provider says: a group would

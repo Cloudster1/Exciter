@@ -161,6 +161,17 @@ describe("an entry in words", () => {
     expect(details).toBe("key: CHK; grants: 2; scopes: read; from 10.0.0.7");
   });
 
+  it("names the group that let somebody in, and keeps the person as the target", () => {
+    const joined = entry({
+      action: "member.joined",
+      actorId: null,
+      actorName: "",
+      data: { role: "member", group: "quality", groups: ["quality"], via: "sign_in" },
+    });
+    expect(describeEntry(joined)).toBe("admitted by group quality; role: member; via: sign_in");
+    expect(targetName(joined)).toBe(bobId);
+  });
+
   it("asks for the reader's days as the instants they span", () => {
     const query = auditQuery({ from: "2026-09-01", to: "2026-09-30" });
     expect(query.from).toBe(new Date(2026, 8, 1).toISOString());

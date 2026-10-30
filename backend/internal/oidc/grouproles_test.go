@@ -74,11 +74,19 @@ func TestASignInFollowsTheMapping(t *testing.T) {
 		{"a guest in no group stays a guest", manual(auth.RoleGuest), "", manual(auth.RoleGuest)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := nextStanding(tc.current, tc.granted)
-			switch {
-			case got == nil && tc.want == nil:
-			case got == nil || tc.want == nil || *got != *tc.want:
-				t.Fatalf("nextStanding(%v, %q) = %v, want %v", tc.current, tc.granted, got, tc.want)
+			for _, admit := range []bool{true, false} {
+				want := tc.want
+				// Off, a mapped group still sets the roles of people already
+				// in, but lets nobody new in.
+				if !admit && tc.current == nil {
+					want = nil
+				}
+				got := nextStanding(tc.current, tc.granted, admit)
+				switch {
+				case got == nil && want == nil:
+				case got == nil || want == nil || *got != *want:
+					t.Fatalf("nextStanding(%v, %q, admit %v) = %v, want %v", tc.current, tc.granted, admit, got, want)
+				}
 			}
 		})
 	}

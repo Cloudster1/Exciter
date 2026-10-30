@@ -223,6 +223,9 @@ export const de: Messages = {
     groupsClaimHint: "Der Claim, der die Gruppen einer Person aufführt; ein Pfad mit Punkten erreicht einen verschachtelten.",
     scopes: "Scopes",
     createGroups: "Gruppen anlegen, die der Anbieter nennt",
+    admitByGroup: "Personen über ihre Gruppen einlassen",
+    admitByGroupDetail:
+      "Wer sich neu hier oder über Armature oder Stator anmeldet und dessen Gruppe beim Anbieter einer Rolle zugeordnet ist, wird mit dieser Rolle eingelassen. Alle anderen warten weiterhin darauf, eingelassen zu werden.",
     enabled: "Mitglieder melden sich über diesen Anbieter an",
     callback: "Tragen Sie diese Weiterleitungsadresse beim Anbieter ein:",
     signInAt: "Mitglieder melden sich an unter",
@@ -238,7 +241,7 @@ export const de: Messages = {
     declined: (name: string) => `${name} wurde abgewiesen.`,
     groupRolesTitle: "Rollen aus Gruppen",
     groupRolesIntro:
-      "Ordnen Sie hier Gruppen Ihres Identitätsanbieters Rollen zu. Bei jeder Anmeldung erhält eine Person die höchste Rolle, die ihre Gruppen ergeben, und wer in einer zugeordneten Gruppe ist, wird ohne Warten aufgenommen. Der Eigentümer behält seine Rolle.",
+      "Ordnen Sie hier Gruppen Ihres Identitätsanbieters Rollen zu. Bei jeder Anmeldung erhält eine Person die höchste Rolle, die ihre Gruppen ergeben, und wer neu in einer zugeordneten Gruppe ist, wird ohne Warten aufgenommen, sobald oben Personen über ihre Gruppen einlassen angekreuzt ist. Der Eigentümer behält seine Rolle.",
     groupRolesLater: "Änderungen erreichen jede Person bei ihrer nächsten Anmeldung.",
     groupRolesEmpty: "Noch ist keine Gruppe zugeordnet. Die Rollen bleiben, wie Administratoren sie gesetzt haben.",
     groupRolesNeedProvider: "Richten Sie oben Single Sign-on ein, bevor Sie seine Gruppen Rollen zuordnen.",
@@ -331,6 +334,7 @@ export const de: Messages = {
     system: "System",
     formerMember: "Ehemaliges Mitglied",
     fromAddress: (ip: string) => `von ${ip}`,
+    admittedByGroup: (group: string) => `über die Gruppe ${group} eingelassen`,
     empty: "Nichts aufgezeichnet",
     emptyFiltered: "Nichts passt. Erweitern Sie den Zeitraum oder setzen Sie einen Filter zurück.",
     emptyLast: "Das war die letzte Seite.",

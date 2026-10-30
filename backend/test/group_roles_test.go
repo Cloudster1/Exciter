@@ -188,8 +188,9 @@ func TestAMappedGroupGrantsItsRoleAndTakesItBack(t *testing.T) {
 	})
 }
 
-// A mapped group is the administrators' yes given in advance: carol, whom
-// nobody let in, joins directly once quality is mapped. Bob still waits.
+// A mapped group is the administrators' yes given in advance, once they let
+// people in by their groups: carol, whom nobody let in, joins directly once
+// quality is mapped. Bob still waits.
 func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
@@ -208,6 +209,7 @@ func TestAMappedGroupLetsSomebodyInWithoutWaiting(t *testing.T) {
 	})
 
 	mapGroup(t, admin, "quality", "member")
+	admitByGroup(t, admin, true)
 	carolID := h.userID(t, carolEmail)
 
 	t.Run("once quality is mapped carol joins directly", func(t *testing.T) {

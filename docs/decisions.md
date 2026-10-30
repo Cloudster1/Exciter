@@ -3,6 +3,27 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-30: A mapped group lets somebody new in once an administrator says so (#469)
+
+Armature lets people in by their groups only once an administrator turns it
+on (Cloudster1/Armature#301), Stator does the same, and the three tools share
+one realm, so Exciter has the setting under the same name and default:
+`admitByGroup` on the identity provider, "Let people in by their groups"
+under Settings, Single sign-on, off unless turned on. A request that leaves
+it out turns it off, as in Armature.
+
+Off, a mapped group still settles the role of somebody already in at each
+sign-in, but lets nobody new in: they wait to be let in at sign-in, and a
+partner's token exchange is `invalid_grant` with no account kept. On,
+somebody new in a mapped group is let in with its role at either, and
+`member.joined` names the group and where (`sign_in` or `token_exchange`),
+which the audit log shows as admitted by group <name>. Somebody switched off
+is refused either way.
+
+An installation that already maps a group let such people in from the moment
+it was mapped, so the migration turns the setting on wherever a group role
+exists.
+
 ## 2026-10-29: The push gate trusts a clean run on the same tree, unlike Stator (#454)
 
 `./run-tests.sh` records each layer that passed against the tree of `HEAD`,

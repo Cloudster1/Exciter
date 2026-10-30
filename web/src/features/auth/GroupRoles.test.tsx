@@ -15,6 +15,7 @@ const provider = {
     groupsClaim: "groups",
     scopes: "openid profile email",
     createGroups: false,
+    admitByGroup: false,
     enabled: true,
     updatedAt: "2026-09-29T08:00:00Z",
   },

@@ -426,7 +426,9 @@ app role holds no privilege on.
   `app_user.role_source` says whether a role follows the provider. A
   mapping never moves an owner or a guest. Somebody the provider vouches for
   who is not a member is refused and noted in `join_request`, where an
-  administrator lets them in or turns them away. Through the app role only
+  administrator lets them in or turns them away, unless
+  `oidc_provider.admit_by_group` is on and one of their groups is mapped:
+  then they are let in with its role, and `member.joined` names the group. Through the app role only
   administrators read or change the provider, the mapping and the requests.
 - `authenticate` puts the principal and the person it acts for on every
   request, so row level security sees who acts; `requireAuth` and

@@ -122,7 +122,7 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
     const owner = await ownerApi();
     const before = must(await owner.GET("/oidc-provider")).provider;
     expect(before, "the seed configured the provider").toBeTruthy();
-    const { issuer, clientId, groupsClaim, scopes, createGroups, enabled } = before!;
+    const { issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup, enabled } = before!;
     try {
       await page.goto(SSO_PATH);
       const claim = page.getByLabel("Groups claim", { exact: true });
@@ -145,7 +145,7 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
         await bob.close();
       }
     } finally {
-      must(await owner.PUT("/oidc-provider", { body: { issuer, clientId, groupsClaim, scopes, createGroups, enabled } }));
+      must(await owner.PUT("/oidc-provider", { body: { issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup, enabled } }));
       // bob's sign-in read no groups through the other claim; one through the real claim gives them back.
       const bob = await signInFresh(browser, USERS.bob.username, USERS.bob.password);
       await bob.close();

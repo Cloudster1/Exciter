@@ -30,7 +30,8 @@ const (
 	// ActionMemberSwitchedOff and ActionMemberSwitchedOn are an administrator letting somebody go and back.
 	ActionMemberSwitchedOff = "member.switched_off"
 	ActionMemberSwitchedOn  = "member.switched_on"
-	// ActionMemberJoined is somebody let in by a mapped group on their first sign-in, with nobody as its actor.
+	// ActionMemberJoined is somebody let in by a mapped group, at sign-in or a partner's token exchange, with nobody
+	// as its actor; its data names the group and where.
 	ActionMemberJoined = "member.joined"
 	// ActionMemberAdmitted and ActionMemberDeclined answer somebody waiting to be let in.
 	ActionMemberAdmitted   = "member.admitted"

@@ -59,10 +59,11 @@ type standing struct {
 }
 
 // nextStanding is what a sign-in makes of a membership, given the role the
-// mapping grants; nil means the person is not let in.
-func nextStanding(current *standing, granted auth.OrgRole) *standing {
+// mapping grants and whether a mapped group lets somebody new in; nil means
+// the person is not let in.
+func nextStanding(current *standing, granted auth.OrgRole, admit bool) *standing {
 	switch {
-	case current == nil && granted == "":
+	case current == nil && (granted == "" || !admit):
 		// Nobody here said yes, and no mapped group says it in advance.
 		return nil
 	case current == nil:
@@ -162,9 +163,16 @@ func (s *Service) RemoveGroupRole(ctx context.Context, id, actor uuid.UUID, ip s
 	})
 }
 
+// Where somebody was let in by their group, as the audit log names it.
+const (
+	viaSignIn        = "sign_in"
+	viaTokenExchange = "token_exchange"
+)
+
 // followMapping settles a sign-in's membership by the mapping, inside the
-// sign-in's transaction, and records every role it changes.
-func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []string) (auth.OrgRole, error) {
+// sign-in's transaction, and records every role it changes. Somebody new is
+// let in by a mapped group only when admit is on; via says where.
+func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []string, admit bool, via string) (auth.OrgRole, error) {
 	mapping := map[string]auth.OrgRole{}
 	rows, err := tx.Query(ctx, `SELECT group_ref, role FROM oidc_group_role`)
 	if err != nil {
@@ -197,7 +205,7 @@ func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []
 	}
 
 	granted, groups := grantedRole(mapping, claimed)
-	next := nextStanding(current, granted)
+	next := nextStanding(current, granted, admit)
 	if next == nil {
 		return "", ErrNotAMember
 	}
@@ -216,7 +224,7 @@ func followMapping(ctx context.Context, tx db.DBTX, userID uuid.UUID, claimed []
 			return "", err
 		}
 		return next.Role, audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberJoined, TargetType: "user", TargetID: &userID,
-			Data: map[string]any{"role": next.Role, "groups": groups}})
+			Data: map[string]any{"role": next.Role, "group": groups[0], "groups": groups, "via": via}})
 	}
 
 	if _, err := tx.Exec(ctx, `

@@ -12,6 +12,7 @@ interface Draft {
   groupsClaim: string;
   scopes: string;
   createGroups: boolean;
+  admitByGroup: boolean;
   enabled: boolean;
 }
 
@@ -23,6 +24,7 @@ function draftOf(provider: Provider | null | undefined): Draft {
     groupsClaim: provider?.groupsClaim ?? SSO_DEFAULT_GROUPS_CLAIM,
     scopes: provider?.scopes ?? SSO_DEFAULT_SCOPES,
     createGroups: provider?.createGroups ?? false,
+    admitByGroup: provider?.admitByGroup ?? false,
     enabled: provider?.enabled ?? true,
   };
 }
@@ -113,6 +115,18 @@ function ProviderForm({
         <div className="flex flex-col gap-2">
           <Checkbox label={t.sso.enabled} checked={draft.enabled} onChange={(event) => set("enabled", event.target.checked)} />
           <Checkbox label={t.sso.createGroups} checked={draft.createGroups} onChange={(event) => set("createGroups", event.target.checked)} />
+          <div>
+            <Checkbox
+              label={t.sso.admitByGroup}
+              checked={draft.admitByGroup}
+              aria-describedby="sso-admit-by-group"
+              onChange={(event) => set("admitByGroup", event.target.checked)}
+              data-admit-by-group
+            />
+            <p id="sso-admit-by-group" className="pl-6 text-xs text-ink-muted">
+              {t.sso.admitByGroupDetail}
+            </p>
+          </div>
         </div>
         {callbackUrl && (
           <p className="text-sm text-ink-muted">

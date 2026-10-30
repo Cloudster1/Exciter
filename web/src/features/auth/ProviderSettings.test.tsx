@@ -15,6 +15,7 @@ const stored = {
   groupsClaim: "groups",
   scopes: "openid profile email",
   createGroups: false,
+  admitByGroup: false,
   enabled: true,
   updatedAt: "2026-09-29T08:00:00Z",
 };
@@ -44,6 +45,7 @@ describe("the single sign-on settings", () => {
       groupsClaim: "groups",
       scopes: "openid profile email",
       createGroups: true,
+      admitByGroup: false,
       enabled: true,
     });
     expect(await screen.findByText("/api/v1/auth/oidc/start")).toBeInTheDocument();
@@ -65,6 +67,38 @@ describe("the single sign-on settings", () => {
     expect(body).not.toHaveProperty("clientSecret");
     expect(body.enabled).toBe(false);
     expect(await screen.findByRole("status")).toHaveTextContent("Saved.");
+  });
+
+  // Off unless an administrator turns it on, and the page says what it does.
+  it("lets people in by their groups only once it is ticked and saved", async () => {
+    const sent = stubApi({
+      "GET /oidc-provider": { status: 200, body: { provider: stored, callbackUrl } },
+      "PUT /oidc-provider": { status: 200, body: { provider: { ...stored, admitByGroup: true, updatedAt: "2026-09-29T09:00:00Z" }, callbackUrl } },
+    });
+    await renderAt(SSO_PATH);
+    const admit = await screen.findByRole("checkbox", { name: "Let people in by their groups" });
+    expect(admit).not.toBeChecked();
+    expect(admit).toHaveAccessibleDescription(/whose group from the provider is mapped to a role is let in with that role/);
+
+    await userEvent.click(admit);
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(sent.some((r) => r.method === "PUT")).toBe(true));
+    expect(sent.find((r) => r.method === "PUT")?.body).toMatchObject({ admitByGroup: true, enabled: true, createGroups: false });
+    expect(await screen.findByRole("checkbox", { name: "Let people in by their groups" })).toBeChecked();
+  });
+
+  it("leaves people in no group waiting when it is left unticked", async () => {
+    const sent = stubApi({
+      "GET /oidc-provider": { status: 200, body: { provider: { ...stored, admitByGroup: true }, callbackUrl } },
+      "PUT /oidc-provider": { status: 200, body: { provider: stored, callbackUrl } },
+    });
+    await renderAt(SSO_PATH);
+    const admit = await screen.findByRole("checkbox", { name: "Let people in by their groups" });
+    expect(admit).toBeChecked();
+    await userEvent.click(admit);
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(sent.some((r) => r.method === "PUT")).toBe(true));
+    expect(sent.find((r) => r.method === "PUT")?.body).toMatchObject({ admitByGroup: false });
   });
 
   it("shows what the server refused against its field", async () => {

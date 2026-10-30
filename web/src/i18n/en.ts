@@ -222,6 +222,9 @@ export const en = {
     groupsClaimHint: "The claim listing somebody's groups; a dotted path reaches a nested one.",
     scopes: "Scopes",
     createGroups: "Create groups the provider names",
+    admitByGroup: "Let people in by their groups",
+    admitByGroupDetail:
+      "Somebody new signing in here, or through Armature or Stator, whose group from the provider is mapped to a role is let in with that role. Anybody else still waits to be let in.",
     enabled: "Members sign in through this provider",
     callback: "Register this redirect address with the provider:",
     signInAt: "Members sign in at",
@@ -237,7 +240,7 @@ export const en = {
     declined: (name: string) => `${name} was turned away.`,
     groupRolesTitle: "Roles from groups",
     groupRolesIntro:
-      "Map groups at your identity provider to roles here. At each sign-in a person gets the highest role their groups map to, and somebody in a mapped group is let in without waiting. The owner keeps their role.",
+      "Map groups at your identity provider to roles here. At each sign-in a person gets the highest role their groups map to, and somebody new in a mapped group is let in without waiting once Let people in by their groups is ticked above. The owner keeps their role.",
     groupRolesLater: "Changes reach each person at their next sign-in.",
     groupRolesEmpty: "No group is mapped yet. Roles stay as administrators set them.",
     groupRolesNeedProvider: "Set up single sign-on above before mapping its groups to roles.",
@@ -330,6 +333,7 @@ export const en = {
     system: "System",
     formerMember: "Former member",
     fromAddress: (ip: string) => `from ${ip}`,
+    admittedByGroup: (group: string) => `admitted by group ${group}`,
     empty: "Nothing recorded",
     emptyFiltered: "Nothing matches. Widen the dates or clear a filter.",
     emptyLast: "That was the last page.",

@@ -18,6 +18,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `ProgressBar`, `DateInput`, `MentionTextarea`, `Spotlight`, `Count`,
   `Toast`, `ConfirmDialog`, `Drawer` and `DockedPanel`, and a `ref` on
   `Field` (#474).
+- "Let people in by their groups" under Settings, Single sign-on, off by
+  default as in Armature and Stator: only while it is ticked does somebody
+  new in a group mapped to a role get in with that role, at sign-in or at a
+  partner's token exchange, and the audit log names the group that let them
+  in. `GET` and `PUT /oidc-provider` carry `admitByGroup`; a `PUT` that
+  leaves it out turns it off (#469).
 - The Ctrl K palette, Cmd K on a Mac, finds projects and what can be done,
   such as New project, beside requirements, places and the full search, and
   offers the requirements opened last before anything is typed; each kind
@@ -25,6 +31,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Mapping a group to a role no longer lets anybody new in by itself; it
+  sets the roles of people already in, and lets newcomers in once "Let
+  people in by their groups" is ticked. An installation that already maps a
+  group has it ticked by the upgrade, so nothing changes there (#469).
 - Dialogs take the suite's API: `open`, a `size` of sm, md or lg, a
   `description` and a pinned `footer`. Checking a suspect link opens in a
   drawer from the side, with room for the changes (#474).
