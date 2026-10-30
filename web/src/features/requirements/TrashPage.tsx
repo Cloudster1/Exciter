@@ -93,11 +93,16 @@ export function TrashPage({ project }: { project: Project }) {
         </>
       )}
       {purging && (
-        <Dialog title={purging === "all" ? t.requirements.emptyTrashTitle : t.requirements.purgeTitle} onClose={() => setPurging(null)} data-confirm-purge="">
+        <Dialog
+          open
+          title={purging === "all" ? t.requirements.emptyTrashTitle : t.requirements.purgeTitle}
+          onClose={() => setPurging(null)}
+          attrs={{ "data-confirm-purge": "" }}
+        >
           <p className="text-sm text-ink">{purging === "all" ? t.requirements.emptyTrashBody : t.requirements.purgeBody(purging.key)}</p>
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setPurging(null)}>
-              {t.common.cancel}
+              {t.kit.cancel}
             </Button>
             <Button
               variant="danger"

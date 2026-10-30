@@ -183,7 +183,7 @@ function AcceptDialog({ finding, reqKey, revision, onClose }: { finding: Quality
     accept.mutate({ revision, key: finding.key, reason: reason.trim() }, { onSuccess: onClose });
   }
   return (
-    <Dialog title={l.acceptTitle} onClose={onClose} data-accept-finding="">
+    <Dialog open title={l.acceptTitle} onClose={onClose} attrs={{ "data-accept-finding": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.acceptIntro(l.rules[finding.rule].name, finding.match)}</p>
         {accept.error && !fields.reason && <ErrorBanner>{accept.error.message}</ErrorBanner>}
@@ -199,7 +199,7 @@ function AcceptDialog({ finding, reqKey, revision, onClose }: { finding: Quality
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={accept.isPending} disabled={!reason.trim()} data-action="confirm-accept-finding">
             {l.acceptSend}

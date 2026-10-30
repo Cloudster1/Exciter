@@ -7,6 +7,9 @@ import (
 	"slices"
 	"strings"
 	"time"
+	// The zones a person may choose are checked against the binary's own database,
+	// so the container needs no zoneinfo of its own.
+	_ "time/tzdata"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -60,9 +63,9 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT id, email, name, COALESCE(avatar_url, ''), COALESCE(locale, ''), is_active, password_hash
+			SELECT id, email, name, COALESCE(avatar_url, ''), COALESCE(locale, ''), COALESCE(timezone, ''), is_active, password_hash
 			FROM app_user WHERE email = $1`, email,
-		).Scan(&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active, &stored)
+		).Scan(&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active, &stored)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _, _ = VerifyPassword(password, decoyHash, s.params)
@@ -124,7 +127,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 // somebody who does not belong, which is told apart from no session.
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
-       u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
+       u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
        (SELECT name FROM installation), u.role
 FROM user_session s
 JOIN app_user u ON u.id = s.user_id
@@ -149,7 +152,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, sessionPrincipalSQL, HashToken(secret)).Scan(
 			&sessionID, &lastSeen, &p.Proof,
-			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active,
+			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active,
 			&name, &memberRole,
 		)
 	})
@@ -218,6 +221,32 @@ func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale
 		_, err := tx.Exec(ctx, `UPDATE app_user SET locale = NULLIF($2, '') WHERE id = $1`, userID, string(locale))
 		return err
 	})
+}
+
+// SetTimezone records the zone a person's dates are written in; an empty zone
+// hands the choice back to their browser.
+func (s *Service) SetTimezone(ctx context.Context, userID uuid.UUID, zone string) (db.LSN, error) {
+	if !KnownTimezone(zone) {
+		return 0, ErrBadTimezone
+	}
+	return s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		_, err := tx.Exec(ctx, `UPDATE app_user SET timezone = NULLIF($2, '') WHERE id = $1`, userID, zone)
+		return err
+	})
+}
+
+// KnownTimezone reports whether a zone may be chosen: empty, for the browser's,
+// or an IANA name from the zone database the binary carries.
+func KnownTimezone(zone string) bool {
+	if zone == "" {
+		return true
+	}
+	// LoadLocation reads "Local" as the server's own zone, which is nobody's choice.
+	if zone == "Local" || strings.TrimSpace(zone) != zone {
+		return false
+	}
+	_, err := time.LoadLocation(zone)
+	return err == nil
 }
 
 // AccountID finds the account of an address, for a bootstrap acting in that

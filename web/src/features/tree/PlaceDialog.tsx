@@ -94,7 +94,7 @@ export function PlaceDialog({
   }
 
   return (
-    <Dialog title={titles[mode](placed.key)} onClose={onClose} data-place-dialog={mode}>
+    <Dialog open title={titles[mode](placed.key)} onClose={onClose} attrs={{ "data-place-dialog": mode }}>
       <form onSubmit={submit} className="space-y-3">
         {error && <ErrorBanner>{(error instanceof ApiError && error.fields.statusMapping) || error.message}</ErrorBanner>}
         {reusing && <p className="text-sm text-ink-muted">{targets.length > 0 ? t.reuse.intro : t.reuse.noTarget}</p>}
@@ -155,7 +155,7 @@ export function PlaceDialog({
         )}
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={move.isPending || copy.isPending || reuse.isPending} disabled={reusing && !projectKey} data-action={`confirm-${mode}`}>
             {submits[mode]()}

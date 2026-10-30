@@ -21,6 +21,8 @@ type Principal struct {
 	AvatarURL string
 	// Locale is the language the person chose for the interface; empty means the browser's.
 	Locale Locale
+	// Timezone is the zone the person chose for their dates; empty means the browser's.
+	Timezone string
 	// InstallationName is what the installation is called, which the shell shows.
 	InstallationName string
 	// Role is the caller's standing in the installation; empty for somebody who no longer belongs to it.

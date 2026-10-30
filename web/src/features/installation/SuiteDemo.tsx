@@ -33,7 +33,7 @@ export function SuiteDemo() {
         </Button>
       )}
       {confirming && (
-        <Dialog title={t.suiteDemo.confirmTitle} onClose={() => setConfirming(false)} data-confirm-suite-demo="">
+        <Dialog open title={t.suiteDemo.confirmTitle} onClose={() => setConfirming(false)} attrs={{ "data-confirm-suite-demo": "" }}>
           <p className="text-sm text-ink">{t.suiteDemo.confirmBody}</p>
           {refusal && (
             <div className="mt-3">
@@ -42,7 +42,7 @@ export function SuiteDemo() {
           )}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setConfirming(false)}>
-              {t.common.cancel}
+              {t.kit.cancel}
             </Button>
             <Button
               onClick={() => add.mutate(undefined, { onSuccess: () => setConfirming(false) })}

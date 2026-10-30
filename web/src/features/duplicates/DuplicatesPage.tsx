@@ -311,7 +311,7 @@ function DismissDialog({ project, pair, onClose, onDone }: { project: Project; p
     );
   }
   return (
-    <Dialog title={l.title} onClose={onClose} data-dismiss-pair="">
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-dismiss-pair": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro(pair.a.key, pair.b.key)}</p>
         <Refusal error={dismiss.error} onClose={onClose} />
@@ -327,7 +327,7 @@ function DismissDialog({ project, pair, onClose, onDone }: { project: Project; p
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={dismiss.isPending} disabled={!reason.trim()} data-action="confirm-dismiss-pair">
             {l.send}
@@ -357,7 +357,7 @@ function LinkDialog({ project, pair, onClose, onDone }: { project: Project; pair
     link.mutate({ source, target, linkTypeKey: type.key }, { onSuccess: () => onDone(l.done(pair.a.key, pair.b.key)) });
   }
   return (
-    <Dialog title={l.title} onClose={onClose} data-link-pair="">
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-link-pair": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro}</p>
         <Refusal error={link.error} onClose={onClose} />
@@ -374,7 +374,7 @@ function LinkDialog({ project, pair, onClose, onDone }: { project: Project; pair
         )}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={link.isPending} disabled={!way} data-action="confirm-link-pair">
             {l.send}
@@ -411,7 +411,7 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
   }
   if (result) return <MergeResult result={result} kept={keep.key} trashed={gone.key} onClose={onClose} />;
   return (
-    <Dialog title={l.title} onClose={onClose} data-merge-pair="">
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-merge-pair": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro}</p>
         <Refusal error={merge.error} onClose={onClose} />
@@ -435,7 +435,7 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={merge.isPending} data-action="confirm-merge-pair">
             {l.send}
@@ -450,7 +450,7 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
 function MergeResult({ result, kept, trashed, onClose }: { result: DuplicateMerge; kept: string; trashed: string; onClose: () => void }) {
   const l = t.duplicates.merge;
   return (
-    <Dialog title={l.title} onClose={onClose} data-merge-result="">
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-merge-result": "" }}>
       <div className="space-y-4">
         <p className="text-sm text-ink">{l.done(kept, trashed)}</p>
         <section aria-labelledby="merge-links-title" className="space-y-2">

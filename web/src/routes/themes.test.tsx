@@ -3,6 +3,7 @@ import type * as ThemesApi from "@/api/themes";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Theme } from "@/api/themes";
+import { DEFAULT_THEME_PATH, THEMES_PATH } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
 import { renderAt } from "@/test/app";
 import { activeThemeMeta, inThemeView } from "./themes";
@@ -57,8 +58,8 @@ describe("the themes page", () => {
     expect(activeThemeMeta(theme({}), "chosen", undefined)).toBe("You are using Magenta.");
     expect(activeThemeMeta(theme({}), "armature", undefined)).toBe("You are using Magenta, the theme you use in Armature.");
     expect(activeThemeMeta(null, "armature", theme({}))).toBe("You are using the built-in theme, as you do in Armature.");
-    expect(activeThemeMeta(theme({}), "everyone", undefined)).toBe("You are using Magenta, the default for everyone.");
-    expect(activeThemeMeta(null, "", theme({ name: "House" }))).toBe("You are using the built-in theme, over House, the default for everyone.");
+    expect(activeThemeMeta(theme({}), "everyone", undefined)).toBe("You are using Magenta, everyone's default.");
+    expect(activeThemeMeta(null, "", theme({ name: "House" }))).toBe("You are using the built-in theme, over everyone's default House.");
   });
 
   it("lists what is shared, offers import, and is reached from the account menu", async () => {
@@ -67,7 +68,7 @@ describe("the themes page", () => {
     await userEvent.click(screen.getByRole("button", { name: "Your account" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Themes" }));
     expect(await screen.findByRole("heading", { name: "Themes" })).toBeInTheDocument();
-    expect(screen.getByText("You are using the built-in theme, over Shared One, the default for everyone.")).toBeInTheDocument();
+    expect(screen.getByText("You are using the built-in theme, over everyone's default Shared One.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Import theme" })).toBeInTheDocument();
     expect(screen.getByLabelText("Theme file")).toHaveAttribute("accept", "application/json,.json");
 
@@ -75,6 +76,12 @@ describe("the themes page", () => {
     const row = await screen.findByText("Shared One");
     expect(row.closest("tr")).toHaveAttribute("data-theme-default", "true");
     expect(screen.getByText("3 people")).toBeInTheDocument();
+  });
+
+  it("sends the old address of everyone's default to Themes, where it is named now", async () => {
+    const router = await renderAt(DEFAULT_THEME_PATH);
+    expect(router.state.location.pathname).toBe(THEMES_PATH);
+    expect(await screen.findByRole("heading", { name: "Themes" })).toBeInTheDocument();
   });
 
   it("names Themes in the breadcrumbs of a theme's editor, as the way back", async () => {

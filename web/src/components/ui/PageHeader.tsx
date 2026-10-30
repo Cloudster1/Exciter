@@ -16,7 +16,7 @@ export interface Crumb {
 export function Breadcrumbs({ crumbs, className }: { crumbs: Crumb[]; className?: string }) {
   if (crumbs.length === 0) return null;
   return (
-    <nav aria-label={t.common.breadcrumb} className={cx("text-sm text-ink-muted", className)}>
+    <nav aria-label={t.kit.breadcrumb} className={cx("text-sm text-ink-muted", className)}>
       <ol className="flex flex-wrap items-center gap-1.5">
         {crumbs.map((crumb, index) => (
           <li key={index} className="flex items-center gap-1.5">

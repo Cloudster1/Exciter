@@ -568,6 +568,20 @@ Adapted from Armature at 51eac53, for the menu layout the tools share (#280):
 - web/src/features/shell/Rail.tsx: the avatar and the theme at the rail's
   foot
 
+Adapted from Armature at 7df9d51, for the suite's kit (#474), by way of
+Stator's port at 48412115:
+- web/src/components/ui: Page, Popover, Toolbar, Pager, ListSearch,
+  SearchPicker, Stat, ProgressBar, DateInput, MentionTextarea, Spotlight,
+  Count, Toast, Dialog with ConfirmDialog, Drawer and DockedPanel, overlay.ts,
+  Menu's groups, Tabs, Chip and ErrorBanner, with kit.test.tsx,
+  overlays.test.tsx, Pager.test.tsx and MentionTextarea.test.tsx
+- web/src/i18n/kit.en.ts and kit.de.ts
+- web/src/components/icons.tsx: the glyphs the suite shares
+- web/src/lib/format.ts: the reader's time zone and relative times, from
+  Stator's, with its test
+- backend/internal/auth: SetTimezone and KnownTimezone, and migration 01519
+  from Stator's 00940
+
 The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
 titles and texts of the public GitHub issues of Armature, Exciter and Stator
 that carry a user story, as scripts/demo-snapshot.sh took them on the date

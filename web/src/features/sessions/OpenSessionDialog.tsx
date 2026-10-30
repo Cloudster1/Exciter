@@ -63,7 +63,7 @@ export function OpenSessionDialog({ project, scope: initial, onClose }: { projec
   }
 
   return (
-    <Dialog title={t.sessions.openTitle} onClose={onClose} wide data-open-session="">
+    <Dialog open title={t.sessions.openTitle} onClose={onClose} size="lg" attrs={{ "data-open-session": "" }}>
       <form onSubmit={submit} className="space-y-3" noValidate aria-label={t.sessions.openTitle}>
         {open.error && Object.keys(fields).length === 0 && <ErrorBanner>{open.error.message}</ErrorBanner>}
         <Field

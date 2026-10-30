@@ -94,7 +94,7 @@ function NewPlanDialog({ project, onClose }: { project: Project; onClose: () => 
   }
 
   return (
-    <Dialog title={t.tests.newPlanTitle} onClose={onClose}>
+    <Dialog open title={t.tests.newPlanTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate data-plan-form>
         {create.error && Object.keys(fields).length === 0 && <ErrorBanner>{create.error.message}</ErrorBanner>}
         <Field

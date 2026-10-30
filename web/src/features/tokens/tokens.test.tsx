@@ -27,7 +27,7 @@ function aToken(overrides: Partial<ApiToken> = {}): ApiToken {
   };
 }
 
-const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "" as const };
+const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "" as const, timezone: "" };
 
 describe("what a token reaches and when it ends", () => {
   it("says every project, some, or none any more, and counts days from now", () => {

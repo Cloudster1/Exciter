@@ -36,30 +36,34 @@ export function Tabs<T extends string>({
     (event.currentTarget.parentElement?.children[tabs.indexOf(next)] as HTMLElement | undefined)?.focus();
   }
   return (
-    <div role="tablist" aria-label={label} className={cx("flex gap-1 border-b border-border", className)}>
-      {tabs.map((tab, index) => {
-        const selected = tab.value === value;
-        return (
-          <button
-            key={tab.value}
-            type="button"
-            role="tab"
-            id={`${id}-${tab.value}`}
-            aria-selected={selected}
-            aria-controls={panelId}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(tab.value)}
-            onKeyDown={(event) => onKeyDown(event, index)}
-            {...tab.attrs}
-            className={cx(
-              "-mb-px border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors",
-              selected ? "border-accent font-medium text-ink" : "border-transparent text-ink-muted hover:text-ink",
-            )}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
+    // The line under the tabs is the outer box's, so the list inside can scroll
+    // sideways on a phone and the chosen tab's mark still covers the line.
+    <div className={cx("border-b border-border", className)}>
+      <div role="tablist" aria-label={label} className="-mb-px flex gap-1 overflow-x-auto">
+        {tabs.map((tab, index) => {
+          const selected = tab.value === value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              id={`${id}-${tab.value}`}
+              aria-selected={selected}
+              aria-controls={panelId}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => onChange(tab.value)}
+              onKeyDown={(event) => onKeyDown(event, index)}
+              {...tab.attrs}
+              className={cx(
+                "shrink-0 border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors",
+                selected ? "border-accent font-medium text-ink" : "border-transparent text-ink-muted hover:text-ink",
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

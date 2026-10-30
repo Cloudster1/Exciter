@@ -41,6 +41,35 @@ export const ICON_STROKE = 1.5;
 
 /** The gap between a menu's trigger and its list, in pixels. */
 export const MENU_GAP_PX = 4;
+/** The tallest a menu, popover or list of suggestions grows before it scrolls, in pixels. */
+export const POPOVER_MAX_HEIGHT_PX = 560;
+/** The least room a menu or popover leaves between itself and the window's edge, in pixels. */
+export const POPOVER_EDGE_PX = 8;
+/** How far down the window a dialog starts, in percent of its height. */
+export const DIALOG_TOP_VH = 12;
+/** The room a dialog leaves below itself once scrolled to its end, in pixels. */
+export const DIALOG_BOTTOM_PX = 16;
+/** How wide a drawer or a docked panel opens from the right, in pixels. */
+export const DRAWER_WIDTH = 704;
+/** How wide a drawer that shows a document opens, such as the changes a suspect link waits on, in pixels. */
+export const DOCUMENT_DRAWER_WIDTH = 1024;
+/** A list's search box waits this long after the last key before it asks the server. */
+export const LIST_SEARCH_DELAY_MS = 250;
+/** A typed date's year below this is one still being typed, such as 0002 on the way to 2026. */
+export const MIN_DATE_YEAR = 1000;
+/** How far a callout sits from the element it points at. */
+export const SPOTLIGHT_GAP_PX = 8;
+/** The callout's width, the room it reserves below the element, and the ring around the element. */
+export const SPOTLIGHT_WIDTH_PX = 320;
+export const SPOTLIGHT_HEIGHT_PX = 120;
+export const SPOTLIGHT_RING_PX = 4;
+/** How long the callout waits for its element to appear after a navigation. */
+export const SPOTLIGHT_WAIT_MS = 3000;
+/** The largest count a badge writes out; more reads as this with a plus. */
+export const COUNT_MAX = 99;
+/** How long a toast stays, and how many stack before the oldest goes. */
+export const TOAST_MS = 6000;
+export const TOAST_MAX = 3;
 
 /** How long a query's answer stays fresh before a refetch. */
 export const QUERY_STALE_MS = 10_000;
@@ -53,6 +82,8 @@ export const ME_STALE_MS = 60_000;
 
 /** Where this browser remembers the interface language the person chose, so a reload starts in it. */
 export const LANGUAGE_STORAGE_KEY = "exciter.language";
+/** The most time zones the profile lists for what was typed; the rest wait for a closer search. */
+export const TIME_ZONE_MATCHES_MAX = 50;
 
 /** Where an administrator renames the installation. */
 export const INSTALLATION_PATH = "/settings/installation";
@@ -383,8 +414,6 @@ export const WATCHING_PATH = "/settings/watching";
 export const PROFILE_PATH = "/settings/profile";
 /** How often the bell asks for the unread count; it also asks when the window regains focus. */
 export const UNREAD_POLL_MS = 30_000;
-/** Above this many unread the badge shows the number with a plus. */
-export const UNREAD_BADGE_MAX = 99;
 /** How many notifications the bell's panel lists, within the API's limit of 100. */
 export const NOTIFICATION_PANEL_SIZE = 20;
 /** How many notifications one page of the notifications page lists, within the API's limit of 100. */

@@ -79,7 +79,7 @@ func (s *Service) Grants(ctx context.Context, person uuid.UUID) ([]Grant, error)
 func (s *Service) EveryonesGrants(ctx context.Context) ([]OrgGrant, error) {
 	out := []OrgGrant{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, `SELECT `+grantColumns+`, u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, '')
+		rows, err := tx.Query(ctx, `SELECT `+grantColumns+`, u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, '')
 			FROM oauth_grant g JOIN oauth_client c ON c.id = g.client_id JOIN app_user u ON u.id = g.user_id`+grantOrder)
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func (s *Service) EveryonesGrants(ctx context.Context) ([]OrgGrant, error) {
 		defer rows.Close()
 		for rows.Next() {
 			var owner auth.User
-			g, err := scanGrant(rows, &owner.ID, &owner.Email, &owner.Name, &owner.AvatarURL, &owner.Locale)
+			g, err := scanGrant(rows, &owner.ID, &owner.Email, &owner.Name, &owner.AvatarURL, &owner.Locale, &owner.Timezone)
 			if err != nil {
 				return err
 			}

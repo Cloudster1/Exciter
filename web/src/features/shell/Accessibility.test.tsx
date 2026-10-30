@@ -7,7 +7,6 @@ import {
   ARMATURE_ACCOUNT_PATH,
   ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
-  DEFAULT_THEME_PATH,
   MEMBERS_PATH,
   NEW_PROJECT_PATH,
   PROJECTS_PATH,
@@ -367,7 +366,6 @@ describe("axe", () => {
     SSO_PATH,
     AUDIT_PATH,
     THEMES_PATH,
-    DEFAULT_THEME_PATH,
     `${THEMES_PATH}/new`,
     PROJECTS_PATH,
     NEW_PROJECT_PATH,
@@ -391,13 +389,6 @@ describe("axe", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Shared with me" }));
     await userEvent.click(await screen.findByRole("button", { name: "Actions for Blocks" }));
     expect(screen.getByRole("menu")).toBeInTheDocument();
-    expect(await axeViolations()).toEqual([]);
-  });
-
-  it("finds nothing on the default for everyone with a shared theme chosen", async () => {
-    settingsApi();
-    await renderAt(DEFAULT_THEME_PATH);
-    expect(await screen.findByRole("radio", { name: /Blocks/ })).toHaveAttribute("aria-checked", "true");
     expect(await axeViolations()).toEqual([]);
   });
 

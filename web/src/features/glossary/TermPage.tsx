@@ -302,13 +302,13 @@ function DeleteDialog({ project, term, onClose }: { project: Project; term: Term
   const remove = useDeleteTerm(term.id);
   const navigate = useNavigate();
   return (
-    <Dialog title={l.deleteTitle} onClose={onClose} data-delete-term="">
+    <Dialog open title={l.deleteTitle} onClose={onClose} attrs={{ "data-delete-term": "" }}>
       <div className="space-y-4">
         <p className="text-sm text-ink">{l.deleteIntro(term.name)}</p>
         {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button
             variant="danger"

@@ -42,7 +42,7 @@ export function FileIssueDialog({
   }
 
   return (
-    <Dialog title={t.tests.fileIssueTitle} onClose={onClose}>
+    <Dialog open title={t.tests.fileIssueTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate data-file-issue>
         <p className="text-sm text-ink-muted">{t.tests.fileIssueHint}</p>
         {status === "not_connected" && (

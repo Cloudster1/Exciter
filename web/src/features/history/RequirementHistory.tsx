@@ -77,7 +77,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
         {notice}
       </span>
       {asking && (
-        <Dialog title={t.history.restoreTitle(number)} onClose={() => setAsking(false)} data-restore-dialog="">
+        <Dialog open title={t.history.restoreTitle(number)} onClose={() => setAsking(false)} attrs={{ "data-restore-dialog": "" }}>
           <div className="space-y-3">
             <p className="text-sm text-ink">{t.history.restoreBody(number)}</p>
             {restore.error && <ErrorBanner>{conflict ? t.history.restoreConflict : restore.error.message}</ErrorBanner>}
@@ -89,7 +89,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
             />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setAsking(false)}>
-                {t.common.cancel}
+                {t.kit.cancel}
               </Button>
               <Button
                 loading={restore.isPending}

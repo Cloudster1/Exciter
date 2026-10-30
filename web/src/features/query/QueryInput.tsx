@@ -268,7 +268,7 @@ export function QueryInput({
         </div>
       )}
       {help && (
-        <Dialog title={t.query.help} onClose={() => setHelp(false)} wide>
+        <Dialog open title={t.query.help} onClose={() => setHelp(false)} size="lg">
           <QueryHelp
             onExample={(example) => {
               setDraft(example);

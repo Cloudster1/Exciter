@@ -158,7 +158,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
   const fields = assign.error instanceof ApiError ? assign.error.fields : {};
 
   return (
-    <Dialog title={t.workflows.assignTitle(workflow.name)} onClose={onClose} data-assign-dialog="">
+    <Dialog open title={t.workflows.assignTitle(workflow.name)} onClose={onClose} attrs={{ "data-assign-dialog": "" }}>
       <div className="space-y-3">
         <p className="text-sm text-ink">{lacking.length ? t.workflows.mapIntro : t.workflows.nothingToMap}</p>
         {lacking.map((status) => (
@@ -179,7 +179,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
         {assign.error && <ErrorBanner>{fields.statusMapping ?? assign.error.message}</ErrorBanner>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button
             loading={assign.isPending}

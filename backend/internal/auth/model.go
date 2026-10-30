@@ -77,6 +77,9 @@ type User struct {
 	AvatarURL string `json:"avatarUrl,omitempty"`
 	// Locale is the interface language the person chose; empty means the browser's.
 	Locale Locale `json:"locale"`
+	// Timezone is the IANA zone the person's dates are written in, such as
+	// Europe/Berlin; empty means the browser's.
+	Timezone string `json:"timezone"`
 }
 
 // Membership is a person's place in the installation.
@@ -104,6 +107,8 @@ var (
 	ErrNoInstallation = errors.New("the installation has not been set up")
 	// ErrBadLocale is returned for a language the interface does not speak.
 	ErrBadLocale = errors.New("choose a language from the list")
+	// ErrBadTimezone is returned for a zone the database of zones does not know.
+	ErrBadTimezone = errors.New("choose a time zone from the list")
 	// ErrNoSuchMember is returned when the person named is not a member here.
 	ErrNoSuchMember = errors.New("that person is not a member here")
 	// ErrOwnerStanding is returned when an owner's role is changed: owners are made by the bootstrap alone.

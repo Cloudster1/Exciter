@@ -129,6 +129,8 @@ func toAPIError(err error) *APIError {
 		return &APIError{Status: http.StatusForbidden, Code: "account_switched_off", Message: "Your account has been switched off. Ask an administrator."}
 	case errors.Is(err, auth.ErrBadLocale):
 		return ErrValidation(map[string]string{"locale": "Choose English, German, or the language of your browser."})
+	case errors.Is(err, auth.ErrBadTimezone):
+		return ErrValidation(map[string]string{"timezone": "Choose a time zone from the list, or the one of your browser."})
 	case errors.Is(err, auth.ErrNoSuchMember):
 		return ErrNotFound("That person is not a member here. Reload the list to see who is.")
 	case errors.Is(err, auth.ErrOwnerStanding):

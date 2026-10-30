@@ -36,7 +36,7 @@ export function FileExportDialog({
   // A server without templates answers that it has none set up, which is no reason to stop an export.
   const asking = Boolean(projectKey) && !templates.isError && (templates.isPending || offered.length > 0) && !choice;
   return (
-    <Dialog title={t.documents.title(t.documents[format], title)} onClose={onClose} data-document-export={asking ? "choosing" : undefined}>
+    <Dialog open title={t.documents.title(t.documents[format], title)} onClose={onClose} attrs={asking ? { "data-document-export": "choosing" } : undefined}>
       {asking ? (
         templates.isPending ? (
           <Skeleton />

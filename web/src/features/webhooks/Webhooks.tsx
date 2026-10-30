@@ -183,7 +183,7 @@ export function Webhooks() {
                       items={[
                         {
                           label: t.webhooks.deliveries,
-                          icon: <Icon.ListBullet />,
+                          icon: <Icon.Lines />,
                           onSelect: () => setLogOf(hook),
                           attrs: { "data-action": "webhook-deliveries" },
                         },
@@ -411,7 +411,7 @@ function DeliveryLog({ hook, onClose }: { hook: Webhook; onClose: () => void }) 
   const deliveries = data ?? [];
   const failure = error ?? redeliver.error;
   return (
-    <Dialog title={t.webhooks.logTitle(hook.name)} wide onClose={onClose} data-webhook-log={hook.name}>
+    <Dialog open title={t.webhooks.logTitle(hook.name)} size="lg" onClose={onClose} attrs={{ "data-webhook-log": hook.name }}>
       <p className="mb-3 text-xs text-ink-muted">{t.webhooks.logIntro}</p>
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
       <p role="status" className="mb-2 text-sm text-ink-muted empty:hidden">

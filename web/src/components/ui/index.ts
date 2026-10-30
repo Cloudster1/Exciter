@@ -1,23 +1,37 @@
-// The kit, one file per component, ported from Armature's so the two
-// products look and behave alike.
+// The kit, one file per component, ported from Armature's so the tools of the
+// suite look and behave alike.
 export { cx } from "./cx";
-export { Button, ButtonLink, IconButton, WordButton, Spinner, controlHeight, type ButtonVariant, type ControlSize } from "./Button";
-export { EmptyState } from "./EmptyState";
-export { ErrorBanner } from "./ErrorBanner";
-export { PageHeader, Breadcrumbs, ShellHeaderContext, type Crumb } from "./PageHeader";
-export { Skeleton } from "./Skeleton";
-export { Avatar, type AvatarSize } from "./Avatar";
-export { Tooltip } from "./Tooltip";
-export { Menu, type MenuItem } from "./Menu";
+export { Button, ButtonLink, IconButton, Spinner, WordButton, controlHeight, type ButtonVariant, type ControlSize } from "./Button";
 export { Input, Textarea, Checkbox, Radio, Switch, Select, SelectInput, Labelled, control, controlClass, fieldId, type InputProps } from "./controls";
+export { DateInput, isCompleteDate } from "./DateInput";
 export { Field } from "./Field";
 export { ColorField } from "./ColorField";
 export { Card } from "./Card";
+export { ProgressBar, type ProgressTone } from "./ProgressBar";
+export { Stat } from "./Stat";
 export { Tag } from "./Tag";
+export { Count } from "./Count";
 export { SectionTitle } from "./SectionTitle";
 export { Table, Th, Td } from "./Table";
+export { EmptyState } from "./EmptyState";
+export { ErrorBanner } from "./ErrorBanner";
 export { Segmented } from "./Segmented";
-export { Choice, OptionCard } from "./Choice";
+export { PageHeader, Breadcrumbs, ShellHeaderContext, type Crumb } from "./PageHeader";
 export { Chip } from "./Chip";
+export { Choice, OptionCard } from "./Choice";
+export { Page, type PageWidth } from "./Page";
+export { Toolbar } from "./Toolbar";
+export { Skeleton } from "./Skeleton";
+export { Avatar, type AvatarSize } from "./Avatar";
+export { Popover } from "./Popover";
+export { Tooltip } from "./Tooltip";
+export { Spotlight } from "./Spotlight";
+export { MentionTextarea, mentionQuery, type FindPeople, type Mentionable } from "./MentionTextarea";
+export { Menu, isMenuGroup, type MenuEntry, type MenuGroup, type MenuItem } from "./Menu";
+export { Dialog, ConfirmDialog, Drawer, DockedPanel, isInteractiveTarget, modalBackdropStyle, modalPanelStyle } from "./Dialog";
+export { isEditing } from "./overlay";
+export { ToastProvider, ToastShelf, useToast, type ToastKind, type ToastOptions } from "./Toast";
+export { Pager, clampOffset, countOf, isPageOffset, shownOf, type Counted } from "./Pager";
+export { ListSearch } from "./ListSearch";
+export { SearchPicker, type PickerOption } from "./SearchPicker";
 export { Tabs, TabPanel, type Tab } from "./Tabs";
-export { Dialog } from "./Dialog";

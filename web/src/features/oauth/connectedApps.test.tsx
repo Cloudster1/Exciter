@@ -21,7 +21,7 @@ const aGrant = (over: Record<string, unknown> = {}) => ({
   lastUsedAt: "2026-10-17T10:00:00Z",
   ...over,
 });
-const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "" };
+const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "", timezone: "" };
 
 describe("connected apps", () => {
   it("says a partner app was connected at the person's sign-in there, not where it sends back to", async () => {

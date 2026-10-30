@@ -93,7 +93,7 @@ function ConfirmDialog({ reqKey, use, onClose, onDone }: { reqKey: string; use: 
     clear.mutate({ termId: use.term.id, termRevision: use.definitionRevision, comment: comment.trim() }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={l.confirmTitle} onClose={onClose} data-confirm-term="">
+    <Dialog open title={l.confirmTitle} onClose={onClose} attrs={{ "data-confirm-term": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.confirmIntro(use.term.name, use.definitionRevision)}</p>
         {clear.error && !fields.comment && <ErrorBanner>{clear.error.message}</ErrorBanner>}
@@ -109,7 +109,7 @@ function ConfirmDialog({ reqKey, use, onClose, onDone }: { reqKey: string; use: 
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={clear.isPending} disabled={!comment.trim()} data-action="send-confirm-term">
             {l.confirmSend}

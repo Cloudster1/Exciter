@@ -195,7 +195,7 @@ function RoundDialog({
     round.mutate({ id: session.id, comment: comment.trim() || undefined }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={t.sessions.nextRoundTitle} onClose={onClose}>
+    <Dialog open title={t.sessions.nextRoundTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" aria-label={t.sessions.nextRoundTitle}>
         <p className="text-sm text-ink-muted">{t.sessions.nextRoundIntro}</p>
         {round.error && <ErrorBanner>{round.error.message}</ErrorBanner>}
@@ -222,7 +222,7 @@ function CloseDialog({ project, session, onClose, onDone }: { project: Project; 
     close.mutate({ id: session.id, baseline: take ? { name: name.trim() } : undefined }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={t.sessions.closeTitle} onClose={onClose}>
+    <Dialog open title={t.sessions.closeTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" aria-label={t.sessions.closeTitle}>
         <p className="text-sm text-ink-muted">{t.sessions.closeIntro}</p>
         {close.error && <ErrorBanner>{close.error.message}</ErrorBanner>}

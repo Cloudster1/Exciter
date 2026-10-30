@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, ME_STALE_MS } from "@/config";
 import { applyLanguage, type LanguageChoice } from "@/i18n";
+import { applyTimeZone } from "@/lib/format";
 import { HANDLES_UNAUTHORIZED } from "@/lib/session";
 import { api } from "./client";
 import type { components } from "./schema";
@@ -44,20 +45,30 @@ export function useMe() {
   return useQuery(meQuery);
 }
 
-/** Follows the signed-in person's language whenever the app has asked who they are; it never asks itself. */
+/** Follows the signed-in person's language and time zone whenever the app has asked who they are; it never asks itself. */
 export function useProfileLanguage(): void {
   const { data } = useQuery({ ...meQuery, enabled: false });
   const choice = data?.user.locale;
+  const zone = data?.user.timezone;
   useEffect(() => {
     if (choice !== undefined) applyLanguage(choice);
   }, [choice]);
+  useEffect(() => {
+    if (zone !== undefined) applyTimeZone(zone);
+  }, [zone]);
 }
 
-/** Changes the caller's interface language; an empty choice follows the browser. */
-export function useSetLanguage() {
+/** How the caller reads the interface: its language and the zone of its times; empty follows the browser. */
+export interface ReadingChoice {
+  locale: LanguageChoice;
+  timezone: string;
+}
+
+/** Saves the caller's language and time zone together, as the profile's Save does. */
+export function useSaveReading() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (locale: LanguageChoice): Promise<Me> => (await api.PATCH("/auth/me", { body: { locale } })).data!,
+    mutationFn: async (choice: ReadingChoice): Promise<Me> => (await api.PATCH("/auth/me", { body: choice })).data!,
     onSuccess: (me) => queryClient.setQueryData(meQueryKey, me),
   });
 }

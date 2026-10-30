@@ -172,7 +172,7 @@ export function CreateIssuesDialog({ projectKey, requirements, onClose }: { proj
   const close = () => onClose(Boolean(answer && answer.created.length > 0));
 
   return (
-    <Dialog title={c.title(kept.length)} onClose={close} wide data-create-issues-dialog="">
+    <Dialog open title={c.title(kept.length)} onClose={close} size="lg" attrs={{ "data-create-issues-dialog": "" }}>
       {answer ? (
         <Outcome requirements={kept} answer={answer} onClose={close} />
       ) : (

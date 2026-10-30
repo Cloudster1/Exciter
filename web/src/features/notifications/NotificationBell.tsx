@@ -4,7 +4,7 @@ import { useLatestNotifications, useMarkRead, useUnreadCount } from "@/api/notif
 import { Button, ErrorBanner, IconButton, Skeleton } from "@/components/ui";
 import { useAnchored, useEscape, useFocusReturn, useOutsidePress, type AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
-import { NOTIFICATION_SETTINGS_PATH, NOTIFICATIONS_PATH, UNREAD_BADGE_MAX } from "@/config";
+import { NOTIFICATION_SETTINGS_PATH, NOTIFICATIONS_PATH, COUNT_MAX } from "@/config";
 import { t } from "@/i18n";
 import { NotificationRow } from "./NotificationRow";
 
@@ -33,7 +33,7 @@ export function NotificationBell({ side = "bottom" }: { side?: AnchoredSide }) {
   useOutsidePress(open, outside.current, close);
   useFocusReturn(open, panelRef, false);
   const place = useAnchored(open, wrapRef, panelRef, { align: "end", side });
-  const badge = unread > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : String(unread);
+  const badge = unread > COUNT_MAX ? `${COUNT_MAX}+` : String(unread);
 
   return (
     <div ref={wrapRef} className="relative inline-flex">

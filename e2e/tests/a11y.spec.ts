@@ -37,7 +37,6 @@ const AT_LEAST = {
     "/settings/installation",
     "/settings/members",
     "/settings/sso",
-    "/settings/default-theme",
     "/settings/link-types",
     "/settings/all-tokens",
     "/settings/all-connected-apps",

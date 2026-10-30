@@ -53,7 +53,7 @@ export function StartExecutionDialog({ project, plan, onClose }: { project: Proj
   }
 
   return (
-    <Dialog title={t.tests.startTitle} onClose={onClose} wide>
+    <Dialog open title={t.tests.startTitle} onClose={onClose} size="lg">
       <form onSubmit={submit} className="space-y-3" noValidate data-start-execution>
         {general && <ErrorBanner>{start.error?.message}</ErrorBanner>}
         <Field label={t.tests.executionTitle} value={title} maxLength={TEST_TITLE_MAX_LENGTH} error={fields.title} onChange={(e) => setTitle(e.target.value)} />

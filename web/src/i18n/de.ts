@@ -43,17 +43,11 @@ import { oauthDe } from "./oauth.de";
 import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
+import { kitDe } from "./kit.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
 export const de: Messages = {
-  common: {
-    retry: "Erneut versuchen",
-    cancel: "Abbrechen",
-    pickColour: (label: string) => `${label} wählen`,
-    unassigned: "Nicht zugewiesen",
-    close: "Schließen",
-    breadcrumb: "Pfadnavigation",
-  },
+  kit: kitDe,
   api: {
     unexpected: (status: number) => `Der Server hat mit Status ${status} und ohne Erklärung geantwortet. Versuchen Sie es gleich noch einmal.`,
   },
@@ -69,7 +63,6 @@ export const de: Messages = {
     sso: "Single Sign-on",
     audit: "Protokoll",
     themes: "Designs",
-    defaultTheme: "Design für alle",
     linkTypes: "Verknüpfungsarten",
     allTokens: "Alle Zugriffstoken",
     allConnectedApps: "Alle verbundenen Apps",
@@ -111,7 +104,6 @@ export const de: Messages = {
   account: {
     menu: "Ihr Konto",
     profile: "Ihr Profil",
-    browserLanguage: "Sprache des Browsers",
     languages: { en: "English", de: "Deutsch" },
     themes: "Designs",
     tokens: "Zugriffstoken",
@@ -151,14 +143,22 @@ export const de: Messages = {
   },
   profile: {
     title: "Ihr Profil",
-    intro: "Wer Sie in Exciter sind, und in welcher Sprache Exciter mit Ihnen spricht.",
+    intro: "Wer Sie in Exciter sind, in welcher Sprache Exciter mit Ihnen spricht und in welcher Zeitzone es Uhrzeiten zeigt.",
     name: "Name",
     email: "E-Mail",
     role: "Rolle",
     identity: "Name und E-Mail kommen von dort, wo Sie sich anmelden: von Ihrem Identitätsanbieter oder von der Administration, die Sie hinzugefügt hat.",
-    language: "Sprache",
-    languageHint: "In Ihrem Konto gespeichert, sodass jeder Browser, mit dem Sie sich anmelden, sie verwendet.",
-    saved: "Gespeichert.",
+    language: "Sprache und Zeitzone",
+    languageHint: "In Ihrem Konto gespeichert, sodass jeder Browser, mit dem Sie sich anmelden, sie verwendet. Auch Datum und Zahlen folgen der Sprache.",
+    languageField: "Sprache der Oberfläche",
+    languageBrowser: (name: string) => `Wie der Browser (derzeit ${name})`,
+    timezoneField: "Zeitzone",
+    timezoneBrowser: (zone: string) => `Wie der Browser (derzeit ${zone})`,
+    timezoneSearch: "Suchen, etwa Berlin",
+    timezoneNone: "Keine Zeitzone hat das im Namen. Versuchen Sie eine Stadt oder eine Region.",
+    preview: (when: string) => `Eine Uhrzeit sieht so aus: ${when}.`,
+    save: "Speichern",
+    saved: "Ihre Sprache und Zeitzone sind gespeichert.",
   },
   settingsHub: {
     title: "Einstellungen",
@@ -334,7 +334,7 @@ export const de: Messages = {
       "sso.provider_saved": "Identitätsanbieter gespeichert",
       "sso.group_role_set": "Gruppe einer Rolle zugeordnet",
       "sso.group_role_removed": "Gruppenzuordnung aufgehoben",
-      "theme.default_set": "Design für alle festgelegt",
+      "theme.default_set": "Standard für alle festgelegt",
       "project.created": "Projekt angelegt",
       "project.key_changed": "Projektschlüssel geändert",
       "project.archived": "Projekt archiviert",

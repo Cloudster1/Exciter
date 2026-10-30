@@ -45,17 +45,11 @@ import { oauthEn } from "./oauth.en";
 import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
+import { kitEn } from "./kit.en";
 
 /** The English strings, and the shape every other language has to fill. */
 export const en = {
-  common: {
-    retry: "Retry",
-    cancel: "Cancel",
-    pickColour: (label: string) => `Pick ${label}`,
-    unassigned: "Unassigned",
-    close: "Close",
-    breadcrumb: "Breadcrumb",
-  },
+  kit: kitEn,
   api: {
     unexpected: (status: number) => `The server answered with status ${status} and no explanation. Try again in a moment.`,
   },
@@ -71,7 +65,6 @@ export const en = {
     sso: "Single sign-on",
     audit: "Audit log",
     themes: "Themes",
-    defaultTheme: "Default theme",
     linkTypes: "Link types",
     allTokens: "All tokens",
     allConnectedApps: "All connected apps",
@@ -113,7 +106,6 @@ export const en = {
   account: {
     menu: "Your account",
     profile: "Your profile",
-    browserLanguage: "Language of the browser",
     languages: { en: "English", de: "Deutsch" } as Record<Language, string>,
     themes: "Themes",
     tokens: "Access tokens",
@@ -150,14 +142,22 @@ export const en = {
   },
   profile: {
     title: "Your profile",
-    intro: "Who you are in Exciter, and the language it speaks to you in.",
+    intro: "Who you are in Exciter, the language it speaks to you in and the time zone of its times.",
     name: "Name",
     email: "Email",
     role: "Role",
     identity: "Your name and email come from where you sign in: your identity provider, or the administrator who added you.",
-    language: "Language",
-    languageHint: "Saved to your account, so every browser you sign in with uses it.",
-    saved: "Saved.",
+    language: "Language and time zone",
+    languageHint: "Saved to your account, so every browser you sign in with uses them. Dates and numbers are written in the language too.",
+    languageField: "Interface language",
+    languageBrowser: (name: string) => `Follow the browser (now ${name})`,
+    timezoneField: "Time zone",
+    timezoneBrowser: (zone: string) => `Follow the browser (now ${zone})`,
+    timezoneSearch: "Search, such as Berlin",
+    timezoneNone: "No time zone has that in its name. Try a city or a region.",
+    preview: (when: string) => `A time reads like this: ${when}.`,
+    save: "Save",
+    saved: "Your language and time zone are saved.",
   },
   settingsHub: {
     title: "Settings",
@@ -333,7 +333,7 @@ export const en = {
       "sso.provider_saved": "Identity provider saved",
       "sso.group_role_set": "Group mapped to a role",
       "sso.group_role_removed": "Group unmapped",
-      "theme.default_set": "Default theme named",
+      "theme.default_set": "Everyone's default theme named",
       "project.created": "Project created",
       "project.key_changed": "Project key changed",
       "project.archived": "Project archived",

@@ -87,7 +87,7 @@ function LockDialog({ requirement, onClose, onLocked }: { requirement: Requireme
   }
 
   return (
-    <Dialog title={t.control.lockTitle(requirement.key)} onClose={onClose} data-lock-dialog="">
+    <Dialog open title={t.control.lockTitle(requirement.key)} onClose={onClose} attrs={{ "data-lock-dialog": "" }}>
       <form onSubmit={submit} className="space-y-3" aria-label={t.control.lockTitle(requirement.key)}>
         <p className="text-sm text-ink-muted">{t.control.lockIntro}</p>
         {lock.error && !fields.reason && <ErrorBanner>{lock.error.message}</ErrorBanner>}

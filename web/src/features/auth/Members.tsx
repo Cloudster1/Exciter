@@ -169,7 +169,7 @@ export function Members() {
         )
       )}
       {confirming && (
-        <Dialog title={t.members.confirmTitle(nameOf(confirming))} onClose={closeConfirm} data-confirm-switch-off="">
+        <Dialog open title={t.members.confirmTitle(nameOf(confirming))} onClose={closeConfirm} attrs={{ "data-confirm-switch-off": "" }}>
           <p className="text-sm text-ink">{t.members.confirmBody}</p>
           {setActive.error && (
             <div className="mt-3">
@@ -178,7 +178,7 @@ export function Members() {
           )}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="secondary" onClick={closeConfirm}>
-              {t.common.cancel}
+              {t.kit.cancel}
             </Button>
             <Button variant="danger" onClick={() => switchOffConfirmed(confirming)} loading={setActive.isPending} data-action="confirm-switch-off-member">
               {t.members.confirm}

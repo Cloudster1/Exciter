@@ -41,7 +41,6 @@ test.describe("the avatar menu and the settings area", { tag: "@desktop" }, () =
       "Installation",
       "Members",
       "Single sign-on",
-      "Default theme",
       "Link types",
       "All tokens",
       "All connected apps",
@@ -80,20 +79,25 @@ test.describe("the avatar menu and the settings area", { tag: "@desktop" }, () =
     await expectAccessible(page);
   });
 
-  test("the language is chosen on Your profile and kept with the account", async ({ pageAs, apiAs }) => {
+  test("the language and time zone are chosen on Your profile, saved together and kept with the account", async ({ pageAs, apiAs }) => {
     const page = await pageAs("bob");
     const api = await apiAs("bob");
     try {
       await openShell(page, "/settings/profile");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Your profile" })).toBeVisible();
       await expectAccessible(page);
-      await page.getByRole("radio", { name: "Deutsch" }).click();
+      await page.getByLabel("Interface language", { exact: true }).selectOption("de");
+      await page.getByLabel("Find: Time zone", { exact: true }).fill("Tokyo");
+      await page.getByLabel("Time zone", { exact: true }).selectOption("Asia/Tokyo");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Ihr Profil" })).toBeVisible();
+      await expect(page.locator("[data-language-saved]")).toHaveText("Ihre Sprache und Zeitzone sind gespeichert.");
       await page.reload();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Ihr Profil" })).toBeVisible();
-      await expect(page.getByRole("radio", { name: "Deutsch" })).toBeChecked();
+      await expect(page.getByLabel("Sprache der Oberfläche", { exact: true })).toHaveValue("de");
+      await expect(page.getByLabel("Zeitzone", { exact: true })).toHaveValue("Asia/Tokyo");
     } finally {
-      await api.PATCH("/auth/me", { body: { locale: "" } });
+      await api.PATCH("/auth/me", { body: { locale: "", timezone: "" } });
     }
   });
 

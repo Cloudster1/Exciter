@@ -50,7 +50,7 @@ describe("the home screen's states", () => {
     const before = projectsAsked(sent);
 
     answer = { status: 200, body: { projects: [aProject()] } };
-    await userEvent.click(within(banner).getByRole("button", { name: t.common.retry }));
+    await userEvent.click(within(banner).getByRole("button", { name: t.kit.retry }));
     await waitFor(() => expect(home().querySelector('[data-project-row="CHK"]')).not.toBeNull());
     expect(projectsAsked(sent)).toBe(before + 1);
     expect(within(home()).queryByRole("alert")).toBeNull();

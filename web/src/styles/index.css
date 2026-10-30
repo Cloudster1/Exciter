@@ -9,6 +9,10 @@
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
 
+/* A window with room for a dialog to pin its title and buttons and still show
+ * the form between them; shorter, they scroll along with it. */
+@custom-variant tall (@media (min-height: 420px));
+
 /* Design tokens: the Clay identity, as Armature's web/src/styles/index.css
  * holds them. Armature's docs/design/01-tokens.md is the table they come from.
  *

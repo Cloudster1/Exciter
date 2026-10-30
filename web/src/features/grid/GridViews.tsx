@@ -136,7 +136,7 @@ function SaveDialog({
     create.mutate({ name, shared, kind, ...body(kind, state) }, { onSuccess: onSaved });
   };
   return (
-    <Dialog title={t.grid.saveAs} onClose={onClose} data-save-view-dialog="">
+    <Dialog open title={t.grid.saveAs} onClose={onClose} attrs={{ "data-save-view-dialog": "" }}>
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Field
           label={t.grid.viewName}

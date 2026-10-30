@@ -61,7 +61,7 @@ export function AddMember() {
         {t.members.add}
       </Button>
       {open && (
-        <Dialog title={added ? t.members.addedTitle : t.members.add} onClose={close} data-add-member="">
+        <Dialog open title={added ? t.members.addedTitle : t.members.add} onClose={close} attrs={{ "data-add-member": "" }}>
           {added ? (
             <div role="status" className="space-y-3" data-member-added={added.email}>
               <p className="text-sm text-ink">
@@ -125,7 +125,7 @@ export function AddMember() {
               {create.error && Object.keys(fields).length === 0 && <ErrorBanner>{create.error.message}</ErrorBanner>}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={close}>
-                  {t.common.cancel}
+                  {t.kit.cancel}
                 </Button>
                 <Button type="submit" variant="primary" loading={create.isPending} data-action="create-member">
                   {t.members.addSubmit}

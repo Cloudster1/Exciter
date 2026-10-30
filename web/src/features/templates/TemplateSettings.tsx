@@ -330,7 +330,7 @@ function FieldList({
 function DeleteDialog({ template: tpl, onClose }: { template: ExportTemplate; onClose: () => void }) {
   const remove = useDeleteTemplate(tpl.id);
   return (
-    <Dialog title={t.templates.deleteTitle(tpl.name)} onClose={onClose}>
+    <Dialog open title={t.templates.deleteTitle(tpl.name)} onClose={onClose}>
       <p className="text-sm text-ink">{t.templates.deleteBody}</p>
       {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
       <div className="flex justify-end gap-2 pt-3">

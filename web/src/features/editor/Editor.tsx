@@ -140,14 +140,14 @@ const TOOLS: Tool[] = [
     }),
   ),
   {
-    icon: "ListBullet",
+    icon: "Lines",
     label: t.editor.bulletList,
     action: "bullet-list",
     active: (e) => e.isActive("bulletList"),
     run: (e) => e.chain().focus().toggleBulletList().run(),
   },
   {
-    icon: "ListOrdered",
+    icon: "OrderedList",
     label: t.editor.orderedList,
     action: "ordered-list",
     active: (e) => e.isActive("orderedList"),
@@ -161,7 +161,7 @@ const TOOLS: Tool[] = [
     active: (e) => e.isActive("codeBlock"),
     run: (e) => e.chain().focus().toggleCodeBlock().run(),
   },
-  { icon: "Rule", label: t.editor.rule, action: "rule", active: () => false, run: (e) => e.chain().focus().setHorizontalRule().run() },
+  { icon: "Divider", label: t.editor.rule, action: "rule", active: () => false, run: (e) => e.chain().focus().setHorizontalRule().run() },
   {
     icon: "Table",
     label: t.editor.table,
@@ -275,12 +275,12 @@ function LinkDialog({ editor, onClose }: { editor: TiptapEditor; onClose: () => 
     onClose();
   }
   return (
-    <Dialog title={t.editor.linkTitle} onClose={onClose} data-link-dialog="">
+    <Dialog open title={t.editor.linkTitle} onClose={onClose} attrs={{ "data-link-dialog": "" }}>
       <form onSubmit={save} className="space-y-4" noValidate>
         <Field label={t.editor.linkAddress} value={href} onChange={(event) => setHref(event.target.value)} error={problem} autoFocus />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" data-action="save-link">
             {t.editor.linkSave}

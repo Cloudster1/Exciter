@@ -93,7 +93,7 @@ export function CommentDialog({
     onSubmit(comment.trim());
   }
   return (
-    <Dialog title={transition.name} onClose={onClose} data-transition-dialog="">
+    <Dialog open title={transition.name} onClose={onClose} attrs={{ "data-transition-dialog": "" }}>
       <form onSubmit={submit} className="space-y-3" noValidate>
         <p className="text-sm text-ink-muted">{t.workflows.leadsTo(transition.toStatus.name)}</p>
         <Field
@@ -107,7 +107,7 @@ export function CommentDialog({
         />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button type="submit" loading={pending} disabled={!comment.trim()} data-action="confirm-transition">
             {transition.name}

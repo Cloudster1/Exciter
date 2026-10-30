@@ -73,7 +73,7 @@ describe("a theme's row menu", () => {
     const item = await menuOf("Mine");
     for (const label of ["Edit", "Share with everyone", "Delete"]) expect(item(label)).not.toHaveAttribute("aria-disabled");
     // A member names no default, whosever the theme.
-    expect(screen.queryByRole("menuitem", { name: "Make it the default for everyone" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
     await userEvent.click(item("Share with everyone"));
     expect(api.update).toHaveBeenCalledWith({ id: "t1", shared: true }, expect.anything());
   });
@@ -100,17 +100,17 @@ describe("a theme's row menu", () => {
     await renderAt("/settings/themes");
     const onPrivate = await menuOf("Private");
     expect(onPrivate("Share with everyone")).not.toHaveAttribute("aria-disabled");
-    expect(screen.queryByRole("menuitem", { name: "Make it the default for everyone" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
     await userEvent.keyboard("{Escape}");
 
     const onShared = await menuOf("Shared");
-    expect(screen.queryByRole("menuitem", { name: "No longer the default for everyone" })).toBeNull();
-    await userEvent.click(onShared("Make it the default for everyone"));
+    expect(screen.queryByRole("menuitem", { name: "No longer everyone's default" })).toBeNull();
+    await userEvent.click(onShared("Make it everyone's default"));
     expect(api.setDefault).toHaveBeenLastCalledWith("s1", expect.anything());
 
     const onDefault = await menuOf("House");
-    expect(screen.queryByRole("menuitem", { name: "Make it the default for everyone" })).toBeNull();
-    await userEvent.click(onDefault("No longer the default for everyone"));
+    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
+    await userEvent.click(onDefault("No longer everyone's default"));
     expect(api.setDefault).toHaveBeenLastCalledWith(null, expect.anything());
   });
 

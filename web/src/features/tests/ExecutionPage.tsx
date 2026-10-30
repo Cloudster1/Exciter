@@ -150,7 +150,7 @@ function EditDialog({ project, execution: e, onClose }: { project: Project; exec
     update.mutate({ id: e.id, title, version, configuration }, { onSuccess: onClose });
   }
   return (
-    <Dialog title={t.tests.editTitle} onClose={onClose}>
+    <Dialog open title={t.tests.editTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate>
         {update.error && Object.keys(fields).length === 0 && <ErrorBanner>{update.error.message}</ErrorBanner>}
         <Field
@@ -196,7 +196,7 @@ function CloseDialog({ project, execution: e, onClose }: { project: Project; exe
     close.mutate({ id: e.id, comment, abort }, { onSuccess: onClose });
   }
   return (
-    <Dialog title={t.tests.closeTitle} onClose={onClose}>
+    <Dialog open title={t.tests.closeTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate>
         <p className="text-sm text-ink">{t.tests.closeBody}</p>
         {close.error && <ErrorBanner>{close.error.message}</ErrorBanner>}

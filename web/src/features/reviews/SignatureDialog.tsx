@@ -51,7 +51,7 @@ export function SignatureDialog({
   }
 
   return (
-    <Dialog title={title} onClose={onClose} data-sign-dialog={kind}>
+    <Dialog open title={title} onClose={onClose} attrs={{ "data-sign-dialog": kind }}>
       <div className="space-y-3">
         <p className="text-sm text-ink-muted">{intro}</p>
         <figure className="rounded-control border border-border bg-surface-raised p-3">

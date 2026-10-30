@@ -52,7 +52,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
   }
 
   return (
-    <Dialog title={l.linkTitle} onClose={onClose} data-term-picker="">
+    <Dialog open title={l.linkTitle} onClose={onClose} attrs={{ "data-term-picker": "" }}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: it only keeps the keys of the dialog from the form around it */}
       <div className="space-y-3" onKeyDown={guard}>
         <p className="text-sm text-ink-muted">{may ? (words ? l.linkIntro(words) : "") : l.noSelection}</p>
@@ -123,7 +123,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
             </Button>
           )}
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
         </div>
       </div>

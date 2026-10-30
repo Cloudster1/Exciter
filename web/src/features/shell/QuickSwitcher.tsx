@@ -60,7 +60,7 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
           key: `requirement:${hit.requirement.id}`,
           label: `${hit.requirement.key} ${hit.requirement.title}`,
           hint: [hit.projectName, hit.outline].filter(Boolean).join(" "),
-          icon: "ListBullet",
+          icon: "Lines",
           pick: () => void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: hit.requirement.projectKey, reqKey: hit.requirement.key } }),
         }))
       : [];

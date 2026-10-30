@@ -37,11 +37,13 @@ test.describe("the interface in German", () => {
       await expect(when).toHaveText(new RegExp(`^${two(at.getUTCDate())}\\.${two(at.getUTCMonth() + 1)}\\.${at.getUTCFullYear()}, \\d{2}:\\d{2}:\\d{2}$`));
 
       await heading(page, "/settings/profile", "Ihr Profil");
-      await expect(page.locator('[data-language="browser"]')).toBeChecked();
-      await page.getByRole("radio", { name: "English" }).click();
+      await expect(page.getByLabel("Sprache der Oberfläche", { exact: true })).toHaveValue("");
+      await page.getByLabel("Sprache der Oberfläche", { exact: true }).selectOption("en");
+      await page.getByRole("button", { name: "Speichern", exact: true }).click();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Your profile" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "en");
-      await page.locator('[data-language="browser"]').click();
+      await page.getByLabel("Interface language", { exact: true }).selectOption("");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Ihr Profil" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "de");
     } finally {

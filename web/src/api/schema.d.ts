@@ -9040,6 +9040,7 @@ export interface components {
         UpdateMeRequest: {
             /** @enum {string} */
             locale?: "" | "en" | "de";
+            timezone?: string;
         };
         UpdateMemberRequest: {
             active?: boolean;
@@ -9054,6 +9055,7 @@ export interface components {
             /** @enum {string} */
             locale: "" | "en" | "de";
             name: string;
+            timezone: string;
         };
         Via: {
             /** @enum {string} */

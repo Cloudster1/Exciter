@@ -44640,6 +44640,9 @@
               "en",
               "de"
             ]
+          },
+          "timezone": {
+            "type": "string"
           }
         }
       },
@@ -44683,13 +44686,17 @@
           },
           "name": {
             "type": "string"
+          },
+          "timezone": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "email",
           "name",
-          "locale"
+          "locale",
+          "timezone"
         ]
       },
       "Via": {

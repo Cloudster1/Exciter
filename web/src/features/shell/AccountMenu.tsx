@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { administers, useLogout, useMe } from "@/api/auth";
-import { Avatar, IconButton, Menu, type MenuItem } from "@/components/ui";
+import { Avatar, IconButton, Menu, type MenuEntry, type MenuItem } from "@/components/ui";
 import type { AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
@@ -23,15 +23,22 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
     label: tool.name,
     icon: <img src={tool.icon} alt="" className="size-4 rounded-sm" />,
     href: tool.href,
-    group: t.account.switchTo,
     attrs: { "data-tool": tool.id },
   }));
   const settings: MenuItem[] = administers(me?.role)
-    ? [{ label: t.nav.settings, icon: <Icon.Settings />, onSelect: () => navigate({ to: SETTINGS_PATH }), attrs: { "data-action": "settings" } }]
+    ? [
+        {
+          label: t.nav.settings,
+          icon: <Icon.Settings />,
+          onSelect: () => navigate({ to: SETTINGS_PATH }),
+          separated: true,
+          attrs: { "data-action": "settings" },
+        },
+      ]
     : [];
-  const items: MenuItem[] = [
+  const items: MenuEntry[] = [
     ...own,
-    ...tools,
+    ...(tools.length > 0 ? [{ group: t.account.switchTo, items: tools, attrs: { "data-switch-to": "" } }] : []),
     ...settings,
     {
       label: t.account.signOut,
@@ -39,11 +46,12 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
       // Wherever the request ends, the session is no longer this browser's to use.
       onSelect: () => logout.mutate(undefined, { onSettled: () => navigate({ to: "/login" }) }),
       disabled: !me,
+      separated: true,
       attrs: { "data-action": "sign-out" },
     },
   ];
   const header = me && (
-    <div className="flex min-w-0 flex-col" data-account-header>
+    <div className="mb-1 flex min-w-0 flex-col border-b border-border px-2 pt-1 pb-2" data-account-header>
       <span className="truncate text-sm font-medium text-ink" data-account-name>
         {me.user.name || me.user.email}
       </span>

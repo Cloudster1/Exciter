@@ -381,7 +381,7 @@ function DeleteSection({ project }: { project: Project }) {
         {t.projects.delete}
       </Button>
       {confirming && (
-        <Dialog title={t.projects.confirmTitle} onClose={() => setConfirming(false)} data-confirm-delete-project="">
+        <Dialog open title={t.projects.confirmTitle} onClose={() => setConfirming(false)} attrs={{ "data-confirm-delete-project": "" }}>
           <p className="text-sm text-ink">{t.projects.confirmBody(project.name, project.key)}</p>
           {remove.error && (
             <div className="mt-3">
@@ -390,7 +390,7 @@ function DeleteSection({ project }: { project: Project }) {
           )}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setConfirming(false)}>
-              {t.common.cancel}
+              {t.kit.cancel}
             </Button>
             <Button
               variant="danger"

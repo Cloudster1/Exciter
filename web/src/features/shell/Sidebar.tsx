@@ -4,11 +4,11 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
 import { useUnreadCount } from "@/api/notifications";
 import { useWaitingReviews } from "@/api/reviews";
-import { IconButton } from "@/components/ui";
+import { Count, IconButton } from "@/components/ui";
 import { useEscape, useFocusReturn } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { LogoMark } from "@/components/Logo";
-import { APP_NAME, APP_VERSION, NOTIFICATIONS_PATH, REVIEWS_PATH, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH, UNREAD_BADGE_MAX } from "@/config";
+import { APP_NAME, APP_VERSION, NOTIFICATIONS_PATH, REVIEWS_PATH, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH } from "@/config";
 import { t } from "@/i18n";
 import { ProjectNav } from "@/features/projects/ProjectNav";
 import { AccountMenu } from "./AccountMenu";
@@ -97,18 +97,6 @@ function BackHead({ onNavigate, children }: { onNavigate?: () => void; children?
       </a>
       {children}
     </div>
-  );
-}
-
-/** A count beside a sidebar entry, such as the unread notifications, said in full to a screen reader; nothing
- *  while there is none. */
-function Count({ count, name, says }: { count: number; name: string; says: string }) {
-  if (count <= 0) return null;
-  return (
-    <span className="rounded-full bg-accent-subtle px-1.5 text-2xs leading-4 font-medium text-accent tabular-nums" data-count={name}>
-      <span aria-hidden="true">{count > UNREAD_BADGE_MAX ? `${UNREAD_BADGE_MAX}+` : count}</span>
-      <span className="sr-only">, {says}</span>
-    </span>
   );
 }
 

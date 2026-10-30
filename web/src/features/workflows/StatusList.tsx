@@ -101,7 +101,7 @@ export function StatusList({ project, mayChange }: { project: Project; mayChange
               onCreated={() => setAdding(false)}
             />
             <Button size="sm" variant="ghost" className="mt-2" onClick={() => setAdding(false)}>
-              {t.common.cancel}
+              {t.kit.cancel}
             </Button>
           </Card>
         ) : (
@@ -170,7 +170,7 @@ function StatusForm({ projectKey, status, onDone }: { projectKey: string; status
           {t.workflows.saveStatus}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onDone}>
-          {t.common.cancel}
+          {t.kit.cancel}
         </Button>
       </div>
     </form>

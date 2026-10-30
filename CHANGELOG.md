@@ -7,7 +7,37 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- The time zone is chosen on Your profile beside the language, both kept by
+  one Save, and every date and time is written in it; until somebody
+  chooses, the browser's zone is used. `GET` and `PATCH /auth/me` carry
+  `timezone`, and the database refuses a zone it does not know (#474).
+- The kit gains the suite's `Page` (narrow 64rem, content 100rem, wide),
+  `Popover`, `Toolbar`, `Pager`, `ListSearch`, `SearchPicker`, `Stat`,
+  `ProgressBar`, `DateInput`, `MentionTextarea`, `Spotlight`, `Count`,
+  `Toast`, `ConfirmDialog`, `Drawer` and `DockedPanel`, and a `ref` on
+  `Field` (#474).
+
 ### Changed
+
+- Dialogs take the suite's API: `open`, a `size` of sm, md or lg, a
+  `description` and a pinned `footer`. Checking a suspect link opens in a
+  drawer from the side, with room for the changes (#474).
+- Menus take their groups as `MenuGroup`, read out as groups, and an item
+  can be `separated` by a line. Tabs scroll sideways on a phone, a chip cuts
+  a long name short and shows it whole on hover, and an error banner can
+  bring itself into view (#474).
+- Link, Quote, Heading, Bold, Code and the other glyphs are drawn as
+  Armature and Stator draw them, and the lists and the divider take the
+  suite's names (#474).
+- The language is no longer saved the moment a radio button is pressed: it
+  is a list on Your profile, saved with the time zone. Relative times come
+  from the kit's catalogue, so German reads "vor 2 Std.", and the strings
+  every component shares move from `common` to `kit` (#474).
+- Everyone's default theme is named on the Themes page, where the themes
+  are; `/settings/default-theme` sends a bookmark there, and the page of its
+  own is gone from Settings (#474).
 
 - The browser suite reaches the rest of the routes and controls #334 left
   out: a baseline's and a review session's print views, theme files and the

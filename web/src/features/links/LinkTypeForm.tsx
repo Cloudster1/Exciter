@@ -122,7 +122,7 @@ export function PairsDialog({ projectKey, type, onClose }: { projectKey: string;
   );
 
   return (
-    <Dialog title={t.linkTypes.pairsTitle(type.name)} onClose={onClose} data-pairs-dialog="">
+    <Dialog open title={t.linkTypes.pairsTitle(type.name)} onClose={onClose} attrs={{ "data-pairs-dialog": "" }}>
       <form
         onSubmit={(event) => {
           event.preventDefault();

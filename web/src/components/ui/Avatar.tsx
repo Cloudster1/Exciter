@@ -18,7 +18,7 @@ export function Avatar({ name, src, size = "md", className }: { name?: string; s
   if (!name) {
     return (
       <span
-        title={t.common.unassigned}
+        title={t.kit.unassigned}
         className={cx(
           "inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-ink-subtle",
           sizes[size],
@@ -26,7 +26,7 @@ export function Avatar({ name, src, size = "md", className }: { name?: string; s
         )}
       >
         <span aria-hidden="true">?</span>
-        <span className="sr-only">{t.common.unassigned}</span>
+        <span className="sr-only">{t.kit.unassigned}</span>
       </span>
     );
   }

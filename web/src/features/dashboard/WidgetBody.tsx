@@ -3,8 +3,13 @@ import { Link } from "@tanstack/react-router";
 import type { WidgetConfig, WidgetData, WidgetKind } from "@/api/dashboards";
 import { useViews } from "@/api/search";
 import { t } from "@/i18n";
+import { localDateFormat } from "@/lib/format";
 import { bucketAddress, bucketLabel } from "./address";
 import { AsTable, Bars, Donut, Lines, Stat, type Slice } from "./charts";
+
+// A bucket starts at midnight UTC, the day the server counted it in, so it keeps that day in every zone.
+const axisDay = localDateFormat({ day: "numeric", month: "numeric", timeZone: "UTC" });
+const tableDay = localDateFormat({ dateStyle: "short", timeZone: "UTC" });
 
 /** What a widget shows, drawn from its data, every value opening its requirements in the grid. */
 export function WidgetBody({ projectKey, kind, config, data }: { projectKey: string; kind: WidgetKind; config: WidgetConfig; data: WidgetData }) {
@@ -94,9 +99,9 @@ export function WidgetBody({ projectKey, kind, config, data }: { projectKey: str
     case "changes": {
       const series = data.lines.map((l) => ({
         name: t.dashboard.series[l.series] ?? l.series,
-        points: l.points.map((p) => ({ label: new Date(p.start).toLocaleDateString(undefined, { day: "numeric", month: "numeric" }), count: p.count })),
+        points: l.points.map((p) => ({ label: axisDay.format(new Date(p.start)), count: p.count })),
       }));
-      const dates = data.lines[0]?.points.map((p) => new Date(p.start).toLocaleDateString()) ?? [];
+      const dates = data.lines[0]?.points.map((p) => tableDay.format(new Date(p.start))) ?? [];
       return (
         <>
           <Lines series={series} />

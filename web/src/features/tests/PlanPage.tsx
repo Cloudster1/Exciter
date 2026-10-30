@@ -184,7 +184,7 @@ function DeletePlanDialog({ project, plan, onClose }: { project: Project; plan: 
   const { remove } = useTestPlanActions(project.key);
   const navigate = useNavigate();
   return (
-    <Dialog title={t.tests.deletePlanTitle(plan.title)} onClose={onClose}>
+    <Dialog open title={t.tests.deletePlanTitle(plan.title)} onClose={onClose}>
       <p className="text-sm text-ink">{t.tests.deletePlanBody}</p>
       {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
       <div className="flex justify-end gap-2 pt-3">
