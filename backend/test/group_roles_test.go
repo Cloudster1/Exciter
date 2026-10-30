@@ -173,7 +173,7 @@ func TestAProviderGroupsGrantsReachItsPeopleAndGoWithTheGroup(t *testing.T) {
 	})
 
 	t.Run("a group the provider no longer names at a sign-in takes its grants along", func(t *testing.T) {
-		key := projectKey(t, "FORMER")
+		key := projectKey(t, "FMR")
 		project := obj(t, want(t, admin.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Former"}), http.StatusCreated, "make a project"), "project")
 		// Alice is put in a group of the provider's that Keycloak does not name for her, as if she had been in it
 		// and was taken out there.

@@ -210,7 +210,7 @@ func TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent(t *testing.T) {
 	awaitTopic(t, bin, webhook.TopicRequirementRevised, w.reqKey, 1)
 
 	// Ann made it as an administrator; as a member who is granted nothing, she may not see the project.
-	h.cleanupExec(t, h.super, `UPDATE app_user SET role = 'member' WHERE id = $1`, annID)
+	h.cleanupExec(t, h.super, `DELETE FROM role_assignment WHERE user_id = $1 AND project_id IS NULL`, annID)
 	h.settle(t)
 	want(t, w.bob.patch(t, "/api/v1/requirements/"+w.reqKey, map[string]any{"title": "Brakes engage within 80 ms", "baseRevision": 2}), http.StatusOK, "bob revises again")
 	log := h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 3`, "withheld", 1)

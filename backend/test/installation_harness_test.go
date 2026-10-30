@@ -261,8 +261,10 @@ func (h *harness) singleSignOn(t *testing.T) {
 			UPDATE app_user u SET role = s.role, joined_at = s.joined_at
 			FROM jsonb_to_recordset($1::jsonb) s (id uuid, role text, joined_at timestamptz)
 			WHERE u.id = s.id AND u.role IS DISTINCT FROM s.role`, standings)
+		// Everyone follows the standing and refuses a member taken out by hand; an account the test made goes below.
 		h.cleanupExec(t, h.super, `
 			DELETE FROM group_member gm USING app_user u WHERE u.id = gm.user_id AND u.email = ANY($1)
+			   AND gm.group_id NOT IN (SELECT id FROM groups WHERE builtin = 'everyone')
 			   AND (gm.group_id, gm.user_id) NOT IN (SELECT (e->>'group_id')::uuid, (e->>'user_id')::uuid FROM jsonb_array_elements($2::jsonb) e)`,
 			people, memberships)
 		h.cleanupExec(t, h.super, `

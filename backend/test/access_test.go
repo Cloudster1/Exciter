@@ -68,12 +68,14 @@ func TestAccessOverTheAPI(t *testing.T) {
 		refuse(t, "deleting it twice", admin.delete(t, "/api/v1/roles/"+roleKey), http.StatusNotFound, "not_found")
 	})
 
+	// The group outlives the subtest that makes it: the ones after grant, empty and delete it.
+	whole := t
 	var groupID string
 	t.Run("an administrator makes a group, fills it by hand and renames it", func(t *testing.T) {
 		name := "Auditors " + h.suffix()
 		group := obj(t, want(t, admin.post(t, "/api/v1/groups", map[string]any{"name": name, "description": "Who audits"}), http.StatusCreated, "make a group"), "group")
 		groupID = group["id"].(string)
-		t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM groups WHERE id = $1`, groupID) })
+		whole.Cleanup(func() { h.cleanupExec(whole, h.super, `DELETE FROM groups WHERE id = $1`, groupID) })
 		if group["source"] != "local" || group["memberCount"] != float64(0) {
 			t.Errorf("the group reads %v", group)
 		}
