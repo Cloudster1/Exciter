@@ -73,7 +73,8 @@ func (h *harness) forgetPerson(t *testing.T, email string) {
 }
 
 // letIn makes the address a member with role ahead of its sign-in, the way the seed does, making the account
-// if need be; somebody the seed already let in gets the role instead.
+// if need be; somebody the seed already let in gets the role instead: admin or owner a member who holds the
+// administrator role, member or guest that standing without a grant across the installation by name.
 func (h *harness) letIn(t *testing.T, email, role string) {
 	t.Helper()
 	ctx := context.Background()
@@ -83,8 +84,16 @@ func (h *harness) letIn(t *testing.T, email, role string) {
 		ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id`, email, email).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.super.Exec(ctx, `
-		UPDATE app_user SET role = $2, role_source = 'manual' WHERE id = $1`, id, role); err != nil {
+	standing := role
+	if role == "admin" || role == "owner" {
+		standing = "member"
+	}
+	if _, err := h.super.Exec(ctx, `UPDATE app_user SET role = $2 WHERE id = $1`, id, standing); err != nil {
+		t.Fatal(err)
+	}
+	if standing != role {
+		h.administers(t, id)
+	} else if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE user_id = $1 AND project_id IS NULL`, id); err != nil {
 		t.Fatal(err)
 	}
 	h.settle(t)

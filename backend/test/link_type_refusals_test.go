@@ -94,7 +94,7 @@ func TestATypeForAllProjectsIsTheAdministratorsAlone(t *testing.T) {
 
 	t.Run("a member letting a type a hidden formula reads cycle hears only that they may not", func(t *testing.T) {
 		p := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": hidden, "name": "Hidden"}), http.StatusCreated, "make a hidden project"), "project")
-		if _, err := f.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, p["id"]); err != nil {
+		if _, err := f.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, p["id"]); err != nil {
 			t.Fatal(err)
 		}
 		f.h.settle(t)

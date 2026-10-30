@@ -199,6 +199,14 @@ func TestTheUpgradeKeepsEveryRowAndStepsBack(t *testing.T) {
 	upgraded["outbox_event"] += before["project"]
 	// Risk management (#260) seeds the link types mitigates and leads_to.
 	upgraded["link_type"] += 2
+	// Access is roles and grants (#471): each project grant is a grant of the built-in role of its key, the owner
+	// administers through a grant of the administrator role, and Everyone, a group of its own, holds every member.
+	upgraded["role_assignment"] = before["project_grant"] + 1
+	upgraded["role"] = 5
+	upgraded["groups"]++
+	upgraded["group_member"] += before["org_member"]
+	delete(upgraded, "project_grant")
+	delete(upgraded, "oidc_group_role")
 	if after := rowCounts(t, super); !sameCounts(t, "the upgrade", upgraded, after) {
 		return
 	}

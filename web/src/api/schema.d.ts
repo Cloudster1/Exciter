@@ -949,11 +949,65 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Groups, to pick whom to grant something. */
+        /** The installation's groups, Everyone first, with how many people and grants each has; to pick whom to grant something. */
         get: operations["listGroups"];
         put?: never;
-        post?: never;
+        /** Make a group, kept by hand or, with a provider claim, filled by the identity provider at every sign-in. For administrators. */
+        post: operations["createGroup"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{groupID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One group with its members. For administrators. */
+        get: operations["getGroup"];
+        put?: never;
+        post?: never;
+        /** Delete a group and every grant to it; Everyone stays. For administrators. */
+        delete: operations["deleteGroup"];
+        options?: never;
+        head?: never;
+        /** Rename a group, describe it, or change the provider claim that fills it; Everyone is not changed. For administrators. */
+        patch: operations["updateGroup"];
+        trace?: never;
+    };
+    "/groups/{groupID}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put a member in a group kept by hand. For administrators. */
+        post: operations["addGroupMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{groupID}/members/{userID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take somebody out of a group kept by hand. For administrators. */
+        delete: operations["removeGroupMember"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1547,41 +1601,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/oidc-provider/group-roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Which provider groups grant which role. For administrators. */
-        get: operations["listGroupRoles"];
-        put?: never;
-        /** Map a provider group to a role, or change the role it maps to; members follow at their next sign-in. For administrators. */
-        post: operations["setGroupRole"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/oidc-provider/group-roles/{groupRoleID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Unmap a provider group; the roles it granted go at each person's next sign-in. For administrators. */
-        delete: operations["removeGroupRole"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -1608,6 +1627,23 @@ export interface paths {
         };
         /** The people of Exciter, to pick whom to grant something or who owns a requirement. */
         get: operations["listPeople"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every permission a role may hold, in words, and whether it counts in a project or across the installation only. */
+        get: operations["listPermissions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2255,24 +2291,6 @@ export interface paths {
         get: operations["getGlossaries"];
         /** Name the library projects whose glossaries the project uses, in order; the project's administrators', and only libraries they may read, at most 20. */
         put: operations["saveGlossaries"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectKey}/grants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Who holds which role in a project. For the project's administrators. */
-        get: operations["listProjectGrants"];
-        /** Replace a project's whole table of grants; refused when it would leave the project without an administrator. For the project's administrators. */
-        put: operations["setProjectGrants"];
         post?: never;
         delete?: never;
         options?: never;
@@ -4082,6 +4100,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who holds which role where, a page at a time, with how many there are in all. Across the installation for its administrators; in a project for the project's administrators too. */
+        get: operations["listAssignments"];
+        put?: never;
+        /** Grant a role to a person or a group, in a project by its key or, with none, across the installation. In a project for its administrators; across the installation for the installation's. */
+        post: operations["grantRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/role-assignments/{assignmentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take a grant away. The last grant that lets somebody run a project, and the last that leaves the installation an active administrator, stay. */
+        delete: operations["revokeRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The roles and the permissions each holds outright, the built-in ones first. */
+        get: operations["listRoles"];
+        put?: never;
+        /** Add a role beside the built-in ones; its key is made from its name unless given. For administrators. */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{roleKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a role that is not built in, and every grant of it. For administrators. */
+        delete: operations["deleteRole"];
+        options?: never;
+        head?: never;
+        /** Rename a role, describe it or change what it holds; every grant of it follows. The administrator keeps administering Exciter, and the installation an active administrator. For administrators. */
+        patch: operations["updateRole"];
+        trace?: never;
+    };
     "/search": {
         parameters: {
             query?: never;
@@ -4822,10 +4911,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The installation's people, those switched on first, then owners first, with whether the identity provider's groups decide their roles. For administrators. */
+        /** The installation's members and guests, those switched on first, with their standing and the roles they hold across the installation, by name or through a group. For administrators. */
         get: operations["listMembers"];
         put?: never;
-        /** Add a person with a password, made for them when none is given and shown once in the answer. For administrators. */
+        /** Add a person with a password, made for them when none is given and shown once in the answer; admin makes them a member who holds the administrator role. For administrators. */
         post: operations["createMember"];
         delete?: never;
         options?: never;
@@ -4876,7 +4965,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Let a waiting person in with the standing given. For administrators. */
+        /** Let a waiting person in as a member; admin grants them the administrator role besides. For administrators. */
         post: operations["admitJoinRequest"];
         delete?: never;
         options?: never;
@@ -4898,7 +4987,7 @@ export interface paths {
         delete: operations["switchOffMember"];
         options?: never;
         head?: never;
-        /** Give a member another role, or switch their account off or on; an owner's role and the caller's own stay. For administrators. */
+        /** Make a member a guest or a guest a member, or switch their account off or on; the caller's own standing and the last active administrator stay. For administrators. */
         patch: operations["updateMember"];
         trace?: never;
     };
@@ -5143,12 +5232,11 @@ export interface components {
             secret?: string;
         };
         AccessReport: {
+            administers: boolean;
             person: components["schemas"]["Person"];
             rights: components["schemas"]["AccessRight"][];
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
-            /** @enum {string} */
-            roleSource: "manual" | "oidc";
+            role: "member" | "guest";
         };
         AccessRight: {
             allowed: boolean;
@@ -5157,7 +5245,7 @@ export interface components {
             steps: components["schemas"]["AccessStep"][];
         };
         AccessStep: {
-            grants: components["schemas"]["ProjectGrant"][];
+            grants: components["schemas"]["Assignment"][];
             /** @enum {string} */
             kind: "orgAdmin" | "guest" | "grant" | "archived";
             passed: boolean;
@@ -5173,6 +5261,10 @@ export interface components {
             kind: "revision" | "change";
             revision: components["schemas"]["RevisionEntry"] | null;
             via: components["schemas"]["Via"] | null;
+        };
+        AddGroupMemberRequest: {
+            /** Format: uuid */
+            userId: string;
         };
         AdmitRequest: {
             /** @enum {string} */
@@ -5368,6 +5460,34 @@ export interface components {
             name: string;
             size: number;
         };
+        Assignment: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @enum {string} */
+            groupBuiltin?: "everyone";
+            /** Format: uuid */
+            groupId?: string;
+            groupName?: string;
+            guest?: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            projectId?: string;
+            projectKey?: string;
+            projectName?: string;
+            role: string;
+            roleName: string;
+            userEmail?: string;
+            /** Format: uuid */
+            userId?: string;
+            userName?: string;
+        };
+        AssignmentPage: {
+            assignments: components["schemas"]["Assignment"][];
+            limit: number;
+            offset: number;
+            total: number;
+        };
         Attachment: {
             contentType: string;
             /** Format: date-time */
@@ -5485,7 +5605,7 @@ export interface components {
         };
         AuditEntry: {
             /** @enum {string} */
-            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added";
+            action: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added" | "role.created" | "role.updated" | "role.deleted" | "group.created" | "group.updated" | "group.deleted" | "group.member_added" | "group.member_removed" | "grant.added" | "grant.removed";
             /** Format: uuid */
             actorId: string | null;
             actorName: string;
@@ -5502,7 +5622,7 @@ export interface components {
             via: components["schemas"]["Via"] | null;
         };
         AuditFacets: {
-            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added")[];
+            actions: ("event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added" | "role.created" | "role.updated" | "role.deleted" | "group.created" | "group.updated" | "group.deleted" | "group.member_added" | "group.member_removed" | "grant.added" | "grant.removed")[];
             actors: components["schemas"]["AuditActor"][];
             retentionDays: number;
             targetTypes: string[];
@@ -5968,7 +6088,7 @@ export interface components {
             name: string;
             password: string;
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
+            role: "admin" | "member" | "guest";
         };
         CreatedMember: {
             email: string;
@@ -5976,7 +6096,7 @@ export interface components {
             newAccount: boolean;
             password?: string;
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
+            role: "admin" | "member" | "guest";
             /** Format: uuid */
             userId: string;
         };
@@ -6311,6 +6431,14 @@ export interface components {
             projectKey: string;
             terms: number;
         };
+        GrantRoleRequest: {
+            /** Format: uuid */
+            groupId: string | null;
+            projectKey: string;
+            role: string;
+            /** Format: uuid */
+            userId: string | null;
+        };
         GridRow: {
             attributes: {
                 [key: string]: unknown;
@@ -6337,20 +6465,24 @@ export interface components {
             updatedAt: string;
         };
         Group: {
+            /** @enum {string} */
+            builtin?: "everyone";
+            description: string;
+            externalRef: string;
             fromProvider: boolean;
             /** Format: uuid */
             id: string;
             memberCount: number;
+            members?: components["schemas"]["Person"][];
             name: string;
-        };
-        GroupRole: {
-            group: string;
-            /** Format: uuid */
-            id: string;
+            roleCount: number;
             /** @enum {string} */
-            role: "member" | "admin";
-            /** Format: date-time */
-            updatedAt: string;
+            source: "local" | "oidc";
+        };
+        GroupInput: {
+            description?: string;
+            externalRef?: string;
+            name?: string;
         };
         Icon: {
             /** Format: uuid */
@@ -6606,9 +6738,10 @@ export interface components {
             suite: string;
         };
         MeResponse: {
+            administers: boolean;
             installation: components["schemas"]["Installation"];
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
+            role: "member" | "guest";
             signsWith: string;
             token: components["schemas"]["CallingToken"] | null;
             user: components["schemas"]["User"];
@@ -6618,20 +6751,28 @@ export interface components {
         };
         Member: {
             active: boolean;
+            administers: boolean;
             email: string;
             /** Format: date-time */
             joinedAt: string;
             name: string;
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
-            /** @enum {string} */
-            roleSource: "manual" | "oidc";
+            role: "member" | "guest";
+            roles: components["schemas"]["MemberRole"][];
             /** Format: uuid */
             userId: string;
         };
+        MemberRole: {
+            groupBuiltin: "everyone" | null;
+            /** Format: uuid */
+            groupId: string | null;
+            groupName: string | null;
+            name: string;
+            role: string;
+        };
         Membership: {
             /** @enum {string} */
-            role: "owner" | "admin" | "member" | "guest";
+            role: "member" | "admin";
             /** Format: uuid */
             userId: string;
         };
@@ -6960,6 +7101,13 @@ export interface components {
             connected: boolean;
             message: string;
         };
+        PermissionView: {
+            /** @enum {string} */
+            permission: "view" | "comment" | "edit" | "approve" | "administer" | "createProjects" | "administerInstallation";
+            /** @enum {string} */
+            scope: "project" | "installation";
+            words: string;
+        };
         Person: {
             email: string;
             /** Format: uuid */
@@ -7008,19 +7156,6 @@ export interface components {
             edit: boolean;
             purge: boolean;
             view: boolean;
-        };
-        ProjectGrant: {
-            /** @enum {string} */
-            role: "viewer" | "reviewer" | "editor" | "admin";
-            subject: components["schemas"]["Subject"];
-        };
-        ProjectGrantInput: {
-            /** @enum {string} */
-            role: "viewer" | "reviewer" | "editor" | "admin";
-            subject: components["schemas"]["SubjectRef"];
-        };
-        ProjectGrantsInput: {
-            grants: components["schemas"]["ProjectGrantInput"][];
         };
         ProjectKeyCheck: {
             available: boolean;
@@ -7943,6 +8078,22 @@ export interface components {
             method: "matrix" | "rpn";
             scales: components["schemas"]["RiskScaleInput"][];
         };
+        Role: {
+            builtin: boolean;
+            description: string;
+            inUse: number;
+            name: string;
+            orgWideOnly: boolean;
+            permissions: ("view" | "comment" | "edit" | "approve" | "administer" | "createProjects" | "administerInstallation")[];
+            role: string;
+        };
+        RoleInput: {
+            description?: string;
+            key?: string;
+            name?: string;
+            orgWideOnly?: boolean;
+            permissions?: ("view" | "comment" | "edit" | "approve" | "administer" | "createProjects" | "administerInstallation")[];
+        };
         RuleOption: {
             choices: string[];
             /** @enum {string} */
@@ -8021,11 +8172,6 @@ export interface components {
             id: string;
             projectKey: string;
             title: string;
-        };
-        SetGroupRoleRequest: {
-            group: string;
-            /** @enum {string} */
-            role: "member" | "admin";
         };
         Shape: {
             radiusControl?: number;
@@ -8306,19 +8452,6 @@ export interface components {
         };
         StatusResponse: {
             status: string;
-        };
-        Subject: {
-            /** Format: uuid */
-            id: string | null;
-            name: string;
-            /** @enum {string} */
-            type: "user" | "group" | "everyone";
-        };
-        SubjectRef: {
-            /** Format: uuid */
-            id?: string;
-            /** @enum {string} */
-            type: "user" | "group" | "everyone";
         };
         Suggestions: {
             completion: components["schemas"]["Completion"];
@@ -9047,7 +9180,7 @@ export interface components {
         UpdateMemberRequest: {
             active?: boolean;
             /** @enum {string} */
-            role?: "owner" | "admin" | "member" | "guest";
+            role?: "member" | "guest";
         };
         User: {
             avatarUrl?: string;
@@ -10528,7 +10661,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added" | "role.created" | "role.updated" | "role.deleted" | "group.created" | "group.updated" | "group.deleted" | "group.member_added" | "group.member_removed" | "grant.added" | "grant.removed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -10577,7 +10710,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description One action. */
-                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added";
+                action?: "event.dead_lettered" | "audit.exported" | "member.created" | "member.role_changed" | "member.removed" | "member.switched_off" | "member.switched_on" | "member.joined" | "member.admitted" | "member.declined" | "sso.provider_saved" | "sso.group_role_set" | "sso.group_role_removed" | "theme.default_set" | "project.created" | "project.key_changed" | "project.archived" | "project.unarchived" | "project.deleted" | "project.grants_changed" | "requirement.purged" | "trash.emptied" | "workflow.saved" | "workflow.assigned" | "token.created" | "token.revoked" | "link_type.created" | "link_type.changed" | "link_type.deleted" | "armature.connected" | "armature.disconnected" | "installation.renamed" | "comment.deleted" | "approval_rule.saved" | "approval_rule.removed" | "review.withdrawn" | "baseline.taken" | "baseline.locked" | "baseline.deleted" | "coverage_rule.saved" | "coverage_rule.removed" | "stator.connected" | "stator.disconnected" | "specification.exported" | "project.signatures_set" | "webhook.created" | "webhook.updated" | "webhook.deleted" | "webhook.secret_rotated" | "webhook.disabled" | "project.library_set" | "trace_model.saved" | "oauth.granted" | "installation.oauth_switched" | "oauth.revoked" | "baseline.signed" | "baseline_signing.saved" | "baseline_signing.removed" | "requirement.locked" | "requirement.unlocked" | "status.locks_set" | "field_rule.saved" | "review_session.opened" | "review_session.round_started" | "review_session.closed" | "evidence_settings.saved" | "code_tag_words.saved" | "project.language_set" | "quality_settings.saved" | "term.deleted" | "glossaries.chosen" | "duplicate_settings.saved" | "dashboard.created" | "dashboard.shared" | "dashboard.deleted" | "export_template.uploaded" | "export_template.changed" | "export_template.deleted" | "test_execution.started" | "test_execution.recorded" | "test_execution.issue_filed" | "test_execution.closed" | "risk_scheme.saved" | "oauth_app.created" | "oauth_app.updated" | "oauth_app.secret_rotated" | "oauth_app.deleted" | "installation.suite_demo_added" | "role.created" | "role.updated" | "role.deleted" | "group.created" | "group.updated" | "group.deleted" | "group.member_added" | "group.member_removed" | "grant.added" | "grant.removed";
                 /** @description The person who acted. */
                 actor?: string;
                 /** @description What kind of thing the entries are about, such as requirement or user. */
@@ -12588,6 +12721,283 @@ export interface operations {
             };
         };
     };
+    createGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: components["schemas"]["Group"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: components["schemas"]["Group"];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: components["schemas"]["Group"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    addGroupMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddGroupMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: components["schemas"]["Group"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    removeGroupMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupID: string;
+                userID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        group: components["schemas"]["Group"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     liveness: {
         parameters: {
             query?: never;
@@ -14315,101 +14725,6 @@ export interface operations {
             };
         };
     };
-    listGroupRoles: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        groupRoles: components["schemas"]["GroupRole"][];
-                    };
-                };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    setGroupRole: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetGroupRoleRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        groupRole: components["schemas"]["GroupRole"];
-                    };
-                };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    removeGroupRole: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                groupRoleID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
     openAPI: {
         parameters: {
             query?: never;
@@ -14461,6 +14776,37 @@ export interface operations {
                 content: {
                     "application/json": {
                         people: components["schemas"]["Person"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        permissions: components["schemas"]["PermissionView"][];
                     };
                 };
             };
@@ -17102,94 +17448,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    listProjectGrants: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        grants: components["schemas"]["ProjectGrant"][];
-                    };
-                };
-            };
-            /** @description An error, in the one shape every endpoint uses. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    setProjectGrants: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectGrantsInput"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        grants: components["schemas"]["ProjectGrant"][];
-                    };
                 };
             };
             /** @description Conflict */
@@ -24038,6 +24296,297 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listAssignments: {
+        parameters: {
+            query?: {
+                /** @description Text the person, the group, the role, or the project's key or name contains. */
+                q?: string;
+                /** @description Only the grants in this project, by key. */
+                project?: string;
+                /** @description installation for only the grants across the whole installation. */
+                scope?: "installation";
+                /** @description Only grants of this role, by its key. */
+                role?: string;
+                /** @description 1 to 200; 50 unless said. */
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentPage"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    grantRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assignment: components["schemas"]["Assignment"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    revokeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        roles: components["schemas"]["Role"][];
+                    };
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        role: components["schemas"]["Role"];
+                    };
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roleKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description An error, in the one shape every endpoint uses. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    updateRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roleKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        role: components["schemas"]["Role"];
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

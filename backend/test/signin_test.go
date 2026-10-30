@@ -53,8 +53,8 @@ func TestASessionOverTheAPI(t *testing.T) {
 	}
 
 	signedIn := want(t, b.post(t, "/api/v1/auth/login", map[string]any{"email": email, "password": adminPassword}), http.StatusOK, "sign in")
-	if signedIn.Body["role"] != "owner" || obj(t, signedIn, "installation")["name"] == "" {
-		t.Errorf("the session lands as %s, want the installation's owner", signedIn.Raw)
+	if signedIn.Body["role"] != "member" || signedIn.Body["administers"] != true || obj(t, signedIn, "installation")["name"] == "" {
+		t.Errorf("the session lands as %s, want a member who administers the installation", signedIn.Raw)
 	}
 	if _, listed := signedIn.Body["organizations"]; listed {
 		t.Errorf("the sign-in still lists organizations: %s", signedIn.Raw)

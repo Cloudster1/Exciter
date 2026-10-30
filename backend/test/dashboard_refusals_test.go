@@ -54,7 +54,7 @@ func (s *walledScene) grant(t *testing.T, withBob bool) {
 	if withBob {
 		rows = append(rows, grantRow(subjectOf("user", s.bobID), "editor"))
 	}
-	want(t, s.owner.put(t, "/api/v1/projects/"+s.key+"/grants", map[string]any{"grants": rows}), http.StatusOK, "set the grants")
+	want(t, s.owner.setGrants(t, s.key, rows), http.StatusOK, "set the grants")
 	s.h.settle(t)
 }
 

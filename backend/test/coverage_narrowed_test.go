@@ -34,7 +34,7 @@ func newHiddenScene(t *testing.T, prefix string) *hiddenScene {
 	s := &hiddenScene{commentWorld: newCommentWorld(t, prefix), hiddenKey: projectKey(t, prefix+"H")}
 	hidden := obj(t, want(t, s.owner.post(t, "/api/v1/projects", map[string]any{"key": s.hiddenKey, "name": "Hidden"}), http.StatusCreated,
 		"make a project only the owner reads"), "project")
-	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, hidden["id"]); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, hidden["id"]); err != nil {
 		t.Fatal(err)
 	}
 	s.hiddenReq = obj(t, want(t, s.owner.post(t, "/api/v1/projects/"+s.hiddenKey+"/requirements", map[string]any{"title": hiddenTitle}),

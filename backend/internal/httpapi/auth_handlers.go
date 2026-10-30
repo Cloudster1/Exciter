@@ -57,8 +57,10 @@ var errSignInOff = &APIError{Status: http.StatusServiceUnavailable, Code: "sign_
 type meResponse struct {
 	User         auth.User                 `json:"user"`
 	Installation installation.Installation `json:"installation"`
-	// Role is the caller's standing in the installation.
+	// Role is the caller's standing in the installation, member or guest; what they may do is their grants'.
 	Role auth.OrgRole `json:"role"`
+	// Administers says a grant lets the caller administer the installation, which decides the Admin entries.
+	Administers bool `json:"administers"`
 	// Token is the personal access token the request rides on; null for a session.
 	Token *auth.CallingToken `json:"token"`
 	// SignsWith is how the person signs an approval (#46): password, provider, or empty when they cannot.
@@ -70,6 +72,7 @@ func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
 		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale, Timezone: p.Timezone},
 		Installation: installation.Installation{Name: p.InstallationName},
 		Role:         p.Role,
+		Administers:  p.CanAdminister(),
 		Token:        p.Token,
 	}
 	// The principal carries the name alone; what else the installation says is read, so it is never answered false.

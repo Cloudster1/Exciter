@@ -352,7 +352,7 @@ func TestASessionsDeadlineIsRemindedOnceToWhoStillDecides(t *testing.T) {
 func TestSessionsAreListedToThoseWhoMayReadThem(t *testing.T) {
 	s := newSessionScene(t, "RSL")
 	// Only those the scene names read the project from here on.
-	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 		t.Fatal(err)
 	}
 	s.h.settle(t)
@@ -434,7 +434,7 @@ func TestSessionsAreListedToThoseWhoMayReadThem(t *testing.T) {
 // moves on one round at a time, takes participants and rounds only from its moderator, and hides from outsiders.
 func TestRawSQLKeepsASessionToItsOpening(t *testing.T) {
 	s := newSessionScene(t, "RSG")
-	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 		t.Fatal(err)
 	}
 	outsiderID := s.h.addPerson(t, "member")

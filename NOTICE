@@ -582,6 +582,18 @@ Stator's port at 48412115:
 - backend/internal/auth: SetTimezone and KnownTimezone, and migration 01519
   from Stator's 00940
 
+Adapted from Stator at 2ff6ab6a, for roles, groups and grants (#471), as
+Stator took them from Armature:
+
+- backend/internal/perm: roles.go, groups.go and assign.go, the roles, the
+  matrix's permissions, groups and grants
+- backend/internal/httpapi/access_handlers.go
+- backend/internal/oidc/grouproles.go: letting somebody in by a group that
+  holds a grant
+- migration 01540 from Stator's 00960: the role and role_assignment tables,
+  Everyone, and the guards that keep built-in roles, Everyone and an active
+  administrator
+
 The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
 titles and texts of the public GitHub issues of Armature, Exciter and Stator
 that carry a user story, as scripts/demo-snapshot.sh took them on the date

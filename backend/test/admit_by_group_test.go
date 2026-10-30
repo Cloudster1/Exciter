@@ -57,8 +57,8 @@ func (h *harness) admittedBy(t *testing.T, email string) (group, via string) {
 	return group, via
 }
 
-// A mapped group lets somebody new in at sign-in only once an administrator
-// turns it on; it sets the role of somebody already in either way.
+// A group that holds a grant lets somebody new in at sign-in only once an
+// administrator turns it on; its grants reach somebody already in either way.
 func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
@@ -69,8 +69,8 @@ func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 	admin, _ := adminOf(t, h, a)
 	group := "admit-" + h.suffix()
 	kc.newGroup(t, group)
-	mapGroup(t, admin, group, "member")
-	mapGroup(t, admin, "exciter-administrators", "admin")
+	mapGroup(t, admin, group, "viewer")
+	mapGroup(t, admin, "exciter-administrators", "administrator")
 	const password = "admitted password"
 	newcomer := "newcomer-" + h.suffix()
 	newcomerEmail := kc.newPerson(t, h, newcomer, password, group)
@@ -84,7 +84,7 @@ func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 		if landing := newBrowser(t, a).signIn(t, newcomer, password, "/"); landing != notAMember {
 			t.Fatalf("%s landed on %q", newcomer, landing)
 		}
-		if role, _ := h.standing(t, newcomerEmail); role != "" {
+		if role := h.standing(t, newcomerEmail); role != "" {
 			t.Fatalf("%s became %s with the setting off", newcomer, role)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM join_request r JOIN app_user u ON u.id = r.user_id WHERE u.email = $1`, newcomerEmail); n != 1 {
@@ -92,21 +92,21 @@ func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 		}
 	})
 
-	t.Run("off, a mapped group still sets the role of somebody already in", func(t *testing.T) {
-		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "admin" {
-			t.Fatalf("alice is %q, want the admin her group maps to", role)
+	t.Run("off, a group's grant still reaches somebody already in", func(t *testing.T) {
+		if b := signedIn(t, a, "alice", alicePassword); b.roleIn(t) != "member" || !b.administers(t) {
+			t.Fatal("alice does not administer through the group granted the administrator role")
 		}
 	})
 
 	admitByGroup(t, admin, true)
 
-	t.Run("on, somebody new in a mapped group is let in with its role and stops waiting", func(t *testing.T) {
+	t.Run("on, somebody new in a group with a grant is let in as a member and stops waiting", func(t *testing.T) {
 		b := newBrowser(t, a)
 		if landing := b.signIn(t, newcomer, password, "/settings"); landing != "http://"+appHost+"/settings" {
 			t.Fatalf("%s landed on %q, want where they were going", newcomer, landing)
 		}
-		if role, source := h.standing(t, newcomerEmail); role != "member" || source != "oidc" {
-			t.Fatalf("%s's membership is %s from %s", newcomer, role, source)
+		if role := h.standing(t, newcomerEmail); role != "member" {
+			t.Fatalf("%s's membership is %s", newcomer, role)
 		}
 		if n := h.countRows(t, `SELECT count(*) FROM join_request r JOIN app_user u ON u.id = r.user_id WHERE u.email = $1`, newcomerEmail); n != 0 {
 			t.Fatalf("%s still has %d requests", newcomer, n)
@@ -122,7 +122,7 @@ func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 		if landing := newBrowser(t, a).signIn(t, stray, password, "/"); landing != notAMember {
 			t.Fatalf("%s landed on %q", stray, landing)
 		}
-		if role, _ := h.standing(t, email); role != "" {
+		if role := h.standing(t, email); role != "" {
 			t.Fatalf("%s became %s", stray, role)
 		}
 	})
@@ -134,14 +134,14 @@ func TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn(t *testing.T) {
 		if landing := newBrowser(t, a).signIn(t, off, password, "/"); landing != "http://"+appHost+"/login?sso=inactive" {
 			t.Fatalf("%s landed on %q", off, landing)
 		}
-		if role, _ := h.standing(t, email); role != "" {
+		if role := h.standing(t, email); role != "" {
 			t.Fatalf("a switched off account became %s", role)
 		}
 	})
 }
 
 // A partner's token exchange lets somebody Exciter has never seen in when
-// their group is mapped, only once an administrator turns it on, and keeps no
+// their group holds a grant, only once an administrator turns it on, and keeps no
 // account for anybody it refuses (#273).
 func TestAMappedGroupLetsAPartnerConnectSomebodyNewOnlyWhenTurnedOn(t *testing.T) {
 	h := newHarness(t)
@@ -153,7 +153,7 @@ func TestAMappedGroupLetsAPartnerConnectSomebodyNewOnlyWhenTurnedOn(t *testing.T
 	stator := registerPartner(t, admin, map[string]any{"name": "Stator", "keycloakClientId": statorClient})
 	group := "exchange-" + h.suffix()
 	kc.newGroup(t, group)
-	mapGroup(t, admin, group, "member")
+	mapGroup(t, admin, group, "viewer")
 	const password = "exchanged password"
 	exchange := func(username string) (int, map[string]any) {
 		t.Helper()
@@ -182,12 +182,12 @@ func TestAMappedGroupLetsAPartnerConnectSomebodyNewOnlyWhenTurnedOn(t *testing.T
 
 	admitByGroup(t, admin, true)
 
-	t.Run("on, somebody new in a mapped group is let in with its role, and the record names the group", func(t *testing.T) {
+	t.Run("on, somebody new in a group with a grant is let in, and the record names the group", func(t *testing.T) {
 		if status, got := exchange(mapped); status != http.StatusOK {
 			t.Fatalf("the exchange for %s answered %d %v", mapped, status, got)
 		}
-		if role, source := h.standing(t, mappedEmail); role != "member" || source != "oidc" {
-			t.Fatalf("%s's membership is %s from %s", mapped, role, source)
+		if role := h.standing(t, mappedEmail); role != "member" {
+			t.Fatalf("%s's membership is %s", mapped, role)
 		}
 		if got, via := h.admittedBy(t, mappedEmail); got != group || via != "token_exchange" {
 			t.Errorf("the audit log says admitted by %q via %q, want %s at a token exchange", got, via, group)
@@ -210,7 +210,7 @@ func TestAMappedGroupLetsAPartnerConnectSomebodyNewOnlyWhenTurnedOn(t *testing.T
 		h.switchedOff(t, email)
 		status, got := exchange(off)
 		refused(t, off, status, got, "switched off")
-		if role, _ := h.standing(t, email); role != "" {
+		if role := h.standing(t, email); role != "" {
 			t.Fatalf("a switched off account became %s", role)
 		}
 	})

@@ -118,8 +118,9 @@ func admit(ctx context.Context, tx db.DBTX, identity *Identity, via string) (*Ad
 	if err != nil {
 		return nil, err
 	}
-	// Before the groups, whose rows need a membership to hang off: a mapped
-	// group is an administrator's yes given in advance, once they say so.
+	// Before the groups, whose rows need a membership to hang off: a group
+	// that holds a grant is an administrator's yes given in advance, once
+	// they say so.
 	if out.Role, err = followMapping(ctx, tx, userID, identity.Groups, admitByGroup, via); err != nil {
 		return nil, err
 	}

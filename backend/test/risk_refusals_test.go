@@ -257,7 +257,7 @@ func TestAHiddenMitigationCountsButNamesNothing(t *testing.T) {
 	owner, reader := s.f.owner, s.f.plain
 	hidden := projectKey(t, "RSF")
 	made := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": hidden, "name": "Hidden controls"}), http.StatusCreated, "make a hidden project"), "project")
-	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, made["id"]); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, made["id"]); err != nil {
 		t.Fatal(err)
 	}
 	s.f.h.settle(t)

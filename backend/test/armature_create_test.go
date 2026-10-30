@@ -89,7 +89,7 @@ func TestIssuesAreMadeFromRequirements(t *testing.T) {
 	write(othKey, "Elsewhere", "")
 	r1Key, r2Key, sectionKey, longKey := creKey+"-R1", creKey+"-R2", creKey+"-R3", creKey+"-R4"
 	// Carol reads the project and edits none of it.
-	if _, err := h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND subject_type = 'everyone'`, project["id"]); err != nil {
+	if _, err := h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, project["id"]); err != nil {
 		t.Fatal(err)
 	}
 	for _, editor := range []uuid.UUID{bobID, daveID, eveID} {

@@ -96,7 +96,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		}
 	}
 
-	p.Role, p.InstallationName, err = s.standing(ctx, p.UserID)
+	p.Role, p.Granted, p.InstallationName, err = s.standing(ctx, p.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
        u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
-       (SELECT name FROM installation), u.role
+       (SELECT name FROM installation), u.role, perm_installation_grants(u.id)
 FROM user_session s
 JOIN app_user u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.expires_at > now()`
@@ -148,12 +148,13 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		active     bool
 		name       *string
 		memberRole *string
+		granted    []string
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, sessionPrincipalSQL, HashToken(secret)).Scan(
 			&sessionID, &lastSeen, &p.Proof,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active,
-			&name, &memberRole,
+			&name, &memberRole, &granted,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -176,6 +177,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 	}
 	p.InstallationName = *name
 	p.Role = OrgRole(*memberRole)
+	p.Granted = granted
 	if s.now().Sub(lastSeen) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, `UPDATE user_session SET last_seen_at = now() WHERE id = $1`, sessionID)
@@ -194,21 +196,24 @@ func (s *Service) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	return err
 }
 
-// standing is the person's role in the installation, empty when they hold none, and the installation's name.
-func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, string, error) {
+// standing is the person's standing in the installation, empty when they hold none, the permissions their grants
+// across it give them, and the installation's name.
+func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, []string, string, error) {
 	var role *string
+	var granted []string
 	var name string
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT (SELECT role FROM app_user WHERE id = $1), name FROM installation`, userID).Scan(&role, &name)
+			SELECT (SELECT role FROM app_user WHERE id = $1), perm_installation_grants($1), name FROM installation`,
+			userID).Scan(&role, &granted, &name)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", "", ErrNoInstallation
+		return "", nil, "", ErrNoInstallation
 	}
 	if err != nil || role == nil {
-		return "", name, err
+		return "", nil, name, err
 	}
-	return OrgRole(*role), name, nil
+	return OrgRole(*role), granted, name, nil
 }
 
 // SetLocale records the language a person reads the interface in;
@@ -262,7 +267,7 @@ func (s *Service) AccountID(ctx context.Context, email string) (uuid.UUID, error
 	return id, err
 }
 
-// EnsureAdmin makes email a local owner of the installation, reporting whether
+// EnsureAdmin makes email a local member who administers the installation, reporting whether
 // the account is new. Run again it changes nothing, or resets a changed password.
 func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string) (bool, error) {
 	email = NormalizeEmail(email)
@@ -309,10 +314,11 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 		if err != nil {
 			return fmt.Errorf("create the administrator: %w", err)
 		}
-		_, err = tx.Exec(ctx, `
-			UPDATE app_user SET role = 'owner', role_source = 'manual'
-			WHERE id = $1 AND role IS DISTINCT FROM 'owner'`, userID)
-		return err
+		if _, err := tx.Exec(ctx, `
+			UPDATE app_user SET role = 'member' WHERE id = $1 AND role IS DISTINCT FROM 'member'`, userID); err != nil {
+			return err
+		}
+		return GrantAdministrator(ctx, tx, userID, nil)
 	})
 	return created, err
 }

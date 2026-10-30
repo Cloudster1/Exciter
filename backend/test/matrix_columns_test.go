@@ -48,7 +48,7 @@ func newCrossScene(t *testing.T) *crossScene {
 		s.columns: {"Caliper clamps within 80 ms", "Lamp lights within 20 ms", "Caliper wear is reported"},
 	} {
 		p := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Cross " + key}), http.StatusCreated, "make "+key), "project")
-		if _, err := f.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND subject_type = 'everyone'`, p["id"]); err != nil {
+		if _, err := f.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, p["id"]); err != nil {
 			t.Fatal(err)
 		}
 		f.h.grantAs(t, uuid.MustParse(p["id"].(string)), bobID, "editor")

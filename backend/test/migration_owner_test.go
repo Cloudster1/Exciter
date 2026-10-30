@@ -68,9 +68,12 @@ func TestTheMigrationsNeedAnOwnerExemptFromRowSecurity(t *testing.T) {
 	}
 	var admin string
 	if err := super.QueryRow(ctx, `
-		INSERT INTO app_user (email, name, role, role_source) VALUES ('owner@migration-owner.test', 'Owner', 'owner', 'manual')
+		INSERT INTO app_user (email, name, role) VALUES ('owner@migration-owner.test', 'Owner', 'member')
 		RETURNING id::text`).Scan(&admin); err != nil {
 		t.Fatalf("make an owner account: %v", err)
+	}
+	if _, err := super.Exec(ctx, `INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1)`, admin); err != nil {
+		t.Fatalf("make the owner an administrator: %v", err)
 	}
 	app, err := pgxpool.New(ctx, at(os.Getenv(envPrimary)))
 	if err != nil {

@@ -9,6 +9,20 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Access follows the suite's model: a role is a named list of permissions,
+  a grant is a role, a scope (the whole installation or one project) and a
+  subject (a person or a group), and what somebody may do in a project is
+  the union of the grants that reach them. The built-in roles are the
+  administrator of the installation and, in a project, viewer, reviewer,
+  editor and project administrator; administrators add, rename and delete
+  their own, and tick on the Matrix what each holds. A built-in group,
+  Everyone, holds every member. The upgrade moves every project grant,
+  owner, administrator and provider group role to the grant of the built-in
+  role it amounts to, so nobody's access changes. The API answers
+  `/roles`, `/permissions`, `/groups` and `/role-assignments` as Armature
+  and Stator do, `/auth/me` says whether the caller administers, and
+  `/users` lists the roles each person holds across the installation (#471).
+
 - The time zone is chosen on Your profile beside the language, both kept by
   one Save, and every date and time is written in it; until somebody
   chooses, the browser's zone is used. `GET` and `PATCH /auth/me` carry
@@ -20,7 +34,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `Field` (#474).
 - "Let people in by their groups" under Settings, Single sign-on, off by
   default as in Armature and Stator: only while it is ticked does somebody
-  new in a group mapped to a role get in with that role, at sign-in or at a
+  new in a group that holds a grant get in, at sign-in or at a
   partner's token exchange, and the audit log names the group that let them
   in. `GET` and `PUT /oidc-provider` carry `admitByGroup`; a `PUT` that
   leaves it out turns it off (#469).
@@ -31,6 +45,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Owner, admin, member and guest give way to a standing, member or guest,
+  and grants: owners and admins are members who hold the administrator
+  role, and a provider group mapped to a role is a group with the
+  provider's claim that holds the role's grant. A project's grants are
+  given one at a time through `/role-assignments`, and
+  `/projects/{projectKey}/grants` and `/oidc-provider/group-roles` are
+  gone. Making projects is a permission of its own, `createProjects` (#471).
 - Mapping a group to a role no longer lets anybody new in by itself; it
   sets the roles of people already in, and lets newcomers in once "Let
   people in by their groups" is ticked. An installation that already maps a

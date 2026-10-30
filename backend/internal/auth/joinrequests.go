@@ -68,9 +68,13 @@ func (s *Service) AdmitJoinRequest(ctx context.Context, userID uuid.UUID, role O
 		if tag.RowsAffected() == 0 {
 			return ErrNoSuchRequest
 		}
-		if _, err := tx.Exec(ctx, `UPDATE app_user SET role = $2, role_source = 'manual' WHERE id = $1`,
-			userID, string(role)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE app_user SET role = 'member' WHERE id = $1`, userID); err != nil {
 			return fmt.Errorf("create membership: %w", err)
+		}
+		if role == RoleAdmin {
+			if err := GrantAdministrator(ctx, tx, userID, &actor); err != nil {
+				return err
+			}
 		}
 		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberAdmitted, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,
 			Data: map[string]any{"role": role}})
@@ -103,7 +107,9 @@ func (s *Service) EnsureMember(ctx context.Context, email string, role OrgRole) 
 	if !strings.Contains(email, "@") {
 		return false, fmt.Errorf("%q is not an email address", email)
 	}
-	if role != RoleOwner && role != RoleAdmin && role != RoleMember {
+	// An owner of before administers the installation like an admin.
+	admin := role == "owner" || role == RoleAdmin
+	if !admin && role != RoleMember {
 		return false, fmt.Errorf("%q is not a role; use owner, admin or member", role)
 	}
 	name, _, _ := strings.Cut(email, "@")
@@ -116,9 +122,15 @@ func (s *Service) EnsureMember(ctx context.Context, email string, role OrgRole) 
 			RETURNING id`, email, name).Scan(&userID); err != nil {
 			return fmt.Errorf("find or create %s: %w", email, err)
 		}
-		tag, err := tx.Exec(ctx, `UPDATE app_user SET role = $2 WHERE id = $1 AND role IS NULL`, userID, string(role))
+		tag, err := tx.Exec(ctx, `UPDATE app_user SET role = 'member' WHERE id = $1 AND role IS NULL`, userID)
+		if err != nil {
+			return err
+		}
 		added = tag.RowsAffected() == 1
-		return err
+		if added && admin {
+			return GrantAdministrator(ctx, tx, userID, nil)
+		}
+		return nil
 	})
 	return added, err
 }

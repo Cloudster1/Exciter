@@ -13,6 +13,9 @@
   ],
   "tags": [
     {
+      "name": "access"
+    },
+    {
       "name": "armature"
     },
     {
@@ -1552,7 +1555,17 @@
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
                 "oauth_app.deleted",
-                "installation.suite_demo_added"
+                "installation.suite_demo_added",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "group.created",
+                "group.updated",
+                "group.deleted",
+                "group.member_added",
+                "group.member_removed",
+                "grant.added",
+                "grant.removed"
               ]
             }
           },
@@ -1759,7 +1772,17 @@
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
                 "oauth_app.deleted",
-                "installation.suite_demo_added"
+                "installation.suite_demo_added",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "group.created",
+                "group.updated",
+                "group.deleted",
+                "group.member_added",
+                "group.member_removed",
+                "grant.added",
+                "grant.removed"
               ]
             }
           },
@@ -4603,9 +4626,9 @@
     "/groups": {
       "get": {
         "operationId": "listGroups",
-        "summary": "Groups, to pick whom to grant something.",
+        "summary": "The installation's groups, Everyone first, with how many people and grants each has; to pick whom to grant something.",
         "tags": [
-          "permissions"
+          "access"
         ],
         "parameters": [
           {
@@ -4643,6 +4666,393 @@
                   "required": [
                     "groups"
                   ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGroup",
+        "summary": "Make a group, kept by hand or, with a provider claim, filled by the identity provider at every sign-in. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupID}": {
+      "delete": {
+        "operationId": "deleteGroup",
+        "summary": "Delete a group and every grant to it; Everyone stays. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "groupID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getGroup",
+        "summary": "One group with its members. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "groupID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateGroup",
+        "summary": "Rename a group, describe it, or change the provider claim that fills it; Everyone is not changed. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "groupID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupID}/members": {
+      "post": {
+        "operationId": "addGroupMember",
+        "summary": "Put a member in a group kept by hand. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "groupID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddGroupMemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupID}/members/{userID}": {
+      "delete": {
+        "operationId": "removeGroupMember",
+        "summary": "Take somebody out of a group kept by hand. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "groupID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "group": {
+                      "$ref": "#/components/schemas/Group"
+                    }
+                  },
+                  "required": [
+                    "group"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -7015,130 +7425,6 @@
         }
       }
     },
-    "/oidc-provider/group-roles": {
-      "get": {
-        "operationId": "listGroupRoles",
-        "summary": "Which provider groups grant which role. For administrators.",
-        "tags": [
-          "sso"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "groupRoles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/GroupRole"
-                      }
-                    }
-                  },
-                  "required": [
-                    "groupRoles"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "setGroupRole",
-        "summary": "Map a provider group to a role, or change the role it maps to; members follow at their next sign-in. For administrators.",
-        "tags": [
-          "sso"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetGroupRoleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "groupRole": {
-                      "$ref": "#/components/schemas/GroupRole"
-                    }
-                  },
-                  "required": [
-                    "groupRole"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/oidc-provider/group-roles/{groupRoleID}": {
-      "delete": {
-        "operationId": "removeGroupRole",
-        "summary": "Unmap a provider group; the roles it granted go at each person's next sign-in. For administrators.",
-        "tags": [
-          "sso"
-        ],
-        "parameters": [
-          {
-            "name": "groupRoleID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/openapi.json": {
       "get": {
         "operationId": "openAPI",
@@ -7212,6 +7498,48 @@
                   },
                   "required": [
                     "people"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/permissions": {
+      "get": {
+        "operationId": "listPermissions",
+        "summary": "Every permission a role may hold, in words, and whether it counts in a project or across the installation only.",
+        "tags": [
+          "access"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionView"
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
                   ]
                 }
               }
@@ -11388,138 +11716,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/projects/{projectKey}/grants": {
-      "get": {
-        "operationId": "listProjectGrants",
-        "summary": "Who holds which role in a project. For the project's administrators.",
-        "tags": [
-          "permissions"
-        ],
-        "parameters": [
-          {
-            "name": "projectKey",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "grants": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ProjectGrant"
-                      }
-                    }
-                  },
-                  "required": [
-                    "grants"
-                  ]
-                }
-              }
-            }
-          },
-          "default": {
-            "description": "An error, in the one shape every endpoint uses.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "setProjectGrants",
-        "summary": "Replace a project's whole table of grants; refused when it would leave the project without an administrator. For the project's administrators.",
-        "tags": [
-          "permissions"
-        ],
-        "parameters": [
-          {
-            "name": "projectKey",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectGrantsInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "grants": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ProjectGrant"
-                      }
-                    }
-                  },
-                  "required": [
-                    "grants"
-                  ]
                 }
               }
             }
@@ -23907,6 +24103,411 @@
         }
       }
     },
+    "/role-assignments": {
+      "get": {
+        "operationId": "listAssignments",
+        "summary": "Who holds which role where, a page at a time, with how many there are in all. Across the installation for its administrators; in a project for the project's administrators too.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text the person, the group, the role, or the project's key or name contains.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "project",
+            "in": "query",
+            "description": "Only the grants in this project, by key.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "installation for only the grants across the whole installation.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "installation"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Only grants of this role, by its key.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 200; 50 unless said.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "grantRole",
+        "summary": "Grant a role to a person or a group, in a project by its key or, with none, across the installation. In a project for its administrators; across the installation for the installation's.",
+        "tags": [
+          "access"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assignment": {
+                      "$ref": "#/components/schemas/Assignment"
+                    }
+                  },
+                  "required": [
+                    "assignment"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role-assignments/{assignmentID}": {
+      "delete": {
+        "operationId": "revokeRole",
+        "summary": "Take a grant away. The last grant that lets somebody run a project, and the last that leaves the installation an active administrator, stay.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "assignmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles": {
+      "get": {
+        "operationId": "listRoles",
+        "summary": "The roles and the permissions each holds outright, the built-in ones first.",
+        "tags": [
+          "access"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Role"
+                      }
+                    }
+                  },
+                  "required": [
+                    "roles"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createRole",
+        "summary": "Add a role beside the built-in ones; its key is made from its name unless given. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "$ref": "#/components/schemas/Role"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/{roleKey}": {
+      "delete": {
+        "operationId": "deleteRole",
+        "summary": "Remove a role that is not built in, and every grant of it. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "roleKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateRole",
+        "summary": "Rename a role, describe it or change what it holds; every grant of it follows. The administrator keeps administering Exciter, and the installation an active administrator. For administrators.",
+        "tags": [
+          "access"
+        ],
+        "parameters": [
+          {
+            "name": "roleKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "$ref": "#/components/schemas/Role"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "An error, in the one shape every endpoint uses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/search": {
       "get": {
         "operationId": "search",
@@ -27378,7 +27979,7 @@
     "/users": {
       "get": {
         "operationId": "listMembers",
-        "summary": "The installation's people, those switched on first, then owners first, with whether the identity provider's groups decide their roles. For administrators.",
+        "summary": "The installation's members and guests, those switched on first, with their standing and the roles they hold across the installation, by name or through a group. For administrators.",
         "tags": [
           "members"
         ],
@@ -27418,7 +28019,7 @@
       },
       "post": {
         "operationId": "createMember",
-        "summary": "Add a person with a password, made for them when none is given and shown once in the answer. For administrators.",
+        "summary": "Add a person with a password, made for them when none is given and shown once in the answer; admin makes them a member who holds the administrator role. For administrators.",
         "tags": [
           "members"
         ],
@@ -27544,7 +28145,7 @@
     "/users/requests/{userID}/admit": {
       "post": {
         "operationId": "admitJoinRequest",
-        "summary": "Let a waiting person in with the standing given. For administrators.",
+        "summary": "Let a waiting person in as a member; admin grants them the administrator role besides. For administrators.",
         "tags": [
           "members"
         ],
@@ -27637,7 +28238,7 @@
       },
       "patch": {
         "operationId": "updateMember",
-        "summary": "Give a member another role, or switch their account off or on; an owner's role and the caller's own stay. For administrators.",
+        "summary": "Make a member a guest or a guest a member, or switch their account off or on; the caller's own standing and the last active administrator stay. For administrators.",
         "tags": [
           "members"
         ],
@@ -28651,6 +29252,9 @@
       "AccessReport": {
         "type": "object",
         "properties": {
+          "administers": {
+            "type": "boolean"
+          },
           "person": {
             "$ref": "#/components/schemas/Person"
           },
@@ -28663,24 +29267,15 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
-              "admin",
               "member",
               "guest"
-            ]
-          },
-          "roleSource": {
-            "type": "string",
-            "enum": [
-              "manual",
-              "oidc"
             ]
           }
         },
         "required": [
           "person",
           "role",
-          "roleSource",
+          "administers",
           "rights"
         ]
       },
@@ -28719,7 +29314,7 @@
           "grants": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ProjectGrant"
+              "$ref": "#/components/schemas/Assignment"
             }
           },
           "kind": {
@@ -28801,6 +29396,18 @@
           "via",
           "revision",
           "change"
+        ]
+      },
+      "AddGroupMemberRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
         ]
       },
       "AdmitRequest": {
@@ -29557,6 +30164,93 @@
           "createdAt"
         ]
       },
+      "Assignment": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "groupBuiltin": {
+            "type": "string",
+            "enum": [
+              "everyone"
+            ]
+          },
+          "groupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "guest": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "userEmail": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "roleName",
+          "createdAt"
+        ]
+      },
+      "AssignmentPage": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Assignment"
+            }
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assignments",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
       "Attachment": {
         "type": "object",
         "properties": {
@@ -30096,7 +30790,17 @@
               "oauth_app.updated",
               "oauth_app.secret_rotated",
               "oauth_app.deleted",
-              "installation.suite_demo_added"
+              "installation.suite_demo_added",
+              "role.created",
+              "role.updated",
+              "role.deleted",
+              "group.created",
+              "group.updated",
+              "group.deleted",
+              "group.member_added",
+              "group.member_removed",
+              "grant.added",
+              "grant.removed"
             ]
           },
           "actorId": {
@@ -30252,7 +30956,17 @@
                 "oauth_app.updated",
                 "oauth_app.secret_rotated",
                 "oauth_app.deleted",
-                "installation.suite_demo_added"
+                "installation.suite_demo_added",
+                "role.created",
+                "role.updated",
+                "role.deleted",
+                "group.created",
+                "group.updated",
+                "group.deleted",
+                "group.member_added",
+                "group.member_removed",
+                "grant.added",
+                "grant.removed"
               ]
             }
           },
@@ -32217,7 +32931,6 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
               "admin",
               "member",
               "guest"
@@ -32249,7 +32962,6 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
               "admin",
               "member",
               "guest"
@@ -33527,6 +34239,37 @@
           "terms"
         ]
       },
+      "GrantRoleRequest": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "projectKey": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "role",
+          "projectKey",
+          "userId",
+          "groupId"
+        ]
+      },
       "GridRow": {
         "type": "object",
         "properties": {
@@ -33658,6 +34401,18 @@
       "Group": {
         "type": "object",
         "properties": {
+          "builtin": {
+            "type": "string",
+            "enum": [
+              "everyone"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "externalRef": {
+            "type": "string"
+          },
           "fromProvider": {
             "type": "boolean"
           },
@@ -33668,45 +34423,50 @@
           "memberCount": {
             "type": "integer"
           },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            }
+          },
           "name": {
             "type": "string"
+          },
+          "roleCount": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "local",
+              "oidc"
+            ]
           }
         },
         "required": [
           "id",
           "name",
+          "description",
+          "source",
+          "externalRef",
           "memberCount",
+          "roleCount",
           "fromProvider"
         ]
       },
-      "GroupRole": {
+      "GroupInput": {
         "type": "object",
         "properties": {
-          "group": {
+          "description": {
             "type": "string"
           },
-          "id": {
-            "type": "string",
-            "format": "uuid"
+          "externalRef": {
+            "type": "string"
           },
-          "role": {
-            "type": "string",
-            "enum": [
-              "member",
-              "admin"
-            ]
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
+          "name": {
+            "type": "string"
           }
-        },
-        "required": [
-          "id",
-          "group",
-          "role",
-          "updatedAt"
-        ]
+        }
       },
       "Icon": {
         "type": "object",
@@ -34672,14 +35432,15 @@
       "MeResponse": {
         "type": "object",
         "properties": {
+          "administers": {
+            "type": "boolean"
+          },
           "installation": {
             "$ref": "#/components/schemas/Installation"
           },
           "role": {
             "type": "string",
             "enum": [
-              "owner",
-              "admin",
               "member",
               "guest"
             ]
@@ -34705,6 +35466,7 @@
           "user",
           "installation",
           "role",
+          "administers",
           "token",
           "signsWith"
         ]
@@ -34723,6 +35485,9 @@
           "active": {
             "type": "boolean"
           },
+          "administers": {
+            "type": "boolean"
+          },
           "email": {
             "type": "string"
           },
@@ -34736,18 +35501,15 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
-              "admin",
               "member",
               "guest"
             ]
           },
-          "roleSource": {
-            "type": "string",
-            "enum": [
-              "manual",
-              "oidc"
-            ]
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberRole"
+            }
           },
           "userId": {
             "type": "string",
@@ -34759,9 +35521,54 @@
           "email",
           "name",
           "role",
-          "roleSource",
           "joinedAt",
-          "active"
+          "active",
+          "administers",
+          "roles"
+        ]
+      },
+      "MemberRole": {
+        "type": "object",
+        "properties": {
+          "groupBuiltin": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "everyone"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "groupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "groupName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "groupId",
+          "groupName",
+          "groupBuiltin"
         ]
       },
       "Membership": {
@@ -34770,10 +35577,8 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
-              "admin",
               "member",
-              "guest"
+              "admin"
             ]
           },
           "userId": {
@@ -36041,6 +36846,38 @@
           "at"
         ]
       },
+      "PermissionView": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "type": "string",
+            "enum": [
+              "view",
+              "comment",
+              "edit",
+              "approve",
+              "administer",
+              "createProjects",
+              "administerInstallation"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "project",
+              "installation"
+            ]
+          },
+          "words": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "permission",
+          "words",
+          "scope"
+        ]
+      },
       "Person": {
         "type": "object",
         "properties": {
@@ -36220,62 +37057,6 @@
           "approve",
           "administer",
           "purge"
-        ]
-      },
-      "ProjectGrant": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "viewer",
-              "reviewer",
-              "editor",
-              "admin"
-            ]
-          },
-          "subject": {
-            "$ref": "#/components/schemas/Subject"
-          }
-        },
-        "required": [
-          "subject",
-          "role"
-        ]
-      },
-      "ProjectGrantInput": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "viewer",
-              "reviewer",
-              "editor",
-              "admin"
-            ]
-          },
-          "subject": {
-            "$ref": "#/components/schemas/SubjectRef"
-          }
-        },
-        "required": [
-          "subject",
-          "role"
-        ]
-      },
-      "ProjectGrantsInput": {
-        "type": "object",
-        "properties": {
-          "grants": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ProjectGrantInput"
-            }
-          }
-        },
-        "required": [
-          "grants"
         ]
       },
       "ProjectKeyCheck": {
@@ -40137,6 +40918,85 @@
           "matrix"
         ]
       },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inUse": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgWideOnly": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "view",
+                "comment",
+                "edit",
+                "approve",
+                "administer",
+                "createProjects",
+                "administerInstallation"
+              ]
+            }
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "description",
+          "orgWideOnly",
+          "builtin",
+          "permissions",
+          "inUse"
+        ]
+      },
+      "RoleInput": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orgWideOnly": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "view",
+                "comment",
+                "edit",
+                "approve",
+                "administer",
+                "createProjects",
+                "administerInstallation"
+              ]
+            }
+          }
+        }
+      },
       "RuleOption": {
         "type": "object",
         "properties": {
@@ -40457,25 +41317,6 @@
           "id",
           "title",
           "projectKey"
-        ]
-      },
-      "SetGroupRoleRequest": {
-        "type": "object",
-        "properties": {
-          "group": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "member",
-              "admin"
-            ]
-          }
-        },
-        "required": [
-          "group",
-          "role"
         ]
       },
       "Shape": {
@@ -41618,54 +42459,6 @@
         },
         "required": [
           "status"
-        ]
-      },
-      "Subject": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "user",
-              "group",
-              "everyone"
-            ]
-          }
-        },
-        "required": [
-          "type",
-          "id",
-          "name"
-        ]
-      },
-      "SubjectRef": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "user",
-              "group",
-              "everyone"
-            ]
-          }
-        },
-        "required": [
-          "type"
         ]
       },
       "Suggestions": {
@@ -44663,8 +45456,6 @@
           "role": {
             "type": "string",
             "enum": [
-              "owner",
-              "admin",
               "member",
               "guest"
             ]

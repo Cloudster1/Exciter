@@ -17,19 +17,37 @@ import (
 // workerIdle is how long a worker the suite runs waits when nothing is due, short so a test does not wait it out.
 const workerIdle = 50 * time.Millisecond
 
-// addPerson makes somebody a member of the installation with role, behind the policies' back.
+// addPerson makes somebody a member of the installation with role, behind the policies' back: member or guest is
+// their standing, and admin or owner a member who holds the administrator role across the installation.
 func (h *harness) addPerson(t *testing.T, role string) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
+	standing := role
+	if role == "admin" || role == "owner" {
+		standing = "member"
+	}
 	var id uuid.UUID
 	email := fmt.Sprintf("%s-%s@example.test", role, h.suffix())
 	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, $2, $3) RETURNING id`,
-		email, "A "+role, role).Scan(&id); err != nil {
+		email, "A "+role, standing).Scan(&id); err != nil {
 		t.Fatalf("create a %s: %v", role, err)
 	}
 	h.later(t, id)
+	if standing != role {
+		h.administers(t, id)
+	}
 	h.settle(t)
 	return id
+}
+
+// administers grants somebody the built-in administrator role across the installation, behind the policies' back;
+// the grant goes with them.
+func (h *harness) administers(t *testing.T, id uuid.UUID) {
+	t.Helper()
+	if _, err := h.super.Exec(context.Background(), `
+		INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1) ON CONFLICT DO NOTHING`, id); err != nil {
+		t.Fatalf("make %s an administrator: %v", id, err)
+	}
 }
 
 // namedPerson is addPerson for a member who goes by name.

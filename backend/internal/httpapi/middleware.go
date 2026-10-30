@@ -197,11 +197,22 @@ func requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// requireAdmin lets through only an owner or administrator of the installation.
+// requireAdmin lets through only somebody a grant lets administer the installation.
 func requireAdmin(next http.Handler) http.Handler {
 	return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !PrincipalFrom(r.Context()).CanAdminister() {
 			respondError(w, r, ErrForbidden("Only an administrator can do that. Ask one."))
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
+}
+
+// requireCreateProjects refuses anybody whose grants do not let them make projects.
+func requireCreateProjects(next http.Handler) http.Handler {
+	return requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !PrincipalFrom(r.Context()).CanCreateProjects() {
+			respondError(w, r, ErrForbidden("Only somebody granted creating projects can make one. Ask an administrator for the role."))
 			return
 		}
 		next.ServeHTTP(w, r)

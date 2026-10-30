@@ -200,7 +200,7 @@ func TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent(t *testing.T) {
 	h := w.h
 	annID := h.addPerson(t, "admin")
 	ann := newAPIServer(t, h).as(t, annID)
-	if _, err := h.super.Exec(context.Background(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, w.projectID); err != nil {
+	if _, err := h.super.Exec(context.Background(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, w.projectID); err != nil {
 		t.Fatal(err)
 	}
 	bin, address := hookBin(t)

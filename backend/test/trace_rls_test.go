@@ -136,7 +136,7 @@ func TestRawSQLGuardsTraceLinks(t *testing.T) {
 		owner := h.appConn(t, a.user)
 		mustLink(owner, derives, r3, secret)
 		mustLink(owner, derives, secret, r4)
-		if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, hidden); err != nil {
+		if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, hidden); err != nil {
 			t.Fatal(err)
 		}
 		h.settle(t)

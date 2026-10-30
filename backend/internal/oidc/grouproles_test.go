@@ -7,85 +7,61 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/auth"
 )
 
-func TestTheHighestMappedRoleWins(t *testing.T) {
-	mapping := map[string]auth.OrgRole{
-		"engineering":            auth.RoleMember,
-		"marketing":              auth.RoleMember,
-		"exciter-administrators": auth.RoleAdmin,
-		"ops":                    auth.RoleAdmin,
-		// The database refuses to store it; the resolver does not lean on that.
-		"founders": auth.RoleOwner,
-	}
+func TestTheGroupsThatHoldAGrantAreTheOnesThatAdmit(t *testing.T) {
+	granted := map[string]bool{"engineering": true, "marketing": true, "exciter-administrators": true}
 	for _, tc := range []struct {
 		name    string
 		claimed []string
-		role    auth.OrgRole
 		from    []string
 	}{
-		{"no groups", nil, "", nil},
-		{"only unmapped groups", []string{"sales", "Engineering"}, "", nil},
-		{"one member group", []string{"engineering"}, auth.RoleMember, []string{"engineering"}},
-		{"two groups granting the same role", []string{"marketing", "engineering"}, auth.RoleMember, []string{"engineering", "marketing"}},
-		{"admin beats member whatever the order", []string{"engineering", "exciter-administrators"}, auth.RoleAdmin, []string{"exciter-administrators"}},
-		{"admin first", []string{"exciter-administrators", "engineering"}, auth.RoleAdmin, []string{"exciter-administrators"}},
-		{"two admin groups", []string{"ops", "engineering", "exciter-administrators"}, auth.RoleAdmin, []string{"exciter-administrators", "ops"}},
-		{"owner is never granted", []string{"founders"}, "", nil},
-		{"owner is ignored beside a real grant", []string{"founders", "engineering"}, auth.RoleMember, []string{"engineering"}},
+		{"no groups", nil, []string{}},
+		{"only groups without a grant", []string{"sales", "Engineering"}, []string{}},
+		{"one group with a grant", []string{"engineering"}, []string{"engineering"}},
+		{"two groups, in order", []string{"marketing", "engineering"}, []string{"engineering", "marketing"}},
+		{"a group claimed twice counts once", []string{"engineering", "engineering"}, []string{"engineering"}},
+		{"beside others", []string{"sales", "exciter-administrators"}, []string{"exciter-administrators"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			role, from := grantedRole(mapping, tc.claimed)
-			if role != tc.role || !slices.Equal(from, tc.from) {
-				t.Fatalf("grantedRole(%q) = %q from %q, want %q from %q", tc.claimed, role, from, tc.role, tc.from)
+			if got := admittingGroups(granted, tc.claimed); !slices.Equal(got, tc.from) {
+				t.Fatalf("admittingGroups(%q) = %q, want %q", tc.claimed, got, tc.from)
 			}
 		})
 	}
 }
 
-func TestAnEmptyMappingGrantsNothing(t *testing.T) {
-	if role, from := grantedRole(nil, []string{"engineering"}); role != "" || len(from) != 0 {
-		t.Fatalf("an empty mapping granted %q from %q", role, from)
+func TestNoGrantAdmitsNobody(t *testing.T) {
+	if from := admittingGroups(nil, []string{"engineering"}); len(from) != 0 {
+		t.Fatalf("no group with a grant admitted through %q", from)
 	}
 }
 
-func TestASignInFollowsTheMapping(t *testing.T) {
-	manual := func(r auth.OrgRole) *standing { return &standing{Role: r, Source: auth.RoleSourceManual} }
-	provider := func(r auth.OrgRole) *standing { return &standing{Role: r, Source: auth.RoleSourceProvider} }
+func TestASignInLetsInByAGroupWithAGrant(t *testing.T) {
+	role := func(r auth.OrgRole) *auth.OrgRole { return &r }
 	for _, tc := range []struct {
-		name    string
-		current *standing
-		granted auth.OrgRole
-		want    *standing
+		name      string
+		current   *auth.OrgRole
+		admitting []string
+		want      *auth.OrgRole
 	}{
-		{"a stranger in no mapped group waits", nil, "", nil},
-		{"a stranger in a mapped group joins with its role", nil, auth.RoleMember, provider(auth.RoleMember)},
-		{"a stranger in an admin group joins as admin", nil, auth.RoleAdmin, provider(auth.RoleAdmin)},
-		{"a hand-made member in an admin group is promoted", manual(auth.RoleMember), auth.RoleAdmin, provider(auth.RoleAdmin)},
-		{"a hand-made admin in a member group follows the group", manual(auth.RoleAdmin), auth.RoleMember, provider(auth.RoleMember)},
-		{"a hand-made admin in no mapped group is left alone", manual(auth.RoleAdmin), "", manual(auth.RoleAdmin)},
-		{"a hand-made member in no mapped group is left alone", manual(auth.RoleMember), "", manual(auth.RoleMember)},
-		{"a mapped admin whose group went is a member again", provider(auth.RoleAdmin), "", manual(auth.RoleMember)},
-		{"a mapped member whose group went stays a member", provider(auth.RoleMember), "", manual(auth.RoleMember)},
-		{"a mapped admin still in the group stays", provider(auth.RoleAdmin), auth.RoleAdmin, provider(auth.RoleAdmin)},
-		{"the owner in a member group stays owner", manual(auth.RoleOwner), auth.RoleMember, manual(auth.RoleOwner)},
-		{"the owner in an admin group stays owner", manual(auth.RoleOwner), auth.RoleAdmin, manual(auth.RoleOwner)},
-		{"the owner in no group stays owner", manual(auth.RoleOwner), "", manual(auth.RoleOwner)},
-		{"a guest in an admin group stays a guest", manual(auth.RoleGuest), auth.RoleAdmin, manual(auth.RoleGuest)},
-		{"a guest in a member group stays a guest", manual(auth.RoleGuest), auth.RoleMember, manual(auth.RoleGuest)},
-		{"a guest in no group stays a guest", manual(auth.RoleGuest), "", manual(auth.RoleGuest)},
+		{"a stranger in no group with a grant waits", nil, nil, nil},
+		{"a stranger in a group with a grant joins as a member", nil, []string{"engineering"}, role(auth.RoleMember)},
+		{"a member stays a member, whatever the groups", role(auth.RoleMember), []string{"engineering"}, role(auth.RoleMember)},
+		{"a member in no group with a grant stays a member", role(auth.RoleMember), nil, role(auth.RoleMember)},
+		{"a guest in a group with a grant stays a guest", role(auth.RoleGuest), []string{"engineering"}, role(auth.RoleGuest)},
+		{"a guest in no group stays a guest", role(auth.RoleGuest), nil, role(auth.RoleGuest)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, admit := range []bool{true, false} {
 				want := tc.want
-				// Off, a mapped group still sets the roles of people already
-				// in, but lets nobody new in.
+				// Off, a group with a grant lets nobody new in.
 				if !admit && tc.current == nil {
 					want = nil
 				}
-				got := nextStanding(tc.current, tc.granted, admit)
+				got := nextStanding(tc.current, tc.admitting, admit)
 				switch {
 				case got == nil && want == nil:
 				case got == nil || want == nil || *got != *want:
-					t.Fatalf("nextStanding(%v, %q, admit %v) = %v, want %v", tc.current, tc.granted, admit, got, want)
+					t.Fatalf("nextStanding(%v, %q, admit %v) = %v, want %v", tc.current, tc.admitting, admit, got, want)
 				}
 			}
 		})

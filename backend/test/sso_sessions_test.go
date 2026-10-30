@@ -77,12 +77,13 @@ func TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups(t *testing.T) {
 	var gotEmail, gotName string
 	var memberships int
 	if err := h.super.QueryRow(ctx, `
-		SELECT u.email, u.name, (SELECT count(*) FROM group_member m WHERE m.user_id = u.id)
+		SELECT u.email, u.name, (SELECT count(*) FROM group_member m JOIN groups g ON g.id = m.group_id
+		                         WHERE m.user_id = u.id AND g.builtin IS NULL)
 		FROM app_user u WHERE u.id = $1`, first.UserID).Scan(&gotEmail, &gotName, &memberships); err != nil {
 		t.Fatal(err)
 	}
 	if gotEmail != renamed || gotName != "Carol Renamed" || memberships != 3 {
-		t.Errorf("account = %s %q in %d groups, want the new address and name in b, c and the local group", gotEmail, gotName, memberships)
+		t.Errorf("account = %s %q in %d groups, want the new address and name in b, c and the local group besides Everyone", gotEmail, gotName, memberships)
 	}
 
 	t.Run("a first sign-in finds the member account using the address", func(t *testing.T) {

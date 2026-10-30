@@ -27,7 +27,7 @@ type createMemberRequest struct {
 	Email string `json:"email"`
 	// Name is what the person is called; blank takes the part of the address before the at sign.
 	Name string `json:"name"`
-	// Role is the standing the person gets: admin, member or guest.
+	// Role is what the person is added as: member, guest, or admin, a member who holds the administrator role.
 	Role auth.OrgRole `json:"role"`
 	// Password is the person's first password, at least 12 characters. Blank has one made, which the answer shows once.
 	Password string `json:"password"`
@@ -53,7 +53,7 @@ func (s *Server) handleCreateMember(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateMemberRequest struct {
-	// Role is the member's new standing: admin, member or guest. Absent leaves it.
+	// Role is the member's new standing: member or guest. Absent leaves it.
 	Role *auth.OrgRole `json:"role,omitempty"`
 	// Active switches the member's account on or off. Absent leaves it.
 	Active *bool `json:"active,omitempty"`
@@ -75,7 +75,7 @@ func (s *Server) handleUpdateMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Role == nil && req.Active == nil {
-		respondError(w, r, ErrValidation(map[string]string{"role": "Give the member a role, or switch their account off or on."}))
+		respondError(w, r, ErrValidation(map[string]string{"role": "Make the person a member or a guest, or switch their account off or on."}))
 		return
 	}
 	var member *auth.Member

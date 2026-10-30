@@ -51,7 +51,8 @@ type CreatedMember struct {
 	UserID uuid.UUID `json:"userId"`
 	Email  string    `json:"email"`
 	Name   string    `json:"name"`
-	Role   OrgRole   `json:"role"`
+	// Role is what the person was added as: admin, member or guest.
+	Role OrgRole `json:"role"`
 	// NewAccount is false when the address already had an account elsewhere,
 	// which keeps its own password: the person signs in as they always did.
 	NewAccount bool   `json:"newAccount"`
@@ -68,7 +69,7 @@ func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUI
 		return nil, 0, ErrBadMemberEmail
 	}
 	if !slices.Contains(AssignableRoles, in.Role) {
-		return nil, 0, ErrBadRole
+		return nil, 0, ErrBadNewRole
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
@@ -108,12 +109,21 @@ func (s *Service) CreateMember(ctx context.Context, in NewMember, actor uuid.UUI
 		default:
 			name = existingName
 		}
-		tag, err := tx.Exec(ctx, `UPDATE app_user SET role = $2 WHERE id = $1 AND role IS NULL`, userID, string(in.Role))
+		standing := in.Role
+		if standing == RoleAdmin {
+			standing = RoleMember
+		}
+		tag, err := tx.Exec(ctx, `UPDATE app_user SET role = $2 WHERE id = $1 AND role IS NULL`, userID, string(standing))
 		if err != nil {
 			return fmt.Errorf("create the membership: %w", err)
 		}
 		if tag.RowsAffected() == 0 {
 			return ErrAlreadyMember
+		}
+		if in.Role == RoleAdmin {
+			if err := GrantAdministrator(ctx, tx, userID, &actor); err != nil {
+				return err
+			}
 		}
 		out.UserID, out.Email, out.Name, out.Role = userID, email, name, in.Role
 		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionMemberCreated, TargetType: "user", TargetID: &userID, Actor: actor, IP: ip,

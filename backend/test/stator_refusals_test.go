@@ -94,7 +94,7 @@ func TestStatorLinksAreRefusedToReadersTheTrashAndArchivedProjects(t *testing.T)
 	project := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Refused pages"}), http.StatusCreated, "make a project"), "project")
 	projectID := uuid.MustParse(project["id"].(string))
 	// Only those granted the project reach it: bob edits it, and vera only reads it.
-	h.cleanupExec(t, h.super, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, projectID)
+	h.cleanupExec(t, h.super, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, projectID)
 	h.grantAs(t, projectID, bobID, "editor")
 	h.grantAs(t, projectID, veraID, "viewer")
 	for _, title := range []string{"Brakes engage within 100 ms", "Log every login"} {

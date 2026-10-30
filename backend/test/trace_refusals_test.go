@@ -15,7 +15,7 @@ import (
 func hiddenProject(t *testing.T, h *harness, owner *client, key string) string {
 	t.Helper()
 	p := obj(t, want(t, owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Hidden"}), http.StatusCreated, "make "+key), "project")
-	if _, err := h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, p["id"]); err != nil {
+	if _, err := h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, p["id"]); err != nil {
 		t.Fatal(err)
 	}
 	want(t, owner.post(t, "/api/v1/projects/"+key+"/requirements", map[string]any{"title": "Brake fluid boils above 230 C"}), http.StatusCreated, "write in "+key)

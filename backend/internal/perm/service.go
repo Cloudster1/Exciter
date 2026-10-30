@@ -1,7 +1,6 @@
 package perm
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
@@ -19,9 +19,13 @@ import (
 var (
 	// ErrForbidden is somebody who may view a project asking for what only its administrators see or change.
 	ErrForbidden = errors.New("only the project's administrators manage its grants")
-	ErrArchived  = errors.New("the project is archived")
-	// ErrNoAdministrator is a table of grants that leaves nobody but the installation's administrators to run the project.
+	// ErrNotAdministrator is somebody asking for what only the installation's administrators see or change.
+	ErrNotAdministrator = errors.New("only an administrator manages the installation's access")
+	ErrArchived         = errors.New("the project is archived")
+	// ErrNoAdministrator is taking away the last grant that lets somebody run a project.
 	ErrNoAdministrator = errors.New("no person or group would administer the project")
+	// ErrLastAdministrator is a change that would leave the installation without an active administrator.
+	ErrLastAdministrator = errors.New("the installation keeps at least one active administrator")
 )
 
 // FieldError is input refused on one field, with the sentence to show beside it.
@@ -31,69 +35,28 @@ type FieldError struct {
 
 func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
 
-// Service answers who may do what in a project, and the pickers that name people and groups.
+// Service answers who may do what, and keeps the roles, groups and grants that decide it.
 type Service struct {
 	db *db.Cluster
 }
 
 func NewService(cluster *db.Cluster) *Service { return &Service{db: cluster} }
 
-// Mine is what a person with role may do across the installation.
-func Mine(role auth.OrgRole) OrgCan {
-	return OrgCan{CreateProject: role.CanAdminister(), Administer: role.CanAdminister()}
+// Mine is what the caller may do across the installation, as their grants across it say.
+func Mine(p *auth.Principal) OrgCan {
+	return OrgCan{CreateProject: p.CanCreateProjects(), Administer: p.CanAdminister()}
 }
 
-// rightsOf are the rights a role gives, as perm_role_rights answers them.
-func rightsOf(role Role) []Right {
-	switch role {
-	case RoleViewer:
-		return []Right{RightView}
-	case RoleReviewer:
-		return []Right{RightView, RightComment, RightApprove}
-	case RoleEditor:
-		return []Right{RightView, RightComment, RightEdit}
-	case RoleAdmin:
-		return Rights
+// requireAdmin refuses, in the transaction that acts, anybody a grant does not let administer the installation.
+func requireAdmin(ctx context.Context, tx db.DBTX) error {
+	var ok bool
+	if err := tx.QueryRow(ctx, `SELECT current_actor_administers()`).Scan(&ok); err != nil {
+		return err
+	}
+	if !ok {
+		return ErrNotAdministrator
 	}
 	return nil
-}
-
-// cappedRole is the role a grant gives a person of orgRole: a guest holds at most editor, as perm_grant_role says.
-func cappedRole(orgRole auth.OrgRole, role Role) Role {
-	if orgRole == auth.RoleGuest && role == RoleAdmin {
-		return RoleEditor
-	}
-	return role
-}
-
-// subjectColumns, subjectJoins and subjectOrder read a Subject from a grant aliased g: everyone first, then
-// groups, then people, each by name.
-const (
-	subjectColumns = `g.subject_type, COALESCE(g.user_id, g.group_id), COALESCE(u.name, gr.name, '` + EveryoneName + `')`
-	subjectJoins   = `
-		LEFT JOIN app_user u ON u.id = g.user_id
-		LEFT JOIN groups gr ON gr.id = g.group_id`
-	subjectOrder = `CASE g.subject_type WHEN 'everyone' THEN 0 WHEN 'group' THEN 1 ELSE 2 END,
-		lower(COALESCE(u.name, gr.name, '')), COALESCE(g.user_id, g.group_id)`
-)
-
-// subjectRank orders subjects as subjectOrder does.
-func subjectRank(t SubjectType) int {
-	return map[SubjectType]int{SubjectEveryone: 0, SubjectGroup: 1, SubjectUser: 2}[t]
-}
-
-func compareGrants(a, b Grant) int {
-	return cmp.Or(
-		cmp.Compare(subjectRank(a.Subject.Type), subjectRank(b.Subject.Type)),
-		cmp.Compare(strings.ToLower(a.Subject.Name), strings.ToLower(b.Subject.Name)),
-		cmp.Compare(idString(a.Subject.ID), idString(b.Subject.ID)))
-}
-
-func idString(id *uuid.UUID) string {
-	if id == nil {
-		return ""
-	}
-	return id.String()
 }
 
 // administering checks, in the transaction that acts, that actor administers project, and says whether it is archived.
@@ -108,173 +71,43 @@ func administering(ctx context.Context, tx db.DBTX, actor, project uuid.UUID) (b
 	return archived, err
 }
 
-// grantsOf reads a project's grants as stored.
-func grantsOf(ctx context.Context, tx db.DBTX, project uuid.UUID) ([]Grant, error) {
-	rows, err := tx.Query(ctx, `SELECT `+subjectColumns+`, g.role FROM project_grant g`+subjectJoins+`
-		WHERE g.project_id = $1 ORDER BY `+subjectOrder, project)
-	if err != nil {
-		return nil, fmt.Errorf("read the grants: %w", err)
-	}
-	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Grant, error) {
-		var g Grant
-		err := row.Scan(&g.Subject.Type, &g.Subject.ID, &g.Subject.Name, &g.Role)
-		return g, err
-	})
+// Record writes an access change to the audit log in the caller's transaction.
+func Record(ctx context.Context, tx db.DBTX, actor uuid.UUID, action, targetType string, target *uuid.UUID, data map[string]any) error {
+	return audit.Write(ctx, tx, audit.Entry{Action: action, TargetType: targetType, TargetID: target, Actor: actor, Data: data})
 }
 
-// Grants answers who holds which role in a project, for its administrators.
-func (s *Service) Grants(ctx context.Context, actor, project uuid.UUID) ([]Grant, error) {
-	out := []Grant{}
-	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		if _, err := administering(ctx, tx, actor, project); err != nil {
-			return err
-		}
-		grants, err := grantsOf(ctx, tx, project)
-		if grants != nil {
-			out = grants
-		}
+// grantConstraints are the database's refusals of a grant, whose messages are sentences for whoever grants it.
+var grantConstraints = []string{
+	"role_assignment_installation_wide", "role_assignment_guest_in_a_project", "role_assignment_guest_not_administrator",
+	"role_assignment_everyone_administers",
+}
+
+// refusal reads the database's refusal of an access change: a grant it will not hold as a field error on field,
+// and a change that leaves nobody to administer the installation as ErrLastAdministrator.
+func refusal(err error, field string) error {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
 		return err
-	})
-	return out, err
+	}
+	switch {
+	case pgErr.ConstraintName == "installation_keeps_administrator":
+		return ErrLastAdministrator
+	case slices.Contains(grantConstraints, pgErr.ConstraintName):
+		return &FieldError{Field: field, Message: pgErr.Message}
+	case pgErr.ConstraintName == "role_administrator_administers":
+		return &FieldError{Field: "permissions", Message: pgErr.Message}
+	}
+	return err
 }
 
-// ReplaceGrants puts a whole new table of grants on a project, which keeps at least one person or group as
-// its administrator.
-func (s *Service) ReplaceGrants(ctx context.Context, actor, project uuid.UUID, in GrantsInput) ([]Grant, db.LSN, error) {
-	var out []Grant
-	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		archived, err := administering(ctx, tx, actor, project)
-		if err != nil {
-			return err
-		}
-		if archived {
-			return ErrArchived
-		}
-		if out, err = resolveGrants(ctx, tx, in.Grants); err != nil {
-			return err
-		}
-		if !slices.ContainsFunc(out, func(g Grant) bool { return g.Role == RoleAdmin }) {
-			return ErrNoAdministrator
-		}
-		before, err := grantsOf(ctx, tx, project)
-		if err != nil {
-			return err
-		}
-		if err := putGrants(ctx, tx, project, out); err != nil {
-			return err
-		}
-		slices.SortFunc(out, compareGrants)
-		return audit.Write(ctx, tx, audit.Entry{Action: audit.ActionProjectGrantsChanged, TargetType: "project",
-			TargetID: &project, Actor: actor, Data: map[string]any{"before": grantLog(before), "after": grantLog(out)}})
-	})
-	if err != nil {
-		return nil, 0, err
-	}
-	return out, lsn, nil
-}
+// Refusal reads a write's refusal at commit, when the installation would be left without an active administrator.
+func Refusal(err error) error { return refusal(err, "") }
 
-// putGrants makes the project's grants the table given in one statement, so the policies judge each row by the
-// grants it started from: an administrator only by grant would otherwise lose the right part way through.
-func putGrants(ctx context.Context, tx db.DBTX, project uuid.UUID, grants []Grant) error {
-	types, roles := make([]string, len(grants)), make([]string, len(grants))
-	users, groups := make([]*uuid.UUID, len(grants)), make([]*uuid.UUID, len(grants))
-	for i, g := range grants {
-		types[i], roles[i] = string(g.Subject.Type), string(g.Role)
-		switch g.Subject.Type {
-		case SubjectUser:
-			users[i] = g.Subject.ID
-		case SubjectGroup:
-			groups[i] = g.Subject.ID
-		}
+func nonNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
 	}
-	if _, err := tx.Exec(ctx, `
-		WITH wanted AS (
-			SELECT * FROM unnest($2::text[], $3::uuid[], $4::uuid[], $5::text[]) AS w (subject_type, user_id, group_id, role)
-		), dropped AS (
-			DELETE FROM project_grant g WHERE g.project_id = $1 AND NOT EXISTS (
-				SELECT 1 FROM wanted w WHERE w.subject_type = g.subject_type
-				   AND w.user_id IS NOT DISTINCT FROM g.user_id AND w.group_id IS NOT DISTINCT FROM g.group_id)
-		)
-		INSERT INTO project_grant (project_id, subject_type, user_id, group_id, role)
-		SELECT $1, subject_type, user_id, group_id, role FROM wanted
-		ON CONFLICT ON CONSTRAINT project_grant_one_per_subject DO UPDATE SET role = EXCLUDED.role`,
-		project, types, users, groups, roles); err != nil {
-		return fmt.Errorf("replace the grants: %w", err)
-	}
-	return nil
-}
-
-// grantLog is how the audit log keeps grants: ids and names as they were, since either may change later.
-func grantLog(grants []Grant) []map[string]any {
-	out := make([]map[string]any, 0, len(grants))
-	for _, g := range grants {
-		out = append(out, map[string]any{"type": g.Subject.Type, "id": g.Subject.ID, "name": g.Subject.Name, "role": g.Role})
-	}
-	return out
-}
-
-// resolveGrants checks every row of a new table and names its subject; a refusal names the row's field.
-func resolveGrants(ctx context.Context, tx db.DBTX, rows []GrantInput) ([]Grant, error) {
-	out := make([]Grant, 0, len(rows))
-	seen := map[string]bool{}
-	for i, row := range rows {
-		field := fmt.Sprintf("grants.%d.", i)
-		if !slices.Contains(Roles, row.Role) {
-			return nil, &FieldError{field + "role", "Choose viewer, reviewer, editor or admin."}
-		}
-		sub, orgRole, err := resolveSubject(ctx, tx, field+"subject", row.Subject)
-		if err != nil {
-			return nil, err
-		}
-		key := string(sub.Type) + ":" + idString(sub.ID)
-		if seen[key] {
-			return nil, &FieldError{field + "subject", fmt.Sprintf(
-				"%s is named twice. Give each person or group one role; the roles of their groups add up on their own.", sub.Name)}
-		}
-		seen[key] = true
-		if row.Role == RoleAdmin && sub.Type == SubjectEveryone {
-			return nil, &FieldError{field + "role", "Everyone can be given at most editor. Give admin to people or groups."}
-		}
-		if row.Role == RoleAdmin && orgRole == auth.RoleGuest {
-			return nil, &FieldError{field + "role", fmt.Sprintf(
-				"%s is a guest, who can be given at most editor. Make them a member first to give them admin.", sub.Name)}
-		}
-		out = append(out, Grant{Subject: sub, Role: row.Role})
-	}
-	return out, nil
-}
-
-// resolveSubject checks a subject exists in the installation and names it, with a person's role in the installation.
-func resolveSubject(ctx context.Context, tx db.DBTX, field string, ref SubjectRef) (Subject, auth.OrgRole, error) {
-	switch ref.Type {
-	case SubjectEveryone:
-		return Subject{Type: SubjectEveryone, Name: EveryoneName}, "", nil
-	case SubjectUser, SubjectGroup:
-	default:
-		return Subject{}, "", &FieldError{field, "Name each subject as a user, a group or everyone."}
-	}
-	if ref.ID == nil {
-		return Subject{}, "", &FieldError{field, "Give the id of each person or group you name."}
-	}
-	var (
-		name    string
-		orgRole auth.OrgRole
-		err     error
-	)
-	if ref.Type == SubjectUser {
-		err = tx.QueryRow(ctx, `
-			SELECT name, role FROM app_user WHERE id = $1 AND role IS NOT NULL`, *ref.ID).Scan(&name, &orgRole)
-	} else {
-		err = tx.QueryRow(ctx, `SELECT name FROM groups WHERE id = $1`, *ref.ID).Scan(&name)
-	}
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Subject{}, "", &FieldError{field, fmt.Sprintf("There is no %s with the id %s here. Pick one from the list.", ref.Type, *ref.ID)}
-	}
-	if err != nil {
-		return Subject{}, "", err
-	}
-	id := *ref.ID
-	return Subject{Type: ref.Type, ID: &id, Name: name}, orgRole, nil
+	return s
 }
 
 // likePrefix is a LIKE pattern matching what starts with the text typed.
@@ -295,33 +128,50 @@ func (s *Service) People(ctx context.Context, q string, limit int) ([]Person, er
 			return err
 		}
 		people, err := pgx.CollectRows(rows, pgx.RowToStructByPos[Person])
-		if people != nil {
-			out = people
-		}
+		out = nonNil(people)
 		return err
 	})
 	return out, err
 }
 
-// Groups are the installation's groups whose name, or a word of it, starts with q.
+const selectGroup = `
+SELECT g.id, g.name, g.description, g.source, COALESCE(g.external_ref, ''), COALESCE(g.builtin, ''),
+       (SELECT count(*)::int FROM group_member gm WHERE gm.group_id = g.id),
+       (SELECT count(*)::int FROM role_assignment a WHERE a.group_id = g.id)
+FROM groups g`
+
+func scanGroupRow(row pgx.CollectableRow) (Group, error) {
+	var g Group
+	err := row.Scan(&g.ID, &g.Name, &g.Description, &g.Source, &g.ExternalRef, &g.Builtin, &g.MemberCount, &g.RoleCount)
+	g.FromProvider = g.Source == "oidc"
+	return g, err
+}
+
+// Groups are the installation's groups whose name, or a word of it, starts with q, Everyone first.
 func (s *Service) Groups(ctx context.Context, q string, limit int) ([]Group, error) {
 	out := []Group{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, `
-			SELECT g.id, g.name, (SELECT count(*)::int FROM group_member gm WHERE gm.group_id = g.id), g.source = 'oidc'
-			FROM groups g
+		rows, err := tx.Query(ctx, selectGroup+`
 			WHERE (g.name ILIKE $1 OR g.name ILIKE '% ' || $1)
-			ORDER BY lower(g.name), g.id LIMIT $2`, likePrefix(q), limit)
+			ORDER BY g.builtin IS NULL, lower(g.name), g.id LIMIT $2`, likePrefix(q), limit)
 		if err != nil {
 			return err
 		}
-		groups, err := pgx.CollectRows(rows, pgx.RowToStructByPos[Group])
-		if groups != nil {
-			out = groups
-		}
+		groups, err := pgx.CollectRows(rows, scanGroupRow)
+		out = nonNil(groups)
 		return err
 	})
 	return out, err
+}
+
+// EveryoneID is the id of the built-in group that holds every member.
+func EveryoneID(ctx context.Context, tx db.DBTX) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := tx.QueryRow(ctx, `SELECT id FROM groups WHERE builtin = $1`, EveryoneGroup).Scan(&id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("find Everyone: %w", err)
+	}
+	return id, nil
 }
 
 // ViewableRequirement is the SQL condition every query that lists requirements narrows itself with, so a count

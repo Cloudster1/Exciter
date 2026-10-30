@@ -28,7 +28,7 @@ func newGraphScene(t *testing.T, prefix string) *graphScene {
 	t.Helper()
 	s := &graphScene{traceScene: newTraceScene(t, prefix), otherKey: projectKey(t, prefix+"X")}
 	other := obj(t, want(t, s.owner.post(t, "/api/v1/projects", map[string]any{"key": s.otherKey, "name": "Hidden"}), http.StatusCreated, "make a second project"), "project")
-	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, other["id"]); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, other["id"]); err != nil {
 		t.Fatal(err)
 	}
 	x := obj(t, want(t, s.owner.post(t, "/api/v1/projects/"+s.otherKey+"/requirements", map[string]any{"title": "Secret derived brake"}),

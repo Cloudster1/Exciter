@@ -261,7 +261,7 @@ func TestChangingATermIsRefusedWithTheTermAsItWas(t *testing.T) {
 	lib := projectKey(t, "GTL")
 	made := obj(t, want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": lib, "name": "Parts"}), http.StatusCreated, "make a library"), "project")
 	libID := uuid.MustParse(made["id"].(string))
-	if _, err := w.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, libID); err != nil {
+	if _, err := w.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, libID); err != nil {
 		t.Fatal(err)
 	}
 	w.h.grantAs(t, libID, w.bobID, "viewer")

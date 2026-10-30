@@ -30,7 +30,7 @@ type Provider struct {
 	Scopes      string `json:"scopes"`
 	// CreateGroups makes a group the provider names appear on first sight.
 	CreateGroups bool `json:"createGroups"`
-	// AdmitByGroup lets somebody new in whose group is mapped to a role,
+	// AdmitByGroup lets somebody new in whose provider group holds a grant,
 	// instead of leaving a request to join. Off by default.
 	AdmitByGroup bool      `json:"admitByGroup"`
 	Enabled      bool      `json:"enabled"`

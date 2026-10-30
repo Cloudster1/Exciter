@@ -141,7 +141,7 @@ func TestWatchingFollowsWhatOneMayView(t *testing.T) {
 
 	t.Run("without her grant carol hears of nothing in the project, and with it again of everything", func(t *testing.T) {
 		before := sees(t, w.carol)
-		if _, err := h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND user_id = $2`, w.projectID, w.carolID); err != nil {
+		if _, err := h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND user_id = $2`, w.projectID, w.carolID); err != nil {
 			t.Fatal(err)
 		}
 		h.settle(t)

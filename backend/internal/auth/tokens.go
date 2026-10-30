@@ -274,7 +274,7 @@ SELECT t.id, t.name, t.scopes, t.last_used_at, t.expires_at, t.projects_only,
        ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.id = tp.project_id
              WHERE tp.token_id = t.id ORDER BY p.key),
        u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
-       (SELECT name FROM installation), u.role
+       (SELECT name FROM installation), u.role, perm_installation_grants(u.id)
 FROM api_token t
 JOIN app_user u ON u.id = t.user_id AND u.role IS NOT NULL
 WHERE t.token_hash = $1 AND (t.expires_at IS NULL OR t.expires_at > now())`
@@ -294,7 +294,7 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 		return tx.QueryRow(ctx, apiTokenPrincipalSQL, HashToken(secret)).Scan(
 			&tok.ID, &tok.Name, &tok.Scopes, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
 			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active,
-			&p.InstallationName, &p.Role,
+			&p.InstallationName, &p.Role, &p.Granted,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {

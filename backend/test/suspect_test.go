@@ -239,7 +239,7 @@ func TestRawSQLKeepsSuspectLinksHonest(t *testing.T) {
 	h.settle(t)
 	bob, carol, stranger := h.appConn(t, s.bobID), h.appConn(t, s.carolID), h.appConn(t, h.addPerson(t, "member"))
 	// Every member views the project through its grant to everyone, which would let the stranger in.
-	if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+	if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 		t.Fatal(err)
 	}
 	h.grantAs(t, s.projectID, s.carolID, "viewer")

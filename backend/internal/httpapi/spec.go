@@ -55,12 +55,25 @@ func specBuilder() *openapi.Builder {
 	b.Enums[reflect.TypeOf(auth.Proof(""))] = []string{string(auth.ProofPassword), string(auth.ProofOIDC)}
 	b.Enums[reflect.TypeOf(auth.TokenKind(""))] = enumStrings(auth.TokenKinds)
 	b.Enums[reflect.TypeOf(via.Kind(""))] = enumStrings(via.Kinds)
-	b.Enums[reflect.TypeOf(auth.RoleSource(""))] = enumStrings(auth.RoleSources)
-	// A mapped group and an answered request make a member or an admin; ownership is the bootstrap's alone.
-	granted := &openapi.Schema{Type: "string", Enum: []string{string(auth.RoleMember), string(auth.RoleAdmin)}}
-	b.FieldOverrides["GroupRole.role"] = granted
-	b.FieldOverrides["SetGroupRoleRequest.role"] = granted
-	b.FieldOverrides["AdmitRequest.role"] = granted
+	// Letting somebody in makes a member, and admin grants the administrator role besides; adding somebody may make
+	// a guest too.
+	admitted := &openapi.Schema{Type: "string", Enum: enumStrings(auth.JoinRoles)}
+	added := &openapi.Schema{Type: "string", Enum: enumStrings(auth.AssignableRoles)}
+	b.FieldOverrides["AdmitRequest.role"] = admitted
+	b.FieldOverrides["Membership.role"] = admitted
+	b.FieldOverrides["CreateMemberRequest.role"] = added
+	b.FieldOverrides["CreatedMember.role"] = added
+	b.Enums[reflect.TypeOf(perm.Permission(""))] = enumStrings(perm.AllPermissions)
+	b.Enums[reflect.TypeOf(perm.PermissionScope(""))] = enumStrings(perm.PermissionScopes)
+	b.Names[reflect.TypeOf(perm.Definition{})] = "Role"
+	b.Names[reflect.TypeOf(perm.RoleInput{})] = "RoleInput"
+	b.Names[reflect.TypeOf(perm.GrantInput{})] = "GrantRoleRequest"
+	b.Names[reflect.TypeOf(perm.GroupInput{})] = "GroupInput"
+	b.Names[reflect.TypeOf(perm.GroupMemberInput{})] = "AddGroupMemberRequest"
+	b.FieldOverrides["Group.source"] = &openapi.Schema{Type: "string", Enum: []string{"local", "oidc"}}
+	b.FieldOverrides["Group.builtin"] = &openapi.Schema{Type: "string", Enum: []string{perm.EveryoneGroup}}
+	b.FieldOverrides["Assignment.groupBuiltin"] = &openapi.Schema{Type: "string", Enum: []string{perm.EveryoneGroup}}
+	b.FieldOverrides["MemberRole.groupBuiltin"] = &openapi.Schema{OneOf: []*openapi.Schema{{Type: "string", Enum: []string{perm.EveryoneGroup}}, {Type: "null"}}}
 	b.FieldOverrides["AuditEntry.action"] = &openapi.Schema{Type: "string", Enum: audit.Actions}
 	b.Enums[reflect.TypeOf(webhook.DeliveryState(""))] = enumStrings(webhook.States)
 	webhookTopics := &openapi.Schema{Type: "array", Items: &openapi.Schema{Type: "string", Enum: webhook.Subscribable}}
@@ -105,9 +118,6 @@ func coreSchemas(b *openapi.Builder) {
 		reflect.TypeFor[project.KeyInput]():         "ProjectKeyInput",
 		reflect.TypeFor[project.KeyCheck]():         "ProjectKeyCheck",
 		reflect.TypeFor[project.Template]():         "ProjectTemplate",
-		reflect.TypeFor[perm.Grant]():               "ProjectGrant",
-		reflect.TypeFor[perm.GrantInput]():          "ProjectGrantInput",
-		reflect.TypeFor[perm.GrantsInput]():         "ProjectGrantsInput",
 		reflect.TypeFor[requirement.CreateInput]():  "NewRequirement",
 		reflect.TypeFor[requirement.UpdateInput]():  "RequirementUpdate",
 		reflect.TypeFor[requirement.Can]():          "RequirementCan",
@@ -201,8 +211,6 @@ func coreSchemas(b *openapi.Builder) {
 	for t, name := range names {
 		b.Names[t] = name
 	}
-	b.Enums[reflect.TypeOf(perm.SubjectType(""))] = enumStrings(perm.SubjectTypes)
-	b.Enums[reflect.TypeOf(perm.Role(""))] = enumStrings(perm.Roles)
 	b.Enums[reflect.TypeOf(perm.Right(""))] = enumStrings(perm.Rights)
 	b.Enums[reflect.TypeOf(perm.StepKind(""))] = enumStrings(perm.StepKinds)
 	b.Enums[reflect.TypeOf(requirement.Kind(""))] = enumStrings(requirement.Kinds)

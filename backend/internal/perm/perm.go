@@ -1,5 +1,5 @@
-// Package perm decides who may read, change and approve what in a project
-// (#12); docs/api-contract-m1.md says how.
+// Package perm decides who may do what: roles and the permissions each holds, groups, and the grants of a role to
+// a person or a group across the installation or in one project (#12, #471).
 package perm
 
 import (
@@ -14,53 +14,8 @@ const (
 	MaxPickerLimit     = 50
 )
 
-// EveryoneName is how an answer names the everyone subject.
-const EveryoneName = "Everyone"
-
-// SubjectType says whom a grant names.
-type SubjectType string
-
-const (
-	SubjectUser  SubjectType = "user"
-	SubjectGroup SubjectType = "group"
-	// SubjectEveryone is every member of the installation, guests left out.
-	SubjectEveryone SubjectType = "everyone"
-)
-
-// SubjectTypes lists every SubjectType, for the API document.
-var SubjectTypes = []SubjectType{SubjectUser, SubjectGroup, SubjectEveryone}
-
-// Subject is somebody a grant names, as a list shows them.
-type Subject struct {
-	Type SubjectType `json:"type"`
-	// ID is the person's or the group's, null for everyone.
-	ID   *uuid.UUID `json:"id"`
-	Name string     `json:"name"`
-}
-
-// SubjectRef names a subject in a request.
-type SubjectRef struct {
-	Type SubjectType `json:"type"`
-	// ID is the person's or the group's, left out for everyone.
-	ID *uuid.UUID `json:"id,omitempty"`
-}
-
-// Role is what a grant gives in a project.
-type Role string
-
-const (
-	// RoleViewer reads the project's requirements, their history and links.
-	RoleViewer Role = "viewer"
-	// RoleReviewer reads, comments and approves revisions (#35).
-	RoleReviewer Role = "reviewer"
-	// RoleEditor reads, comments and changes requirements.
-	RoleEditor Role = "editor"
-	// RoleAdmin holds every right, settings and grants included; never everyone's or a guest's.
-	RoleAdmin Role = "admin"
-)
-
-// Roles lists every Role, the narrowest first.
-var Roles = []Role{RoleViewer, RoleReviewer, RoleEditor, RoleAdmin}
+// EveryoneGroup is the mark of the built-in group that holds every member.
+const EveryoneGroup = "everyone"
 
 // Right is something a person may do in a project.
 type Right string
@@ -76,28 +31,11 @@ const (
 // Rights lists every Right, in the order the inspector explains them.
 var Rights = []Right{RightView, RightComment, RightEdit, RightApprove, RightAdminister}
 
-// Grant is the role one subject holds in a project.
-type Grant struct {
-	Subject Subject `json:"subject"`
-	Role    Role    `json:"role"`
-}
-
-// GrantInput is one row of a project's grants.
-type GrantInput struct {
-	Subject SubjectRef `json:"subject"`
-	Role    Role       `json:"role"`
-}
-
-// GrantsInput replaces a project's whole table of grants.
-type GrantsInput struct {
-	Grants []GrantInput `json:"grants"`
-}
-
 // OrgCan is what the caller may do across the installation.
 type OrgCan struct {
-	// CreateProject is making projects: owners and administrators.
+	// CreateProject is making projects, which a grant of createProjects gives.
 	CreateProject bool `json:"createProject"`
-	// Administer is the installation's settings, people and link types.
+	// Administer is the installation's settings, people, access and link types.
 	Administer bool `json:"administer"`
 }
 
@@ -120,26 +58,38 @@ type Person struct {
 	Email string    `json:"email"`
 }
 
-// Group is a group of the installation, as a picker offers it.
+// Group is a group of the installation.
 type Group struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
-	MemberCount int       `json:"memberCount"`
+	Description string    `json:"description"`
+	// Source says who keeps the members: "local" by hand, "oidc" the identity provider, whose memberships every
+	// sign-in replaces.
+	Source string `json:"source"`
+	// ExternalRef is the name in the provider's groups claim that fills the group; empty for one kept by hand.
+	ExternalRef string `json:"externalRef"`
+	// Builtin marks a group the installation keeps itself: "everyone" holds every member.
+	Builtin     string `json:"builtin,omitempty"`
+	MemberCount int    `json:"memberCount"`
+	// RoleCount is how many grants name the group.
+	RoleCount int `json:"roleCount"`
 	// FromProvider groups mirror the identity provider's.
 	FromProvider bool `json:"fromProvider"`
+	// Members are the people in it, when one group is read.
+	Members []Person `json:"members,omitempty"`
 }
 
 // StepKind is one condition a right depends on.
 type StepKind string
 
 const (
-	// StepOrgAdmin is administering the installation, which holds every
-	// right in every project.
+	// StepOrgAdmin is administering the installation, which a grant across it gives and which holds every right in
+	// every project.
 	StepOrgAdmin StepKind = "orgAdmin"
-	// StepGuest is being a guest, whom only grants naming them or their
-	// groups reach, never everyone's.
+	// StepGuest is being a guest, whom only grants in the project reach, never those across the installation, and
+	// whom no grant lets run the project.
 	StepGuest StepKind = "guest"
-	// StepGrant is holding a role in the project that gives the right.
+	// StepGrant is holding a role, in the project or across the installation, that gives the right.
 	StepGrant StepKind = "grant"
 	// StepArchived is the project being archived, which allows only view.
 	StepArchived StepKind = "archived"
@@ -152,8 +102,8 @@ var StepKinds = []StepKind{StepOrgAdmin, StepGuest, StepGrant, StepArchived}
 type AccessStep struct {
 	Kind   StepKind `json:"kind"`
 	Passed bool     `json:"passed"`
-	// Grants are the project's grants that reach the person and give the right.
-	Grants []Grant `json:"grants"`
+	// Grants are those that reach the person and give the right.
+	Grants []Assignment `json:"grants"`
 }
 
 // AccessRight is one right, the database's verdict and the steps behind it;
@@ -166,8 +116,9 @@ type AccessRight struct {
 
 // AccessReport is what one person may do in one project, and why.
 type AccessReport struct {
-	Person     Person          `json:"person"`
-	Role       auth.OrgRole    `json:"role"`
-	RoleSource auth.RoleSource `json:"roleSource"`
-	Rights     []AccessRight   `json:"rights"`
+	Person Person       `json:"person"`
+	Role   auth.OrgRole `json:"role"`
+	// Administers says a grant lets the person administer the installation.
+	Administers bool          `json:"administers"`
+	Rights      []AccessRight `json:"rights"`
 }

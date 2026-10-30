@@ -27,6 +27,8 @@ type Principal struct {
 	InstallationName string
 	// Role is the caller's standing in the installation; empty for somebody who no longer belongs to it.
 	Role OrgRole
+	// Granted are the permissions the caller's grants across the installation give them.
+	Granted []string
 	// SessionID names the sign-in this request rides on, and keys its
 	// read-your-writes position; nil for a caller without a session.
 	SessionID *uuid.UUID
@@ -57,5 +59,18 @@ func (p *Principal) InProjectsOnly() bool { return p != nil && p.Token != nil &&
 // Guest reports whether the caller is a guest of the installation.
 func (p *Principal) Guest() bool { return p != nil && p.Role == RoleGuest }
 
-// CanAdminister reports whether the caller may change the installation's settings.
-func (p *Principal) CanAdminister() bool { return p != nil && p.Role.CanAdminister() }
+// CanAdminister reports whether a grant lets the caller change the installation's settings.
+func (p *Principal) CanAdminister() bool {
+	return p != nil && p.Role == RoleMember && slices.Contains(p.Granted, PermissionAdministerInstallation)
+}
+
+// CanCreateProjects reports whether a grant lets the caller make projects.
+func (p *Principal) CanCreateProjects() bool {
+	return p != nil && p.Role == RoleMember && slices.Contains(p.Granted, PermissionCreateProjects)
+}
+
+// The permissions across the installation a principal's grants are read for.
+const (
+	PermissionCreateProjects         = "createProjects"
+	PermissionAdministerInstallation = "administerInstallation"
+)

@@ -134,7 +134,7 @@ func TestAnOwnerWhoNoLongerEditsIsToldWhyTheirSharedViewStays(t *testing.T) {
 	view := obj(t, want(t, w.bob.post(t, "/api/v1/projects/"+w.key+"/views", map[string]any{"name": "Team", "shared": true}),
 		http.StatusCreated, "bob shares a view"), "view")
 	path := "/api/v1/views/" + view["id"].(string)
-	if _, err := w.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND user_id = $2`, w.projectID, w.bobID); err != nil {
+	if _, err := w.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND user_id = $2`, w.projectID, w.bobID); err != nil {
 		t.Fatal(err)
 	}
 	w.h.settle(t)

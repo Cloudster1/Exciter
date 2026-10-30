@@ -50,7 +50,7 @@ func TestThemeRoutesWithoutTheServiceAndTheDefaultForMembers(t *testing.T) {
 	s := newServer(t)
 	s.Auth = fakeAuth{
 		"member": {UserID: uuid.New(), Role: auth.RoleMember},
-		"admin":  {UserID: uuid.New(), Role: auth.RoleAdmin},
+		"admin":  {UserID: uuid.New(), Role: auth.RoleMember, Granted: []string{auth.PermissionCreateProjects, auth.PermissionAdministerInstallation}},
 	}
 	h := s.Routes(nil)
 	asked := func(credential, method, path string) (*http.Response, map[string]any) {

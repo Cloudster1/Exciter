@@ -25,7 +25,7 @@ func newSearchFixture(t *testing.T, key string) *searchFixture {
 	f := &searchFixture{projectFixture: newProjectFixture(t)}
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Searched"}), http.StatusCreated, "make a project")
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": hidKey, "name": "Hidden"}), http.StatusCreated, "make a hidden project")
-	want(t, f.owner.put(t, "/api/v1/projects/"+hidKey+"/grants", map[string]any{"grants": []any{grantRow(subjectOf("user", f.home.user), "admin")}}),
+	want(t, f.owner.setGrants(t, hidKey, []any{grantRow(subjectOf("user", f.home.user), "admin")}),
 		http.StatusOK, "keep the hidden project to its maker")
 	attr := func(body map[string]any) map[string]any {
 		return obj(t, want(t, f.owner.post(t, "/api/v1/projects/"+key+"/attributes", body), http.StatusCreated, "define "+body["name"].(string)), "attribute")

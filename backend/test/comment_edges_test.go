@@ -43,7 +43,7 @@ func (h *harness) rename(t *testing.T, id uuid.UUID, name string) {
 // closeToEveryone takes away the grant that lets every member read the world's project, leaving carol a viewer.
 func (w *commentWorld) closeToEveryone(t *testing.T) {
 	t.Helper()
-	if _, err := w.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, w.projectID); err != nil {
+	if _, err := w.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, w.projectID); err != nil {
 		t.Fatal(err)
 	}
 	w.h.grantAs(t, w.projectID, w.carolID, "viewer")
