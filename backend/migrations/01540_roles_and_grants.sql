@@ -386,12 +386,17 @@ AS $$
 $$;
 -- +goose StatementEnd
 
--- Whether a grant lets somebody administer the installation.
+-- Whether a grant lets somebody administer the installation. It asks for the one permission rather than gathering
+-- them all, as the policies call it for every row they weigh.
 -- +goose StatementBegin
 CREATE FUNCTION perm_is_administrator(actor uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
-    SELECT 'administerInstallation' = ANY (perm_installation_grants(actor))
+    SELECT EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member') AND EXISTS (
+        SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
+        WHERE a.project_id IS NULL AND 'administerInstallation' = ANY (r.permissions)
+          AND (a.user_id = actor OR (a.group_id IS NOT NULL AND EXISTS (
+              SELECT 1 FROM group_member gm WHERE gm.group_id = a.group_id AND gm.user_id = actor))))
 $$;
 -- +goose StatementEnd
 
@@ -605,7 +610,8 @@ CREATE TRIGGER app_user_keeps_an_administrator BEFORE DELETE OR UPDATE OF is_act
     FOR EACH ROW EXECUTE FUNCTION app_user_keeps_an_administrator();
 
 -- The audit log is the installation's administrators' to read, as it was.
-ALTER POLICY audit_log_admins_read ON audit_log USING (perm_is_administrator(current_actor_id()));
+-- In a subquery the check runs once per statement rather than once per row.
+ALTER POLICY audit_log_admins_read ON audit_log USING ((SELECT perm_is_administrator(current_actor_id())));
 
 -- Every member reads the roles; the installation's administrators change them.
 ALTER TABLE role ENABLE ROW LEVEL SECURITY;
@@ -625,10 +631,12 @@ ALTER TABLE role_assignment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE role_assignment FORCE ROW LEVEL SECURITY;
 CREATE POLICY role_assignment_installation ON role_assignment USING (true) WITH CHECK (true);
 CREATE POLICY role_assignment_admin_bypass ON role_assignment TO exciter_admin USING (true) WITH CHECK (true);
+-- The installation's administrators are asked in a subquery, once per statement: every listing of members, groups
+-- and grants reads this table, and asked for each row it took seconds.
 CREATE POLICY role_assignment_administrators ON role_assignment AS RESTRICTIVE TO exciter_app
-    USING (current_actor_administers()
+    USING ((SELECT current_actor_administers())
            OR (project_id IS NOT NULL AND perm_project_holds(project_id, current_actor_id(), 'administer')))
-    WITH CHECK (current_actor_administers()
+    WITH CHECK ((SELECT current_actor_administers())
            OR (project_id IS NOT NULL AND perm_project_holds(project_id, current_actor_id(), 'administer')));
 CREATE POLICY role_assignment_added_while_open ON role_assignment AS RESTRICTIVE FOR INSERT TO exciter_app
     WITH CHECK (project_id IS NULL OR project_open(project_id));
