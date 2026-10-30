@@ -52,7 +52,7 @@ test.describe("the suite demo", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await card.getByRole("link", { name: "EXC", exact: true }).click();
-    await expect(page).toHaveURL(/\/p\/EXC$/);
+    await expect(page).toHaveURL(/\/projects\/EXC$/);
     for (const section of ["Introduction", "Functional requirements"]) {
       await expect(page.getByRole("link", { name: section, exact: true })).toBeVisible();
     }
