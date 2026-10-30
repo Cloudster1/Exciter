@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import { useMe } from "@/api/auth";
 import { IconButton, ShellHeaderContext } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { APP_NAME } from "@/config";
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { BackdropEffect } from "@/features/themes/BackdropEffect";
 import { ThemeLoader } from "@/features/themes/ThemeLoader";
 import { t } from "@/i18n";
@@ -45,6 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const stripRef = useRef<HTMLDivElement>(null);
   useShellSpace(mainRef, stripRef);
 
+  const { data: me } = useMe();
   const narrow = useNarrow();
   const [drawer, setDrawer] = useState(false);
   const closeDrawer = useCallback(() => setDrawer(false), []);
@@ -75,7 +79,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar narrow={narrow} drawerOpen={drawerOpen} onCloseDrawer={closeDrawer} />
       <div className="flex min-w-0 flex-1 flex-col">
         {narrow && (
-          <div className="flex h-10 shrink-0 items-center border-b border-border bg-surface px-2" data-narrow-strip data-print-hide>
+          // All that is left above the page on a narrow screen: the way into the drawer, the installation, and the bell.
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-surface px-2" data-narrow-strip data-print-hide>
             <IconButton
               icon={<Icon.Menu />}
               label={t.nav.openDrawer}
@@ -86,7 +91,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-controls={drawerOpen ? DRAWER_ID : undefined}
               data-action="drawer"
             />
-          </div>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink" data-installation-name>
+              {me?.installation.name ?? APP_NAME}
+            </span>
+            <NotificationBell />
+          </header>
         )}
         {/* Focusable only from the skip link, and not ringed then: it is where reading starts, not a control. */}
         <ThemeLoader />

@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { StatorAccount, StatorConnection } from "@/api/stator";
 import { STATOR_ACCOUNT_PATH, STATOR_SETTINGS_PATH } from "@/config";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 // The Armature pages' tests again, for Stator's connection and account (#40).
@@ -118,11 +118,10 @@ describe("connecting Stator as an administrator", () => {
       },
       "GET /stator/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } },
     });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(STATOR_SETTINGS_PATH);
     await user.click(await screen.findByRole("button", { name: "Disconnect Stator" }));
-    expect(confirm).toHaveBeenCalled();
+    expect(await answerConfirm(true)).toHaveTextContent("Disconnect Stator?");
     expect(await screen.findByText("Stator is disconnected.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Connect Stator" })).toBeInTheDocument();
   });
@@ -195,7 +194,6 @@ describe("connecting one's own Stator account", () => {
         return { status: 204 };
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(STATOR_ACCOUNT_PATH);
     await user.click(await screen.findByRole("button", { name: "Check again" }));
@@ -203,6 +201,7 @@ describe("connecting one's own Stator account", () => {
     expect(screen.getByLabelText("Paste a new token")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Disconnect your Stator account?");
     expect(await screen.findByText("Your Stator account is disconnected.")).toBeInTheDocument();
     expect(await screen.findByLabelText("Stator token")).toBeInTheDocument();
     expect(sent.some((r) => r.method === "DELETE" && r.path === "/stator/account/token")).toBe(true);

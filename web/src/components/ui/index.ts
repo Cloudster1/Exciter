@@ -28,7 +28,7 @@ export { Tooltip } from "./Tooltip";
 export { Spotlight } from "./Spotlight";
 export { MentionTextarea, mentionQuery, type FindPeople, type Mentionable } from "./MentionTextarea";
 export { Menu, isMenuGroup, type MenuEntry, type MenuGroup, type MenuItem } from "./Menu";
-export { Dialog, ConfirmDialog, Drawer, DockedPanel, isInteractiveTarget, modalBackdropStyle, modalPanelStyle } from "./Dialog";
+export { Dialog, DialogFooter, ConfirmDialog, Drawer, DockedPanel, isInteractiveTarget, modalBackdropStyle, modalPanelStyle } from "./Dialog";
 export { isEditing } from "./overlay";
 export { ToastProvider, ToastShelf, useToast, type ToastKind, type ToastOptions } from "./Toast";
 export { Pager, clampOffset, countOf, isPageOffset, shownOf, type Counted } from "./Pager";

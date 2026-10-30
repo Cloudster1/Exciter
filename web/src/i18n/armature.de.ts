@@ -34,7 +34,7 @@ export const armatureDe: typeof armatureEn = {
   disconnectIntro:
     "Beim Trennen werden die Adresse, das Webhook-Geheimnis und die Tokens aller Mitglieder verworfen. Anforderungen zeigen dann nur noch Vorgangsschlüssel.",
   disconnect: "Armature trennen",
-  confirmDisconnect: "Armature trennen? Die Tokens aller Mitglieder werden verworfen, und Anforderungen zeigen nur noch Vorgangsschlüssel.",
+  confirmDisconnect: "Die Tokens aller Mitglieder werden verworfen, und Anforderungen zeigen nur noch Vorgangsschlüssel.",
   disconnected: "Armature ist getrennt.",
   signIn: {
     title: "Personen bei der Anmeldung verbinden",
@@ -65,7 +65,7 @@ export const armatureDe: typeof armatureEn = {
     check: "Erneut prüfen",
     checked: "Armature akzeptiert Ihr Token.",
     disconnect: "Trennen",
-    confirmDisconnect: "Ihr Armature-Konto trennen? Anforderungen zeigen nur noch Vorgangsschlüssel, bis Sie es wieder verbinden.",
+    confirmDisconnect: "Anforderungen zeigen nur noch Vorgangsschlüssel, bis Sie es wieder verbinden.",
     disconnected: "Ihr Armature-Konto ist getrennt.",
     rejected: "Armature akzeptiert Ihr Token nicht mehr. Erstellen Sie in Armature unter Tokens ein neues und fügen Sie es hier ein.",
     unreachable: "Armature hat auf die letzte Prüfung nicht geantwortet. Prüfen Sie gleich noch einmal.",

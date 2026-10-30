@@ -4,7 +4,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Theme } from "@/api/themes";
 import { emptySpec } from "@/lib/theme-css";
-import { renderAt, signedIn } from "@/test/app";
+import { answerConfirm, renderAt, signedIn } from "@/test/app";
 
 // The server is stood in for at the hooks: what is under test is what each row's menu offers its reader and asks
 // the server to do.
@@ -116,17 +116,14 @@ describe("a theme's row menu", () => {
 
   it("names in Delete's question how many use the theme, and a cancelled one deletes nothing", async () => {
     api.themes = [theme({ inUse: 3 }), theme({ id: "t2", name: "Lone", inUse: 1 })];
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
-    try {
-      await renderAt("/settings/themes", { me: member });
-      await userEvent.click((await menuOf("Mine"))("Delete"));
-      expect(confirm).toHaveBeenLastCalledWith("Delete Mine and its files for good? The 3 people using it go back to the built-in theme.");
-      expect(api.remove).not.toHaveBeenCalled();
-      await userEvent.click((await menuOf("Lone"))("Delete"));
-      expect(confirm).toHaveBeenLastCalledWith("Delete Lone and its files for good? The one person using it goes back to the built-in theme.");
-      expect(api.remove).toHaveBeenCalledWith("t2", expect.anything());
-    } finally {
-      confirm.mockRestore();
-    }
+    await renderAt("/settings/themes", { me: member });
+    await userEvent.click((await menuOf("Mine"))("Delete"));
+    const mine = await answerConfirm(false);
+    expect(mine).toHaveTextContent("Delete theme Mine?");
+    expect(mine).toHaveTextContent("Its files go with it for good. The 3 people using it go back to the built-in theme.");
+    expect(api.remove).not.toHaveBeenCalled();
+    await userEvent.click((await menuOf("Lone"))("Delete"));
+    expect(await answerConfirm(true)).toHaveTextContent("The one person using it goes back to the built-in theme.");
+    expect(api.remove).toHaveBeenCalledWith("t2", expect.anything());
   });
 });

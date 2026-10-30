@@ -3,7 +3,7 @@ import { ARMATURE_ACCOUNT_PATH, ARMATURE_SETTINGS_PATH } from "@/config";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { AccountSection } from "@/features/armature/AccountSection";
 import { ConnectionSettings } from "@/features/armature/ConnectionSettings";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Page } from "@/components/ui";
 import { t } from "@/i18n";
 import { appRoute } from "./app";
 
@@ -13,10 +13,10 @@ export const armatureSettingsRoute = createRoute({
   path: ARMATURE_SETTINGS_PATH,
   component: () => (
     <AdminsOnly title={t.armature.title} refusal={t.armature.notAdmin}>
-      <div className="mx-auto max-w-3xl">
+      <Page width="narrow">
         <PageHeader title={t.armature.title} />
         <ConnectionSettings />
-      </div>
+      </Page>
     </AdminsOnly>
   ),
 });

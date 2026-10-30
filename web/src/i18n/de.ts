@@ -50,6 +50,7 @@ export const de: Messages = {
   kit: kitDe,
   api: {
     unexpected: (status: number) => `Der Server hat mit Status ${status} und ohne Erklärung geantwortet. Versuchen Sie es gleich noch einmal.`,
+    unsaved: "Diese Änderung konnte nicht gespeichert werden. Prüfen Sie die Verbindung, und versuchen Sie es noch einmal.",
   },
   nav: {
     search: "Suche",
@@ -83,6 +84,10 @@ export const de: Messages = {
   },
   shell: {
     skipToContent: "Zum Inhalt springen",
+    build: {
+      commit: (commit: string) => `Commit ${commit}`,
+      built: (when: string) => `gebaut ${when}`,
+    },
   },
   theme: {
     system: "Automatisch",
@@ -96,10 +101,23 @@ export const de: Messages = {
     label: "Eine Anforderung über Schlüssel oder Titel, eine Seite über ihren Namen finden",
     placeholder: "Wechseln zu...",
     shortcut: "Strg K",
+    shortcutMac: "Cmd K",
     escape: "Esc",
     options: "Ziele",
     noMatch: "Hier beginnt nichts damit. Versuchen Sie den Anfang eines Schlüssels, eines Titels oder des Namens einer Seite.",
     optionsCount: (count: number) => (count === 1 ? "1 Ziel" : `${count} Ziele`),
+    groups: {
+      found: "Anforderungen",
+      recent: "Zuletzt geöffnet",
+      projects: "Projekte",
+      places: "Ziele",
+      actions: "Aktionen",
+      search: "Suche",
+    },
+    requirementsCount: (count: number) => (count === 1 ? "1 Anforderung" : `${count} Anforderungen`),
+    projectsCount: (count: number) => (count === 1 ? "1 Projekt" : `${count} Projekte`),
+    actionsCount: (count: number) => (count === 1 ? "1 Aktion" : `${count} Aktionen`),
+    markAllRead: "Alle Benachrichtigungen als gelesen markieren",
   },
   account: {
     menu: "Ihr Konto",

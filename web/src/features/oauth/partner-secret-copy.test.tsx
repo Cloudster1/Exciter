@@ -3,7 +3,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { INSTALLATION_PATH } from "@/config";
 import { en } from "@/i18n/en";
-import { renderAt, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, stubApi } from "@/test/app";
 
 // Copying a partner app's new secret, and the sentence that says to copy it by hand when the clipboard refuses (#329).
 
@@ -39,12 +39,12 @@ describe("a partner app's new secret", () => {
       "GET /oauth/clients": { status: 200, body: { clients: [app] } },
       [`POST /oauth/clients/${app.id}/rotate-secret`]: { status: 200, body: { client: { ...app, secret: rotated } } },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt(INSTALLATION_PATH);
     const row = within(await screen.findByRole("list", { name: "Partner apps" }))
       .getByText("Stator")
       .closest("li") as HTMLElement;
     await userEvent.click(within(row).getByRole("button", { name: "Give Stator a new secret" }));
+    await answerConfirm(true);
     expect(await screen.findByLabelText("Secret of Stator")).toHaveValue(rotated);
     const copy = screen.getByRole("button", { name: en.webhooks.copy });
 

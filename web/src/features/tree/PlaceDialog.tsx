@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useProjects } from "@/api/projects";
 import type { Requirement } from "@/api/requirements";
 import { useReuseRequirement } from "@/api/reuse";
 import { useCopyRequirement, useMoveRequirement, useTree } from "@/api/tree";
 import { useStatuses } from "@/api/workflows";
-import { Button, Checkbox, Dialog, ErrorBanner, Select } from "@/components/ui";
+import { Button, Checkbox, Dialog, ErrorBanner, Select, DialogFooter } from "@/components/ui";
 import { t } from "@/i18n";
 import { subtreeOf } from "./outline";
 
@@ -47,6 +47,7 @@ export function PlaceDialog({
   onClose: () => void;
   onDone: (r: Requirement) => void;
 }) {
+  const formId = useId();
   const moving = mode === "move";
   const reusing = mode === "reuse";
   const { data: projects } = useProjects();
@@ -95,7 +96,7 @@ export function PlaceDialog({
 
   return (
     <Dialog open title={titles[mode](placed.key)} onClose={onClose} attrs={{ "data-place-dialog": mode }}>
-      <form onSubmit={submit} className="space-y-3">
+      <form id={formId} onSubmit={submit} className="space-y-3">
         {error && <ErrorBanner>{(error instanceof ApiError && error.fields.statusMapping) || error.message}</ErrorBanner>}
         {reusing && <p className="text-sm text-ink-muted">{targets.length > 0 ? t.reuse.intro : t.reuse.noTarget}</p>}
         <Select
@@ -153,14 +154,20 @@ export function PlaceDialog({
         ) : (
           <Checkbox label={reusing ? t.reuse.children : t.tree.copyChildren} checked={children} onChange={(event) => setChildren(event.target.checked)} />
         )}
-        <div className="flex justify-end gap-2 pt-1">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={move.isPending || copy.isPending || reuse.isPending} disabled={reusing && !projectKey} data-action={`confirm-${mode}`}>
+          <Button
+            type="submit"
+            form={formId}
+            loading={move.isPending || copy.isPending || reuse.isPending}
+            disabled={reusing && !projectKey}
+            data-action={`confirm-${mode}`}
+          >
             {submits[mode]()}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

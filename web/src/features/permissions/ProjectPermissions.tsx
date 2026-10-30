@@ -3,7 +3,7 @@ import { useMe } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { ROLES, subjectKey, useProjectGrants, useSetProjectGrants, type Grant, type Role } from "@/api/permissions";
 import type { Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, IconButton, PageHeader, SelectInput, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, PageHeader, SelectInput, Skeleton, Table, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { AccessDialog } from "./AccessDialog";
@@ -19,7 +19,7 @@ export function ProjectPermissions({ project }: { project: Project }) {
   const allowed = project.can.administer;
   const { data, error, refetch } = useProjectGrants(project.key, allowed);
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-project-permissions={project.key}>
+    <Page width="narrow" className="space-y-6" data-project-permissions={project.key}>
       <PageHeader title={t.permissions.title} meta={t.projects.projectAndKey(project.name, project.key)} />
       {!allowed ? (
         <p className="text-sm text-ink-muted">{t.permissions.notProjectAdmin}</p>
@@ -30,7 +30,7 @@ export function ProjectPermissions({ project }: { project: Project }) {
       ) : (
         <Grants project={project} saved={data} />
       )}
-    </div>
+    </Page>
   );
 }
 

@@ -3,7 +3,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // Duplicates decided in the browser (#320): a pair linked and one merged with its links moved, the pairs narrowed,
 // paged and read again after a side changed elsewhere, and the threshold that decides which pairs are listed.
@@ -66,7 +66,8 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
     await expectAccessible(page);
     await linking.locator('[data-action="confirm-link-pair"]').click();
     await expect(linking).toBeHidden();
-    await expect(page.locator("[data-duplicates-notice]")).toHaveText(`${first} and ${second} are linked.`);
+    await expect(toast(page, `${first} and ${second} are linked.`)).toHaveText(`${first} and ${second} are linked.`);
+    await dismissToasts(page);
     await expect(brakes).toHaveCount(0);
 
     const headlamps = page.locator("[data-pair]", { has: page.locator(`[data-pair-side="${lamp.key}"]`) });
@@ -81,7 +82,8 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
     await expectAccessible(page);
     await result.locator('[data-action="close-merge"]').click();
     await expect(result).toBeHidden();
-    await expect(page.locator("[data-duplicates-notice]")).toHaveText(`${lamps.key} is in the trash, and ${lamp.key} is kept.`);
+    await expect(toast(page, `${lamps.key} is in the trash, and ${lamp.key} is kept.`)).toHaveText(`${lamps.key} is in the trash, and ${lamp.key} is kept.`);
+    await dismissToasts(page);
     await expect(page.locator("[data-pair]")).toHaveCount(0);
 
     const links = page.locator("[data-requirement-links]");

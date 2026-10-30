@@ -330,23 +330,29 @@ function FieldList({
 function DeleteDialog({ template: tpl, onClose }: { template: ExportTemplate; onClose: () => void }) {
   const remove = useDeleteTemplate(tpl.id);
   return (
-    <Dialog open title={t.templates.deleteTitle(tpl.name)} onClose={onClose}>
+    <Dialog
+      open
+      title={t.templates.deleteTitle(tpl.name)}
+      onClose={onClose}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t.templates.cancel}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            loading={remove.isPending}
+            onClick={() => remove.mutate(undefined, { onSuccess: onClose })}
+            data-action="confirm-delete-template"
+          >
+            {t.templates.delete}
+          </Button>
+        </>
+      }
+    >
       <p className="text-sm text-ink">{t.templates.deleteBody}</p>
       {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
-      <div className="flex justify-end gap-2 pt-3">
-        <Button type="button" variant="secondary" onClick={onClose}>
-          {t.templates.cancel}
-        </Button>
-        <Button
-          type="button"
-          variant="danger"
-          loading={remove.isPending}
-          onClick={() => remove.mutate(undefined, { onSuccess: onClose })}
-          data-action="confirm-delete-template"
-        >
-          {t.templates.delete}
-        </Button>
-      </div>
     </Dialog>
   );
 }

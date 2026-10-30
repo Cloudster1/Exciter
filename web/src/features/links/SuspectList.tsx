@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useSuspects, type SuspectLink } from "@/api/links";
 import type { Project } from "@/api/projects";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SUSPECTS_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -27,17 +27,14 @@ function End({ end }: { end: SuspectLink["source"] }) {
 export function SuspectList({ project }: { project: Project }) {
   const [offset, setOffset] = useState(0);
   const [checking, setChecking] = useState<SuspectLink | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const { data, error, refetch, isLoading } = useSuspects(project.key, offset);
   const rows = data?.links ?? [];
   const total = data?.total ?? 0;
   const mayCheck = project.can.edit && !project.archivedAt;
   return (
-    <div className="mx-auto max-w-4xl" data-suspect-list={project.key}>
+    <Page width="content" data-suspect-list={project.key}>
       <PageHeader title={t.suspect.listTitle} meta={t.suspect.listIntro} />
-      <p role="status" className="sr-only">
-        {notice}
-      </p>
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
       ) : isLoading || !data ? (
@@ -96,10 +93,10 @@ export function SuspectList({ project }: { project: Project }) {
       {checking && (
         <ClearLinkDialog
           link={{ id: checking.id, forward: checking.type.forward, source: checking.source, target: checking.target, ends: checking.ends }}
-          onCleared={() => setNotice(t.suspect.cleared(checking.target.key))}
+          onCleared={() => toast.success(t.suspect.cleared(checking.target.key))}
           onClose={() => setChecking(null)}
         />
       )}
-    </div>
+    </Page>
   );
 }

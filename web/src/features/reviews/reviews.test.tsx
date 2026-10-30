@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApprovalRule, Review } from "@/api/reviews";
-import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -128,7 +128,6 @@ describe("a requirement's approval", () => {
   });
 
   it("lets whoever asked withdraw, and offers no decision to somebody not named", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const sent = stubRequirement([aReview({ can: { decide: false, withdraw: true } })], {
       [`POST /reviews/${reviewId}/withdraw`]: { status: 200, body: { review: aReview({ state: "withdrawn" }) } },
     });
@@ -137,6 +136,7 @@ describe("a requirement's approval", () => {
     await within(region).findByText(/is under review/);
     expect(within(region).queryByRole("button", { name: "Approve" })).toBeNull();
     await userEvent.click(within(region).getByRole("button", { name: "Withdraw" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Withdraw this review?");
     await waitFor(() => expect(sent.some((each) => each.method === "POST" && each.path === `/reviews/${reviewId}/withdraw`)).toBe(true));
   });
 

@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm } from "../fixtures/shell";
 
 // Comments and mentions (#33): alice asks on a requirement and names bob, bob answers and resolves the thread.
 
@@ -54,8 +54,8 @@ test.describe("comments", { tag: "@desktop" }, () => {
     await expect(bobs.getByText(new RegExp(`Resolved by ${people.bob.name}`))).toBeVisible();
 
     await openUntil(page, REQUIREMENT, () => expect(discussion.getByText(new RegExp(`Resolved by ${people.bob.name}`))).toBeVisible(ONE_LOOK));
-    page.once("dialog", (dialog) => void dialog.accept());
     await discussion.getByRole("button", { name: "Delete" }).first().click();
+    await confirm(page);
     await expect(discussion.getByText("This comment was deleted.")).toBeVisible();
     await expect(discussion.getByRole("article")).toContainText("Because of the new sensor.");
   });

@@ -2,7 +2,24 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { TERM_STATUSES, useCreateTerm, useTerms, type TermStatus } from "@/api/glossary";
 import type { Project } from "@/api/projects";
-import { Button, Card, Checkbox, EmptyState, ErrorBanner, Field, PageHeader, SectionTitle, Select, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Select,
+  Skeleton,
+  Table,
+  Tag,
+  Td,
+  Th,
+  useToast,
+  Page,
+} from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GLOSSARY_PAGE_SIZE, TERM_SEARCH_DEBOUNCE_MS } from "@/config";
 import { t } from "@/i18n";
@@ -18,14 +35,14 @@ export function GlossaryPage({ project }: { project: Project }) {
   const [own, setOwn] = useState(false);
   const [offset, setOffset] = useState(0);
   const [adding, setAdding] = useState(false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const typed = useDebounced(q.trim(), TERM_SEARCH_DEBOUNCE_MS);
   const { data, error, refetch } = useTerms(project.key, { q: typed, status, own, offset });
   const create = useCreateTerm(project.key);
   const may = project.can.edit && !project.archivedAt;
   const narrowed = Boolean(typed || status || own);
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-glossary-page>
+    <Page width="content" className="space-y-4" data-glossary-page>
       <PageHeader
         title={l.title}
         actions={
@@ -33,7 +50,6 @@ export function GlossaryPage({ project }: { project: Project }) {
             <Button
               icon={<Icon.Plus />}
               onClick={() => {
-                setNotice("");
                 create.reset();
                 setAdding(true);
               }}
@@ -45,9 +61,6 @@ export function GlossaryPage({ project }: { project: Project }) {
         }
       />
       <p className="text-sm text-ink-muted">{l.intro}</p>
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-glossary-notice>
-        {notice}
-      </p>
       {adding && (
         <Card className="space-y-3 p-4">
           <section aria-labelledby="new-term-title" className="space-y-3">
@@ -63,7 +76,7 @@ export function GlossaryPage({ project }: { project: Project }) {
                   {
                     onSuccess: (term) => {
                       setAdding(false);
-                      setNotice(l.created(term.name));
+                      toast.success(l.created(term.name));
                     },
                   },
                 )
@@ -164,6 +177,6 @@ export function GlossaryPage({ project }: { project: Project }) {
           <span className="text-sm text-ink-subtle">{l.count(data.total)}</span>
         </div>
       )}
-    </div>
+    </Page>
   );
 }

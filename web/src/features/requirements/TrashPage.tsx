@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Project } from "@/api/projects";
 import { useTrash, useTrashActions, type TrashItem } from "@/api/requirements";
-import { Button, Dialog, ErrorBanner, PageHeader, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, PageHeader, Skeleton, Table, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -14,12 +14,12 @@ export function TrashPage({ project }: { project: Project }) {
   const mayPurge = project.can.purge;
   const { data, error, refetch } = useTrash(project.key, mayOpen);
   const actions = useTrashActions(project.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [purging, setPurging] = useState<TrashItem | "all" | null>(null);
   const failed = actions.restore.error ?? actions.purge.error ?? actions.empty.error;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-trash={project.key}>
+    <Page width="content" className="space-y-4" data-trash={project.key}>
       <PageHeader
         title={t.requirements.trashTitle}
         meta={t.projects.projectAndKey(project.name, project.key)}
@@ -39,9 +39,6 @@ export function TrashPage({ project }: { project: Project }) {
         <>
           <p className="text-sm text-ink-muted">{t.requirements.trashIntro}</p>
           {!mayPurge && <p className="text-sm text-ink-muted">{t.requirements.purgeOnlyAdmins}</p>}
-          <p role="status" className="text-sm text-ink-muted empty:hidden">
-            {notice}
-          </p>
           {failed && <ErrorBanner>{failed.message}</ErrorBanner>}
           {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
           {!data && !error && <Skeleton />}
@@ -74,7 +71,7 @@ export function TrashPage({ project }: { project: Project }) {
                         variant="secondary"
                         size="sm"
                         loading={actions.restore.isPending && actions.restore.variables === item.id}
-                        onClick={() => actions.restore.mutate(item.id, { onSuccess: () => setNotice(t.requirements.restored(item.key)) })}
+                        onClick={() => actions.restore.mutate(item.id, { onSuccess: () => toast.success(t.requirements.restored(item.key)) })}
                         data-action="restore-requirement"
                       >
                         {t.requirements.restore}
@@ -98,27 +95,29 @@ export function TrashPage({ project }: { project: Project }) {
           title={purging === "all" ? t.requirements.emptyTrashTitle : t.requirements.purgeTitle}
           onClose={() => setPurging(null)}
           attrs={{ "data-confirm-purge": "" }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setPurging(null)}>
+                {t.kit.cancel}
+              </Button>
+              <Button
+                variant="danger"
+                loading={actions.purge.isPending || actions.empty.isPending}
+                onClick={() => {
+                  const done = { onSettled: () => setPurging(null) };
+                  if (purging === "all") actions.empty.mutate(undefined, done);
+                  else actions.purge.mutate(purging.id, done);
+                }}
+                data-action="confirm-purge"
+              >
+                {t.requirements.purge}
+              </Button>
+            </>
+          }
         >
           <p className="text-sm text-ink">{purging === "all" ? t.requirements.emptyTrashBody : t.requirements.purgeBody(purging.key)}</p>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setPurging(null)}>
-              {t.kit.cancel}
-            </Button>
-            <Button
-              variant="danger"
-              loading={actions.purge.isPending || actions.empty.isPending}
-              onClick={() => {
-                const done = { onSettled: () => setPurging(null) };
-                if (purging === "all") actions.empty.mutate(undefined, done);
-                else actions.purge.mutate(purging.id, done);
-              }}
-              data-action="confirm-purge"
-            >
-              {t.requirements.purge}
-            </Button>
-          </div>
         </Dialog>
       )}
-    </div>
+    </Page>
   );
 }

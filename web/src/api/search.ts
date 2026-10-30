@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { QUERY_SUGGEST_LIMIT, QUICK_SEARCH_LIMIT, SEARCH_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { components, operations } from "./schema";

@@ -5,7 +5,26 @@ import { useAttributes } from "@/api/attributes";
 import { useActivity, useComparison, useRestoreRevision, useRevision, useRevisions, type Comparison } from "@/api/history";
 import type { Project } from "@/api/projects";
 import type { Requirement } from "@/api/requirements";
-import { Button, Card, Checkbox, Dialog, EmptyState, ErrorBanner, Field, PageHeader, SectionTitle, Skeleton, Table, Tabs, Tag, Td, Th } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Dialog,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Skeleton,
+  Table,
+  Tabs,
+  Tag,
+  Td,
+  Th,
+  useToast,
+  DialogFooter,
+  Page,
+} from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { HISTORY_PAGE_SIZE, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { DiffTitle, DocDiffView, DocView, type DiffBlockView } from "@/features/editor/DocView";
@@ -65,7 +84,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
   const restore = useRestoreRevision(requirement.key);
   const [asking, setAsking] = useState(false);
   const [comment, setComment] = useState("");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const conflict = restore.error instanceof ApiError && restore.error.code === "revision_conflict";
   if (!requirement.can.edit || number === requirement.revision) return null;
   return (
@@ -73,9 +92,6 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
       <Button size="sm" variant="ghost" onClick={() => setAsking(true)} data-action="restore-revision">
         {t.history.restore}
       </Button>
-      <span role="status" className="text-sm text-ink-muted empty:hidden" data-history-notice>
-        {notice}
-      </span>
       {asking && (
         <Dialog open title={t.history.restoreTitle(number)} onClose={() => setAsking(false)} attrs={{ "data-restore-dialog": "" }}>
           <div className="space-y-3">
@@ -87,7 +103,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
               maxLength={REVISION_COMMENT_MAX_LENGTH}
               onChange={(event) => setComment(event.target.value)}
             />
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button variant="secondary" onClick={() => setAsking(false)}>
                 {t.kit.cancel}
               </Button>
@@ -99,7 +115,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
                     {
                       onSuccess: ({ revision }) => {
                         setAsking(false);
-                        setNotice(t.history.restored(number, revision.number));
+                        toast.success(t.history.restored(number, revision.number));
                       },
                     },
                   )
@@ -108,7 +124,7 @@ function RestoreButton({ requirement, number }: { requirement: Requirement; numb
               >
                 {t.history.restore}
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </Dialog>
       )}
@@ -124,7 +140,7 @@ function HistoryList({ requirement, offset, tab, onSearch }: ScreenProps & { off
     setSelected((before) => (on ? [...before.filter((each) => each !== n), n].slice(-2) : before.filter((each) => each !== n)));
   const total = data?.total ?? 0;
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-requirement-history={requirement.key}>
+    <Page width="content" className="space-y-4" data-requirement-history={requirement.key}>
       <Header requirement={requirement} title={t.history.title(requirement.key)} />
       <p className="text-sm text-ink-muted">{t.history.intro}</p>
       <Tabs<"revisions" | "activity">
@@ -231,7 +247,7 @@ function HistoryList({ requirement, offset, tab, onSearch }: ScreenProps & { off
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -239,7 +255,7 @@ function RevisionScreen({ project, requirement, number, onSearch }: ScreenProps 
   const { data, error } = useRevision(requirement.key, number);
   const { data: attributes } = useAttributes(project.key);
   return (
-    <div className="mx-auto max-w-3xl space-y-4" data-revision={number}>
+    <Page width="content" className="space-y-4" data-revision={number}>
       <Header requirement={requirement} title={t.history.revision(number)} />
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" size="sm" icon={<Icon.ChevronDown className="rotate-90" />} onClick={() => onSearch({})}>
@@ -271,21 +287,21 @@ function RevisionScreen({ project, requirement, number, onSearch }: ScreenProps 
           {attributes && <AttributeValues attributes={attributes} values={data.attributes as Values} />}
         </Card>
       )}
-    </div>
+    </Page>
   );
 }
 
 function CompareScreen({ requirement, from, to, onSearch }: ScreenProps & { from?: number; to?: number }) {
   const { data, error } = useComparison(requirement.key, from, to);
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-comparison="">
+    <Page width="content" className="space-y-4" data-comparison="">
       <Header requirement={requirement} title={data ? t.history.compareTitle(sideLabel(data.from.number), sideLabel(data.to.number)) : t.history.link} />
       <Button variant="secondary" size="sm" icon={<Icon.ChevronDown className="rotate-90" />} onClick={() => onSearch({})}>
         {t.history.backToHistory}
       </Button>
       {error && <ErrorBanner>{error.message}</ErrorBanner>}
       {!data ? !error && <Skeleton /> : <ComparisonView comparison={data} />}
-    </div>
+    </Page>
   );
 }
 

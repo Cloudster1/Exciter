@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMe, useSaveReading } from "@/api/auth";
-import { Button, Card, ErrorBanner, Labelled, PageHeader, SearchPicker, SectionTitle, Select, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Labelled, PageHeader, SearchPicker, SectionTitle, Select, Skeleton, Page } from "@/components/ui";
 import { TIME_ZONE_MATCHES_MAX } from "@/config";
 import { browserLanguage, isLanguage, LANGUAGES, resolveLanguage, t, useLanguage, type LanguageChoice } from "@/i18n";
 import { browserTimeZone, isTimeZone, timeZone, timeZones } from "@/lib/format";
@@ -10,7 +10,7 @@ export function ProfilePage() {
   const { data: me } = useMe();
   if (!me) return <Skeleton />;
   return (
-    <div className="mx-auto max-w-2xl space-y-6" data-profile>
+    <Page width="narrow" className="space-y-6" data-profile>
       <PageHeader title={t.profile.title} meta={t.profile.intro} />
       <Card className="space-y-3 p-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
@@ -30,7 +30,7 @@ export function ProfilePage() {
         <p className="text-xs text-ink-subtle">{t.profile.identity}</p>
       </Card>
       <ReadingSection language={me.user.locale ?? ""} zone={me.user.timezone ?? ""} />
-    </div>
+    </Page>
   );
 }
 

@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import type { Project } from "@/api/projects";
 import { useViewActions, useViews, type Filter, type Sort, type View, type ViewInput, type ViewKind, type ViewSettings } from "@/api/search";
-import { Button, Checkbox, Dialog, ErrorBanner, Field, SelectInput } from "@/components/ui";
+import { Button, Checkbox, Dialog, ErrorBanner, Field, SelectInput, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { VIEW_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
@@ -128,6 +128,7 @@ function SaveDialog({
   onClose: () => void;
   onSaved: (view: View) => void;
 }) {
+  const formId = useId();
   const { create } = useViewActions(project.key);
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
@@ -137,7 +138,7 @@ function SaveDialog({
   };
   return (
     <Dialog open title={t.grid.saveAs} onClose={onClose} attrs={{ "data-save-view-dialog": "" }}>
-      <form onSubmit={submit} className="space-y-4" noValidate>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <Field
           label={t.grid.viewName}
           value={name}
@@ -151,14 +152,14 @@ function SaveDialog({
           <Checkbox label={t.grid.share} checked={shared} disabled={!project.can.edit} onChange={(e) => setShared(e.target.checked)} data-view-shared />
           {!project.can.edit && <p className="text-xs text-ink-subtle">{t.grid.shareHint}</p>}
         </div>
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.grid.cancel}
           </Button>
-          <Button type="submit" loading={create.isPending} data-action="confirm-save-view">
+          <Button type="submit" form={formId} loading={create.isPending} data-action="confirm-save-view">
             {t.grid.save}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

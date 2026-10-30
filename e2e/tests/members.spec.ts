@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { anonymousContext, expect, ME_PATH, signInWithPassword } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 const MEMBERS_PATH = "/settings/members";
@@ -84,17 +84,20 @@ test.describe("members", { tag: "@desktop" }, () => {
 
     await page.goto(MEMBERS_PATH);
     await member(page, email).getByLabel("Role of Rolf Roles").selectOption("admin");
-    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles is now Administrator.");
+    await expect(toast(page, "Rolf Roles is now Administrator.")).toHaveText("Rolf Roles is now Administrator.");
+    await dismissToasts(page);
     await expect(member(page, email).locator("[data-member-role]")).toHaveAttribute("data-member-role", "admin");
 
     await member(page, email).locator('[data-action="switch-off-member"]').click();
     await page.locator('[data-action="confirm-switch-off-member"]').click();
-    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was switched off.");
+    await expect(toast(page, "Rolf Roles was switched off.")).toHaveText("Rolf Roles was switched off.");
+    await dismissToasts(page);
     await expect(member(page, email)).toHaveAttribute("data-member-active", "false");
     await expect(member(page, email).locator("[data-switched-off]")).toHaveText("Switched off");
 
     await member(page, email).locator('[data-action="switch-on-member"]').click();
-    await expect(page.locator("[data-members-notice]")).toHaveText("Rolf Roles was switched on and can sign in again.");
+    await expect(toast(page, "Rolf Roles was switched on and can sign in again.")).toHaveText("Rolf Roles was switched on and can sign in again.");
+    await dismissToasts(page);
     await expect(member(page, email)).toHaveAttribute("data-member-active", "true");
   });
 
@@ -111,13 +114,15 @@ test.describe("members", { tag: "@desktop" }, () => {
 
       await page.goto(MEMBERS_PATH);
       await member(page, email).getByLabel("Role of Stan Standing").selectOption("admin");
-      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing is now Administrator.");
+      await expect(toast(page, "Stan Standing is now Administrator.")).toHaveText("Stan Standing is now Administrator.");
+      await dismissToasts(page);
       await openUntil(theirs, SETTINGS_PATH, () => expect(theirs.locator('[data-hub-card="settings"]')).toBeVisible(ONE_LOOK));
       await theirs.goto(MEMBERS_PATH);
       await expect(theirs.locator("[data-members]")).toBeVisible();
 
       await member(page, email).getByLabel("Role of Stan Standing").selectOption("member");
-      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing is now Member.");
+      await expect(toast(page, "Stan Standing is now Member.")).toHaveText("Stan Standing is now Member.");
+      await dismissToasts(page);
       await openUntil(theirs, SETTINGS_PATH, async () => {
         await expect(theirs.locator('[data-hub-card="you"]')).toBeVisible(ONE_LOOK);
         await expect(theirs.locator('[data-hub-card="settings"]')).toHaveCount(0, ONE_LOOK);
@@ -128,7 +133,8 @@ test.describe("members", { tag: "@desktop" }, () => {
 
       await member(page, email).locator('[data-action="switch-off-member"]').click();
       await page.locator('[data-action="confirm-switch-off-member"]').click();
-      await expect(page.locator("[data-members-notice]")).toHaveText("Stan Standing was switched off.");
+      await expect(toast(page, "Stan Standing was switched off.")).toHaveText("Stan Standing was switched off.");
+      await dismissToasts(page);
       await theirs.goto("/");
       await expect(theirs).toHaveURL(/\/login(\?|$)/);
       expect((await theirs.request.get(ME_PATH)).status()).toBe(401);

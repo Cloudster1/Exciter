@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { LABEL_NAME_MAX_LENGTH, LABEL_PAGE_SIZE, LABEL_SUGGESTION_LIMIT } from "@/config";
 import { api } from "./client";
 import { requirementQueryKey, type Requirement } from "./requirements";

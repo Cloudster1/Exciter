@@ -596,7 +596,7 @@ anew in a scene with tools and books, and cropped and resized for the icons.
 These pictures are under that license, not under the license of the code.
 
 The avatar menu's links to Armature and Stator (#298) show their own icons,
-taken unchanged: web/public/tools/armature.webp is Armature's
-web/public/emblem.webp at 51eac53, web/public/tools/stator.png Stator's
-web/public/favicon-32.png at ffd3addb. Both show the Go gopher too, under the
-same license, as those products' NOTICE files say.
+taken unchanged, each its 96 px mark: web/public/tools/armature.webp is
+Armature's web/public/mark-96.webp at 746787d, web/public/tools/stator.webp
+Stator's web/public/mark-96.webp at 2ab5252f. Both show the Go gopher too,
+under the same license, as those products' NOTICE files say.

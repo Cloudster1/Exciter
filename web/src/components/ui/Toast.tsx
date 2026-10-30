@@ -122,7 +122,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <span className={cx("mt-0.5 shrink-0", toast.kind === "error" ? "text-danger" : toast.kind === "success" ? "text-success" : "text-ink-muted")}>
               {toast.kind === "error" ? <Icon.Warning /> : toast.kind === "success" ? <Icon.Check /> : <Icon.Info />}
             </span>
-            <span className="min-w-0 flex-1 text-ink">
+            <span className="min-w-0 flex-1 text-ink" data-toast-message>
               {toast.message}
               {toast.link && <span className="ml-1.5">{toast.link}</span>}
             </span>
@@ -138,7 +138,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 {toast.action.label}
               </button>
             )}
-            <IconButton icon={<Icon.X />} label={t.kit.dismiss} size="sm" onClick={() => dismiss(toast.id)} className="-my-1 -mr-1" />
+            <IconButton
+              icon={<Icon.X />}
+              label={t.kit.dismiss}
+              size="sm"
+              onClick={() => dismiss(toast.id)}
+              className="-my-1 -mr-1"
+              data-action="dismiss-toast"
+            />
           </div>
         ))}
       </div>

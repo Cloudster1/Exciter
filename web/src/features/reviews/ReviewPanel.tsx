@@ -5,6 +5,7 @@ import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, Tag } from "@
 import { REVIEW_COMMENT_MAX_LENGTH } from "@/config";
 import { Through } from "@/components/Through";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 import { SignDialog } from "./SignDialog";
 import { resumeSigning, type Resumed } from "./signing";
@@ -134,6 +135,7 @@ function Decisions({ review }: { review: Review }) {
 function PendingReview({ requirement, review }: { requirement: Requirement; review: Review }) {
   const decide = useDecide(requirement.key);
   const withdraw = useWithdrawReview(requirement.key);
+  const confirm = useConfirm();
   // A signature the identity provider interrupted comes back here, once, to be finished (#46).
   const [resumed] = useState(() => resumeSigning(review.id));
   const [comment, setComment] = useState(resumed?.comment ?? "");
@@ -205,8 +207,9 @@ function PendingReview({ requirement, review }: { requirement: Requirement; revi
           size="sm"
           variant="ghost"
           loading={withdraw.isPending}
-          onClick={() => {
-            if (window.confirm(t.review.confirmWithdraw)) withdraw.mutate(review.id);
+          onClick={async () => {
+            const asked = { noun: t.kit.confirm.things.thisReview, verb: t.kit.confirm.verbs.withdraw, body: t.review.confirmWithdraw };
+            if (await confirm(asked)) withdraw.mutate(review.id);
           }}
           data-action="withdraw-review"
         >

@@ -18,6 +18,8 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "@typescript-eslint/consistent-type-imports": "error",
+      "no-restricted-globals": ["error", { name: "confirm", message: "Ask with useConfirm, which draws the kit's ConfirmDialog." }],
+      "no-restricted-properties": ["error", { object: "window", property: "confirm", message: "Ask with useConfirm, which draws the kit's ConfirmDialog." }],
       "no-restricted-syntax": [
         "error",
         {

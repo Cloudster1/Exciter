@@ -5,7 +5,7 @@ import { groupLinks, linkWays, useLinkActions, useLinks, useProjectLinkTypes, ty
 import type { Requirement } from "@/api/requirements";
 import type { QuickHit } from "@/api/search";
 import type { StatusCategory } from "@/api/workflows";
-import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { t } from "@/i18n";
@@ -27,13 +27,13 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
   const section = requirement.kind === "section";
   const { data: links, error, refetch } = useLinks(requirement.key, !section);
   const actions = useLinkActions(requirement.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [checking, setChecking] = useState<TraceLink | null>(null);
   const mayLink = requirement.can.link;
 
   function remove(link: TraceLink) {
     actions.create.reset();
-    actions.remove.mutate(link, { onSuccess: () => setNotice(t.links.removed(link.phrase, link.other.key)) });
+    actions.remove.mutate(link, { onSuccess: () => toast.success(t.links.removed(link.phrase, link.other.key)) });
   }
 
   return (
@@ -88,17 +88,14 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
             requirement={requirement}
             onLinked={(link) => {
               actions.remove.reset();
-              setNotice(t.links.added(link.phrase, link.other.key));
+              toast.success(t.links.added(link.phrase, link.other.key));
             }}
           />
         )}
-        <p role="status" className="sr-only" data-link-notice>
-          {notice}
-        </p>
         {checking && (
           <ClearLinkDialog
             link={checked(checking, { key: requirement.key, revision: requirement.revision })}
-            onCleared={() => setNotice(t.suspect.cleared(checking.other.key))}
+            onCleared={() => toast.success(t.suspect.cleared(checking.other.key))}
             onClose={() => setChecking(null)}
           />
         )}

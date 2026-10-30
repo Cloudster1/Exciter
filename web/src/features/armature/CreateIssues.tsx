@@ -9,7 +9,7 @@ import {
   type ArmatureCreated,
 } from "@/api/armature";
 import type { Project } from "@/api/projects";
-import { Button, Checkbox, Dialog, ErrorBanner, IconButton, Select } from "@/components/ui";
+import { Button, Checkbox, Dialog, ErrorBanner, IconButton, Select, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ARMATURE_ACCOUNT_PATH, ARMATURE_CREATE_MAX, ARMATURE_CREATE_RELATIONS } from "@/config";
 import { t } from "@/i18n";
@@ -144,6 +144,7 @@ interface Answer {
 
 /** Files one Armature issue per requirement in a project, type and relation the author picks, then says what became of each. */
 export function CreateIssuesDialog({ projectKey, requirements, onClose }: { projectKey: string; requirements: Picked[]; onClose: (made: boolean) => void }) {
+  const formId = useId();
   const c = t.armature.create;
   const id = useId();
   const projects = useArmatureProjects(true);
@@ -176,7 +177,7 @@ export function CreateIssuesDialog({ projectKey, requirements, onClose }: { proj
       {answer ? (
         <Outcome requirements={kept} answer={answer} onClose={close} />
       ) : (
-        <form onSubmit={submit} className="space-y-4" noValidate>
+        <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
           <p className="text-sm text-ink-muted">{c.intro}</p>
           {projects.isPending && (
             <p role="status" className="text-sm text-ink-muted">
@@ -252,14 +253,14 @@ export function CreateIssuesDialog({ projectKey, requirements, onClose }: { proj
               {c.creating}
             </p>
           )}
-          <div className="flex justify-end gap-2 pt-1">
+          <DialogFooter>
             <Button type="button" variant="secondary" onClick={() => onClose(false)}>
               {c.cancel}
             </Button>
-            <Button type="submit" disabled={!ready} loading={create.isPending} data-action="create-issues">
+            <Button type="submit" form={formId} disabled={!ready} loading={create.isPending} data-action="create-issues">
               {c.submit(kept.length)}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       )}
     </Dialog>
@@ -313,11 +314,11 @@ function Outcome({ requirements, answer, onClose }: { requirements: Picked[]; an
           );
         })}
       </ul>
-      <div className="flex justify-end pt-1">
+      <DialogFooter>
         <Button type="button" onClick={onClose} data-action="close-created">
           {c.close}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }

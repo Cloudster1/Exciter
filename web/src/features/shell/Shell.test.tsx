@@ -26,7 +26,7 @@ import {
   TOKENS_PATH,
   WATCHING_PATH,
 } from "@/config";
-import { arrival, renderAt, signedIn, stubApi } from "@/test/app";
+import { arrival, renderAt, setViewportWidth, signedIn, stubApi } from "@/test/app";
 import { SETTINGS_PATH } from "./places";
 import { GROUPS_KEY, SIDEBAR_KEY } from "./state";
 
@@ -52,11 +52,11 @@ describe("the shell", () => {
     expect(
       within(sidebar)
         .getAllByRole("link")
-        .map((link) => link.textContent),
+        .map((link) => link.querySelector("span")?.textContent),
     ).toEqual(["Home", "Search", "Notifications", "Reviews", "Projects"]);
     expect(within(sidebar).queryByRole("link", { name: "Members" })).toBeNull();
     expect(sidebar.querySelector("[data-sidebar-org]")).toHaveTextContent("Demo");
-    expect(sidebar.querySelector("[data-build]")).not.toBeNull();
+    expect(await within(sidebar).findByText("0.0.0-test (0123456)")).toHaveAttribute("title", "commit 0123456789abcdef");
     expect(document.querySelector("[data-top-bar]")).toBeNull();
     expect(document.querySelector('[data-action="switcher"]')).toBeNull();
     expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe("the quick switcher", () => {
     const router = await renderAt("/");
     await userEvent.keyboard("{Control>}k{/Control}");
     const input = screen.getByRole("combobox");
-    const options = () => within(screen.getByRole("listbox")).getAllByRole("option");
+    const options = () => within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option");
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
       `place:${SEARCH_PATH}`,
@@ -268,11 +268,11 @@ describe("the quick switcher", () => {
     // watches, themes, tokens, connected apps, and Armature and Stator accounts.
     expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(13);
     await userEvent.type(screen.getByRole("combobox"), "prof");
-    expect(within(screen.getByRole("listbox")).getAllByRole("option")[0]).toHaveTextContent("Your profile");
+    expect(within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option")[0]).toHaveTextContent("Your profile");
     await userEvent.clear(screen.getByRole("combobox"));
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     // Only the full search is left to offer.
-    expect(within(screen.getByRole("listbox")).getByRole("option")).toHaveTextContent("Search everything for zzz");
+    expect(within(screen.getByRole("dialog", { name: "Go to" })).getByRole("option")).toHaveTextContent("Search everything for zzz");
     expect(screen.getByRole("status")).toHaveTextContent("1 place");
   });
 });
@@ -302,6 +302,9 @@ describe("the account menu", () => {
     expect(header).toHaveTextContent("Ada Lovelace");
     expect(header).toHaveTextContent("ada@exciter.test");
     expect(header).toHaveTextContent("Administrator");
+    expect(header.querySelector("[data-account-role]")).toHaveAttribute("data-account-role", "admin");
+    // The avatar beside who it is.
+    expect(header.firstElementChild).not.toBe(header.querySelector("[data-account-name]"));
     const menu = screen.getByRole("menu", { name: "Your account" });
     expect(
       within(menu)
@@ -349,6 +352,8 @@ describe("the other tools in the account menu", () => {
     expect(links[1]).toHaveAttribute("href", "https://stator.example/");
     expect(links[0]?.tagName).toBe("A");
     expect(links[0]?.querySelector("img")).toHaveAttribute("alt", "");
+    // Each tool's own mark, all in the one format.
+    expect(links.map((link) => link.querySelector("img")?.getAttribute("src"))).toEqual(["/tools/armature.webp", "/tools/stator.webp"]);
   });
 
   it("lists only the tool that is connected", async () => {
@@ -378,5 +383,41 @@ describe("a session that ends while the page is open", () => {
     const router = await renderAt(MEMBERS_PATH);
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(router.state.location.search).toEqual({ next: MEMBERS_PATH });
+  });
+});
+
+describe("the suite's shell", () => {
+  afterEach(() => setViewportWidth(1280));
+
+  it("names the palette's shortcut beside Search, as the reader's keyboard says it", async () => {
+    await renderAt("/");
+    const search = within(document.querySelector<HTMLElement>("[data-sidebar]")!).getByRole("link", { name: "Search" });
+    expect(search.querySelector("[data-shortcut]")).toHaveTextContent("Ctrl K");
+  });
+
+  it("says Cmd K on a Mac", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    await renderAt("/");
+    expect(document.querySelector("[data-sidebar] [data-shortcut]")).toHaveTextContent("Cmd K");
+  });
+
+  it("keeps the menu button, the installation's name and the bell in the narrow strip", async () => {
+    setViewportWidth(500);
+    await renderAt("/");
+    const strip = await waitFor(() => document.querySelector<HTMLElement>("[data-narrow-strip]")!);
+    expect(document.querySelectorAll("[data-shell]").length).toBe(1);
+    expect(document.querySelectorAll("[data-narrow-strip]").length).toBe(1);
+    expect(strip.tagName).toBe("HEADER");
+    expect(strip).toHaveClass("h-12");
+    expect(within(strip).getByRole("button", { name: "Open the navigation" })).toBeInTheDocument();
+    expect(strip.querySelector("[data-installation-name]")).toHaveTextContent("Demo");
+    expect(within(strip).getByRole("button", { name: /Notifications/ })).toBeInTheDocument();
+  });
+
+  it("lets the account menu's anchor span the rail, so the menu opens past its edge", async () => {
+    await renderAt("/");
+    const foot = document.querySelector<HTMLElement>("[data-rail-foot]")!;
+    expect(foot).toHaveClass("w-full");
+    expect(within(foot).getByRole("button", { name: "Your account" }).parentElement).toHaveClass("w-full");
   });
 });

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Project } from "@/api/projects";
 import { useProjectQuality, type QualitySummary } from "@/api/quality";
-import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { QUALITY_PAGE_SIZE } from "@/config";
 import { Pages } from "@/features/coverage/Pages";
@@ -19,7 +19,7 @@ export function QualityPage({ project }: { project: Project }) {
   const { data, error, refetch } = useProjectQuality(project.key, query, offset);
   const l = t.quality;
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-quality-page={project.key}>
+    <Page width="content" className="space-y-4" data-quality-page={project.key}>
       <PageHeader title={l.pageTitle} meta={l.pageIntro} />
       <QueryInput
         projectKey={project.key}
@@ -96,7 +96,7 @@ export function QualityPage({ project }: { project: Project }) {
           </Card>
         </>
       )}
-    </div>
+    </Page>
   );
 }
 

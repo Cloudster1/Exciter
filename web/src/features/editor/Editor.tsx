@@ -1,7 +1,7 @@
-import { useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
+import { useId, useEffect, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor as TiptapEditor } from "@tiptap/react";
 import type { UploadFile } from "@/api/attachments";
-import { Button, Dialog, Field, IconButton, cx } from "@/components/ui";
+import { Button, Dialog, Field, IconButton, cx, DialogFooter } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 import { EDITOR_HEADING_LEVELS, NEW_TABLE_COLUMNS, NEW_TABLE_ROWS } from "@/config";
 import { t } from "@/i18n";
@@ -254,6 +254,7 @@ function Toolbar({ editor, files, tools, glossary }: { editor: TiptapEditor; fil
 
 /** Asks for the address the selected words point at, and refuses one a browser would run. */
 function LinkDialog({ editor, onClose }: { editor: TiptapEditor; onClose: () => void }) {
+  const formId = useId();
   const [href, setHref] = useState(String(editor.getAttributes("link").href ?? ""));
   const [problem, setProblem] = useState("");
   useEffect(() => setProblem(""), [href]);
@@ -276,16 +277,16 @@ function LinkDialog({ editor, onClose }: { editor: TiptapEditor; onClose: () => 
   }
   return (
     <Dialog open title={t.editor.linkTitle} onClose={onClose} attrs={{ "data-link-dialog": "" }}>
-      <form onSubmit={save} className="space-y-4" noValidate>
+      <form id={formId} onSubmit={save} className="space-y-4" noValidate>
         <Field label={t.editor.linkAddress} value={href} onChange={(event) => setHref(event.target.value)} error={problem} autoFocus />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
-          <Button type="submit" data-action="save-link">
+          <Button type="submit" form={formId} data-action="save-link">
             {t.editor.linkSave}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

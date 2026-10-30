@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Baseline, BaselineComparison } from "@/api/baselines";
 import type { TreeNode } from "@/api/tree";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
@@ -207,7 +207,6 @@ describe("a baseline", () => {
   });
 
   it("reads as a specification at the revisions it holds, and its administrators lock it", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const sent = stubBaseline(aBaseline(), { [`PATCH /baselines/${id}`]: { status: 200, body: { baseline: aBaseline({ locked: true }) } } });
     await renderAt(`/p/CHK/baselines/${id}`);
     const spec = await screen.findByRole("list", { name: "Release 1.0" });
@@ -218,11 +217,11 @@ describe("a baseline", () => {
     expect(within(spec).getAllByRole("listitem")[1]).toHaveTextContent("Deleted for good since");
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: "Lock" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Lock this baseline?");
     await waitFor(() => expect(sent.find((each) => each.method === "PATCH")?.body).toEqual({ locked: true }));
   });
 
   it("is deleted by its administrators, and the list it returns to names it", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     let deleted = false;
     const sent = stubBaseline(aBaseline(), {
       [`GET /baselines/${id}`]: () =>
@@ -237,8 +236,9 @@ describe("a baseline", () => {
     const router = await renderAt(`/p/CHK/baselines/${id}`);
     await screen.findByRole("list", { name: "Release 1.0" });
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await answerConfirm(true);
     await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/baselines"));
-    expect(await screen.findByText("The baseline Release 1.0 is deleted.")).toHaveAttribute("role", "status");
+    expect((await screen.findByText("The baseline Release 1.0 is deleted.")).closest("[data-toast]")).toHaveAttribute("role", "status");
     // Asked for again, the deleted baseline would turn its page into a refusal before it led here.
     const deletedAt = sent.findIndex((each) => each.method === "DELETE" && each.path === `/baselines/${id}`);
     expect(deletedAt).toBeGreaterThan(-1);

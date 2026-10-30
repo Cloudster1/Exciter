@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { Webhook, WebhookDelivery } from "@/api/webhooks";
 import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TOPICS, WEBHOOKS_PATH } from "@/config";
 import { en } from "@/i18n/en";
-import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { deliveryDetail, topicName, versionName } from "./Webhooks";
@@ -236,8 +236,6 @@ describe("the webhooks page", () => {
   });
 
   it("asks before deleting or rotating, and shows a rotated secret once", async () => {
-    const confirm = vi.fn(() => true);
-    vi.stubGlobal("confirm", confirm);
     const sent = webhooks([hook()], {
       "POST /webhooks/0199a000-0000-7000-8000-0000000000e1/rotate-secret": { status: 200, body: { webhook: hook({ secret: "exciter_whs_new" }) } },
       "DELETE /webhooks/0199a000-0000-7000-8000-0000000000e1": { status: 204 },
@@ -246,11 +244,12 @@ describe("the webhooks page", () => {
     const actions = await screen.findByRole("button", { name: "Actions for Team chat" });
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole("menuitem", { name: "Rotate the secret" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Rotate the secret of Team chat?");
     expect(await screen.findByLabelText("Secret for Team chat")).toHaveValue("exciter_whs_new");
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Delete webhook Team chat?");
     expect(await screen.findByText("Team chat was deleted.")).toBeInTheDocument();
-    expect(confirm).toHaveBeenCalledTimes(2);
     expect(sent.some((s) => s.method === "DELETE")).toBe(true);
   });
 

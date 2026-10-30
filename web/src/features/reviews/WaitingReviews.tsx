@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useWaitingReviews } from "@/api/reviews";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REVIEWS_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -19,7 +19,7 @@ export function WaitingReviewsScreen() {
   const rows = data?.reviews ?? [];
   const total = data?.total ?? 0;
   return (
-    <div className="mx-auto max-w-3xl" data-waiting-reviews="">
+    <Page width="narrow" data-waiting-reviews="">
       <PageHeader title={t.review.inboxTitle} meta={t.review.inboxIntro} />
       <MySessions />
       {error ? (
@@ -71,6 +71,6 @@ export function WaitingReviewsScreen() {
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }

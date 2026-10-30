@@ -1,4 +1,5 @@
-import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { SUSPECTS_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { components } from "./schema";

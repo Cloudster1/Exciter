@@ -6,7 +6,7 @@ import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { unzipText } from "../fixtures/unzip";
 
 // The baseline controls baselines.spec.ts and control.spec.ts leave alone (#316): a rename and a delete, a baseline
@@ -52,10 +52,11 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(list.getByRole("link", { name: "Release 1.0", exact: true })).toHaveCount(0);
 
     await list.getByRole("link", { name: "Release 1.0 final" }).click();
-    page.once("dialog", (dialog) => void dialog.accept());
     await page.locator('[data-action="delete-baseline"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${RENAME_KEY}/baselines(\\?|$)`));
-    await expect(page.getByRole("status").filter({ hasText: "The baseline Release 1.0 final is deleted." })).toBeVisible();
+    await confirm(page);
+    await expect(page).toHaveURL(new RegExp(`/p/${RENAME_KEY}/baselines$`));
+    await expect(toast(page, "The baseline Release 1.0 final is deleted.")).toBeVisible();
+    await dismissToasts(page);
     await expect(page.getByText("No baseline yet.")).toBeVisible();
     const gone = await api.GET("/baselines/{baselineID}", { params: { path: { baselineID: taken.id } } });
     expect(gone.response.status).toBe(404);
@@ -218,8 +219,8 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(signing.locator("[data-baseline-signatures] li")).toHaveCount(2);
 
     await page.goto(`/p/${SIGN_KEY}/settings?tab=approval`);
-    page.once("dialog", (confirm) => void confirm.accept());
     await rule.locator('[data-action="remove-signing-rule"]').click();
+    await confirm(page);
     await expect(rule).toContainText("Baselines are no longer signed.");
     await expect(rule.locator("[data-signing-rule-summary]")).toHaveText("Nobody signs this project's baselines.");
 

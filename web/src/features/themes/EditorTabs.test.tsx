@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import type { Theme, ThemeSpec } from "@/api/themes";
 import { KILOBYTE, THEME_ASSET_MAX_BYTES } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
-import { renderAt } from "@/test/app";
+import { answerConfirm, renderAt } from "@/test/app";
 
 // The server is stood in for at the hooks, as in ThemeEditor.test.tsx: what is under test is what each tab puts in
 // the spec "Save theme" sends, and what the Files tab asks the server to do.
@@ -174,18 +174,14 @@ describe("the Files tab", () => {
 
   it("asks before it removes a file, and a no removes nothing", async () => {
     await openTab("Files");
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     api.remove.mockImplementation((_: unknown, { onSuccess }: { onSuccess: () => void }) => onSuccess());
-    try {
-      const remove = within(document.querySelector<HTMLElement>('[data-theme-asset="tile.png"]')!).getByRole("button", { name: "Remove tile.png" });
-      await userEvent.click(remove);
-      expect(confirm).toHaveBeenLastCalledWith("Remove tile.png from the theme's files?");
-      expect(api.remove).not.toHaveBeenCalled();
-      await userEvent.click(remove);
-      expect(api.remove).toHaveBeenCalledWith({ id: THEME_ID, assetId: PICTURE.id }, expect.anything());
-      expect(await screen.findByText("Removed tile.png.")).toBeInTheDocument();
-    } finally {
-      confirm.mockRestore();
-    }
+    const remove = within(document.querySelector<HTMLElement>('[data-theme-asset="tile.png"]')!).getByRole("button", { name: "Remove tile.png" });
+    await userEvent.click(remove);
+    expect(await answerConfirm(false)).toHaveTextContent("Remove file tile.png?");
+    expect(api.remove).not.toHaveBeenCalled();
+    await userEvent.click(remove);
+    await answerConfirm(true);
+    expect(api.remove).toHaveBeenCalledWith({ id: THEME_ID, assetId: PICTURE.id }, expect.anything());
+    expect(await screen.findByText("Removed tile.png.")).toBeInTheDocument();
   });
 });

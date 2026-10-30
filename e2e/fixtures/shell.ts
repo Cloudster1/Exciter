@@ -78,3 +78,26 @@ export async function openAccountMenu(page: Page): Promise<void> {
 
 /** An item of the open menu, by its data-action. */
 export const menuItem = (page: Page, action: string) => page.locator(`[role="menu"] [data-action="${action}"]`);
+
+/** Answers the open ConfirmDialog with its danger button and waits for it to close. */
+export async function confirm(page: Page): Promise<void> {
+  const dialog = page.locator("[data-confirm]");
+  await dialog.locator('[data-action="confirm"]').click();
+  await expect(dialog).toHaveCount(0);
+}
+
+/** Closes every toast in the corner, which would otherwise sit over the controls beneath it. */
+export async function dismissToasts(page: Page): Promise<void> {
+  const close = page.locator('[data-toast] [data-action="dismiss-toast"]');
+  // A toast may time out between counting and clicking.
+  for (let left = await close.count(); left > 0; left--)
+    await close
+      .first()
+      .click({ timeout: 1000 })
+      .catch(() => {});
+}
+
+/** The sentence of the latest toast that says it, without the dismiss button's name. */
+export function toast(page: Page, text: string | RegExp) {
+  return page.locator("[data-toast]").filter({ hasText: text }).last().locator("[data-toast-message]");
+}

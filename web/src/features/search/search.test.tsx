@@ -105,7 +105,7 @@ describe("the palette", () => {
     const option = await screen.findByRole("option", { name: /CHK-R4 Print the receipt/ });
     expect(option).toHaveTextContent("Checkout 2.1");
     expect(asked.at(-1)).toBe("chk-r4");
-    const options = within(screen.getByRole("listbox")).getAllByRole("option");
+    const options = within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option");
     expect(options.at(-1)).toHaveTextContent("Search everything for chk-r4");
     expect(await axeViolations()).toEqual([]);
     await userEvent.keyboard("{Enter}");

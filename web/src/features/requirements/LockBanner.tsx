@@ -1,11 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { useLockRequirement, type Requirement } from "@/api/requirements";
-import { Button, Dialog, ErrorBanner, Field } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Field, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { LOCK_REASON_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 type Lock = NonNullable<Requirement["lock"]>;
 
@@ -22,6 +23,7 @@ export function keepsLocks(project: Project): boolean {
 /** A locked requirement's banner, with the administrators' unlock of a hand lock. */
 export function LockBanner({ project, requirement, onNotice }: { project: Project; requirement: Requirement; onNotice: (message: string) => void }) {
   const { unlock } = useLockRequirement(requirement.key);
+  const confirm = useConfirm();
   const lock = requirement.lock;
   if (!lock) return null;
   return (
@@ -41,8 +43,9 @@ export function LockBanner({ project, requirement, onNotice }: { project: Projec
           size="sm"
           variant="secondary"
           loading={unlock.isPending}
-          onClick={() => {
-            if (window.confirm(t.control.confirmUnlock)) unlock.mutate(undefined, { onSuccess: () => onNotice(t.control.unlockedNotice(requirement.key)) });
+          onClick={async () => {
+            const asked = { noun: t.kit.confirm.things.thisRequirement, verb: t.kit.confirm.verbs.unlock, body: t.control.confirmUnlock };
+            if (await confirm(asked)) unlock.mutate(undefined, { onSuccess: () => onNotice(t.control.unlockedNotice(requirement.key)) });
           }}
           data-action="unlock-requirement"
         >
@@ -77,6 +80,7 @@ export function LockAction({ project, requirement, onNotice }: { project: Projec
 }
 
 function LockDialog({ requirement, onClose, onLocked }: { requirement: Requirement; onClose: () => void; onLocked: () => void }) {
+  const formId = useId();
   const { lock } = useLockRequirement(requirement.key);
   const [reason, setReason] = useState("");
   const fields = lock.error instanceof ApiError ? lock.error.fields : {};
@@ -88,7 +92,7 @@ function LockDialog({ requirement, onClose, onLocked }: { requirement: Requireme
 
   return (
     <Dialog open title={t.control.lockTitle(requirement.key)} onClose={onClose} attrs={{ "data-lock-dialog": "" }}>
-      <form onSubmit={submit} className="space-y-3" aria-label={t.control.lockTitle(requirement.key)}>
+      <form id={formId} onSubmit={submit} className="space-y-3" aria-label={t.control.lockTitle(requirement.key)}>
         <p className="text-sm text-ink-muted">{t.control.lockIntro}</p>
         {lock.error && !fields.reason && <ErrorBanner>{lock.error.message}</ErrorBanner>}
         <Field
@@ -100,14 +104,14 @@ function LockDialog({ requirement, onClose, onLocked }: { requirement: Requireme
           onChange={(event) => setReason(event.target.value)}
           rows={3}
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.control.cancel}
           </Button>
-          <Button type="submit" loading={lock.isPending} disabled={!reason.trim()} data-action="confirm-lock">
+          <Button type="submit" form={formId} loading={lock.isPending} disabled={!reason.trim()} data-action="confirm-lock">
             {t.control.lockSend}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

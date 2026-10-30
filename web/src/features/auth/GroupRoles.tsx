@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useGroupRoles, useProvider, useRemoveGroupRole, useSetGroupRole, type GrantedRole, type GroupRole } from "@/api/auth";
-import { Button, Card, ErrorBanner, Field, Select, Table, Td, Th } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, Select, Table, Td, Th, useToast } from "@/components/ui";
 import { SSO_GROUP_EXAMPLE } from "@/config";
 import { t } from "@/i18n";
 
@@ -15,7 +15,7 @@ export function GroupRoles() {
   const remove = useRemoveGroupRole();
   const [group, setGroup] = useState("");
   const [role, setRole] = useState<GrantedRole>("member");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const mapping = data ?? [];
   const configured = Boolean(view?.provider);
   const fields = set.error instanceof ApiError ? set.error.fields : {};
@@ -23,21 +23,19 @@ export function GroupRoles() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
     set.mutate(
       { group, role },
       {
         onSuccess: (saved) => {
           setGroup("");
-          setNotice(t.sso.mapped(saved.group, t.members.roleNames[saved.role]));
+          toast.success(t.sso.mapped(saved.group, t.members.roleNames[saved.role]));
         },
       },
     );
   }
 
   function unmap(row: GroupRole) {
-    setNotice("");
-    remove.mutate({ id: row.id }, { onSuccess: () => setNotice(t.sso.unmapped(row.group)) });
+    remove.mutate({ id: row.id }, { onSuccess: () => toast.success(t.sso.unmapped(row.group)) });
   }
 
   return (
@@ -107,11 +105,6 @@ export function GroupRoles() {
         </>
       )}
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-      {notice && (
-        <p role="status" className="text-sm text-ink-muted">
-          {notice}
-        </p>
-      )}
     </Card>
   );
 }

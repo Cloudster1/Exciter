@@ -1,4 +1,4 @@
-import { useCallback, useId, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { createContext, useCallback, useContext, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { DIALOG_BOTTOM_PX, DIALOG_TOP_VH, DRAWER_WIDTH } from "@/config";
 import { Button, IconButton } from "./Button";
@@ -66,6 +66,17 @@ function pinnedHeight(part: HTMLElement | null): number {
   return part && getComputedStyle(part).position === "sticky" ? part.offsetHeight : 0;
 }
 
+const FooterSlot = createContext<HTMLDivElement | null>(null);
+
+/**
+ * The dialog's pinned buttons, drawn from deeper in its body: for a part that
+ * holds the state its buttons act on. A dialog that holds it passes footer.
+ */
+export function DialogFooter({ children }: { children: ReactNode }) {
+  const slot = useContext(FooterSlot);
+  return slot ? createPortal(children, slot) : null;
+}
+
 // Modal: the page behind is inert, focus is trapped and Escape closes. Its layer
 // scrolls like a page, so wheel, touch and keys move a tall dialog wherever they land.
 export function Dialog({ open, onClose, title, description, children, footer, size = "md", attrs }: DialogProps) {
@@ -73,6 +84,11 @@ export function Dialog({ open, onClose, title, description, children, footer, si
   const backdropRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+  const placeFooter = useCallback((node: HTMLDivElement | null) => {
+    footerRef.current = node;
+    setSlot(node);
+  }, []);
   const titleId = useId();
   const descriptionId = useId();
   const close = useCallback(() => onClose(), [onClose]);
@@ -117,18 +133,17 @@ export function Dialog({ open, onClose, title, description, children, footer, si
         </div>
         {children && (
           <div className="px-5 pt-2 pb-4" data-dialog-body>
-            {children}
+            <FooterSlot.Provider value={slot}>{children}</FooterSlot.Provider>
           </div>
         )}
-        {footer && (
-          <div
-            ref={footerRef}
-            className="tall:sticky tall:bottom-0 z-10 flex shrink-0 justify-end gap-2 rounded-b-overlay border-t border-border bg-surface-overlay px-5 py-3"
-            data-dialog-footer
-          >
-            {footer}
-          </div>
-        )}
+        {/* Always there, so a DialogFooter below has somewhere to draw; empty, it takes no room. */}
+        <div
+          ref={placeFooter}
+          className="tall:sticky tall:bottom-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 rounded-b-overlay border-t border-border bg-surface-overlay px-5 py-3 empty:hidden"
+          data-dialog-footer
+        >
+          {footer}
+        </div>
       </div>
     </div>,
     document.body,

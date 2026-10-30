@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // The glossary in use (#320): a term added, redefined until its use is confirmed, and deleted; a stale edit; words
 // linked to a term by hand and unlinked; and a library's glossary chosen to mark this project's requirements.
@@ -79,7 +79,8 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     await page.keyboard.type(DEFINITION);
     await expectAccessible(page);
     await page.locator('[data-action="save-term"]').click();
-    await expect(page.locator("[data-glossary-notice]")).toHaveText("Brake pedal is in the glossary.");
+    await expect(toast(page, "Brake pedal is in the glossary.")).toHaveText("Brake pedal is in the glossary.");
+    await dismissToasts(page);
     const row = page.getByRole("table", { name: "Glossary" }).locator('[data-term-row="Brake pedal"]');
     await expect(row).toBeVisible();
 
@@ -96,7 +97,8 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     await retype(page, "[data-term-form] [contenteditable=true]", "The lever the driver presses to slow or hold the car.");
     await form.getByLabel("Comment on the change").fill("Holding counts too.");
     await form.locator('[data-action="save-term"]').click();
-    await expect(page.locator("[data-term-notice]")).toHaveText("Saved as revision 2.");
+    await expect(toast(page, "Saved as revision 2.")).toHaveText("Saved as revision 2.");
+    await dismissToasts(page);
     await expect(page.getByText("The lever the driver presses to slow or hold the car.")).toBeVisible();
 
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
@@ -109,7 +111,8 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     await expectAccessible(page);
     await dialog.locator('[data-action="send-confirm-term"]').click();
     await expect(dialog).toBeHidden();
-    await expect(page.locator("[data-terms-panel]").getByRole("status")).toHaveText("Confirmed under the definition of Brake pedal.");
+    await expect(toast(page, "Confirmed under the definition of Brake pedal.")).toBeVisible();
+    await dismissToasts(page);
     await expect(use).toHaveAttribute("data-suspect", "false");
     await expect(use.locator("[data-term-suspect]")).toHaveCount(0);
 
@@ -137,7 +140,8 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
       await other.locator('[data-action="edit-term"]').click();
       await retype(other, "[data-term-form] [contenteditable=true]", "The lever the driver presses with a foot.");
       await other.locator('[data-action="save-term"]').click();
-      await expect(other.locator("[data-term-notice]")).toHaveText("Saved as revision 2.");
+      await expect(toast(other, "Saved as revision 2.")).toHaveText("Saved as revision 2.");
+      await dismissToasts(other);
     } finally {
       await other.close();
     }

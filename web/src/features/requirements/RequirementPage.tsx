@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { PRIORITIES, useTrashRequirement, useUpdateRequirement, type Priority, type Requirement } from "@/api/requirements";
 import { useAttributes } from "@/api/attributes";
 import { useQuality } from "@/api/quality";
-import { Button, Card, ErrorBanner, IconButton, PageHeader, SectionTitle, SelectInput, Tag } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, PageHeader, SectionTitle, SelectInput, Tag, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
@@ -30,6 +30,7 @@ import { PlaceDialog } from "@/features/tree/PlaceDialog";
 import { TransitionBar } from "@/features/workflows/TransitionBar";
 import { WatchMenu } from "@/features/watching/WatchMenu";
 import { t } from "@/i18n";
+import { rememberRequirement } from "@/lib/recent";
 import { TestCaseView } from "@/features/testcases/TestCaseView";
 import { RatingView } from "@/features/risks/RatingView";
 import { MitigationPanel } from "@/features/risks/MitigationPanel";
@@ -41,12 +42,17 @@ import { RequirementEdit } from "./RequirementEdit";
 /** One requirement or section: what it says, read or edited in place, and who owns it at which priority. */
 export function RequirementPage({ project, requirement }: { project: Project; requirement: Requirement }) {
   const [editing, setEditing] = useState(false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const { id, key, title } = requirement;
+  useEffect(() => rememberRequirement({ id, key, title, projectKey: project.key }), [id, key, title, project.key]);
+  const notify = (message: string) => {
+    if (message) toast.success(message);
+  };
   const [watchFailed, setWatchFailed] = useState(false);
   const mayEdit = requirement.can.edit;
   const section = requirement.kind === "section";
   return (
-    <div className="mx-auto max-w-3xl space-y-5" data-requirement={requirement.key}>
+    <Page width="narrow" className="space-y-5" data-requirement={requirement.key}>
       <PageHeader
         crumb={
           <Link to="/p/$projectKey" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
@@ -94,7 +100,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
         actions={
           <>
             <WatchMenu requirement={requirement} onFailure={setWatchFailed} />
-            <LockAction project={project} requirement={requirement} onNotice={setNotice} />
+            <LockAction project={project} requirement={requirement} onNotice={notify} />
             {mayEdit && !editing && (
               <Button variant="secondary" icon={<Icon.Edit />} onClick={() => setEditing(true)} data-action="edit-requirement">
                 {t.requirements.edit}
@@ -110,7 +116,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           {t.requirements.trashed}
         </p>
       )}
-      <LockBanner project={project} requirement={requirement} onNotice={setNotice} />
+      <LockBanner project={project} requirement={requirement} onNotice={notify} />
       {!mayEdit && !requirement.trashedAt && !requirement.lock && <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>}
       {requirement.copiedFrom && (
         <p className="text-sm text-ink-muted" data-copied-from>
@@ -123,22 +129,19 @@ export function RequirementPage({ project, requirement }: { project: Project; re
           </Link>
         </p>
       )}
-      <ReuseBanner requirement={requirement} onNotice={setNotice} />
+      <ReuseBanner requirement={requirement} onNotice={notify} />
       {requirement.formerKeys.length > 0 && (
         <p className="text-sm text-ink-muted" data-former-keys>
           {t.requirements.formerKeys(requirement.formerKeys.join(", "))}
         </p>
       )}
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-requirement-notice>
-        {notice}
-      </p>
       {editing ? (
         <RequirementEdit
           key={requirement.id}
           project={project}
           requirement={requirement}
           onDone={(message) => {
-            setNotice(message);
+            notify(message);
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
@@ -161,7 +164,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       <CommentsSection requirement={requirement} />
       {project.settings.library && !requirement.trashedAt && <ReuseAction project={project} requirement={requirement} />}
       {mayEdit && <TrashSection project={project} requirement={requirement} />}
-    </div>
+    </Page>
   );
 }
 

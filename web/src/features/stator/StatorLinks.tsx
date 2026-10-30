@@ -11,7 +11,7 @@ import {
   type StatorRelation,
 } from "@/api/stator";
 import type { Requirement } from "@/api/requirements";
-import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { STATOR_ACCOUNT_PATH, STATOR_RELATIONS } from "@/config";
 import { t } from "@/i18n";
@@ -37,7 +37,7 @@ export function StatorLinks({ requirement }: { requirement: Requirement }) {
     connected && (links?.length ?? 0) > 0,
   );
   const { remove, clear } = useStatorLinkActions(requirement.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [checking, setChecking] = useState<StatorLink | null>(null);
   if (!configured || section) return null;
   const mayLink = requirement.can.link && !requirement.trashedAt;
@@ -45,7 +45,7 @@ export function StatorLinks({ requirement }: { requirement: Requirement }) {
 
   function unlink(link: StatorLink) {
     const name = pageName(link, lookup);
-    remove.mutate(link, { onSuccess: () => setNotice(l.removed(name)) });
+    remove.mutate(link, { onSuccess: () => toast.success(l.removed(name)) });
   }
 
   return (
@@ -108,10 +108,7 @@ export function StatorLinks({ requirement }: { requirement: Requirement }) {
             );
           })}
         {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
-        {mayLink && <AddPageLink requirement={requirement} connected={connected} onLinked={(title) => setNotice(l.added(title))} />}
-        <p role="status" className="sr-only" data-stator-link-notice>
-          {notice}
-        </p>
+        {mayLink && <AddPageLink requirement={requirement} connected={connected} onLinked={(title) => toast.success(l.added(title))} />}
         {checking && (
           <ClearDialog
             title={t.suspect.statorTitle(requirement.key, pageName(checking, lookup))}
@@ -125,7 +122,7 @@ export function StatorLinks({ requirement }: { requirement: Requirement }) {
                 { id: checking.id, pageVersion: checking.pageVersion, comment },
                 {
                   onSuccess: () => {
-                    setNotice(t.suspect.statorCleared(pageName(checking, lookup)));
+                    toast.success(t.suspect.statorCleared(pageName(checking, lookup)));
                     setChecking(null);
                   },
                 },

@@ -1,8 +1,11 @@
 import { Outlet, createRootRouteWithContext, useNavigate, type ErrorComponentProps } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
-import { Button, EmptyState, PageHeader } from "@/components/ui";
+import type { ReactNode } from "react";
+import { Button, EmptyState, PageHeader, ToastProvider } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/features/shell/AppShell";
+import { ConfirmProvider } from "@/features/shell/ConfirmProvider";
+import { MutationErrorToasts } from "@/features/shell/MutationErrorToasts";
 import { t } from "@/i18n";
 
 export interface RouterContext {
@@ -12,13 +15,29 @@ export interface RouterContext {
 // The shell is the signed-in layout's; the sign-in page stands on its own. A
 // path that leads nowhere still gets the shell, so there is somewhere to go.
 export const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: Outlet,
+  component: () => (
+    <Feedback>
+      <Outlet />
+    </Feedback>
+  ),
   notFoundComponent: () => (
     <AppShell>
       <NotFound />
     </AppShell>
   ),
 });
+
+// Above every page, the sign-in and print pages included, so a toast or a
+// question asked before something goes works wherever a change is made.
+// Inside the router, since a toast may carry a link.
+function Feedback({ children }: { children: ReactNode }) {
+  return (
+    <ToastProvider>
+      <MutationErrorToasts />
+      <ConfirmProvider>{children}</ConfirmProvider>
+    </ToastProvider>
+  );
+}
 
 // Drawn inside the shell, so the reader who followed a stale link still has
 // the sidebar to go somewhere else.

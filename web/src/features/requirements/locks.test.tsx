@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Requirement } from "@/api/requirements";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -65,12 +65,12 @@ describe("a locked requirement", () => {
   });
 
   it("is unlocked by hand by an administrator", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const sent = stubRequirement(aRequirement({ lock: byHand, can: lockedCan }), {
       "DELETE /requirements/CHK-R1/lock": { status: 200, body: { requirement: aRequirement() } },
     });
     await renderAt("/p/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Unlock" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Unlock this requirement?");
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE")).toBe(true));
     expect(await screen.findByText("CHK-R1 is unlocked.")).toBeInTheDocument();
   });

@@ -4,7 +4,7 @@ import { NOW, useBaseline, useBaselineActions, useBaselines, useBaselineSpec, ty
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import type { StatusCategory } from "@/api/workflows";
-import { Button, Card, ErrorBanner, Field, PageHeader, Segmented, Select, Skeleton, Tag, cx } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, PageHeader, Segmented, Select, Skeleton, Tag, cx, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { BASELINE_NAME_MAX_LENGTH, BASELINE_SPEC_PAGE_SIZE } from "@/config";
 import { DocView } from "@/features/editor/DocView";
@@ -13,6 +13,7 @@ import { StatusBadge } from "@/features/workflows/StatusBadge";
 import { ExportMenu } from "@/features/print/ExportMenu";
 import { baselineDocumentHref } from "@/api/documents";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 import { BaselineMatrixView } from "./BaselineMatrix";
 import { BaselineSigning } from "./BaselineSigning";
@@ -28,7 +29,7 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!baseline) return <Skeleton />;
   return (
-    <div className="mx-auto max-w-3xl space-y-4" data-baseline-page={baseline.id}>
+    <Page width="narrow" className="space-y-4" data-baseline-page={baseline.id}>
       <PageHeader
         crumb={
           <Link to="/p/$projectKey/baselines" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
@@ -61,7 +62,7 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
         ]}
       />
       {reading === "spec" ? <Reading project={project} baseline={baseline} /> : <BaselineMatrixView project={project} baseline={baseline} />}
-    </div>
+    </Page>
   );
 }
 
@@ -69,6 +70,8 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
   const { update, remove } = useBaselineActions(project.key);
   const navigate = useNavigate();
   const [renaming, setRenaming] = useState(false);
+  const confirm = useConfirm();
+  const toast = useToast();
   const [name, setName] = useState(baseline.name);
   const fields = update.error instanceof ApiError ? update.error.fields : {};
   if (baseline.signing && baseline.signing.signatures > 0) {
@@ -123,8 +126,9 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
             variant="secondary"
             icon={<Icon.Lock />}
             loading={update.isPending}
-            onClick={() => {
-              if (window.confirm(t.baseline.confirmLock)) update.mutate({ id: baseline.id, locked: true });
+            onClick={async () => {
+              const asked = { noun: t.kit.confirm.things.thisBaseline, verb: t.kit.confirm.verbs.lock, body: t.baseline.confirmLock };
+              if (await confirm(asked)) update.mutate({ id: baseline.id, locked: true });
             }}
             data-action="lock-baseline"
           >
@@ -134,10 +138,13 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
             variant="secondary"
             icon={<Icon.Trash />}
             loading={remove.isPending}
-            onClick={() => {
-              if (!window.confirm(t.baseline.confirmDelete)) return;
+            onClick={async () => {
+              if (!(await confirm({ noun: t.kit.confirm.things.thisBaseline, body: t.baseline.confirmDelete }))) return;
               remove.mutate(baseline.id, {
-                onSuccess: () => void navigate({ to: "/p/$projectKey/baselines", params: { projectKey: project.key }, search: { deleted: baseline.name } }),
+                onSuccess: () => {
+                  toast.success(t.baseline.deleted(baseline.name));
+                  void navigate({ to: "/p/$projectKey/baselines", params: { projectKey: project.key } });
+                },
               });
             }}
             data-action="delete-baseline"

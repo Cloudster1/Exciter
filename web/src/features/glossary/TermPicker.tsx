@@ -1,7 +1,7 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { useTerms, type Term } from "@/api/glossary";
-import { Button, Dialog, Input, Tag, cx } from "@/components/ui";
+import { Button, Dialog, Input, Tag, cx, DialogFooter } from "@/components/ui";
 import { TERM_PICKER_LIMIT, TERM_SEARCH_DEBOUNCE_MS } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
@@ -109,7 +109,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
             </p>
           </>
         )}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           {linked && (
             <Button
               variant="secondary"
@@ -125,7 +125,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
           <Button variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

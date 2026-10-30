@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { API_BASE, ME_STALE_MS } from "@/config";
 import { applyLanguage, type LanguageChoice } from "@/i18n";
 import { applyTimeZone } from "@/lib/format";

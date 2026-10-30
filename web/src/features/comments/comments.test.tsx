@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Comment, Thread } from "@/api/comments";
-import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -162,7 +162,6 @@ describe("the discussion on a requirement", () => {
         [`DELETE /comments/${replyId}`]: { status: 204 },
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt("/p/CHK/r/CHK-R1");
     const first = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(first).getByRole("button", { name: "Reply" }));
@@ -178,8 +177,10 @@ describe("the discussion on a requirement", () => {
     await userEvent.click(within(mine).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(sent.some((each) => each.method === "PATCH" && each.path === `/comments/${replyId}`)).toBe(true));
     await userEvent.click(await within(mine).findByRole("button", { name: "Delete" }));
+    const asked = await answerConfirm(true);
+    expect(asked).toHaveTextContent("Delete your comment?");
+    expect(asked).toHaveTextContent("Its place in the thread stays.");
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/comments/${replyId}`)).toBe(true));
-    expect(window.confirm).toHaveBeenCalledWith("Delete your comment? Its place in the thread stays.");
   });
 
   it("tells a reader they may follow but not take part", async () => {

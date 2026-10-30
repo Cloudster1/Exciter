@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { administers, useMe } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { suggestKey, useCreateProject, useKeyCheck, useProjectTemplates } from "@/api/projects";
-import { Button, ErrorBanner, Field, OptionCard, PageHeader } from "@/components/ui";
+import { Button, ErrorBanner, Field, OptionCard, PageHeader, Page } from "@/components/ui";
 import { KEY_SUGGEST_DEBOUNCE_MS, PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
@@ -38,7 +38,7 @@ export function NewProjectForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl" data-new-project>
+    <Page width="narrow" data-new-project>
       <PageHeader title={t.projects.createTitle} />
       {!mayCreate ? (
         <p className="text-sm text-ink-muted">{t.projects.notAdmin}</p>
@@ -114,6 +114,6 @@ export function NewProjectForm() {
           </div>
         </form>
       )}
-    </div>
+    </Page>
   );
 }

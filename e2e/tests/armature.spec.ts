@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
 // Stator's spec of the same flow (#26), with the account on a page of its own.
@@ -81,17 +81,20 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expectAccessible(page);
 
       await section.locator('[data-action="check-armature"]').click();
-      await expect(section.getByText("Armature accepts your token.")).toBeVisible();
+      await expect(toast(page, "Armature accepts your token.")).toBeVisible();
+      await dismissToasts(page);
 
-      page.once("dialog", (dialog) => dialog.accept());
       await section.locator('[data-action="disconnect-armature-account"]').click();
-      await expect(section.getByText("Your Armature account is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Your Armature account is disconnected.")).toBeVisible();
+      await dismissToasts(page);
       await expect(section.getByLabel("Armature token", { exact: true })).toBeVisible();
 
       await page.goto(SETTINGS_PATH);
-      page.once("dialog", (dialog) => dialog.accept());
       await page.locator('[data-action="disconnect-armature"]').click();
-      await expect(page.getByText("Armature is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Armature is disconnected.")).toBeVisible();
+      await dismissToasts(page);
     });
   }
 

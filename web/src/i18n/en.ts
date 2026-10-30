@@ -52,6 +52,7 @@ export const en = {
   kit: kitEn,
   api: {
     unexpected: (status: number) => `The server answered with status ${status} and no explanation. Try again in a moment.`,
+    unsaved: "That change could not be saved. Check your connection and try again.",
   },
   nav: {
     search: "Search",
@@ -85,6 +86,10 @@ export const en = {
   },
   shell: {
     skipToContent: "Skip to content",
+    build: {
+      commit: (commit: string) => `commit ${commit}`,
+      built: (when: string) => `built ${when}`,
+    },
   },
   theme: {
     system: "Auto",
@@ -98,10 +103,23 @@ export const en = {
     label: "Find a requirement by its key or title, or a page by its name",
     placeholder: "Go to...",
     shortcut: "Ctrl K",
+    shortcutMac: "Cmd K",
     escape: "Esc",
     options: "Places",
     noMatch: "Nothing here starts with that. Try the start of a key, a title, or a page's name.",
     optionsCount: (count: number) => (count === 1 ? "1 place" : `${count} places`),
+    groups: {
+      found: "Requirements",
+      recent: "Recently opened",
+      projects: "Projects",
+      places: "Places",
+      actions: "Actions",
+      search: "Search",
+    },
+    requirementsCount: (count: number) => (count === 1 ? "1 requirement" : `${count} requirements`),
+    projectsCount: (count: number) => (count === 1 ? "1 project" : `${count} projects`),
+    actionsCount: (count: number) => (count === 1 ? "1 action" : `${count} actions`),
+    markAllRead: "Mark all notifications as read",
   },
   account: {
     menu: "Your account",

@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { API_BASE, BASELINE_SPEC_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
 import { api, queryString } from "./client";
 import type { ExportFormat } from "./coverage";

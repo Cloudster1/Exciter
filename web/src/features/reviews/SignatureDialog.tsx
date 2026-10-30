@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { reauthStartURL, useMe } from "@/api/auth";
-import { Button, ButtonLink, Dialog, ErrorBanner, Input } from "@/components/ui";
+import { Button, ButtonLink, Dialog, ErrorBanner, Input, DialogFooter } from "@/components/ui";
 import { t } from "@/i18n";
 
 /**
@@ -104,11 +104,11 @@ export function SignatureDialog({
             {t.review.cannotSign}
           </p>
         )}
-        <div className="flex justify-end">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} data-action="cancel-sign">
             {t.review.cancelSign}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

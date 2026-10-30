@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
-import { Card, PageHeader, SectionTitle } from "@/components/ui";
+import { Card, PageHeader, SectionTitle, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { placesFor, type Place } from "@/features/shell/places";
 import { t } from "@/i18n";
@@ -11,11 +11,11 @@ export function SettingsHub() {
   const places = placesFor(me);
   const settings = places.filter((place) => place.area === "settings");
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-settings-hub>
+    <Page width="narrow" className="space-y-6" data-settings-hub>
       <PageHeader title={t.settingsHub.title} />
       <HubCard id="you" title={t.settingsHub.you} intro={t.settingsHub.youIntro} places={places.filter((place) => place.area === "you")} />
       {settings.length > 0 && <HubCard id="settings" title={t.settingsHub.settings} intro={t.settingsHub.settingsIntro} places={settings} />}
-    </div>
+    </Page>
   );
 }
 

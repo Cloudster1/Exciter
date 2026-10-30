@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMarkRead, useNotifications } from "@/api/notifications";
-import { Button, Card, Checkbox, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, Checkbox, EmptyState, ErrorBanner, PageHeader, Skeleton, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { NOTIFICATION_SETTINGS_PATH, NOTIFICATIONS_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -17,7 +17,7 @@ export function NotificationList() {
   const total = data?.total ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl" data-notification-list="">
+    <Page width="narrow" data-notification-list="">
       <PageHeader
         title={t.notifications.title}
         actions={
@@ -77,6 +77,6 @@ export function NotificationList() {
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }

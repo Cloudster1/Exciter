@@ -3,7 +3,7 @@ import { request } from "@playwright/test";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
-import { expectAccessible, openAccountMenu } from "../fixtures/shell";
+import { expectAccessible, openAccountMenu, confirm } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 const KEY = uniqueKey("TOKS");
@@ -52,8 +52,8 @@ test.describe("personal access tokens", { tag: "@desktop" }, () => {
       expect(names).toContain("get_requirement");
       expect(names).not.toContain("create_requirement");
 
-      page.on("dialog", (dialog) => void dialog.accept());
       await page.getByRole("button", { name: "Revoke Nightly export" }).click();
+      await confirm(page);
       await expect(page.getByText("Nightly export was revoked.")).toBeVisible();
       await expect.poll(async () => (await script.get("/api/v1/auth/me")).status()).toBe(401);
     } finally {

@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApiToken } from "@/api/tokens";
 import { DAY_MS, ALL_TOKENS_PATH, TOKENS_PATH } from "@/config";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { expiryFrom, mcpClientSettings, reachOf } from "./TokensPage";
@@ -103,9 +103,9 @@ describe("personal access tokens", () => {
       "GET /projects": { status: 200, body: { projects: [] } },
       [`DELETE /tokens/${token.id}`]: { status: 204 },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt(TOKENS_PATH);
     await userEvent.click(await screen.findByRole("button", { name: "Revoke Nightly export" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Revoke token Nightly export?");
     expect(await screen.findByText("Nightly export was revoked.")).toBeInTheDocument();
     expect(sent.some((each) => each.method === "DELETE" && each.path === `/tokens/${token.id}`)).toBe(true);
   });
@@ -118,12 +118,12 @@ describe("everybody's tokens", () => {
       "GET /tokens/everyone": { status: 200, body: { tokens: [theirs] } },
       [`DELETE /tokens/everyone/${theirs.id}`]: { status: 204 },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt(ALL_TOKENS_PATH);
     const table = await screen.findByRole("table", { name: "All tokens" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Revoke Nightly export of Bob" }));
+    await answerConfirm(true);
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/tokens/everyone/${theirs.id}`)).toBe(true));
   });
 

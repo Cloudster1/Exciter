@@ -12,7 +12,7 @@ export const attachmentsEn = {
   open: (name: string) => `Open ${name}`,
   download: (name: string) => `Download ${name}`,
   remove: (name: string) => `Delete ${name}`,
-  confirmRemove: (name: string) => `Delete ${name}? A revision that shows it keeps showing it.`,
+  confirmRemove: "A revision that shows it keeps showing it.",
   removed: (name: string) => `Deleted ${name}.`,
   shown: "Shown in the statement",
   uploadedBy: (name: string, date: string) => (name ? `${name}, ${date}` : date),

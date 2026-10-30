@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useAcceptFinding, useWithdrawAcceptance, type QualityFinding, type QualitySentence, type Severity } from "@/api/quality";
-import { Button, Dialog, ErrorBanner, Field, Tag, cx } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Field, Tag, cx, DialogFooter } from "@/components/ui";
 import { QUALITY_REASON_MAX_LENGTH, QUALITY_REASON_ROWS } from "@/config";
 import type { FindingMark } from "@/features/editor/quality";
 import { t } from "@/i18n";
@@ -174,6 +174,7 @@ function Finding({
 }
 
 function AcceptDialog({ finding, reqKey, revision, onClose }: { finding: QualityFinding; reqKey: string; revision: number; onClose: () => void }) {
+  const formId = useId();
   const l = t.quality;
   const [reason, setReason] = useState("");
   const accept = useAcceptFinding(reqKey);
@@ -184,7 +185,7 @@ function AcceptDialog({ finding, reqKey, revision, onClose }: { finding: Quality
   }
   return (
     <Dialog open title={l.acceptTitle} onClose={onClose} attrs={{ "data-accept-finding": "" }}>
-      <form onSubmit={submit} className="space-y-4" noValidate>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.acceptIntro(l.rules[finding.rule].name, finding.match)}</p>
         {accept.error && !fields.reason && <ErrorBanner>{accept.error.message}</ErrorBanner>}
         <Field
@@ -197,14 +198,14 @@ function AcceptDialog({ finding, reqKey, revision, onClose }: { finding: Quality
           onChange={(event) => setReason(event.target.value)}
           autoFocus
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={accept.isPending} disabled={!reason.trim()} data-action="confirm-accept-finding">
+          <Button type="submit" form={formId} loading={accept.isPending} disabled={!reason.trim()} data-action="confirm-accept-finding">
             {l.acceptSend}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

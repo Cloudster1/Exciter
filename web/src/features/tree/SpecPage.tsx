@@ -390,16 +390,23 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
 
 function DiscardDialog({ onKeep, onDiscard }: { onKeep: () => void; onDiscard: () => void }) {
   return (
-    <Dialog open title={t.tree.discardTitle} onClose={onKeep} attrs={{ "data-discard-dialog": "" }}>
+    <Dialog
+      open
+      title={t.tree.discardTitle}
+      onClose={onKeep}
+      attrs={{ "data-discard-dialog": "" }}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onKeep} data-action="keep-editing">
+            {t.tree.keepEditing}
+          </Button>
+          <Button variant="danger" onClick={onDiscard} data-action="discard-changes">
+            {t.tree.discard}
+          </Button>
+        </>
+      }
+    >
       <p className="mb-4 text-sm text-ink-muted">{t.tree.discardBody}</p>
-      <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={onKeep} data-action="keep-editing">
-          {t.tree.keepEditing}
-        </Button>
-        <Button variant="danger" onClick={onDiscard} data-action="discard-changes">
-          {t.tree.discard}
-        </Button>
-      </div>
     </Dialog>
   );
 }

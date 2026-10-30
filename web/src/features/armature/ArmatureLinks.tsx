@@ -10,7 +10,7 @@ import {
   type ArmatureRelation,
 } from "@/api/armature";
 import type { Requirement } from "@/api/requirements";
-import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, SectionTitle, Select, Skeleton, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ARMATURE_ACCOUNT_PATH, ARMATURE_RELATIONS } from "@/config";
 import { t } from "@/i18n";
@@ -36,7 +36,7 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
     connected && (links?.length ?? 0) > 0,
   );
   const { remove, clear } = useArmatureLinkActions(requirement.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [checking, setChecking] = useState<ArmatureLink | null>(null);
   if (!configured || section) return null;
   const baseUrl = account.data!.baseUrl;
@@ -44,7 +44,7 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
   const l = t.armature.links;
 
   function unlink(link: ArmatureLink) {
-    remove.mutate(link, { onSuccess: () => setNotice(l.removed(link.issueKey)) });
+    remove.mutate(link, { onSuccess: () => toast.success(l.removed(link.issueKey)) });
   }
 
   return (
@@ -107,10 +107,7 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
             );
           })}
         {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
-        {mayLink && <AddIssueLink requirement={requirement} connected={connected} onLinked={(key) => setNotice(l.added(key))} />}
-        <p role="status" className="sr-only" data-armature-link-notice>
-          {notice}
-        </p>
+        {mayLink && <AddIssueLink requirement={requirement} connected={connected} onLinked={(key) => toast.success(l.added(key))} />}
         {checking && (
           <ClearDialog
             title={t.suspect.armatureTitle(requirement.key, checking.issueKey)}
@@ -124,7 +121,7 @@ export function ArmatureLinks({ requirement }: { requirement: Requirement }) {
                 { id: checking.id, revision: requirement.revision, comment },
                 {
                   onSuccess: () => {
-                    setNotice(t.suspect.armatureCleared(checking.issueKey));
+                    toast.success(t.suspect.armatureCleared(checking.issueKey));
                     setChecking(null);
                   },
                 },

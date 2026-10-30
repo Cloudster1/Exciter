@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ASSIGNABLE_ROLES, useMe, useMembers, useSetMemberActive, useSetMemberRole, type AssignableRole, type Member } from "@/api/auth";
-import { Button, Dialog, ErrorBanner, PageHeader, SelectInput, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, PageHeader, SelectInput, Skeleton, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { t } from "@/i18n";
 import { useFocusWhenRendered } from "@/lib/focus";
 import { localDateFormat } from "@/lib/format";
@@ -18,7 +18,7 @@ export function Members() {
   const setRole = useSetMemberRole();
   const setActive = useSetMemberActive();
   const [confirming, setConfirming] = useState<Member | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const focusLater = useFocusWhenRendered();
   const closeConfirm = () => {
     setActive.reset();
@@ -27,10 +27,9 @@ export function Members() {
   const list = members.data ?? [];
 
   function changeRole(member: Member, role: AssignableRole) {
-    setNotice("");
     setRole.mutate(
       { userId: member.userId, role },
-      { onSuccess: (changed) => setNotice(t.members.roleChanged(nameOf(changed), t.members.roleNames[changed.role])) },
+      { onSuccess: (changed) => toast.success(t.members.roleChanged(nameOf(changed), t.members.roleNames[changed.role])) },
     );
   }
 
@@ -40,7 +39,7 @@ export function Members() {
       {
         onSuccess: () => {
           setConfirming(null);
-          setNotice(t.members.switchedOff(nameOf(member)));
+          toast.success(t.members.switchedOff(nameOf(member)));
           // The row moves to the end of the list with another button, so focus goes somewhere that stays put.
           focusLater(() => document.querySelector<HTMLElement>('[data-action="add-member"]'));
         },
@@ -49,23 +48,17 @@ export function Members() {
   }
 
   function switchOn(member: Member) {
-    setNotice("");
-    setActive.mutate({ userId: member.userId, active: true }, { onSuccess: () => setNotice(t.members.switchedOn(nameOf(member))) });
+    setActive.mutate({ userId: member.userId, active: true }, { onSuccess: () => toast.success(t.members.switchedOn(nameOf(member))) });
   }
 
   return (
-    <div className="mx-auto max-w-4xl" data-members>
+    <Page width="content" data-members>
       <PageHeader title={t.members.title} meta={members.data ? t.members.count(list.length) : undefined} actions={<AddMember />} />
       <p className="mb-4 text-sm text-ink-muted">{t.members.intro}</p>
       <JoinRequests />
       {members.error && <ErrorBanner onRetry={() => void members.refetch()}>{members.error.message}</ErrorBanner>}
       {setRole.error && <ErrorBanner>{setRole.error.message}</ErrorBanner>}
       {!confirming && setActive.error && <ErrorBanner>{setActive.error.message}</ErrorBanner>}
-      {notice && (
-        <p role="status" className="mb-3 text-sm text-ink-muted" data-members-notice>
-          {notice}
-        </p>
-      )}
       {members.isLoading ? (
         <Skeleton />
       ) : (
@@ -169,23 +162,30 @@ export function Members() {
         )
       )}
       {confirming && (
-        <Dialog open title={t.members.confirmTitle(nameOf(confirming))} onClose={closeConfirm} attrs={{ "data-confirm-switch-off": "" }}>
+        <Dialog
+          open
+          title={t.members.confirmTitle(nameOf(confirming))}
+          onClose={closeConfirm}
+          attrs={{ "data-confirm-switch-off": "" }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={closeConfirm}>
+                {t.kit.cancel}
+              </Button>
+              <Button variant="danger" onClick={() => switchOffConfirmed(confirming)} loading={setActive.isPending} data-action="confirm-switch-off-member">
+                {t.members.confirm}
+              </Button>
+            </>
+          }
+        >
           <p className="text-sm text-ink">{t.members.confirmBody}</p>
           {setActive.error && (
             <div className="mt-3">
               <ErrorBanner>{setActive.error.message}</ErrorBanner>
             </div>
           )}
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={closeConfirm}>
-              {t.kit.cancel}
-            </Button>
-            <Button variant="danger" onClick={() => switchOffConfirmed(confirming)} loading={setActive.isPending} data-action="confirm-switch-off-member">
-              {t.members.confirm}
-            </Button>
-          </div>
         </Dialog>
       )}
-    </div>
+    </Page>
   );
 }

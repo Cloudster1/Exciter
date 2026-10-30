@@ -18,6 +18,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `ProgressBar`, `DateInput`, `MentionTextarea`, `Spotlight`, `Count`,
   `Toast`, `ConfirmDialog`, `Drawer` and `DockedPanel`, and a `ref` on
   `Field` (#474).
+- The Ctrl K palette, Cmd K on a Mac, finds projects and what can be done,
+  such as New project, beside requirements, places and the full search, and
+  offers the requirements opened last before anything is typed; each kind
+  is a group read out as one (#473).
 
 ### Changed
 
@@ -38,6 +42,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - Everyone's default theme is named on the Themes page, where the themes
   are; `/settings/default-theme` sends a bookmark there, and the page of its
   own is gone from Settings (#474).
+- What an action did, or a refused change nobody else shows, is said in a
+  toast in the corner, in the server's words; a deletion or anything else
+  that cannot be taken back asks in the kit's confirm dialog, which names
+  what goes, instead of the browser's. Dialog buttons stay in view in the
+  pinned footer (#473).
+- Pages take their width from `Page` rather than typing their own (#473).
+- The phone's strip is as tall as the rail is wide and holds the menu
+  button, the installation's name and the bell. The build stamp names the
+  running build and commit, the account menu opens past the rail with the
+  avatar beside name, address and role, and Switch to shows each tool's
+  mark in one format (#473).
 
 - The browser suite reaches the rest of the routes and controls #334 left
   out: a baseline's and a review session's print views, theme files and the

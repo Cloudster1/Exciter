@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm } from "../fixtures/shell";
 
 // Baselines (#37): alice takes a baseline, R1 changes and R3 is written, and comparing the baseline with now says so
 // before she locks it.
@@ -64,8 +64,8 @@ test.describe("baselines", { tag: "@desktop" }, () => {
 
     await page.goBack();
     await page.getByRole("link", { name: "Release 1.0" }).click();
-    page.once("dialog", (dialog) => void dialog.accept());
     await page.getByRole("button", { name: "Lock" }).click();
+    await confirm(page);
     await expect(page.getByText("A locked baseline keeps its name and is never deleted.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   });

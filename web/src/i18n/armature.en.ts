@@ -30,7 +30,7 @@ export const armatureEn = {
   disconnectTitle: "Disconnect",
   disconnectIntro: "Disconnecting forgets the address, the webhook secret and every member's token. Requirements show issue keys only.",
   disconnect: "Disconnect Armature",
-  confirmDisconnect: "Disconnect Armature? Every member's token is forgotten, and requirements show issue keys only.",
+  confirmDisconnect: "Every member's token is forgotten, and requirements show issue keys only.",
   disconnected: "Armature is disconnected.",
   signIn: {
     title: "Connect people at sign-in",
@@ -60,7 +60,7 @@ export const armatureEn = {
     check: "Check again",
     checked: "Armature accepts your token.",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect your Armature account? Requirements show issue keys only until you connect again.",
+    confirmDisconnect: "Requirements show issue keys only until you connect again.",
     disconnected: "Your Armature account is disconnected.",
     rejected: "Armature no longer accepts your token. Make a new one under Tokens in Armature and paste it here.",
     unreachable: "Armature did not answer the last check. Check again in a moment.",

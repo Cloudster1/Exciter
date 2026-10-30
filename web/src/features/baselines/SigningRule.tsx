@@ -3,11 +3,12 @@ import { ApiError } from "@/api/client";
 import { useSigningRule, useSigningRuleActions, type BaselineSigner, type SigningRule as Rule } from "@/api/baselines";
 import { subjectKey, type Subject } from "@/api/permissions";
 import type { Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, Field, IconButton, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, IconButton, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { BASELINE_SIGNATURES_MAX } from "@/config";
 import { SubjectGlyph, SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 // Who signs a project's baselines (#205), shaped as an approval rule is.
 
@@ -26,16 +27,14 @@ export function SigningRuleCard({ project }: { project: Project }) {
   const { data: rule, error, isLoading, refetch } = useSigningRule(project.key);
   const { remove } = useSigningRuleActions(project.key);
   const [editing, setEditing] = useState(false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const mayChange = project.can.administer && !project.archivedAt;
   return (
     <Card className="space-y-4 p-4" data-signing-rule="">
       <SectionTitle>{t.control.ruleTitle}</SectionTitle>
       <p className="text-sm text-ink-muted">{t.control.ruleIntro}</p>
       {!mayChange && <p className="text-sm text-ink-muted">{t.control.readOnly}</p>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
@@ -47,7 +46,7 @@ export function SigningRuleCard({ project }: { project: Project }) {
           rule={rule ?? null}
           onDone={(saved) => {
             setEditing(false);
-            if (saved) setNotice(t.control.saved);
+            if (saved) toast.success(t.control.saved);
           }}
         />
       ) : (
@@ -60,7 +59,6 @@ export function SigningRuleCard({ project }: { project: Project }) {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setNotice("");
                   setEditing(true);
                 }}
                 data-action="edit-signing-rule"
@@ -71,10 +69,9 @@ export function SigningRuleCard({ project }: { project: Project }) {
                 <Button
                   variant="ghost"
                   loading={remove.isPending}
-                  onClick={() => {
-                    if (!window.confirm(t.control.confirmRemove)) return;
-                    setNotice("");
-                    remove.mutate(undefined, { onSuccess: () => setNotice(t.control.removed) });
+                  onClick={async () => {
+                    if (!(await confirm({ noun: t.kit.confirm.things.signing, verb: t.kit.confirm.verbs.stop, body: t.control.confirmRemove }))) return;
+                    remove.mutate(undefined, { onSuccess: () => toast.success(t.control.removed) });
                   }}
                   data-action="remove-signing-rule"
                 >

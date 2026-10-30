@@ -3,7 +3,7 @@ import { STATOR_ACCOUNT_PATH, STATOR_SETTINGS_PATH } from "@/config";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { AccountSection } from "@/features/stator/AccountSection";
 import { ConnectionSettings } from "@/features/stator/ConnectionSettings";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Page } from "@/components/ui";
 import { t } from "@/i18n";
 import { appRoute } from "./app";
 
@@ -13,10 +13,10 @@ export const statorSettingsRoute = createRoute({
   path: STATOR_SETTINGS_PATH,
   component: () => (
     <AdminsOnly title={t.stator.title} refusal={t.stator.notAdmin}>
-      <div className="mx-auto max-w-3xl">
+      <Page width="narrow">
         <PageHeader title={t.stator.title} />
         <ConnectionSettings />
-      </div>
+      </Page>
     </AdminsOnly>
   ),
 });

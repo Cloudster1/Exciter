@@ -4,7 +4,7 @@ import type { ExciterApi } from "../fixtures/api";
 import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, dismissToasts } from "../fixtures/shell";
 
 const KEY = uniqueKey("FIL");
 // The smallest PNG there is, one pixel, so a picture is a real one the browser draws.
@@ -60,10 +60,12 @@ test.describe("attachments", { tag: "@desktop" }, () => {
     await expect.poll(() => drawn(page, shown)).toBe(true);
     await expect(panel.locator('[data-attachment="diagram.png"]')).toContainText("Shown in the statement");
 
-    page.on("dialog", (dialog) => void dialog.accept());
     await panel.getByRole("button", { name: "Delete notes.txt" }).click();
+    await confirm(page);
     await expect(panel.locator('[data-attachment="notes.txt"]')).toHaveCount(0);
+    await dismissToasts(page);
     await panel.getByRole("button", { name: "Delete diagram.png" }).click();
+    await confirm(page);
     await expect(panel.locator('[data-attachment="diagram.png"]')).toHaveCount(0);
 
     // Taken off the list, the picture the revision shows is still there to draw.

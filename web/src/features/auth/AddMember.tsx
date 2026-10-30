@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { ASSIGNABLE_ROLES, useCreateMember, type AssignableRole, type CreatedMember } from "@/api/auth";
 import { ApiError } from "@/api/client";
-import { Button, Dialog, ErrorBanner, Field, Select } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Field, Select, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { useFocusWhenRendered } from "@/lib/focus";
@@ -9,6 +9,7 @@ import { useFocusWhenRendered } from "@/lib/focus";
 // Adds a person with a password, for an installation whose people do not all come through an identity provider.
 // A password left out is made, and shown once in the dialog, since nothing keeps it.
 export function AddMember() {
+  const formId = useId();
   const create = useCreateMember();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -80,14 +81,14 @@ export function AddMember() {
                   </div>
                 </div>
               )}
-              <div className="flex justify-end">
+              <DialogFooter>
                 <Button variant="primary" onClick={close} data-action="done">
                   {t.members.done}
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           ) : (
-            <form onSubmit={submit} className="space-y-3" noValidate aria-label={t.members.add}>
+            <form id={formId} onSubmit={submit} className="space-y-3" noValidate aria-label={t.members.add}>
               <p className="text-sm text-ink-muted">{t.members.addIntro}</p>
               <Field
                 label={t.members.email}
@@ -123,14 +124,14 @@ export function AddMember() {
                 error={fields.password}
               />
               {create.error && Object.keys(fields).length === 0 && <ErrorBanner>{create.error.message}</ErrorBanner>}
-              <div className="flex justify-end gap-2">
+              <DialogFooter>
                 <Button type="button" variant="secondary" onClick={close}>
                   {t.kit.cancel}
                 </Button>
-                <Button type="submit" variant="primary" loading={create.isPending} data-action="create-member">
+                <Button type="submit" form={formId} variant="primary" loading={create.isPending} data-action="create-member">
                   {t.members.addSubmit}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           )}
         </Dialog>

@@ -1,30 +1,29 @@
-import { useState } from "react";
 import { useEveryonesTokens, useRevokeToken, type OrgApiToken } from "@/api/tokens";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TOKEN_READ_SCOPE } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { expired, reachOf, when } from "./TokensPage";
 
 /** Everybody's tokens with whose each is, for the administrators to revoke any that should stop. */
 export function AllTokens() {
   const { data: tokens, error } = useEveryonesTokens();
   const revoke = useRevokeToken(true);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const now = new Date();
 
-  function revokeToken(token: OrgApiToken) {
-    if (!window.confirm(t.tokens.confirmRevoke(token.name))) return;
-    revoke.mutate(token.id, { onSuccess: () => setNotice(t.tokens.revoked(token.name)) });
+  async function revokeToken(token: OrgApiToken) {
+    const noun = t.kit.confirm.things.named(t.kit.confirm.things.token, token.name);
+    if (!(await confirm({ noun, verb: t.kit.confirm.verbs.revoke, body: t.tokens.confirmRevoke }))) return;
+    revoke.mutate(token.id, { onSuccess: () => toast.success(t.tokens.revoked(token.name)) });
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <Page width="content" className="space-y-4">
       <PageHeader title={t.tokens.allTitle} meta={t.tokens.allIntro} />
       {(error ?? revoke.error) && <ErrorBanner>{(error ?? revoke.error)?.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-tokens-notice>
-        {notice}
-      </p>
       {!tokens && !error && <Skeleton />}
       {tokens && tokens.length === 0 && <EmptyState icon={<Icon.Key />} title={t.tokens.allEmpty} />}
       {tokens && tokens.length > 0 && (
@@ -69,6 +68,6 @@ export function AllTokens() {
           </tbody>
         </Table>
       )}
-    </div>
+    </Page>
   );
 }

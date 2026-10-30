@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { API_BASE, FILE_SIZE_DECIMALS_BELOW, INLINE_FILE_TYPES, KILOBYTE } from "@/config";
 import { t } from "@/i18n";
 import { formatNumber } from "@/lib/format";

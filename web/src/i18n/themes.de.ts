@@ -41,8 +41,8 @@ export const themesDe: typeof themesEn = {
   share: "Mit allen teilen",
   stopSharing: "Nicht mehr teilen",
   delete: "Löschen",
-  confirmDelete: (name: string, inUse: number) =>
-    `${name} und seine Dateien endgültig löschen? ${
+  confirmDelete: (inUse: number) =>
+    `Seine Dateien gehen endgültig mit. ${
       inUse === 0
         ? "Niemand verwendet es."
         : inUse === 1
@@ -132,7 +132,7 @@ export const themesDe: typeof themesEn = {
     kilobytes: (n: number) => `${n} KB`,
     inUse: "In Verwendung",
     removeFile: (name: string) => `${name} entfernen`,
-    confirmRemoveFile: (name: string) => `${name} aus den Dateien des Designs entfernen?`,
+    confirmRemoveFile: "Sie wird aus den Dateien des Designs entfernt.",
     added: (name: string) => `${name} hinzugefügt.`,
     removed: (name: string) => `${name} entfernt.`,
     extraCSS: "Zusätzliches CSS",

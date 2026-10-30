@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { administers, useMe } from "@/api/auth";
 import { useProjects } from "@/api/projects";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Switch } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Switch, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { NEW_PROJECT_PATH } from "@/config";
 import { t } from "@/i18n";
@@ -23,7 +23,7 @@ export function ProjectDirectory() {
     ) : undefined;
 
   return (
-    <div className="mx-auto max-w-4xl" data-project-directory>
+    <Page width="content" data-project-directory>
       <PageHeader
         title={t.projects.title}
         actions={
@@ -48,6 +48,6 @@ export function ProjectDirectory() {
         />
       )}
       {projects && projects.length > 0 && <ProjectTable projects={projects} label={t.projects.title} />}
-    </div>
+    </Page>
   );
 }

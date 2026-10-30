@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useCodeTags, type CodeTagState } from "@/api/code";
 import type { Project } from "@/api/projects";
 import { useEvidenceSettings } from "@/api/testResults";
-import { Button, Card, EmptyState, ErrorBanner, PageHeader, Select, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Card, EmptyState, ErrorBanner, PageHeader, Select, Skeleton, Table, Td, Th, Page } from "@/components/ui";
 import { CODE_TAGS_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
 
@@ -16,7 +16,7 @@ export function CodeTagsPage({ project }: { project: Project }) {
   const { data: settings } = useEvidenceSettings(project.key);
   const l = t.evidence.codeTags;
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-code-tags-page>
+    <Page width="content" className="space-y-4" data-code-tags-page>
       <PageHeader title={l.title} />
       <p className="text-sm text-ink-muted">{l.intro(settings?.countingBranch ?? "main")}</p>
       <div className="max-w-60">
@@ -99,6 +99,6 @@ export function CodeTagsPage({ project }: { project: Project }) {
           </Button>
         </div>
       )}
-    </div>
+    </Page>
   );
 }

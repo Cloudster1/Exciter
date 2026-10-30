@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { MENTION_LIMIT } from "@/config";
 import type { Mentionable } from "@/features/editor/extensions";
 import { attachmentsQueryKey } from "./attachments";

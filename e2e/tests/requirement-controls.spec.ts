@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
+import { expectAccessible, openProjectAdmin, confirm } from "../fixtures/shell";
 
 // The controls of a requirement's page and of the trash (#309): a lock by hand as another person meets it, a copy
 // with what is below it, the owner taken off, and the trash emptied by its administrator.
@@ -62,8 +62,8 @@ test.describe("requirement controls", { tag: "@desktop" }, () => {
     await expect(bob.locator('[data-action="unlock-requirement"]')).toHaveCount(0);
     await expectAccessible(bob);
 
-    page.once("dialog", (confirm) => void confirm.accept());
     await page.locator('[data-action="unlock-requirement"]').click();
+    await confirm(page);
     await expect(page.getByText(`${KEY}-R1 is unlocked.`)).toBeVisible();
     await expect(page.locator("[data-lock]")).toHaveCount(0);
 

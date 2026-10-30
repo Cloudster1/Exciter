@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useStopWatching, useWatches, type Watch } from "@/api/watching";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { WATCHES_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -20,7 +20,7 @@ export function WatchingList() {
   const [offset, setOffset] = useState(0);
   const { data, error, isLoading, isPlaceholderData, refetch } = useWatches(offset);
   const stop = useStopWatching();
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const rows = data?.watches ?? [];
   const total = data?.total ?? 0;
   // Stopping the last watch of a later page leaves that page empty; the earlier ones still hold watches.
@@ -31,12 +31,9 @@ export function WatchingList() {
   }, [settledEmpty, offset]);
 
   return (
-    <div className="mx-auto max-w-3xl" data-watching-list="">
+    <Page width="narrow" data-watching-list="">
       <PageHeader title={t.watch.listTitle} meta={t.watch.listIntro} />
       {stop.error && <ErrorBanner>{t.watch.failed}</ErrorBanner>}
-      <p role="status" className="mb-2 text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
       ) : isLoading || !data || emptiedPage ? (
@@ -82,7 +79,7 @@ export function WatchingList() {
                       size="sm"
                       aria-label={t.watch.stopNamed(named(watch))}
                       loading={stop.isPending && stop.variables === watch}
-                      onClick={() => stop.mutate(watch, { onSuccess: () => setNotice(t.watch.stopped(named(watch))) })}
+                      onClick={() => stop.mutate(watch, { onSuccess: () => toast.success(t.watch.stopped(named(watch))) })}
                       data-action="stop-watching"
                     >
                       {t.watch.stop}
@@ -105,6 +102,6 @@ export function WatchingList() {
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }

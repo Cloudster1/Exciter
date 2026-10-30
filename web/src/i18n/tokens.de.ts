@@ -45,7 +45,7 @@ export const tokensDe: typeof tokensEn = {
   revoke: "Widerrufen",
   revokeLabel: (name: string) => `${name} widerrufen`,
   revokeOwnedLabel: (name: string, owner: string) => `${name} von ${owner} widerrufen`,
-  confirmRevoke: (name: string) => `${name} widerrufen? Alles, was es nutzt, wird ab jetzt abgewiesen.`,
+  confirmRevoke: "Alles, was es nutzt, wird ab jetzt abgewiesen.",
   revoked: (name: string) => `${name} wurde widerrufen.`,
   mcpTitle: "Einen Assistenten anbinden",
   mcpBody: "Ein Assistent, der das Model Context Protocol spricht, kann unter der Adresse unten in Ihrem Namen Anforderungen suchen, lesen und schreiben.",

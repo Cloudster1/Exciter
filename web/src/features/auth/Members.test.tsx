@@ -60,7 +60,7 @@ describe("the members screen", () => {
     await renderAt(MEMBERS_PATH);
     await userEvent.selectOptions(await screen.findByRole("combobox", { name: "Role of Bob Builder" }), "admin");
     await waitFor(() => expect(sent.find((r) => r.method === "PATCH")).toEqual({ method: "PATCH", path: `/users/${bob.userId}`, body: { role: "admin" } }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Bob Builder is now Administrator.");
+    expect(await screen.findByText("Bob Builder is now Administrator.")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("combobox", { name: "Role of Bob Builder" })).toHaveValue("admin"));
   });
 
@@ -102,12 +102,12 @@ describe("the members screen", () => {
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Switch off" }));
     await waitFor(() => expect(sent.find((r) => r.method === "PATCH")).toEqual({ method: "PATCH", path: `/users/${bob.userId}`, body: { active: false } }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByRole("status")).toHaveTextContent("Bob Builder was switched off.");
+    expect(await screen.findByText("Bob Builder was switched off.")).toBeInTheDocument();
     await waitFor(() => expect(within(row(bob.email)!).getByText("Switched off")).toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole("button", { name: "Add person" })).toHaveFocus());
 
     await userEvent.click(screen.getByRole("button", { name: "Switch Bob Builder on" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Bob Builder was switched on and can sign in again.");
+    expect(await screen.findByText("Bob Builder was switched on and can sign in again.")).toBeInTheDocument();
     await waitFor(() => expect(row(bob.email)).toHaveAttribute("data-member-active", "true"));
   });
 

@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useMentionSource, type Comment, type Thread } from "@/api/comments";
 import type { Project } from "@/api/projects";
 import type { Requirement } from "@/api/requirements";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, stubApi, type Answer } from "@/test/app";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
 import type { Doc } from "@/features/editor/schema";
@@ -117,20 +117,21 @@ describe("the discussion's edges", () => {
       threads: [aThread({ comments: [aComment({ can: { edit: false, delete: true } })] })],
       more: { [`DELETE /comments/${threadId}`]: { status: 204 } },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt("/p/CHK/r/CHK-R1");
     const thread = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(thread).getByRole("button", { name: "Delete" }));
-    expect(window.confirm).toHaveBeenCalledWith(t.comments.confirmDeleteOthers("Grace Hopper"));
+    const asked = await answerConfirm(true);
+    expect(asked).toHaveTextContent("Delete Grace Hopper's comment?");
+    expect(asked).toHaveTextContent(t.comments.confirmDeleteOthers);
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/comments/${threadId}`)).toBe(true));
   });
 
   it("sends nothing when the deletion is not confirmed", async () => {
     const sent = stubPage({ threads: [aThread({ comments: [aComment({ can: { edit: false, delete: true } })] })] });
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     await renderAt("/p/CHK/r/CHK-R1");
     const thread = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(thread).getByRole("button", { name: "Delete" }));
+    await answerConfirm(false);
     expect(posted(sent)).toEqual([]);
   });
 

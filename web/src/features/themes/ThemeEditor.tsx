@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useChooseTheme, useCreateTheme, useThemeExamples, useUpdateTheme, type Theme, type ThemeExample, type ThemeSpec } from "@/api/themes";
-import { Button, Card, ErrorBanner, Field, OptionCard, SectionTitle, Switch, Tabs } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, OptionCard, SectionTitle, Switch, Tabs, useToast } from "@/components/ui";
 import { THEME_PREVIEW_DEBOUNCE_MS } from "@/config";
 import { t } from "@/i18n";
 import { compileTheme, emptySpec } from "@/lib/theme-css";
@@ -35,7 +35,7 @@ export function ThemeEditor({ theme }: { theme?: Theme }) {
   const [tab, setTab] = useState<TabID>("colours");
   const [preview, setPreview] = useState(false);
   const [startedFrom, setStartedFrom] = useState("blank");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const assets = useMemo(() => theme?.assets ?? [], [theme?.assets]);
   const saving = create.isPending || update.isPending;
   const patch = (change: (draft: ThemeSpec) => void) =>
@@ -64,7 +64,7 @@ export function ThemeEditor({ theme }: { theme?: Theme }) {
     event.preventDefault();
     if (!name.trim()) return;
     if (theme) {
-      update.mutate({ id: theme.id, name: name.trim(), shared, spec }, { onSuccess: (saved) => setNotice(t.themes.saved(saved.theme.name)) });
+      update.mutate({ id: theme.id, name: name.trim(), shared, spec }, { onSuccess: (saved) => toast.success(t.themes.saved(saved.theme.name)) });
     } else {
       create.mutate(
         { name: name.trim(), shared, spec },
@@ -77,11 +77,6 @@ export function ThemeEditor({ theme }: { theme?: Theme }) {
   return (
     <form onSubmit={save} className="space-y-4" noValidate data-theme-editor={theme?.id ?? "new"}>
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-      {notice && (
-        <p role="status" className="text-sm text-ink-muted" data-theme-notice>
-          {notice}
-        </p>
-      )}
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-4">
           <Field label={t.themes.editor.name} id="field-theme-name" value={name} onChange={(ev) => setName(ev.target.value)} required className="w-64" />
@@ -99,7 +94,7 @@ export function ThemeEditor({ theme }: { theme?: Theme }) {
                 type="button"
                 variant="secondary"
                 loading={choose.isPending}
-                onClick={() => choose.mutate(theme.id, { onSuccess: () => setNotice(t.themes.nowUsing(theme.name)) })}
+                onClick={() => choose.mutate(theme.id, { onSuccess: () => toast.success(t.themes.nowUsing(theme.name)) })}
                 data-action="use-theme"
               >
                 {t.themes.use}
@@ -136,7 +131,7 @@ export function ThemeEditor({ theme }: { theme?: Theme }) {
       {tab === "cursors" && <CursorsTab spec={spec} patch={patch} assets={assets} />}
       {tab === "icons" && <IconsTab spec={spec} patch={patch} assets={assets} />}
       {tab === "backdrop" && <BackdropTab spec={spec} patch={patch} assets={assets} />}
-      {tab === "files" && <FilesTab theme={theme} spec={spec} onNotice={setNotice} />}
+      {tab === "files" && <FilesTab theme={theme} spec={spec} onNotice={toast.success} />}
       {tab === "advanced" && <AdvancedTab spec={spec} patch={patch} />}
     </form>
   );

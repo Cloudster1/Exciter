@@ -1,5 +1,5 @@
 import { createRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Page } from "@/components/ui";
 import { INSTALLATION_PATH } from "@/config";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { InstallationSettings } from "@/features/installation/InstallationSettings";
@@ -12,10 +12,10 @@ export const installationRoute = createRoute({
   path: INSTALLATION_PATH,
   component: () => (
     <AdminsOnly title={t.installation.title} refusal={t.installation.notAdmin}>
-      <div className="mx-auto max-w-3xl">
+      <Page width="narrow">
         <PageHeader title={t.installation.title} />
         <InstallationSettings />
-      </div>
+      </Page>
     </AdminsOnly>
   ),
 });

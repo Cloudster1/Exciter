@@ -14,7 +14,7 @@ import {
 } from "@/api/coverage";
 import { useTypes } from "@/api/attributes";
 import type { Project } from "@/api/projects";
-import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COVERAGE_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -23,7 +23,7 @@ import { Pages } from "./Pages";
 /** A project's coverage: the report and its rules, and the way to its traceability matrix. */
 export function CoveragePage({ project }: { project: Project }) {
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-coverage={project.key}>
+    <Page width="content" className="space-y-4" data-coverage={project.key}>
       <PageHeader
         title={t.coverage.title}
         meta={t.coverage.intro}
@@ -41,7 +41,7 @@ export function CoveragePage({ project }: { project: Project }) {
       />
       <Report project={project} />
       <Rules project={project} />
-    </div>
+    </Page>
   );
 }
 

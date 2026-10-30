@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm } from "../fixtures/shell";
 
 // The edges of the discussion (#312): a comment cancelled, edited to mention bob, resolved and reopened; another's
 // comment moderated; and a reader, and a member without a grant, kept out of it.
@@ -97,14 +97,10 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
     const discussion = page.getByRole("region", { name: "Discussion" });
     await openUntil(page, requirement, () => expect(discussion.getByRole("article")).toContainText("This is off topic.", ONE_LOOK));
-    let asked = "";
-    page.once("dialog", (dialog) => {
-      asked = dialog.message();
-      void dialog.accept();
-    });
     await discussion.locator(`[data-comment="${bobsThread.id}"]`).getByRole("button", { name: "Delete" }).click();
+    await expect(page.locator("[data-confirm]")).toContainText(`Delete ${people.bob.name}'s comment?`);
+    await confirm(page);
     await expect(discussion.getByText("This comment was deleted.")).toBeVisible();
-    expect(asked).toContain(`Delete ${people.bob.name}'s comment?`);
     const bob = await pageAs("bob");
     const bobs = bob.getByRole("region", { name: "Discussion" });
     await openUntil(bob, requirement, () => expect(bobs.getByText("This comment was deleted.")).toBeVisible(ONE_LOOK));

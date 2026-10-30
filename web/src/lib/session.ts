@@ -1,9 +1,14 @@
 import { MutationCache, QueryCache, QueryClient, type InvalidateOptions, type InvalidateQueryFilters, type QueryKey } from "@tanstack/react-query";
 import { ApiError } from "@/api/client";
 import { LOGIN_PATH, QUERY_STALE_MS } from "@/config";
+import { t } from "@/i18n";
 
 /** Marks a query or mutation that answers a 401 itself, such as asking who is signed in. */
 export const HANDLES_UNAUTHORIZED = { handlesUnauthorized: true } as const;
+
+type Listener = (message: string) => void;
+
+const listeners = new WeakMap<QueryClient, Set<Listener>>();
 
 /** A query client whose invalidation is never answered by a first load that was asked before the change (#372). */
 class FreshQueryClient extends QueryClient {
@@ -21,14 +26,25 @@ class FreshQueryClient extends QueryClient {
   }
 }
 
-/** The application's query client. A 401 from any request means the session is gone, and onUnauthorized says what follows. */
+/**
+ * The application's query client. A 401 from any request means the session is gone, and onUnauthorized says what follows.
+ * Any other failed change its caller does not show goes to the listeners onUnreportedMutationError adds.
+ */
 export function createQueryClient(onUnauthorized: (client: QueryClient) => void): QueryClient {
   const onError = (error: unknown, meta: Record<string, unknown> | undefined) => {
     if (error instanceof ApiError && error.isUnauthenticated && !meta?.handlesUnauthorized) onUnauthorized(client);
   };
   const client: QueryClient = new FreshQueryClient({
     queryCache: new QueryCache({ onError: (error, query) => onError(error, query.meta) }),
-    mutationCache: new MutationCache({ onError: (error, _vars, _ctx, mutation) => onError(error, mutation.meta) }),
+    mutationCache: new MutationCache({
+      onError: (error, _vars, _ctx, mutation) => {
+        onError(error, mutation.meta);
+        // Signing in again says what happened; a toast would only repeat it.
+        if (mutation.meta?.handlesError || (error instanceof ApiError && error.isUnauthenticated)) return;
+        const message = error instanceof ApiError && error.message ? error.message : t.api.unsaved;
+        listeners.get(client)?.forEach((listener) => listener(message));
+      },
+    }),
     defaultOptions: {
       queries: {
         // A failed request is usually a real answer (401, 404, validation), not
@@ -40,6 +56,16 @@ export function createQueryClient(onUnauthorized: (client: QueryClient) => void)
     },
   });
   return client;
+}
+
+/** Hears every failed change nobody else reported; returns how to stop. */
+export function onUnreportedMutationError(client: QueryClient, listener: Listener): () => void {
+  const set = listeners.get(client) ?? new Set<Listener>();
+  listeners.set(client, set);
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+  };
 }
 
 /** A path of this application to return to, never another site and never the sign-in page itself. */

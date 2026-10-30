@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueName } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // The controls of /settings/tokens and /settings/all-tokens no other spec clicks (#329): copying a fresh token,
@@ -74,12 +74,12 @@ test.describe("token controls", { tag: "@desktop" }, () => {
     await expect(row).toHaveAttribute("data-token-owner", people.bob.email);
     await expectAccessible(page);
 
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Revoke ${name}? Anything using it is refused from now on.`);
-      void dialog.accept();
-    });
     await row.getByRole("button", { name: `Revoke ${name} of ${people.bob.name}` }).click();
-    await expect(page.locator("[data-tokens-notice]")).toHaveText(`${name} was revoked.`);
+    await expect(page.locator("[data-confirm]")).toContainText(`Revoke token ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("Anything using it is refused from now on.");
+    await confirm(page);
+    await expect(toast(page, `${name} was revoked.`)).toHaveText(`${name} was revoked.`);
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
     await expect.poll(() => meStatus(secret)).toBe(401);
     await expect.poll(async () => must(await bob.GET("/tokens")).tokens.map((each) => each.name)).not.toContain(name);

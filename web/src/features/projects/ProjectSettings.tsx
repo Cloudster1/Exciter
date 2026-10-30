@@ -4,7 +4,7 @@ import { ApiError } from "@/api/client";
 import { useDashboards } from "@/api/dashboards";
 import { useTypes } from "@/api/attributes";
 import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
-import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
+import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs, Page } from "@/components/ui";
 import { ImportPanel } from "@/features/import/ImportPanel";
 import { ReqIFPanel } from "@/features/reqif/ReqIFPanel";
 import { WordImportPanel } from "@/features/word/WordImportPanel";
@@ -56,7 +56,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
   // The details form starts again from each saved project, so what it says about its save is kept here.
   const [saved, setSaved] = useState("");
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-project-settings={project.key}>
+    <Page width="narrow" className="space-y-6" data-project-settings={project.key}>
       <PageHeader
         title={t.projects.settingsTitle}
         meta={t.projects.projectAndKey(project.name, project.key)}
@@ -138,7 +138,7 @@ export function ProjectSettings({ project, tab: opened }: { project: Project; ta
         {tab === "word" && <WordImportPanel project={project} />}
         {tab === "templates" && <TemplateSettings project={project} />}
       </TabPanel>
-    </div>
+    </Page>
   );
 }
 
@@ -381,26 +381,33 @@ function DeleteSection({ project }: { project: Project }) {
         {t.projects.delete}
       </Button>
       {confirming && (
-        <Dialog open title={t.projects.confirmTitle} onClose={() => setConfirming(false)} attrs={{ "data-confirm-delete-project": "" }}>
+        <Dialog
+          open
+          title={t.projects.confirmTitle}
+          onClose={() => setConfirming(false)}
+          attrs={{ "data-confirm-delete-project": "" }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setConfirming(false)}>
+                {t.kit.cancel}
+              </Button>
+              <Button
+                variant="danger"
+                loading={remove.isPending}
+                onClick={() => remove.mutate(undefined, { onSuccess: () => void navigate({ to: PROJECTS_PATH }) })}
+                data-action="confirm-delete-project"
+              >
+                {t.projects.confirmDelete}
+              </Button>
+            </>
+          }
+        >
           <p className="text-sm text-ink">{t.projects.confirmBody(project.name, project.key)}</p>
           {remove.error && (
             <div className="mt-3">
               <ErrorBanner>{remove.error.message}</ErrorBanner>
             </div>
           )}
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setConfirming(false)}>
-              {t.kit.cancel}
-            </Button>
-            <Button
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() => remove.mutate(undefined, { onSuccess: () => void navigate({ to: PROJECTS_PATH }) })}
-              data-action="confirm-delete-project"
-            >
-              {t.projects.confirmDelete}
-            </Button>
-          </div>
         </Dialog>
       )}
     </Card>

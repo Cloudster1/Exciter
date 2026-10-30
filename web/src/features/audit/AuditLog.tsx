@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { auditExportHref, useAuditFacets, useAuditLog, type AuditEntry, type AuditFilter } from "@/api/audit";
 import { ApiError } from "@/api/client";
-import { Button, ButtonLink, EmptyState, ErrorBanner, Field, PageHeader, Select, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, ButtonLink, EmptyState, ErrorBanner, Field, PageHeader, Select, Skeleton, Table, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { Through } from "@/components/Through";
 import { t } from "@/i18n";
@@ -68,7 +68,7 @@ export function AuditLog() {
 
   const retention = facets.data?.retentionDays;
   return (
-    <div className="mx-auto max-w-5xl" data-audit-log>
+    <Page width="content" data-audit-log>
       <PageHeader
         title={t.audit.title}
         meta={retention === undefined ? undefined : retention > 0 ? t.audit.keptDays(retention) : t.audit.keptForever}
@@ -208,7 +208,7 @@ export function AuditLog() {
           </Button>
         </nav>
       )}
-    </div>
+    </Page>
   );
 }
 

@@ -4,7 +4,7 @@ import { ApiError } from "@/api/client";
 import { useTypes, type RequirementType } from "@/api/attributes";
 import type { Project } from "@/api/projects";
 import { useStatuses, useWorkflowActions, useWorkflows, type Status, type Workflow } from "@/api/workflows";
-import { Button, Card, Dialog, ErrorBanner, SectionTitle, Select, SelectInput, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Dialog, ErrorBanner, SectionTitle, Select, SelectInput, Skeleton, Tag, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { NEW_WORKFLOW } from "@/config";
 import { t } from "@/i18n";
@@ -177,7 +177,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
           </Select>
         ))}
         {assign.error && <ErrorBanner>{fields.statusMapping ?? assign.error.message}</ErrorBanner>}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
@@ -188,7 +188,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
           >
             {t.workflows.assign}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

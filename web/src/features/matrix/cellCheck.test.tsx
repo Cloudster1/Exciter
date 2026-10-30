@@ -99,7 +99,7 @@ describe("a suspect link in a matrix cell", () => {
     );
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Check: CHK-R1 derives from CHK-R2" })).toBeNull());
     expect(screen.getByRole("dialog", { name: "CHK-R1 and CHK-R2" })).toBeInTheDocument();
-    expect(within(panel).getByRole("status")).toHaveTextContent("The link to CHK-R2 is confirmed.");
+    expect(await screen.findByText("The link to CHK-R2 is confirmed.")).toBeInTheDocument();
   });
 
   it("is marked for a reader, who is offered no check", async () => {

@@ -4,11 +4,12 @@ import { ApiError } from "@/api/client";
 import { subjectKey, type Subject } from "@/api/permissions";
 import type { Project } from "@/api/projects";
 import { approverSubject, subjectApprover, useApprovalRules, useDeleteApprovalRule, useSaveApprovalRule, type ApprovalRule } from "@/api/reviews";
-import { Button, Card, Checkbox, ErrorBanner, Field, IconButton, SectionTitle, Select, Skeleton } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, IconButton, SectionTitle, Select, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REVIEW_REQUIRED_MAX } from "@/config";
 import { SubjectGlyph, SubjectPicker } from "@/features/permissions/SubjectPicker";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 // A project's approval rules (#35), after Stator's ReviewRuleForm, one rule per requirement type.
 
@@ -17,7 +18,8 @@ export function ApprovalRules({ project }: { project: Project }) {
   const { data, error, isLoading, refetch } = useApprovalRules(project.key);
   const { data: types } = useTypes(project.key);
   const [editing, setEditing] = useState<ApprovalRule | "new" | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const remove = useDeleteApprovalRule(project.key);
   const mayChange = project.can.administer && !project.archivedAt;
   const rules = data ?? [];
@@ -26,9 +28,6 @@ export function ApprovalRules({ project }: { project: Project }) {
       <SectionTitle>{t.review.rulesTitle}</SectionTitle>
       <p className="text-sm text-ink-muted">{t.review.rulesIntro}</p>
       {!mayChange && <p className="text-sm text-ink-muted">{t.review.readOnly}</p>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
       {error ? (
         <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>
@@ -59,10 +58,9 @@ export function ApprovalRules({ project }: { project: Project }) {
                       variant="ghost"
                       loading={remove.isPending && remove.variables === rule.id}
                       aria-label={`${t.review.remove} ${label}`}
-                      onClick={() => {
-                        if (!window.confirm(t.review.confirmRemove)) return;
-                        setNotice("");
-                        remove.mutate(rule.id, { onSuccess: () => setNotice(t.review.removed) });
+                      onClick={async () => {
+                        if (!(await confirm({ noun: t.kit.confirm.things.thisRule, verb: t.kit.confirm.verbs.remove, body: t.review.confirmRemove }))) return;
+                        remove.mutate(rule.id, { onSuccess: () => toast.success(t.review.removed) });
                       }}
                       data-action="remove-rule"
                     >
@@ -84,7 +82,7 @@ export function ApprovalRules({ project }: { project: Project }) {
             types={(types ?? []).map((type) => ({ id: type.id, name: type.name }))}
             onDone={(saved) => {
               setEditing(null);
-              if (saved) setNotice(t.review.saved);
+              if (saved) toast.success(t.review.saved);
             }}
           />
         ) : (
@@ -92,7 +90,6 @@ export function ApprovalRules({ project }: { project: Project }) {
             variant="secondary"
             icon={<Icon.Plus />}
             onClick={() => {
-              setNotice("");
               setEditing("new");
             }}
             data-action="new-rule"

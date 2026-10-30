@@ -43,7 +43,7 @@ export const tokensEn = {
   revoke: "Revoke",
   revokeLabel: (name: string) => `Revoke ${name}`,
   revokeOwnedLabel: (name: string, owner: string) => `Revoke ${name} of ${owner}`,
-  confirmRevoke: (name: string) => `Revoke ${name}? Anything using it is refused from now on.`,
+  confirmRevoke: "Anything using it is refused from now on.",
   revoked: (name: string) => `${name} was revoked.`,
   mcpTitle: "Connect an assistant",
   mcpBody: "An assistant that speaks the Model Context Protocol can search, read and write requirements as you at the address below.",

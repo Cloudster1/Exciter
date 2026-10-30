@@ -14,7 +14,7 @@ export const attachmentsDe: typeof attachmentsEn = {
   open: (name: string) => `${name} öffnen`,
   download: (name: string) => `${name} herunterladen`,
   remove: (name: string) => `${name} löschen`,
-  confirmRemove: (name: string) => `${name} löschen? Eine Revision, die die Datei zeigt, zeigt sie weiterhin.`,
+  confirmRemove: "Eine Revision, die die Datei zeigt, zeigt sie weiterhin.",
   removed: (name: string) => `${name} gelöscht.`,
   shown: "In der Aussage gezeigt",
   uploadedBy: (name: string, date: string) => (name ? `${name}, ${date}` : date),

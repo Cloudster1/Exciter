@@ -7,7 +7,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openShowing, openUntil } from "../fixtures/replica";
 import { chooseTheme, createTheme, themeSpec, uniqueName } from "../fixtures/seed";
-import { openAccountMenu } from "../fixtures/shell";
+import { dismissToasts, openAccountMenu } from "../fixtures/shell";
 
 // Armature's own theme file, kept byte for byte beside the backend's theme tests.
 const MINECRAFT = resolve(dirname(fileURLToPath(import.meta.url)), "../../backend/internal/theme/testdata/minecraft.armature-theme.json");
@@ -20,10 +20,12 @@ const THEMES_PATH = "/settings/themes";
 const DEFAULT_THEME_PATH = "/settings/default-theme";
 const customStyle = (page: Page) => page.locator("style#exciter-theme");
 const row = (page: Page, name: string) => page.locator(`[data-theme-row="${name}"]`);
-const notice = (page: Page) => page.locator("[data-themes-notice]");
+// What the page said last, in the toast in the corner.
+const notice = (page: Page) => page.locator("[data-toast]").last().locator("[data-toast-message]");
 const rootVar = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
 
 async function rowAction(page: Page, name: string, action: string) {
+  await dismissToasts(page);
   await row(page, name).locator('[data-action="theme-menu"]').click();
   await page.locator(`[role="menu"] [data-action="${action}"]`).click();
 }

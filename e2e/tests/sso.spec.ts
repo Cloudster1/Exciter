@@ -17,7 +17,7 @@ import {
 } from "../fixtures/auth";
 import { deadProvider, withDatabase } from "../fixtures/db";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
-import { openAccountMenu } from "../fixtures/shell";
+import { openAccountMenu, toast, dismissToasts } from "../fixtures/shell";
 
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
 const ADMINS_GROUP = "exciter-administrators";
@@ -167,7 +167,8 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
       await card.getByLabel("Group", { exact: true }).fill(ADMINS_GROUP);
       await card.getByLabel("Role", { exact: true }).selectOption("admin");
       await card.locator('[data-action="map-group"]').click();
-      await expect(card.getByRole("status")).toHaveText(`${ADMINS_GROUP} now grants Administrator.`);
+      await expect(toast(settings.page, `${ADMINS_GROUP} now grants Administrator.`)).toBeVisible();
+      await dismissToasts(settings.page);
       await expect(card.locator(`[data-group-role="${ADMINS_GROUP}"]`)).toContainText("Administrator");
 
       const promoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
@@ -179,7 +180,8 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
       }
 
       await card.getByRole("button", { name: `Unmap ${ADMINS_GROUP}` }).click();
-      await expect(card.getByRole("status")).toHaveText(`${ADMINS_GROUP} no longer grants a role.`);
+      await expect(toast(settings.page, `${ADMINS_GROUP} no longer grants a role.`)).toBeVisible();
+      await dismissToasts(settings.page);
       await expect(card.locator(`[data-group-role="${ADMINS_GROUP}"]`)).toHaveCount(0);
 
       const demoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
@@ -224,10 +226,12 @@ test.describe("people waiting to be let in", { tag: "@desktop" }, () => {
       const requests = admin.page.locator("[data-join-requests]");
       await openUntil(admin.page, MEMBERS_PATH, () => expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toBeVisible(ONE_LOOK));
       await requests.locator(`[data-join-request="${CAROL.email}"] [data-action="admit-request"]`).click();
-      await expect(requests.getByRole("status")).toHaveText(/may sign in now\.$/);
+      await expect(toast(admin.page, /may sign in now\.$/)).toBeVisible();
+      await dismissToasts(admin.page);
       await expect(requests.locator(`[data-join-request="${CAROL.email}"]`)).toHaveCount(0);
       await requests.locator(`[data-join-request="${DAVE.email}"] [data-action="decline-request"]`).click();
-      await expect(requests.getByRole("status")).toHaveText(/was turned away\.$/);
+      await expect(toast(admin.page, /was turned away\.$/)).toBeVisible();
+      await dismissToasts(admin.page);
       await expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toHaveCount(0);
     } finally {
       await admin.close();

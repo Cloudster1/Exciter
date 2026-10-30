@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useLabelledRequirements, type LabelledRequirement } from "@/api/labels";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Tag } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Tag, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { LABEL_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -16,7 +16,7 @@ export function LabelScreen({ name, projectKey, page, onPage }: { name: string; 
   const rows = data?.requirements ?? [];
 
   return (
-    <div className="mx-auto max-w-4xl" data-label-screen={name}>
+    <Page width="content" data-label-screen={name}>
       <PageHeader
         title={
           <span className="inline-flex items-center gap-2">
@@ -64,7 +64,7 @@ export function LabelScreen({ name, projectKey, page, onPage }: { name: string; 
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }
 

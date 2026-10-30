@@ -77,8 +77,18 @@ export const QUERY_STALE_MS = 10_000;
 /** Where a visitor without a session is sent, with where they were headed in `next`. */
 export const LOGIN_PATH = "/login";
 
+/** How long which build answers stays fresh before a refetch; it changes only with a deployment. */
+export const META_STALE_MS = 5 * 60_000;
+/** How much of a commit hash the build stamp shows, as git abbreviates it. */
+export const COMMIT_SHORT_LENGTH = 7;
+
 /** Who is signed in changes only by signing in or out, so the answer is kept a minute. */
 export const ME_STALE_MS = 60_000;
+
+/** Where this browser remembers the requirements opened last, which the palette offers before anything is typed. */
+export const RECENT_STORAGE_KEY = "exciter.recent";
+/** How many of them the palette offers. */
+export const RECENT_MAX = 8;
 
 /** Where this browser remembers the interface language the person chose, so a reload starts in it. */
 export const LANGUAGE_STORAGE_KEY = "exciter.language";
@@ -322,9 +332,9 @@ export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
 /** Where an administrator connects Stator, and where a person connects their own Stator account (#40). */
 export const STATOR_SETTINGS_PATH = "/settings/stator";
 export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
-/** The other tools' icons, served from Exciter itself since its pages load no image from elsewhere (#298). */
+/** The other tools' 96 px marks, one format for all, served from Exciter itself since its pages load no image from elsewhere (#298). */
 export const ARMATURE_ICON_PATH = "/tools/armature.webp";
-export const STATOR_ICON_PATH = "/tools/stator.png";
+export const STATOR_ICON_PATH = "/tools/stator.webp";
 /** How a Stator personal access token and a webhook secret begin, the API's stator.TokenPrefix and WebhookSecretPrefix. */
 export const STATOR_TOKEN_PREFIX = "stator_pat_";
 export const STATOR_WEBHOOK_SECRET_PREFIX = "stator_whs_";

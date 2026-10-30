@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import type { Requirement } from "@/api/requirements";
 import { useTakeTransition, useTransitions, type AvailableTransition } from "@/api/workflows";
-import { Button, Dialog, ErrorBanner, Field } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Field, useToast, DialogFooter } from "@/components/ui";
 import { REVISION_COMMENT_MAX_LENGTH, TRANSITION_COMMENT_ROWS } from "@/config";
 import { t } from "@/i18n";
 import { StatusBadge } from "./StatusBadge";
@@ -14,19 +14,18 @@ export function TransitionBar({ requirement }: { requirement: Requirement }) {
   const { data: transitions } = useTransitions(requirement.key, open && Boolean(requirement.status));
   const take = useTakeTransition(requirement.key);
   const [asking, setAsking] = useState<AvailableTransition | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   if (!requirement.status) return null;
   const fields = take.error instanceof ApiError ? take.error.fields : {};
   const refusal = take.error && !asking ? [take.error.message, ...Object.values(fields)].join(" ") : "";
 
   function go(transition: AvailableTransition, comment?: string) {
-    setNotice("");
     take.mutate(
       { transitionId: transition.id, comment },
       {
         onSuccess: (moved) => {
           setAsking(null);
-          setNotice(t.workflows.moved(moved.status?.name ?? transition.toStatus.name));
+          toast.success(t.workflows.moved(moved.status?.name ?? transition.toStatus.name));
         },
       },
     );
@@ -49,9 +48,6 @@ export function TransitionBar({ requirement }: { requirement: Requirement }) {
             {transition.name}
           </Button>
         ))}
-      <span role="status" className="text-sm text-ink-muted empty:hidden" data-transition-notice>
-        {notice}
-      </span>
       {refusal && (
         <div className="w-full">
           <ErrorBanner>{refusal}</ErrorBanner>
@@ -87,6 +83,7 @@ export function CommentDialog({
   onSubmit: (comment: string) => void;
   onClose: () => void;
 }) {
+  const formId = useId();
   const [comment, setComment] = useState("");
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -94,7 +91,7 @@ export function CommentDialog({
   }
   return (
     <Dialog open title={transition.name} onClose={onClose} attrs={{ "data-transition-dialog": "" }}>
-      <form onSubmit={submit} className="space-y-3" noValidate>
+      <form id={formId} onSubmit={submit} className="space-y-3" noValidate>
         <p className="text-sm text-ink-muted">{t.workflows.leadsTo(transition.toStatus.name)}</p>
         <Field
           label={t.workflows.why}
@@ -105,14 +102,14 @@ export function CommentDialog({
           error={error}
           autoFocus
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={pending} disabled={!comment.trim()} data-action="confirm-transition">
+          <Button type="submit" form={formId} loading={pending} disabled={!comment.trim()} data-action="confirm-transition">
             {transition.name}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

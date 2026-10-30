@@ -8,13 +8,15 @@ import { Count, IconButton } from "@/components/ui";
 import { useEscape, useFocusReturn } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { LogoMark } from "@/components/Logo";
-import { APP_NAME, APP_VERSION, NOTIFICATIONS_PATH, REVIEWS_PATH, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH } from "@/config";
+import { APP_NAME, NOTIFICATIONS_PATH, REVIEWS_PATH, SEARCH_PATH, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH } from "@/config";
 import { t } from "@/i18n";
 import { ProjectNav } from "@/features/projects/ProjectNav";
 import { AccountMenu } from "./AccountMenu";
+import { BuildStamp } from "./BuildStamp";
 import { NavItem } from "./nav";
 import { inSettings, placesFor, type Place } from "./places";
 import { Rail } from "./Rail";
+import { switcherShortcutHint } from "./shortcut";
 import { SidebarGroup } from "./SidebarGroup";
 import { DRAWER_ID, SIDEBAR_ID, lastOutsideSettings, useSidebarGroups, useSidebarMode } from "./state";
 import { ThemeButton } from "./ThemeButton";
@@ -50,20 +52,18 @@ export function Sidebar({ narrow, drawerOpen, onCloseDrawer }: { narrow: boolean
         >
           {settings ? <BackHead /> : <OrgHead />}
           <div className="flex-1 overflow-y-auto px-2 py-3">{settings ? <SettingsGroups /> : <SidebarGroups />}</div>
-          <div className="truncate px-3 pb-2 text-2xs text-ink-subtle" data-build>
-            {APP_NAME} {APP_VERSION}
-          </div>
+          <BuildStamp />
         </nav>
       )}
     </>
   );
 }
 
-/** The installation's name, under the mark. */
+/** The installation's name, beside the mark. */
 function OrgHead({ children }: { children?: ReactNode }) {
   const { data: me } = useMe();
   return (
-    <div className="flex h-12 items-center gap-2 border-b border-border px-3">
+    <div className="flex h-12 items-center gap-2 border-b border-border px-3" data-sidebar-head>
       <LogoMark className="shrink-0 rounded-control" />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink" data-sidebar-org>
         {me?.installation.name ?? APP_NAME}
@@ -109,6 +109,12 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
   const counts: Record<string, ReactNode> = {
     [NOTIFICATIONS_PATH]: <Count count={unread} name="notifications" says={t.nav.unread(unread)} />,
     [REVIEWS_PATH]: <Count count={waiting} name="reviews" says={t.review.inboxButton(waiting)} />,
+    // On the current item the hint takes the accent: subtle ink is too faint on the accent tint in the dark palette.
+    [SEARCH_PATH]: (
+      <kbd aria-hidden="true" className="font-mono text-2xs text-ink-subtle in-data-[status=active]:text-accent" data-shortcut>
+        {switcherShortcutHint()}
+      </kbd>
+    ),
   };
   const pages = placesFor(me).filter((place) => place.area === "work");
   return (
@@ -203,9 +209,9 @@ function SidebarDrawer({ onClose, settings, children }: { onClose: () => void; s
         <div className="flex items-center gap-2 border-t border-border px-2 py-2">
           <ThemeButton side="top" />
           <AccountMenu side="top" align="start" />
-          <span className="min-w-0 flex-1 truncate text-right text-2xs text-ink-subtle" data-build>
-            {APP_NAME} {APP_VERSION}
-          </span>
+          <div className="min-w-0 flex-1 text-right [&>[data-build]]:p-0">
+            <BuildStamp />
+          </div>
         </div>
       </div>
     </div>,

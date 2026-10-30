@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 
+import { ToastShelf } from "./components/ui";
 import { LocalizedRouter } from "./features/shell/LocalizedRouter";
 import { createQueryClient } from "./lib/session";
 import { applyCustomTheme, applyTheme, readCachedTheme, readTheme } from "./lib/theme";
@@ -25,7 +26,9 @@ if (!container) throw new Error("root element is missing from index.html");
 createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <LocalizedRouter router={router} />
+      <ToastShelf>
+        <LocalizedRouter router={router} />
+      </ToastShelf>
     </QueryClientProvider>
   </StrictMode>,
 );

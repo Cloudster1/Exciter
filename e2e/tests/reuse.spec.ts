@@ -3,7 +3,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // Reuse and variants (#49): alice reuses a library's requirement in her product, the library revises it, and the
 // product takes the new revision.
@@ -63,7 +63,8 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     await expect(banner).toContainText(`${LIB}-R1 has revision 2 now.`);
     await expectAccessible(page);
     await page.locator('[data-action="take-source"]').click();
-    await expect(page.locator("[data-requirement-notice]")).toHaveText("Took revision 2 of the source.");
+    await expect(toast(page, "Took revision 2 of the source.")).toHaveText("Took revision 2 of the source.");
+    await dismissToasts(page);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Brakes engage within 80 ms");
     await expect(banner).toHaveAttribute("data-reuse-behind", "false");
   });
@@ -81,7 +82,8 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     await page.goto(`/p/${APP}/r/${APP}-R1`);
     const banner = page.locator("[data-reuse]");
     await page.locator('[data-action="make-variant"]').click();
-    await expect(page.locator("[data-requirement-notice]")).toHaveText("This is a variant now. Its words are its own.");
+    await expect(toast(page, "This is a variant now. Its words are its own.")).toHaveText("This is a variant now. Its words are its own.");
+    await dismissToasts(page);
     await expect(banner).toHaveAttribute("data-reuse", "variant");
     await expect(banner).toContainText(`A variant of ${LIB}-R1 from the library, branched at its revision 1.`);
     await page.locator('[data-action="edit-requirement"]').click();

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { formatSize, isImage, showsInPlace } from "@/api/attachments";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, stubApi, type Answer } from "@/test/app";
 import { anAttachment } from "@/test/attachments";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -92,12 +92,13 @@ describe("a requirement's files", () => {
 
   it("deletes a file once its editor agrees", async () => {
     const sent = stubRequirement({ more: { [`DELETE /attachments/${spec.id}`]: { status: 204 } } });
-    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     await renderAt("/p/CHK/r/CHK-R1");
     const remove = await screen.findByRole("button", { name: "Delete spec.pdf" });
     await userEvent.click(remove);
+    expect(await answerConfirm(false)).toHaveTextContent("Delete attachment spec.pdf?");
     expect(sent.some((each) => each.method === "DELETE")).toBe(false);
     await userEvent.click(remove);
+    await answerConfirm(true);
     expect(await screen.findByText("Deleted spec.pdf.")).toBeInTheDocument();
     expect(sent.find((each) => each.method === "DELETE")?.path).toBe(`/attachments/${spec.id}`);
   });

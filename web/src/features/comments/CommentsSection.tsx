@@ -21,6 +21,7 @@ import { DocView } from "@/features/editor/DocView";
 import type { Doc } from "@/features/editor/schema";
 import { Through } from "@/components/Through";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 import { useFocusWhenRendered } from "@/lib/focus";
 
@@ -270,6 +271,7 @@ function CommentView({ reqKey, comment }: { reqKey: string; comment: Comment }) 
   const remove = useDeleteComment(reqKey);
   const me = useMe().data?.user.id;
   const [editing, setEditing] = useState(false);
+  const confirm = useConfirm();
   const editRef = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
   const stopEditing = () => {
@@ -332,9 +334,13 @@ function CommentView({ reqKey, comment }: { reqKey: string; comment: Comment }) 
                 size="sm"
                 variant="ghost"
                 loading={remove.isPending}
-                onClick={() => {
+                onClick={async () => {
                   const mine = comment.authorId !== null && comment.authorId === me;
-                  if (!window.confirm(mine ? t.comments.confirmDelete : t.comments.confirmDeleteOthers(author))) return;
+                  const things = t.kit.confirm.things;
+                  const asked = mine
+                    ? { noun: things.yourComment, body: t.comments.confirmDelete }
+                    : { noun: things.commentOf(author), body: t.comments.confirmDeleteOthers };
+                  if (!(await confirm(asked))) return;
                   remove.mutate(comment.id);
                 }}
                 data-action="delete-comment"

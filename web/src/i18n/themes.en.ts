@@ -39,8 +39,8 @@ export const themesEn = {
   share: "Share with everyone",
   stopSharing: "Stop sharing",
   delete: "Delete",
-  confirmDelete: (name: string, inUse: number) =>
-    `Delete ${name} and its files for good? ${
+  confirmDelete: (inUse: number) =>
+    `Its files go with it for good. ${
       inUse === 0
         ? "Nobody is using it."
         : inUse === 1
@@ -129,7 +129,7 @@ export const themesEn = {
     kilobytes: (n: number) => `${n} KB`,
     inUse: "In use",
     removeFile: (name: string) => `Remove ${name}`,
-    confirmRemoveFile: (name: string) => `Remove ${name} from the theme's files?`,
+    confirmRemoveFile: "It leaves the theme's files.",
     added: (name: string) => `Added ${name}.`,
     removed: (name: string) => `Removed ${name}.`,
     extraCSS: "Extra CSS",

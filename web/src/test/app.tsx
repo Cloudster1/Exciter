@@ -1,8 +1,9 @@
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor, within } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { onTestFinished, vi } from "vitest";
 import { meQueryKey, type Me } from "@/api/auth";
+import { en } from "@/i18n/en";
 import { LocalizedRouter } from "@/features/shell/LocalizedRouter";
 import { createQueryClient } from "@/lib/session";
 import { buildRouter, sendToLogin } from "@/routes";
@@ -64,6 +65,7 @@ const freshInstallation: Record<string, Answer> = {
   "GET /notifications/unread-count": { status: 200, body: { unread: 0 } },
   "GET /reviews/waiting": { status: 200, body: { reviews: [], total: 0, limit: 20, offset: 0 } },
   "GET /oauth/clients": { status: 200, body: { clients: [] } },
+  "GET /meta": { status: 200, body: { product: "exciter", apiVersion: "1", capabilities: [], build: { version: "0.0.0-test", commit: "0123456789abcdef" } } },
 };
 
 let apiStubbed = false;
@@ -112,4 +114,17 @@ export const unauthorized: Answer = { status: 401, body: { error: { code: "unaut
 export function setViewportWidth(width: number) {
   Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
   window.dispatchEvent(new Event("resize"));
+}
+
+/** Answers the ConfirmDialog that is open, with its danger button or with Cancel, and returns the dialog it was. */
+export async function answerConfirm(yes: boolean): Promise<HTMLElement> {
+  const dialog = await waitFor(() => {
+    const open = document.querySelector<HTMLElement>("[data-confirm]");
+    expect(open).not.toBeNull();
+    return open!;
+  });
+  const button = yes ? dialog.querySelector<HTMLElement>('[data-action="confirm"]')! : within(dialog).getByRole("button", { name: en.kit.cancel });
+  fireEvent.click(button);
+  await waitFor(() => expect(document.querySelector("[data-confirm]")).toBeNull());
+  return dialog;
 }

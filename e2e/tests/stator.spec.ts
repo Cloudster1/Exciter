@@ -3,7 +3,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL, statorURL } from "../fixtures/stack";
 
 // The Armature spec of the same flow, for Stator (#40).
@@ -68,17 +68,20 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expectAccessible(page);
 
       await section.locator('[data-action="check-stator"]').click();
-      await expect(section.getByText("Stator accepts your token.")).toBeVisible();
+      await expect(toast(page, "Stator accepts your token.")).toBeVisible();
+      await dismissToasts(page);
 
-      page.once("dialog", (dialog) => dialog.accept());
       await section.locator('[data-action="disconnect-stator-account"]').click();
-      await expect(section.getByText("Your Stator account is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Your Stator account is disconnected.")).toBeVisible();
+      await dismissToasts(page);
       await expect(section.getByLabel("Stator token", { exact: true })).toBeVisible();
 
       await page.goto(SETTINGS_PATH);
-      page.once("dialog", (dialog) => dialog.accept());
       await page.locator('[data-action="disconnect-stator"]').click();
-      await expect(page.getByText("Stator is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Stator is disconnected.")).toBeVisible();
+      await dismissToasts(page);
     });
   }
 

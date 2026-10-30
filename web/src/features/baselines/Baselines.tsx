@@ -4,7 +4,7 @@ import { useBaselineActions, useBaselines } from "@/api/baselines";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { useTree } from "@/api/tree";
-import { Button, Card, EmptyState, ErrorBanner, Field, PageHeader, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, EmptyState, ErrorBanner, Field, PageHeader, Select, Skeleton, Tag, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { BASELINE_DESCRIPTION_MAX_LENGTH, BASELINE_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
@@ -20,14 +20,14 @@ export function keepsBaselines(project: Project): boolean {
   return project.can.administer && !project.archivedAt;
 }
 
-/** A project's baselines, newest first, with a way for its administrators to take one; deleted names one just deleted. */
-export function BaselineList({ project, deleted }: { project: Project; deleted?: string }) {
+/** A project's baselines, newest first, with a way for its administrators to take one. */
+export function BaselineList({ project }: { project: Project }) {
   const { data, error, refetch } = useBaselines(project.key);
   const [taking, setTaking] = useState(false);
-  const [notice, setNotice] = useState(deleted ? t.baseline.deleted(deleted) : "");
+  const toast = useToast();
   const mayKeep = keepsBaselines(project);
   return (
-    <div className="mx-auto max-w-3xl space-y-4" data-baselines={project.key}>
+    <Page width="narrow" className="space-y-4" data-baselines={project.key}>
       <PageHeader
         title={t.baseline.title}
         meta={t.baseline.intro}
@@ -41,15 +41,12 @@ export function BaselineList({ project, deleted }: { project: Project; deleted?:
         }
       />
       {!mayKeep && <p className="text-sm text-ink-muted">{t.baseline.readOnly}</p>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       {taking && (
         <TakeBaseline
           project={project}
           onDone={(name) => {
             setTaking(false);
-            if (name) setNotice(t.baseline.taken(name));
+            if (name) toast.success(t.baseline.taken(name));
           }}
         />
       )}
@@ -97,7 +94,7 @@ export function BaselineList({ project, deleted }: { project: Project; deleted?:
           ))}
         </ul>
       )}
-    </div>
+    </Page>
   );
 }
 

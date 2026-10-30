@@ -237,7 +237,7 @@ describe("a requirement's terms", () => {
     await waitFor(() =>
       expect(sent.find((r) => r.method === "POST" && r.path.endsWith("/clear"))?.body).toEqual({ termRevision: 2, comment: "The driver still presses it." }),
     );
-    expect(await within(panel).findByText("Confirmed under the definition of Brake pedal.")).toBeInTheDocument();
+    expect(await screen.findByText("Confirmed under the definition of Brake pedal.")).toBeInTheDocument();
     await waitFor(() => expect(within(panel).queryByText("Suspect")).toBeNull());
   });
 

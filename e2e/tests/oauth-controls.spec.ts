@@ -6,7 +6,7 @@ import { expect } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey, uniqueName } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // The OAuth controls no other spec clicks (#329): consent narrowed to a project, an administrator disconnecting
@@ -164,12 +164,12 @@ test.describe("OAuth controls", { tag: "@desktop" }, () => {
     await expect(row).toHaveAttribute("data-app-owner", people.bob.email);
     await expectAccessible(page);
 
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Disconnect ${name}? It is refused from now on, until it is connected again.`);
-      void dialog.accept();
-    });
     await row.getByRole("button", { name: `Disconnect ${name} of ${people.bob.name}` }).click();
-    await expect(page.locator("[data-apps-notice]")).toHaveText(`${name} was disconnected.`);
+    await expect(page.locator("[data-confirm]")).toContainText(`Disconnect app ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("It is refused from now on, until it is connected again.");
+    await confirm(page);
+    await expect(toast(page, `${name} was disconnected.`)).toHaveText(`${name} was disconnected.`);
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
     await expect.poll(async () => (await mcp(token, "tools/list")).status).toBe(401);
   });
@@ -183,11 +183,9 @@ test.describe("OAuth controls", { tag: "@desktop" }, () => {
 
     await page.goto(INSTALLATION_PATH);
     const row = page.locator(`[data-partner-row="${name}"]`);
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Give ${name} a new secret? The old one stops at once, so enter the new one in ${name} straight away.`);
-      void dialog.accept();
-    });
     await row.locator('[data-action="rotate-partner-secret"]').click();
+    await expect(page.locator("[data-confirm]")).toContainText(`The old one stops at once, so enter the new one in ${name} straight away.`);
+    await confirm(page);
     const field = page.getByLabel(`Secret of ${name}`, { exact: true });
     await expect(field).toHaveValue(new RegExp(`^${SECRET_PREFIX}`));
     const fresh = await field.inputValue();

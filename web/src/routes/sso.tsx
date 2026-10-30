@@ -1,5 +1,5 @@
 import { createRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Page } from "@/components/ui";
 import { SSO_PATH } from "@/config";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { GroupRoles } from "@/features/auth/GroupRoles";
@@ -14,12 +14,12 @@ export const ssoRoute = createRoute({
   path: SSO_PATH,
   component: () => (
     <AdminsOnly title={t.sso.title} refusal={t.sso.notAdmin}>
-      <div className="mx-auto max-w-3xl" data-sso>
+      <Page width="narrow" data-sso>
         <PageHeader title={t.sso.title} />
         <JoinRequests />
         <ProviderSettings />
         <GroupRoles />
-      </div>
+      </Page>
     </AdminsOnly>
   ),
 });

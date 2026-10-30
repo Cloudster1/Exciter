@@ -31,7 +31,7 @@ export const statorEn = {
   disconnectTitle: "Disconnect",
   disconnectIntro: "Disconnecting forgets the address, the webhook secret and every member's token.",
   disconnect: "Disconnect Stator",
-  confirmDisconnect: "Disconnect Stator? Every member's token is forgotten.",
+  confirmDisconnect: "Every member's token is forgotten.",
   disconnected: "Stator is disconnected.",
   signIn: {
     title: "Connect people at sign-in",
@@ -60,7 +60,7 @@ export const statorEn = {
     check: "Check again",
     checked: "Stator accepts your token.",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect your Stator account? Requirements show page links without their titles until you connect again.",
+    confirmDisconnect: "Requirements show page links without their titles until you connect again.",
     disconnected: "Your Stator account is disconnected.",
     rejected: "Stator no longer accepts your token. Make a new one under Your account, Access tokens in Stator and paste it here.",
     unreachable: "Stator did not answer the last check. Check again in a moment.",

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { Button, ConfirmDialog, Dialog, DockedPanel, Drawer, Menu, Popover } from "./index";
+import { Button, ConfirmDialog, Dialog, DialogFooter, DockedPanel, Drawer, Menu, Popover } from "./index";
 import { MENU_GAP_PX, POPOVER_EDGE_PX, POPOVER_MAX_HEIGHT_PX } from "@/config";
 import { anchoredBox } from "./overlay";
 
@@ -68,6 +68,38 @@ describe("Dialog", () => {
 
 // jsdom lays nothing out, so what keeps a tall dialog in reach is read off the
 // structure; the browser suite turns the wheel over it.
+describe("DialogFooter", () => {
+  it("draws a form's buttons in the pinned footer, where the submit still sends its form", async () => {
+    const sent = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    render(
+      <Dialog open title="Rename" onClose={() => {}}>
+        <form id="rename" onSubmit={sent}>
+          <input aria-label="Name" />
+          <DialogFooter>
+            <Button type="submit" form="rename">
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>,
+    );
+    const save = await screen.findByRole("button", { name: "Save" });
+    expect(save.closest("[data-dialog-footer]")).not.toBeNull();
+    expect(save.closest("form")).toBeNull();
+    await userEvent.click(save);
+    expect(sent).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes no room when nothing is drawn in it", () => {
+    render(
+      <Dialog open title="Note" onClose={() => {}}>
+        <p>Only words.</p>
+      </Dialog>,
+    );
+    expect(document.querySelector("[data-dialog-footer]")).toBeEmptyDOMElement();
+  });
+});
+
 describe("Dialog taller than the window", () => {
   it("sits on a layer that scrolls like a page, with its title and buttons pinned to its edges", () => {
     render(

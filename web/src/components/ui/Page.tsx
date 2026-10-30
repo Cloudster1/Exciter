@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes } from "react";
 import { cx } from "./cx";
 
 export type PageWidth = "narrow" | "content" | "wide";
@@ -13,6 +13,7 @@ const widths: Record<PageWidth, string> = {
   wide: "w-full",
 };
 
-export function Page({ width = "content", children, className }: { width?: PageWidth; children: ReactNode; className?: string }) {
-  return <div className={cx(widths[width], className)}>{children}</div>;
+/** The page's column; data attributes and the like go on through to it. */
+export function Page({ width = "content", className, ...rest }: HTMLAttributes<HTMLDivElement> & { width?: PageWidth }) {
+  return <div {...rest} className={cx(widths[width], className)} />;
 }

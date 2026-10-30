@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { INSTALLATION_PATH } from "@/config";
-import { renderAt, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 afterEach(() => {
@@ -69,7 +69,6 @@ describe("partner apps", () => {
         return { status: 204 };
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(INSTALLATION_PATH);
     const list = await screen.findByRole("list", { name: "Partner apps" });
@@ -82,10 +81,11 @@ describe("partner apps", () => {
     expect(sent.find((r) => r.method === "PATCH")?.body).toEqual({ scopes: ["read", "write"] });
 
     await user.click(within(row).getByRole("button", { name: "Give Stator a new secret" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Rotate the secret of Stator?");
     expect(await screen.findByDisplayValue("exciter_ocs_new")).toBeInTheDocument();
 
     await user.click(within(row).getByRole("button", { name: "Remove Stator" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Remove app Stator?");
     expect(await screen.findByText("Stator was removed.")).toBeInTheDocument();
-    expect(window.confirm).toHaveBeenCalledTimes(2);
   });
 });
