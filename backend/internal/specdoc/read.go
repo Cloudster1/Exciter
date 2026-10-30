@@ -20,15 +20,25 @@ type rowsOf = pgx.Rows
 
 // liveLinks are the links of the requirements now, in either direction, to requirements out of the trash.
 func liveLinks(ctx context.Context, tx db.DBTX, ids []uuid.UUID) (rowsOf, error) {
+	// Each requirement finds its links by index and each link its type and ends by id, OFFSET 0 keeping the planner
+	// from turning that into a scan of every link, checked for visibility one by one (#477). A link between two of
+	// the requirements is found from its source alone.
 	return tx.Query(ctx, `
 		SELECT l.source_id, l.target_id, lt.forward, lt.backward,
 		       sp.key, s.number, s.title, tp.key, t.number, t.title
-		FROM trace_link l
-		JOIN link_type lt ON lt.id = l.type_id
-		JOIN requirement s ON s.id = l.source_id JOIN project sp ON sp.id = s.project_id
-		JOIN requirement t ON t.id = l.target_id JOIN project tp ON tp.id = t.project_id
-		WHERE l.deleted_at IS NULL AND s.trashed_at IS NULL AND t.trashed_at IS NULL
-		  AND (l.source_id = ANY($1) OR l.target_id = ANY($1))
+		FROM (SELECT DISTINCT unnest($1::uuid[])) AS e(id)
+		CROSS JOIN LATERAL (
+			SELECT l.id, l.type_id, l.source_id, l.target_id, l.created_at FROM trace_link l
+			WHERE l.source_id = e.id AND l.deleted_at IS NULL
+			UNION ALL
+			SELECT l.id, l.type_id, l.source_id, l.target_id, l.created_at FROM trace_link l
+			WHERE l.target_id = e.id AND l.deleted_at IS NULL AND l.source_id <> ALL ($1)
+		) l
+		CROSS JOIN LATERAL (SELECT x.key, x.forward, x.backward FROM link_type x WHERE x.id = l.type_id OFFSET 0) lt
+		CROSS JOIN LATERAL (SELECT x.project_id, x.number, x.title FROM requirement x WHERE x.id = l.source_id AND x.trashed_at IS NULL OFFSET 0) s
+		CROSS JOIN LATERAL (SELECT x.key FROM project x WHERE x.id = s.project_id OFFSET 0) sp
+		CROSS JOIN LATERAL (SELECT x.project_id, x.number, x.title FROM requirement x WHERE x.id = l.target_id AND x.trashed_at IS NULL OFFSET 0) t
+		CROSS JOIN LATERAL (SELECT x.key FROM project x WHERE x.id = t.project_id OFFSET 0) tp
 		ORDER BY lt.key, l.created_at, l.id`, ids)
 }
 
@@ -231,14 +241,15 @@ func (r *reading) person(id string) (string, error) {
 	return name, nil
 }
 
-// projectTerms are the terms that mark a project, out of deprecation, the first by rank where two share a name.
+// projectTerms are the terms that mark a project, out of deprecation, the first by rank where two share a name. Each
+// term and its project are looked up by id, not joined to every term and project there are (#477).
 const projectTerms = `
 	SELECT id, name, definition, synonyms, avoid, status, key, project_name FROM (
 		SELECT DISTINCT ON (lower(t.name::text)) t.id, t.name::text AS name, t.definition, t.synonyms, t.avoid, t.status,
 		       p.key, p.name AS project_name
 		FROM glossary_terms_of($1) g
-		JOIN glossary_term t ON t.id = g.term_id
-		JOIN project p ON p.id = t.project_id
+		CROSS JOIN LATERAL (SELECT x.* FROM glossary_term x WHERE x.id = g.term_id OFFSET 0) t
+		CROSS JOIN LATERAL (SELECT x.key, x.name FROM project x WHERE x.id = t.project_id OFFSET 0) p
 		WHERE t.status <> 'deprecated'
 		ORDER BY lower(t.name::text), g.rank) terms
 	ORDER BY lower(name), name, id`
