@@ -155,11 +155,11 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     expect(from).toBe(`${WEB_URL}${SEARCH}`);
 
     await openAccountMenu(page);
-    await menuItem(page, "settings").click();
-    await expect(page).toHaveURL(`${WEB_URL}/settings`);
+    await menuItem(page, "profile").click();
+    await expect(page).toHaveURL(`${WEB_URL}/settings/profile`);
     const settings = page.locator("[data-settings-sidebar]");
-    await settings.getByRole("link", { name: "Access" }).click();
-    await expect(page).toHaveURL(`${WEB_URL}/settings/access/roles`);
+    await settings.getByRole("link", { name: "Watching" }).click();
+    await expect(page).toHaveURL(`${WEB_URL}/settings/watching`);
     await settings.getByRole("link", { name: "Themes" }).click();
     await expect(page).toHaveURL(`${WEB_URL}/settings/themes`);
 
@@ -172,7 +172,7 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-settings-sidebar]")).toHaveCount(0);
 
     const fresh = await context.newPage();
-    await openShell(fresh, "/settings/access/members");
+    await openShell(fresh, "/settings/notifications");
     const freshBack = fresh.locator('[data-action="back-from-settings"]');
     await expect(freshBack).toHaveAttribute("href", "/");
     await freshBack.click();
@@ -180,18 +180,17 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     await expect(fresh.locator("[data-home]")).toBeVisible();
   });
 
-  test("alice's palette reaches the audit log among the settings, and the full search for what she typed", async ({ page, api }) => {
+  test("alice's palette reaches the audit log as Admin / Audit log, and the full search for what she typed", async ({ page, api }) => {
     await makeProject(api);
     await openShell(page, "/projects");
     await page.keyboard.press("ControlOrMeta+k");
     const palette = page.getByRole("dialog", { name: "Go to" });
     await page.locator("[data-quick-switcher-input]").fill("aud");
-    const audit = palette.locator('[data-quick-switcher-option="place:/settings/audit"]');
-    await expect(audit).toContainText("Audit log");
-    await expect(audit).toContainText("Settings");
+    const audit = palette.locator('[data-quick-switcher-option="place:/admin/audit"]');
+    await expect(audit).toContainText("Admin / Audit log");
     await expect(palette.locator('[data-quick-switcher-option^="place:"]')).toHaveCount(1);
     await audit.click();
-    await expect(page).toHaveURL(`${WEB_URL}/settings/audit`);
+    await expect(page).toHaveURL(`${WEB_URL}/admin/audit`);
     await expect(page.locator("main").getByRole("heading", { level: 1, name: "Audit log" })).toBeVisible();
     await expect(palette).toHaveCount(0);
 
@@ -233,10 +232,11 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     await bob.keyboard.press("Escape");
 
     await openShell(bob, "/settings/members");
-    await expect(bob).toHaveURL(`${WEB_URL}/settings/access/members`);
-    const refusal = bob.locator("[data-admins-only]");
-    await expect(refusal).toContainText("Only an administrator decides who may do what. Ask one to grant a role or add somebody.");
-    await expect(bob.locator("main").getByRole("heading", { level: 1, name: "Access" })).toBeVisible();
+    await expect(bob).toHaveURL(`${WEB_URL}/admin/access/members`);
+    const refusal = bob.locator("[data-admin-refused]");
+    await expect(refusal).toContainText("Only administrators can open this page");
+    await expect(refusal).toContainText("Ask an administrator of this installation to make the change, or to give you the role.");
+    await expect(bob.locator("main").getByRole("heading", { level: 1, name: "Admin" })).toBeVisible();
     await expect(bob.locator("[data-member]")).toHaveCount(0);
   });
 

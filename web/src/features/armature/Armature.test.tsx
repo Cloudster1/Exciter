@@ -137,7 +137,7 @@ describe("connecting Armature as an administrator", () => {
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
     await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText("Only an administrator can connect Armature.")).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/armature/connection")).toBe(false);
   });
 
@@ -185,7 +185,7 @@ describe("connecting one's own Armature account", () => {
   it("says to ask an administrator while Exciter has no connection", async () => {
     stubApi({ "GET /armature/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } } });
     await renderAt(ARMATURE_ACCOUNT_PATH);
-    expect(await screen.findByText(/Ask an administrator to connect it under Settings, Armature/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ask an administrator to connect it under Admin, Armature/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Armature token")).toBeNull();
   });
 

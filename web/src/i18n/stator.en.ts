@@ -47,7 +47,7 @@ export const statorEn = {
   account: {
     title: "Stator account",
     intro: "Connect your Stator account so requirements show you the pages you may read in Stator.",
-    notConfigured: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Settings, Stator.",
+    notConfigured: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Admin, Stator.",
     steps:
       "In Stator, open Your account, then Access tokens, and make a token that is not marked read-only, so Exciter can also show your links on pages. Then paste it here.",
     openStator: "Open Stator",

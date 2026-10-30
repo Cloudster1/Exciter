@@ -8,9 +8,9 @@ import { findGrants, grantInForm, grantRow, revokeInTable } from "../fixtures/gr
 import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
-const MEMBERS_PATH = "/settings/access/members";
-const ROLES_PATH = "/settings/access/roles";
-const SETTINGS_PATH = "/settings";
+const MEMBERS_PATH = "/admin/access/members";
+const ROLES_PATH = "/admin/access/roles";
+const USERS_PATH = "/admin/users";
 const LOGIN_API = "/api/v1/auth/login";
 // Enough random bytes for a password past the minimum once written out.
 const PASSWORD_BYTES = 18;
@@ -40,7 +40,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     const email = freshEmail(testInfo, "added");
     added.push(email);
 
-    await page.goto(MEMBERS_PATH);
+    await page.goto(USERS_PATH);
     await page.locator('[data-action="add-member"]').click();
     const dialog = page.locator("[data-add-member]");
     await dialog.getByLabel("Email address", { exact: true }).fill(email);
@@ -69,7 +69,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     const email = freshEmail(testInfo, "short");
     added.push(email);
 
-    await page.goto(MEMBERS_PATH);
+    await page.goto(USERS_PATH);
     await page.locator('[data-action="add-member"]').click();
     const dialog = page.locator("[data-add-member]");
     await dialog.getByLabel("Email address", { exact: true }).fill(email);
@@ -90,6 +90,8 @@ test.describe("members", { tag: "@desktop" }, () => {
     await dismissToasts(page);
     await expect(member(page, email).locator("[data-member-role]")).toHaveAttribute("data-member-role", "guest");
 
+    // Switching an account off and on is the Users page's, under Admin.
+    await page.goto(USERS_PATH);
     await member(page, email).locator('[data-action="switch-off-member"]').click();
     await page.locator('[data-action="confirm-switch-off-member"]').click();
     await expect(toast(page, "Rolf Roles was switched off.")).toHaveText("Rolf Roles was switched off.");
@@ -124,7 +126,7 @@ test.describe("members", { tag: "@desktop" }, () => {
       await dismissToasts(page);
       await page.goto(MEMBERS_PATH);
       await expect(member(page, email).locator('[data-member-holds="administrator"]')).toBeVisible();
-      await openUntil(theirs, SETTINGS_PATH, () => expect(theirs.locator('[data-hub-card="settings"]')).toBeVisible(ONE_LOOK));
+      await openUntil(theirs, "/", () => expect(theirs.locator('[data-sidebar] [data-nav="admin"]')).toBeVisible(ONE_LOOK));
       await theirs.goto(MEMBERS_PATH);
       await expect(theirs.locator("[data-members]")).toBeVisible();
 
@@ -134,15 +136,15 @@ test.describe("members", { tag: "@desktop" }, () => {
       await expect(toast(page, "Stan Standing no longer holds Administrator.")).toBeVisible();
       await dismissToasts(page);
       await expect(grantRow(page, "Stan Standing", "administrator")).toHaveCount(0);
-      await openUntil(theirs, SETTINGS_PATH, async () => {
-        await expect(theirs.locator('[data-hub-card="you"]')).toBeVisible(ONE_LOOK);
-        await expect(theirs.locator('[data-hub-card="settings"]')).toHaveCount(0, ONE_LOOK);
+      await openUntil(theirs, "/", async () => {
+        await expect(theirs.locator("[data-sidebar-org]")).toBeVisible(ONE_LOOK);
+        await expect(theirs.locator('[data-sidebar] [data-nav="admin"]')).toHaveCount(0, ONE_LOOK);
       });
       await theirs.goto(MEMBERS_PATH);
-      await expect(theirs.locator("[data-admins-only]")).toBeVisible();
+      await expect(theirs.locator("[data-admin-refused]")).toBeVisible();
       await expect(theirs.locator("[data-members]")).toHaveCount(0);
 
-      await page.goto(MEMBERS_PATH);
+      await page.goto(USERS_PATH);
       await member(page, email).locator('[data-action="switch-off-member"]').click();
       await page.locator('[data-action="confirm-switch-off-member"]').click();
       await expect(toast(page, "Stan Standing was switched off.")).toHaveText("Stan Standing was switched off.");
@@ -160,7 +162,7 @@ test.describe("members", { tag: "@desktop" }, () => {
     added.push(email);
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: WEB_URL });
 
-    await page.goto(MEMBERS_PATH);
+    await page.goto(USERS_PATH);
     await page.locator('[data-action="add-member"]').click();
     const dialog = page.locator("[data-add-member]");
     await dialog.getByLabel("Email address", { exact: true }).fill(email);

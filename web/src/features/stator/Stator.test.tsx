@@ -129,7 +129,7 @@ describe("connecting Stator as an administrator", () => {
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
     await renderAt(STATOR_SETTINGS_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText("Only an administrator can connect Stator.")).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/stator/connection")).toBe(false);
   });
 });
@@ -138,7 +138,7 @@ describe("connecting one's own Stator account", () => {
   it("says to ask an administrator while Exciter has no connection", async () => {
     stubApi({ "GET /stator/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } } });
     await renderAt(STATOR_ACCOUNT_PATH);
-    expect(await screen.findByText(/Ask an administrator to connect it under Settings, Stator/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ask an administrator to connect it under Admin, Stator/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Stator token")).toBeNull();
   });
 

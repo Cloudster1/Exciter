@@ -31,7 +31,6 @@ export const linkTypesDe: typeof linkTypesEn = {
     "Die Arten von Verknüpfungen, die jedes Projekt nutzen kann. Ein Projekt kann eine abschalten, auf Paare von Anforderungstypen beschränken und in seinen Einstellungen eigene anlegen.",
   projectIntro:
     "Die Verknüpfungsarten dieses Projekts: die für alle Projekte und seine eigenen. Schalten Sie eine ab, oder legen Sie fest, welche Anforderungstypen sie verbindet.",
-  notAdmin: "Nur ein Administrator ändert die Verknüpfungsarten für alle Projekte. Fragen Sie einen.",
   tableLabel: "Verknüpfungsarten",
   columnType: "Art",
   columnReads: "Lesart",

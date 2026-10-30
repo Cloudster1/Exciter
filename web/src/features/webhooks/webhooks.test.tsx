@@ -256,7 +256,7 @@ describe("the webhooks page", () => {
   it("tells a member that only administrators keep webhooks, and asks the API nothing", async () => {
     const sent = webhooks([hook()]);
     await renderAt(WEBHOOKS_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(en.webhooks.notAdmin)).toBeInTheDocument();
+    expect(await screen.findByText(en.admin.refusedTitle)).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
     expect(sent.some((s) => s.path === "/webhooks")).toBe(false);
   });

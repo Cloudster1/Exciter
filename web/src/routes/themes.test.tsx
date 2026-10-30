@@ -3,7 +3,7 @@ import type * as ThemesApi from "@/api/themes";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Theme } from "@/api/themes";
-import { DEFAULT_THEME_PATH, THEMES_PATH } from "@/config";
+import { INSTALLATION_PATH } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
 import { renderAt } from "@/test/app";
 import { activeThemeMeta, inThemeView } from "./themes";
@@ -78,10 +78,10 @@ describe("the themes page", () => {
     expect(screen.getByText("3 people")).toBeInTheDocument();
   });
 
-  it("sends the old address of everyone's default to Themes, where it is named now", async () => {
-    const router = await renderAt(DEFAULT_THEME_PATH);
-    expect(router.state.location.pathname).toBe(THEMES_PATH);
-    expect(await screen.findByRole("heading", { name: "Themes" })).toBeInTheDocument();
+  it("sends the old address of everyone's default to the installation, where it is named now", async () => {
+    const router = await renderAt("/settings/default-theme");
+    expect(router.state.location.pathname).toBe(INSTALLATION_PATH);
+    expect(await screen.findByRole("heading", { name: "Installation", level: 1 })).toBeInTheDocument();
   });
 
   it("names Themes in the breadcrumbs of a theme's editor, as the way back", async () => {

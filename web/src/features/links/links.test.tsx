@@ -228,6 +228,6 @@ describe("link types", () => {
   it("refuses the page for all projects to a member", async () => {
     stubApi({ "GET /link-types": { status: 200, body: { linkTypes: [derives] } } });
     await renderAt(LINK_TYPES_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator changes the link types for all projects/)).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
   });
 });

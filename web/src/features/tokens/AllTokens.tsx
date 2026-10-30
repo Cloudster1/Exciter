@@ -1,5 +1,5 @@
 import { useEveryonesTokens, useRevokeToken, type OrgApiToken } from "@/api/tokens";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, Skeleton, Table, Tag, Td, Th, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TOKEN_READ_SCOPE } from "@/config";
 import { t } from "@/i18n";
@@ -21,8 +21,13 @@ export function AllTokens() {
   }
 
   return (
-    <Page width="content" className="space-y-4">
-      <PageHeader title={t.tokens.allTitle} meta={t.tokens.allIntro} />
+    <section aria-labelledby="all-tokens" className="space-y-3" data-section="all-tokens">
+      <div>
+        <h2 id="all-tokens" className="text-base font-semibold text-ink">
+          {t.tokens.allTitle}
+        </h2>
+        <p className="text-sm text-ink-muted">{t.tokens.allIntro}</p>
+      </div>
       {(error ?? revoke.error) && <ErrorBanner>{(error ?? revoke.error)?.message}</ErrorBanner>}
       {!tokens && !error && <Skeleton />}
       {tokens && tokens.length === 0 && <EmptyState icon={<Icon.Key />} title={t.tokens.allEmpty} />}
@@ -68,6 +73,6 @@ export function AllTokens() {
           </tbody>
         </Table>
       )}
-    </Page>
+    </section>
   );
 }

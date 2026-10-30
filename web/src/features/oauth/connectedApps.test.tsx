@@ -101,7 +101,7 @@ describe("everybody's connected apps", () => {
       [`DELETE /oauth/grants/everyone/${theirs.id}`]: { status: 204 },
     });
     await renderAt(ALL_CONNECTED_APPS_PATH);
-    const table = await screen.findByRole("table", { name: "All connected apps" });
+    const table = await screen.findByRole("table", { name: "Everybody's connected apps" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Disconnect Desk assistant of Bob" }));
@@ -109,9 +109,10 @@ describe("everybody's connected apps", () => {
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/oauth/grants/everyone/${theirs.id}`)).toBe(true));
   });
 
-  it("tells a member whose page it is", async () => {
+  it("is where the page of before leads, and tells a member whose page it is", async () => {
     stubApi({});
-    await renderAt(ALL_CONNECTED_APPS_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator sees everybody.s connected apps/)).toBeInTheDocument();
+    const router = await renderAt("/settings/all-connected-apps", { me: { ...signedIn, administers: false } });
+    await waitFor(() => expect(router.state.location.pathname).toBe(ALL_CONNECTED_APPS_PATH));
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
   });
 });

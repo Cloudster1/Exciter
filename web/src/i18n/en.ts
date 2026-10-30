@@ -47,6 +47,7 @@ import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
 import { kitEn } from "./kit.en";
 import { accessAdminEn } from "./access.en";
+import { adminEn } from "./admin.en";
 
 /** The English strings, and the shape every other language has to fill. */
 export const en = {
@@ -62,16 +63,9 @@ export const en = {
     whereYouAre: "Where you are",
     home: "Home",
     settings: "Settings",
-    installation: "Installation",
-    access: "Access",
-    audit: "Audit log",
     themes: "Themes",
-    linkTypes: "Link types",
-    allTokens: "All tokens",
-    allConnectedApps: "All connected apps",
     armature: "Armature",
     stator: "Stator",
-    webhooks: "Webhooks",
     groupRequirements: "Requirements",
     groupYou: "You",
     projectAdmin: "Project admin",
@@ -181,9 +175,17 @@ export const en = {
   settingsHub: {
     title: "Settings",
     you: "You",
-    youIntro: "Your own pages: your profile, what you hear about, your themes, tokens and connections.",
-    settings: "Settings",
-    settingsIntro: "What the whole installation shares, for its administrators.",
+    youIntro: "Your own pages: your profile, what you hear about, your themes, tokens and connections. What the installation shares is under Admin.",
+    places: {
+      profile: "Your name, language and time zone.",
+      notifications: "What Exciter tells you about, and whether by mail.",
+      watching: "The requirements and projects you follow, to stop following any of them.",
+      themes: "How Exciter looks to you, and themes of your own.",
+      tokens: "Tokens that let a script, an assistant or another tool act as you.",
+      connectedApps: "The apps you let act as you, to end any of them.",
+      armature: "Your Armature account, so requirements show your issues and you act in Armature from here.",
+      stator: "Your Stator account, so requirements show your pages.",
+    },
   },
   installation: {
     title: "Installation",
@@ -191,7 +193,6 @@ export const en = {
     name: "Name",
     save: "Save the name",
     saved: "Saved.",
-    notAdmin: "Only an administrator can rename the installation. Ask one of them.",
   },
   suiteDemo: {
     title: "Suite demo",
@@ -213,7 +214,7 @@ export const en = {
   sso: {
     title: "Single sign-on",
     notAdmin: "Only an administrator changes how people sign in. Ask one.",
-    intro: "Members sign in through your identity provider, and their groups follow them from there.",
+    intro: "People sign in through your identity provider, and their groups follow them from there.",
     issuer: "Issuer",
     issuerHint: "The provider's issuer URL, where its discovery document lives.",
     clientId: "Client ID",
@@ -221,19 +222,19 @@ export const en = {
     clientSecretStored: "Stored. Leave blank to keep it.",
     groupsClaim: "Groups claim",
     groupsClaimHint: "The claim listing somebody's groups; a dotted path reaches a nested one.",
-    scopes: "Scopes",
-    createGroups: "Create groups the provider names",
     admitByGroup: "Let people in by their groups",
     admitByGroupDetail:
       "Somebody new signing in here, or through Armature or Stator, whose group from the provider holds a grant is let in with it. Anybody else still waits to be let in.",
-    enabled: "Members sign in through this provider",
-    callback: "Register this redirect address with the provider:",
-    signInAt: "Members sign in at",
+    signInAt: "People can sign in at",
     save: "Save",
     setUp: "Set up single sign-on",
-    saved: "Saved.",
+    turnOff: "Turn it off",
+    turnedOff: "Single sign-on is turned off.",
+    offAddress: "Turned off. The address would be",
+    saved: "Single sign-on is saved.",
     waitingTitle: "Waiting to be let in",
     waitingIntro: "These people signed in through the identity provider but are not members yet.",
+    waitingCount: (count: number) => (count === 1 ? "1 person waits to be let in" : `${count} people wait to be let in`),
     asked: (email: string, when: string) => `${email}, asked ${when}`,
     admit: "Let in as member",
     decline: "Turn away",
@@ -289,7 +290,6 @@ export const en = {
     intro: "Who changed what in Exciter: members, roles, groups and grants, events that could not be delivered, and exports of this log.",
     keptDays: (days: number) => `Each entry is kept for ${days} days.`,
     keptForever: "Entries are kept for good.",
-    notAdmin: "Only an administrator reads the audit log. Ask one when you need to know who changed something.",
     export: "Export CSV",
     filters: "Filter the audit log",
     action: "Action",
@@ -449,6 +449,7 @@ export const en = {
   permissions: permissionsEn,
   access: accessEn,
   accessAdmin: accessAdminEn,
+  admin: adminEn,
   requirements: requirementsEn,
   editor: editorEn,
   types: typesEn,

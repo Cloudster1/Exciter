@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { INSTALLATION_PATH } from "@/config";
+import { ALL_CONNECTED_APPS_PATH } from "@/config";
 import { answerConfirm, renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
@@ -34,7 +34,7 @@ describe("partner apps", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt(INSTALLATION_PATH);
+    await renderAt(ALL_CONNECTED_APPS_PATH);
     expect(await screen.findByText("No partner app is registered.")).toBeInTheDocument();
     const form = screen.getByRole("form", { name: "Register a partner app" });
     await user.type(within(form).getByLabelText("App name"), "Stator");
@@ -70,7 +70,7 @@ describe("partner apps", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt(INSTALLATION_PATH);
+    await renderAt(ALL_CONNECTED_APPS_PATH);
     const list = await screen.findByRole("list", { name: "Partner apps" });
     const row = within(list).getByText("Stator").closest("li")!;
     expect(within(row).getByText("Read only")).toBeInTheDocument();

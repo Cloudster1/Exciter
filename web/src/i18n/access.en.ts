@@ -2,7 +2,6 @@
 export const accessAdminEn = {
   title: "Access",
   intro: "Who may do what: roles and what they hold, who holds them where, groups, and how people sign in.",
-  notAdmin: "Only an administrator decides who may do what. Ask one to grant a role or add somebody.",
   tabs: { roles: "Roles", matrix: "Matrix", members: "Members", groups: "Groups", sso: "Single sign-on" },
   permissionWords: {
     view: "View the project and its requirements",
@@ -76,7 +75,7 @@ export const accessAdminEn = {
   },
   members: {
     intro:
-      "Everybody who may sign in to Exciter. Standing says only whether somebody is in, as a member or as a guest; what they may do comes from the roles they hold. Switching somebody off keeps their account and work, so switching them on brings them back.",
+      "Everybody who may sign in to Exciter. Standing says only whether somebody is in, as a member or as a guest; what they may do comes from the roles they hold. Letting people in, adding them and switching them off is under Users.",
     columnStanding: "Standing",
     columnRoles: "Roles across the installation",
     standingOf: (name: string) => `Standing of ${name}`,

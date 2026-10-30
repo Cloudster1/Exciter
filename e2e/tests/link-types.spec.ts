@@ -50,7 +50,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     for (const type of [GUARDS, CHECKS]) must(await api.POST("/link-types", { body: type }));
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { typeKey: GUARDS.key, otherKey: `${KEY}-R2` } }));
 
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     const guards = page.locator(`[data-link-type="${GUARDS.key}"]`);
     const checks = page.locator(`[data-link-type="${CHECKS.key}"]`);
     await expect(guards.locator('[data-action="delete-link-type"]')).toHaveCount(0);
@@ -71,7 +71,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${SHIELDS}` })).toHaveCount(1);
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${GUARDS.forward}` })).toHaveCount(0);
 
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     await guards.locator('[data-action="retire-link-type"]').click();
     await expect(guards).toHaveAttribute("data-retired", "");
     await expect(guards.locator('[data-action="restore-link-type"]')).toHaveText("Use again");
@@ -81,13 +81,13 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${CHECKS.forward}` })).toHaveCount(1);
     await expect(linkTypeOptions(page).filter({ hasText: SHIELDS })).toHaveCount(0);
 
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     await guards.locator('[data-action="restore-link-type"]').click();
     await expect(guards).not.toHaveAttribute("data-retired", "");
     await page.goto(`/p/${KEY}/r/${KEY}-R1`);
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${SHIELDS}` })).toHaveCount(1);
 
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     await checks.locator('[data-action="delete-link-type"]').click();
     await expect(checks).toHaveCount(0);
     await expect(guards.locator('[data-action="delete-link-type"]')).toHaveCount(0);

@@ -1,9 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
 import {
   ACCESS_PATH,
+  ADMIN_PATH,
+  USERS_PATH,
   ARMATURE_ACCOUNT_PATH,
   ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
@@ -12,7 +14,6 @@ import {
   NOTIFICATION_SETTINGS_PATH,
   NOTIFICATIONS_PATH,
   PROFILE_PATH,
-  ALL_TOKENS_PATH,
   ALL_CONNECTED_APPS_PATH,
   CONNECTED_APPS_PATH,
   PROJECTS_PATH,
@@ -53,7 +54,7 @@ describe("the shell", () => {
       within(sidebar)
         .getAllByRole("link")
         .map((link) => link.querySelector("span")?.textContent),
-    ).toEqual(["Home", "Search", "Notifications", "Reviews", "Projects"]);
+    ).toEqual(["Home", "Search", "Notifications", "Reviews", "Projects", "Admin"]);
     expect(within(sidebar).queryByRole("link", { name: "Members" })).toBeNull();
     expect(sidebar.querySelector("[data-sidebar-org]")).toHaveTextContent("Demo");
     expect(await within(sidebar).findByText("0.0.0-test (0123456)")).toHaveAttribute("title", "commit 0123456789abcdef");
@@ -94,7 +95,7 @@ describe("the shell", () => {
     expect(JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "{}")).toEqual({ requirements: false });
   });
 
-  it("puts the breadcrumbs in the page's strip, the Settings crumb leading to the settings area's hub", async () => {
+  it("puts the breadcrumbs in the page's strip, the Admin crumb leading to the Admin page", async () => {
     stubApi(membersList);
     await renderAt(MEMBERS_TAB);
     const strip = document.querySelector<HTMLElement>("[data-shell-strip]")!;
@@ -103,25 +104,23 @@ describe("the shell", () => {
       within(crumbs)
         .getAllByRole("listitem")
         .map((item) => item.textContent?.replace("/", "").trim()),
-    ).toEqual(["Demo", "Settings", "Access"]);
+    ).toEqual(["Demo", "Admin", "Access"]);
     expect(within(crumbs).getByRole("link", { name: "Demo" })).toHaveAttribute("href", "/");
-    expect(within(crumbs).getByRole("link", { name: "Settings" })).toHaveAttribute("href", SETTINGS_PATH);
+    expect(within(crumbs).getByRole("link", { name: "Admin" })).toHaveAttribute("href", ADMIN_PATH);
     expect(within(crumbs).getByText("Access")).toHaveAttribute("aria-current", "page");
   });
 });
 
 describe("the settings area", () => {
-  it("swaps the sidebar for its own, You for everyone and Settings for an administrator, in order", async () => {
-    stubApi(membersList);
-    await renderAt(MEMBERS_TAB);
+  it("swaps the sidebar for its own, with the person's own pages only, in order", async () => {
+    await renderAt(PROFILE_PATH);
     const sidebar = document.querySelector<HTMLElement>("[data-settings-sidebar]")!;
     expect(sidebar).not.toBeNull();
     expect(sidebar.querySelector("[data-sidebar-org]")).toBeNull();
-    const links = (group: string) =>
-      within(sidebar.querySelector<HTMLElement>(`[data-sidebar-group="${group}"]`)!)
-        .getAllByRole("link")
-        .map((link) => link.getAttribute("href"));
-    expect(links("you")).toEqual([
+    const links = within(sidebar.querySelector<HTMLElement>('[data-sidebar-group="you"]')!)
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("href"));
+    expect(links).toEqual([
       PROFILE_PATH,
       NOTIFICATION_SETTINGS_PATH,
       WATCHING_PATH,
@@ -131,25 +130,8 @@ describe("the settings area", () => {
       ARMATURE_ACCOUNT_PATH,
       STATOR_ACCOUNT_PATH,
     ]);
-    expect(links("settings")).toEqual([
-      INSTALLATION_PATH,
-      ACCESS_PATH,
-      LINK_TYPES_PATH,
-      ALL_TOKENS_PATH,
-      ALL_CONNECTED_APPS_PATH,
-      ARMATURE_SETTINGS_PATH,
-      STATOR_SETTINGS_PATH,
-      WEBHOOKS_PATH,
-      AUDIT_PATH,
-    ]);
-    expect(within(sidebar).getByRole("link", { name: "Access" })).toHaveAttribute("data-status", "active");
-  });
-
-  it("keeps the installation's settings from a member", async () => {
-    await renderAt(PROFILE_PATH, { me: member });
-    const sidebar = document.querySelector<HTMLElement>("[data-settings-sidebar]")!;
-    expect(sidebar.querySelector('[data-sidebar-group="you"]')).not.toBeNull();
-    expect(sidebar.querySelector('[data-sidebar-group="settings"]')).toBeNull();
+    expect(sidebar.querySelectorAll("[data-sidebar-group]")).toHaveLength(1);
+    expect(within(sidebar).getByRole("link", { name: "Your profile" })).toHaveAttribute("data-status", "active");
   });
 
   it("goes back to the last page outside it", async () => {
@@ -157,32 +139,81 @@ describe("the settings area", () => {
     const router = await renderAt(SEARCH_PATH);
     await router.navigate({ to: `${ACCESS_PATH}/$tab`, params: { tab: "members" } });
     await arrival(router, MEMBERS_TAB);
+    // Admin is outside the settings area, so it keeps the main sidebar and is where the way back leads.
+    expect(document.querySelector("[data-settings-sidebar]")).toBeNull();
     await router.navigate({ to: PROFILE_PATH });
     await arrival(router, PROFILE_PATH);
     const back = screen.getByRole("link", { name: "Back to Exciter" });
-    expect(back).toHaveAttribute("href", SEARCH_PATH);
+    expect(back).toHaveAttribute("href", MEMBERS_TAB);
     await userEvent.click(back);
-    await waitFor(() => expect(router.state.location.pathname).toBe(SEARCH_PATH));
+    await waitFor(() => expect(router.state.location.pathname).toBe(MEMBERS_TAB));
     expect(document.querySelector("[data-settings-sidebar]")).toBeNull();
   });
 
-  it("opens on a hub of the person's pages, and the installation's for an administrator", async () => {
+  it("opens on a hub of the person's own pages, each with what it is for, for an administrator too", async () => {
     await renderAt(SETTINGS_PATH);
     expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
-    expect(within(document.querySelector<HTMLElement>('[data-hub-card="you"]')!).getByRole("link", { name: "Your profile" })).toHaveAttribute(
-      "href",
-      PROFILE_PATH,
-    );
-    expect(within(document.querySelector<HTMLElement>('[data-hub-card="settings"]')!).getByRole("link", { name: "Access" })).toHaveAttribute(
-      "href",
-      ACCESS_PATH,
-    );
+    const hub = document.querySelector<HTMLElement>('[data-hub-card="you"]')!;
+    const profile = within(hub).getByRole("link", { name: /Your profile/ });
+    expect(profile).toHaveAttribute("href", PROFILE_PATH);
+    expect(profile).toHaveTextContent("Your name, language and time zone.");
+    expect(within(hub).getAllByRole("link")).toHaveLength(8);
+    expect(hub.querySelector(`a[href="${ACCESS_PATH}"]`)).toBeNull();
+    expect(document.querySelector('[data-hub-card="settings"]')).toBeNull();
+  });
+});
+
+describe("the Admin area", () => {
+  it("lists every page of the installation in its four sections, with the section nav beside it", async () => {
+    await renderAt(ADMIN_PATH);
+    expect(await screen.findByRole("heading", { level: 1, name: "Admin" })).toBeInTheDocument();
+    const section = (id: string) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-admin-section="${id}"] [data-admin-card]`)].map((card) => card.getAttribute("href"));
+    expect(section("people")).toEqual([INSTALLATION_PATH, ACCESS_PATH, USERS_PATH]);
+    expect(section("work")).toEqual([LINK_TYPES_PATH]);
+    expect(section("integrations")).toEqual([ARMATURE_SETTINGS_PATH, STATOR_SETTINGS_PATH, ALL_CONNECTED_APPS_PATH, WEBHOOKS_PATH]);
+    expect(section("records")).toEqual([AUDIT_PATH]);
+    expect(document.querySelector('[data-admin-card="users"]')).toHaveTextContent("switching an account off or back on");
+    const nav = screen.getByRole("navigation", { name: "Admin sections" });
+    expect(within(nav).getAllByRole("link")).toHaveLength(10);
+    expect(document.querySelector("[data-settings-sidebar]")).toBeNull();
   });
 
-  it("shows a member only the You card of the hub", async () => {
-    await renderAt(SETTINGS_PATH, { me: member });
-    expect(document.querySelector('[data-hub-card="you"]')).not.toBeNull();
-    expect(document.querySelector('[data-hub-card="settings"]')).toBeNull();
+  it("puts the section nav behind one menu on a narrow screen", async () => {
+    setViewportWidth(500);
+    onTestFinished(() => setViewportWidth(1280));
+    const router = await renderAt(ADMIN_PATH);
+    expect(screen.queryByRole("navigation", { name: "Admin sections" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Admin" }));
+    await userEvent.click(within(screen.getByRole("menu", { name: "Section" })).getByRole("menuitem", { name: "Audit log" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(AUDIT_PATH));
+  });
+
+  it("refuses a member once, for the whole of it, and leads nowhere from the sidebar", async () => {
+    const sent = stubApi({});
+    await renderAt(WEBHOOKS_PATH, { me: member });
+    expect(await screen.findByRole("heading", { level: 1, name: "Admin" })).toBeInTheDocument();
+    expect(screen.getByText("Only administrators can open this page")).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-admin-refused]")).toHaveLength(1);
+    expect(sent.some((r) => r.path === "/webhooks")).toBe(false);
+    expect(document.querySelector('[data-nav="admin"]')).toBeNull();
+  });
+
+  it("is one entry at the foot of an administrator's sidebar", async () => {
+    await renderAt("/");
+    const entry = document.querySelector<HTMLElement>('[data-sidebar] [data-nav="admin"]')!;
+    expect(within(entry).getByRole("link", { name: /Admin/ })).toHaveAttribute("href", ADMIN_PATH);
+  });
+
+  it("sends the old address of a moved page on to its new one, with its search", async () => {
+    const router = await renderAt("/settings/webhooks?from=mail");
+    await waitFor(() => expect(router.state.location.pathname).toBe(WEBHOOKS_PATH));
+    expect(router.state.location.searchStr).toBe("?from=mail");
+  });
+
+  it("leaves an address of the settings area that never was a page not found", async () => {
+    await renderAt("/settings/nowhere");
+    expect(await screen.findByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
   });
 });
 
@@ -230,14 +261,16 @@ describe("the quick switcher", () => {
       `place:${STATOR_ACCOUNT_PATH}`,
       `place:${INSTALLATION_PATH}`,
       `place:${ACCESS_PATH}`,
+      `place:${USERS_PATH}`,
       `place:${LINK_TYPES_PATH}`,
-      `place:${ALL_TOKENS_PATH}`,
-      `place:${ALL_CONNECTED_APPS_PATH}`,
       `place:${ARMATURE_SETTINGS_PATH}`,
       `place:${STATOR_SETTINGS_PATH}`,
+      `place:${ALL_CONNECTED_APPS_PATH}`,
       `place:${WEBHOOKS_PATH}`,
       `place:${AUDIT_PATH}`,
+      `place:${ADMIN_PATH}`,
     ]);
+    expect(within(screen.getByRole("dialog", { name: "Go to" })).getByRole("option", { name: /Admin \/ Audit log/ })).toBeInTheDocument();
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[0]!.id);
 
@@ -245,9 +278,9 @@ describe("the quick switcher", () => {
     expect(options()[2]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[2]!.id);
     await userEvent.keyboard("{End}");
-    expect(options()[21]).toHaveAttribute("aria-selected", "true");
+    expect(options()[22]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{ArrowDown}");
-    expect(options()[21]).toHaveAttribute("aria-selected", "true");
+    expect(options()[22]).toHaveAttribute("aria-selected", "true");
     await userEvent.keyboard("{Home}{ArrowUp}");
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
 
@@ -308,7 +341,7 @@ describe("the account menu", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Your profile", "Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Settings", "Sign out"]);
+    ).toEqual(["Your profile", "Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Admin", "Sign out"]);
     expect(within(menu).queryByRole("menuitemradio")).toBeNull();
     await userEvent.click(within(menu).getByRole("menuitem", { name: "Sign out" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
@@ -316,17 +349,17 @@ describe("the account menu", () => {
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
   });
 
-  it("takes an administrator to the settings area", async () => {
+  it("takes an administrator to Admin", async () => {
     const router = await renderAt("/");
     await userEvent.click(screen.getByRole("button", { name: "Your account" }));
-    await userEvent.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Settings" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(SETTINGS_PATH));
+    await userEvent.click(within(screen.getByRole("menu", { name: "Your account" })).getByRole("menuitem", { name: "Admin" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(ADMIN_PATH));
   });
 
-  it("offers a member no Settings", async () => {
+  it("offers a member no Admin", async () => {
     await renderAt("/", { me: member });
     await userEvent.click(screen.getByRole("button", { name: "Your account" }));
-    expect(within(screen.getByRole("menu", { name: "Your account" })).queryByRole("menuitem", { name: "Settings" })).toBeNull();
+    expect(within(screen.getByRole("menu", { name: "Your account" })).queryByRole("menuitem", { name: "Admin" })).toBeNull();
   });
 });
 

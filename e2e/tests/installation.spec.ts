@@ -7,7 +7,8 @@ import { openShowing } from "../fixtures/replica";
 import { uniqueName } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 
-const INSTALLATION_PATH = "/settings/installation";
+const INSTALLATION_PATH = "/admin/installation";
+const CONNECTED_APPS_PATH = "/admin/connected-apps";
 const DISCOVERY = "/.well-known/oauth-protected-resource";
 // Nothing listens there; with OAuth switched off the browser never goes back to it.
 const CALLBACK = "http://127.0.0.1:9/callback";
@@ -55,13 +56,13 @@ test.describe("the installation", { tag: "@desktop" }, () => {
     const bob = await pageAs("bob");
     await openShowing(bob, "/", bob.locator("[data-sidebar-org]", { hasText: name }));
     await bob.goto(INSTALLATION_PATH);
-    await expect(bob.getByText("Only an administrator can rename the installation. Ask one of them.")).toBeVisible();
+    await expect(bob.getByText("Only administrators can open this page")).toBeVisible();
   });
 
   test("an administrator switches OAuth off: discovery goes and an app asking to connect is told why", async ({ page, api }) => {
     const client = await aClient();
     try {
-      await page.goto(INSTALLATION_PATH);
+      await page.goto(CONNECTED_APPS_PATH);
       const card = page.locator("[data-oauth-connections]");
       await expect(card).toHaveAttribute("data-oauth-connections", "on");
       await card.getByRole("switch", { name: "Let assistants connect with OAuth" }).click();

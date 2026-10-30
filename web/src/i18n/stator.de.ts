@@ -50,7 +50,7 @@ export const statorDe: typeof statorEn = {
   account: {
     title: "Stator-Konto",
     intro: "Verbinden Sie Ihr Stator-Konto, damit Anforderungen Ihnen die Seiten zeigen, die Sie in Stator lesen dürfen.",
-    notConfigured: "Exciter ist noch nicht mit Stator verbunden. Bitten Sie einen Administrator, es unter Einstellungen, Stator zu verbinden.",
+    notConfigured: "Exciter ist noch nicht mit Stator verbunden. Bitten Sie einen Administrator, es unter Admin, Stator zu verbinden.",
     steps:
       "Öffnen Sie in Stator Ihr Konto, dann Zugriffstokens, und erstellen Sie ein Token, das nicht nur lesen darf, damit Exciter Ihre Verknüpfungen auch auf Seiten zeigen kann. Fügen Sie es dann hier ein.",
     openStator: "Stator öffnen",

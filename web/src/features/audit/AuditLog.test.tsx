@@ -146,7 +146,7 @@ describe("the audit log", () => {
   it("tells a member it is the administrators' to read", async () => {
     const sent = log();
     await renderAt(AUDIT_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator reads the audit log/)).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent).toHaveLength(0);
   });
 });

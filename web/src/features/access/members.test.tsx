@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ACCESS_PATH, MEMBERS_PATH } from "@/config";
+import { ACCESS_PATH } from "@/config";
 import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -63,7 +63,7 @@ const row = (email: string) => document.querySelector<HTMLElement>(`[data-member
 describe("the Members tab", () => {
   it("is where the members' page of before leads", async () => {
     api();
-    const router = await renderAt(MEMBERS_PATH);
+    const router = await renderAt("/settings/members");
     await waitFor(() => expect(router.state.location.pathname).toBe(MEMBERS_TAB));
     expect(await screen.findByRole("tab", { name: "Members" })).toHaveAttribute("aria-selected", "true");
   });
@@ -78,7 +78,7 @@ describe("the Members tab", () => {
     expect(within(row(bob.email)!).getByText("None")).toBeInTheDocument();
     expect(within(row(self.email)!).getByText("(you)")).toBeInTheDocument();
     expect(within(row(self.email)!).queryByRole("combobox")).toBeNull();
-    expect(within(row(self.email)!).queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Switch / })).toBeNull();
     expect(screen.getByRole("combobox", { name: "Standing of Bob Builder" })).toHaveValue("member");
     expect(within(screen.getByRole("combobox", { name: "Standing of Bob Builder" })).queryByRole("option", { name: "Administrator" })).toBeNull();
   });
@@ -104,62 +104,10 @@ describe("the Members tab", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("An administrator stays a member.");
   });
 
-  it("lets an administrator switch another administrator off", async () => {
-    api();
-    await renderAt(MEMBERS_TAB);
-    expect(await screen.findByRole("button", { name: "Switch Olive Other off" })).toBeInTheDocument();
-  });
-
-  it("asks before switching somebody off, and does nothing when the answer is no", async () => {
-    const sent = api();
-    await renderAt(MEMBERS_TAB);
-    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
-    const dialog = screen.getByRole("dialog", { name: "Switch Bob Builder off?" });
-    expect(dialog).toHaveTextContent("They are signed out at once, on every device");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(sent.some((r) => r.method === "PATCH")).toBe(false);
-    expect(screen.getByRole("button", { name: "Switch Bob Builder off" })).toHaveFocus();
-  });
-
-  it("switches somebody off once confirmed and keeps them listed, then on again", async () => {
-    const sent = api();
-    await renderAt(MEMBERS_TAB);
-    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Switch off" }));
-    await waitFor(() => expect(sent.find((r) => r.method === "PATCH")).toEqual({ method: "PATCH", path: `/users/${bob.userId}`, body: { active: false } }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(await screen.findByText("Bob Builder was switched off.")).toBeInTheDocument();
-    await waitFor(() => expect(within(row(bob.email)!).getByText("Switched off")).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByRole("button", { name: "Add person" })).toHaveFocus());
-
-    await userEvent.click(screen.getByRole("button", { name: "Switch Bob Builder on" }));
-    expect(await screen.findByText("Bob Builder was switched on and can sign in again.")).toBeInTheDocument();
-    await waitFor(() => expect(row(bob.email)).toHaveAttribute("data-member-active", "true"));
-  });
-
-  it("shows why switching off was refused inside the question", async () => {
-    api({
-      [`PATCH /users/${bob.userId}`]: {
-        status: 409,
-        body: {
-          error: {
-            code: "last_administrator",
-            message: "The last active administrator cannot be switched off. Make somebody else an administrator first.",
-          },
-        },
-      },
-    });
-    await renderAt(MEMBERS_TAB);
-    await userEvent.click(await screen.findByRole("button", { name: "Switch Bob Builder off" }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Switch off" }));
-    expect(await within(screen.getByRole("dialog")).findByRole("alert")).toHaveTextContent("Make somebody else an administrator first.");
-  });
-
   it("tells a member the screen is the administrators'", async () => {
     const sent = api();
     await renderAt(MEMBERS_TAB, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator decides who may do what/)).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent.filter((request) => request.path.startsWith("/users"))).toHaveLength(0);
   });
 });

@@ -28,7 +28,6 @@ export const linkTypesEn = {
   title: "Link types",
   orgIntro: "The kinds of link every project may use. A project can turn one off, limit it to pairs of requirement types, and make its own under its settings.",
   projectIntro: "The link types this project uses: those for all projects, and its own. Turn one off, or limit which requirement types it joins.",
-  notAdmin: "Only an administrator changes the link types for all projects. Ask one.",
   tableLabel: "Link types",
   columnType: "Type",
   columnReads: "Reads",

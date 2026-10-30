@@ -4,7 +4,6 @@ import type { accessAdminEn } from "./access.en";
 export const accessAdminDe: typeof accessAdminEn = {
   title: "Zugriff",
   intro: "Wer was darf: Rollen und was sie umfassen, wer sie wo hat, Gruppen und wie man sich anmeldet.",
-  notAdmin: "Nur ein Administrator entscheidet, wer was darf. Bitten Sie einen, eine Rolle zu vergeben oder jemanden hinzuzufügen.",
   tabs: { roles: "Rollen", matrix: "Matrix", members: "Mitglieder", groups: "Gruppen", sso: "Single Sign-on" },
   permissionWords: {
     view: "Das Projekt und seine Anforderungen lesen",
@@ -78,7 +77,7 @@ export const accessAdminDe: typeof accessAdminEn = {
   },
   members: {
     intro:
-      "Alle, die sich bei Exciter anmelden dürfen. Der Stand sagt nur, ob jemand dabei ist, als Mitglied oder als Gast; was jemand darf, kommt aus den Rollen, die er hat. Wer abgeschaltet wird, behält Konto und Arbeit, und wer wieder eingeschaltet wird, ist wieder dabei.",
+      "Alle, die sich bei Exciter anmelden dürfen. Der Stand sagt nur, ob jemand dabei ist, als Mitglied oder als Gast; was jemand darf, kommt aus den Rollen, die er hat. Einlassen, Hinzufügen und Abschalten stehen unter Benutzer.",
     columnStanding: "Stand",
     columnRoles: "Rollen in der ganzen Installation",
     standingOf: (name: string) => `Stand von ${name}`,

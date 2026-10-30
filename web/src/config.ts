@@ -95,18 +95,22 @@ export const LANGUAGE_STORAGE_KEY = "exciter.language";
 /** The most time zones the profile lists for what was typed; the rest wait for a closer search. */
 export const TIME_ZONE_MATCHES_MAX = 50;
 
-/** Where an administrator renames the installation. */
-export const INSTALLATION_PATH = "/settings/installation";
+/** The Admin area: everything that is the installation's, for its administrators. */
+export const ADMIN_PATH = "/admin";
+/** Where an administrator renames the installation and names its default theme. */
+export const INSTALLATION_PATH = "/admin/installation";
+/** Where an administrator lets waiting people in, adds people, and switches an account off or back on. */
+export const USERS_PATH = "/admin/users";
 /** Where a person lets an app connect as them through OAuth (#188); the API sends the browser here. */
 export const OAUTH_CONSENT_PATH = "/oauth/consent";
 
 /** Where an administrator decides who may do what: roles, the matrix, members, groups and single sign-on, a tab each. */
-export const ACCESS_PATH = "/settings/access";
+export const ACCESS_PATH = "/admin/access";
 /** One tab of the Access page, named by its key; a plain string, which scripts/e2e-reach.mjs reads routes by. */
-export const ACCESS_TAB_PATH = "/settings/access/$tab";
-/** Where the members and single sign-on had pages of their own, which now lead to their tabs. */
-export const MEMBERS_PATH = "/settings/members";
-export const SSO_PATH = "/settings/sso";
+export const ACCESS_TAB_PATH = "/admin/access/$tab";
+/** An address of the settings area from before Admin, and one of the Access page's tabs there, both sent on to Admin. */
+export const SETTINGS_MOVED_PATH = "/settings/$section";
+export const SETTINGS_ACCESS_TAB_PATH = "/settings/access/$tab";
 /** How many grants the Roles tab and a project's permissions list at once. */
 export const ASSIGNMENT_PAGE_SIZE = 50;
 /** The groups claim and scopes an identity provider starts with, matching the API's defaults. */
@@ -116,15 +120,14 @@ export const SSO_DEFAULT_SCOPES = "openid profile email";
 export const SSO_WAITING = "not_a_member";
 
 /** Where an administrator reads the installation's audit log. */
-export const AUDIT_PATH = "/settings/audit";
+export const AUDIT_PATH = "/admin/audit";
 /** Entries the audit log shows per page, within the API's 200; the export has the rest. */
 export const AUDIT_PAGE_SIZE = 50;
 /** Where the audit log is downloaded as a spreadsheet, under the API's base. */
 export const AUDIT_EXPORT_PATH = "/audit/export";
 
-/** Where a person picks, makes and imports themes, and where an administrator names the installation's default. */
+/** Where a person picks, makes and imports themes. */
 export const THEMES_PATH = "/settings/themes";
-export const DEFAULT_THEME_PATH = "/settings/default-theme";
 /** The largest file a theme takes, matching the API's limit. */
 export const THEME_ASSET_MAX_BYTES = 12 * 1024 * 1024;
 /** The most extra CSS a theme carries, matching the API's limit. */
@@ -285,7 +288,7 @@ export const LINK_TYPE_PHRASE_MAX_LENGTH = 60;
 /** The most rules a link type takes in a project, the server's trace.MaxRules. */
 export const LINK_TYPE_MAX_RULES = 50;
 /** Where the installation's link types are kept. */
-export const LINK_TYPES_PATH = "/settings/link-types";
+export const LINK_TYPES_PATH = "/admin/link-types";
 
 /** The longest description and widest picture a statement keeps, the server's document.MaxAltLength and MaxImageWidth. */
 export const IMAGE_ALT_MAX_LENGTH = 500;
@@ -304,12 +307,12 @@ export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", 
 /** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */
 export const FILE_SIZE_DECIMALS_BELOW = 10;
 
-/** Where a person keeps their personal access tokens, and where administrators see everybody's (#22, #86). */
+/** Where a person keeps their personal access tokens (#22). */
 export const TOKENS_PATH = "/settings/tokens";
-export const ALL_TOKENS_PATH = "/settings/all-tokens";
-/** A person's apps connected with OAuth, and everybody's for the administrators (#189). */
+/** A person's apps connected with OAuth (#189). */
 export const CONNECTED_APPS_PATH = "/settings/connected-apps";
-export const ALL_CONNECTED_APPS_PATH = "/settings/all-connected-apps";
+/** The installation's connected apps for its administrators: the partner apps, and everybody's grants and tokens (#86, #189). */
+export const ALL_CONNECTED_APPS_PATH = "/admin/connected-apps";
 /** The scopes a token may carry, one at most, and the longest name it takes: the API's auth.ScopeRead, auth.ScopeEvidence
  * and MaxTokenNameLength. */
 export const TOKEN_READ_SCOPE = "read";
@@ -329,10 +332,10 @@ export const MCP_PATH = `${API_BASE}/mcp`;
 export const MCP_SERVER_NAME = "exciter";
 export const DAY_MS = 24 * 60 * 60 * 1000;
 /** Where an administrator connects Armature, and where a person connects their own Armature account (#26). */
-export const ARMATURE_SETTINGS_PATH = "/settings/armature";
+export const ARMATURE_SETTINGS_PATH = "/admin/armature";
 export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
 /** Where an administrator connects Stator, and where a person connects their own Stator account (#40). */
-export const STATOR_SETTINGS_PATH = "/settings/stator";
+export const STATOR_SETTINGS_PATH = "/admin/stator";
 export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
 /** The other tools' 96 px marks, one format for all, served from Exciter itself since its pages load no image from elsewhere (#298). */
 export const ARMATURE_ICON_PATH = "/tools/armature.webp";
@@ -367,7 +370,7 @@ export const ARMATURE_CREATE_MAX = 50;
 export const COPY_FEEDBACK_MS = 2000;
 
 /** Where an administrator keeps the installation's outbound webhooks (#48). */
-export const WEBHOOKS_PATH = "/settings/webhooks";
+export const WEBHOOKS_PATH = "/admin/webhooks";
 /** The topic that takes every event, and the events a webhook may take, as the API lists them. */
 export const WEBHOOK_TOPIC_ANY = "*";
 export const WEBHOOK_TOPICS = [

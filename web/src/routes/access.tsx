@@ -2,15 +2,14 @@ import { useId, useState } from "react";
 import { createRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Button, Page, PageHeader, TabPanel, Tabs } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { ACCESS_PATH, ACCESS_TAB_PATH, MEMBERS_PATH, SSO_PATH } from "@/config";
+import { ACCESS_PATH, ACCESS_TAB_PATH } from "@/config";
 import { GroupList } from "@/features/access/GroupList";
 import { MemberList } from "@/features/access/MemberList";
 import { NewRoleDialog, RoleMatrix } from "@/features/access/RoleMatrix";
 import { RoleTable } from "@/features/access/RoleTable";
-import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { ProviderSettings } from "@/features/auth/ProviderSettings";
 import { t } from "@/i18n";
-import { appRoute } from "./app";
+import { adminRoute } from "./admin";
 
 const tabs = ["roles", "matrix", "members", "groups", "sso"] as const;
 
@@ -25,7 +24,7 @@ const tabHooks: Record<AccessTab, string> = { roles: "Roles", matrix: "Matrix", 
 
 /** The Access page opens on its first tab. */
 export const accessRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => adminRoute,
   path: ACCESS_PATH,
   beforeLoad: () => {
     throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "roles" }, replace: true });
@@ -34,34 +33,12 @@ export const accessRoute = createRoute({
 
 /** Each tab is a route of its own, so a tab can be linked, survives a reload and steps back with Back. */
 export const accessTabRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => adminRoute,
   path: ACCESS_TAB_PATH,
   beforeLoad: ({ params }) => {
     if (!isTab(params.tab)) throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "roles" }, replace: true });
   },
-  component: () => (
-    <AdminsOnly title={t.accessAdmin.title} refusal={t.accessAdmin.notAdmin}>
-      <AccessPage />
-    </AdminsOnly>
-  ),
-});
-
-/** The members' page of before, kept so its links and bookmarks still arrive. */
-export const membersRedirectRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: MEMBERS_PATH,
-  beforeLoad: () => {
-    throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "members" }, replace: true });
-  },
-});
-
-/** The single sign-on page of before, kept so its links and bookmarks still arrive. */
-export const ssoRedirectRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: SSO_PATH,
-  beforeLoad: () => {
-    throw redirect({ to: ACCESS_TAB_PATH, params: { tab: "sso" }, replace: true });
-  },
+  component: AccessPage,
 });
 
 function AccessPage() {

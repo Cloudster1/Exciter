@@ -102,7 +102,7 @@ test.describe("trace links", { tag: "@desktop" }, () => {
 
   test("alice makes a link type for all projects, and a project turns it off", async ({ page, api }) => {
     await makeProject(api);
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     await expect(page.locator('[data-link-type="derives"]')).toBeVisible();
     await page.locator('[data-action="new-link-type"]').click();
     await page.getByRole("textbox", { name: "Name" }).fill(NAME);

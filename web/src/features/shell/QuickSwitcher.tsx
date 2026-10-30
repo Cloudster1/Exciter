@@ -8,11 +8,11 @@ import { useQuickSearch } from "@/api/search";
 import { cx } from "@/components/ui";
 import { useEscape, useFocusReturn } from "@/components/ui/overlay";
 import { Icon, type IconName } from "@/components/icons";
-import { NEW_PROJECT_PATH, QUICK_SEARCH_DEBOUNCE_MS, SEARCH_PATH } from "@/config";
+import { ADMIN_PATH, NEW_PROJECT_PATH, QUICK_SEARCH_DEBOUNCE_MS, SEARCH_PATH } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
 import { recentRequirements } from "@/lib/recent";
-import { areaTitle, placesFor } from "./places";
+import { adminEntry, areaTitle, placesFor } from "./places";
 
 interface Option {
   key: string;
@@ -93,11 +93,12 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
           pick: () => void navigate({ to: "/p/$projectKey", params: { projectKey: project.key } }),
         }))
     : [];
-  const places: Option[] = placesFor(me)
+  const reachable = placesFor(me);
+  const places: Option[] = (me?.administers ? [...reachable, adminEntry()] : reachable)
     .map((place) => ({
       key: `place:${place.path}`,
-      label: place.label,
-      hint: place.area === "work" ? "" : areaTitle(place.area),
+      label: place.area === "admin" && place.path !== ADMIN_PATH ? t.admin.inPalette(place.label) : place.label,
+      hint: place.area === "you" ? areaTitle(place.area) : "",
       icon: place.icon,
       pick: () => void navigate({ to: place.path }),
     }))

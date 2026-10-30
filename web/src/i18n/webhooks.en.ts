@@ -7,7 +7,6 @@ type Version = (typeof WEBHOOK_VERSIONS)[number];
 export const webhooksEn = {
   title: "Webhooks",
   intro: "Where Exciter posts what happens to requirements, signed so the receiver can tell it came from here.",
-  notAdmin: "Only an administrator keeps the webhooks. Ask one of them to add the address you need.",
   newTitle: "Add a webhook",
   name: "Name",
   namePlaceholder: "Test management",

@@ -32,8 +32,6 @@ export const themesEn = {
   actionsFor: (name: string) => `Actions for ${name}`,
   use: "Use this theme",
   stopUsing: "Stop using",
-  makeDefault: "Make it everyone's default",
-  undefault: "No longer everyone's default",
   edit: "Edit",
   exportFile: "Export as a file",
   share: "Share with everyone",

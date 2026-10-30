@@ -8,7 +8,7 @@ import { confirm, dismissToasts, expectAccessible, menuItem, toast } from "../fi
 import { WEB_URL } from "../fixtures/stack";
 
 const KEY = uniqueKey("ACC");
-const ACCESS = "/settings/access";
+const ACCESS = "/admin/access";
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };

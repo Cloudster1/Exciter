@@ -1,42 +1,38 @@
 import { Link } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
-import { Card, PageHeader, SectionTitle, Page } from "@/components/ui";
+import { Card, PageHeader, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { placesFor, type Place } from "@/features/shell/places";
+import { placesFor } from "@/features/shell/places";
 import { t } from "@/i18n";
 
-/** The settings area's hub (#280): the person's own pages, and the installation's for its administrators. */
+/** The settings area's hub (#280): the person's own pages, each with what it is for. The installation's are under Admin. */
 export function SettingsHub() {
   const { data: me } = useMe();
-  const places = placesFor(me);
-  const settings = places.filter((place) => place.area === "settings");
+  const you = placesFor(me).filter((place) => place.area === "you");
   return (
-    <Page width="narrow" className="space-y-6" data-settings-hub>
+    <Page width="narrow" data-settings-hub>
       <PageHeader title={t.settingsHub.title} />
-      <HubCard id="you" title={t.settingsHub.you} intro={t.settingsHub.youIntro} places={places.filter((place) => place.area === "you")} />
-      {settings.length > 0 && <HubCard id="settings" title={t.settingsHub.settings} intro={t.settingsHub.settingsIntro} places={settings} />}
-    </Page>
-  );
-}
-
-function HubCard({ id, title, intro, places }: { id: string; title: string; intro: string; places: Place[] }) {
-  return (
-    <Card className="space-y-3 p-4" data-hub-card={id}>
-      <SectionTitle id={`hub-${id}`}>{title}</SectionTitle>
-      <p className="text-sm text-ink-muted">{intro}</p>
-      <ul aria-labelledby={`hub-${id}`} className="grid gap-1 sm:grid-cols-2">
-        {places.map((place) => {
+      <p className="mb-3 text-sm text-ink-muted">{t.settingsHub.youIntro}</p>
+      <Card className="divide-y divide-border" data-hub-card="you" aria-label={t.settingsHub.you} role="region">
+        {you.map((place) => {
           const Glyph = Icon[place.icon];
           return (
-            <li key={place.path}>
-              <Link to={place.path} className="flex h-8 items-center gap-2 rounded-control px-2 text-sm text-ink hover:bg-surface-raised hover:text-accent">
-                <Glyph className="shrink-0 text-ink-muted" />
-                <span className="min-w-0 truncate">{place.label}</span>
-              </Link>
-            </li>
+            <Link
+              key={place.id}
+              to={place.path}
+              className="flex items-center gap-3 px-4 py-3 text-ink no-underline hover:bg-surface-raised"
+              data-settings-link={place.id}
+            >
+              <Glyph className="shrink-0 text-ink-muted" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-ink">{place.label}</span>
+                <span className="block text-sm text-ink-muted">{place.detail}</span>
+              </span>
+              <Icon.ChevronDown className="shrink-0 -rotate-90 text-ink-subtle" />
+            </Link>
           );
         })}
-      </ul>
-    </Card>
+      </Card>
+    </Page>
   );
 }

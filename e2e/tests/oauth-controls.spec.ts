@@ -6,18 +6,17 @@ import { expect } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey, uniqueName } from "../fixtures/seed";
-import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
+import { expectAccessible, confirm, openAdmin, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // The OAuth controls no other spec clicks (#329): consent narrowed to a project, an administrator disconnecting
-// somebody's app on All connected apps, and a partner app's secret copied and rotated.
+// somebody's app under Admin, Connected apps, and a partner app's secret copied and rotated.
 
 // Nothing listens there; the browser is stopped on its way back and answered by the test instead.
 const CALLBACK = "http://127.0.0.1:9/callback";
 const STATE = "the-state";
-// web/src/config.ts SETTINGS_PATH and INSTALLATION_PATH, and the prefix of a partner's secret, backend/internal/oauth.
-const SETTINGS_PATH = "/settings";
-const INSTALLATION_PATH = "/settings/installation";
+// web/src/config.ts ALL_CONNECTED_APPS_PATH, and the prefix of a partner's secret, backend/internal/oauth.
+const CONNECTED_APPS_PATH = "/admin/connected-apps";
 const SECRET_PREFIX = "exciter_ocs_";
 // A refresh token nobody holds: the token endpoint reaches the grant, and refuses it, only past the client's secret.
 const NOBODYS_REFRESH = "exciter_ort_nobody";
@@ -150,16 +149,15 @@ test.describe("OAuth controls", { tag: "@desktop" }, () => {
     expect(keys).toEqual([KEY]);
   });
 
-  test("alice disconnects bob's app on All connected apps, and its token is refused", async ({ page, pageAs, people }, testInfo) => {
+  test("alice disconnects bob's app under Admin, Connected apps, and its token is refused", async ({ page, pageAs, people }, testInfo) => {
     const name = uniqueName(testInfo, "Bob's assistant");
     const client = await aClient(name);
     clients.push(client);
     const token = await connect(await pageAs("bob"), client);
     expect((await mcp(token, "tools/list")).status).toBe(200);
 
-    await page.goto(SETTINGS_PATH);
-    await page.locator('[data-hub-card="settings"]').getByRole("link", { name: "All connected apps" }).click();
-    await expect(page).toHaveURL(/\/settings\/all-connected-apps$/);
+    await openAdmin(page, "connected-apps");
+    await expect(page).toHaveURL(/\/admin\/connected-apps$/);
     const row = page.locator(`[data-app-row="${name}"]`);
     await expect(row).toHaveAttribute("data-app-owner", people.bob.email);
     await expectAccessible(page);
@@ -181,7 +179,7 @@ test.describe("OAuth controls", { tag: "@desktop" }, () => {
     const old = made.secret!;
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 
-    await page.goto(INSTALLATION_PATH);
+    await page.goto(CONNECTED_APPS_PATH);
     const row = page.locator(`[data-partner-row="${name}"]`);
     await row.locator('[data-action="rotate-partner-secret"]').click();
     await expect(page.locator("[data-confirm]")).toContainText(`The old one stops at once, so enter the new one in ${name} straight away.`);

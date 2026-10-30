@@ -1,6 +1,7 @@
 {
   "routes": {},
   "actions": {
-    "first-project": "needs an installation without a project, which the shared stack never is while specs run beside each other; web/src/features/home/HomeScreen.test.tsx clicks it"
+    "first-project": "needs an installation without a project, which the shared stack never is while specs run beside each other; web/src/features/home/HomeScreen.test.tsx clicks it",
+    "turn-off-sso": "turning single sign-on off would refuse every other spec's sign-in through the shared stack's provider while specs run beside each other; web/src/features/auth/ProviderSettings.test.tsx clicks it"
   }
 }

@@ -9,11 +9,11 @@ import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
-// The controls of /settings/webhooks that webhooks.spec.ts leaves alone (#328). Each webhook listens to a project of
+// The controls of /admin/webhooks that webhooks.spec.ts leaves alone (#328). Each webhook listens to a project of
 // its own test, since the tests of a file run side by side.
 
 // web/src/config.ts WEBHOOKS_PATH and WEBHOOK_SIGNATURE_HEADER, and the header that names a delivery.
-const WEBHOOKS_PATH = "/settings/webhooks";
+const WEBHOOKS_PATH = "/admin/webhooks";
 const SIGNATURE_HEADER = "X-Exciter-Signature-256";
 const DELIVERY_HEADER = "X-Exciter-Delivery";
 const SECRET_PREFIX = "exciter_whs_";

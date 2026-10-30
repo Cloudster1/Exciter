@@ -34,8 +34,6 @@ export const themesDe: typeof themesEn = {
   actionsFor: (name: string) => `Aktionen für ${name}`,
   use: "Dieses Design verwenden",
   stopUsing: "Nicht mehr verwenden",
-  makeDefault: "Zum Standard für alle machen",
-  undefault: "Nicht mehr Standard für alle",
   edit: "Bearbeiten",
   exportFile: "Als Datei exportieren",
   share: "Mit allen teilen",

@@ -62,7 +62,7 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
 
   test("an administrator copies the webhook address, and once the secret is forgotten no delivery is taken (#326)", async ({ page, api }) => {
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-    await page.goto("/settings/armature");
+    await page.goto("/admin/armature");
     await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(webhookUrl);
     await page.locator('[data-action="copy-webhook-url"]').click();
     await expect(page.locator("[data-copy-status]")).toHaveText("Copied the address.");

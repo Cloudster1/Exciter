@@ -20,15 +20,16 @@ import type { ExciterApi } from "../fixtures/api";
 import { findGrants, grantEverywhere, grantInForm, grantRow, revokeEverywhere, revokeInTable } from "../fixtures/grants";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { openAccountMenu, toast, dismissToasts } from "../fixtures/shell";
+import { WEB_URL } from "../fixtures/stack";
 
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
 const ADMINS_GROUP = "exciter-administrators";
 const ADMINISTRATOR = "administrator";
-const MEMBERS_PATH = "/settings/access/members";
-const SSO_PATH = "/settings/access/sso";
-const ROLES_PATH = "/settings/access/roles";
-const GROUPS_PATH = "/settings/access/groups";
-const SETTINGS_PATH = "/settings";
+const MEMBERS_PATH = "/admin/access/members";
+const SSO_PATH = "/admin/access/sso";
+const ROLES_PATH = "/admin/access/roles";
+const GROUPS_PATH = "/admin/access/groups";
+const USERS_PATH = "/admin/users";
 // A claim the realm's tokens do not carry, so a sign-in reads no groups through it and still signs in.
 const OTHER_CLAIM = "e2e_groups";
 const WAITING = "Your request is waiting";
@@ -153,7 +154,11 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
       await expect(claim).toHaveValue(groupsClaim);
       await claim.fill(OTHER_CLAIM);
       await page.locator('[data-action="save-sso"]').click();
-      await expect(page.locator('[data-action="save-sso"] + [role="status"]')).toHaveText("Saved.");
+      await expect(toast(page, "Single sign-on is saved.")).toBeVisible();
+      await dismissToasts(page);
+      await expect(page.getByLabel("Scopes")).toHaveCount(0);
+      await expect(page.locator('[data-sso-state="on"] [data-sso-start]')).toHaveText(`${WEB_URL}/api/v1/auth/oidc/start`);
+      expect(must(await owner.GET("/oidc-provider")).provider).toMatchObject({ scopes, createGroups });
 
       await page.reload();
       await expect(claim).toHaveValue(OTHER_CLAIM);
@@ -205,7 +210,7 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
       const promoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
       try {
         await expect.poll(() => standing(promoted.page)).toEqual({ role: "member", administers: true });
-        await openUntil(promoted.page, SETTINGS_PATH, () => expect(promoted.page.locator('[data-hub-card="settings"]')).toBeVisible(ONE_LOOK));
+        await openUntil(promoted.page, "/", () => expect(promoted.page.locator('[data-sidebar] [data-nav="admin"]')).toBeVisible(ONE_LOOK));
       } finally {
         await promoted.close();
       }
@@ -218,9 +223,9 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
       const demoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
       try {
         await expect.poll(() => standing(demoted.page)).toEqual({ role: "member", administers: false });
-        await openUntil(demoted.page, SETTINGS_PATH, async () => {
-          await expect(demoted.page.locator('[data-hub-card="you"]')).toBeVisible(ONE_LOOK);
-          await expect(demoted.page.locator('[data-hub-card="settings"]')).toHaveCount(0, ONE_LOOK);
+        await openUntil(demoted.page, "/", async () => {
+          await expect(demoted.page.locator("[data-sidebar-org]")).toBeVisible(ONE_LOOK);
+          await expect(demoted.page.locator('[data-sidebar] [data-nav="admin"]')).toHaveCount(0, ONE_LOOK);
         });
       } finally {
         await demoted.close();
@@ -255,7 +260,7 @@ test.describe("people waiting to be let in", { tag: "@desktop" }, () => {
     try {
       await signInWithPassword(admin.page);
       const requests = admin.page.locator("[data-join-requests]");
-      await openUntil(admin.page, MEMBERS_PATH, () => expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toBeVisible(ONE_LOOK));
+      await openUntil(admin.page, USERS_PATH, () => expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toBeVisible(ONE_LOOK));
       await requests.locator(`[data-join-request="${CAROL.email}"] [data-action="admit-request"]`).click();
       await expect(toast(admin.page, /may sign in now\.$/)).toBeVisible();
       await dismissToasts(admin.page);

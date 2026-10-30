@@ -1,23 +1,21 @@
 import { createRoute } from "@tanstack/react-router";
 import { STATOR_ACCOUNT_PATH, STATOR_SETTINGS_PATH } from "@/config";
-import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { AccountSection } from "@/features/stator/AccountSection";
 import { ConnectionSettings } from "@/features/stator/ConnectionSettings";
 import { PageHeader, Page } from "@/components/ui";
 import { t } from "@/i18n";
+import { adminRoute } from "./admin";
 import { appRoute } from "./app";
 
 /** Where an administrator connects the installation's Stator and its webhook. */
 export const statorSettingsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => adminRoute,
   path: STATOR_SETTINGS_PATH,
   component: () => (
-    <AdminsOnly title={t.stator.title} refusal={t.stator.notAdmin}>
-      <Page width="narrow">
-        <PageHeader title={t.stator.title} />
-        <ConnectionSettings />
-      </Page>
-    </AdminsOnly>
+    <Page width="narrow">
+      <PageHeader title={t.stator.title} />
+      <ConnectionSettings />
+    </Page>
   ),
 });
 

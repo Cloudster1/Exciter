@@ -50,7 +50,7 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m13.md` for risk management (#258).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
-  default; an administrator renames it under Settings, Installation.
+  default; an administrator renames it under Admin, Installation.
 - Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
   speaks S3, signing its few calls itself with the standard library rather
   than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,

@@ -72,8 +72,6 @@ describe("a theme's row menu", () => {
     expect(within(rowOf("Mine")).getByRole("link", { name: "Mine" })).toHaveAttribute("href", "/settings/themes/t1");
     const item = await menuOf("Mine");
     for (const label of ["Edit", "Share with everyone", "Delete"]) expect(item(label)).not.toHaveAttribute("aria-disabled");
-    // A member names no default, whosever the theme.
-    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
     await userEvent.click(item("Share with everyone"));
     expect(api.update).toHaveBeenCalledWith({ id: "t1", shared: true }, expect.anything());
   });
@@ -91,27 +89,15 @@ describe("a theme's row menu", () => {
     expect(api.remove).not.toHaveBeenCalled();
   });
 
-  it("offers an administrator the default only on a shared theme, and takes it off the default", async () => {
-    api.themes = [
-      theme({ id: "p1", name: "Private" }),
-      theme({ id: "s1", name: "Shared", shared: true }),
-      theme({ id: "d1", name: "House", shared: true, default: true }),
-    ];
+  it("offers an administrator no default here, since it is the installation's and named under Admin", async () => {
+    api.themes = [theme({ id: "s1", name: "Shared", shared: true }), theme({ id: "d1", name: "House", shared: true, default: true })];
     await renderAt("/settings/themes");
-    const onPrivate = await menuOf("Private");
-    expect(onPrivate("Share with everyone")).not.toHaveAttribute("aria-disabled");
-    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
-    await userEvent.keyboard("{Escape}");
-
     const onShared = await menuOf("Shared");
-    expect(screen.queryByRole("menuitem", { name: "No longer everyone's default" })).toBeNull();
-    await userEvent.click(onShared("Make it everyone's default"));
-    expect(api.setDefault).toHaveBeenLastCalledWith("s1", expect.anything());
-
-    const onDefault = await menuOf("House");
-    expect(screen.queryByRole("menuitem", { name: "Make it everyone's default" })).toBeNull();
-    await userEvent.click(onDefault("No longer everyone's default"));
-    expect(api.setDefault).toHaveBeenLastCalledWith(null, expect.anything());
+    expect(onShared("Stop sharing")).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByRole("menuitem", { name: /default/ })).toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await menuOf("House");
+    expect(screen.queryByRole("menuitem", { name: /default/ })).toBeNull();
   });
 
   it("names in Delete's question how many use the theme, and a cancelled one deletes nothing", async () => {

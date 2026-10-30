@@ -3,7 +3,6 @@ import type { webhooksEn } from "./webhooks.en";
 export const webhooksDe: typeof webhooksEn = {
   title: "Webhooks",
   intro: "Wohin Exciter meldet, was mit Anforderungen geschieht, signiert, damit der Empfänger erkennt, dass es von hier kommt.",
-  notAdmin: "Nur Administratoren pflegen die Webhooks. Bitte eine Administratorin oder einen Administrator, die nötige Adresse einzutragen.",
   newTitle: "Webhook hinzufügen",
   name: "Name",
   namePlaceholder: "Testmanagement",

@@ -1,23 +1,21 @@
 import { createRoute } from "@tanstack/react-router";
 import { ARMATURE_ACCOUNT_PATH, ARMATURE_SETTINGS_PATH } from "@/config";
-import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { AccountSection } from "@/features/armature/AccountSection";
 import { ConnectionSettings } from "@/features/armature/ConnectionSettings";
 import { PageHeader, Page } from "@/components/ui";
 import { t } from "@/i18n";
+import { adminRoute } from "./admin";
 import { appRoute } from "./app";
 
 /** Where an administrator connects the installation's Armature and its webhook. */
 export const armatureSettingsRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => adminRoute,
   path: ARMATURE_SETTINGS_PATH,
   component: () => (
-    <AdminsOnly title={t.armature.title} refusal={t.armature.notAdmin}>
-      <Page width="narrow">
-        <PageHeader title={t.armature.title} />
-        <ConnectionSettings />
-      </Page>
-    </AdminsOnly>
+    <Page width="narrow">
+      <PageHeader title={t.armature.title} />
+      <ConnectionSettings />
+    </Page>
   ),
 });
 

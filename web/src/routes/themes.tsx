@@ -1,16 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, createRoute, useNavigate } from "@tanstack/react-router";
-import {
-  themeExportHref,
-  useActiveTheme,
-  useChooseTheme,
-  useDeleteTheme,
-  useImportTheme,
-  useSetDefaultTheme,
-  useThemes,
-  useUpdateTheme,
-  type Theme,
-} from "@/api/themes";
+import { themeExportHref, useActiveTheme, useChooseTheme, useDeleteTheme, useImportTheme, useThemes, useUpdateTheme, type Theme } from "@/api/themes";
 import { useMe } from "@/api/auth";
 import { FollowArmatureTheme } from "@/features/armature/FollowArmatureTheme";
 import { Button, EmptyState, ErrorBanner, IconButton, Menu, PageHeader, Segmented, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
@@ -47,7 +37,6 @@ function ThemesPage() {
   const administers = viewer?.administers ?? false;
   const { data: activeData } = useActiveTheme();
   const choose = useChooseTheme();
-  const setDefault = useSetDefaultTheme();
   const importTheme = useImportTheme();
   const update = useUpdateTheme();
   const remove = useDeleteTheme();
@@ -61,7 +50,7 @@ function ThemesPage() {
   const seen = activeData?.theme ?? null;
   const source = activeData?.source ?? "";
   const orgDefault = all.find((each) => each.default);
-  const failure = error ?? choose.error ?? update.error ?? setDefault.error ?? importTheme.error ?? remove.error;
+  const failure = error ?? choose.error ?? update.error ?? importTheme.error ?? remove.error;
 
   return (
     <Page width="content">
@@ -164,7 +153,7 @@ function ThemesPage() {
                   administers={administers}
                   inUse={seen?.id === theme.id}
                   orgDefault={orgDefault}
-                  actions={{ choose, setDefault, update, remove }}
+                  actions={{ choose, update, remove }}
                   onNotice={notify}
                 />
               ))}
@@ -178,7 +167,6 @@ function ThemesPage() {
 
 interface RowActions {
   choose: ReturnType<typeof useChooseTheme>;
-  setDefault: ReturnType<typeof useSetDefaultTheme>;
   update: ReturnType<typeof useUpdateTheme>;
   remove: ReturnType<typeof useDeleteTheme>;
 }
@@ -190,7 +178,7 @@ function ThemeRow({
   administers,
   inUse,
   orgDefault,
-  actions: { choose, setDefault, update, remove },
+  actions: { choose, update, remove },
   onNotice: notify,
 }: {
   theme: Theme;
@@ -249,23 +237,6 @@ function ThemeRow({
                   onSelect: () => choose.mutate(theme.id, { onSuccess: () => notify(t.themes.nowUsing(theme.name)) }),
                   attrs: { "data-action": "use-theme" },
                 },
-            ...(administers && theme.shared
-              ? [
-                  theme.default
-                    ? {
-                        label: t.themes.undefault,
-                        icon: <Icon.X />,
-                        onSelect: () => setDefault.mutate(null, { onSuccess: () => notify(t.themes.defaultCleared) }),
-                        attrs: { "data-action": "undefault-theme" },
-                      }
-                    : {
-                        label: t.themes.makeDefault,
-                        icon: <Icon.Users />,
-                        onSelect: () => setDefault.mutate(theme.id, { onSuccess: () => notify(t.themes.defaultSet(theme.name)) }),
-                        attrs: { "data-action": "default-theme" },
-                      },
-                ]
-              : []),
             {
               label: t.themes.edit,
               icon: <Icon.Edit />,

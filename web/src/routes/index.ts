@@ -9,7 +9,6 @@ import { armatureAccountRoute, armatureSettingsRoute } from "./armature";
 import { webhooksRoute } from "./webhooks";
 import { statorAccountRoute, statorSettingsRoute } from "./stator";
 import { auditRoute } from "./audit";
-import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { installationRoute } from "./installation";
 import { consentRoute } from "./consent";
@@ -48,10 +47,12 @@ import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from 
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
 import { linkTypesRoute, profileRoute, settingsRoute } from "./settings";
-import { accessRoute, accessTabRoute, membersRedirectRoute, ssoRedirectRoute } from "./access";
+import { accessRoute, accessTabRoute } from "./access";
+import { adminIndexRoute, adminRoute, settingsAccessTabRoute, settingsMovedRoute } from "./admin";
+import { usersRoute } from "./users";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
-import { allTokensRoute, tokensRoute } from "./tokens";
+import { tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
 import {
   printBaselineDocumentRoute,
@@ -114,24 +115,26 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     settingsRoute,
     profileRoute,
-    installationRoute,
     consentRoute,
-    accessRoute,
-    accessTabRoute,
-    membersRedirectRoute,
-    ssoRedirectRoute,
-    linkTypesRoute,
-    auditRoute,
-    defaultThemeRoute,
+    adminRoute.addChildren([
+      adminIndexRoute,
+      installationRoute,
+      accessRoute,
+      accessTabRoute,
+      usersRoute,
+      linkTypesRoute,
+      armatureSettingsRoute,
+      statorSettingsRoute,
+      allConnectedAppsRoute,
+      webhooksRoute,
+      auditRoute,
+    ]),
+    settingsMovedRoute,
+    settingsAccessTabRoute,
     themesRoute,
     tokensRoute,
     connectedAppsRoute,
-    allConnectedAppsRoute,
-    allTokensRoute,
-    armatureSettingsRoute,
-    webhooksRoute,
     armatureAccountRoute,
-    statorSettingsRoute,
     statorAccountRoute,
     notificationsRoute,
     notificationSettingsRoute,

@@ -7,7 +7,7 @@ import { armatureURL } from "../fixtures/stack";
 
 // Stator's spec of the same flow (#26), with the account on a page of its own.
 
-const SETTINGS_PATH = "/settings/armature";
+const SETTINGS_PATH = "/admin/armature";
 const ACCOUNT_PATH = "/settings/armature-account";
 // The stub makes a person of any name on first use, in the Armature organization its token names; this spec's is a
 // tenant of its own, and the connection is the installation's, so the spec runs alone.
@@ -62,7 +62,8 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expect(page.locator('[data-action="disconnect-armature"]')).toBeVisible();
       await expectAccessible(page);
 
-      await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Armature account" }).click();
+      await page.goto("/settings");
+      await page.locator('[data-settings-link="armature-account"]').click();
       await expect(page).toHaveURL(new RegExp(`${ACCOUNT_PATH}$`));
       const section = page.locator("[data-armature-account]");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Armature account" })).toBeVisible();
@@ -117,11 +118,11 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
   test("a member is told to ask an administrator until Armature is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");
     await openShowing(bob, ACCOUNT_PATH, bob.locator('[data-armature-status="not_configured"]'));
-    await expect(bob.locator('[data-armature-status="not_configured"]')).toContainText("Ask an administrator to connect it under Settings, Armature.");
+    await expect(bob.locator('[data-armature-status="not_configured"]')).toContainText("Ask an administrator to connect it under Admin, Armature.");
 
     expect((await api.PUT("/armature/connection", { body: { baseUrl: armatureURL() } })).response.status).toBe(200);
     await openShowing(bob, ACCOUNT_PATH, bob.getByLabel("Armature token", { exact: true }));
     await bob.goto(SETTINGS_PATH);
-    await expect(bob.getByText("Only an administrator can connect Armature.")).toBeVisible();
+    await expect(bob.getByText("Only administrators can open this page")).toBeVisible();
   });
 });

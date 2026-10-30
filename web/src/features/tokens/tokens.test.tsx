@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ApiToken } from "@/api/tokens";
-import { DAY_MS, ALL_TOKENS_PATH, TOKENS_PATH } from "@/config";
+import { DAY_MS, ALL_CONNECTED_APPS_PATH, TOKENS_PATH } from "@/config";
 import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -118,8 +118,8 @@ describe("everybody's tokens", () => {
       "GET /tokens/everyone": { status: 200, body: { tokens: [theirs] } },
       [`DELETE /tokens/everyone/${theirs.id}`]: { status: 204 },
     });
-    await renderAt(ALL_TOKENS_PATH);
-    const table = await screen.findByRole("table", { name: "All tokens" });
+    await renderAt(ALL_CONNECTED_APPS_PATH);
+    const table = await screen.findByRole("table", { name: "Everybody's tokens" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Revoke Nightly export of Bob" }));
@@ -127,9 +127,11 @@ describe("everybody's tokens", () => {
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/tokens/everyone/${theirs.id}`)).toBe(true));
   });
 
-  it("tells a member whose page it is", async () => {
-    stubApi({});
-    await renderAt(ALL_TOKENS_PATH, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator sees everybody.s tokens/)).toBeInTheDocument();
+  it("is where the page of before leads, and tells a member whose page it is", async () => {
+    const sent = stubApi({});
+    const router = await renderAt("/settings/all-tokens", { me: { ...signedIn, administers: false } });
+    await waitFor(() => expect(router.state.location.pathname).toBe(ALL_CONNECTED_APPS_PATH));
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
+    expect(sent.some((each) => each.path === "/tokens/everyone")).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { useEndGrant, useEveryonesGrants, type OrgGrant } from "@/api/oauth";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Td, Th, useToast, Page } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, Skeleton, Table, Td, Th, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { useConfirm } from "@/features/shell/ConfirmProvider";
@@ -19,8 +19,13 @@ export function AllConnectedApps() {
   }
 
   return (
-    <Page width="content" className="space-y-4">
-      <PageHeader title={t.oauth.allTitle} meta={t.oauth.allIntro} />
+    <section aria-labelledby="all-connected-apps" className="space-y-3" data-section="all-connected-apps">
+      <div>
+        <h2 id="all-connected-apps" className="text-base font-semibold text-ink">
+          {t.oauth.allTitle}
+        </h2>
+        <p className="text-sm text-ink-muted">{t.oauth.allIntro}</p>
+      </div>
       {(error ?? end.error) && <ErrorBanner>{(error ?? end.error)?.message}</ErrorBanner>}
       {!grants && !error && <Skeleton />}
       {grants && grants.length === 0 && <EmptyState icon={<Icon.Link />} title={t.oauth.allEmpty} />}
@@ -61,6 +66,6 @@ export function AllConnectedApps() {
           </tbody>
         </Table>
       )}
-    </Page>
+    </section>
   );
 }

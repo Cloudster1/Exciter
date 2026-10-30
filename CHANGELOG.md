@@ -32,7 +32,7 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `ProgressBar`, `DateInput`, `MentionTextarea`, `Spotlight`, `Count`,
   `Toast`, `ConfirmDialog`, `Drawer` and `DockedPanel`, and a `ref` on
   `Field` (#474).
-- "Let people in by their groups" under Settings, Single sign-on, off by
+- "Let people in by their groups" under Admin, Access, Single sign-on, off by
   default as in Armature and Stator: only while it is ticked does somebody
   new in a group that holds a grant get in, at sign-in or at a
   partner's token exchange, and the audit log names the group that let them
@@ -44,6 +44,26 @@ and the versioning [Semantic Versioning](https://semver.org/).
   is a group read out as one (#473).
 
 ### Changed
+
+- Settings and Admin split as the suite's standard lays out. `/settings`
+  holds only the person's own pages, each with a sentence on what it is
+  for. The installation's pages move to `/admin`: an index of every page in
+  the sections People and access, Work, Integrations and Records, with the
+  section nav beside it, or a menu on a narrow screen. Installation keeps
+  the name, the default theme and the suite demo; Access keeps its tabs
+  under `/admin/access/<tab>`; Users is new, with the join requests, adding
+  somebody with a password and switching an account off or back on;
+  Connected apps takes in the OAuth switch, the partner apps and everybody's
+  connected apps and tokens. Admin refuses anybody but an administrator once,
+  as a whole, and one Admin entry leads there from the sidebar and the
+  account menu; the palette names each page "Admin / <page>". Every old
+  `/settings/<page>` address of a moved page, and `/settings/access/<tab>`,
+  redirects to its new place (#470).
+- Single sign-on takes the standard's form: issuer, client ID, client
+  secret, groups claim, "Let people in by their groups", Set up or Save and
+  "Turn it off". Scopes, creating groups and the callback address leave the
+  form; a save sends back what is stored, so what dynamo-connect set stays
+  (#470).
 
 - Owner, admin, member and guest give way to a standing, member or guest,
   and grants: owners and admins are members who hold the administrator
@@ -70,9 +90,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   is a list on Your profile, saved with the time zone. Relative times come
   from the kit's catalogue, so German reads "vor 2 Std.", and the strings
   every component shares move from `common` to `kit` (#474).
-- Everyone's default theme is named on the Themes page, where the themes
-  are; `/settings/default-theme` sends a bookmark there, and the page of its
-  own is gone from Settings (#474).
+- Everyone's default theme is named under Admin, Installation;
+  `/settings/default-theme` sends a bookmark there, and the page of its own
+  is gone from Settings (#474, #470).
 - What an action did, or a refused change nobody else shows, is said in a
   toast in the corner, in the server's words; a deletion or anything else
   that cannot be taken back asks in the kit's confirm dialog, which names

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { INSTALLATION_PATH } from "@/config";
+import { ALL_CONNECTED_APPS_PATH } from "@/config";
 import { en } from "@/i18n/en";
 import { answerConfirm, renderAt, stubApi } from "@/test/app";
 
@@ -39,7 +39,7 @@ describe("a partner app's new secret", () => {
       "GET /oauth/clients": { status: 200, body: { clients: [app] } },
       [`POST /oauth/clients/${app.id}/rotate-secret`]: { status: 200, body: { client: { ...app, secret: rotated } } },
     });
-    await renderAt(INSTALLATION_PATH);
+    await renderAt(ALL_CONNECTED_APPS_PATH);
     const row = within(await screen.findByRole("list", { name: "Partner apps" }))
       .getByText("Stator")
       .closest("li") as HTMLElement;

@@ -9,7 +9,7 @@ import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueName } from "../fixtures/seed";
 import { expectAccessible, scrollsSideways, startInScheme, type ColourScheme } from "../fixtures/shell";
 
-const AUDIT_PATH = "/settings/audit";
+const AUDIT_PATH = "/admin/audit";
 // web/src/config.ts AUDIT_PAGE_SIZE: the page holds this many, so more spill onto a second.
 const PAGE_SIZE = 50;
 const SPILL = 7;
@@ -19,7 +19,7 @@ const FACET_PLANTED = `#audit-action option[value="${PLANTED_ACTION}"]`;
 // audit.CSVHeader, the export's first line.
 const CSV_HEADER = "time,action,actor_id,actor,target_type,target_id,ip,data,via_kind,via_name";
 const REFUSED = /^Only an administrator can do that\. Ask one/;
-const NOT_ADMIN = "Only an administrator reads the audit log.";
+const NOT_ADMIN = "Only administrators can open this page";
 
 // Written straight into the record, a second apart: making sixty through the API would only be slower at it.
 /** A theme the log names, and changes to it beyond one page of the log, all by alice. */
@@ -190,7 +190,7 @@ test.describe("the audit log", () => {
 
     const bob = await pageAs("bob");
     await bob.goto(AUDIT_PATH);
-    await expect(bob.locator("[data-admins-only]")).toContainText(NOT_ADMIN);
+    await expect(bob.locator("[data-admin-refused]")).toContainText(NOT_ADMIN);
     await expect(bob.locator("[data-audit-row]")).toHaveCount(0);
   });
 

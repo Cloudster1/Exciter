@@ -125,7 +125,7 @@ describe("the sign-in page", () => {
 
 describe("where sign-in returns to", () => {
   it("is a path of this application and nothing else", () => {
-    expect(safeNext("/settings/members?x=1")).toBe("/settings/members?x=1");
+    expect(safeNext("/admin/access/members?x=1")).toBe("/admin/access/members?x=1");
     for (const bad of [undefined, "", "https://evil.test", "//evil.test", "/\\evil.test", "settings", "/login", "/login?next=/"]) {
       expect(safeNext(bad)).toBeUndefined();
     }

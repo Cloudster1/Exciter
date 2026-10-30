@@ -4,10 +4,10 @@ import { Avatar, IconButton, Menu, type MenuEntry, type MenuItem } from "@/compo
 import type { AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
-import { placesFor, SETTINGS_PATH } from "./places";
+import { adminEntry, placesFor } from "./places";
 import { useConnectedTools } from "./tools";
 
-/** The avatar's menu, "Your account": who is signed in, their own pages, the other tools, the settings for an
+/** The avatar's menu, "Your account": who is signed in, their own pages, the other tools, Admin for an
  *  administrator, and the way out. */
 export function AccountMenu({ side = "right", align = "end" }: { side?: AnchoredSide; align?: "start" | "end" }) {
   const navigate = useNavigate();
@@ -25,14 +25,15 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
     href: tool.href,
     attrs: { "data-tool": tool.id },
   }));
+  const admin = adminEntry();
   const settings: MenuItem[] = me?.administers
     ? [
         {
-          label: t.nav.settings,
+          label: admin.label,
           icon: <Icon.Settings />,
-          onSelect: () => navigate({ to: SETTINGS_PATH }),
+          onSelect: () => navigate({ to: admin.path }),
           separated: true,
-          attrs: { "data-action": "settings" },
+          attrs: { "data-action": "admin" },
         },
       ]
     : [];

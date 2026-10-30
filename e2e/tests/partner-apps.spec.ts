@@ -8,8 +8,8 @@ import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/she
 // Partner apps (#273): alice registers one on the installation page, copies its client id and secret once, lets it
 // write and removes it. The exchange itself is the integration suite's, which holds a token of the realm.
 
-// web/src/config.ts INSTALLATION_PATH, and the prefix of a partner's secret, backend/internal/oauth.
-const INSTALLATION_PATH = "/settings/installation";
+// web/src/config.ts ALL_CONNECTED_APPS_PATH, and the prefix of a partner's secret, backend/internal/oauth.
+const CONNECTED_APPS_PATH = "/admin/connected-apps";
 const SECRET_PREFIX = "exciter_ocs_";
 
 async function removeNamed(api: ExciterApi, name: string) {
@@ -26,7 +26,7 @@ test.describe("partner apps", { tag: "@desktop" }, () => {
 
   test("alice registers a partner app, sees its secret once, lets it write and removes it", async ({ page, api }, testInfo) => {
     name = uniqueName(testInfo, "Wiki");
-    await page.goto(INSTALLATION_PATH);
+    await page.goto(CONNECTED_APPS_PATH);
     const form = page.getByRole("form", { name: "Register a partner app" });
     await form.getByLabel("App name", { exact: true }).fill(name);
     await form.getByLabel("Keycloak client", { exact: true }).fill("stator");

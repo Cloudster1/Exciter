@@ -102,3 +102,13 @@ export function toast(page: Page, text: string | RegExp) {
   // Matched on the message alone, so a pattern anchored at its end is not thrown by the dismiss button's name.
   return page.locator("[data-toast-message]").filter({ hasText: text }).last();
 }
+
+/** Opens an Admin page the way an administrator finds it: the Admin entry at the foot of the sidebar, then the page,
+ *  by its id in web/src/features/shell/places.ts, in Admin's section nav. */
+export async function openAdmin(page: Page, id: string): Promise<void> {
+  await openShell(page, "/");
+  await page.locator('[data-sidebar] [data-nav="admin"]').getByRole("link").click();
+  await expect(page.locator("[data-admin-index]")).toBeVisible();
+  await page.locator(`[data-admin-nav] [data-nav="${id}"]`).getByRole("link").click();
+  await expect(page.locator(`[data-admin-nav] [data-nav="${id}"] a`)).toHaveAttribute("data-status", "active");
+}

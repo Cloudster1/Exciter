@@ -154,7 +154,7 @@ func (s *Server) handleStatorWebhook(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, stator.ErrBadSignature):
 		respondError(w, r, &APIError{Status: http.StatusUnauthorized, Code: "bad_signature",
-			Message: "The signature does not match. Paste the webhook's secret from Stator under Settings, Stator, then redeliver."})
+			Message: "The signature does not match. Paste the webhook's secret from Stator under Admin, Stator, then redeliver."})
 	case errors.Is(err, stator.ErrUnknownVersion):
 		respondError(w, r, &APIError{Status: http.StatusUnprocessableEntity, Code: "unknown_version",
 			Message: "Exciter reads webhook envelopes of version " + webhook.VersionList() + ". Update Exciter to read this one."})

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Group, RoleDescription } from "@/api/access";
-import { ACCESS_PATH, SSO_PATH } from "@/config";
+import { ACCESS_PATH } from "@/config";
 import { accessAnswers, accessIds, groupList, roleList } from "@/test/access";
 import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
@@ -40,9 +40,16 @@ describe("the Access page", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe(`${ACCESS_PATH}/roles`));
   });
 
+  it("keeps a tab's address from the settings area of before", async () => {
+    stubAccess();
+    const router = await renderAt("/settings/access/groups");
+    await waitFor(() => expect(router.state.location.pathname).toBe(`${ACCESS_PATH}/groups`));
+    expect(await screen.findByRole("tab", { name: "Groups" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("is where the single sign-on page of before leads", async () => {
     stubAccess();
-    const router = await renderAt(SSO_PATH);
+    const router = await renderAt("/settings/sso");
     await waitFor(() => expect(router.state.location.pathname).toBe(`${ACCESS_PATH}/sso`));
     expect(await screen.findByLabelText("Issuer")).toBeInTheDocument();
     expect(document.querySelector("[data-group-roles]")).toBeNull();
@@ -51,7 +58,7 @@ describe("the Access page", () => {
   it("tells somebody who does not administer the installation whose page it is, and asks nothing", async () => {
     const sent = stubAccess();
     await renderAt(`${ACCESS_PATH}/roles`, { me: { ...signedIn, administers: false } });
-    expect(await screen.findByText(/Only an administrator decides who may do what/)).toBeInTheDocument();
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/role-assignments" || r.path === "/roles")).toBe(false);
   });
 });

@@ -12,7 +12,7 @@ import { armatureURL } from "../fixtures/stack";
 // reach it, whose bin on the armature-stub receives a revision signed with the secret shown once.
 
 // web/src/config.ts WEBHOOKS_PATH and WEBHOOK_SIGNATURE_HEADER.
-const WEBHOOKS_PATH = "/settings/webhooks";
+const WEBHOOKS_PATH = "/admin/webhooks";
 const SIGNATURE_HEADER = "X-Exciter-Signature-256";
 const SECRET_PREFIX = "exciter_whs_";
 // The api and the worker reach the stub on the stack's network by this name, which EXCITER_OUTBOUND_ALLOW lets through.

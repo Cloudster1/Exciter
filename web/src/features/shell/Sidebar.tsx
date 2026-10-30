@@ -1,7 +1,7 @@
 import { useRef, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { useMe } from "@/api/auth";
+import { useJoinRequests, useMe } from "@/api/auth";
 import { useUnreadCount } from "@/api/notifications";
 import { useWaitingReviews } from "@/api/reviews";
 import { Count, IconButton } from "@/components/ui";
@@ -14,7 +14,7 @@ import { ProjectNav } from "@/features/projects/ProjectNav";
 import { AccountMenu } from "./AccountMenu";
 import { BuildStamp } from "./BuildStamp";
 import { NavItem } from "./nav";
-import { inSettings, placesFor, type Place } from "./places";
+import { adminEntry, inSettings, placesFor } from "./places";
 import { Rail } from "./Rail";
 import { switcherShortcutHint } from "./shortcut";
 import { SidebarGroup } from "./SidebarGroup";
@@ -116,7 +116,9 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
       </kbd>
     ),
   };
-  const pages = placesFor(me).filter((place) => place.area === "work");
+  const places = placesFor(me);
+  const pages = places.filter((place) => place.area === "work");
+  const admin = adminEntry();
   return (
     <>
       <SidebarGroup id="requirements" title={t.nav.groupRequirements} open={isOpen("requirements", true)} onToggle={() => toggleGroup("requirements", true)}>
@@ -141,39 +143,36 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
         onToggleAdmin={() => toggleGroup("project-admin", false)}
         onNavigate={onNavigate}
       />
+      {me?.administers && (
+        <div className="mt-3" data-nav={admin.id}>
+          <NavItem to={admin.path} icon={admin.icon} rail={false} trailing={<JoinRequestsCount />} onNavigate={onNavigate}>
+            {admin.label}
+          </NavItem>
+        </div>
+      )}
     </>
   );
 }
 
-/** The settings area's groups: the person's own pages for everyone, the installation's for its administrators. */
+/** How many people wait to be let in, beside Admin and Users; only an administrator's sidebar asks. */
+export function JoinRequestsCount() {
+  const waiting = useJoinRequests().data?.length ?? 0;
+  return <Count count={waiting} name="join-requests" says={t.sso.waitingCount(waiting)} />;
+}
+
+/** The settings area's group: the person's own pages. The installation's are under Admin. */
 function SettingsGroups({ onNavigate }: { onNavigate?: () => void }) {
   const { data: me } = useMe();
   const [groups, toggleGroup] = useSidebarGroups();
-  const isOpen = (id: string) => groups[id] ?? true;
-  const places = placesFor(me);
-  const group = (id: string, title: string, entries: Place[]) =>
-    entries.length > 0 && (
-      <SidebarGroup id={id} title={title} open={isOpen(id)} onToggle={() => toggleGroup(id, true)}>
-        {entries.map((place) => (
-          <NavItem key={place.path} to={place.path} icon={place.icon} rail={false} onNavigate={onNavigate}>
-            {place.label}
-          </NavItem>
-        ))}
-      </SidebarGroup>
-    );
+  const you = placesFor(me).filter((place) => place.area === "you");
   return (
-    <>
-      {group(
-        "you",
-        t.nav.groupYou,
-        places.filter((place) => place.area === "you"),
-      )}
-      {group(
-        "settings",
-        t.nav.settings,
-        places.filter((place) => place.area === "settings"),
-      )}
-    </>
+    <SidebarGroup id="you" title={t.nav.groupYou} open={groups.you ?? true} onToggle={() => toggleGroup("you", true)}>
+      {you.map((place) => (
+        <NavItem key={place.path} to={place.path} icon={place.icon} rail={false} onNavigate={onNavigate}>
+          {place.label}
+        </NavItem>
+      ))}
+    </SidebarGroup>
   );
 }
 

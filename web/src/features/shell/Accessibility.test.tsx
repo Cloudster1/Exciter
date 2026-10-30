@@ -5,6 +5,10 @@ import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   ACCESS_PATH,
+  ADMIN_PATH,
+  ALL_CONNECTED_APPS_PATH,
+  INSTALLATION_PATH,
+  USERS_PATH,
   ARMATURE_ACCOUNT_PATH,
   ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
@@ -119,6 +123,11 @@ const settingsApi = () =>
     },
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
     "GET /users/requests": { status: 200, body: { requests: [waiting] } },
+    "GET /installation": { status: 200, body: { installation: { name: "Demo", oauthConnections: true } } },
+    "GET /installation/suite-demo": { status: 200, body: { demo: null } },
+    "GET /oauth/clients": { status: 200, body: { clients: [] } },
+    "GET /oauth/grants/everyone": { status: 200, body: { grants: [] } },
+    "GET /tokens/everyone": { status: 200, body: { tokens: [] } },
     "GET /oidc-provider": { status: 200, body: { provider, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" } },
     ...accessAnswers,
   });
@@ -190,7 +199,7 @@ describe("the account menu", () => {
     expect(trigger).toHaveAttribute("aria-controls", menu.id);
     const item = (name: string) => within(menu).getByRole("menuitem", { name });
     const profile = item("Your profile");
-    const order = ["Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Settings", "Sign out"].map(item);
+    const order = ["Notification settings", "Watching", "Themes", "Access tokens", "Connected apps", "Admin", "Sign out"].map(item);
     expect(within(menu).queryAllByRole("menuitemradio")).toHaveLength(0);
     expect(profile).toHaveFocus();
     for (const next of [...order, profile]) {
@@ -286,16 +295,19 @@ describe("on a narrow screen", () => {
     expect(drawer()).toBeNull();
   });
 
-  it("holds the settings sidebar in the settings area", async () => {
+  it("holds the settings sidebar in the settings area, and the Admin entry outside it", async () => {
     setViewportWidth(PHONE);
     settingsApi();
-    await renderAt(`${ACCESS_PATH}/members`);
+    await renderAt(PROFILE_PATH);
     await userEvent.click(menuButton());
     const panel = drawer() as HTMLElement;
     expect(within(panel).getByRole("link", { name: "Back to Exciter" })).toBeInTheDocument();
     const nav = within(panel).getByRole("navigation", { name: "Settings" });
     expect(within(nav).getByRole("link", { name: "Your profile" })).toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: "Access" })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Access" })).toBeNull();
+    await userEvent.click(within(panel).getByRole("link", { name: "Back to Exciter" }));
+    await userEvent.click(menuButton());
+    expect(within(drawer() as HTMLElement).getByRole("link", { name: /^Admin/ })).toBeInTheDocument();
   });
 
   it("closes when the route changes from elsewhere", async () => {
@@ -362,6 +374,10 @@ describe("axe", () => {
   it.each([
     "/settings",
     PROFILE_PATH,
+    ADMIN_PATH,
+    USERS_PATH,
+    INSTALLATION_PATH,
+    ALL_CONNECTED_APPS_PATH,
     `${ACCESS_PATH}/roles`,
     `${ACCESS_PATH}/matrix`,
     `${ACCESS_PATH}/members`,
@@ -396,9 +412,9 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it("finds nothing on the members with a person waiting to be let in", async () => {
+  it("finds nothing on the users with a person waiting to be let in", async () => {
     settingsApi();
-    await renderAt(`${ACCESS_PATH}/members`);
+    await renderAt(USERS_PATH);
     await screen.findByText("Carol New");
     await screen.findByText("Bob Builder");
     expect(await axeViolations()).toEqual([]);
@@ -411,9 +427,9 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it("finds nothing on a settings page somebody may not read", async () => {
+  it("finds nothing on an Admin page somebody may not read", async () => {
     await renderAt(AUDIT_PATH, { me: { ...signedIn, administers: false } });
-    await screen.findByRole("heading", { level: 1, name: "Audit log" });
+    await screen.findByRole("heading", { level: 1, name: "Admin" });
     expect(await axeViolations()).toEqual([]);
   });
 

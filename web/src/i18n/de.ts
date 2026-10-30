@@ -45,6 +45,7 @@ import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
 import { kitDe } from "./kit.de";
 import { accessAdminDe } from "./access.de";
+import { adminDe } from "./admin.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
 export const de: Messages = {
@@ -60,16 +61,9 @@ export const de: Messages = {
     whereYouAre: "Hier",
     home: "Start",
     settings: "Einstellungen",
-    installation: "Installation",
-    access: "Zugriff",
-    audit: "Protokoll",
     themes: "Designs",
-    linkTypes: "Verknüpfungsarten",
-    allTokens: "Alle Zugriffstoken",
-    allConnectedApps: "Alle verbundenen Apps",
     armature: "Armature",
     stator: "Stator",
-    webhooks: "Webhooks",
     groupRequirements: "Anforderungen",
     groupYou: "Sie",
     projectAdmin: "Projektverwaltung",
@@ -182,9 +176,18 @@ export const de: Messages = {
   settingsHub: {
     title: "Einstellungen",
     you: "Sie",
-    youIntro: "Ihre eigenen Seiten: Ihr Profil, worüber Sie benachrichtigt werden, Ihre Designs, Token und Verbindungen.",
-    settings: "Einstellungen",
-    settingsIntro: "Was die ganze Installation teilt, für ihre Administration.",
+    youIntro:
+      "Ihre eigenen Seiten: Ihr Profil, worüber Sie benachrichtigt werden, Ihre Designs, Token und Verbindungen. Was die Installation teilt, steht unter Admin.",
+    places: {
+      profile: "Ihr Name, Ihre Sprache und Ihre Zeitzone.",
+      notifications: "Worüber Exciter Sie benachrichtigt, und ob per E-Mail.",
+      watching: "Die Anforderungen und Projekte, denen Sie folgen, um einzelnen nicht mehr zu folgen.",
+      themes: "Wie Exciter für Sie aussieht, und eigene Designs.",
+      tokens: "Token, mit denen ein Skript, ein Assistent oder ein anderes Werkzeug in Ihrem Namen handelt.",
+      connectedApps: "Die Apps, die Sie in Ihrem Namen handeln lassen, um einzelne zu beenden.",
+      armature: "Ihr Armature-Konto, damit Anforderungen Ihre Vorgänge zeigen und Sie von hier aus in Armature handeln.",
+      stator: "Ihr Stator-Konto, damit Anforderungen Ihre Seiten zeigen.",
+    },
   },
   installation: {
     title: "Installation",
@@ -192,7 +195,6 @@ export const de: Messages = {
     name: "Name",
     save: "Namen speichern",
     saved: "Gespeichert.",
-    notAdmin: "Nur Administratoren benennen die Installation um. Fragen Sie eine dieser Personen.",
   },
   suiteDemo: {
     title: "Suite-Demo",
@@ -214,7 +216,7 @@ export const de: Messages = {
   sso: {
     title: "Single Sign-on",
     notAdmin: "Nur ein Administrator ändert, wie sich Personen anmelden. Fragen Sie einen.",
-    intro: "Mitglieder melden sich über Ihren Identitätsanbieter an, und ihre Gruppen folgen ihnen von dort.",
+    intro: "Personen melden sich über Ihren Identitätsanbieter an, und ihre Gruppen folgen ihnen von dort.",
     issuer: "Aussteller",
     issuerHint: "Die Aussteller-URL des Anbieters, unter der sein Discovery-Dokument liegt.",
     clientId: "Client-ID",
@@ -222,19 +224,19 @@ export const de: Messages = {
     clientSecretStored: "Gespeichert. Leer lassen, um es zu behalten.",
     groupsClaim: "Gruppen-Claim",
     groupsClaimHint: "Der Claim, der die Gruppen einer Person aufführt; ein Pfad mit Punkten erreicht einen verschachtelten.",
-    scopes: "Scopes",
-    createGroups: "Gruppen anlegen, die der Anbieter nennt",
     admitByGroup: "Personen über ihre Gruppen einlassen",
     admitByGroupDetail:
       "Wer sich neu hier oder über Armature oder Stator anmeldet und dessen Gruppe beim Anbieter eine Vergabe hat, wird damit eingelassen. Alle anderen warten weiterhin darauf, eingelassen zu werden.",
-    enabled: "Mitglieder melden sich über diesen Anbieter an",
-    callback: "Tragen Sie diese Weiterleitungsadresse beim Anbieter ein:",
-    signInAt: "Mitglieder melden sich an unter",
+    signInAt: "Personen können sich anmelden unter",
     save: "Speichern",
     setUp: "Single Sign-on einrichten",
-    saved: "Gespeichert.",
+    turnOff: "Abschalten",
+    turnedOff: "Single Sign-on ist abgeschaltet.",
+    offAddress: "Abgeschaltet. Die Adresse wäre",
+    saved: "Single Sign-on ist gespeichert.",
     waitingTitle: "Warten auf Aufnahme",
     waitingIntro: "Diese Personen haben sich über den Identitätsanbieter angemeldet, sind aber noch keine Mitglieder.",
+    waitingCount: (count: number) => (count === 1 ? "1 Person wartet auf Einlass" : `${count} Personen warten auf Einlass`),
     asked: (email: string, when: string) => `${email}, angefragt ${when}`,
     admit: "Als Mitglied aufnehmen",
     decline: "Abweisen",
@@ -291,7 +293,6 @@ export const de: Messages = {
       "Wer in Exciter was geändert hat: Mitglieder, Rollen, Gruppen und Vergaben, Ereignisse, die nicht zugestellt werden konnten, und Exporte dieses Protokolls.",
     keptDays: (days: number) => `Jeder Eintrag wird ${days} Tage aufbewahrt.`,
     keptForever: "Einträge bleiben dauerhaft erhalten.",
-    notAdmin: "Nur ein Administrator liest das Protokoll. Fragen Sie einen, wenn Sie wissen müssen, wer etwas geändert hat.",
     export: "Als CSV exportieren",
     filters: "Protokoll filtern",
     action: "Aktion",
@@ -451,6 +452,7 @@ export const de: Messages = {
   permissions: permissionsDe,
   access: accessDe,
   accessAdmin: accessAdminDe,
+  admin: adminDe,
   requirements: requirementsDe,
   editor: editorDe,
   types: typesDe,

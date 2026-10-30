@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ACCESS_PATH, MEMBERS_PATH } from "@/config";
+import { USERS_PATH } from "@/config";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
@@ -20,7 +20,6 @@ const bob = {
   roles: [],
 };
 const members = { status: 200, body: { members: [bob] } };
-const MEMBERS_TAB = `${ACCESS_PATH}/members`;
 
 describe("the people waiting to be let in", () => {
   it("are listed on the Members tab, and let in as members with one click", async () => {
@@ -33,7 +32,7 @@ describe("the people waiting to be let in", () => {
         return { status: 200, body: { membership: { userId: carol.userId, role: "member" } } };
       },
     });
-    await renderAt(MEMBERS_TAB);
+    await renderAt(USERS_PATH);
     const list = await screen.findByRole("heading", { name: "Waiting to be let in" });
     const card = list.closest("[data-join-requests]") as HTMLElement;
     const row = within(card).getByText("Carol New").closest("li") as HTMLElement;
@@ -58,7 +57,7 @@ describe("the people waiting to be let in", () => {
         return { status: 204 };
       },
     });
-    await renderAt(MEMBERS_TAB);
+    await renderAt(USERS_PATH);
     await userEvent.click(await screen.findByRole("button", { name: "Turn away" }));
     await waitFor(() => expect(sent.some((r) => r.method === "DELETE" && r.path === `/users/requests/${carol.userId}`)).toBe(true));
     expect(await screen.findByText("Carol New was turned away.")).toBeInTheDocument();
@@ -66,7 +65,7 @@ describe("the people waiting to be let in", () => {
 
   it("take no room when there are none", async () => {
     stubApi({ "GET /users/requests": { status: 200, body: { requests: [] } }, "GET /users": members });
-    await renderAt(MEMBERS_TAB);
+    await renderAt(USERS_PATH);
     await screen.findByText("Bob Builder");
     expect(document.querySelector("[data-join-requests]")).toBeNull();
   });
@@ -80,26 +79,29 @@ describe("the people waiting to be let in", () => {
         body: { error: { code: "not_found", message: "That person is not waiting to be let in. Reload the list; somebody may have answered already." } },
       },
     });
-    await renderAt(MEMBERS_TAB);
+    await renderAt(USERS_PATH);
     await userEvent.click(await screen.findByRole("button", { name: "Let in as member" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("That person is not waiting to be let in.");
   });
 
   it("pass axe", async () => {
     stubApi({ "GET /users/requests": { status: 200, body: { requests: [carol, dave] } }, "GET /users": members });
-    await renderAt(MEMBERS_TAB);
+    await renderAt(USERS_PATH);
     await screen.findByText("Carol New");
     expect(await axeViolations()).toEqual([]);
   });
 });
 
 describe("the members' page of before", () => {
-  it("leads to the Members tab, with the people waiting above the list", async () => {
+  it("leads to the Members tab, and the people waiting are under Users", async () => {
     stubApi({
       "GET /users/requests": { status: 200, body: { requests: [carol] } },
       "GET /users": { status: 200, body: { members: [] } },
     });
-    await renderAt(MEMBERS_PATH);
+    const router = await renderAt("/settings/members");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/admin/access/members"));
+    expect(document.querySelector("[data-join-requests]")).toBeNull();
+    await router.navigate({ to: USERS_PATH });
     const heading = await screen.findByRole("heading", { name: "Waiting to be let in" });
     expect(within(heading.closest("[data-join-requests]") as HTMLElement).getByRole("button", { name: "Let in as member" })).toBeInTheDocument();
   });
