@@ -264,7 +264,9 @@ func subjectExists(ctx context.Context, tx db.DBTX, field string, in GrantInput)
 // an active administrator, stay.
 func (s *Service) Revoke(ctx context.Context, actor, id uuid.UUID) (db.LSN, error) {
 	lsn, err := s.db.Write(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, selectAssignment+` WHERE a.id = $1 FOR UPDATE OF a`, id)
+		// Not locked yet: a lock is weighed by the policies on changing a grant, which hide an archived project's,
+		// and those are to be refused as archived rather than missing.
+		rows, err := tx.Query(ctx, selectAssignment+` WHERE a.id = $1`, id)
 		if err != nil {
 			return err
 		}
@@ -288,10 +290,15 @@ func (s *Service) Revoke(ctx context.Context, actor, id uuid.UUID) (db.LSN, erro
 			if archived {
 				return ErrArchived
 			}
+			if err := lockAssignment(ctx, tx, id); err != nil {
+				return err
+			}
 			if err := keepsProjectAdministrator(ctx, tx, a); err != nil {
 				return err
 			}
 		} else if err := requireAdmin(ctx, tx); err != nil {
+			return err
+		} else if err := lockAssignment(ctx, tx, id); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM role_assignment WHERE id = $1`, id); err != nil {
@@ -300,6 +307,17 @@ func (s *Service) Revoke(ctx context.Context, actor, id uuid.UUID) (db.LSN, erro
 		return Record(ctx, tx, actor, audit.ActionGrantRemoved, "grant", &id, assignmentLog(a))
 	})
 	return lsn, Refusal(err)
+}
+
+// lockAssignment holds a grant until the transaction ends, so two taking a project's last administrators away
+// are weighed one after the other; a grant gone meanwhile is no longer there.
+func lockAssignment(ctx context.Context, tx db.DBTX, id uuid.UUID) error {
+	var found uuid.UUID
+	err := tx.QueryRow(ctx, `SELECT id FROM role_assignment WHERE id = $1 FOR UPDATE`, id).Scan(&found)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNoSuchAssignment
+	}
+	return err
 }
 
 // keepsProjectAdministrator refuses taking away the last grant in a project that lets somebody run it, so the
