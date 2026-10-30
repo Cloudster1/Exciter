@@ -51,11 +51,28 @@ func outline(ctx context.Context, tx db.DBTX, projectID, id uuid.UUID) (string, 
 	return outlineOf(path), err
 }
 
-const selectNodes = walkTree + `
+// selectNodes reads each requirement once, since every read of a row checks its visibility again, and counts the
+// children in live, which holds them all, as a child sits in its parent's project (#477).
+const selectNodes = `
+WITH RECURSIVE live AS (
+	SELECT id, parent_id, number, kind, title, type_id, revision, status_id,
+	       row_number() OVER (PARTITION BY parent_id ORDER BY rank, number) AS pos
+	FROM requirement WHERE project_id = $1 AND trashed_at IS NULL
+), walk AS (
+	SELECT id, ARRAY[pos]::int[] AS path FROM live WHERE parent_id IS NULL
+	UNION ALL
+	SELECT l.id, w.path || l.pos::int FROM live l JOIN walk w ON l.parent_id = w.id
+), children AS (
+	SELECT parent_id, count(*)::int AS n FROM live WHERE parent_id IS NOT NULL GROUP BY parent_id
+), statuses AS (
+	SELECT st.id, st.name, st.category FROM (SELECT DISTINCT status_id FROM live WHERE status_id IS NOT NULL) u
+	CROSS JOIN LATERAL (SELECT s.id, s.name, s.category FROM req_status s WHERE s.id = u.status_id OFFSET 0) st
+)
 SELECT r.id, r.number, r.kind, r.title, r.parent_id, cardinality(w.path) - 1, w.path, r.type_id, r.revision,
-       (SELECT count(*)::int FROM requirement c WHERE c.parent_id = r.id AND c.trashed_at IS NULL),
-       r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), ` + QualityScore + `
-FROM walk w JOIN requirement r ON r.id = w.id LEFT JOIN req_status st ON st.id = r.status_id` + QualityScores + `
+       COALESCE(c.n, 0), r.status_id, COALESCE(st.name, ''), COALESCE(st.category, ''), ` + QualityScore + `
+FROM walk w JOIN live r ON r.id = w.id
+LEFT JOIN children c ON c.parent_id = r.id
+LEFT JOIN statuses st ON st.id = r.status_id` + QualityScores + `
 ORDER BY w.path`
 
 func scanNode(projectKey string) pgx.RowToFunc[TreeNode] {
