@@ -20,9 +20,11 @@ async function removeProject(api: ExciterApi) {
 
 /** Deletes the groups and roles a walk made under these names, whichever step it stopped at. */
 async function forget(api: ExciterApi, groups: string[], roles: string[]) {
-  const { groups: all } = must(await api.GET("/groups", { params: { query: { limit: 200 } } }));
-  for (const group of all.filter((each) => groups.includes(each.name))) {
-    await api.DELETE("/groups/{groupID}", { params: { path: { groupID: group.id } } });
+  for (const name of groups) {
+    const { groups: found } = must(await api.GET("/groups", { params: { query: { q: name, limit: 50 } } }));
+    for (const group of found.filter((each) => each.name === name)) {
+      await api.DELETE("/groups/{groupID}", { params: { path: { groupID: group.id } } });
+    }
   }
   for (const role of must(await api.GET("/roles")).roles.filter((each) => !each.builtin && roles.includes(each.name))) {
     await api.DELETE("/roles/{roleKey}", { params: { path: { roleKey: role.role } } });

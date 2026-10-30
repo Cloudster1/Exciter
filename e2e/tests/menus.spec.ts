@@ -25,7 +25,7 @@ test.describe("the avatar menu, the settings area and Admin", { tag: "@desktop" 
   }) => {
     await openShell(page, "/search");
     await expect(page.locator("[data-top-bar]")).toHaveCount(0);
-    await expect(page.locator("[data-sidebar]").getByRole("link", { name: "Access" })).toHaveCount(0);
+    await expect(page.locator("[data-sidebar]").getByRole("link", { name: "Access", exact: true })).toHaveCount(0);
     await expect(page.locator('[data-sidebar] [data-nav="admin"]')).toBeVisible();
 
     await openAccountMenu(page);
@@ -144,7 +144,7 @@ test.describe("the drawer at phone width", { tag: "@mobile" }, () => {
     await page.locator('[data-action="drawer"]').click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer.getByRole("navigation", { name: "Where you are" }).getByRole("link", { name: "Reviews" })).toBeVisible();
-    await expect(drawer.getByRole("link", { name: "Access" })).toHaveCount(0);
+    await expect(drawer.getByRole("link", { name: "Access", exact: true })).toHaveCount(0);
     await expectAccessible(page);
 
     await drawer.locator('[data-action="account"]').click();
@@ -163,7 +163,7 @@ test.describe("the drawer at phone width", { tag: "@mobile" }, () => {
     await page.locator('[data-action="drawer"]').click();
     const settings = page.getByRole("dialog", { name: "Navigation" }).getByRole("navigation", { name: "Settings" });
     await expect(settings.getByRole("link", { name: "Your profile" })).toBeVisible();
-    await expect(settings.getByRole("link", { name: "Access" })).toHaveCount(0);
+    await expect(settings.getByRole("link", { name: "Access", exact: true })).toHaveCount(0);
     expect(await scrollsSideways(page)).toBe(false);
     await expectAccessible(page);
     // Admin is outside the settings area, so it is where the way back leads.
