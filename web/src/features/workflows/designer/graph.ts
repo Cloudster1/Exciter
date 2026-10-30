@@ -287,7 +287,7 @@ export function describeRule(rule: DraftRule, catalogue: RuleType[], linkTypes: 
 
 /** A project role's name in the reader's language. */
 export function roleWord(role: string): string {
-  return (t.permissions.roles as Record<string, string | undefined>)[role] ?? role;
+  return t.permissions.roles[role] ?? role;
 }
 
 /** A rule option's label in the reader's language, the server's own where the catalogue has no word for it. */

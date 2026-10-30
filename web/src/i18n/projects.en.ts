@@ -38,7 +38,7 @@ export const projectsEn = {
     },
     test: { name: "Test specification", description: "Test cases and procedures that verify the requirements of other projects, with what each expects." },
   } as Record<string, { name: string; description: string } | undefined>,
-  notAdmin: "Only an administrator makes projects. Ask one.",
+  notAdmin: "Making projects needs a role that may. Ask an administrator for one.",
   switcher: "Switch project",
   chooseProject: "Choose a project",
   allProjects: "All projects",

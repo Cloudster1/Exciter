@@ -44,6 +44,7 @@ import { workflowsDe } from "./workflows.de";
 import { attributesDe, typesDe } from "./types.de";
 import { themesDe } from "./themes.de";
 import { kitDe } from "./kit.de";
+import { accessAdminDe } from "./access.de";
 
 /** The German strings, held to the English shape so a missing key fails to compile. */
 export const de: Messages = {
@@ -60,8 +61,7 @@ export const de: Messages = {
     home: "Start",
     settings: "Einstellungen",
     installation: "Installation",
-    members: "Mitglieder",
-    sso: "Single Sign-on",
+    access: "Zugriff",
     audit: "Protokoll",
     themes: "Designs",
     linkTypes: "Verknüpfungsarten",
@@ -164,7 +164,8 @@ export const de: Messages = {
     intro: "Wer Sie in Exciter sind, in welcher Sprache Exciter mit Ihnen spricht und in welcher Zeitzone es Uhrzeiten zeigt.",
     name: "Name",
     email: "E-Mail",
-    role: "Rolle",
+    role: "Stand",
+    administers: "Sie verwalten Exciter.",
     identity: "Name und E-Mail kommen von dort, wo Sie sich anmelden: von Ihrem Identitätsanbieter oder von der Administration, die Sie hinzugefügt hat.",
     language: "Sprache und Zeitzone",
     languageHint: "In Ihrem Konto gespeichert, sodass jeder Browser, mit dem Sie sich anmelden, sie verwendet. Auch Datum und Zahlen folgen der Sprache.",
@@ -225,7 +226,7 @@ export const de: Messages = {
     createGroups: "Gruppen anlegen, die der Anbieter nennt",
     admitByGroup: "Personen über ihre Gruppen einlassen",
     admitByGroupDetail:
-      "Wer sich neu hier oder über Armature oder Stator anmeldet und dessen Gruppe beim Anbieter einer Rolle zugeordnet ist, wird mit dieser Rolle eingelassen. Alle anderen warten weiterhin darauf, eingelassen zu werden.",
+      "Wer sich neu hier oder über Armature oder Stator anmeldet und dessen Gruppe beim Anbieter eine Vergabe hat, wird damit eingelassen. Alle anderen warten weiterhin darauf, eingelassen zu werden.",
     enabled: "Mitglieder melden sich über diesen Anbieter an",
     callback: "Tragen Sie diese Weiterleitungsadresse beim Anbieter ein:",
     signInAt: "Mitglieder melden sich an unter",
@@ -239,20 +240,6 @@ export const de: Messages = {
     decline: "Abweisen",
     admitted: (name: string) => `${name} kann sich jetzt anmelden.`,
     declined: (name: string) => `${name} wurde abgewiesen.`,
-    groupRolesTitle: "Rollen aus Gruppen",
-    groupRolesIntro:
-      "Ordnen Sie hier Gruppen Ihres Identitätsanbieters Rollen zu. Bei jeder Anmeldung erhält eine Person die höchste Rolle, die ihre Gruppen ergeben, und wer neu in einer zugeordneten Gruppe ist, wird ohne Warten aufgenommen, sobald oben Personen über ihre Gruppen einlassen angekreuzt ist. Der Eigentümer behält seine Rolle.",
-    groupRolesLater: "Änderungen erreichen jede Person bei ihrer nächsten Anmeldung.",
-    groupRolesEmpty: "Noch ist keine Gruppe zugeordnet. Die Rollen bleiben, wie Administratoren sie gesetzt haben.",
-    groupRolesNeedProvider: "Richten Sie oben Single Sign-on ein, bevor Sie seine Gruppen Rollen zuordnen.",
-    group: "Gruppe",
-    groupHint: "Der Name genau so, wie der Gruppen-Claim ihn sendet.",
-    role: "Rolle",
-    mapGroup: "Gruppe zuordnen",
-    unmapGroup: (group: string) => `Zuordnung von ${group} aufheben`,
-    unmap: "Aufheben",
-    mapped: (group: string, role: string) => `${group} ergibt jetzt die Rolle ${role}.`,
-    unmapped: (group: string) => `${group} ergibt keine Rolle mehr.`,
   },
   home: {
     title: "Start",
@@ -265,18 +252,11 @@ export const de: Messages = {
   },
   members: {
     title: "Mitglieder",
-    intro:
-      "Alle, die sich bei Exciter anmelden, und ihre Rolle. Eigentümer bleiben Eigentümer; jede andere Rolle können Sie ändern. Wer abgeschaltet wird, behält Konto und Arbeit, und wer wieder eingeschaltet wird, ist wieder dabei.",
-    notAdmin: "Nur ein Administrator verwaltet die Mitglieder. Bitten Sie einen, jemanden hinzuzufügen oder eine Rolle zu ändern.",
     count: (count: number) => (count === 1 ? "1 Mitglied" : `${count} Mitglieder`),
     columnPerson: "Person",
-    columnRole: "Rolle",
     columnJoined: "Dabei seit",
     you: "Sie",
-    fromProvider: "Vom Identitätsanbieter",
-    roleNames: { owner: "Eigentümer", admin: "Administrator", member: "Mitglied", guest: "Gast" },
-    roleOf: (name: string) => `Rolle von ${name}`,
-    roleChanged: (name: string, role: string) => `${name} ist jetzt ${role}.`,
+    roleNames: { admin: "Administrator", member: "Mitglied", guest: "Gast" },
     switchedOffTag: "Abgeschaltet",
     switchOff: "Abschalten",
     switchOffWho: (name: string) => `${name} abschalten`,
@@ -307,7 +287,8 @@ export const de: Messages = {
   },
   audit: {
     title: "Protokoll",
-    intro: "Wer in Exciter was geändert hat: Mitglieder und ihre Rollen, Ereignisse, die nicht zugestellt werden konnten, und Exporte dieses Protokolls.",
+    intro:
+      "Wer in Exciter was geändert hat: Mitglieder, Rollen, Gruppen und Vergaben, Ereignisse, die nicht zugestellt werden konnten, und Exporte dieses Protokolls.",
     keptDays: (days: number) => `Jeder Eintrag wird ${days} Tage aufbewahrt.`,
     keptForever: "Einträge bleiben dauerhaft erhalten.",
     notAdmin: "Nur ein Administrator liest das Protokoll. Fragen Sie einen, wenn Sie wissen müssen, wer etwas geändert hat.",
@@ -431,6 +412,16 @@ export const de: Messages = {
       "code_tag_words.saved": "Code-Tag-Wörter festgelegt",
       "risk_scheme.saved": "Risikoschema festgelegt",
       "installation.suite_demo_added": "Suite-Demo hinzugefügt",
+      "role.created": "Rolle hinzugefügt",
+      "role.updated": "Rolle geändert",
+      "role.deleted": "Rolle gelöscht",
+      "group.created": "Gruppe angelegt",
+      "group.updated": "Gruppe geändert",
+      "group.deleted": "Gruppe gelöscht",
+      "group.member_added": "Zu einer Gruppe hinzugefügt",
+      "group.member_removed": "Aus einer Gruppe genommen",
+      "grant.added": "Rolle vergeben",
+      "grant.removed": "Rolle entzogen",
     },
     targetTypes: {
       user: "Person",
@@ -451,11 +442,15 @@ export const de: Messages = {
       armature_connection: "Armature-Verbindung",
       stator_connection: "Stator-Verbindung",
       installation: "Installation",
+      role: "Rolle",
+      group: "Gruppe",
+      grant: "Vergabe",
     },
   },
   projects: projectsDe,
   permissions: permissionsDe,
   access: accessDe,
+  accessAdmin: accessAdminDe,
   requirements: requirementsDe,
   editor: editorDe,
   types: typesDe,

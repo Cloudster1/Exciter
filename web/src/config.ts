@@ -100,16 +100,16 @@ export const INSTALLATION_PATH = "/settings/installation";
 /** Where a person lets an app connect as them through OAuth (#188); the API sends the browser here. */
 export const OAUTH_CONSENT_PATH = "/oauth/consent";
 
-/** Where an administrator manages the installation's people. */
+/** Where an administrator decides who may do what: roles, the matrix, members, groups and single sign-on, a tab each. */
+export const ACCESS_PATH = "/settings/access";
+/** Where the members and single sign-on had pages of their own, which now lead to their tabs. */
 export const MEMBERS_PATH = "/settings/members";
-
-/** Where an administrator sets up single sign-on, maps its groups to roles and lets waiting people in. */
 export const SSO_PATH = "/settings/sso";
+/** How many grants the Roles tab and a project's permissions list at once. */
+export const ASSIGNMENT_PAGE_SIZE = 50;
 /** The groups claim and scopes an identity provider starts with, matching the API's defaults. */
 export const SSO_DEFAULT_GROUPS_CLAIM = "groups";
 export const SSO_DEFAULT_SCOPES = "openid profile email";
-/** The group a mapping's form shows as an example, the development realm's administrators. */
-export const SSO_GROUP_EXAMPLE = "exciter-administrators";
 /** What a sign-in through the provider came back with when the person is known there but not let in here. */
 export const SSO_WAITING = "not_a_member";
 

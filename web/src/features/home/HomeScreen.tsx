@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { administers, useMe } from "@/api/auth";
+import { useMe, useMyAccess } from "@/api/auth";
 import { useProjects } from "@/api/projects";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -13,7 +13,7 @@ export function HomeScreen() {
   const { data: me } = useMe();
   const { data: projects, isLoading, error, refetch } = useProjects();
   const navigate = useNavigate();
-  const mayCreate = administers(me?.role);
+  const mayCreate = useMyAccess().data?.createProject ?? false;
   return (
     <Page width="narrow" data-home>
       <PageHeader title={t.home.title} meta={me?.installation.name} />

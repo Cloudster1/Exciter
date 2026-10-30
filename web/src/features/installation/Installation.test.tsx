@@ -132,7 +132,7 @@ describe("the installation page", () => {
 
   it("tells a member to ask an administrator", async () => {
     stubApi({});
-    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, role: "member" } });
+    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, administers: false } });
     expect(await screen.findByText("Only an administrator can rename the installation. Ask one of them.")).toBeInTheDocument();
   });
 });

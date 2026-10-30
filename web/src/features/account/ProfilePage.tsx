@@ -23,7 +23,10 @@ export function ProfilePage() {
           {me.role && (
             <>
               <dt className="text-ink-muted">{t.profile.role}</dt>
-              <dd className="text-ink">{t.members.roleNames[me.role]}</dd>
+              <dd className="text-ink" data-profile-standing={me.role}>
+                {t.members.roleNames[me.role]}
+                {me.administers && <span className="block text-xs text-ink-muted">{t.profile.administers}</span>}
+              </dd>
             </>
           )}
         </dl>

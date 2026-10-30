@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MEMBERS_PATH, SSO_PATH } from "@/config";
+import { ACCESS_PATH, MEMBERS_PATH } from "@/config";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
@@ -9,20 +9,31 @@ afterEach(() => vi.unstubAllGlobals());
 
 const carol = { userId: "0195f000-0000-7000-8000-00000000c0c0", email: "carol@suite.test", name: "Carol New", requestedAt: "2026-09-29T08:00:00Z" };
 const dave = { userId: "0195f000-0000-7000-8000-00000000da7e", email: "dave@suite.test", name: "", requestedAt: "2026-09-29T08:05:00Z" };
-const provider = { provider: null, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" };
+const bob = {
+  userId: "0195f000-0000-7000-8000-000000000002",
+  email: "bob@exciter.test",
+  name: "Bob Builder",
+  role: "member",
+  administers: false,
+  joinedAt: "2026-09-03T08:00:00Z",
+  active: true,
+  roles: [],
+};
+const members = { status: 200, body: { members: [bob] } };
+const MEMBERS_TAB = `${ACCESS_PATH}/members`;
 
 describe("the people waiting to be let in", () => {
-  it("are listed on the single sign-on page, and let in as members with one click", async () => {
+  it("are listed on the Members tab, and let in as members with one click", async () => {
     let waiting = [carol, dave];
     const sent = stubApi({
       "GET /users/requests": () => ({ status: 200, body: { requests: waiting } }),
-      "GET /oidc-provider": { status: 200, body: provider },
+      "GET /users": members,
       [`POST /users/requests/${carol.userId}/admit`]: () => {
         waiting = [dave];
         return { status: 200, body: { membership: { userId: carol.userId, role: "member" } } };
       },
     });
-    await renderAt(SSO_PATH);
+    await renderAt(MEMBERS_TAB);
     const list = await screen.findByRole("heading", { name: "Waiting to be let in" });
     const card = list.closest("[data-join-requests]") as HTMLElement;
     const row = within(card).getByText("Carol New").closest("li") as HTMLElement;
@@ -41,49 +52,49 @@ describe("the people waiting to be let in", () => {
     let waiting = [carol];
     const sent = stubApi({
       "GET /users/requests": () => ({ status: 200, body: { requests: waiting } }),
-      "GET /oidc-provider": { status: 200, body: provider },
+      "GET /users": members,
       [`DELETE /users/requests/${carol.userId}`]: () => {
         waiting = [];
         return { status: 204 };
       },
     });
-    await renderAt(SSO_PATH);
+    await renderAt(MEMBERS_TAB);
     await userEvent.click(await screen.findByRole("button", { name: "Turn away" }));
     await waitFor(() => expect(sent.some((r) => r.method === "DELETE" && r.path === `/users/requests/${carol.userId}`)).toBe(true));
     expect(await screen.findByText("Carol New was turned away.")).toBeInTheDocument();
   });
 
   it("take no room when there are none", async () => {
-    stubApi({ "GET /users/requests": { status: 200, body: { requests: [] } }, "GET /oidc-provider": { status: 200, body: provider } });
-    await renderAt(SSO_PATH);
-    await screen.findByLabelText("Issuer");
+    stubApi({ "GET /users/requests": { status: 200, body: { requests: [] } }, "GET /users": members });
+    await renderAt(MEMBERS_TAB);
+    await screen.findByText("Bob Builder");
     expect(document.querySelector("[data-join-requests]")).toBeNull();
   });
 
   it("show a refusal as it came", async () => {
     stubApi({
       "GET /users/requests": { status: 200, body: { requests: [carol] } },
-      "GET /oidc-provider": { status: 200, body: provider },
+      "GET /users": members,
       [`POST /users/requests/${carol.userId}/admit`]: {
         status: 404,
         body: { error: { code: "not_found", message: "That person is not waiting to be let in. Reload the list; somebody may have answered already." } },
       },
     });
-    await renderAt(SSO_PATH);
+    await renderAt(MEMBERS_TAB);
     await userEvent.click(await screen.findByRole("button", { name: "Let in as member" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("That person is not waiting to be let in.");
   });
 
   it("pass axe", async () => {
-    stubApi({ "GET /users/requests": { status: 200, body: { requests: [carol, dave] } }, "GET /oidc-provider": { status: 200, body: provider } });
-    await renderAt(SSO_PATH);
+    stubApi({ "GET /users/requests": { status: 200, body: { requests: [carol, dave] } }, "GET /users": members });
+    await renderAt(MEMBERS_TAB);
     await screen.findByText("Carol New");
     expect(await axeViolations()).toEqual([]);
   });
 });
 
-describe("the members page", () => {
-  it("shows the people waiting above the list, to be let in from there too", async () => {
+describe("the members' page of before", () => {
+  it("leads to the Members tab, with the people waiting above the list", async () => {
     stubApi({
       "GET /users/requests": { status: 200, body: { requests: [carol] } },
       "GET /users": { status: 200, body: { members: [] } },

@@ -4,21 +4,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
+  ACCESS_PATH,
   ARMATURE_ACCOUNT_PATH,
   ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
-  MEMBERS_PATH,
   NEW_PROJECT_PATH,
   PROJECTS_PATH,
   PROFILE_PATH,
   SEARCH_PATH,
   SIDEBAR_DRAWER_BELOW_PX,
-  SSO_PATH,
   STATOR_ACCOUNT_PATH,
   STATOR_SETTINGS_PATH,
   THEMES_PATH,
 } from "@/config";
 import { emptySpec } from "@/lib/theme-css";
+import { accessAnswers } from "@/test/access";
 import { renderAt, setViewportWidth, signedIn, stubApi, unauthorized } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -47,8 +47,10 @@ const member = {
   email: "bob@exciter.test",
   name: "Bob Builder",
   role: "member",
+  administers: false,
   joinedAt: "2026-09-01T08:00:00Z",
   active: true,
+  roles: [{ role: "viewer", name: "Viewer", groupId: "0195f000-0000-7000-8000-00000000e0e0", groupName: "Everyone", groupBuiltin: "everyone" }],
 };
 const waiting = { userId: "0195f000-0000-7000-8000-00000000c0c0", email: "carol@suite.test", name: "Carol New", requestedAt: "2026-09-29T08:00:00Z" };
 const provider = {
@@ -118,10 +120,7 @@ const settingsApi = () =>
     "GET /audit/facets": { status: 200, body: { facets: { actions: [], actors: [], targetTypes: [], retentionDays: 365 } } },
     "GET /users/requests": { status: 200, body: { requests: [waiting] } },
     "GET /oidc-provider": { status: 200, body: { provider, callbackUrl: "http://localhost:5173/api/v1/auth/oidc/callback" } },
-    "GET /oidc-provider/group-roles": {
-      status: 200,
-      body: { groupRoles: [{ id: "0195f000-0000-7000-8000-0000000000a1", group: "exciter-administrators", role: "admin", updatedAt: "2026-09-29T08:00:00Z" }] },
-    },
+    ...accessAnswers,
   });
 
 describe("the skip link", () => {
@@ -290,13 +289,13 @@ describe("on a narrow screen", () => {
   it("holds the settings sidebar in the settings area", async () => {
     setViewportWidth(PHONE);
     settingsApi();
-    await renderAt(MEMBERS_PATH);
+    await renderAt(`${ACCESS_PATH}/members`);
     await userEvent.click(menuButton());
     const panel = drawer() as HTMLElement;
     expect(within(panel).getByRole("link", { name: "Back to Exciter" })).toBeInTheDocument();
     const nav = within(panel).getByRole("navigation", { name: "Settings" });
     expect(within(nav).getByRole("link", { name: "Your profile" })).toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: "Members" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Access" })).toBeInTheDocument();
   });
 
   it("closes when the route changes from elsewhere", async () => {
@@ -351,7 +350,7 @@ describe("axe", () => {
   it("finds nothing on the narrow shell, drawer shut or open", async () => {
     setViewportWidth(PHONE);
     settingsApi();
-    await renderAt(MEMBERS_PATH);
+    await renderAt(`${ACCESS_PATH}/members`);
     await screen.findByText("Bob Builder");
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(menuButton());
@@ -363,8 +362,12 @@ describe("axe", () => {
   it.each([
     "/settings",
     PROFILE_PATH,
-    MEMBERS_PATH,
-    SSO_PATH,
+    `${ACCESS_PATH}/roles`,
+    `${ACCESS_PATH}/matrix`,
+    `${ACCESS_PATH}/members`,
+    `${ACCESS_PATH}/groups`,
+    `${ACCESS_PATH}/sso`,
+    "/p/CHK/permissions",
     AUDIT_PATH,
     THEMES_PATH,
     `${THEMES_PATH}/new`,
@@ -393,11 +396,11 @@ describe("axe", () => {
     expect(await axeViolations()).toEqual([]);
   });
 
-  it("finds nothing on single sign-on with a provider, its mapping and a waiting person", async () => {
+  it("finds nothing on the members with a person waiting to be let in", async () => {
     settingsApi();
-    await renderAt(SSO_PATH);
+    await renderAt(`${ACCESS_PATH}/members`);
     await screen.findByText("Carol New");
-    await screen.findByText("exciter-administrators", { selector: "td" });
+    await screen.findByText("Bob Builder");
     expect(await axeViolations()).toEqual([]);
   });
 
@@ -409,7 +412,7 @@ describe("axe", () => {
   });
 
   it("finds nothing on a settings page somebody may not read", async () => {
-    await renderAt(AUDIT_PATH, { me: { ...signedIn, role: "member" } });
+    await renderAt(AUDIT_PATH, { me: { ...signedIn, administers: false } });
     await screen.findByRole("heading", { level: 1, name: "Audit log" });
     expect(await axeViolations()).toEqual([]);
   });

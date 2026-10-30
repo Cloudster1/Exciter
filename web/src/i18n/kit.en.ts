@@ -28,6 +28,7 @@ export const kitEn = {
   counted: {
     account: { one: "account", many: "accounts" },
     member: { one: "member", many: "members" },
+    grant: { one: "grant", many: "grants" },
     requirement: { one: "requirement", many: "requirements" },
     project: { one: "project", many: "projects" },
     label: { one: "label", many: "labels" },

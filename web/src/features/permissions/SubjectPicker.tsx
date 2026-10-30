@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useId, useState, type KeyboardEvent } from "react";
+import { groupLabel } from "@/api/access";
 import { subjectKey, useSubjectSearch, type Subject } from "@/api/permissions";
 import { Icon } from "@/components/icons";
 import { ErrorBanner, Input, cx } from "@/components/ui";
@@ -19,7 +20,6 @@ export function SubjectPicker({
   label,
   onPick,
   exclude = [],
-  allowEveryone = false,
   peopleOnly = false,
   inline = false,
   disabled,
@@ -28,7 +28,6 @@ export function SubjectPicker({
   onPick: (subject: Subject) => void;
   /** Subjects already chosen, by subjectKey, which are not offered again. */
   exclude?: string[];
-  allowEveryone?: boolean;
   /** Offers people alone, for questions about one person such as what they may do. */
   peopleOnly?: boolean;
   /** Draws the options in the flow of the page, so a dialog holding the picker grows to show them instead of cutting them off. */
@@ -48,11 +47,12 @@ export function SubjectPicker({
   const loading = !fresh && !found.error;
 
   const options: Option[] = [];
-  if (allowEveryone && t.permissions.everyone.toLowerCase().startsWith(q.toLowerCase())) {
-    options.push({ subject: { type: "everyone", id: null, name: t.permissions.everyone }, detail: t.permissions.everyoneDetail });
-  }
   for (const group of found.groups) {
-    options.push({ subject: { type: "group", id: group.id, name: group.name }, detail: t.permissions.members(group.memberCount) });
+    const everyone = group.builtin === "everyone";
+    options.push({
+      subject: { type: "group", id: group.id, name: groupLabel(group) },
+      detail: everyone ? t.permissions.everyoneDetail : t.permissions.members(group.memberCount),
+    });
   }
   for (const person of found.people) {
     options.push({ subject: { type: "user", id: person.id, name: person.name || person.email }, detail: person.email });
@@ -189,8 +189,8 @@ export function SubjectPicker({
   );
 }
 
-/** A person, a group or everyone at a glance; the name beside it says which in words. */
+/** A person or a group at a glance; the name beside it says which in words. */
 export function SubjectGlyph({ type }: { type: Subject["type"] }) {
-  const Glyph = type === "user" ? Icon.User : type === "group" ? Icon.Users : Icon.Everyone;
+  const Glyph = type === "user" ? Icon.User : Icon.Users;
   return <Glyph className="shrink-0 text-ink-subtle" />;
 }

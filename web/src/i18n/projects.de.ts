@@ -42,7 +42,7 @@ export const projectsDe: typeof projectsEn = {
       description: "Testfälle und Testabläufe, die die Anforderungen anderer Projekte nachweisen, mit ihrem erwarteten Ergebnis.",
     },
   },
-  notAdmin: "Projekte legt nur ein Administrator an. Fragen Sie einen.",
+  notAdmin: "Projekte anlegen braucht eine Rolle, die das darf. Bitten Sie einen Administrator darum.",
   switcher: "Projekt wechseln",
   chooseProject: "Projekt wählen",
   allProjects: "Alle Projekte",

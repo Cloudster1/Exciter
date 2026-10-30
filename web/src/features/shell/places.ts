@@ -1,12 +1,12 @@
-import { administers, type Me } from "@/api/auth";
+import type { Me } from "@/api/auth";
 import type { IconName } from "@/components/icons";
 import {
+  ACCESS_PATH,
   ARMATURE_ACCOUNT_PATH,
   ARMATURE_SETTINGS_PATH,
   AUDIT_PATH,
   INSTALLATION_PATH,
   LINK_TYPES_PATH,
-  MEMBERS_PATH,
   NOTIFICATION_SETTINGS_PATH,
   NOTIFICATIONS_PATH,
   ALL_TOKENS_PATH,
@@ -16,7 +16,6 @@ import {
   PROJECTS_PATH,
   REVIEWS_PATH,
   SEARCH_PATH,
-  SSO_PATH,
   STATOR_ACCOUNT_PATH,
   STATOR_SETTINGS_PATH,
   WEBHOOKS_PATH,
@@ -38,6 +37,8 @@ export interface Place {
   area: PlaceArea;
   /** Also in the avatar menu, among the person's own pages, by this name for the tests. */
   inAccountMenu?: string;
+  /** Its tabs are addresses under its path, and each is this page rather than one under it. */
+  tabbed?: boolean;
 }
 
 /** The settings area: its hub, and every page under it gets the settings sidebar in place of the main one. */
@@ -60,8 +61,7 @@ function allPlaces(): Place[] {
     { path: ARMATURE_ACCOUNT_PATH, icon: "Link", label: t.account.armature, area: "you" },
     { path: STATOR_ACCOUNT_PATH, icon: "Link", label: t.account.stator, area: "you" },
     { path: INSTALLATION_PATH, icon: "Settings", label: t.nav.installation, area: "settings" },
-    { path: MEMBERS_PATH, icon: "Users", label: t.nav.members, area: "settings" },
-    { path: SSO_PATH, icon: "Lock", label: t.nav.sso, area: "settings" },
+    { path: ACCESS_PATH, icon: "Lock", label: t.nav.access, area: "settings", tabbed: true },
     { path: LINK_TYPES_PATH, icon: "Link", label: t.nav.linkTypes, area: "settings" },
     { path: ALL_TOKENS_PATH, icon: "Key", label: t.nav.allTokens, area: "settings" },
     { path: ALL_CONNECTED_APPS_PATH, icon: "Link", label: t.nav.allConnectedApps, area: "settings" },
@@ -75,7 +75,7 @@ function allPlaces(): Place[] {
 /** Every place the signed-in person may go, in the order the sidebar and the settings area list them; the
  *  installation's settings only for its administrators, as one check for the whole group. */
 export function placesFor(me: Me | undefined): Place[] {
-  const admin = administers(me?.role);
+  const admin = me?.administers ?? false;
   return allPlaces().filter((place) => admin || place.area !== "settings");
 }
 
@@ -101,7 +101,7 @@ export interface PlaceCrumb {
  *  In the settings area every trail passes Settings, which leads to its hub. */
 export function crumbsFor(pathname: string): PlaceCrumb[] {
   if (pathname === SETTINGS_PATH) return [{ label: t.nav.settings }];
-  const place = allPlaces().find((each) => each.path === pathname);
+  const place = allPlaces().find((each) => each.path === pathname || (each.tabbed && pathname.startsWith(`${each.path}/`)));
   if (place) return inSettings(pathname) ? [{ label: t.nav.settings, path: SETTINGS_PATH }, { label: place.label }] : [{ label: place.label }];
   const above = placeAbove(pathname);
   if (!above) return [];

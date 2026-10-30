@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from "react";
-import { ASSIGNABLE_ROLES, useCreateMember, type AssignableRole, type CreatedMember } from "@/api/auth";
+import { ADDED_AS, useCreateMember, type AddedAs, type CreatedMember } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { Button, Dialog, ErrorBanner, Field, Select, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -14,7 +14,7 @@ export function AddMember() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<AssignableRole>("member");
+  const [role, setRole] = useState<AddedAs>("member");
   const [password, setPassword] = useState("");
   const [added, setAdded] = useState<CreatedMember | null>(null);
   const [copied, setCopied] = useState(false);
@@ -107,8 +107,8 @@ export function AddMember() {
                 hint={t.members.nameHint}
                 error={fields.name}
               />
-              <Select label={t.members.role} value={role} onChange={(event) => setRole(event.target.value as AssignableRole)} error={fields.role}>
-                {ASSIGNABLE_ROLES.map((each) => (
+              <Select label={t.members.role} value={role} onChange={(event) => setRole(event.target.value as AddedAs)} error={fields.role}>
+                {ADDED_AS.map((each) => (
                   <option key={each} value={each}>
                     {t.members.roleNames[each]}
                   </option>

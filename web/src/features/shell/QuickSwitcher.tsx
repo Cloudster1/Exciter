@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
-import { administers, useLogout, useMe } from "@/api/auth";
+import { useLogout, useMe, useMyAccess } from "@/api/auth";
 import { useMarkRead } from "@/api/notifications";
 import { useProjects } from "@/api/projects";
 import { useQuickSearch } from "@/api/search";
@@ -254,11 +254,11 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
 /** What can be done from anywhere, for whoever may do it. */
 function useActions(): Option[] {
   const navigate = useNavigate();
-  const { data: me } = useMe();
+  const mayCreate = useMyAccess().data?.createProject ?? false;
   const markRead = useMarkRead();
   const logout = useLogout();
   return [
-    ...(administers(me?.role)
+    ...(mayCreate
       ? [
           {
             key: "action:new-project",

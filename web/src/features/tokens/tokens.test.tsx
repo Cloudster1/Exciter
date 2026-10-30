@@ -129,7 +129,7 @@ describe("everybody's tokens", () => {
 
   it("tells a member whose page it is", async () => {
     stubApi({});
-    await renderAt(ALL_TOKENS_PATH, { me: { ...signedIn, role: "member" } });
+    await renderAt(ALL_TOKENS_PATH, { me: { ...signedIn, administers: false } });
     expect(await screen.findByText(/Only an administrator sees everybody.s tokens/)).toBeInTheDocument();
   });
 });

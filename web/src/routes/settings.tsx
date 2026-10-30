@@ -1,9 +1,8 @@
 import { createRoute } from "@tanstack/react-router";
-import { LINK_TYPES_PATH, MEMBERS_PATH, PROFILE_PATH } from "@/config";
+import { LINK_TYPES_PATH, PROFILE_PATH } from "@/config";
 import { ProfilePage } from "@/features/account/ProfilePage";
 import { SettingsHub } from "@/features/account/SettingsHub";
 import { AdminsOnly } from "@/features/auth/AdminsOnly";
-import { Members } from "@/features/auth/Members";
 import { OrgLinkTypes } from "@/features/links/LinkTypeList";
 import { SETTINGS_PATH } from "@/features/shell/places";
 import { t } from "@/i18n";
@@ -14,17 +13,6 @@ export const settingsRoute = createRoute({ getParentRoute: () => appRoute, path:
 
 /** Your profile: who the person is here, and the language they read in. */
 export const profileRoute = createRoute({ getParentRoute: () => appRoute, path: PROFILE_PATH, component: ProfilePage });
-
-/** The installation's people and their roles, for its administrators. */
-export const membersRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: MEMBERS_PATH,
-  component: () => (
-    <AdminsOnly title={t.members.title} refusal={t.members.notAdmin}>
-      <Members />
-    </AdminsOnly>
-  ),
-});
 
 /** The installation's link types, for its administrators. */
 export const linkTypesRoute = createRoute({

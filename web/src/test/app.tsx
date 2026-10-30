@@ -12,7 +12,8 @@ import { buildRouter, sendToLogin } from "@/routes";
 export const signedIn: Me = {
   user: { id: "0195f000-0000-7000-8000-00000000000a", email: "ada@exciter.test", name: "Ada Lovelace", locale: "", timezone: "" },
   installation: { name: "Demo", oauthConnections: true },
-  role: "admin",
+  role: "member",
+  administers: true,
   token: null,
   signsWith: "password",
 };
@@ -23,6 +24,7 @@ export async function renderAt(path: string, { me = signedIn, ready = "[data-she
   // A page that reads what every installation has still finds it behind it in a test that stubs nothing.
   if (!apiStubbed) stubApi({});
   const queryClient = createQueryClient((client) => sendToLogin(router, client));
+  signedInAs = me;
   if (me) queryClient.setQueryData(meQueryKey, me);
   const router = buildRouter(queryClient, createMemoryHistory({ initialEntries: [path] }));
   // Awaiting the load has no timeout, where polling for the first page would on a busy machine.
@@ -70,6 +72,14 @@ const freshInstallation: Record<string, Answer> = {
 
 let apiStubbed = false;
 
+// Who renderAt signed in, so what they may do across the installation follows from it unless a test says otherwise.
+let signedInAs: Me | null = null;
+
+function myAccess(): Answer {
+  const administers = signedInAs?.administers ?? false;
+  return { status: 200, body: { can: { administer: administers, createProject: administers } } };
+}
+
 // A file goes up as form data, which is no JSON; a test reads it as the text it is.
 function parsed(text: string): unknown {
   try {
@@ -92,7 +102,8 @@ export function stubApi(answers: Record<string, Answer | ((request: Request) => 
     const path = url.pathname.replace(/^\/api\/v1/, "");
     const text = await input.clone().text();
     sent.push({ method: input.method, path, body: text ? parsed(text) : undefined });
-    const found = answers[`${input.method} ${path}`] ?? freshInstallation[`${input.method} ${path}`];
+    const key = `${input.method} ${path}`;
+    const found = answers[key] ?? freshInstallation[key] ?? (key === "GET /access/me" ? myAccess() : undefined);
     const answer =
       typeof found === "function" ? await found(input) : (found ?? { status: 404, body: { error: { code: "not_found", message: "Not stubbed." } } });
     return new Response(answer.body === undefined ? null : JSON.stringify(answer.body), {

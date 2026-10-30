@@ -8,7 +8,7 @@ import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const member = { ...signedIn, role: "member" as const };
+const member = { ...signedIn, administers: false };
 const failed: Answer = {
   status: 500,
   body: { error: { code: "internal", message: "Something went wrong on our side. Try again, and quote the request id if it keeps happening." } },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { administers, useMe } from "@/api/auth";
+import { useMyAccess } from "@/api/auth";
 import { useProjects } from "@/api/projects";
 import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Switch, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -12,8 +12,7 @@ import { ProjectTable } from "./ProjectTable";
 export function ProjectDirectory() {
   const [showArchived, setShowArchived] = useState(false);
   const { data: projects, isLoading, error, refetch } = useProjects(showArchived);
-  const { data: me } = useMe();
-  const mayCreate = administers(me?.role);
+  const mayCreate = useMyAccess().data?.createProject ?? false;
   const navigate = useNavigate();
   const create = (action: string) =>
     mayCreate ? (

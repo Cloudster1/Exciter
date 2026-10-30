@@ -11,7 +11,7 @@ import {
   useUpdateTheme,
   type Theme,
 } from "@/api/themes";
-import { administers as canAdminister, useMe } from "@/api/auth";
+import { useMe } from "@/api/auth";
 import { FollowArmatureTheme } from "@/features/armature/FollowArmatureTheme";
 import { Button, EmptyState, ErrorBanner, IconButton, Menu, PageHeader, Segmented, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -44,7 +44,7 @@ function ThemesPage() {
   const { data, isLoading, error } = useThemes();
   const { data: viewer } = useMe();
   const me = viewer?.user.id;
-  const administers = canAdminister(viewer?.role);
+  const administers = viewer?.administers ?? false;
   const { data: activeData } = useActiveTheme();
   const choose = useChooseTheme();
   const setDefault = useSetDefaultTheme();

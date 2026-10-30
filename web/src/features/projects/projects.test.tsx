@@ -9,7 +9,7 @@ import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const member: Me = { ...signedIn, role: "member" };
+const member: Me = { ...signedIn, administers: false };
 const checkout = aProject();
 const billing = aProject({ id: "0195f000-0000-7000-8000-0000000000f3", key: "BIL", name: "Billing", description: "" });
 

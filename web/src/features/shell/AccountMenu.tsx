@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { administers, useLogout, useMe } from "@/api/auth";
+import { useLogout, useMe } from "@/api/auth";
 import { Avatar, IconButton, Menu, type MenuEntry, type MenuItem } from "@/components/ui";
 import type { AnchoredSide } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
@@ -25,7 +25,7 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
     href: tool.href,
     attrs: { "data-tool": tool.id },
   }));
-  const settings: MenuItem[] = administers(me?.role)
+  const settings: MenuItem[] = me?.administers
     ? [
         {
           label: t.nav.settings,
@@ -60,7 +60,7 @@ export function AccountMenu({ side = "right", align = "end" }: { side?: Anchored
         {me.user.name && <span className="block truncate text-xs text-ink-muted">{me.user.email}</span>}
         {me.role && (
           <span className="block text-2xs text-ink-subtle" data-account-role={me.role}>
-            {t.members.roleNames[me.role]}
+            {me.administers ? t.members.roleNames.admin : t.members.roleNames[me.role]}
           </span>
         )}
       </span>

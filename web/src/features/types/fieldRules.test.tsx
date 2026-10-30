@@ -71,7 +71,7 @@ describe("the field rules' settings", () => {
     await userEvent.click(within(forCar).getByLabelText("Disc"));
     await userEvent.click(within(form).getByRole("button", { name: "Add a line" }));
     const line = form.querySelector<HTMLElement>('[data-permit="1"]')!;
-    await userEvent.click(within(line).getByLabelText("Admin"));
+    await userEvent.click(within(line).getByLabelText("Project administrator"));
     await userEvent.click(within(line).getByLabelText(approved.name));
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(form).getByRole("button", { name: "Save attribute" }));

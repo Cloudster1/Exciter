@@ -78,7 +78,7 @@ describe("the single sign-on settings", () => {
     await renderAt(SSO_PATH);
     const admit = await screen.findByRole("checkbox", { name: "Let people in by their groups" });
     expect(admit).not.toBeChecked();
-    expect(admit).toHaveAccessibleDescription(/whose group from the provider is mapped to a role is let in with that role/);
+    expect(admit).toHaveAccessibleDescription(/whose group from the provider holds a grant is let in with it/);
 
     await userEvent.click(admit);
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -134,8 +134,8 @@ describe("the single sign-on settings", () => {
 
   it("is not even asked for on behalf of a member", async () => {
     const sent = stubApi({});
-    await renderAt(SSO_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText("Only an administrator changes how people sign in. Ask one.")).toBeInTheDocument();
+    await renderAt(SSO_PATH, { me: { ...signedIn, administers: false } });
+    expect(await screen.findByText(/Only an administrator decides who may do what/)).toBeInTheDocument();
     expect(sent.some((r) => r.path.startsWith("/oidc-provider"))).toBe(false);
   });
 

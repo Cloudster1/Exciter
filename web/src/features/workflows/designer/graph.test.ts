@@ -219,7 +219,7 @@ describe("describing a rule", () => {
   it("uses the label and spells out the configuration in the reader's words", () => {
     expect(describeRule({ kind: "validator", type: "validator.comment_required", config: {} }, catalogue)).toBe("Comment required");
     expect(describeRule({ kind: "condition", type: "condition.project_role", config: { roles: ["reviewer", "admin"] } }, catalogue)).toBe(
-      "Project role (Roles: Reviewer, Admin)",
+      "Project role (Roles: Reviewer, Project administrator)",
     );
     expect(describeRule({ kind: "condition", type: "condition.moon_phase", config: {} }, catalogue)).toBe("condition.moon_phase");
   });

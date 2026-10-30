@@ -32,7 +32,7 @@ vi.mock("@/api/themes", async (importOriginal) => {
 });
 
 const ME = signedIn.user.id;
-const member = { ...signedIn, role: "member" as const };
+const member = { ...signedIn, administers: false };
 
 function theme(over: Partial<Theme>): Theme {
   return {

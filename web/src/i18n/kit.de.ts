@@ -29,6 +29,7 @@ export const kitDe: typeof kitEn = {
   counted: {
     account: { one: "Konto", many: "Konten" },
     member: { one: "Mitglied", many: "Mitglieder" },
+    grant: { one: "Vergabe", many: "Vergaben" },
     requirement: { one: "Anforderung", many: "Anforderungen" },
     project: { one: "Projekt", many: "Projekte" },
     label: { one: "Label", many: "Labels" },

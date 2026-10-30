@@ -1,5 +1,5 @@
 import type { AuditAction } from "@/api/audit";
-import type { OrgRole } from "@/api/auth";
+import type { AddedAs } from "@/api/auth";
 import type { Language } from "./index";
 import { accessEn, permissionsEn } from "./permissions.en";
 import { projectsEn } from "./projects.en";
@@ -46,6 +46,7 @@ import { workflowsEn } from "./workflows.en";
 import { attributesEn, typesEn } from "./types.en";
 import { themesEn } from "./themes.en";
 import { kitEn } from "./kit.en";
+import { accessAdminEn } from "./access.en";
 
 /** The English strings, and the shape every other language has to fill. */
 export const en = {
@@ -62,8 +63,7 @@ export const en = {
     home: "Home",
     settings: "Settings",
     installation: "Installation",
-    members: "Members",
-    sso: "Single sign-on",
+    access: "Access",
     audit: "Audit log",
     themes: "Themes",
     linkTypes: "Link types",
@@ -163,7 +163,8 @@ export const en = {
     intro: "Who you are in Exciter, the language it speaks to you in and the time zone of its times.",
     name: "Name",
     email: "Email",
-    role: "Role",
+    role: "Standing",
+    administers: "You administer Exciter.",
     identity: "Your name and email come from where you sign in: your identity provider, or the administrator who added you.",
     language: "Language and time zone",
     languageHint: "Saved to your account, so every browser you sign in with uses them. Dates and numbers are written in the language too.",
@@ -224,7 +225,7 @@ export const en = {
     createGroups: "Create groups the provider names",
     admitByGroup: "Let people in by their groups",
     admitByGroupDetail:
-      "Somebody new signing in here, or through Armature or Stator, whose group from the provider is mapped to a role is let in with that role. Anybody else still waits to be let in.",
+      "Somebody new signing in here, or through Armature or Stator, whose group from the provider holds a grant is let in with it. Anybody else still waits to be let in.",
     enabled: "Members sign in through this provider",
     callback: "Register this redirect address with the provider:",
     signInAt: "Members sign in at",
@@ -238,20 +239,6 @@ export const en = {
     decline: "Turn away",
     admitted: (name: string) => `${name} may sign in now.`,
     declined: (name: string) => `${name} was turned away.`,
-    groupRolesTitle: "Roles from groups",
-    groupRolesIntro:
-      "Map groups at your identity provider to roles here. At each sign-in a person gets the highest role their groups map to, and somebody new in a mapped group is let in without waiting once Let people in by their groups is ticked above. The owner keeps their role.",
-    groupRolesLater: "Changes reach each person at their next sign-in.",
-    groupRolesEmpty: "No group is mapped yet. Roles stay as administrators set them.",
-    groupRolesNeedProvider: "Set up single sign-on above before mapping its groups to roles.",
-    group: "Group",
-    groupHint: "The name exactly as the groups claim sends it.",
-    role: "Role",
-    mapGroup: "Map group",
-    unmapGroup: (group: string) => `Unmap ${group}`,
-    unmap: "Unmap",
-    mapped: (group: string, role: string) => `${group} now grants ${role}.`,
-    unmapped: (group: string) => `${group} no longer grants a role.`,
   },
   home: {
     title: "Home",
@@ -264,18 +251,11 @@ export const en = {
   },
   members: {
     title: "Members",
-    intro:
-      "Everybody who signs in to Exciter and the role they have. Owners stay owners; every other role is yours to change. Switching somebody off keeps their account and work, so switching them on brings them back.",
-    notAdmin: "Only an administrator manages the members. Ask one to add somebody or change a role.",
     count: (count: number) => (count === 1 ? "1 member" : `${count} members`),
     columnPerson: "Person",
-    columnRole: "Role",
     columnJoined: "Joined",
     you: "you",
-    fromProvider: "From identity provider",
-    roleNames: { owner: "Owner", admin: "Administrator", member: "Member", guest: "Guest" } as Record<OrgRole, string>,
-    roleOf: (name: string) => `Role of ${name}`,
-    roleChanged: (name: string, role: string) => `${name} is now ${role}.`,
+    roleNames: { admin: "Administrator", member: "Member", guest: "Guest" } as Record<AddedAs, string>,
     switchedOffTag: "Switched off",
     switchOff: "Switch off",
     switchOffWho: (name: string) => `Switch ${name} off`,
@@ -306,7 +286,7 @@ export const en = {
   },
   audit: {
     title: "Audit log",
-    intro: "Who changed what in Exciter: members and their roles, events that could not be delivered, and exports of this log.",
+    intro: "Who changed what in Exciter: members, roles, groups and grants, events that could not be delivered, and exports of this log.",
     keptDays: (days: number) => `Each entry is kept for ${days} days.`,
     keptForever: "Entries are kept for good.",
     notAdmin: "Only an administrator reads the audit log. Ask one when you need to know who changed something.",
@@ -430,6 +410,16 @@ export const en = {
       "code_tag_words.saved": "Code tag words set",
       "risk_scheme.saved": "Risk scheme set",
       "installation.suite_demo_added": "Suite demo added",
+      "role.created": "Role added",
+      "role.updated": "Role changed",
+      "role.deleted": "Role deleted",
+      "group.created": "Group made",
+      "group.updated": "Group changed",
+      "group.deleted": "Group deleted",
+      "group.member_added": "Added to a group",
+      "group.member_removed": "Taken out of a group",
+      "grant.added": "Role granted",
+      "grant.removed": "Role revoked",
     } as Record<AuditAction, string>,
     targetTypes: {
       user: "Person",
@@ -450,11 +440,15 @@ export const en = {
       armature_connection: "Armature connection",
       stator_connection: "Stator connection",
       installation: "Installation",
+      role: "Role",
+      group: "Group",
+      grant: "Grant",
     } as Record<string, string | undefined>,
   },
   projects: projectsEn,
   permissions: permissionsEn,
   access: accessEn,
+  accessAdmin: accessAdminEn,
   requirements: requirementsEn,
   editor: editorEn,
   types: typesEn,

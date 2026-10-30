@@ -47,8 +47,8 @@ import {
 import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from "./requirements";
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
-import { linkTypesRoute, membersRoute, profileRoute, settingsRoute } from "./settings";
-import { ssoRoute } from "./sso";
+import { linkTypesRoute, profileRoute, settingsRoute } from "./settings";
+import { accessRoute, accessTabRoute, membersRedirectRoute, ssoRedirectRoute } from "./access";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
 import { allTokensRoute, tokensRoute } from "./tokens";
@@ -116,9 +116,11 @@ const routeTree = rootRoute.addChildren([
     profileRoute,
     installationRoute,
     consentRoute,
-    membersRoute,
+    accessRoute,
+    accessTabRoute,
+    membersRedirectRoute,
+    ssoRedirectRoute,
     linkTypesRoute,
-    ssoRoute,
     auditRoute,
     defaultThemeRoute,
     themesRoute,

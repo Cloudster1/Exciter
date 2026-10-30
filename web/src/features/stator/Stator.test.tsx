@@ -128,7 +128,7 @@ describe("connecting Stator as an administrator", () => {
 
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
-    await renderAt(STATOR_SETTINGS_PATH, { me: { ...signedIn, role: "member" } });
+    await renderAt(STATOR_SETTINGS_PATH, { me: { ...signedIn, administers: false } });
     expect(await screen.findByText("Only an administrator can connect Stator.")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/stator/connection")).toBe(false);
   });
