@@ -1,9 +1,26 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { BASELINE_NAME_MAX_LENGTH } from "@/config";
 import type { Project } from "@/api/projects";
 import { sessionReportHref, useSession, useSessionActions, type ReviewSession } from "@/api/sessions";
-import { Button, ButtonLink, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import {
+  Button,
+  ButtonLink,
+  Checkbox,
+  Dialog,
+  ErrorBanner,
+  Field,
+  PageHeader,
+  SectionTitle,
+  Skeleton,
+  Table,
+  Tag,
+  Td,
+  Th,
+  useToast,
+  DialogFooter,
+  Page,
+} from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -21,16 +38,16 @@ function scopeWords(s: ReviewSession): string {
 export function SessionPage({ project, sessionId }: { project: Project; sessionId: string }) {
   const { data: session, error, refetch } = useSession(sessionId);
   const [asking, setAsking] = useState<"round" | "close" | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [word, setWord] = useState(false);
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!session) return <Skeleton />;
   const s = session;
   return (
-    <div className="mx-auto max-w-4xl space-y-5" data-session-page={s.id} data-session-state={s.state}>
+    <Page width="content" className="space-y-5" data-session-page={s.id} data-session-state={s.state}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/sessions" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/sessions" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.sessions.back}
           </Link>
         }
@@ -49,14 +66,11 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
       <p className="text-sm text-ink" data-session-counts="">
         {t.sessions.counts(s.counts.approved, s.counts.rejected, s.counts.pending, s.counts.total)}
       </p>
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       <div className="flex flex-wrap gap-2">
         {s.state === "open" && (
           <ButtonLink
             variant="primary"
-            href={`/p/${encodeURIComponent(project.key)}/spec?session=${s.id}&waiting=true&changes=round`}
+            href={`/projects/${encodeURIComponent(project.key)}/spec?session=${s.id}&waiting=true&changes=round`}
             data-action="review-session-in-document"
           >
             {t.sessions.reviewInDocument}
@@ -99,7 +113,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
                 <Td>
                   <span className="text-ink-muted tabular-nums">{item.outline}</span>{" "}
                   <Link
-                    to="/p/$projectKey/r/$reqKey"
+                    to="/projects/$projectKey/r/$reqKey"
                     params={{ projectKey: project.key, reqKey: item.requirement.key }}
                     className="font-mono text-xs text-ink-muted hover:text-accent"
                   >
@@ -158,7 +172,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
           onClose={() => setAsking(null)}
           onDone={(next) => {
             setAsking(null);
-            setNotice(t.sessions.roundNotice(next.round));
+            toast.success(t.sessions.roundNotice(next.round));
           }}
         />
       )}
@@ -169,11 +183,11 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
           onClose={() => setAsking(null)}
           onDone={() => {
             setAsking(null);
-            setNotice(t.sessions.closedNotice);
+            toast.success(t.sessions.closedNotice);
           }}
         />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -188,6 +202,7 @@ function RoundDialog({
   onClose: () => void;
   onDone: (s: ReviewSession) => void;
 }) {
+  const formId = useId();
   const { round } = useSessionActions(project.key);
   const [comment, setComment] = useState("");
   function submit(event: FormEvent) {
@@ -195,25 +210,26 @@ function RoundDialog({
     round.mutate({ id: session.id, comment: comment.trim() || undefined }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={t.sessions.nextRoundTitle} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-3" aria-label={t.sessions.nextRoundTitle}>
+    <Dialog open title={t.sessions.nextRoundTitle} onClose={onClose}>
+      <form id={formId} onSubmit={submit} className="space-y-3" aria-label={t.sessions.nextRoundTitle}>
         <p className="text-sm text-ink-muted">{t.sessions.nextRoundIntro}</p>
         {round.error && <ErrorBanner>{round.error.message}</ErrorBanner>}
         <Field label={t.sessions.roundComment} value={comment} rows={2} onChange={(event) => setComment(event.target.value)} />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.sessions.cancel}
           </Button>
-          <Button type="submit" loading={round.isPending} data-action="start-round">
+          <Button type="submit" form={formId} loading={round.isPending} data-action="start-round">
             {t.sessions.start}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );
 }
 
 function CloseDialog({ project, session, onClose, onDone }: { project: Project; session: ReviewSession; onClose: () => void; onDone: () => void }) {
+  const formId = useId();
   const { close } = useSessionActions(project.key);
   const [take, setTake] = useState(false);
   const [name, setName] = useState(session.title);
@@ -222,20 +238,20 @@ function CloseDialog({ project, session, onClose, onDone }: { project: Project; 
     close.mutate({ id: session.id, baseline: take ? { name: name.trim() } : undefined }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={t.sessions.closeTitle} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-3" aria-label={t.sessions.closeTitle}>
+    <Dialog open title={t.sessions.closeTitle} onClose={onClose}>
+      <form id={formId} onSubmit={submit} className="space-y-3" aria-label={t.sessions.closeTitle}>
         <p className="text-sm text-ink-muted">{t.sessions.closeIntro}</p>
         {close.error && <ErrorBanner>{close.error.message}</ErrorBanner>}
         <Checkbox label={t.sessions.takeBaseline} checked={take} onChange={(event) => setTake(event.target.checked)} />
         {take && <Field label={t.sessions.baselineName} value={name} maxLength={BASELINE_NAME_MAX_LENGTH} onChange={(event) => setName(event.target.value)} />}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.sessions.cancel}
           </Button>
-          <Button type="submit" loading={close.isPending} disabled={take && !name.trim()} data-action="close-session-send">
+          <Button type="submit" form={formId} loading={close.isPending} disabled={take && !name.trim()} data-action="close-session-send">
             {t.sessions.closeSend}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

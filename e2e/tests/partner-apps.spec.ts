@@ -3,13 +3,13 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueName } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 
 // Partner apps (#273): alice registers one on the installation page, copies its client id and secret once, lets it
 // write and removes it. The exchange itself is the integration suite's, which holds a token of the realm.
 
-// web/src/config.ts INSTALLATION_PATH, and the prefix of a partner's secret, backend/internal/oauth.
-const INSTALLATION_PATH = "/settings/installation";
+// web/src/config.ts ALL_CONNECTED_APPS_PATH, and the prefix of a partner's secret, backend/internal/oauth.
+const CONNECTED_APPS_PATH = "/admin/connected-apps";
 const SECRET_PREFIX = "exciter_ocs_";
 
 async function removeNamed(api: ExciterApi, name: string) {
@@ -26,7 +26,7 @@ test.describe("partner apps", { tag: "@desktop" }, () => {
 
   test("alice registers a partner app, sees its secret once, lets it write and removes it", async ({ page, api }, testInfo) => {
     name = uniqueName(testInfo, "Wiki");
-    await page.goto(INSTALLATION_PATH);
+    await page.goto(CONNECTED_APPS_PATH);
     const form = page.getByRole("form", { name: "Register a partner app" });
     await form.getByLabel("App name", { exact: true }).fill(name);
     await form.getByLabel("Keycloak client", { exact: true }).fill("stator");
@@ -51,9 +51,10 @@ test.describe("partner apps", { tag: "@desktop" }, () => {
     const saved = must(await api.GET("/oauth/clients")).clients.find((each) => each.name === name);
     expect(saved?.scopes).toEqual(["read", "write"]);
 
-    page.once("dialog", (dialog) => dialog.accept());
     await row.locator('[data-action="remove-partner"]').click();
-    await expect(page.locator("[data-partner-notice]")).toHaveText(`${name} was removed.`);
+    await confirm(page);
+    await expect(toast(page, `${name} was removed.`)).toHaveText(`${name} was removed.`);
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
   });
 });

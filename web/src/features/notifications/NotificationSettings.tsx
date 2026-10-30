@@ -9,7 +9,7 @@ import {
   type NotificationKind,
   type Preferences,
 } from "@/api/notifications";
-import { Button, Card, Checkbox, ErrorBanner, PageHeader, Select, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, PageHeader, Select, Skeleton, Table, Td, Th, Page } from "@/components/ui";
 import { DAILY_DIGEST_HOUR_UTC } from "@/config";
 import { t } from "@/i18n";
 
@@ -23,10 +23,10 @@ function digestLabel(digest: Digest): string {
 export function NotificationSettings() {
   const { data, error, isLoading, refetch } = usePreferences();
   return (
-    <div className="mx-auto max-w-3xl" data-notification-settings="">
+    <Page width="narrow" data-notification-settings="">
       <PageHeader title={t.notifications.preferencesTitle} meta={t.notifications.preferencesIntro} />
       {error ? <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner> : isLoading || !data ? <Skeleton /> : <PreferencesForm saved={data} />}
-    </div>
+    </Page>
   );
 }
 

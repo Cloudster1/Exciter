@@ -106,7 +106,7 @@ test.describe("the search's filters and pages", { tag: "@desktop" }, () => {
   test("alice takes a query from the help, runs it, and completes a field with Tab", async ({ page, api, people }) => {
     await makeProject(api, people.alice);
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { kind: "section", title: "Lamps" } }));
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     await expect(page.locator("[data-grid-count]")).toHaveText(`${HITS + 1} requirements`);
     await page.locator('[data-mode="query"]').click();
     await page.locator('[data-action="query-help"]').click();

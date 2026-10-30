@@ -27,7 +27,7 @@ test.describe("field rules", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brake lights follow the pedal" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await page.getByRole("button", { name: /Design Default/ }).click();
     await page.locator('[data-workflow-edge-label="Submit for review"]').click();
     await page.getByLabel("Add a rule").selectOption({ label: "Links of a type" });
@@ -37,9 +37,9 @@ test.describe("field rules", { tag: "@desktop" }, () => {
     await page.locator('[data-action="add-rule"]').click();
     await expect(page.locator('[data-rule="validator.links_exist"]')).toContainText("Derives");
     await page.locator('[data-action="save-workflow"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/settings?tab=workflow`);
+    await expect(page).toHaveURL(`/projects/${KEY}/settings/workflow`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const bar = page.locator("[data-transition-bar]");
     await bar.getByRole("button", { name: "Submit for review" }).click();
     await expect(bar).toContainText(`${KEY}-R1 has no Derives link to it yet. Link it, then take this transition.`);

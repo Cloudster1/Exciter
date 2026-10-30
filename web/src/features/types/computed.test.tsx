@@ -52,7 +52,7 @@ function stubSettings(more: Parameters<typeof stubApi>[0] = {}) {
 describe("computed attributes", () => {
   it("are listed with their formula, and say how far a recompute has got", async () => {
     stubSettings();
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings");
     await userEvent.click(await screen.findByRole("tab", { name: "Attributes" }));
     const row = (await screen.findByText("Score")).closest("tr")!;
     expect(within(row).getByText("Computed")).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe("computed attributes", () => {
       },
       "POST /projects/CHK/attributes": { status: 201, body: { attribute: score } },
     });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings");
     await userEvent.click(await screen.findByRole("tab", { name: "Attributes" }));
     await userEvent.click(await screen.findByRole("button", { name: "New attribute" }));
     const form = document.querySelector<HTMLElement>("[data-attribute-form]")!;
@@ -113,7 +113,7 @@ describe("computed attributes", () => {
       "GET /projects/CHK/attributes": { status: 200, body: { attributes: [weight, score], recompute: null } },
       "GET /projects/CHK/types": { status: 200, body: { types: [] } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const shown = await waitFor(() => {
       const found = document.querySelector('[data-attribute-value="Score"]');
       expect(found).not.toBeNull();

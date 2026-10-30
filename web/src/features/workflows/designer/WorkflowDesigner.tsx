@@ -76,7 +76,7 @@ export function WorkflowDesigner({
             {workflowId ? t.workflows.save : t.workflows.create}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
         </div>
       </div>

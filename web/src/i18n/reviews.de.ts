@@ -21,7 +21,7 @@ export const reviewDe: typeof reviewEn = {
   approve: "Freigeben",
   reject: "Ablehnen",
   withdraw: "Zurückziehen",
-  confirmWithdraw: "Diese Prüfung zurückziehen? Die Prüfer werden nicht mehr gefragt.",
+  confirmWithdraw: "Die Prüfer werden nicht mehr gefragt.",
   history: "Frühere Prüfungen",
   states: { pending: "Offen", approved: "Freigegeben", rejected: "Abgelehnt", withdrawn: "Zurückgezogen", superseded: "Überholt" },
   pastRow: (revision, when) => `Revision ${revision}, angefordert am ${when}`,
@@ -50,7 +50,7 @@ export const reviewDe: typeof reviewEn = {
   save: "Regel speichern",
   saved: "Die Regel ist gespeichert. Bereits angeforderte Prüfungen behalten ihre Prüfer.",
   remove: "Entfernen",
-  confirmRemove: "Diese Regel entfernen? Bereits angeforderte Prüfungen behalten ihre Prüfer.",
+  confirmRemove: "Bereits angeforderte Prüfungen behalten ihre Prüfer.",
   removed: "Die Regel ist entfernt.",
   readOnly: "Nur die Administratoren des Projekts legen fest, wer freigibt.",
 

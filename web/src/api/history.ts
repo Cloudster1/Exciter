@@ -1,4 +1,5 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { HISTORY_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import { requirementQueryKey, type Requirement } from "./requirements";

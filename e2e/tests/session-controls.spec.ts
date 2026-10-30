@@ -7,6 +7,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Every control of the project's sessions page and a session's report (#317): alice opens a session over a baseline
 // and one over a query of what changed since its last approval, and downloads the report while bob's inbox lists it.
@@ -26,18 +27,11 @@ async function removeProject(api: ExciterApi) {
 async function aProject(api: ExciterApi, people: { alice: { id: string }; bob: { id: string } }) {
   const project = { params: { path: { projectKey: KEY } } };
   must(await api.POST("/projects", { body: { key: KEY, name: "Session controls" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
   const write = async (body: Record<string, unknown>) =>
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: body as never })).requirement;
   const braking = await write({ kind: "section", title: "Braking" });
@@ -93,7 +87,7 @@ test.describe("session controls", { tag: "@desktop" }, () => {
       )
       .toBe(200);
 
-    await page.goto(`/p/${KEY}/sessions`);
+    await page.goto(`/projects/${KEY}/sessions`);
     await expect(page.getByText("No review session yet.")).toBeVisible();
     await page.getByRole("button", { name: "Open review session" }).click();
     const dialog = page.getByRole("dialog", { name: "Open a review session" });
@@ -118,7 +112,7 @@ test.describe("session controls", { tag: "@desktop" }, () => {
     const first = new URL(page.url()).pathname.split("/").pop()!;
     must(await api.POST("/review-sessions/{sessionID}/close", { params: { path: { sessionID: first } }, body: {} }));
 
-    await page.goto(`/p/${KEY}/sessions`);
+    await page.goto(`/projects/${KEY}/sessions`);
     await page.getByRole("button", { name: "Open review session" }).click();
     await dialog.getByLabel("Title", { exact: true }).fill("Changed lights review");
     await dialog.getByLabel("Review", { exact: true }).selectOption("query");
@@ -165,7 +159,7 @@ test.describe("session controls", { tag: "@desktop" }, () => {
     await openUntil(bob, "/reviews", () => expect(mine.getByRole("link", { name: "Braking review" })).toBeVisible(ONE_LOOK));
     await expect(mine.locator('[data-session="Braking review"]')).toContainText("2 wait for you");
 
-    await openUntil(page, `/p/${KEY}/sessions/${session.id}`, () => expect(page.getByRole("heading", { name: "Braking review" })).toBeVisible(ONE_LOOK));
+    await openUntil(page, `/projects/${KEY}/sessions/${session.id}`, () => expect(page.getByRole("heading", { name: "Braking review" })).toBeVisible(ONE_LOOK));
     const pdf = await downloaded(page, () => page.locator('[data-action="report-pdf"]').click());
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     const word = await downloaded(page, () => page.locator('[data-action="report-docx"]').click());

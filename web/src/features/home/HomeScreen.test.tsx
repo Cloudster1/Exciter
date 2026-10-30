@@ -25,7 +25,7 @@ describe("the home screen with no projects", () => {
 
   it("tells a member an administrator makes the projects, and offers no button", async () => {
     stubApi(noProjects);
-    await renderAt("/", { me: { ...signedIn, role: "member" }, ready: "[data-home]" });
+    await renderAt("/", { me: { ...signedIn, administers: false }, ready: "[data-home]" });
     expect(await screen.findByText(t.home.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(t.home.emptyBodyMember)).toBeInTheDocument();
     expect(screen.queryByText(t.home.emptyBody)).not.toBeInTheDocument();

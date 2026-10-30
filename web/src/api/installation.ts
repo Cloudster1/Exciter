@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { SUITE_DEMO_POLL_MS } from "@/config";
 import { meQueryKey } from "./auth";
 import { api } from "./client";

@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Icon } from "@/components/icons";
+import { Icon } from "../icons";
 import { cx } from "./cx";
 import { focusables, useAnchored, useEscape, useOutsidePress, type AnchoredSide } from "./overlay";
 
 export interface MenuItem {
   label: ReactNode;
+  /** Runs on a pick; a link may leave it out. */
   onSelect?: () => void;
-  /** Makes the item a plain link, so the browser can open it in a new tab too. */
+  /** Makes the item a link, so the browser's own open in a new tab works on it. */
   href?: string;
-  /** Items in a row with the same group sit under its title, apart from the rest. */
-  group?: string;
+  /** Sets the item apart from those above it by a line, without a heading. */
+  separated?: boolean;
   icon?: ReactNode;
   danger?: boolean;
   disabled?: boolean;
@@ -20,29 +21,49 @@ export interface MenuItem {
   attrs?: Record<string, string>;
 }
 
+/** Items under a heading, which a screen reader announces as a group. */
+export interface MenuGroup {
+  group: string;
+  items: MenuItem[];
+  attrs?: Record<string, string>;
+}
+
+export type MenuEntry = MenuItem | MenuGroup;
+
+/** Whether an entry is a group of items rather than one item. */
+export function isMenuGroup(entry: MenuEntry): entry is MenuGroup {
+  return "group" in entry;
+}
+
+const ITEM_CLASS =
+  "flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left text-sm focus:bg-surface-raised focus-visible:-outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
+
 // Where a list is drawn: at the end of the landmark its trigger sits in, so a
 // screen reader finds it in the same region, and a modal dialog keeps it.
 const LANDMARK =
   'main, header, nav, aside, footer, [role="banner"], [role="main"], [role="navigation"], [role="complementary"], [role="contentinfo"], [role="region"], [role="dialog"]';
 
-// Arrows move, Home and End jump, a letter finds, Escape returns focus to the trigger. The list is
-// fixed beside the trigger at the end of its landmark, so a scrolling panel cannot cut it off.
+// A list of actions behind one button: arrows move, Home and End jump, typing
+// a letter finds, Escape returns focus to the trigger. The list is drawn at
+// the end of the trigger's landmark, fixed beside the trigger, so a table or
+// a panel that scrolls cannot cut it off; it opens upward when the bottom is near.
 export function Menu({
   trigger,
   items,
   label,
-  align = "start",
-  side,
   header,
+  align = "start",
+  side = "bottom",
   className,
 }: {
   trigger: (props: { open: boolean; toggle: () => void; "aria-haspopup": "menu"; "aria-expanded": boolean; "aria-controls": string | undefined }) => ReactNode;
-  items: MenuItem[];
+  items: MenuEntry[];
   label: string;
-  align?: "start" | "end";
-  side?: AnchoredSide;
-  /** Drawn above the items and outside the menu's role, such as who the menu is about. */
+  /** Drawn above the items and outside them, such as who the menu is about. */
   header?: ReactNode;
+  align?: "start" | "end";
+  /** Where the list opens: below the trigger, flipping above near the bottom, or to its right, as from the rail. */
+  side?: AnchoredSide;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -91,6 +112,8 @@ export function Menu({
     const options = focusables(list);
     const index = options.indexOf(document.activeElement as HTMLElement);
     const go = (i: number) => options[(i + options.length) % options.length]?.focus();
+    // A field in the header, such as a filter, keeps its own keys for the text.
+    const typing = event.target instanceof HTMLInputElement;
     switch (event.key) {
       // The list sits at the end of its landmark, so a Tab out of it would
       // land nowhere near the trigger; it closes and focus goes home instead.
@@ -107,15 +130,17 @@ export function Menu({
         go(index - 1);
         break;
       case "Home":
+        if (typing) break;
         event.preventDefault();
         go(0);
         break;
       case "End":
+        if (typing) break;
         event.preventDefault();
         go(options.length - 1);
         break;
       default:
-        if (event.key.length === 1 && /\S/.test(event.key)) {
+        if (!typing && event.key.length === 1 && /\S/.test(event.key)) {
           const found =
             options.find((el, i) => i > index && el.textContent?.trim().toLowerCase().startsWith(event.key.toLowerCase())) ??
             options.find((el) => el.textContent?.trim().toLowerCase().startsWith(event.key.toLowerCase()));
@@ -124,33 +149,40 @@ export function Menu({
     }
   }
 
-  function renderItem({ item, index }: { item: MenuItem; index: number }) {
-    const look = cx(
-      "flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left text-sm",
-      item.danger ? "text-danger hover:bg-danger-subtle" : "text-ink hover:bg-surface-raised",
-      "focus:bg-surface-raised focus-visible:-outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
-    );
+  function renderItem(item: MenuItem, key: number) {
+    const className = cx(ITEM_CLASS, item.danger ? "text-danger hover:bg-danger-subtle" : "text-ink hover:bg-surface-raised");
     const content = (
       <>
         {item.checked !== undefined && (
-          <span className="size-4 text-accent" aria-hidden="true">
+          <span className="size-4 text-accent [&_svg]:size-4" aria-hidden="true">
             {item.checked && <Icon.Check />}
           </span>
         )}
-        {item.icon && <span className="text-ink-muted [&_svg]:size-4">{item.icon}</span>}
+        {item.icon && <span className="text-ink-muted [&_svg]:size-4 [&_img]:size-4">{item.icon}</span>}
         {item.label}
       </>
     );
     if (item.href) {
       return (
-        <a key={index} href={item.href} role="menuitem" tabIndex={-1} {...item.attrs} onClick={() => setOpen(false)} className={look}>
+        <a
+          key={key}
+          href={item.href}
+          role="menuitem"
+          tabIndex={-1}
+          {...item.attrs}
+          onClick={() => {
+            setOpen(false);
+            item.onSelect?.();
+          }}
+          className={cx(className, "no-underline")}
+        >
           {content}
         </a>
       );
     }
     return (
       <button
-        key={index}
+        key={key}
         type="button"
         role={item.checked === undefined ? "menuitem" : "menuitemradio"}
         aria-checked={item.checked}
@@ -164,7 +196,7 @@ export function Menu({
           setOpen(false);
           item.onSelect?.();
         }}
-        className={look}
+        className={className}
       >
         {content}
       </button>
@@ -177,30 +209,30 @@ export function Menu({
       {open &&
         host &&
         createPortal(
+          // The header sits beside the menu rather than in it, since a menu
+          // holds nothing but its items and their groups.
           <div
             ref={listRef}
             onKeyDown={onKeyDown}
             style={place}
             className="fixed z-30 min-w-44 overflow-y-auto overscroll-contain rounded-overlay border border-border bg-surface-overlay p-1 shadow-2"
           >
-            {header && <div className="mb-1 border-b border-border px-2 pt-1 pb-2">{header}</div>}
+            {header}
             <div id={listId} role="menu" aria-label={label}>
-              {segments(items).flatMap((segment) =>
-                segment.group === undefined
-                  ? segment.items.map(renderItem)
-                  : [
-                      <div
-                        key={`group-${segment.start}`}
-                        role="group"
-                        aria-labelledby={`${listId}-${segment.start}`}
-                        className="mt-1 border-t border-border pt-1"
-                      >
-                        <div id={`${listId}-${segment.start}`} className="px-2 py-1 text-2xs font-medium tracking-wide text-ink-subtle uppercase">
-                          {segment.group}
-                        </div>
-                        {segment.items.map(renderItem)}
-                      </div>,
-                    ],
+              {items.map((entry, i) =>
+                isMenuGroup(entry) ? (
+                  <div key={i} role="group" aria-labelledby={`${listId}-${i}`} className={cx(i > 0 && "mt-1 border-t border-border pt-1")} {...entry.attrs}>
+                    <div id={`${listId}-${i}`} className="px-2 pt-1 pb-0.5 text-2xs font-semibold text-ink-subtle" data-menu-group={entry.group}>
+                      {entry.group}
+                    </div>
+                    {entry.items.map((item, j) => renderItem(item, j))}
+                  </div>
+                ) : (
+                  <Fragment key={i}>
+                    {entry.separated && i > 0 && <div role="separator" className="my-1 border-t border-border" />}
+                    {renderItem(entry, i)}
+                  </Fragment>
+                ),
               )}
             </div>
           </div>,
@@ -208,20 +240,4 @@ export function Menu({
         )}
     </div>
   );
-}
-
-interface Segment {
-  group?: string;
-  start: number;
-  items: { item: MenuItem; index: number }[];
-}
-
-function segments(items: MenuItem[]): Segment[] {
-  const out: Segment[] = [];
-  items.forEach((item, index) => {
-    const last = out.at(-1);
-    if (last && last.group === item.group) last.items.push({ item, index });
-    else out.push({ group: item.group, start: index, items: [{ item, index }] });
-  });
-  return out;
 }

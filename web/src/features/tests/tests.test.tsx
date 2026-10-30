@@ -84,7 +84,7 @@ describe("tests", () => {
         body: { plan: { id: "p1", projectKey: "CHK", title: "Smoke", description: "", scope: "query", query: "type = x", cases: [], can: { edit: true } } },
       },
     });
-    await renderAt("/p/CHK/tests");
+    await renderAt("/projects/CHK/tests");
     const row = await screen.findByRole("row", { name: /Release 1 on wet roads/ });
     expect(within(row).getByText("1 of 2 run, 0 failed")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -106,7 +106,7 @@ describe("tests", () => {
       [`GET /test-executions/${executionId}`]: { status: 200, body: { execution: anExecution() } },
       [`POST /test-executions/${executionId}/close`]: { status: 200, body: { execution: anExecution({ state: "aborted" }) } },
     });
-    await renderAt(`/p/CHK/tests/executions/${executionId}`);
+    await renderAt(`/projects/CHK/tests/executions/${executionId}`);
     const table = await screen.findByRole("table", { name: "Test cases" });
     expect(within(table).getByRole("row", { name: /Speed = 30 Passed Bob Builder/ })).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -125,7 +125,7 @@ describe("tests", () => {
       [`GET /test-executions/${executionId}/cases/CHK-R2`]: { status: 200, body: { case: aCase() } },
       [`PUT /test-executions/${executionId}/cases/CHK-R2/result`]: { status: 200, body: { case: aCase() } },
     });
-    await renderAt(`/p/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=2`);
+    await renderAt(`/projects/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=2`);
     expect(await screen.findByText("The car stands on a wet road.")).toBeInTheDocument();
     expect(screen.getByText(/Iteration 2 of 2 · Speed = 50/)).toBeInTheDocument();
     const second = screen.getByRole("group", { name: "Outcome of step 2" });

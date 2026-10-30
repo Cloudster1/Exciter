@@ -223,19 +223,19 @@ func (h *harness) singleSignOn(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 	people := []string{aliceEmail, bobEmail, carolEmail, daveEmail}
-	var provider, roles, waiting, groups, standings, memberships, accounts []byte
+	var provider, grants, waiting, groups, standings, memberships, accounts []byte
 	if err := h.super.QueryRow(ctx, `
 		SELECT (SELECT coalesce(jsonb_agg(p), '[]') FROM oidc_provider p),
-		       (SELECT coalesce(jsonb_agg(r), '[]') FROM oidc_group_role r),
+		       (SELECT coalesce(jsonb_agg(a), '[]') FROM role_assignment a
+		         WHERE a.project_id IS NULL OR a.user_id IN (SELECT id FROM app_user WHERE email = ANY($1))),
 		       (SELECT coalesce(jsonb_agg(w), '[]') FROM join_request w),
 		       (SELECT coalesce(jsonb_agg(g.id), '[]') FROM groups g),
-		       (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'role', u.role, 'role_source', u.role_source,
-		                                                     'joined_at', u.joined_at)), '[]')
+		       (SELECT coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'role', u.role, 'joined_at', u.joined_at)), '[]')
 		          FROM app_user u WHERE u.email = ANY($1)),
 		       (SELECT coalesce(jsonb_agg(gm), '[]') FROM group_member gm JOIN app_user u ON u.id = gm.user_id
 		         WHERE u.email = ANY($1)),
 		       (SELECT coalesce(jsonb_agg(u.email), '[]') FROM app_user u WHERE u.email = ANY($1))`, people,
-	).Scan(&provider, &roles, &waiting, &groups, &standings, &memberships, &accounts); err != nil {
+	).Scan(&provider, &grants, &waiting, &groups, &standings, &memberships, &accounts); err != nil {
 		t.Fatal(err)
 	}
 	h.cleanupExec(t, h.super, `DELETE FROM oidc_provider`)
@@ -246,18 +246,25 @@ func (h *harness) singleSignOn(t *testing.T) {
 		h.cleanupExec(t, h.super, `DELETE FROM groups WHERE id NOT IN (SELECT (e #>> '{}')::uuid FROM jsonb_array_elements($1::jsonb) e)`, groups)
 		h.cleanupExec(t, h.super, `DELETE FROM oidc_provider`)
 		h.cleanupExec(t, h.super, `INSERT INTO oidc_provider SELECT * FROM jsonb_populate_recordset(NULL::oidc_provider, $1::jsonb)`, provider)
-		h.cleanupExec(t, h.super, `INSERT INTO oidc_group_role SELECT * FROM jsonb_populate_recordset(NULL::oidc_group_role, $1::jsonb)`, roles)
 		h.cleanupExec(t, h.super, `DELETE FROM join_request`)
 		h.cleanupExec(t, h.super, `
 			INSERT INTO join_request SELECT * FROM jsonb_populate_recordset(NULL::join_request, $1::jsonb) w
 			WHERE EXISTS (SELECT 1 FROM app_user WHERE id = w.user_id)`, waiting)
-		// Their role as it was, which a sign-in may have given, changed or, for nobody the seed let in, made.
+		// The grants across the installation and the people's own as they were: the ones a test gave go before the
+		// standings change, and the ones it took come back once the people and groups they name are there again.
 		h.cleanupExec(t, h.super, `
-			UPDATE app_user u SET role = s.role, role_source = s.role_source, joined_at = s.joined_at
-			FROM jsonb_to_recordset($1::jsonb) s (id uuid, role text, role_source text, joined_at timestamptz)
-			WHERE u.id = s.id AND (u.role, u.role_source) IS DISTINCT FROM (s.role, s.role_source)`, standings)
+			DELETE FROM role_assignment a
+			WHERE (a.project_id IS NULL OR a.user_id IN (SELECT id FROM app_user WHERE email = ANY($1)))
+			  AND a.id NOT IN (SELECT (e->>'id')::uuid FROM jsonb_array_elements($2::jsonb) e)`, people, grants)
+		// Their standing as it was, which a sign-in may have given or, for nobody the seed let in, made.
+		h.cleanupExec(t, h.super, `
+			UPDATE app_user u SET role = s.role, joined_at = s.joined_at
+			FROM jsonb_to_recordset($1::jsonb) s (id uuid, role text, joined_at timestamptz)
+			WHERE u.id = s.id AND u.role IS DISTINCT FROM s.role`, standings)
+		// Everyone follows the standing and refuses a member taken out by hand; an account the test made goes below.
 		h.cleanupExec(t, h.super, `
 			DELETE FROM group_member gm USING app_user u WHERE u.id = gm.user_id AND u.email = ANY($1)
+			   AND gm.group_id NOT IN (SELECT id FROM groups WHERE builtin = 'everyone')
 			   AND (gm.group_id, gm.user_id) NOT IN (SELECT (e->>'group_id')::uuid, (e->>'user_id')::uuid FROM jsonb_array_elements($2::jsonb) e)`,
 			people, memberships)
 		h.cleanupExec(t, h.super, `
@@ -267,6 +274,15 @@ func (h *harness) singleSignOn(t *testing.T) {
 		h.cleanupExec(t, h.super, `
 			DELETE FROM app_user WHERE email = ANY($1)
 			   AND email::text NOT IN (SELECT e #>> '{}' FROM jsonb_array_elements($2::jsonb) e)`, people, accounts)
+		h.cleanupExec(t, h.super, `
+			INSERT INTO role_assignment (id, role, project_id, user_id, group_id, created_at)
+			SELECT s.id, s.role, s.project_id, s.user_id, s.group_id, s.created_at
+			FROM jsonb_populate_recordset(NULL::role_assignment, $1::jsonb) s
+			WHERE (s.user_id IS NULL OR EXISTS (SELECT 1 FROM app_user WHERE id = s.user_id AND role IS NOT NULL))
+			  AND (s.group_id IS NULL OR EXISTS (SELECT 1 FROM groups WHERE id = s.group_id))
+			  AND (s.project_id IS NULL OR EXISTS (SELECT 1 FROM project WHERE id = s.project_id))
+			  AND EXISTS (SELECT 1 FROM role WHERE key = s.role)
+			ON CONFLICT DO NOTHING`, grants)
 		h.settle(t)
 	})
 }

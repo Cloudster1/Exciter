@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { API_BASE } from "@/config";
 import type { ThemeSpec } from "@/lib/theme-css";
 import { api } from "./client";

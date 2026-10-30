@@ -18,7 +18,7 @@ export const armatureDe: typeof armatureEn = {
   webhookTitle: "Webhook",
   webhookIntro: "Armature meldet Exciter, wenn sich Vorgänge ändern, damit eine Anforderung die Änderung sofort zeigt statt innerhalb einer Minute.",
   webhookSteps: [
-    "Öffnen Sie in Armature Settings, dann Webhooks.",
+    "Öffnen Sie in Armature Admin, dann Webhooks.",
     "Legen Sie einen Endpunkt mit der Adresse unten an und abonnieren Sie die aufgeführten Themen.",
     "Fügen Sie das Geheimnis, das Armature einmal anzeigt, in das Feld oben ein und speichern Sie.",
   ],
@@ -34,12 +34,12 @@ export const armatureDe: typeof armatureEn = {
   disconnectIntro:
     "Beim Trennen werden die Adresse, das Webhook-Geheimnis und die Tokens aller Mitglieder verworfen. Anforderungen zeigen dann nur noch Vorgangsschlüssel.",
   disconnect: "Armature trennen",
-  confirmDisconnect: "Armature trennen? Die Tokens aller Mitglieder werden verworfen, und Anforderungen zeigen nur noch Vorgangsschlüssel.",
+  confirmDisconnect: "Die Tokens aller Mitglieder werden verworfen, und Anforderungen zeigen nur noch Vorgangsschlüssel.",
   disconnected: "Armature ist getrennt.",
   signIn: {
     title: "Personen bei der Anmeldung verbinden",
     intro:
-      "Teilen Exciter und Armature einen Identitätsanbieter, verbindet Exciter jede Person bei ihrer Anmeldung mit Armature, sodass niemand ein Token einfügt. Registrieren Sie Exciter in Armature unter Settings, Connected apps, mit dem Client von Exciter im Identitätsanbieter als Keycloak-Client, und fügen Sie die ID und das Geheimnis ein, die Armature anzeigt.",
+      "Teilen Exciter und Armature einen Identitätsanbieter, verbindet Exciter jede Person bei ihrer Anmeldung mit Armature, sodass niemand ein Token einfügt. Registrieren Sie Exciter in Armature unter Admin, Connected apps, mit dem Client von Exciter im Identitätsanbieter als Keycloak-Client, und fügen Sie die ID und das Geheimnis ein, die Armature anzeigt.",
     on: "Personen werden bei der Anmeldung mit Armature verbunden.",
     off: "Der Betreiber hat dies für diesen Server nicht eingeschaltet (EXCITER_ARMATURE_TOKEN_EXCHANGE), daher verbinden sich Personen mit einem Token.",
     notOffered: "Dieses Armature bietet oauth.token-exchange@1 noch nicht an, daher verbinden sich Personen mit einem Token, bis es aktualisiert ist.",
@@ -50,7 +50,7 @@ export const armatureDe: typeof armatureEn = {
   account: {
     title: "Armature-Konto",
     intro: "Verbinden Sie Ihr Armature-Konto, damit Anforderungen Ihnen die Vorgänge zeigen, die Sie in Armature sehen dürfen.",
-    notConfigured: "Exciter ist noch nicht mit Armature verbunden. Bitten Sie einen Administrator, es unter Einstellungen, Armature zu verbinden.",
+    notConfigured: "Exciter ist noch nicht mit Armature verbunden. Bitten Sie einen Administrator, es unter Admin, Armature zu verbinden.",
     steps:
       "Öffnen Sie in Armature Tokens und erstellen Sie ein Token ohne den Bereich read, damit Exciter für Sie auch Vorgänge anlegen und verknüpfen kann. Fügen Sie es dann hier ein.",
     openArmature: "Armature öffnen",
@@ -65,7 +65,7 @@ export const armatureDe: typeof armatureEn = {
     check: "Erneut prüfen",
     checked: "Armature akzeptiert Ihr Token.",
     disconnect: "Trennen",
-    confirmDisconnect: "Ihr Armature-Konto trennen? Anforderungen zeigen nur noch Vorgangsschlüssel, bis Sie es wieder verbinden.",
+    confirmDisconnect: "Anforderungen zeigen nur noch Vorgangsschlüssel, bis Sie es wieder verbinden.",
     disconnected: "Ihr Armature-Konto ist getrennt.",
     rejected: "Armature akzeptiert Ihr Token nicht mehr. Erstellen Sie in Armature unter Tokens ein neues und fügen Sie es hier ein.",
     unreachable: "Armature hat auf die letzte Prüfung nicht geantwortet. Prüfen Sie gleich noch einmal.",

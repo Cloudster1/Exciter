@@ -4,15 +4,14 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueName } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, openAdmin, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
-// The controls of /settings/tokens and /settings/all-tokens no other spec clicks (#329): copying a fresh token,
+// The controls of /settings/tokens and of everybody's tokens under Admin, Connected apps, no other spec clicks (#329): copying a fresh token,
 // putting it away for good, and an administrator revoking somebody else's.
 
-// web/src/config.ts TOKENS_PATH and SETTINGS_PATH, and the prefix of a personal access token, backend/internal/auth.
+// web/src/config.ts TOKENS_PATH, and the prefix of a personal access token, backend/internal/auth.
 const TOKENS_PATH = "/settings/tokens";
-const SETTINGS_PATH = "/settings";
 const TOKEN_PREFIX = "exciter_pat_";
 
 async function revokeAll(api: ExciterApi) {
@@ -61,25 +60,24 @@ test.describe("token controls", { tag: "@desktop" }, () => {
     expect(await page.content()).not.toContain(copied);
   });
 
-  test("alice revokes bob's token on All tokens, and bob's script is refused", async ({ page, apiAs, people }, testInfo) => {
+  test("alice revokes bob's token under Admin, Connected apps, and bob's script is refused", async ({ page, apiAs, people }, testInfo) => {
     const name = uniqueName(testInfo, "Bob's script");
     const bob = await apiAs("bob");
     const secret = must(await bob.POST("/tokens", { body: { name } })).token.secret!;
     await expect.poll(() => meStatus(secret)).toBe(200);
 
-    await page.goto(SETTINGS_PATH);
-    await page.locator('[data-hub-card="settings"]').getByRole("link", { name: "All tokens" }).click();
-    await expect(page).toHaveURL(/\/settings\/all-tokens$/);
+    await openAdmin(page, "connected-apps");
+    await expect(page).toHaveURL(/\/admin\/connected-apps$/);
     const row = page.locator(`[data-token-row="${name}"]`);
     await expect(row).toHaveAttribute("data-token-owner", people.bob.email);
     await expectAccessible(page);
 
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Revoke ${name}? Anything using it is refused from now on.`);
-      void dialog.accept();
-    });
     await row.getByRole("button", { name: `Revoke ${name} of ${people.bob.name}` }).click();
-    await expect(page.locator("[data-tokens-notice]")).toHaveText(`${name} was revoked.`);
+    await expect(page.locator("[data-confirm]")).toContainText(`Revoke token ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("Anything using it is refused from now on.");
+    await confirm(page);
+    await expect(toast(page, `${name} was revoked.`)).toHaveText(`${name} was revoked.`);
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
     await expect.poll(() => meStatus(secret)).toBe(401);
     await expect.poll(async () => must(await bob.GET("/tokens")).tokens.map((each) => each.name)).not.toContain(name);

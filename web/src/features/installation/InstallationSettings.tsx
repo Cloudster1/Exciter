@@ -1,13 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useInstallation, useRenameInstallation, type Installation } from "@/api/installation";
-import { useSwitchOAuthConnections } from "@/api/oauth";
-import { Button, Card, ErrorBanner, Field, Skeleton, Switch } from "@/components/ui";
-import { PartnerApps } from "@/features/oauth/PartnerApps";
+import { useSetDefaultTheme, useThemes } from "@/api/themes";
+import { Button, Card, ErrorBanner, Field, SelectInput, Skeleton, useToast } from "@/components/ui";
 import { t } from "@/i18n";
 import { SuiteDemo } from "./SuiteDemo";
 
-/** The installation's name, whether assistants connect with OAuth and the partner apps, for administrators to change. */
+/** The installation's name, its default theme and the suite demo, for administrators to change. */
 export function InstallationSettings() {
   const { data, isLoading, error } = useInstallation();
   // Held here rather than in the form: a rename remounts the form, and what it
@@ -19,34 +18,50 @@ export function InstallationSettings() {
   return (
     <div className="space-y-6">
       <NameForm key={data.name} installation={data} rename={rename} notice={notice} setNotice={setNotice} />
-      <OAuthConnections installation={data} />
-      <PartnerApps />
+      <DefaultTheme />
       <SuiteDemo />
     </div>
   );
 }
 
-/** Whether assistants may connect with OAuth (#188); off, every app connected that way is refused until it is on. */
-function OAuthConnections({ installation }: { installation: Installation }) {
-  const switching = useSwitchOAuthConnections();
-  const on = switching.data?.oauthConnections ?? installation.oauthConnections;
+/** The theme everybody sees until they choose one of their own; any theme shared with everyone can be it. */
+function DefaultTheme() {
+  const { data } = useThemes();
+  const setDefault = useSetDefaultTheme();
+  const toast = useToast();
+  const shared = (data?.themes ?? []).filter((theme) => theme.shared);
+  const current = shared.find((theme) => theme.default);
+
+  function choose(id: string) {
+    const theme = shared.find((each) => each.id === id);
+    setDefault.mutate(theme ? theme.id : null, {
+      onSuccess: () => toast.success(theme ? t.themes.defaultSet(theme.name) : t.themes.defaultCleared),
+    });
+  }
+
   return (
-    <Card className="space-y-3 p-4" data-oauth-connections={on ? "on" : "off"}>
-      <div className="flex items-center gap-3">
-        <Switch
-          label={t.oauth.switchLabel}
-          checked={on}
-          disabled={switching.isPending}
-          onChange={(next) => switching.mutate(next)}
-          data-action="switch-oauth"
-        />
-        <span className="text-sm font-medium text-ink">{t.oauth.switchLabel}</span>
-      </div>
-      <p className="text-sm text-ink-muted">{t.oauth.switchIntro}</p>
-      {switching.error && <ErrorBanner>{switching.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {switching.isSuccess ? (on ? t.oauth.switchedOn : t.oauth.switchedOff) : ""}
-      </p>
+    <Card className="space-y-3 p-4" data-default-theme={current?.name ?? ""}>
+      <h2 className="text-sm font-semibold text-ink">{t.admin.installation.defaultTheme}</h2>
+      <p className="text-sm text-ink-muted">{t.admin.installation.defaultThemeIntro}</p>
+      {data && shared.length === 0 ? (
+        <p className="text-sm text-ink-muted">{t.admin.installation.noShared}</p>
+      ) : (
+        <SelectInput
+          aria-label={t.admin.installation.defaultTheme}
+          value={current?.id ?? ""}
+          disabled={!data || setDefault.isPending}
+          onChange={(event) => choose(event.target.value)}
+          data-default-theme-select
+        >
+          <option value="">{t.admin.installation.builtIn}</option>
+          {shared.map((theme) => (
+            <option key={theme.id} value={theme.id}>
+              {theme.name}
+            </option>
+          ))}
+        </SelectInput>
+      )}
+      {setDefault.error && <ErrorBanner>{setDefault.error.message}</ErrorBanner>}
     </Card>
   );
 }

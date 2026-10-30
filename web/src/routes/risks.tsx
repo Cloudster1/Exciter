@@ -7,7 +7,7 @@ import { ProjectPage } from "./projects";
 
 export const risksRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/risks",
+  path: "/projects/$projectKey/risks",
   validateSearch: (search: Record<string, unknown>): { view?: RisksView } => (search.view === "matrix" ? { view: "matrix" } : {}),
   component: function ProjectRisksPage() {
     const { projectKey } = risksRoute.useParams();
@@ -15,7 +15,7 @@ export const risksRoute = createRoute({
     return (
       <ProjectPage
         projectKey={projectKey}
-        to="/p/$projectKey/risks"
+        to="/projects/$projectKey/risks"
         render={(project) => <RisksPage key={project.id} project={project} view={view ?? "table"} />}
       />
     );

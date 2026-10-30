@@ -50,7 +50,7 @@ async function uploadAsCI(secret: string, key: string) {
 
 /** Reads the coverage report until it says what is expected: the worker clears its cache once it hears of a change. */
 async function coverageReads(page: Page, said: string) {
-  await page.goto(`/p/${KEY}/coverage`);
+  await page.goto(`/projects/${KEY}/coverage`);
   await expect(async () => {
     await page.reload();
     await expect(page.getByRole("list", { name: "Requirements" })).toContainText(said, { timeout: 2_000 });
@@ -98,12 +98,12 @@ test.describe("test executions in traceability", { tag: "@desktop" }, () => {
     await coverageReads(page, "Verified: Partial");
     await uploadAsCI(token.secret!, made.key);
 
-    await openUntil(page, `/p/${KEY}/tests/executions/${execution.id}`, () =>
+    await openUntil(page, `/projects/${KEY}/tests/executions/${execution.id}`, () =>
       expect(page.locator("[data-execution-progress]")).toContainText("1 of 1 run, 0 failed", ONE_LOOK),
     );
     await coverageReads(page, "Verified: Full");
 
-    await page.goto(`/p/${KEY}/matrix`);
+    await page.goto(`/projects/${KEY}/matrix`);
     await expect(page.getByRole("rowheader", { name: new RegExp(made.key) }).locator('[data-last-run="passed"]')).toBeVisible();
     await expectAccessible(page);
     await api.DELETE("/tokens/{tokenID}", { params: { path: { tokenID: token.id } } });

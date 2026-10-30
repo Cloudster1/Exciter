@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { administers, useMe } from "@/api/auth";
+import { useMyAccess } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { suggestKey, useCreateProject, useKeyCheck, useProjectTemplates } from "@/api/projects";
-import { Button, ErrorBanner, Field, OptionCard, PageHeader } from "@/components/ui";
+import { Button, ErrorBanner, Field, OptionCard, PageHeader, Page, Skeleton } from "@/components/ui";
 import { KEY_SUGGEST_DEBOUNCE_MS, PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
@@ -11,8 +11,8 @@ import { useDebounced } from "@/lib/debounce";
 /** Makes a project; the key follows the name, as a free key the server suggests, until somebody types one of their own. */
 export function NewProjectForm() {
   const navigate = useNavigate();
-  const { data: me } = useMe();
-  const mayCreate = administers(me?.role);
+  const access = useMyAccess();
+  const mayCreate = access.data?.createProject ?? false;
   const create = useCreateProject();
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
@@ -33,14 +33,16 @@ export function NewProjectForm() {
     event.preventDefault();
     create.mutate(
       { name, key: shownKey, description, ...(template ? { template } : {}) },
-      { onSuccess: (made) => void navigate({ to: "/p/$projectKey", params: { projectKey: made.key } }) },
+      { onSuccess: (made) => void navigate({ to: "/projects/$projectKey", params: { projectKey: made.key } }) },
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl" data-new-project>
+    <Page width="narrow" data-new-project>
       <PageHeader title={t.projects.createTitle} />
-      {!mayCreate ? (
+      {access.isPending ? (
+        <Skeleton />
+      ) : !mayCreate ? (
         <p className="text-sm text-ink-muted">{t.projects.notAdmin}</p>
       ) : (
         <form onSubmit={submit} className="space-y-4" noValidate>
@@ -114,6 +116,6 @@ export function NewProjectForm() {
           </div>
         </form>
       )}
-    </div>
+    </Page>
   );
 }

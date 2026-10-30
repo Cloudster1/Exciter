@@ -37,7 +37,7 @@ describe("emptying the trash", () => {
         return { status: 204 };
       },
     });
-    await renderAt("/p/CHK/trash");
+    await renderAt("/projects/CHK/settings/trash");
     await screen.findByText("Ways to pay");
     await userEvent.click(screen.getByRole("button", { name: "Empty the trash" }));
     const dialog = screen.getByRole("dialog", { name: "Empty the trash for good?" });
@@ -60,7 +60,7 @@ describe("emptying the trash", () => {
       "GET /projects/CHK": { status: 200, body: { project: editor } },
       "GET /projects/CHK/trash": { status: 200, body: { items: [item] } },
     });
-    await renderAt("/p/CHK/trash");
+    await renderAt("/projects/CHK/settings/trash");
     const entry = (await screen.findByText("Ways to pay")).closest("tr")!;
     expect(screen.getByText(ADMINS_ONLY)).toBeInTheDocument();
     expect(within(entry).getByRole("button", { name: "Restore" })).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe("emptying the trash", () => {
 
   it("is not opened for a reader, who is told why", async () => {
     const sent = stubApi({ "GET /projects/CHK": { status: 200, body: { project: reader } } });
-    await renderAt("/p/CHK/trash");
+    await renderAt("/projects/CHK/settings/trash");
     expect(await screen.findByText(READ_ONLY)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Empty the trash" })).toBeNull();
     expect(screen.queryByText(ADMINS_ONLY)).toBeNull();

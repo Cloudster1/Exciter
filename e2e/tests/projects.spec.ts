@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
+import { confirm, dismissToasts, expectAccessible, openProjectSettings, toast } from "../fixtures/shell";
 
 const PROJECTS_PATH = "/projects";
 const NEW_PROJECT_PATH = "/projects/new";
@@ -39,34 +39,43 @@ test.describe("projects", { tag: "@desktop" }, () => {
     await expect(page.getByLabel("Key", { exact: true })).toHaveValue(SUGGESTED);
     await expectAccessible(page);
     await page.locator('[data-action="create-project"]').click();
-    await expect(page).toHaveURL(`/p/${SUGGESTED}`);
+    await expect(page).toHaveURL(`/projects/${SUGGESTED}`);
     await expect(page.getByText("No requirements yet")).toBeVisible();
-    await openProjectAdmin(page, SUGGESTED);
-    await page.locator(`[data-project-nav="${SUGGESTED}"]`).getByRole("link", { name: "Project settings" }).click();
-    await expect(page).toHaveURL(`/p/${SUGGESTED}/settings`);
+    await openProjectSettings(page, SUGGESTED);
+    await expect(page).toHaveURL(`/projects/${SUGGESTED}/settings/details`);
     await expectAccessible(page);
 
     await page.getByLabel("New key", { exact: true }).fill(RENAMED.toLowerCase());
     await page.locator('[data-action="change-key"]').click();
-    await expect(page).toHaveURL(`/p/${RENAMED}/settings`);
+    await expect(page).toHaveURL(`/projects/${RENAMED}/settings/details`);
+    await expect(toast(page, `The project's key is now ${RENAMED}.`)).toBeVisible();
+    await dismissToasts(page);
     await expect(page.locator("[data-former-keys]")).toHaveText(`Former keys, which still work: ${SUGGESTED}`);
 
     // The old key still finds the project, and the address follows to the current one.
-    await page.goto(`/p/${SUGGESTED}/settings`);
-    await expect(page).toHaveURL(`/p/${RENAMED}/settings`);
+    await page.goto(`/projects/${SUGGESTED}/settings/details`);
+    await expect(page).toHaveURL(`/projects/${RENAMED}/settings/details`);
 
+    // Archiving happens at once and offers Undo, since nothing is lost.
     await page.locator('[data-action="archive-project"]').click();
     await expect(page.locator("[data-archived-notice]")).toBeVisible();
+    await page.locator("[data-toast]").filter({ hasText: "is archived." }).getByRole("button", { name: "Undo" }).click();
+    await expect(page.locator("[data-archived-notice]")).toHaveCount(0);
+    await expect(toast(page, "is back from the archive.")).toBeVisible();
+    await dismissToasts(page);
+    await page.locator('[data-action="archive-project"]').click();
+    await expect(page.locator("[data-archived-notice]")).toBeVisible();
+    await dismissToasts(page);
     await expect(page.getByLabel("Name", { exact: true })).toHaveAttribute("readonly", "");
     await page.goto(PROJECTS_PATH);
     await expect(page.locator(`[data-project-row="${RENAMED}"]`)).toHaveCount(0);
     await page.getByRole("switch", { name: "Show archived projects" }).click();
     await expect(page.locator(`[data-project-row="${RENAMED}"]`)).toBeVisible();
 
-    await page.goto(`/p/${RENAMED}/settings`);
+    await page.goto(`/projects/${RENAMED}/settings/details`);
     await page.locator('[data-action="delete-project"]').click();
     await expectAccessible(page);
-    await page.locator('[data-action="confirm-delete-project"]').click();
+    await confirm(page);
     await expect(page).toHaveURL(PROJECTS_PATH);
     await expect(page.locator(`[data-project-row="${RENAMED}"]`)).toHaveCount(0);
   });
@@ -93,11 +102,12 @@ test.describe("projects", { tag: "@desktop" }, () => {
     await expect(bob.locator('[data-action="new-project"]')).toHaveCount(0);
 
     await bob.locator(`[data-project-row="${READ}"]`).getByRole("link", { name: "System" }).click();
-    await expect(bob).toHaveURL(`/p/${READ}`);
-    await openProjectAdmin(bob, READ);
-    await bob.locator(`[data-project-nav="${READ}"]`).getByRole("link", { name: "Project settings" }).click();
-    await expect(bob).toHaveURL(`/p/${READ}/settings`);
-    await expect(bob.getByText("Only the project's administrators change its settings.")).toBeVisible();
+    await expect(bob).toHaveURL(`/projects/${READ}`);
+    await openProjectSettings(bob, READ);
+    await expect(bob).toHaveURL(`/projects/${READ}/settings/details`);
+    await expect(bob.locator("[data-settings-read-only]")).toHaveText(
+      "Only the project's administrators change its settings. Ask one of them, or ask for the role.",
+    );
     await expect(bob.locator('[data-action="save-project"]')).toHaveCount(0);
     await expect(bob.locator('[data-action="archive-project"]')).toHaveCount(0);
     await expectAccessible(bob);

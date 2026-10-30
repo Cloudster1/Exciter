@@ -1,7 +1,7 @@
 import { useId, useState, type KeyboardEvent } from "react";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import { useTerms, type Term } from "@/api/glossary";
-import { Button, Dialog, Input, Tag, cx } from "@/components/ui";
+import { Button, Dialog, Input, Tag, cx, DialogFooter } from "@/components/ui";
 import { TERM_PICKER_LIMIT, TERM_SEARCH_DEBOUNCE_MS } from "@/config";
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
@@ -52,7 +52,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
   }
 
   return (
-    <Dialog title={l.linkTitle} onClose={onClose} data-term-picker="">
+    <Dialog open title={l.linkTitle} onClose={onClose} attrs={{ "data-term-picker": "" }}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: it only keeps the keys of the dialog from the form around it */}
       <div className="space-y-3" onKeyDown={guard}>
         <p className="text-sm text-ink-muted">{may ? (words ? l.linkIntro(words) : "") : l.noSelection}</p>
@@ -109,7 +109,7 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
             </p>
           </>
         )}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           {linked && (
             <Button
               variant="secondary"
@@ -123,9 +123,9 @@ export function TermPickerDialog({ projectKey, editor, onClose }: { projectKey: 
             </Button>
           )}
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

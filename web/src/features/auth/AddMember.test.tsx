@@ -1,22 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MEMBERS_PATH } from "@/config";
+import { USERS_PATH } from "@/config";
 import { renderAt, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const owner = {
+const olive = {
   userId: "0195f000-0000-7000-8000-000000000001",
-  email: "owner@exciter.test",
-  name: "Olive Owner",
-  role: "owner",
+  email: "olive@exciter.test",
+  name: "Olive Other",
+  role: "member",
+  administers: true,
   joinedAt: "2026-09-01T08:00:00Z",
   active: true,
+  roles: [],
 };
 
-const settings = (extra: Parameters<typeof stubApi>[0] = {}) => stubApi({ "GET /users": { status: 200, body: { members: [owner] } }, ...extra });
+const settings = (extra: Parameters<typeof stubApi>[0] = {}) => stubApi({ "GET /users": { status: 200, body: { members: [olive] } }, ...extra });
 
 async function openDialog() {
   await userEvent.click(await screen.findByRole("button", { name: "Add person" }));
@@ -40,7 +42,7 @@ describe("adding a person with a password", () => {
         },
       },
     });
-    await renderAt(MEMBERS_PATH);
+    await renderAt(USERS_PATH);
     const dialog = await openDialog();
     expect(within(dialog).getByLabelText("Email address")).toHaveFocus();
     await userEvent.type(within(dialog).getByLabelText("Email address"), " ada@exciter.test ");
@@ -74,7 +76,7 @@ describe("adding a person with a password", () => {
         body: { member: { userId: "0195f000-0000-7000-8000-000000000003", email: "bob@exciter.test", name: "Bob", role: "guest", newAccount: false } },
       },
     });
-    await renderAt(MEMBERS_PATH);
+    await renderAt(USERS_PATH);
     const dialog = await openDialog();
     await userEvent.type(within(dialog).getByLabelText("Email address"), "bob@exciter.test");
     await userEvent.selectOptions(within(dialog).getByLabelText("Role"), "guest");
@@ -99,7 +101,7 @@ describe("adding a person with a password", () => {
         },
       },
     });
-    await renderAt(MEMBERS_PATH);
+    await renderAt(USERS_PATH);
     const dialog = await openDialog();
     await userEvent.type(within(dialog).getByLabelText("Email address"), "cy@exciter.test");
     await userEvent.type(within(dialog).getByLabelText("Password"), "short");
@@ -110,7 +112,7 @@ describe("adding a person with a password", () => {
 
   it("forgets what was typed when it is cancelled", async () => {
     settings();
-    await renderAt(MEMBERS_PATH);
+    await renderAt(USERS_PATH);
     let dialog = await openDialog();
     await userEvent.type(within(dialog).getByLabelText("Email address"), "cy@exciter.test");
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
@@ -121,7 +123,7 @@ describe("adding a person with a password", () => {
 
   it("passes axe with the dialog open", async () => {
     settings();
-    await renderAt(MEMBERS_PATH);
+    await renderAt(USERS_PATH);
     await openDialog();
     expect(await axeViolations()).toEqual([]);
   });

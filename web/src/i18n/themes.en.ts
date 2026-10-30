@@ -6,13 +6,13 @@ export const themesEn = {
   importTheme: "Import theme",
   importFile: "Theme file",
   usingBuiltIn: "You are using the built-in theme.",
-  usingBuiltInOverDefault: (name: string) => `You are using the built-in theme, over ${name}, the default for everyone.`,
+  usingBuiltInOverDefault: (name: string) => `You are using the built-in theme, over everyone's default ${name}.`,
   using: (name: string) => `You are using ${name}.`,
-  usingDefault: (name: string) => `You are using ${name}, the default for everyone.`,
+  usingDefault: (name: string) => `You are using ${name}, everyone's default.`,
   usingArmature: (name: string) => `You are using ${name}, the theme you use in Armature.`,
   usingArmatureBuiltIn: "You are using the built-in theme, as you do in Armature.",
   useBuiltIn: "Use the built-in theme",
-  useOrgDefault: "Use the default for everyone",
+  useOrgDefault: "Use everyone's default",
   show: "Show",
   viewMine: "Mine",
   viewShared: "Shared with me",
@@ -26,21 +26,19 @@ export const themesEn = {
   columnActions: "Actions",
   you: "you",
   tagShared: "Shared",
-  tagDefault: "Default for everyone",
+  tagDefault: "Everyone's default",
   tagInUse: "In use",
   people: (n: number) => (n === 1 ? "1 person" : `${n} people`),
   actionsFor: (name: string) => `Actions for ${name}`,
   use: "Use this theme",
   stopUsing: "Stop using",
-  makeDefault: "Make it the default for everyone",
-  undefault: "No longer the default for everyone",
   edit: "Edit",
   exportFile: "Export as a file",
   share: "Share with everyone",
   stopSharing: "Stop sharing",
   delete: "Delete",
-  confirmDelete: (name: string, inUse: number) =>
-    `Delete ${name} and its files for good? ${
+  confirmDelete: (inUse: number) =>
+    `Its files go with it for good. ${
       inUse === 0
         ? "Nobody is using it."
         : inUse === 1
@@ -49,7 +47,7 @@ export const themesEn = {
     }`,
   nowUsing: (name: string) => `Now using ${name}.`,
   backToBuiltIn: "Back to the built-in theme.",
-  backToDefault: "Back to the default for everyone.",
+  backToDefault: "Back to everyone's default.",
   defaultSet: (name: string) => `${name} is what everybody sees until they choose.`,
   defaultCleared: "Everyone sees the built-in theme again.",
   sharedNow: (name: string) => `${name} is shared with everyone.`,
@@ -129,7 +127,7 @@ export const themesEn = {
     kilobytes: (n: number) => `${n} KB`,
     inUse: "In use",
     removeFile: (name: string) => `Remove ${name}`,
-    confirmRemoveFile: (name: string) => `Remove ${name} from the theme's files?`,
+    confirmRemoveFile: "It leaves the theme's files.",
     added: (name: string) => `Added ${name}.`,
     removed: (name: string) => `Removed ${name}.`,
     extraCSS: "Extra CSS",
@@ -211,16 +209,5 @@ export const themesEn = {
     rejected:
       "Armature no longer accepts your token, so you see the theme you would have without following. Paste a new token under Your account, Armature account.",
     notConnected: "Connect your Armature account under Your account, Armature account to see your Armature theme here.",
-  },
-  orgDefault: {
-    title: "Default theme",
-    intro: "What everybody sees until they choose a theme of their own. Only a shared theme can be the default.",
-    notAdmin: "Only an administrator names the default theme for everyone. Ask one, or choose a theme for yourself under Themes.",
-    choices: "The default theme for everyone",
-    builtIn: "Built-in theme",
-    builtInBody: "The Clay look Exciter, Armature and Stator share.",
-    by: (owner: string) => `Shared by ${owner}`,
-    noneShared: "Nobody has shared a theme yet. Share one from Themes, then make it the default here.",
-    openThemes: "Open Themes",
   },
 };

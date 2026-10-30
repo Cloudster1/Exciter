@@ -63,7 +63,7 @@ describe("a project's coverage", () => {
   it("shows each dimension's share and each requirement's levels, kept at a level on request", async () => {
     const asked: URLSearchParams[] = [];
     stubCoverage(asked);
-    await renderAt("/p/CHK/coverage");
+    await renderAt("/projects/CHK/coverage");
     const list = await screen.findByRole("list", { name: "Requirements" });
     expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Decomposed: Full");
     expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Implemented: Partial");
@@ -76,7 +76,7 @@ describe("a project's coverage", () => {
 
   it("lets an administrator tick what a rule asks for and add one for a type", async () => {
     const sent = stubCoverage();
-    await renderAt("/p/CHK/coverage");
+    await renderAt("/projects/CHK/coverage");
     const rules = await screen.findByRole("list", { name: "Rules" });
     await userEvent.click(within(rules).getByLabelText("Verified"));
     await waitFor(() =>
@@ -108,7 +108,7 @@ describe("a project's coverage", () => {
       "GET /projects/CHK/types": { status: 200, body: { types: [noteType] } },
       "PUT /projects/CHK/coverage-rules": { status: 200, body: { rule: { ...every, verified: true } } },
     });
-    await renderAt("/p/CHK/coverage");
+    await renderAt("/projects/CHK/coverage");
     const verified = await screen.findByRole("group", { name: "Verified from: Every other type" });
     expect(within(verified).getByRole("button", { name: "Links" })).toHaveAttribute("aria-pressed", "true");
     expect(await axeViolations()).toEqual([]);
@@ -134,7 +134,7 @@ describe("a project's coverage", () => {
 
   it("shows a reader the rules without letting them change them", async () => {
     stubCoverage([], { view: true, comment: false, edit: false, approve: false, administer: false, purge: false });
-    await renderAt("/p/CHK/coverage");
+    await renderAt("/projects/CHK/coverage");
     const rules = await screen.findByRole("list", { name: "Rules" });
     expect(within(rules).getByLabelText("Decomposed")).toBeDisabled();
     expect(screen.getByText("Only the project's administrators set what coverage asks.")).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe("a project's coverage", () => {
       "GET /projects/CHK/coverage-rules": { status: 200, body: { rules: [every] } },
       "GET /projects/CHK/types": { status: 200, body: { types: [] } },
     });
-    await renderAt("/p/CHK/coverage");
-    expect(await screen.findByRole("link", { name: "Open the matrix" })).toHaveAttribute("href", "/p/CHK/matrix");
+    await renderAt("/projects/CHK/coverage");
+    expect(await screen.findByRole("link", { name: "Open the matrix" })).toHaveAttribute("href", "/projects/CHK/matrix");
   });
 });

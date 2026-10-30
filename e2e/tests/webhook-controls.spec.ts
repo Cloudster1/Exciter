@@ -6,14 +6,14 @@ import { expect } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
-// The controls of /settings/webhooks that webhooks.spec.ts leaves alone (#328). Each webhook listens to a project of
+// The controls of /admin/webhooks that webhooks.spec.ts leaves alone (#328). Each webhook listens to a project of
 // its own test, since the tests of a file run side by side.
 
 // web/src/config.ts WEBHOOKS_PATH and WEBHOOK_SIGNATURE_HEADER, and the header that names a delivery.
-const WEBHOOKS_PATH = "/settings/webhooks";
+const WEBHOOKS_PATH = "/admin/webhooks";
 const SIGNATURE_HEADER = "X-Exciter-Signature-256";
 const DELIVERY_HEADER = "X-Exciter-Delivery";
 const SECRET_PREFIX = "exciter_whs_";
@@ -132,11 +132,10 @@ test.describe("webhook controls", { tag: "@desktop" }, () => {
     await page.goto(WEBHOOKS_PATH);
     const row = page.locator(`[data-webhook="${name}"]`);
     await row.getByRole("button", { name: `Actions for ${name}` }).click();
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Rotate the secret of ${name}? The receiver refuses every delivery until it has the new one.`);
-      void dialog.accept();
-    });
     await page.getByRole("menuitem", { name: "Rotate the secret" }).click();
+    await expect(page.locator("[data-confirm]")).toContainText(`Rotate the secret of ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("The receiver refuses every delivery until it has the new one.");
+    await confirm(page);
     const field = page.getByLabel(`Secret for ${name}`, { exact: true });
     await expect(field).toHaveValue(new RegExp(`^${SECRET_PREFIX}`));
     const fresh = await field.inputValue();
@@ -150,7 +149,8 @@ test.describe("webhook controls", { tag: "@desktop" }, () => {
 
     await row.getByRole("button", { name: `Actions for ${name}` }).click();
     await page.getByRole("menuitem", { name: "Send a test ping" }).click();
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText(`The ping reached ${name}. The receiver answered 204.`);
+    await expect(toast(page, `The ping reached ${name}. The receiver answered 204.`)).toHaveText(`The ping reached ${name}. The receiver answered 204.`);
+    await dismissToasts(page);
     const [ping] = await receiver.read();
     expect(signedWith(fresh, ping!)).toBe(true);
     expect(signedWith(old, ping!)).toBe(false);
@@ -183,7 +183,8 @@ test.describe("webhook controls", { tag: "@desktop" }, () => {
     await receiver.answers(NO_CONTENT);
     await row.getByRole("button", { name: `Actions for ${name}` }).click();
     await page.getByRole("menuitem", { name: "Turn on" }).click();
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText(`${name} is on again.`);
+    await expect(toast(page, `${name} is on again.`)).toHaveText(`${name} is on again.`);
+    await dismissToasts(page);
     await expect(row).toHaveAttribute("data-webhook-enabled", "true");
     await expect(row.locator("[data-webhook-state]")).toHaveText("On");
     await expect(row).not.toContainText("Turned off after");
@@ -201,12 +202,13 @@ test.describe("webhook controls", { tag: "@desktop" }, () => {
       .toBe(true);
 
     await row.getByRole("button", { name: `Actions for ${name}` }).click();
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toBe(`Delete ${name}? It stops receiving at once, and its delivery log goes with it.`);
-      void dialog.accept();
-    });
+    await dismissToasts(page);
     await page.getByRole("menuitem", { name: "Delete" }).click();
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText(`${name} was deleted.`);
+    await expect(page.locator("[data-confirm]")).toContainText(`Delete webhook ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("It stops receiving at once, and its delivery log goes with it.");
+    await confirm(page);
+    await expect(toast(page, `${name} was deleted.`)).toHaveText(`${name} was deleted.`);
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
     await page.reload();
     await expect(page.locator("main").getByRole("heading", { level: 1 })).toHaveText("Webhooks");

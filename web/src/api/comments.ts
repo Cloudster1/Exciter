@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import type { Doc } from "@/features/editor/schema";
 import type { Mentionable } from "@/features/editor/extensions";
 import { api } from "./client";

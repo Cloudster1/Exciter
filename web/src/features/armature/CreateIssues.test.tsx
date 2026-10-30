@@ -135,7 +135,7 @@ describe("picking requirements for Armature issues", () => {
         },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     const document = await screen.findByRole("article", { name: "Specification" });
     await within(document).findByRole("checkbox", { name: "Select CHK-R3" });
     expect(within(document).queryByRole("checkbox", { name: "Select CHK-R1" })).toBeNull();
@@ -176,7 +176,7 @@ describe("picking requirements for Armature issues", () => {
         body: { error: { code: "armature_rejected", message: "Your Armature token may only read, so it cannot make issues or links." } },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
     await userEvent.click(screen.getByRole("checkbox", { name: "Select CHK-R3" }));
     await userEvent.click(screen.getByRole("button", { name: "Create Armature issues" }));
@@ -190,7 +190,7 @@ describe("picking requirements for Armature issues", () => {
 
   it("says how to connect when the caller has no token", async () => {
     stubSpec({ "GET /armature/projects": { status: 200, body: { status: "not_connected", projects: [] } } });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
     await userEvent.click(screen.getByRole("button", { name: "Create Armature issues" }));
     const dialog = await screen.findByRole("dialog");
@@ -208,12 +208,12 @@ describe("picking requirements for Armature issues", () => {
       },
       false,
     );
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.2 Pay at once" });
     expect(screen.queryByRole("checkbox")).toBeNull();
     vi.unstubAllGlobals();
     stubSpec({ "GET /armature/account": { status: 200, body: { account: { ...account, configured: false, baseUrl: "", status: "not_configured" } } } });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.2 Pay at once" });
     // Picking is still there for moving requirements through their workflow (#169), but not for Armature.
     await userEvent.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
@@ -248,7 +248,7 @@ describe("picking requirements for Armature issues", () => {
       "GET /projects/CHK/views": { status: 200, body: { views: [] } },
       "GET /armature/account": { status: 200, body: { account } },
     });
-    await renderAt("/p/CHK/grid");
+    await renderAt("/projects/CHK/grid");
     await userEvent.click(await screen.findByRole("checkbox", { name: "Select every requirement shown" }));
     expect(screen.getByRole("checkbox", { name: "Select CHK-R4" })).toBeChecked();
     expect(screen.getByText("2 requirements selected")).toBeInTheDocument();

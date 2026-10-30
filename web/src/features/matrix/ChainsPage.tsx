@@ -5,7 +5,7 @@ import type { Project } from "@/api/projects";
 import { useStatorPages } from "@/api/stator";
 import { chainsHref, useChains, useTraceModel, type TraceChainNode, type TraceChains } from "@/api/trace";
 import { useStatuses } from "@/api/workflows";
-import { ButtonLink, Card, Checkbox, EmptyState, ErrorBanner, PageHeader, Select, Skeleton, Tag } from "@/components/ui";
+import { ButtonLink, Card, Checkbox, EmptyState, ErrorBanner, PageHeader, Select, Skeleton, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { CHAIN_PAGE_SIZE } from "@/config";
 import { Pages } from "@/features/coverage/Pages";
@@ -38,7 +38,7 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
   const from = setup.levels.length ? Math.min(...setup.levels) : 0;
   const to = setup.levels.length ? Math.max(...setup.levels) : levels.length - 1;
   const set = (patch: Partial<typeof setup>) => onAddress(toChainsAddress({ ...setup, ...patch }, address.view));
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   return (
     <div className="space-y-4" data-chains={project.key}>
       <PageHeader
@@ -47,7 +47,7 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/p/$projectKey/matrix"
+              to="/projects/$projectKey/matrix"
               params={{ projectKey: project.key }}
               className="text-sm font-medium text-accent hover:underline"
               data-action="open-matrix"
@@ -79,13 +79,10 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
           onOpen={(view) => {
             onAddress(view ? fromChainView(view) : {});
             // Saving says so before it opens the view saved, which has lost nothing to say.
-            if (view?.dropped.length) setNotice(t.matrix.dropped(view.dropped.length));
+            if (view?.dropped.length) toast.success(t.matrix.dropped(view.dropped.length));
           }}
-          onNotice={setNotice}
+          onNotice={toast.success}
         />
-        <p role="status" className="text-sm text-ink-muted empty:hidden" data-chains-notice>
-          {notice}
-        </p>
       </div>
       <GridFilters
         project={project}
@@ -102,12 +99,7 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
           title={t.chains.noModelReport}
           action={
             project.can.administer ? (
-              <Link
-                to="/p/$projectKey/settings"
-                params={{ projectKey: project.key }}
-                search={{ tab: "trace" }}
-                className="text-sm font-medium text-accent hover:underline"
-              >
+              <Link to="/projects/$projectKey/settings/trace" params={{ projectKey: project.key }} className="text-sm font-medium text-accent hover:underline">
                 {t.chains.setModel}
               </Link>
             ) : undefined
@@ -224,7 +216,7 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
       {node.via && <span className="text-xs text-ink-subtle">{node.via}</span>}
       {node.requirement ? (
         <Link
-          to="/p/$projectKey/r/$reqKey"
+          to="/projects/$projectKey/r/$reqKey"
           params={{ projectKey: project.key, reqKey: node.requirement.key }}
           className="text-ink hover:text-accent hover:underline"
         >

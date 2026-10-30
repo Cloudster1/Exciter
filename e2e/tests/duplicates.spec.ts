@@ -30,7 +30,7 @@ test.describe("duplicates", { tag: "@desktop" }, () => {
     const short = must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Brakes engage within 100 ms" } })).requirement;
     const long = must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Brakes engage within 100 milliseconds" } })).requirement;
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Brakes engage within 100 ms");
     const hint = page.locator("[data-similar-hint]");
     await expect(hint.getByRole("region", { name: "Similar requirements" })).toBeVisible();
@@ -39,7 +39,7 @@ test.describe("duplicates", { tag: "@desktop" }, () => {
     await expect(hint.getByRole("status")).toHaveText("2 similar requirements.");
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/duplicates`);
+    await page.goto(`/projects/${KEY}/duplicates`);
     await expect(page.getByRole("heading", { level: 1, name: "Duplicates" })).toBeVisible();
     const pair = page.locator("[data-pair]");
     await expect(pair).toHaveCount(1);

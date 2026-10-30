@@ -16,14 +16,20 @@ import {
   USERS,
 } from "../fixtures/auth";
 import { deadProvider, withDatabase } from "../fixtures/db";
+import type { ExciterApi } from "../fixtures/api";
+import { findGrants, grantEverywhere, grantInForm, grantRow, revokeEverywhere, revokeInTable } from "../fixtures/grants";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
-import { openAccountMenu } from "../fixtures/shell";
+import { openAccountMenu, toast, dismissToasts } from "../fixtures/shell";
+import { WEB_URL } from "../fixtures/stack";
 
 // alice's group at the stack's Keycloak, from deploy/keycloak/realm.json.
 const ADMINS_GROUP = "exciter-administrators";
-const MEMBERS_PATH = "/settings/members";
-const SSO_PATH = "/settings/sso";
-const SETTINGS_PATH = "/settings";
+const ADMINISTRATOR = "administrator";
+const MEMBERS_PATH = "/admin/access/members";
+const SSO_PATH = "/admin/access/sso";
+const ROLES_PATH = "/admin/access/roles";
+const GROUPS_PATH = "/admin/access/groups";
+const USERS_PATH = "/admin/users";
 // A claim the realm's tokens do not carry, so a sign-in reads no groups through it and still signs in.
 const OTHER_CLAIM = "e2e_groups";
 const WAITING = "Your request is waiting";
@@ -49,6 +55,23 @@ async function signInFresh(browser: Browser, username: string, password: string)
 async function forgetStrangers(): Promise<void> {
   await withDatabase((db) => db.query("DELETE FROM app_user WHERE email = ANY($1)", [[CAROL.email, DAVE.email]]));
 }
+/** The group the provider fills from alice's group, made here when no sign-in has made it yet. */
+async function adminsGroup(owner: ExciterApi): Promise<{ id: string; name: string }> {
+  const { groups } = must(await owner.GET("/groups", { params: { query: { q: ADMINS_GROUP, limit: 50 } } }));
+  const found = groups.find((each) => each.externalRef === ADMINS_GROUP);
+  if (found) return { id: found.id, name: found.name };
+  const made = must(await owner.POST("/groups", { body: { name: ADMINS_GROUP, externalRef: ADMINS_GROUP } })).group;
+  return { id: made.id, name: made.name };
+}
+
+/** Deletes every group named for alice's provider group or carrying its claim, with their grants. */
+async function dropAdminsGroup(owner: ExciterApi): Promise<void> {
+  const { groups } = must(await owner.GET("/groups", { params: { query: { q: ADMINS_GROUP, limit: 50 } } }));
+  for (const group of groups.filter((each) => each.externalRef === ADMINS_GROUP || each.name === ADMINS_GROUP)) {
+    await owner.DELETE("/groups/{groupID}", { params: { path: { groupID: group.id } } });
+  }
+}
+
 const UNREACHABLE = "Exciter could not reach the identity provider. Try again in a moment, and tell an administrator if it keeps failing.";
 
 // The sign-in a browser alone can walk: the login page, Keycloak's own form, and back. It changes the installation's provider and
@@ -59,7 +82,7 @@ test.describe("single sign-on", () => {
   test("alice signs in through Keycloak and lands in the installation as the administrator she is", async ({ page }) => {
     expect((await page.request.get(ME_PATH)).status()).toBe(401);
     await signIn(page, "alice");
-    await expect.poll(() => standing(page)).toEqual({ role: "admin" });
+    await expect.poll(() => standing(page)).toEqual({ role: "member", administers: true });
     await page.goto(MEMBERS_PATH);
     await expect(page.locator("[data-members]")).toBeVisible();
     await openAccountMenu(page);
@@ -88,30 +111,32 @@ test.describe("single sign-on", () => {
   });
 });
 
-test.describe("roles from the provider's groups", { tag: "@desktop" }, () => {
-  test("alice, made a member by hand, signs in and is the administrator her group makes her", async ({ browser }) => {
+test.describe("grants through the provider's groups", { tag: "@desktop" }, () => {
+  test("alice, her own administrator grant taken, signs in and administers through her group's", async ({ browser }) => {
     const owner = await ownerApi();
     const alice = must(await owner.GET("/users")).members.find((each) => each.email === USERS.alice.email);
     expect(alice, "the seed let alice in").toBeDefined();
     const aliceId = alice!.userId;
-    let mappingId: string | undefined;
     const context = await anonymousContext(browser);
+    let groupId: string | undefined;
     try {
-      must(await owner.PATCH("/users/{userID}", { params: { path: { userID: aliceId } }, body: { role: "member" } }));
-      mappingId = must(await owner.POST("/oidc-provider/group-roles", { body: { group: ADMINS_GROUP, role: "admin" } })).groupRole.id;
+      const group = await adminsGroup(owner);
+      groupId = group.id;
+      await grantEverywhere(owner, ADMINISTRATOR, { groupId });
+      await revokeEverywhere(owner, ADMINISTRATOR, { userId: aliceId });
 
       const page = await context.newPage();
       await signIn(page, "alice");
-      await expect.poll(() => standing(page)).toEqual({ role: "admin" });
+      await expect.poll(() => standing(page)).toEqual({ role: "member", administers: true });
       await openUntil(page, MEMBERS_PATH, async () => {
         const row = page.locator(`[data-member="${USERS.alice.email}"]`);
-        await expect(row.locator('[data-role-source="oidc"]')).toBeVisible(ONE_LOOK);
-        await expect(row.locator("[data-member-role]")).toHaveAttribute("data-member-role", "admin", ONE_LOOK);
+        await expect(row.locator(`[data-member-holds="${ADMINISTRATOR}"]`).filter({ hasText: `through ${group.name}` })).toBeVisible(ONE_LOOK);
+        await expect(row.locator("[data-member-role]")).toHaveAttribute("data-member-role", "member", ONE_LOOK);
       });
     } finally {
       await context.close();
-      if (mappingId) await owner.DELETE("/oidc-provider/group-roles/{groupRoleID}", { params: { path: { groupRoleID: mappingId } } });
-      await owner.PATCH("/users/{userID}", { params: { path: { userID: aliceId } }, body: { role: "admin" } });
+      await grantEverywhere(owner, ADMINISTRATOR, { userId: aliceId });
+      if (groupId) await revokeEverywhere(owner, ADMINISTRATOR, { groupId });
       await owner.dispose();
     }
   });
@@ -122,14 +147,18 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
     const owner = await ownerApi();
     const before = must(await owner.GET("/oidc-provider")).provider;
     expect(before, "the seed configured the provider").toBeTruthy();
-    const { issuer, clientId, groupsClaim, scopes, createGroups, enabled } = before!;
+    const { issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup, enabled } = before!;
     try {
       await page.goto(SSO_PATH);
       const claim = page.getByLabel("Groups claim", { exact: true });
       await expect(claim).toHaveValue(groupsClaim);
       await claim.fill(OTHER_CLAIM);
       await page.locator('[data-action="save-sso"]').click();
-      await expect(page.locator('[data-action="save-sso"] + [role="status"]')).toHaveText("Saved.");
+      await expect(toast(page, "Single sign-on is saved.")).toBeVisible();
+      await dismissToasts(page);
+      await expect(page.getByLabel("Scopes")).toHaveCount(0);
+      await expect(page.locator('[data-sso-state="on"] [data-sso-start]')).toHaveText(`${WEB_URL}/api/v1/auth/oidc/start`);
+      expect(must(await owner.GET("/oidc-provider")).provider).toMatchObject({ scopes, createGroups });
 
       await page.reload();
       await expect(claim).toHaveValue(OTHER_CLAIM);
@@ -140,12 +169,12 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
 
       const bob = await signInFresh(browser, USERS.bob.username, USERS.bob.password);
       try {
-        await expect.poll(() => standing(bob.page)).toEqual({ role: "member" });
+        await expect.poll(() => standing(bob.page)).toEqual({ role: "member", administers: false });
       } finally {
         await bob.close();
       }
     } finally {
-      must(await owner.PUT("/oidc-provider", { body: { issuer, clientId, groupsClaim, scopes, createGroups, enabled } }));
+      must(await owner.PUT("/oidc-provider", { body: { issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup, enabled } }));
       // bob's sign-in read no groups through the other claim; one through the real claim gives them back.
       const bob = await signInFresh(browser, USERS.bob.username, USERS.bob.password);
       await bob.close();
@@ -153,50 +182,59 @@ test.describe("the provider and its groups from the settings page", { tag: "@des
     }
   });
 
-  test("the owner maps alice's group to Administrator and unmaps it, and her next sign-ins follow", async ({ browser }) => {
+  test("the owner makes alice's provider group, grants it Administrator and revokes it, and her next sign-ins follow", async ({ browser }) => {
     const owner = await ownerApi();
     const alice = must(await owner.GET("/users")).members.find((each) => each.email === USERS.alice.email);
     expect(alice, "the seed let alice in").toBeDefined();
     const aliceId = alice!.userId;
     const settings = await freshPage(browser);
     try {
-      must(await owner.PATCH("/users/{userID}", { params: { path: { userID: aliceId } }, body: { role: "member" } }));
+      await dropAdminsGroup(owner);
+      await revokeEverywhere(owner, ADMINISTRATOR, { userId: aliceId });
       await signInWithPassword(settings.page);
-      await settings.page.goto(SSO_PATH);
-      const card = settings.page.locator("[data-group-roles]");
-      await card.getByLabel("Group", { exact: true }).fill(ADMINS_GROUP);
-      await card.getByLabel("Role", { exact: true }).selectOption("admin");
-      await card.locator('[data-action="map-group"]').click();
-      await expect(card.getByRole("status")).toHaveText(`${ADMINS_GROUP} now grants Administrator.`);
-      await expect(card.locator(`[data-group-role="${ADMINS_GROUP}"]`)).toContainText("Administrator");
+      await settings.page.goto(GROUPS_PATH);
+      await settings.page.getByRole("textbox", { name: "New group" }).fill(ADMINS_GROUP);
+      await settings.page.getByRole("textbox", { name: "Provider claim" }).fill(ADMINS_GROUP);
+      await settings.page.locator('[data-action="create-group"]').click();
+      await expect(toast(settings.page, `${ADMINS_GROUP} was made.`)).toBeVisible();
+      await dismissToasts(settings.page);
+      await expect(settings.page.locator(`[data-group="${ADMINS_GROUP}"]`)).toContainText("From the identity provider");
+
+      await settings.page.goto(ROLES_PATH);
+      await grantInForm(settings.page, ADMINS_GROUP, ADMINISTRATOR);
+      await expect(toast(settings.page, `${ADMINS_GROUP} holds Administrator now.`)).toBeVisible();
+      await dismissToasts(settings.page);
+      await findGrants(settings.page, ADMINS_GROUP);
+      await expect(grantRow(settings.page, ADMINS_GROUP, ADMINISTRATOR)).toBeVisible();
 
       const promoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
       try {
-        await expect.poll(() => standing(promoted.page)).toEqual({ role: "admin" });
-        await openUntil(promoted.page, SETTINGS_PATH, () => expect(promoted.page.locator('[data-hub-card="settings"]')).toBeVisible(ONE_LOOK));
+        await expect.poll(() => standing(promoted.page)).toEqual({ role: "member", administers: true });
+        await openUntil(promoted.page, "/", () => expect(promoted.page.locator('[data-sidebar] [data-nav="admin"]')).toBeVisible(ONE_LOOK));
       } finally {
         await promoted.close();
       }
 
-      await card.getByRole("button", { name: `Unmap ${ADMINS_GROUP}` }).click();
-      await expect(card.getByRole("status")).toHaveText(`${ADMINS_GROUP} no longer grants a role.`);
-      await expect(card.locator(`[data-group-role="${ADMINS_GROUP}"]`)).toHaveCount(0);
+      await revokeInTable(settings.page, ADMINS_GROUP, ADMINISTRATOR);
+      await expect(toast(settings.page, `${ADMINS_GROUP} no longer holds Administrator.`)).toBeVisible();
+      await dismissToasts(settings.page);
+      await expect(grantRow(settings.page, ADMINS_GROUP, ADMINISTRATOR)).toHaveCount(0);
 
       const demoted = await signInFresh(browser, USERS.alice.username, USERS.alice.password);
       try {
-        await expect.poll(() => standing(demoted.page)).toEqual({ role: "member" });
-        await openUntil(demoted.page, SETTINGS_PATH, async () => {
-          await expect(demoted.page.locator('[data-hub-card="you"]')).toBeVisible(ONE_LOOK);
-          await expect(demoted.page.locator('[data-hub-card="settings"]')).toHaveCount(0, ONE_LOOK);
+        await expect.poll(() => standing(demoted.page)).toEqual({ role: "member", administers: false });
+        await openUntil(demoted.page, "/", async () => {
+          await expect(demoted.page.locator("[data-sidebar-org]")).toBeVisible(ONE_LOOK);
+          await expect(demoted.page.locator('[data-sidebar] [data-nav="admin"]')).toHaveCount(0, ONE_LOOK);
         });
       } finally {
         await demoted.close();
       }
     } finally {
       await settings.close();
-      const left = must(await owner.GET("/oidc-provider/group-roles")).groupRoles.find((each) => each.group === ADMINS_GROUP);
-      if (left) await owner.DELETE("/oidc-provider/group-roles/{groupRoleID}", { params: { path: { groupRoleID: left.id } } });
-      await owner.PATCH("/users/{userID}", { params: { path: { userID: aliceId } }, body: { role: "admin" } });
+      await grantEverywhere(owner, ADMINISTRATOR, { userId: aliceId });
+      const group = await adminsGroup(owner);
+      await revokeEverywhere(owner, ADMINISTRATOR, { groupId: group.id });
       await owner.dispose();
     }
   });
@@ -222,12 +260,14 @@ test.describe("people waiting to be let in", { tag: "@desktop" }, () => {
     try {
       await signInWithPassword(admin.page);
       const requests = admin.page.locator("[data-join-requests]");
-      await openUntil(admin.page, MEMBERS_PATH, () => expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toBeVisible(ONE_LOOK));
+      await openUntil(admin.page, USERS_PATH, () => expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toBeVisible(ONE_LOOK));
       await requests.locator(`[data-join-request="${CAROL.email}"] [data-action="admit-request"]`).click();
-      await expect(requests.getByRole("status")).toHaveText(/may sign in now\.$/);
+      await expect(toast(admin.page, /may sign in now\.$/)).toBeVisible();
+      await dismissToasts(admin.page);
       await expect(requests.locator(`[data-join-request="${CAROL.email}"]`)).toHaveCount(0);
       await requests.locator(`[data-join-request="${DAVE.email}"] [data-action="decline-request"]`).click();
-      await expect(requests.getByRole("status")).toHaveText(/was turned away\.$/);
+      await expect(toast(admin.page, /was turned away\.$/)).toBeVisible();
+      await dismissToasts(admin.page);
       await expect(requests.locator(`[data-join-request="${DAVE.email}"]`)).toHaveCount(0);
     } finally {
       await admin.close();
@@ -235,7 +275,7 @@ test.describe("people waiting to be let in", { tag: "@desktop" }, () => {
 
     const carol = await signInFresh(browser, CAROL.username, CAROL.password);
     try {
-      await expect.poll(() => standing(carol.page)).toEqual({ role: "member" });
+      await expect.poll(() => standing(carol.page)).toEqual({ role: "member", administers: false });
       await carol.page.goto("/");
       await expect(carol.page.locator("[data-home]")).toBeVisible();
     } finally {

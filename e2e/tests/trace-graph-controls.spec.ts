@@ -66,7 +66,7 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
     const result = passingTestName(`${KEY}-R2`);
     const [r1, r3, r4] = [`${KEY}-R1`, `${KEY}-R3`, `${KEY}-R4`];
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R2/trace`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2/trace`);
     const nodes = page.locator("[data-graph-canvas] [data-graph-node]");
     await expect(nodes).toHaveCount(5);
     await expect.poll(() => impact(page)).toEqual([r1, r3, result, r4]);
@@ -127,7 +127,7 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
 
   test("alice chooses a node by keyboard, opens it, centres the list elsewhere and goes back to the requirement", async ({ page, api }) => {
     await chain(api);
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     await page.getByRole("link", { name: "Trace graph" }).click();
     await expect(page.getByRole("heading", { level: 1, name: `Trace graph of ${KEY}-R2` })).toBeVisible();
     await expect(page.locator("[data-graph-canvas] [data-graph-node]")).toHaveCount(4);
@@ -144,19 +144,19 @@ test.describe("trace graph controls", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await chosen.locator('[data-action="graph-open"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R1$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R1$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stop within 40 m");
 
     await page.goBack();
     await page.getByRole("button", { name: "List" }).click();
     const r3 = page.locator(`[data-graph-list] [data-graph-item="${KEY}-R3"]`);
     await r3.locator(":scope > div").getByRole("button", { name: "Centre the graph here" }).click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R3/trace\\?view=list$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R3/trace\\?view=list$`));
     await expect(page.getByRole("heading", { level: 1, name: `Trace graph of ${KEY}-R3` })).toBeVisible();
     await expect(page.locator(`[data-graph-list] [data-graph-item="${KEY}-R4"]`)).toBeVisible();
 
     await page.locator('[data-action="back-to-requirement"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R3$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R3$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Brake bench run");
   });
 });

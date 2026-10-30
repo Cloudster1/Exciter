@@ -39,7 +39,7 @@ test.describe("glossary", { tag: "@desktop" }, () => {
       }),
     ).term;
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Return the pedal");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -58,24 +58,24 @@ test.describe("glossary", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.locator("[data-terms-panel]");
     // The uses are kept with the saved revision; a reload reads them if the first read came before.
     await expect(async () => {
       await page.reload();
       await expect(panel.locator('[data-requirement-term="Brake pedal"]')).toBeVisible({ timeout: 2000 });
     }).toPass();
-    await expect(panel.getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/p/${KEY}/glossary/${term.id}`);
+    await expect(panel.getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/projects/${KEY}/glossary/${term.id}`);
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/glossary`);
+    await page.goto(`/projects/${KEY}/glossary`);
     await expect(page.getByRole("heading", { level: 1, name: "Glossary" })).toBeVisible();
     const row = page.getByRole("table", { name: "Glossary" }).locator('[data-term-row="Brake pedal"]');
     await expect(row).toBeVisible();
     await expectAccessible(page);
 
     await row.getByRole("link", { name: "Brake pedal" }).click();
-    await expect(page).toHaveURL(`/p/${KEY}/glossary/${term.id}`);
+    await expect(page).toHaveURL(`/projects/${KEY}/glossary/${term.id}`);
     await expect(page.getByRole("heading", { level: 1, name: "Brake pedal" })).toBeVisible();
     await expect(page.getByText(DEFINITION)).toBeVisible();
     await expect(page.locator(`[data-term-use-row="${KEY}-R1"]`)).toBeVisible();

@@ -18,9 +18,8 @@ export const commentsDe: typeof commentsEn = {
   save: "Speichern",
   cancel: "Abbrechen",
   delete: "Löschen",
-  confirmDelete: "Ihren Kommentar löschen? Sein Platz im Gespräch bleibt.",
-  confirmDeleteOthers: (author: string) =>
-    `Den Kommentar von ${author} löschen? Sein Platz im Gespräch bleibt, und das Löschen wird im Prüfprotokoll vermerkt.`,
+  confirmDelete: "Sein Platz im Gespräch bleibt.",
+  confirmDeleteOthers: "Sein Platz im Gespräch bleibt, und das Löschen wird im Prüfprotokoll vermerkt.",
   deleted: "Dieser Kommentar wurde gelöscht.",
   edited: "bearbeitet",
   formerMember: "Ein ehemaliges Mitglied",

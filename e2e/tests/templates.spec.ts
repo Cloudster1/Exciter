@@ -28,14 +28,14 @@ test.describe("project templates", { tag: "@desktop" }, () => {
     await expect(page.locator('[data-template="system"]')).toHaveAttribute("aria-checked", "true");
     await expectAccessible(page);
     await page.locator('[data-action="create-project"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}$`));
 
     for (const section of ["Introduction", "Stakeholder needs", "System requirements", "Interfaces", "Constraints"]) {
       await expect(page.getByRole("link", { name: section, exact: true })).toBeVisible();
     }
     const types = must(await api.GET("/projects/{projectKey}/types", { params: { path: { projectKey: KEY } } })).types.map((t) => t.name);
     expect(types).toEqual(["Stakeholder need", "System requirement", "Interface", "Constraint"]);
-    await page.goto(`/p/${KEY}/settings?tab=attributes`);
+    await page.goto(`/projects/${KEY}/settings/attributes`);
     await expect(page.locator('[data-attribute="Verification method"]')).toBeVisible();
   });
 });

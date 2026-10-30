@@ -66,8 +66,8 @@ through one Keycloak realm. The values that wire Exciter in:
 
 Every host a backchannel reaches is let through the outbound guard on its own;
 `network.outboundAllow` names any other. A partner's webhook secret is shown
-by that partner when its webhook is added, so it is pasted under Settings,
-Armature and Settings, Stator, once both run.
+by that partner when its webhook is added, so it is pasted under Admin,
+Armature and Admin, Stator, once both run.
 
 ## Tests
 

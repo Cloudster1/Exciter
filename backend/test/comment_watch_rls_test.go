@@ -85,7 +85,7 @@ func TestRawSQLKeepsWatchesAndFilesWithinReach(t *testing.T) {
 	hidden := projectKey(t, "WSX")
 	hiddenID := obj(t, want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": hidden, "name": "Hidden"}), http.StatusCreated,
 		"make a hidden project"), "project")["id"].(string)
-	if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, hiddenID); err != nil {
+	if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, hiddenID); err != nil {
 		t.Fatal(err)
 	}
 	secret := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+hidden+"/requirements", map[string]any{"title": "Secret"}), http.StatusCreated,
@@ -136,7 +136,7 @@ func TestRawSQLKeepsWatchesAndFilesWithinReach(t *testing.T) {
 		if got := watchers(carol, w.reqID); !has(got, eve) || !has(got, w.ownerID) {
 			t.Fatalf("carol reads R1's watchers as %v, without eve or the author", got)
 		}
-		if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND user_id = $2`, w.projectID, eve); err != nil {
+		if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND user_id = $2`, w.projectID, eve); err != nil {
 			t.Fatal(err)
 		}
 		h.settle(t)

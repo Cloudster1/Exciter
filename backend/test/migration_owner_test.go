@@ -66,11 +66,22 @@ func TestTheMigrationsNeedAnOwnerExemptFromRowSecurity(t *testing.T) {
 	if _, err := provider.Up(ctx); err != nil {
 		t.Fatalf("migrate as the owner: %v", err)
 	}
+	// The guards that put a member in Everyone and check who holds a grant are the owner's functions too, so
+	// without BYPASSRLS they would refuse making the account itself; the owner holds it only for that.
+	if _, err := h.super.Exec(ctx, "ALTER ROLE "+plainOwner+" BYPASSRLS"); err != nil {
+		t.Fatal(err)
+	}
 	var admin string
 	if err := super.QueryRow(ctx, `
-		INSERT INTO app_user (email, name, role, role_source) VALUES ('owner@migration-owner.test', 'Owner', 'owner', 'manual')
+		INSERT INTO app_user (email, name, role) VALUES ('owner@migration-owner.test', 'Owner', 'member')
 		RETURNING id::text`).Scan(&admin); err != nil {
 		t.Fatalf("make an owner account: %v", err)
+	}
+	if _, err := super.Exec(ctx, `INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1)`, admin); err != nil {
+		t.Fatalf("make the owner an administrator: %v", err)
+	}
+	if _, err := h.super.Exec(ctx, "ALTER ROLE "+plainOwner+" NOBYPASSRLS"); err != nil {
+		t.Fatal(err)
 	}
 	app, err := pgxpool.New(ctx, at(os.Getenv(envPrimary)))
 	if err != nil {

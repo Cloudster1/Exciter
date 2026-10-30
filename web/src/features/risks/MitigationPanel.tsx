@@ -40,7 +40,7 @@ function MitigationItem({ mitigation: m }: { mitigation: Mitigation }) {
       {m.source.hidden ? (
         <span className="text-ink-muted">{t.risks.hidden}</span>
       ) : (
-        <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: m.source.projectKey, reqKey: m.source.key }} className="font-medium text-accent">
+        <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: m.source.projectKey, reqKey: m.source.key }} className="font-medium text-accent">
           {m.source.key} {m.source.title}
         </Link>
       )}

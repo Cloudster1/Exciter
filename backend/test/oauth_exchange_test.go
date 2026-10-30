@@ -263,41 +263,6 @@ func TestAnExchangeIsRefusedWhatTheRealmDidNotVouchFor(t *testing.T) {
 	})
 }
 
-// Somebody the realm knows but Exciter has not seen is let in by the group mapping, as at sign-in, and only by it:
-// without a mapped group the exchange is refused and leaves no account behind (#273).
-func TestAnExchangeLetsInWhomTheMappingLetsIn(t *testing.T) {
-	h := newHarness(t)
-	kc := newKeycloak(t)
-	a := newAPIServer(t, h)
-	h.singleSignOn(t)
-	configureProvider(t, a, kc.issuer(), false)
-	boss := a.as(t, h.owner(t, "mapping").user)
-	stator := registerPartner(t, boss, map[string]any{"name": "Stator", "keycloakClientId": statorClient})
-	group := "exchange-" + h.suffix()
-	kc.newGroup(t, group)
-	if _, err := h.super.Exec(context.Background(), `INSERT INTO oidc_group_role (group_ref, role) VALUES ($1, 'member')`, group); err != nil {
-		t.Fatal(err)
-	}
-
-	mapped := kc.newPerson(t, h, "mapped-"+h.suffix(), "mapped password", group)
-	stray := kc.newPerson(t, h, "stray-"+h.suffix(), "stray password")
-
-	if status, got := stator.exchange(t, a, kc.realmToken(t, statorClient, statorSecret, strings.TrimSuffix(mapped, "@suite.test"), "mapped password")); status != http.StatusOK {
-		t.Fatalf("a person in a mapped group was refused: %d %v", status, got)
-	}
-	var role string
-	if err := h.super.QueryRow(context.Background(), `SELECT role FROM app_user WHERE email = $1`, mapped).Scan(&role); err != nil || role != "member" {
-		t.Errorf("the mapped person is %q (%v), want a member", role, err)
-	}
-	status, got := stator.exchange(t, a, kc.realmToken(t, statorClient, statorSecret, strings.TrimSuffix(stray, "@suite.test"), "stray password"))
-	if status != http.StatusBadRequest || got["error"] != oauth.ErrInvalidGrant || !strings.Contains(got["error_description"].(string), "no Exciter account yet") {
-		t.Errorf("a person in no mapped group answered %d %v", status, got)
-	}
-	if n := h.countRows(t, `SELECT count(*) FROM app_user WHERE email = $1`, stray); n != 0 {
-		t.Errorf("a refused exchange left an account behind")
-	}
-}
-
 // Only an administrator registers, changes and removes a partner app, straight through SQL as much as over the API,
 // and its secret is shown once (#273).
 func TestPartnerAppsAreTheAdministratorsToKeep(t *testing.T) {

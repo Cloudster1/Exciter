@@ -50,7 +50,7 @@ async function uploadAsCI(secret: string, key: string) {
 
 /** Reads the coverage report until it says what is expected: the worker clears its cache once it hears of a change. */
 async function coverageReads(page: Page, said: string) {
-  await page.goto(`/p/${KEY}/coverage`);
+  await page.goto(`/projects/${KEY}/coverage`);
   await expect(async () => {
     await page.reload();
     await expect(page.getByRole("list", { name: "Requirements" })).toContainText(said, { timeout: 2_000 });
@@ -73,7 +73,7 @@ test.describe("test results", { tag: "@desktop" }, () => {
     const token = must(await api.POST("/tokens", { body: { name: `ci ${KEY}`, scopes: ["evidence"] } })).token;
     await uploadAsCI(token.secret!, `${KEY}-R1`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.locator("[data-test-results]");
     await expect(panel.getByRole("heading", { name: "On main, which counts" })).toBeVisible();
     await expect(panel.locator(`[data-test-result="engage within 100 ms [verifies ${KEY}-R1]"]`)).toHaveAttribute("data-outcome", "passed");
@@ -85,7 +85,7 @@ test.describe("test results", { tag: "@desktop" }, () => {
     must(
       await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey: `${KEY}-R1` } }, body: { title: "Brakes engage within 80 ms", baseRevision: 1 } }),
     );
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(panel.getByText("Outdated: run against revision 1")).toBeVisible();
     await coverageReads(page, "Verified: Partial");
     await api.DELETE("/tokens/{tokenID}", { params: { path: { tokenID: token.id } } });

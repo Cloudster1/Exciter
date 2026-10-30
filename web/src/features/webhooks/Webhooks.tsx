@@ -14,7 +14,26 @@ import {
   type WebhookTopic,
 } from "@/api/webhooks";
 import { useProjects } from "@/api/projects";
-import { Button, Card, Checkbox, Dialog, EmptyState, ErrorBanner, Field, IconButton, Menu, PageHeader, Select, Table, Tag, Td, Th, cx } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Dialog,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  IconButton,
+  Menu,
+  PageHeader,
+  Select,
+  Table,
+  Tag,
+  Td,
+  Th,
+  cx,
+  useToast,
+  Page,
+} from "@/components/ui";
 import { Icon } from "@/components/icons";
 import {
   COPY_FEEDBACK_MS,
@@ -29,6 +48,7 @@ import {
   WEBHOOK_VERSIONS,
 } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 
 // Adapted from Stator's webhooks page (#48): the secret shown once as a new token is, the log in a dialog, and the
@@ -65,7 +85,8 @@ export function Webhooks() {
   const rotate = useRotateWebhookSecret();
   const test = useTestWebhook();
   const [fresh, setFresh] = useState<{ name: string; secret: string } | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const [logOf, setLogOf] = useState<Webhook | null>(null);
   const hooks = data ?? [];
   const failure = error ?? update.error ?? remove.error ?? rotate.error ?? test.error;
@@ -73,7 +94,7 @@ export function Webhooks() {
   function toggle(hook: Webhook) {
     update.mutate(
       { id: hook.id, name: hook.name, url: hook.url, topics: hook.topics, projects: hook.projects.map((p) => p.key), enabled: !hook.enabled },
-      { onSuccess: (saved) => setNotice(saved.enabled ? t.webhooks.turnedOn(saved.name) : t.webhooks.turnedOff(saved.name)) },
+      { onSuccess: (saved) => toast.success(saved.enabled ? t.webhooks.turnedOn(saved.name) : t.webhooks.turnedOff(saved.name)) },
     );
   }
 
@@ -81,40 +102,41 @@ export function Webhooks() {
   function switchVersion(hook: Webhook, version: Version) {
     update.mutate(
       { id: hook.id, name: hook.name, url: hook.url, topics: hook.topics, projects: hook.projects.map((p) => p.key), version },
-      { onSuccess: (saved) => setNotice(t.webhooks.versionSwitched(saved.name, versionName(saved.version))) },
+      { onSuccess: (saved) => toast.success(t.webhooks.versionSwitched(saved.name, versionName(saved.version))) },
     );
   }
 
   function ping(hook: Webhook) {
-    setNotice("");
     test.mutate(hook.id, {
       onSuccess: (d) =>
-        setNotice(d.state === "delivered" && d.status !== null ? t.webhooks.testDelivered(hook.name, d.status) : t.webhooks.testFailed(hook.name, d.error)),
+        d.state === "delivered" && d.status !== null
+          ? toast.success(t.webhooks.testDelivered(hook.name, d.status))
+          : toast.error(t.webhooks.testFailed(hook.name, d.error)),
     });
   }
 
-  function rotateSecret(hook: Webhook) {
-    if (!window.confirm(t.webhooks.confirmRotate(hook.name))) return;
+  async function rotateSecret(hook: Webhook) {
+    const asked = { noun: t.kit.confirm.things.secretOf(hook.name), verb: t.kit.confirm.verbs.rotate, body: t.webhooks.confirmRotate };
+    if (!(await confirm(asked))) return;
     rotate.mutate(hook.id, { onSuccess: (r) => setFresh({ name: r.name, secret: r.secret ?? "" }) });
   }
 
-  function deleteHook(hook: Webhook) {
-    if (!window.confirm(t.webhooks.confirmDelete(hook.name))) return;
+  async function deleteHook(hook: Webhook) {
+    if (!(await confirm({ noun: t.kit.confirm.things.named(t.kit.confirm.things.webhook, hook.name), body: t.webhooks.confirmDelete }))) return;
     remove.mutate(hook.id, {
       onSuccess: () => {
-        setNotice(t.webhooks.deleted(hook.name));
+        toast.success(t.webhooks.deleted(hook.name));
         if (fresh?.name === hook.name) setFresh(null);
       },
     });
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <Page width="content">
       <PageHeader title={t.webhooks.title} meta={t.webhooks.intro} />
       {fresh?.secret && <FreshSecret name={fresh.name} secret={fresh.secret} onDone={() => setFresh(null)} />}
       <CreateWebhookForm
         onCreated={(hook) => {
-          setNotice("");
           setFresh({ name: hook.name, secret: hook.secret ?? "" });
         }}
       />
@@ -123,9 +145,6 @@ export function Webhooks() {
           {t.webhooks.list}
         </h2>
         {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-        <p role="status" className="text-sm text-ink-muted empty:hidden" data-webhooks-notice>
-          {notice}
-        </p>
         {isLoading ? null : hooks.length === 0 ? (
           <EmptyState icon={<Icon.Share />} title={t.webhooks.empty} description={t.webhooks.emptyBody} />
         ) : (
@@ -183,7 +202,7 @@ export function Webhooks() {
                       items={[
                         {
                           label: t.webhooks.deliveries,
-                          icon: <Icon.ListBullet />,
+                          icon: <Icon.Lines />,
                           onSelect: () => setLogOf(hook),
                           attrs: { "data-action": "webhook-deliveries" },
                         },
@@ -218,7 +237,7 @@ export function Webhooks() {
         )}
       </section>
       {logOf && <DeliveryLog hook={logOf} onClose={() => setLogOf(null)} />}
-    </div>
+    </Page>
   );
 }
 
@@ -411,7 +430,7 @@ function DeliveryLog({ hook, onClose }: { hook: Webhook; onClose: () => void }) 
   const deliveries = data ?? [];
   const failure = error ?? redeliver.error;
   return (
-    <Dialog title={t.webhooks.logTitle(hook.name)} wide onClose={onClose} data-webhook-log={hook.name}>
+    <Dialog open title={t.webhooks.logTitle(hook.name)} size="lg" onClose={onClose} attrs={{ "data-webhook-log": hook.name }}>
       <p className="mb-3 text-xs text-ink-muted">{t.webhooks.logIntro}</p>
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
       <p role="status" className="mb-2 text-sm text-ink-muted empty:hidden">

@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AccessReport, Grant } from "@/api/permissions";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import type { Assignment } from "@/api/access";
+import type { AccessReport } from "@/api/permissions";
+import { accessAnswers, accessIds, grantPage, roleList } from "@/test/access";
+import { answerConfirm, arrival, renderAt, signedIn, stubApi } from "@/test/app";
+import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -10,74 +13,123 @@ afterEach(() => vi.unstubAllGlobals());
 const checkout = aProject();
 const ada = signedIn.user;
 const paul = { id: "0195f000-0000-7000-8000-0000000000b1", name: "Paul Plain", email: "paul@exciter.test" };
-const saved: Grant[] = [
-  { subject: { type: "everyone", id: null, name: "Everyone" }, role: "editor" },
-  { subject: { type: "user", id: ada.id, name: ada.name }, role: "admin" },
+const inProject = (grant: Omit<Assignment, "projectId" | "projectKey" | "projectName" | "createdAt">): Assignment => ({
+  ...grant,
+  projectId: checkout.id,
+  projectKey: checkout.key,
+  projectName: checkout.name,
+  createdAt: "2026-10-01T08:00:00Z",
+});
+const saved: Assignment[] = [
+  inProject({ id: "p-1", role: "editor", roleName: "Editor", groupId: accessIds.everyone, groupName: "Everyone", groupBuiltin: "everyone" }),
+  inProject({ id: "p-2", role: "admin", roleName: "Project administrator", userId: ada.id, userName: ada.name }),
 ];
 
+/** The project's grants as the API keeps them, changed by what the page sends. */
+function projectApi(extra: Parameters<typeof stubApi>[0] = {}) {
+  let grants = saved;
+  return stubApi({
+    ...accessAnswers,
+    "GET /projects/CHK": { status: 200, body: { project: checkout } },
+    "GET /people": { status: 200, body: { people: [paul] } },
+    "GET /role-assignments": () => ({ status: 200, body: grantPage(grants) }),
+    "POST /role-assignments": async (request) => {
+      const body = (await request.json()) as { role: string; userId: string | null };
+      const made = inProject({ id: "p-3", role: body.role, roleName: roleList.find((r) => r.role === body.role)!.name, userId: paul.id, userName: paul.name });
+      grants = [...grants, made];
+      return { status: 201, body: { assignment: made } };
+    },
+    "DELETE /role-assignments/p-1": () => {
+      grants = grants.filter((grant) => grant.id !== "p-1");
+      return { status: 204 };
+    },
+    ...extra,
+  });
+}
+
 describe("a project's permissions", () => {
-  it("changes a role, adds a person through the picker, and saves the whole table", async () => {
-    const sent = stubApi({
-      "GET /projects/CHK": { status: 200, body: { project: checkout } },
-      "GET /projects/CHK/grants": { status: 200, body: { grants: saved } },
-      "GET /people": { status: 200, body: { people: [paul] } },
-      "GET /groups": { status: 200, body: { groups: [] } },
-      "PUT /projects/CHK/grants": async (request) => {
-        const body = (await request.json()) as { grants: { subject: { type: string; id?: string }; role: string }[] };
-        const names: Record<string, string> = { [ada.id]: ada.name, [paul.id]: paul.name };
-        const grants = body.grants.map((g) => ({
-          subject: { ...g.subject, id: g.subject.id ?? null, name: g.subject.id ? names[g.subject.id] : "Everyone" },
-          role: g.role,
-        }));
-        return { status: 200, body: { grants } };
-      },
-    });
-    await renderAt("/p/CHK/permissions");
-    await userEvent.selectOptions(await screen.findByRole("combobox", { name: "Role of Everyone" }), "viewer");
-    await userEvent.type(screen.getByRole("combobox", { name: "Add a person, a group or everyone" }), "pau");
-    await userEvent.click(await screen.findByRole("option", { name: /Paul Plain/ }));
-    expect(screen.getByText("Paul Plain added as viewer. Choose a role, then save.")).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Role of Paul Plain" }), "reviewer");
-    await userEvent.click(screen.getByRole("button", { name: "Save permissions" }));
-    expect(await screen.findByText("Permissions saved.")).toBeInTheDocument();
-    expect(sent.find((r) => r.method === "PUT")?.body).toEqual({
-      grants: [
-        { subject: { type: "everyone" }, role: "viewer" },
-        { subject: { type: "user", id: ada.id }, role: "admin" },
-        { subject: { type: "user", id: paul.id }, role: "reviewer" },
-      ],
-    });
+  it("lists who holds which role in the project, Everyone in the reader's words, and offers no role of the installation alone", async () => {
+    const sent = projectApi();
+    await renderAt("/projects/CHK/settings/permissions");
+    const table = await screen.findByRole("table", { name: "Who holds which role" });
+    expect(within(table).getByText("Everyone").closest("tr")).toHaveTextContent("Editor");
+    expect(within(table).getByText("Ada Lovelace").closest("tr")).toHaveTextContent("Project administrator");
+    expect(sent.find((r) => r.path === "/role-assignments")).toBeDefined();
+    const role = screen.getByRole("combobox", { name: "Role" });
+    expect(within(role).queryByRole("option", { name: "Administrator" })).toBeNull();
+    expect(within(role).getByRole("option", { name: "Auditor" })).toBeInTheDocument();
+    expect(document.querySelector('[data-project-role="reviewer"]')).toHaveTextContent("Approve what is up for review");
+    expect(await axeViolations()).toEqual([]);
   });
 
-  it("offers everyone no admin role, and shows the row the server refused", async () => {
-    stubApi({
-      "GET /projects/CHK": { status: 200, body: { project: checkout } },
-      "GET /projects/CHK/grants": { status: 200, body: { grants: saved } },
-      "PUT /projects/CHK/grants": {
-        status: 422,
-        body: {
-          error: {
-            code: "validation_failed",
-            message: "Check the fields.",
-            fields: { "grants.1.role": "Ada Lovelace is a guest, who can be given at most editor." },
-          },
-        },
-      },
+  it("grants a role to a person one at a time", async () => {
+    const sent = projectApi();
+    await renderAt("/projects/CHK/settings/permissions");
+    const form = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>("[data-grant-form]");
+      expect(found).not.toBeNull();
+      return found!;
     });
-    await renderAt("/p/CHK/permissions");
-    const everyone = await screen.findByRole("combobox", { name: "Role of Everyone" });
-    expect(within(everyone).getByRole("option", { name: "Admin" })).toBeDisabled();
-    await userEvent.selectOptions(everyone, "viewer");
-    await userEvent.click(screen.getByRole("button", { name: "Save permissions" }));
-    const row = (await screen.findByText(/is a guest, who can be given at most editor/)).closest("tr");
-    expect(row).toHaveAttribute("data-grant", "Ada Lovelace");
+    await userEvent.type(within(form).getByRole("combobox", { name: "Person or group to grant a role to" }), "pau");
+    await userEvent.click(await within(form).findByRole("option", { name: /Paul Plain/ }));
+    await userEvent.selectOptions(within(form).getByRole("combobox", { name: "Role" }), "reviewer");
+    await userEvent.click(within(form).getByRole("button", { name: "Grant" }));
+    expect(await screen.findByText("Paul Plain holds Reviewer in this project now.")).toBeInTheDocument();
+    expect(sent.find((r) => r.method === "POST")?.body).toEqual({ role: "reviewer", projectKey: "CHK", userId: paul.id, groupId: null });
+    expect(await within(screen.getByRole("table", { name: "Who holds which role" })).findByText("Paul Plain")).toBeInTheDocument();
+  });
+
+  it("takes a grant away once asked", async () => {
+    const sent = projectApi();
+    await renderAt("/projects/CHK/settings/permissions");
+    await userEvent.click(await screen.findByRole("button", { name: "Revoke Editor from Everyone" }));
+    await answerConfirm(true);
+    expect(await screen.findByText("Everyone no longer holds Editor in this project.")).toBeInTheDocument();
+    expect(sent.some((r) => r.method === "DELETE" && r.path === "/role-assignments/p-1")).toBe(true);
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Revoke Editor from Everyone" })).toBeNull());
+  });
+
+  it("shows the server's refusal to take the last grant that runs the project", async () => {
+    const refusal = "Somebody has to administer the project. Grant Project administrator to somebody else first.";
+    projectApi({ "DELETE /role-assignments/p-1": { status: 409, body: { error: { code: "no_administrator", message: refusal } } } });
+    await renderAt("/projects/CHK/settings/permissions");
+    await userEvent.click(await screen.findByRole("button", { name: "Revoke Editor from Everyone" }));
+    await answerConfirm(true);
+    expect(await screen.findByText(refusal)).toBeInTheDocument();
+  });
+
+  it("shows a role by the name it was given", async () => {
+    projectApi({
+      "GET /roles": { status: 200, body: { roles: roleList.map((role) => (role.role === "editor" ? { ...role, name: "Author" } : role)) } },
+      "GET /role-assignments": { status: 200, body: grantPage([{ ...saved[0]!, roleName: "Author" }]) },
+    });
+    await renderAt("/projects/CHK/settings/permissions");
+    expect(await screen.findByRole("button", { name: "Revoke Author from Everyone" })).toBeInTheDocument();
+    expect(within(screen.getByRole("combobox", { name: "Role" })).getByRole("option", { name: "Author" })).toBeInTheDocument();
+    expect(document.querySelector('[data-project-role="editor"] dt')).toHaveTextContent("Author");
+  });
+
+  it("changes nothing in an archived project", async () => {
+    projectApi({ "GET /projects/CHK": { status: 200, body: { project: aProject({ archivedAt: "2026-10-02T08:00:00Z" }) } } });
+    await renderAt("/projects/CHK/settings/permissions");
+    expect(await screen.findByText(/its grants stay as they are/)).toBeInTheDocument();
+    await screen.findByRole("table", { name: "Who holds which role" });
+    expect(document.querySelector("[data-grant-form]")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Revoke/ })).toBeNull();
   });
 
   it("tells somebody who does not administer the project that its administrators decide", async () => {
     const sent = stubApi({ "GET /projects/CHK": { status: 200, body: { project: aProject({ can: { ...checkout.can, administer: false, purge: false } }) } } });
-    await renderAt("/p/CHK/permissions");
-    expect(await screen.findByText("Only the project's administrators see and change who may do what in it.")).toBeInTheDocument();
-    expect(sent.some((r) => r.path === "/projects/CHK/grants")).toBe(false);
+    await renderAt("/projects/CHK/settings/permissions");
+    const refused = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-settings-refused="permissions"]');
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(refused).toHaveTextContent("Only the project's administrators change its settings");
+    expect(refused).toHaveTextContent("Ask one of them, or ask for the role.");
+    expect(screen.queryByRole("tab", { name: "Permissions" })).toBeNull();
+    expect(sent.some((r) => r.path === "/role-assignments")).toBe(false);
   });
 });
 
@@ -86,7 +138,7 @@ describe("the access inspector", () => {
     const report: AccessReport = {
       person: paul,
       role: "guest",
-      roleSource: "manual",
+      administers: false,
       rights: [
         {
           right: "view",
@@ -100,11 +152,11 @@ describe("the access inspector", () => {
     };
     stubApi({
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
-      "GET /projects/CHK/grants": { status: 200, body: { grants: saved } },
+      ...accessAnswers,
       "GET /people": { status: 200, body: { people: [paul] } },
       [`GET /projects/CHK/access/${paul.id}`]: { status: 200, body: { access: report } },
     });
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     await userEvent.click(await screen.findByRole("button", { name: "Check somebody's access" }));
     const dialog = screen.getByRole("dialog", { name: "Access to Checkout" });
     await userEvent.type(within(dialog).getByRole("combobox", { name: "Member" }), "pau");
@@ -114,20 +166,21 @@ describe("the access inspector", () => {
     expect(card).toHaveAttribute("data-allowed", "false");
     const deciding = card.querySelector("[data-decides]");
     expect(deciding).toHaveAttribute("data-access-step", "guest");
-    expect(deciding).toHaveTextContent("Is a guest, so everyone's grant does not reach them.");
+    expect(deciding).toHaveTextContent("Is a guest, so grants to Everyone do not reach them.");
   });
 });
 
-describe("the sidebar inside a project", () => {
-  it("links the permissions for the project's administrators only", async () => {
+describe("the project's settings", () => {
+  it("offer the permissions as a tab to the project's administrators", async () => {
     stubApi({ "GET /projects/CHK": { status: 200, body: { project: checkout } } });
-    await renderAt("/p/CHK/settings");
-    const nav = await waitFor(() => {
-      const found = document.querySelector<HTMLElement>('[data-project-nav="CHK"]');
-      expect(found).not.toBeNull();
-      return found!;
-    });
-    await userEvent.click(within(nav).getByRole("button", { name: "Project admin" }));
-    expect(within(nav).getByRole("link", { name: "Permissions" })).toHaveAttribute("href", "/p/CHK/permissions");
+    const router = await renderAt("/projects/CHK/settings/details");
+    await userEvent.click(await screen.findByRole("tab", { name: "Permissions" }));
+    await arrival(router, "/projects/CHK/settings/permissions");
+  });
+
+  it("are where the old permissions address leads", async () => {
+    projectApi();
+    const router = await renderAt("/p/CHK/permissions");
+    await arrival(router, "/projects/CHK/settings/permissions");
   });
 });

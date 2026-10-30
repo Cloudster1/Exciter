@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useArmatureAccount, useCheckArmature, useConnectArmature, useDisconnectArmature, type ArmatureAccount } from "@/api/armature";
-import { Button, Card, ErrorBanner, Field, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, Page, PageHeader, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ARMATURE_TOKEN_PREFIX } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 import { MissingCapabilities } from "./MissingCapabilities";
 
@@ -15,57 +16,56 @@ export function AccountSection() {
   const { data: account, isLoading, error } = useArmatureAccount();
   const check = useCheckArmature();
   const disconnect = useDisconnectArmature();
-  const [notice, setNotice] = useState("");
+  const confirm = useConfirm();
+  const toast = useToast();
 
-  function forget() {
-    if (!window.confirm(t.armature.account.confirmDisconnect)) return;
-    setNotice("");
-    disconnect.mutate(undefined, { onSuccess: () => setNotice(t.armature.account.disconnected) });
+  async function forget() {
+    const noun = t.kit.confirm.things.yourAccount(t.nav.armature);
+    if (!(await confirm({ noun, verb: t.kit.confirm.verbs.disconnect, body: t.armature.account.confirmDisconnect }))) return;
+    disconnect.mutate(undefined, { onSuccess: () => toast.success(t.armature.account.disconnected) });
   }
 
   function checkNow() {
-    setNotice("");
-    check.mutate(undefined, { onSuccess: (checked) => checked.status === "ok" && setNotice(t.armature.account.checked) });
+    check.mutate(undefined, { onSuccess: (checked) => checked.status === "ok" && toast.success(t.armature.account.checked) });
   }
 
   const failure = error ?? check.error ?? disconnect.error;
   return (
-    <div className="mx-auto max-w-3xl space-y-3" data-armature-account>
-      <PageHeader title={t.armature.account.title} meta={t.armature.account.intro} />
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-armature-notice>
-        {notice}
-      </p>
-      {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-      {isLoading || !account ? (
-        isLoading && <Skeleton />
-      ) : !account.configured ? (
-        <Card className="p-4 text-sm text-ink" data-armature-status="not_configured">
-          {t.armature.account.notConfigured}
-        </Card>
-      ) : (
-        <Card className="space-y-4 p-4" data-armature-status={account.status} data-armature-source={account.source}>
-          {account.connected && <Connected account={account} />}
-          {account.status !== "ok" && account.signIn && !account.signIn.connected && (
-            <p className="flex items-start gap-1.5 text-sm text-ink" data-armature-sign-in>
-              <Icon.Warning aria-hidden="true" className="mt-0.5 shrink-0" />
-              {account.signIn.message}
-            </p>
-          )}
-          <MissingCapabilities missing={account.missing} />
-          {account.connected && (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" size="sm" onClick={checkNow} loading={check.isPending} data-action="check-armature">
-                {t.armature.account.check}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={forget} loading={disconnect.isPending} data-action="disconnect-armature-account">
-                {t.armature.account.disconnect}
-              </Button>
-            </div>
-          )}
-          {(account.status !== "ok" || account.readOnly) && <TokenForm account={account} onConnected={() => setNotice("")} />}
-        </Card>
-      )}
-    </div>
+    <Page width="narrow">
+      <div className="space-y-3" data-armature-account>
+        <PageHeader title={t.armature.account.title} meta={t.armature.account.intro} />
+        {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
+        {isLoading || !account ? (
+          isLoading && <Skeleton />
+        ) : !account.configured ? (
+          <Card className="p-4 text-sm text-ink" data-armature-status="not_configured">
+            {t.armature.account.notConfigured}
+          </Card>
+        ) : (
+          <Card className="space-y-4 p-4" data-armature-status={account.status} data-armature-source={account.source}>
+            {account.connected && <Connected account={account} />}
+            {account.status !== "ok" && account.signIn && !account.signIn.connected && (
+              <p className="flex items-start gap-1.5 text-sm text-ink" data-armature-sign-in>
+                <Icon.Warning aria-hidden="true" className="mt-0.5 shrink-0" />
+                {account.signIn.message}
+              </p>
+            )}
+            <MissingCapabilities missing={account.missing} />
+            {account.connected && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={checkNow} loading={check.isPending} data-action="check-armature">
+                  {t.armature.account.check}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={forget} loading={disconnect.isPending} data-action="disconnect-armature-account">
+                  {t.armature.account.disconnect}
+                </Button>
+              </div>
+            )}
+            {(account.status !== "ok" || account.readOnly) && <TokenForm account={account} />}
+          </Card>
+        )}
+      </div>
+    </Page>
   );
 }
 
@@ -93,7 +93,7 @@ function Connected({ account }: { account: ArmatureAccount }) {
 
 // The token field is offered while there is no working token, or one that may only read: a stored token is never
 // shown, and a new one replaces it.
-function TokenForm({ account, onConnected }: { account: ArmatureAccount; onConnected: () => void }) {
+function TokenForm({ account }: { account: ArmatureAccount }) {
   const connect = useConnectArmature();
   const [token, setToken] = useState("");
   const fields = connect.error instanceof ApiError ? connect.error.fields : {};
@@ -102,10 +102,7 @@ function TokenForm({ account, onConnected }: { account: ArmatureAccount; onConne
   function submit(event: FormEvent) {
     event.preventDefault();
     connect.mutate(token.trim(), {
-      onSuccess: () => {
-        setToken("");
-        onConnected();
-      },
+      onSuccess: () => setToken(""),
     });
   }
 

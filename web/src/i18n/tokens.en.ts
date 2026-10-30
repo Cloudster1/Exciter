@@ -43,7 +43,7 @@ export const tokensEn = {
   revoke: "Revoke",
   revokeLabel: (name: string) => `Revoke ${name}`,
   revokeOwnedLabel: (name: string, owner: string) => `Revoke ${name} of ${owner}`,
-  confirmRevoke: (name: string) => `Revoke ${name}? Anything using it is refused from now on.`,
+  confirmRevoke: "Anything using it is refused from now on.",
   revoked: (name: string) => `${name} was revoked.`,
   mcpTitle: "Connect an assistant",
   mcpBody: "An assistant that speaks the Model Context Protocol can search, read and write requirements as you at the address below.",
@@ -55,8 +55,7 @@ export const tokensEn = {
   mcpReadOnly: "With a read-only token the assistant is offered only the tools that read, and never changes a requirement.",
   mcpProjects: "With a token limited to projects the assistant sees those projects alone, and is not offered the tools that concern everyone.",
   mcpTokenPlaceholder: "<your token>",
-  allTitle: "All tokens",
+  allTitle: "Everybody's tokens",
   allIntro: "Everybody's personal access tokens, with whose each is. Revoke one that should no longer work.",
   allEmpty: "Nobody has made a token yet.",
-  notAdmin: "Only an administrator sees everybody's tokens. Your own are under your account.",
 };

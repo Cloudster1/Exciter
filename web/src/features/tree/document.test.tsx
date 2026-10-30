@@ -54,7 +54,7 @@ describe("editing in the document", () => {
     const sent = stubDocument([entry(scope, "What is in scope."), entry(node({ ...pay, revision: 3 }), "Pay at once.")], {
       "PATCH /requirements/CHK-R2": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", title: "Pay by card", revision: 4 }) } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Edit" }));
     const title = within(entryOf("CHK-R2")).getByLabelText("Title");
@@ -99,7 +99,7 @@ describe("editing in the document", () => {
         },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     await userEvent.type(screen.getByLabelText("Title"), " now");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -113,7 +113,7 @@ describe("editing in the document", () => {
 
   it("asks before it lets go of unsaved changes, and opens one entry at a time", async () => {
     stubDocument([entry(pay, "Pay at once."), entry(ship, "Ship in a day.")]);
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Edit" }));
     await userEvent.type(within(entryOf("CHK-R2")).getByLabelText("Title"), " later");
@@ -131,7 +131,7 @@ describe("editing in the document", () => {
 
   it("opens a draft left unchanged without asking", async () => {
     stubDocument([entry(pay, "Pay at once."), entry(ship, "Ship in a day.")]);
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Edit" }));
     await userEvent.click(within(entryOf("CHK-R3")).getByRole("button", { name: "Edit" }));
@@ -143,7 +143,7 @@ describe("editing in the document", () => {
     const sent = stubDocument([entry(scope, "What is in scope."), entry(pay, "Pay at once.")], {
       "POST /projects/CHK/requirements": { status: 201, body: { requirement: aRequirement({ key: "CHK-R4", title: "Refund" }) } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Add next to CHK-R2" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "After this" }));
@@ -162,7 +162,7 @@ describe("editing in the document", () => {
 
   it("writes a requirement added after a section below the section's last entry", async () => {
     stubDocument([entry(scope, "What is in scope."), entry(pay, "Pay at once."), entry(ship, "Ship in a day.")]);
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R1")).getByRole("button", { name: "Add next to CHK-R1" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "After this" }));
@@ -172,7 +172,7 @@ describe("editing in the document", () => {
 
   it("moves between entries and edits from the keyboard", async () => {
     stubDocument([entry(scope, "What is in scope."), entry(pay, "Pay at once.")]);
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     entryOf("CHK-R1").focus();
     await userEvent.keyboard("{ArrowDown}");
@@ -190,7 +190,7 @@ describe("editing in the document", () => {
     stubDocument([entry(pay, "Pay at once.", { can: { ...can, edit: false } })], {
       "GET /projects/CHK": { status: 200, body: { project: aProject({ archivedAt: "2026-10-01T10:00:00Z" }) } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Add next to/ })).toBeNull();
@@ -252,7 +252,7 @@ describe("states in the document", () => {
       "GET /requirements/CHK-R2/transitions": { status: 200, body: { transitions: [submit, reject] } },
       "POST /requirements/CHK-R2/transitions": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", status: { ...reject.toStatus } }) } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R2 is Draft. Show its transitions" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Reject: Rejected" }));
     const dialog = screen.getByRole("dialog", { name: "Reject" });
@@ -293,7 +293,7 @@ describe("states in the document", () => {
         },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     expect(await screen.findByRole("checkbox", { name: "Select everything in Scope" })).toBeInTheDocument();
     expect(screen.queryByRole("checkbox", { name: "Select CHK-R1" })).toBeNull();
     await userEvent.click(screen.getByRole("checkbox", { name: "Select CHK-R2" }));
@@ -312,7 +312,7 @@ describe("states in the document", () => {
   it("picks a range with Shift, and everything in a section at once", async () => {
     stubStates({ "GET /projects/CHK/transitions": { status: 200, body: { requirements: [] } } });
     const user = userEvent.setup();
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await user.click(await screen.findByRole("checkbox", { name: "Select CHK-R2" }));
     await user.keyboard("{Shift>}");
     await user.click(screen.getByRole("checkbox", { name: "Select CHK-R4" }));
@@ -334,7 +334,7 @@ describe("states in the document", () => {
         return { status: 200, body: { entries: [entry(node({ ...pay, status: review }), "Pay at once.")], total: 1, limit: 50, offset: 0 } };
       },
     });
-    const router = await renderAt("/p/CHK/spec");
+    const router = await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("button", { name: "In review" }));
     await waitFor(() => expect(router.state.location.search).toEqual({ category: ["review"] }));
     await waitFor(() => expect(asked).toContain("review"));
@@ -434,7 +434,7 @@ describe("changes in the document", () => {
 
   it("marks what changed against the previous revision, in the title, the statement and the attributes", async () => {
     const { asked } = stubChanges();
-    const router = await renderAt("/p/CHK/spec");
+    const router = await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay by card" });
     await userEvent.click(screen.getByRole("switch", { name: "Show changes" }));
     await waitFor(() => expect(router.state.location.search).toEqual({ changes: "previous" }));
@@ -444,7 +444,7 @@ describe("changes in the document", () => {
     expect(within(pay).getByRole("heading").querySelector("[data-diff-title] ins")).toHaveTextContent("by card");
     expect(pay.querySelector('[data-diff-of="statement"] del')).toHaveTextContent("at once");
     expect(within(pay).getByRole("table", { name: "Attributes" })).toHaveTextContent("High");
-    expect(within(pay).getByRole("link", { name: "Compare revision 1 with 2" })).toHaveAttribute("href", "/p/CHK/r/CHK-R2/history?from=1&to=2");
+    expect(within(pay).getByRole("link", { name: "Compare revision 1 with 2" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R2/history?from=1&to=2");
     expect(within(entryOf("CHK-R3")).getByText("Unchanged")).toBeInTheDocument();
     expect(screen.getByText("1 requirement differs")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -452,7 +452,7 @@ describe("changes in the document", () => {
 
   it("compares with a baseline, saying what moved and what is gone", async () => {
     const { asked } = stubChanges();
-    const router = await renderAt("/p/CHK/spec?changes=previous");
+    const router = await renderAt("/projects/CHK/spec?changes=previous");
     await userEvent.selectOptions(await screen.findByLabelText("Compared with"), "baseline");
     expect(await screen.findByText("Pick the baseline to compare with.")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText("Baseline"), "b1");
@@ -466,7 +466,7 @@ describe("changes in the document", () => {
 
   it("collapses what did not change to its heading, and steps between changes", async () => {
     stubChanges();
-    const router = await renderAt("/p/CHK/spec?changes=previous");
+    const router = await renderAt("/projects/CHK/spec?changes=previous");
     await screen.findByRole("article", { name: "Specification" });
     await waitFor(() => expect(entryOf("CHK-R2").querySelector('[data-spec-change="changed"]')).not.toBeNull());
     await userEvent.click(screen.getByRole("button", { name: "Only changed" }));

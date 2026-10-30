@@ -17,7 +17,7 @@ export const controlDe: typeof controlEn = {
   cancel: "Abbrechen",
   lockedNotice: (key: string) => `${key} ist gesperrt.`,
   unlockedNotice: (key: string) => `${key} ist entsperrt.`,
-  confirmUnlock: "Diese Anforderung entsperren? Sie kann wieder geändert werden; eine Sperre durch ihren Status bleibt.",
+  confirmUnlock: "Sie kann wieder geändert werden; eine Sperre durch ihren Status bleibt.",
   statusLocks: "Sperrt seine Anforderungen",
   statusLocksHint:
     "Anforderungen in diesem Status nehmen keine neue Revision, kein Verschieben, keine Verknüpfung von ihnen aus und keinen Papierkorb an; ein Übergang nimmt sie heraus.",
@@ -55,7 +55,7 @@ export const controlDe: typeof controlEn = {
   editRule: "Ändern",
   newRule: "Unterzeichnende benennen",
   removeRule: "Nicht mehr unterschreiben",
-  confirmRemove: "Neue Baselines nicht mehr unterschreiben? Gegebene Unterschriften bleiben.",
+  confirmRemove: "Neue Baselines werden nicht mehr unterschrieben. Gegebene Unterschriften bleiben.",
   saveRule: "Speichern",
   saved: "Gespeichert.",
   removed: "Baselines werden nicht mehr unterschrieben.",

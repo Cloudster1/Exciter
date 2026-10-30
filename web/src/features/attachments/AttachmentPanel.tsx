@@ -1,9 +1,10 @@
 import { useRef, useState, type DragEvent } from "react";
 import { attachmentUrl, formatSize, showsInPlace, useAttachments, useDeleteAttachment, useUploadAttachments } from "@/api/attachments";
 import type { Requirement } from "@/api/requirements";
-import { Button, ButtonLink, Card, ErrorBanner, IconButton, SectionTitle, Skeleton, Tag, cx } from "@/components/ui";
+import { Button, ButtonLink, Card, ErrorBanner, IconButton, SectionTitle, Skeleton, Tag, cx, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 
 const uploadedAt = localDateFormat({ dateStyle: "medium" });
@@ -20,13 +21,14 @@ export function AttachmentPanel({ requirement }: { requirement: Requirement }) {
   const remove = useDeleteAttachment(requirement.key);
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const editable = requirement.can.edit;
 
   function send(chosen: File[]) {
     clearErrors();
     remove.reset();
-    for (const file of chosen) void upload(file).then((made) => made && setNotice(t.attachments.uploaded(made.fileName)));
+    for (const file of chosen) void upload(file).then((made) => made && toast.success(t.attachments.uploaded(made.fileName)));
   }
 
   const drop = editable
@@ -142,10 +144,11 @@ export function AttachmentPanel({ requirement }: { requirement: Requirement }) {
                       label={t.attachments.remove(file.fileName)}
                       size="sm"
                       disabled={remove.isPending && remove.variables === file.id}
-                      onClick={() => {
-                        if (!window.confirm(t.attachments.confirmRemove(file.fileName))) return;
+                      onClick={async () => {
+                        const noun = t.kit.confirm.things.named(t.kit.confirm.things.attachment, file.fileName);
+                        if (!(await confirm({ noun, body: t.attachments.confirmRemove }))) return;
                         clearErrors();
-                        remove.mutate(file.id, { onSuccess: () => setNotice(t.attachments.removed(file.fileName)) });
+                        remove.mutate(file.id, { onSuccess: () => toast.success(t.attachments.removed(file.fileName)) });
                       }}
                       data-action="delete-attachment"
                     />
@@ -155,9 +158,6 @@ export function AttachmentPanel({ requirement }: { requirement: Requirement }) {
             })}
           </ul>
         )}
-        <p role="status" className="sr-only" data-attachment-notice>
-          {notice}
-        </p>
       </section>
     </Card>
   );

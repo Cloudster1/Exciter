@@ -20,7 +20,7 @@ import (
 )
 
 // An administrator lists, adds, re-roles and switches off and on the installation's people, each act recorded once;
-// the owner and the administrator themselves stay as they are.
+// the administrator themselves stays as they are.
 func TestMembersOverTheAPI(t *testing.T) {
 	h := newHarness(t)
 	a := newAPIServer(t, h)
@@ -30,8 +30,19 @@ func TestMembersOverTheAPI(t *testing.T) {
 	admin, member, nobody := a.as(t, adminID), a.as(t, memberID), a.anonymous()
 
 	people := list(t, want(t, admin.get(t, "/api/v1/users"), http.StatusOK, "list the people"), "members")
-	if people[0].(map[string]any)["role"] != "owner" || peopleIndex(people, home.user) < 0 || peopleIndex(people, adminID) < 0 || peopleIndex(people, memberID) < 0 {
-		t.Errorf("the people read %v, want the owners first and the test's three among them", people)
+	if peopleIndex(people, home.user) < 0 || peopleIndex(people, adminID) < 0 || peopleIndex(people, memberID) < 0 {
+		t.Fatalf("the people read %v, want the test's three among them", people)
+	}
+	for id, administers := range map[uuid.UUID]bool{home.user: true, adminID: true, memberID: false} {
+		person := people[peopleIndex(people, id)].(map[string]any)
+		roles, _ := person["roles"].([]any)
+		named := slices.ContainsFunc(roles, func(r any) bool {
+			role := r.(map[string]any)
+			return role["role"] == "administrator" && role["groupId"] == nil
+		})
+		if person["role"] != "member" || person["administers"] != administers || named != administers {
+			t.Errorf("%s reads %v, want a member who administers: %v, by name", id, person, administers)
+		}
 	}
 
 	email := "added-" + h.suffix() + "@example.test"
@@ -46,6 +57,13 @@ func TestMembersOverTheAPI(t *testing.T) {
 	}
 	if code := errorCode(t, want(t, admin.post(t, "/api/v1/users", map[string]any{"email": email, "role": "member"}), http.StatusConflict, "add them again")); code != "conflict" {
 		t.Errorf("adding a member twice answers %s", code)
+	}
+	adminEmail := "added-admin-" + h.suffix() + "@example.test"
+	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM app_user WHERE email = $1`, adminEmail) })
+	madeAdmin := obj(t, want(t, admin.post(t, "/api/v1/users", map[string]any{"email": adminEmail, "role": "admin"}), http.StatusCreated, "add an administrator"), "member")
+	if n := h.countRows(t, `SELECT count(*) FROM app_user u JOIN role_assignment a ON a.user_id = u.id
+		WHERE u.id = $1 AND u.role = 'member' AND a.role = 'administrator' AND a.project_id IS NULL`, madeAdmin["userId"]); madeAdmin["role"] != "admin" || n != 1 {
+		t.Errorf("adding somebody as admin made %v with %d administrator grants, want a member who holds the role", madeAdmin, n)
 	}
 	for _, bad := range []map[string]any{
 		{"email": "not an address", "role": "member"},
@@ -66,17 +84,14 @@ func TestMembersOverTheAPI(t *testing.T) {
 		code int
 	}{
 		"make an owner":        {added, "owner", http.StatusUnprocessableEntity},
-		"change the owner":     {home.user, "member", http.StatusConflict},
-		"change oneself":       {adminID, "member", http.StatusConflict},
+		"make an admin":        {added, "admin", http.StatusUnprocessableEntity},
+		"change oneself":       {adminID, "guest", http.StatusConflict},
 		"change somebody gone": {uuid.New(), "member", http.StatusNotFound},
 	} {
 		want(t, admin.patch(t, "/api/v1/users/"+req.id.String(), map[string]any{"role": req.role}), req.code, what)
 	}
 
 	want(t, admin.patch(t, "/api/v1/users/"+added.String(), map[string]any{}), http.StatusUnprocessableEntity, "change nothing")
-	if code := errorCode(t, want(t, admin.delete(t, "/api/v1/users/"+home.user.String()), http.StatusForbidden, "switch the owner off")); code != "forbidden" {
-		t.Errorf("an administrator switching the owner off answers %s", code)
-	}
 	want(t, admin.delete(t, "/api/v1/users/"+adminID.String()), http.StatusConflict, "switch oneself off")
 	want(t, admin.delete(t, "/api/v1/users/"+uuid.New().String()), http.StatusNotFound, "switch somebody gone off")
 
@@ -117,10 +132,9 @@ func TestMembersOverTheAPI(t *testing.T) {
 	h.settle(t)
 	want(t, a.anonymous().post(t, "/api/v1/auth/login", map[string]any{"email": email, "password": password}), http.StatusOK, "sign in switched on")
 
-	// Only an owner lets another owner go.
-	second := h.addPerson(t, "owner")
-	want(t, admin.delete(t, "/api/v1/users/"+second.String()), http.StatusForbidden, "an administrator switches an owner off")
-	want(t, a.as(t, home.user).delete(t, "/api/v1/users/"+second.String()), http.StatusNoContent, "an owner switches another off")
+	// Any administrator lets another go while another stays, as no owner outranks them any more.
+	second := h.addPerson(t, "admin")
+	want(t, admin.delete(t, "/api/v1/users/"+second.String()), http.StatusNoContent, "an administrator switches another off")
 
 	want(t, member.get(t, "/api/v1/users"), http.StatusForbidden, "a member lists the people")
 	want(t, member.delete(t, "/api/v1/users/"+adminID.String()), http.StatusForbidden, "a member switches somebody off")
@@ -135,8 +149,8 @@ func TestMembersOverTheAPI(t *testing.T) {
 	}
 }
 
-// Straight through SQL as exciter_app: only an administrator changes a role or switches somebody off, nobody is
-// made an owner or loses one's standing, and nobody leaves.
+// Straight through SQL as exciter_app: only an administrator grants administering or switches somebody off, nobody
+// is made an owner or loses one's standing, and nobody leaves.
 func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	h := newHarness(t)
 	home := h.owner(t, "members-sql")
@@ -153,8 +167,8 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 		})
 		return n, err
 	}
-	if n, err := affected(asMember, `UPDATE app_user SET role = 'admin' WHERE id = $1`, memberID); err != nil || n != 0 {
-		t.Errorf("a member raised themselves: %d rows, %v", n, err)
+	if _, err := affected(asMember, `INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1)`, memberID); !isPolicyViolation(err) {
+		t.Errorf("a member raised themselves = %v, want a policy violation", err)
 	}
 	if n, err := affected(asMember, `UPDATE app_user SET is_active = false WHERE id = $1`, otherID); err != nil || n != 0 {
 		t.Errorf("a member switched somebody off: %d rows, %v", n, err)
@@ -176,16 +190,12 @@ func TestMembershipIsTheAdministratorsThroughSQL(t *testing.T) {
 	}
 
 	if _, err = affected(home.ctx, `UPDATE app_user SET role = 'owner' WHERE id = $1`, memberID); !errors.As(err, &pgErr) || pgErr.Code != "23514" {
-		t.Errorf("the owner making another owner through the app role = %v, want refused", err)
+		t.Errorf("an administrator making an owner, no standing any more, through the app role = %v, want refused", err)
 	}
-	if n, err := affected(home.ctx, `UPDATE app_user SET role = 'admin' WHERE id = $1`, memberID); err != nil || n != 1 {
-		t.Errorf("the owner could not make a member an administrator: %d rows, %v", n, err)
+	if n, err := affected(home.ctx, `INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1)`, memberID); err != nil || n != 1 {
+		t.Errorf("an administrator could not make a member an administrator: %d rows, %v", n, err)
 	}
 	asAdmin := db.WithUser(context.Background(), memberID)
-	_, err = affected(asAdmin, `UPDATE app_user SET role = 'admin' WHERE id = $1`, home.user)
-	if !errors.As(err, &pgErr) || pgErr.Code != "23514" {
-		t.Errorf("an administrator changing the owner's role = %v, want refused", err)
-	}
 	if n, err := affected(asAdmin, `UPDATE app_user SET is_active = false WHERE id = $1`, otherID); err != nil || n != 1 {
 		t.Errorf("an administrator could not switch a member off: %d rows, %v", n, err)
 	}
@@ -204,26 +214,26 @@ func lastAdministratorDatabase(t *testing.T, h *harness) (*pgxpool.Pool, uuid.UU
 	if _, err := super.Exec(ctx, `INSERT INTO installation (name) VALUES ('Exciter')`); err != nil {
 		t.Fatal(err)
 	}
-	var owner uuid.UUID
-	if err := super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ('owner@example.test', 'Owner', 'owner') RETURNING id`).Scan(&owner); err != nil {
-		t.Fatal(err)
-	}
-	return super, owner
+	return super, addAdministrator(t, super, "owner")
 }
 
 // addAdministrator puts a switched-on administrator into the scratch installation.
 func addAdministrator(t *testing.T, super *pgxpool.Pool, name string) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
-	if err := super.QueryRow(context.Background(), `INSERT INTO app_user (email, name, role) VALUES ($1, $2, 'admin') RETURNING id`,
+	if err := super.QueryRow(context.Background(), `INSERT INTO app_user (email, name, role) VALUES ($1, $2, 'member') RETURNING id`,
 		name+"@example.test", name).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := super.Exec(context.Background(), `INSERT INTO role_assignment (role, user_id) VALUES ('administrator', $1)`, id); err != nil {
 		t.Fatal(err)
 	}
 	return id
 }
 
 // Straight through SQL, even as the superuser: the installation's last active administrator is neither switched
-// off, nor made a member, nor taken out, and an owner goes off once another administrator stays.
+// off, nor made a guest, nor taken out, nor loses the grant or the role that lets them administer, and one goes off
+// once another administrator stays.
 func TestTheInstallationKeepsAnActiveAdministrator(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
@@ -231,7 +241,7 @@ func TestTheInstallationKeepsAnActiveAdministrator(t *testing.T) {
 	var pgErr *pgconn.PgError
 	for what, sql := range map[string]string{
 		"switching the last active administrator off": `UPDATE app_user SET is_active = false WHERE id = $1`,
-		"making them a member":                        `UPDATE app_user SET role = 'member' WHERE id = $1`,
+		"making them a guest":                         `UPDATE app_user SET role = 'guest' WHERE id = $1`,
 		"taking their membership away":                `UPDATE app_user SET role = NULL WHERE id = $1`,
 		"deleting their account":                      `DELETE FROM app_user WHERE id = $1`,
 	} {
@@ -239,9 +249,25 @@ func TestTheInstallationKeepsAnActiveAdministrator(t *testing.T) {
 			t.Errorf("%s = %v, want refused", what, err)
 		}
 	}
+	for what, sql := range map[string]string{
+		"taking their grant away":            `DELETE FROM role_assignment WHERE user_id = $1`,
+		"taking administering from the role": `UPDATE role SET permissions = '{view}' WHERE key = 'administrator' AND $1::uuid IS NOT NULL`,
+	} {
+		if _, err := super.Exec(ctx, sql, owner); !errors.As(err, &pgErr) || pgErr.Code != "23514" {
+			t.Errorf("%s = %v, want refused", what, err)
+		}
+	}
+	// With nobody who administers, the rest come and go: only a change that takes administering away is weighed.
+	plain := addAdministrator(t, super, "plain")
+	if _, err := super.Exec(ctx, `DELETE FROM role_assignment WHERE user_id = $1`, plain); err != nil {
+		t.Fatalf("taking a second administrator's grant = %v, want allowed", err)
+	}
+	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, plain); err != nil {
+		t.Errorf("switching off somebody who administers nothing = %v, want allowed", err)
+	}
 	admin := addAdministrator(t, super, "admin")
 	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, owner); err != nil {
-		t.Errorf("switching the owner off beside an active administrator = %v, want allowed", err)
+		t.Errorf("switching the first administrator off beside another = %v, want allowed", err)
 	}
 	if _, err := super.Exec(ctx, `UPDATE app_user SET is_active = false WHERE id = $1`, admin); !errors.As(err, &pgErr) || pgErr.Code != "23514" {
 		t.Errorf("switching the administrator off once the owner is off = %v, want refused", err)
@@ -363,7 +389,7 @@ func TestOnlyAMemberHoldsWhatAMemberHolds(t *testing.T) {
 			return err
 		},
 		"a grant": func(person uuid.UUID) error {
-			_, err := h.super.Exec(ctx, `INSERT INTO project_grant (project_id, subject_type, user_id, role) VALUES ($1, 'user', $2, 'viewer')`, project, person)
+			_, err := h.super.Exec(ctx, `INSERT INTO role_assignment (project_id, user_id, role) VALUES ($1, $2, 'viewer')`, project, person)
 			return err
 		},
 		"a requirement": func(person uuid.UUID) error {
@@ -385,7 +411,7 @@ func TestOnlyAMemberHoldsWhatAMemberHolds(t *testing.T) {
 	if _, err := h.super.Exec(ctx, `UPDATE app_user SET role = NULL WHERE id = $1`, memberID); err != nil {
 		t.Fatalf("take the role away: %v", err)
 	}
-	if n := h.countRows(t, `SELECT (SELECT count(*) FROM api_token WHERE user_id = $1) + (SELECT count(*) FROM project_grant WHERE user_id = $1)
+	if n := h.countRows(t, `SELECT (SELECT count(*) FROM api_token WHERE user_id = $1) + (SELECT count(*) FROM role_assignment WHERE user_id = $1)
 		+ (SELECT count(*) FROM requirement WHERE owner_id = $1)`, memberID); n != 0 {
 		t.Errorf("somebody whose role went still holds %d things only a member holds", n)
 	}

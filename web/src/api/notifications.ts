@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { NOTIFICATION_PANEL_SIZE, NOTIFICATIONS_PAGE_SIZE, UNREAD_POLL_MS } from "@/config";
 import { api } from "./client";
 import type { components } from "./schema";

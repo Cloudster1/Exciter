@@ -50,7 +50,7 @@ Keycloak / any OIDC provider <-- login --+   (one realm for Exciter, Armature an
   `docs/api-contract-m13.md` for risk management (#258).
 - Configuration: environment variables only, prefix `EXCITER_`.
   `EXCITER_NAME` is what a first start calls the installation, `Exciter` by
-  default; an administrator renames it under Settings, Installation.
+  default; an administrator renames it under Admin, Installation.
 - Files (#8): `internal/objectstore` keeps uploaded bytes in any bucket that
   speaks S3, signing its few calls itself with the standard library rather
   than an SDK. `EXCITER_S3_ENDPOINT`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY`,
@@ -113,14 +113,22 @@ app role holds no privilege on.
   `perm_project_holds(project, actor, permission)` is what every project
   policy asks. An archived project is read only, and only an archived one can
   be deleted, which the database holds too.
-- **Permissions** (#12): `project_grant` gives a user, a group or everyone
-  the role viewer, reviewer, editor or admin in a project, and a person holds
-  the union of the rights of every grant that reaches them.
-  `perm_project_holds` reads the grants; owners and administrators of the
-  installation hold everything, everyone's grants leave guests out, and a
-  guest holds at most editor. A trigger gives a new project its maker as
-  admin and everyone as editor. The access inspector explains a verdict from
-  the same function, so it says what the database enforces.
+- **Permissions** (#12, #471): a `role` is a named list of permissions,
+  `view`, `comment`, `edit`, `approve` and `administer` in a project and
+  `createProjects` and `administerInstallation` across the installation. The
+  built-in roles are the administrator of the installation and, in a
+  project, viewer, reviewer, editor and project administrator, whose keys
+  `viewer`, `reviewer`, `editor` and `admin` the workflow conditions and
+  field rules name; administrators add, rename and delete their own. A
+  `role_assignment` grants a role to a person or a group, in one project or
+  across the installation, and a person holds the union of the permissions
+  of every grant that reaches them. The built-in group Everyone holds every
+  member. `perm_project_holds` reads the grants; grants across the
+  installation reach members in every project and never guests, and a guest
+  a role to run the project reaches works in it as an editor. A trigger
+  gives a new project its maker as project administrator and Everyone as
+  editor. The access inspector explains a verdict from the same function,
+  so it says what the database enforces.
 - **Requirements** (#13): key `CHK-R42`, a rich-text statement, rationale,
   type and attributes (#14), a place in the tree (#15), a status from the
   project's workflow (#17). A trigger hands out numbers from the project's
@@ -284,7 +292,7 @@ app role holds no privilege on.
   `internal/trace/matrix.go`, its rows those `search.Keep` keeps in the
   grid's order, its columns the requirements or Armature issues they reach
   through the link types, direction and relations asked for. Its web page,
-  `/p/$projectKey/matrix`, keeps the whole layout in its address. A
+  `/projects/$projectKey/matrix`, keeps the whole layout in its address. A
   project's trace model (`trace_level` and its types and steps, replaced
   whole) names the levels its chain report (`internal/trace/chain_report.go`)
   follows from each root, one query per level for the whole page.
@@ -397,23 +405,26 @@ app role holds no privilege on.
 
 ### Identity (#5, #7)
 
-- People belong to the installation (`app_user.role`): owner, admin,
-  member or guest. Letting somebody go switches
+- People belong to the installation (`app_user.role`) as a member or a
+  guest; what they may do comes from grants only. Letting somebody go switches
   the account off (`is_active`), which ends their sessions and tokens and
   keeps their account and work for switching them on (#86). Through the app
-  role only an administrator changes a role or switches somebody off, nobody
-  becomes or stops being an owner, and nobody leaves, neither by losing the
-  role nor by the account being deleted (`app_user_role_guard`); what only a
-  member may hold, a token, a grant or a requirement, a trigger keeps to
-  members (`held_by_a_member`). The database keeps an active administrator
+  role only an administrator changes a standing or switches somebody off,
+  and nobody leaves, neither by losing the standing nor by the account being
+  deleted (`app_user_role_guard`); what only a member may hold, a token, a
+  grant or a requirement, a trigger keeps to members (`held_by_a_member`).
+  The database keeps an active administrator: an account is weighed at once
   (`app_user_keeps_an_administrator`), taking turns on an advisory lock so two
-  administrators cannot switch each other off at once.
+  administrators cannot switch each other off at once, and a grant, a role or
+  a group membership at commit (`installation_keeps_administrator`), which
+  weighs only a change that took administering from somebody.
 - A sign-in opens a `user_session` whose secret lives only in an http-only
   cookie; the row holds its SHA-256. It lands in the installation (#85): the
   session keeps how it was proven, written once
   (`session_keeps_its_opening`), and nothing switches it. Single
   sign-on starts at `/auth/oidc/start` with the installation's provider, and
-  `/auth/me` answers the installation's name and the caller's role.
+  `/auth/me` answers the installation's name, the caller's standing and
+  whether a grant lets them administer.
 - The installation has one OIDC provider (`oidc_provider`), its client
   secret sealed with `EXCITER_SECRET_KEY`. `internal/oidc` runs the
   authorization code flow with PKCE, a nonce and a single-use state
@@ -421,13 +432,15 @@ app role holds no privilege on.
   matches a person by issuer and subject (`user_identity`), or by a verified
   address on their first sign-in. `EXCITER_OIDC_BACKCHANNEL` lets the api
   reach a provider at another address than the browser does, as in compose.
-- Provider groups are synced into `groups` at every sign-in;
-  `oidc_group_role` maps a group to admin or member, and
-  `app_user.role_source` says whether a role follows the provider. A
-  mapping never moves an owner or a guest. Somebody the provider vouches for
-  who is not a member is refused and noted in `join_request`, where an
-  administrator lets them in or turns them away. Through the app role only
-  administrators read or change the provider, the mapping and the requests.
+- Provider groups are synced into `groups` at every sign-in, so somebody
+  the provider no longer names in a group loses what its grants gave. A
+  group carries a provider claim (`external_ref`) or keeps its members by
+  hand. Somebody the provider vouches for who is not a member is refused and
+  noted in `join_request`, where an administrator lets them in or turns them
+  away, unless `oidc_provider.admit_by_group` is on and one of their groups
+  holds a grant: then they are let in as a member, and `member.joined` names
+  the group. Through the app role only administrators read or change the
+  provider, the grants across the installation and the requests.
 - `authenticate` puts the principal and the person it acts for on every
   request, so row level security sees who acts; `requireAuth` and
   `requireAdmin` guard the routes. Everybody signed in belongs to the

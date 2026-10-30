@@ -211,7 +211,7 @@ func (s *Service) saveConnection(ctx context.Context, in ConnectionInput, ip str
 	clientID, clientSecret, clientChange := "", "", "kept"
 	if in.ClientID != nil {
 		if clientID = strings.TrimSpace(*in.ClientID); len(clientID) > MaxClientIDLength {
-			return nil, 0, &FieldError{Field: "clientId", Message: fmt.Sprintf("A client id is at most %d characters. Paste the id Armature showed for Exciter under Settings, Connected apps.", MaxClientIDLength)}
+			return nil, 0, &FieldError{Field: "clientId", Message: fmt.Sprintf("A client id is at most %d characters. Paste the id Armature showed for Exciter under Admin, Connected apps.", MaxClientIDLength)}
 		}
 	}
 	if in.ClientSecret != nil {

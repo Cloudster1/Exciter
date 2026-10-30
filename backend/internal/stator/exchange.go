@@ -109,7 +109,7 @@ func (s *Service) exchange(ctx context.Context, user uuid.UUID, subject string) 
 		return false, "The connected Stator does not offer " + tokenexchange.Capability + ", so Exciter cannot connect you there at sign-in. Connect with a token below, or ask an administrator to update Stator."
 	}
 	if app.ClientID == "" || app.ClientSecret == "" {
-		return false, "Exciter has no client id and secret for Stator yet, so you were not connected there at sign-in. An Exciter administrator adds them under Settings, Stator; until then, connect with a token below."
+		return false, "Exciter has no client id and secret for Stator yet, so you were not connected there at sign-in. An Exciter administrator adds them under Admin, Stator; until then, connect with a token below."
 	}
 
 	tokens, err := tokenexchange.Exchange(ctx, s.client.http, app.App, subject)

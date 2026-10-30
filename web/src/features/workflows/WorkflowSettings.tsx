@@ -4,7 +4,7 @@ import { ApiError } from "@/api/client";
 import { useTypes, type RequirementType } from "@/api/attributes";
 import type { Project } from "@/api/projects";
 import { useStatuses, useWorkflowActions, useWorkflows, type Status, type Workflow } from "@/api/workflows";
-import { Button, Card, Dialog, ErrorBanner, SectionTitle, Select, SelectInput, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Dialog, ErrorBanner, SectionTitle, Select, SelectInput, Skeleton, Tag, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { NEW_WORKFLOW } from "@/config";
 import { t } from "@/i18n";
@@ -23,7 +23,8 @@ export function WorkflowSettings({ project }: { project: Project }) {
   const { remove } = useWorkflowActions(project.key);
   const [assigning, setAssigning] = useState<Assigning | null>(null);
   const navigate = useNavigate();
-  const design = (workflowId: string) => navigate({ to: "/p/$projectKey/settings/workflows/$workflowId", params: { projectKey: project.key, workflowId } });
+  const design = (workflowId: string) =>
+    navigate({ to: "/projects/$projectKey/settings/workflows/$workflowId", params: { projectKey: project.key, workflowId } });
   const mayChange = project.can.administer && !project.archivedAt;
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!workflows || !statuses) return <Skeleton />;
@@ -158,7 +159,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
   const fields = assign.error instanceof ApiError ? assign.error.fields : {};
 
   return (
-    <Dialog title={t.workflows.assignTitle(workflow.name)} onClose={onClose} data-assign-dialog="">
+    <Dialog open title={t.workflows.assignTitle(workflow.name)} onClose={onClose} attrs={{ "data-assign-dialog": "" }}>
       <div className="space-y-3">
         <p className="text-sm text-ink">{lacking.length ? t.workflows.mapIntro : t.workflows.nothingToMap}</p>
         {lacking.map((status) => (
@@ -177,9 +178,9 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
           </Select>
         ))}
         {assign.error && <ErrorBanner>{fields.statusMapping ?? assign.error.message}</ErrorBanner>}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button
             loading={assign.isPending}
@@ -188,7 +189,7 @@ function AssignDialog({ project, assigning, statuses, onClose }: { project: Proj
           >
             {t.workflows.assign}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

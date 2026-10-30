@@ -3,7 +3,7 @@ import { useArmatureLinkActions, useArmatureLinks, type ArmatureLink, type Armat
 import type { Matrix } from "@/api/coverage";
 import { useStatorLinkActions, useStatorLinks, type StatorLink } from "@/api/stator";
 import { linkWays, useLinkActions, useLinks, useProjectLinkTypes, type Direction, type TraceLink } from "@/api/links";
-import { Button, ErrorBanner, IconButton, Select, Skeleton } from "@/components/ui";
+import { Button, ErrorBanner, IconButton, Select, Skeleton, useToast } from "@/components/ui";
 import { useEscape, useFocusReturn, useOutsidePress } from "@/components/ui/overlay";
 import { Icon } from "@/components/icons";
 import { checked } from "@/features/links/LinksPanel";
@@ -46,7 +46,7 @@ export function CellPanel({
   useEscape(!dialog, onClose);
   useOutsidePress(!dialog, outside.current, onClose);
   useFocusReturn(true, panelRef, false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   return (
     <div
       ref={panelRef}
@@ -61,16 +61,13 @@ export function CellPanel({
         <IconButton icon={<Icon.X />} label={t.matrix.close} size="sm" onClick={onClose} />
       </div>
       {column.requirement ? (
-        <RequirementCell projectKey={projectKey} row={row} otherKey={column.requirement.key} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
+        <RequirementCell projectKey={projectKey} row={row} otherKey={column.requirement.key} linkIds={linkIds} onDialog={setDialog} onNotice={toast.success} />
       ) : column.page ? (
-        <PageCell row={row} pageId={column.page.id} pageName={name} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
+        <PageCell row={row} pageId={column.page.id} pageName={name} linkIds={linkIds} onDialog={setDialog} onNotice={toast.success} />
       ) : (
-        <IssueCell row={row} issueKey={column.issueKey} linkIds={linkIds} onDialog={setDialog} onNotice={setNotice} />
+        <IssueCell row={row} issueKey={column.issueKey} linkIds={linkIds} onDialog={setDialog} onNotice={toast.success} />
       )}
       {!row.canLink && <p className="text-xs text-ink-subtle">{t.matrix.readOnly}</p>}
-      <p role="status" className="sr-only" data-cell-notice>
-        {notice}
-      </p>
     </div>
   );
 }

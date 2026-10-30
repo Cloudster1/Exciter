@@ -1,4 +1,5 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { REVIEWS_PAGE_SIZE, UNREAD_POLL_MS } from "@/config";
 import { api } from "./client";
 import type { Subject } from "./permissions";

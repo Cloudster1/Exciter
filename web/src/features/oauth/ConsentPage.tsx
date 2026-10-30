@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ApiError } from "@/api/client";
 import { useAuthorizationRequest, useDecideAuthorization, type AuthorizationRequest } from "@/api/oauth";
-import { Button, Card, Checkbox, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, PageHeader, Skeleton, Page } from "@/components/ui";
 import { ProjectPicker } from "@/features/tokens/ProjectPicker";
 import { t } from "@/i18n";
 import { leaveTo } from "@/lib/leave";
@@ -9,7 +9,7 @@ import { leaveTo } from "@/lib/leave";
 /** Where a person lets an app connect as them, or refuses it, and where they read why an app was refused (#188). */
 export function ConsentPage({ request, error }: { request?: string; error?: string }) {
   return (
-    <div className="mx-auto max-w-2xl">
+    <Page width="narrow">
       <PageHeader title={t.oauth.title} />
       {error ? (
         <ErrorBanner>{t.oauth.refused[error] ?? t.oauth.refusedOther}</ErrorBanner>
@@ -18,7 +18,7 @@ export function ConsentPage({ request, error }: { request?: string; error?: stri
       ) : (
         <ErrorBanner>{t.oauth.noRequest}</ErrorBanner>
       )}
-    </div>
+    </Page>
   );
 }
 

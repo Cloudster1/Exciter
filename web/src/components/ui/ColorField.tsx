@@ -33,7 +33,7 @@ export function ColorField({
       <span className="flex items-center gap-2">
         <input
           type="color"
-          aria-label={t.common.pickColour(label)}
+          aria-label={t.kit.pick(label)}
           value={pickable}
           onChange={(e) => onChange(e.target.value)}
           className={cx("size-8 shrink-0 cursor-pointer rounded-control border border-border-strong bg-surface p-0.5")}

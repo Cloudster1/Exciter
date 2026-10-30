@@ -322,7 +322,7 @@ Version 2 is a CloudEvent 1.0 in structured mode, posted as
 
 ## Webhooks Exciter sends
 
-An installation's administrators keep endpoints under Settings, Webhooks
+An installation's administrators keep endpoints under Admin, Webhooks
 (#48): an address, the events it hears, the projects it listens to, every
 project when none are named, and the envelope version it is posted in. Each
 event is posted in version 1, as `application/json`, named `exciter` as its

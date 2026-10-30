@@ -7,7 +7,119 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Access follows the suite's model: a role is a named list of permissions,
+  a grant is a role, a scope (the whole installation or one project) and a
+  subject (a person or a group), and what somebody may do in a project is
+  the union of the grants that reach them. The built-in roles are the
+  administrator of the installation and, in a project, viewer, reviewer,
+  editor and project administrator; administrators add, rename and delete
+  their own, and tick on the Matrix what each holds. A built-in group,
+  Everyone, holds every member. The upgrade moves every project grant,
+  owner, administrator and provider group role to the grant of the built-in
+  role it amounts to, so nobody's access changes. The API answers
+  `/roles`, `/permissions`, `/groups` and `/role-assignments` as Armature
+  and Stator do, `/auth/me` says whether the caller administers, and
+  `/users` lists the roles each person holds across the installation (#471).
+
+- The time zone is chosen on Your profile beside the language, both kept by
+  one Save, and every date and time is written in it; until somebody
+  chooses, the browser's zone is used. `GET` and `PATCH /auth/me` carry
+  `timezone`, and the database refuses a zone it does not know (#474).
+- The kit gains the suite's `Page` (narrow 64rem, content 100rem, wide),
+  `Popover`, `Toolbar`, `Pager`, `ListSearch`, `SearchPicker`, `Stat`,
+  `ProgressBar`, `DateInput`, `MentionTextarea`, `Spotlight`, `Count`,
+  `Toast`, `ConfirmDialog`, `Drawer` and `DockedPanel`, and a `ref` on
+  `Field` (#474).
+- "Let people in by their groups" under Admin, Access, Single sign-on, off by
+  default as in Armature and Stator: only while it is ticked does somebody
+  new in a group that holds a grant get in, at sign-in or at a
+  partner's token exchange, and the audit log names the group that let them
+  in. `GET` and `PUT /oidc-provider` carry `admitByGroup`; a `PUT` that
+  leaves it out turns it off (#469).
+- The Ctrl K palette, Cmd K on a Mac, finds projects and what can be done,
+  such as New project, beside requirements, places and the full search, and
+  offers the requirements opened last before anything is typed; each kind
+  is a group read out as one (#473).
+
 ### Changed
+
+- Settings and Admin split as the suite's standard lays out. `/settings`
+  holds only the person's own pages, each with a sentence on what it is
+  for. The installation's pages move to `/admin`: an index of every page in
+  the sections People and access, Work, Integrations and Records, with the
+  section nav beside it, or a menu on a narrow screen. Installation keeps
+  the name, the default theme and the suite demo; Access keeps its tabs
+  under `/admin/access/<tab>`; Users is new, with the join requests, adding
+  somebody with a password and switching an account off or back on;
+  Connected apps takes in the OAuth switch, the partner apps and everybody's
+  connected apps and tokens. Admin refuses anybody but an administrator once,
+  as a whole, and one Admin entry leads there from the sidebar and the
+  account menu; the palette names each page "Admin / <page>". Every old
+  `/settings/<page>` address of a moved page, and `/settings/access/<tab>`,
+  redirects to its new place (#470).
+- Single sign-on takes the standard's form: issuer, client ID, client
+  secret, groups claim, "Let people in by their groups", Set up or Save and
+  "Turn it off". Scopes, creating groups and the callback address leave the
+  form; a save sends back what is stored, so what dynamo-connect set stays
+  (#470).
+- Projects live at `/projects/<key>` and their settings at
+  `/projects/<key>/settings/<section>`, one address per section in the
+  suite's order: Details (with the key, archiving and deleting at its
+  foot), Types, Attributes, Fields, Workflow, Approval, Links, Trace,
+  Quality, Risks, Templates, Permissions, Import, ReqIF, Word and Trash.
+  The tabs sit in the page header, the crumbs are the project then
+  Settings, and the workflow designer sits below Workflow. One Settings
+  entry in the project's sidebar, for every member, and in the palette
+  replaces the folded Project admin group; Permissions and the trash are
+  sections now. Members see the settings read-only, Permissions, Import,
+  ReqIF and Word are hidden from them, and opened by address say who to
+  ask. Saving says so in a toast, archiving offers Undo and deleting asks
+  first. Mails, notifications and webhook payloads link to `/projects/`,
+  and every old `/p/<key>/...` address, such as the requirement links
+  Stator builds, redirects there with its search and hash, before sign-in;
+  `/settings?tab=` opens the section the tab named (#472).
+
+- Owner, admin, member and guest give way to a standing, member or guest,
+  and grants: owners and admins are members who hold the administrator
+  role, and a provider group mapped to a role is a group with the
+  provider's claim that holds the role's grant. A project's grants are
+  given one at a time through `/role-assignments`, and
+  `/projects/{projectKey}/grants` and `/oidc-provider/group-roles` are
+  gone. Making projects is a permission of its own, `createProjects` (#471).
+- Mapping a group to a role no longer lets anybody new in by itself; it
+  sets the roles of people already in, and lets newcomers in once "Let
+  people in by their groups" is ticked. An installation that already maps a
+  group has it ticked by the upgrade, so nothing changes there (#469).
+- Dialogs take the suite's API: `open`, a `size` of sm, md or lg, a
+  `description` and a pinned `footer`. Checking a suspect link opens in a
+  drawer from the side, with room for the changes (#474).
+- Menus take their groups as `MenuGroup`, read out as groups, and an item
+  can be `separated` by a line. Tabs scroll sideways on a phone, a chip cuts
+  a long name short and shows it whole on hover, and an error banner can
+  bring itself into view (#474).
+- Link, Quote, Heading, Bold, Code and the other glyphs are drawn as
+  Armature and Stator draw them, and the lists and the divider take the
+  suite's names (#474).
+- The language is no longer saved the moment a radio button is pressed: it
+  is a list on Your profile, saved with the time zone. Relative times come
+  from the kit's catalogue, so German reads "vor 2 Std.", and the strings
+  every component shares move from `common` to `kit` (#474).
+- Everyone's default theme is named under Admin, Installation;
+  `/settings/default-theme` sends a bookmark there, and the page of its own
+  is gone from Settings (#474, #470).
+- What an action did, or a refused change nobody else shows, is said in a
+  toast in the corner, in the server's words; a deletion or anything else
+  that cannot be taken back asks in the kit's confirm dialog, which names
+  what goes, instead of the browser's. Dialog buttons stay in view in the
+  pinned footer (#473).
+- Pages take their width from `Page` rather than typing their own (#473).
+- The phone's strip is as tall as the rail is wide and holds the menu
+  button, the installation's name and the bell. The build stamp names the
+  running build and commit, the account menu opens past the rail with the
+  avatar beside name, address and role, and Switch to shows each tool's
+  mark in one format (#473).
 
 - The browser suite reaches the rest of the routes and controls #334 left
   out: a baseline's and a review session's print views, theme files and the

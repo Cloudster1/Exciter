@@ -430,9 +430,10 @@ until Stator ships it.
 - **A chip** stands for a key such as `CHK-R42` (`requirement.KeyPattern`,
   `^([A-Z][A-Z0-9]{1,9})-R([1-9][0-9]*)$`) written or picked on a page, and
   shows the title, the status and the revision, linking to
-  `{exciter}/p/{projectKey}/r/{key}`. A key the requirement had before a move
-  or a new project key still reads, and the answer's `key` is the current
-  one, which Stator shows. A requirement in Exciter's trash carries
+  `{exciter}/p/{projectKey}/r/{key}`, which redirects to
+  `{exciter}/projects/{projectKey}/r/{key}` (#472). A key the requirement
+  had before a move or a new project key still reads, and the answer's
+  `key` is the current one, which Stator shows. A requirement in Exciter's trash carries
   `trashedAt` for a reader who may still find it there and is 404 to the
   rest; Stator shows it as trashed or as not found.
 - **A requirement block** shows one requirement: the chip's fields with its

@@ -38,7 +38,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
 
   test("alice writes a statement with every tool of the toolbar and a link, and it reads so once saved", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Formatted" } }));
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Pay in every format");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -86,7 +86,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
     await address.fill("https://example.com");
     await dialog.locator('[data-action="save-link"]').click();
     await expect(dialog).toHaveCount(0);
-    await expect(page).toHaveURL(`/p/${KEY}/new`);
+    await expect(page).toHaveURL(`/projects/${KEY}/new`);
 
     await select("last");
     await tool(page, statement, "rule");
@@ -99,7 +99,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     const saved = page.locator("[data-statement]");
     await expect(saved.locator('a[href="https://example.com"]')).toHaveText("shop");
     await expect(saved.locator("em")).toHaveText("slanted");
@@ -117,7 +117,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
 
   test("alice mentions bob in a statement, and the API reads the mention back as Markdown", async ({ page, api, people }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Mentioned" } }));
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Ask the brakes team");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -132,7 +132,7 @@ test.describe("editor toolbar", { tag: "@desktop" }, () => {
     await expectAccessible(page);
     await page.locator('[data-action="create-requirement"]').click();
 
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     const mention = page.locator("[data-statement] .mention");
     await expect(mention).toHaveText(`@${people.bob.name}`);
     await expect(mention).toHaveAttribute("data-mention", people.bob.id);

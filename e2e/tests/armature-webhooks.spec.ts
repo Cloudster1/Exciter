@@ -62,7 +62,7 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
 
   test("an administrator copies the webhook address, and once the secret is forgotten no delivery is taken (#326)", async ({ page, api }) => {
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-    await page.goto("/settings/armature");
+    await page.goto("/admin/armature");
     await expect(page.getByLabel("Webhook address", { exact: true })).toHaveValue(webhookUrl);
     await page.locator('[data-action="copy-webhook-url"]').click();
     await expect(page.locator("[data-copy-status]")).toHaveText("Copied the address.");
@@ -81,7 +81,7 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
   });
 
   test("a requirement follows its issue as it moves on, loses its link and goes", async ({ page }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     const link = panel.locator('[data-armature-link="CP-4"]');
     await expect(link.locator('[data-status-category="todo"]')).toBeVisible();

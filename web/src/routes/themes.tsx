@@ -1,22 +1,13 @@
 import { useRef, useState } from "react";
 import { Link, createRoute, useNavigate } from "@tanstack/react-router";
-import {
-  themeExportHref,
-  useActiveTheme,
-  useChooseTheme,
-  useDeleteTheme,
-  useImportTheme,
-  useSetDefaultTheme,
-  useThemes,
-  useUpdateTheme,
-  type Theme,
-} from "@/api/themes";
-import { administers as canAdminister, useMe } from "@/api/auth";
+import { themeExportHref, useActiveTheme, useChooseTheme, useDeleteTheme, useImportTheme, useThemes, useUpdateTheme, type Theme } from "@/api/themes";
+import { useMe } from "@/api/auth";
 import { FollowArmatureTheme } from "@/features/armature/FollowArmatureTheme";
-import { Button, EmptyState, ErrorBanner, IconButton, Menu, PageHeader, Segmented, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, IconButton, Menu, PageHeader, Segmented, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { THEMES_PATH } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { appRoute } from "./app";
 
 type View = "mine" | "shared";
@@ -43,26 +34,26 @@ function ThemesPage() {
   const { data, isLoading, error } = useThemes();
   const { data: viewer } = useMe();
   const me = viewer?.user.id;
-  const administers = canAdminister(viewer?.role);
+  const administers = viewer?.administers ?? false;
   const { data: activeData } = useActiveTheme();
   const choose = useChooseTheme();
-  const setDefault = useSetDefaultTheme();
   const importTheme = useImportTheme();
   const update = useUpdateTheme();
   const remove = useDeleteTheme();
   const fileInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [view, setView] = useState<View>("mine");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const notify = toast.success;
   const all = data?.themes ?? [];
   const themes = all.filter((each) => inThemeView(each, view, me));
   const seen = activeData?.theme ?? null;
   const source = activeData?.source ?? "";
   const orgDefault = all.find((each) => each.default);
-  const failure = error ?? choose.error ?? update.error ?? setDefault.error ?? importTheme.error ?? remove.error;
+  const failure = error ?? choose.error ?? update.error ?? importTheme.error ?? remove.error;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <Page width="content">
       <PageHeader
         title={t.themes.title}
         meta={activeThemeMeta(seen, source, orgDefault)}
@@ -71,7 +62,7 @@ function ThemesPage() {
             {seen && source === "everyone" && (
               <Button
                 variant="secondary"
-                onClick={() => choose.mutate({ builtIn: true }, { onSuccess: () => setNotice(t.themes.backToBuiltIn) })}
+                onClick={() => choose.mutate({ builtIn: true }, { onSuccess: () => notify(t.themes.backToBuiltIn) })}
                 data-action="built-in-theme"
               >
                 {t.themes.useBuiltIn}
@@ -80,7 +71,7 @@ function ThemesPage() {
             {!seen && orgDefault && (
               <Button
                 variant="secondary"
-                onClick={() => choose.mutate(null, { onSuccess: () => setNotice(t.themes.nowUsing(orgDefault.name)) })}
+                onClick={() => choose.mutate(null, { onSuccess: () => notify(t.themes.nowUsing(orgDefault.name)) })}
                 data-action="org-default-theme"
               >
                 {t.themes.useOrgDefault}
@@ -105,7 +96,7 @@ function ThemesPage() {
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
-                if (file) importTheme.mutate(file, { onSuccess: (made) => setNotice(t.themes.imported(made.theme.name)) });
+                if (file) importTheme.mutate(file, { onSuccess: (made) => notify(t.themes.imported(made.theme.name)) });
               }}
             />
             <Button icon={<Icon.Plus />} onClick={() => navigate({ to: "/settings/themes/new" })} data-action="new-theme">
@@ -128,11 +119,6 @@ function ThemesPage() {
       </div>
       <div className="space-y-3">
         {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-        {notice && (
-          <p role="status" className="text-sm text-ink-muted" data-themes-notice>
-            {notice}
-          </p>
-        )}
         {isLoading ? null : themes.length === 0 ? (
           <EmptyState
             icon={<Icon.Palette />}
@@ -167,21 +153,20 @@ function ThemesPage() {
                   administers={administers}
                   inUse={seen?.id === theme.id}
                   orgDefault={orgDefault}
-                  actions={{ choose, setDefault, update, remove }}
-                  onNotice={setNotice}
+                  actions={{ choose, update, remove }}
+                  onNotice={notify}
                 />
               ))}
             </tbody>
           </Table>
         )}
       </div>
-    </div>
+    </Page>
   );
 }
 
 interface RowActions {
   choose: ReturnType<typeof useChooseTheme>;
-  setDefault: ReturnType<typeof useSetDefaultTheme>;
   update: ReturnType<typeof useUpdateTheme>;
   remove: ReturnType<typeof useDeleteTheme>;
 }
@@ -193,8 +178,8 @@ function ThemeRow({
   administers,
   inUse,
   orgDefault,
-  actions: { choose, setDefault, update, remove },
-  onNotice: setNotice,
+  actions: { choose, update, remove },
+  onNotice: notify,
 }: {
   theme: Theme;
   me: string | undefined;
@@ -202,9 +187,10 @@ function ThemeRow({
   inUse: boolean;
   orgDefault: Theme | undefined;
   actions: RowActions;
-  onNotice: (notice: string) => void;
+  onNotice: (message: string) => void;
 }) {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const editable = theme.ownerId === me || (administers && theme.shared);
   return (
     <tr key={theme.id} data-theme-row={theme.name} data-theme-active={theme.active ? "true" : "false"} data-theme-default={theme.default ? "true" : "false"}>
@@ -242,32 +228,15 @@ function ThemeRow({
               ? {
                   label: t.themes.stopUsing,
                   icon: <Icon.X />,
-                  onSelect: () => choose.mutate(null, { onSuccess: () => setNotice(orgDefault ? t.themes.backToDefault : t.themes.backToBuiltIn) }),
+                  onSelect: () => choose.mutate(null, { onSuccess: () => notify(orgDefault ? t.themes.backToDefault : t.themes.backToBuiltIn) }),
                   attrs: { "data-action": "stop-theme" },
                 }
               : {
                   label: t.themes.use,
                   icon: <Icon.Check />,
-                  onSelect: () => choose.mutate(theme.id, { onSuccess: () => setNotice(t.themes.nowUsing(theme.name)) }),
+                  onSelect: () => choose.mutate(theme.id, { onSuccess: () => notify(t.themes.nowUsing(theme.name)) }),
                   attrs: { "data-action": "use-theme" },
                 },
-            ...(administers && theme.shared
-              ? [
-                  theme.default
-                    ? {
-                        label: t.themes.undefault,
-                        icon: <Icon.X />,
-                        onSelect: () => setDefault.mutate(null, { onSuccess: () => setNotice(t.themes.defaultCleared) }),
-                        attrs: { "data-action": "undefault-theme" },
-                      }
-                    : {
-                        label: t.themes.makeDefault,
-                        icon: <Icon.Users />,
-                        onSelect: () => setDefault.mutate(theme.id, { onSuccess: () => setNotice(t.themes.defaultSet(theme.name)) }),
-                        attrs: { "data-action": "default-theme" },
-                      },
-                ]
-              : []),
             {
               label: t.themes.edit,
               icon: <Icon.Edit />,
@@ -290,7 +259,7 @@ function ThemeRow({
               onSelect: () =>
                 update.mutate(
                   { id: theme.id, shared: !theme.shared },
-                  { onSuccess: () => setNotice(theme.shared ? t.themes.privateNow(theme.name) : t.themes.sharedNow(theme.name)) },
+                  { onSuccess: () => notify(theme.shared ? t.themes.privateNow(theme.name) : t.themes.sharedNow(theme.name)) },
                 ),
               attrs: { "data-action": "share-theme" },
             },
@@ -299,9 +268,10 @@ function ThemeRow({
               icon: <Icon.Trash />,
               danger: true,
               disabled: !editable,
-              onSelect: () => {
-                if (window.confirm(t.themes.confirmDelete(theme.name, theme.inUse))) {
-                  remove.mutate(theme.id, { onSuccess: () => setNotice(t.themes.deleted(theme.name)) });
+              onSelect: async () => {
+                const noun = t.kit.confirm.things.named(t.kit.confirm.things.theme, theme.name);
+                if (await confirm({ noun, body: t.themes.confirmDelete(theme.inUse) })) {
+                  remove.mutate(theme.id, { onSuccess: () => notify(t.themes.deleted(theme.name)) });
                 }
               },
               attrs: { "data-action": "delete-theme" },

@@ -70,7 +70,7 @@ export function SimilarItem({ hit, newTab = true, onReuse }: { hit: SimilarRequi
   return (
     <li className="flex flex-wrap items-center gap-2 py-1.5 text-sm" data-similar={requirement.key} data-library={hit.library ? "" : undefined}>
       <Link
-        to="/p/$projectKey/r/$reqKey"
+        to="/projects/$projectKey/r/$reqKey"
         params={{ projectKey: requirement.projectKey, reqKey: requirement.key }}
         {...(newTab ? { target: "_blank", rel: "noopener" } : {})}
         className="inline-flex min-w-0 items-center gap-1 text-ink hover:text-accent hover:underline"

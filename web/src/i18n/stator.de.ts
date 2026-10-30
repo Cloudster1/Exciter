@@ -34,7 +34,7 @@ export const statorDe: typeof statorEn = {
   disconnectTitle: "Trennen",
   disconnectIntro: "Beim Trennen werden die Adresse, das Webhook-Geheimnis und die Tokens aller Mitglieder verworfen.",
   disconnect: "Stator trennen",
-  confirmDisconnect: "Stator trennen? Die Tokens aller Mitglieder werden verworfen.",
+  confirmDisconnect: "Die Tokens aller Mitglieder werden verworfen.",
   disconnected: "Stator ist getrennt.",
   signIn: {
     title: "Personen bei der Anmeldung verbinden",
@@ -50,7 +50,7 @@ export const statorDe: typeof statorEn = {
   account: {
     title: "Stator-Konto",
     intro: "Verbinden Sie Ihr Stator-Konto, damit Anforderungen Ihnen die Seiten zeigen, die Sie in Stator lesen dürfen.",
-    notConfigured: "Exciter ist noch nicht mit Stator verbunden. Bitten Sie einen Administrator, es unter Einstellungen, Stator zu verbinden.",
+    notConfigured: "Exciter ist noch nicht mit Stator verbunden. Bitten Sie einen Administrator, es unter Admin, Stator zu verbinden.",
     steps:
       "Öffnen Sie in Stator Ihr Konto, dann Zugriffstokens, und erstellen Sie ein Token, das nicht nur lesen darf, damit Exciter Ihre Verknüpfungen auch auf Seiten zeigen kann. Fügen Sie es dann hier ein.",
     openStator: "Stator öffnen",
@@ -63,7 +63,7 @@ export const statorDe: typeof statorEn = {
     check: "Erneut prüfen",
     checked: "Stator akzeptiert Ihr Token.",
     disconnect: "Trennen",
-    confirmDisconnect: "Ihr Stator-Konto trennen? Anforderungen zeigen Seitenverknüpfungen ohne Titel, bis Sie es wieder verbinden.",
+    confirmDisconnect: "Anforderungen zeigen Seitenverknüpfungen ohne Titel, bis Sie es wieder verbinden.",
     disconnected: "Ihr Stator-Konto ist getrennt.",
     rejected: "Stator akzeptiert Ihr Token nicht mehr. Erstellen Sie in Stator unter Ihr Konto, Zugriffstokens ein neues und fügen Sie es hier ein.",
     unreachable: "Stator hat auf die letzte Prüfung nicht geantwortet. Prüfen Sie gleich noch einmal.",

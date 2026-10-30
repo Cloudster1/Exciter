@@ -110,7 +110,7 @@ func (s *Service) requirement(ctx context.Context, tx db.DBTX, id *uuid.UUID) (*
 	if statusName != nil && statusKind != nil {
 		r.Status = &StatusRef{Name: *statusName, Category: *statusKind}
 	}
-	r.URL = s.opts.AppURL + "/p/" + r.Project.Key + "/r/" + r.Key
+	r.URL = s.opts.AppURL + "/projects/" + r.Project.Key + "/r/" + r.Key
 	return &r, nil
 }
 
@@ -169,7 +169,7 @@ func (s *Service) baseline(ctx context.Context, tx db.DBTX, id *uuid.UUID) (*Bas
 	if err != nil {
 		return nil, err
 	}
-	b.URL = s.opts.AppURL + "/p/" + b.Project.Key + "/baselines/" + b.ID.String()
+	b.URL = s.opts.AppURL + "/projects/" + b.Project.Key + "/baselines/" + b.ID.String()
 	return &b, nil
 }
 

@@ -145,8 +145,8 @@ describe("the audit log", () => {
 
   it("tells a member it is the administrators' to read", async () => {
     const sent = log();
-    await renderAt(AUDIT_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only an administrator reads the audit log/)).toBeInTheDocument();
+    await renderAt(AUDIT_PATH, { me: { ...signedIn, administers: false } });
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent).toHaveLength(0);
   });
 });
@@ -159,6 +159,17 @@ describe("an entry in words", () => {
       entry({ data: { key: "CHK", authorId: "x", grants: [{ subject: "a" }, { subject: "b" }], scopes: ["read"] }, ip: "10.0.0.7" }),
     );
     expect(details).toBe("key: CHK; grants: 2; scopes: read; from 10.0.0.7");
+  });
+
+  it("names the group that let somebody in, and keeps the person as the target", () => {
+    const joined = entry({
+      action: "member.joined",
+      actorId: null,
+      actorName: "",
+      data: { role: "member", group: "quality", groups: ["quality"], via: "sign_in" },
+    });
+    expect(describeEntry(joined)).toBe("admitted by group quality; role: member; via: sign_in");
+    expect(targetName(joined)).toBe(bobId);
   });
 
   it("asks for the reader's days as the instants they span", () => {

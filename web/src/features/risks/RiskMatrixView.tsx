@@ -122,7 +122,7 @@ function CellRisks({ project, query, side, cell, onClose }: { project: Project; 
           <ul className="space-y-1 text-sm">
             {data.risks.map((r) => (
               <li key={r.risk.id} className="flex flex-wrap items-center gap-2">
-                <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: r.risk.key }} className="font-medium text-accent">
+                <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: r.risk.key }} className="font-medium text-accent">
                   {r.risk.key}
                 </Link>
                 <span className="text-ink">{r.risk.title}</span>

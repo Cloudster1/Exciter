@@ -1,21 +1,15 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import { useDashboards } from "@/api/dashboards";
 import { useTypes } from "@/api/attributes";
 import { useChangeProjectKey, useDeleteProject, useSetArchived, useUpdateProject, type Project, type ProjectChanges } from "@/api/projects";
-import { Button, Card, Checkbox, Dialog, ErrorBanner, Field, PageHeader, SectionTitle, Select, TabPanel, Tabs } from "@/components/ui";
-import { ImportPanel } from "@/features/import/ImportPanel";
-import { ReqIFPanel } from "@/features/reqif/ReqIFPanel";
-import { WordImportPanel } from "@/features/word/WordImportPanel";
-import { TemplateSettings } from "@/features/templates/TemplateSettings";
+import { Button, Card, Checkbox, EmptyState, ErrorBanner, Field, Page, PageHeader, SectionTitle, Select, TabPanel, Tabs, Tag, useToast } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
+import { adminOnly, projectSettingsPath, sectionLabel, sectionsFor, type ProjectSettingsSection } from "./settingsSections";
 import { ApprovalRules } from "@/features/reviews/ApprovalRules";
 import { SigningRuleCard } from "@/features/baselines/SigningRule";
-import { ProjectLinkTypes } from "@/features/links/LinkTypeList";
-import { AttributeList } from "@/features/types/AttributeList";
-import { FixedFieldRules } from "@/features/types/FixedFieldRules";
-import { TypeList } from "@/features/types/TypeList";
-import { WorkflowSettings } from "@/features/workflows/WorkflowSettings";
 import { PROJECTS_PATH, PROJECT_DESCRIPTION_MAX_LENGTH, PROJECT_KEY_MAX_LENGTH, PROJECT_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 import { TraceModelCard } from "@/features/matrix/TraceModelCard";
@@ -24,126 +18,103 @@ import { CodeTagWordsCard } from "@/features/evidence/CodeTagWordsCard";
 import { QualityRulesCard, QualityWordsCard } from "@/features/quality/QualitySettingsCards";
 import { GlossariesCard } from "@/features/glossary/GlossariesCard";
 import { DuplicateSettingsCard } from "@/features/duplicates/DuplicateSettingsCard";
-import { RiskSchemeCard } from "@/features/risks/RiskSchemeCard";
 
-const SETTINGS_TABS = [
-  "details",
-  "types",
-  "attributes",
-  "fields",
-  "workflow",
-  "approval",
-  "links",
-  "trace",
-  "quality",
-  "risks",
-  "import",
-  "reqif",
-  "word",
-  "templates",
-] as const;
-export type SettingsTab = (typeof SETTINGS_TABS)[number];
-
-export function isSettingsTab(value: unknown): value is SettingsTab {
-  return typeof value === "string" && (SETTINGS_TABS as readonly string[]).includes(value);
-}
-
-/** A project's details, its key, its types, attributes, workflows and link types, archiving and deleting it; changing
- * anything is its administrators'. */
-export function ProjectSettings({ project, tab: opened }: { project: Project; tab?: SettingsTab }) {
-  const readOnly = !project.can.administer;
-  const [tab, setTab] = useState<SettingsTab>(opened ?? "details");
-  // The details form starts again from each saved project, so what it says about its save is kept here.
-  const [saved, setSaved] = useState("");
+/**
+ * A project's settings: the tabs of its sections in the header and the one
+ * section shown. Every member opens them to see how the project is set up; what
+ * only its administrators use is neither listed nor mounted for anybody else.
+ */
+export function ProjectSettingsLayout({ project, section, children }: { project: Project; section: ProjectSettingsSection; children: ReactNode }) {
+  const navigate = useNavigate();
+  const panelId = useId();
+  const administers = project.can.administer;
+  const refused = adminOnly(section) && !administers;
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-project-settings={project.key}>
+    <Page width="content" data-project-settings={project.key}>
       <PageHeader
         title={t.projects.settingsTitle}
-        meta={t.projects.projectAndKey(project.name, project.key)}
+        meta={<Tag className="font-mono">{project.key}</Tag>}
         tabs={
-          <Tabs<SettingsTab>
-            label={t.projects.settingsTitle}
-            value={tab}
-            onChange={setTab}
-            panelId="project-settings-panel"
-            tabs={[
-              { value: "details", label: t.projects.detailsTitle, attrs: { "data-tab": "details" } },
-              { value: "types", label: t.types.tab, attrs: { "data-tab": "types" } },
-              { value: "attributes", label: t.attributes.tab, attrs: { "data-tab": "attributes" } },
-              { value: "fields", label: t.fieldRules.tab, attrs: { "data-tab": "fields" } },
-              { value: "workflow", label: t.workflows.tab, attrs: { "data-tab": "workflow" } },
-              { value: "approval", label: t.review.rulesTab, attrs: { "data-tab": "approval" } },
-              { value: "links", label: t.linkTypes.tab, attrs: { "data-tab": "links" } },
-              { value: "trace", label: t.chains.tab, attrs: { "data-tab": "trace" } },
-              { value: "quality", label: t.quality.tab, attrs: { "data-tab": "quality" } },
-              { value: "risks", label: t.risks.tab, attrs: { "data-tab": "risks" } },
-              { value: "import", label: t.imports.tab, attrs: { "data-tab": "import" } },
-              { value: "reqif", label: t.reqif.tab, attrs: { "data-tab": "reqif" } },
-              { value: "word", label: t.word.tab, attrs: { "data-tab": "word" } },
-              { value: "templates", label: t.templates.tab, attrs: { "data-tab": "templates" } },
-            ]}
+          <Tabs<ProjectSettingsSection>
+            label={t.projects.settingsTabs}
+            value={section}
+            onChange={(next) => void navigate({ href: projectSettingsPath(project.key, next) })}
+            panelId={panelId}
+            tabs={sectionsFor(project).map((each) => ({ value: each, label: sectionLabel(each), attrs: { "data-settings-tab": each } }))}
           />
         }
       />
       {project.archivedAt && (
-        <p role="status" className="rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-archived-notice>
+        <p role="status" className="mb-4 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-archived-notice>
           {t.projects.archivedNotice}
         </p>
       )}
-      {readOnly && <p className="text-sm text-ink-muted">{t.projects.notProjectAdmin}</p>}
-      <TabPanel id="project-settings-panel" className="space-y-6">
-        {tab === "details" && (
-          <>
-            <Details
-              key={`${project.id}-${project.updatedAt}`}
-              project={project}
-              readOnly={readOnly || Boolean(project.archivedAt)}
-              notice={saved}
-              onNotice={setSaved}
-            />
-            <KeySection project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
-            {!readOnly && <ArchiveSection project={project} />}
-            {!readOnly && project.archivedAt && <DeleteSection project={project} />}
-          </>
-        )}
-        {tab === "types" && <TypeList project={project} />}
-        {tab === "attributes" && <AttributeList project={project} />}
-        {tab === "fields" && <FixedFieldRules project={project} />}
-        {tab === "workflow" && <WorkflowSettings project={project} />}
-        {tab === "approval" && (
-          <>
-            <ApprovalRules project={project} />
-            <SigningRuleCard project={project} />
-          </>
-        )}
-        {tab === "links" && <ProjectLinkTypes project={project} />}
-        {tab === "trace" && (
-          <div className="space-y-5">
-            <TraceModelCard project={project} />
-            <EvidenceSettingsCard project={project} />
-            <CodeTagWordsCard project={project} />
+      {!administers && !refused && (
+        <p role="status" className="mb-4 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink-muted" data-settings-read-only>
+          {t.projects.notProjectAdmin}
+        </p>
+      )}
+      <TabPanel id={panelId} label={sectionLabel(section)}>
+        {refused ? (
+          <div data-settings-refused={section}>
+            <EmptyState icon={<Icon.Lock />} title={t.projects.notAdminTitle} description={t.projects.notAdminDetail} />
+          </div>
+        ) : (
+          <div className="space-y-6" data-settings-section={section}>
+            {children}
           </div>
         )}
-        {tab === "quality" && (
-          <div className="space-y-5">
-            <QualityRulesCard project={project} />
-            <QualityWordsCard project={project} />
-            <GlossariesCard project={project} />
-            <DuplicateSettingsCard project={project} />
-          </div>
-        )}
-        {tab === "risks" && <RiskSchemeCard project={project} />}
-        {tab === "import" && <ImportPanel project={project} />}
-        {tab === "reqif" && <ReqIFPanel project={project} />}
-        {tab === "word" && <WordImportPanel project={project} />}
-        {tab === "templates" && <TemplateSettings project={project} />}
       </TabPanel>
-    </div>
+    </Page>
   );
 }
 
-function Details({ project, readOnly, notice, onNotice }: { project: Project; readOnly: boolean; notice: string; onNotice: (notice: string) => void }) {
+/** The project's details, and at the foot its key, archiving and deleting it. */
+export function DetailsSection({ project }: { project: Project }) {
+  const readOnly = !project.can.administer;
+  return (
+    <>
+      <Details key={`${project.id}-${project.updatedAt}`} project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
+      <KeySection project={project} readOnly={readOnly || Boolean(project.archivedAt)} />
+      {!readOnly && <ArchiveSection project={project} />}
+      {!readOnly && project.archivedAt && <DeleteSection project={project} />}
+    </>
+  );
+}
+
+export function ApprovalSection({ project }: { project: Project }) {
+  return (
+    <>
+      <ApprovalRules project={project} />
+      <SigningRuleCard project={project} />
+    </>
+  );
+}
+
+export function TraceSection({ project }: { project: Project }) {
+  return (
+    <>
+      <TraceModelCard project={project} />
+      <EvidenceSettingsCard project={project} />
+      <CodeTagWordsCard project={project} />
+    </>
+  );
+}
+
+export function QualitySection({ project }: { project: Project }) {
+  return (
+    <>
+      <QualityRulesCard project={project} />
+      <QualityWordsCard project={project} />
+      <GlossariesCard project={project} />
+      <DuplicateSettingsCard project={project} />
+    </>
+  );
+}
+
+function Details({ project, readOnly }: { project: Project; readOnly: boolean }) {
   const update = useUpdateProject(project.key);
+  const toast = useToast();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description);
   const [requireComment, setRequireComment] = useState(project.settings.requireRevisionComment);
@@ -158,7 +129,6 @@ function Details({ project, readOnly, notice, onNotice }: { project: Project; re
 
   function save(event: FormEvent) {
     event.preventDefault();
-    onNotice("");
     const settings: ProjectChanges["settings"] = { requireRevisionComment: requireComment, signedApprovals, library };
     if (defaultType && defaultType !== project.settings.defaultTypeId) settings.defaultTypeId = defaultType;
     // The language is sent only when it changes, since a change checks every requirement again (#207).
@@ -167,7 +137,7 @@ function Details({ project, readOnly, notice, onNotice }: { project: Project; re
     // This form is gone by the time mutate's own callbacks would run, so the promise says it saved; a refusal shows
     // through update.error.
     update.mutateAsync({ name, description, settings }).then(
-      () => onNotice(t.projects.saved),
+      () => toast.success(t.projects.saved),
       () => undefined,
     );
   }
@@ -286,9 +256,6 @@ function Details({ project, readOnly, notice, onNotice }: { project: Project; re
             <Button type="submit" loading={update.isPending} data-action="save-project">
               {t.projects.save}
             </Button>
-            <span role="status" className="text-sm text-ink-muted">
-              {notice}
-            </span>
           </div>
         )}
       </form>
@@ -299,18 +266,17 @@ function Details({ project, readOnly, notice, onNotice }: { project: Project; re
 function KeySection({ project, readOnly }: { project: Project; readOnly: boolean }) {
   const change = useChangeProjectKey(project.key);
   const navigate = useNavigate();
+  const toast = useToast();
   const [next, setNext] = useState("");
-  const [notice, setNotice] = useState("");
   const fields = change.error instanceof ApiError ? change.error.fields : {};
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
     change.mutate(next, {
       onSuccess: (changed) => {
         setNext("");
-        setNotice(t.projects.keyChanged(changed.key));
-        void navigate({ to: "/p/$projectKey/settings", params: { projectKey: changed.key }, replace: true });
+        toast.success(t.projects.keyChanged(changed.key));
+        void navigate({ href: projectSettingsPath(changed.key), replace: true });
       },
     });
   }
@@ -342,16 +308,15 @@ function KeySection({ project, readOnly }: { project: Project; readOnly: boolean
         </form>
       )}
       {change.error && !Object.keys(fields).length && <ErrorBanner>{change.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted">
-        {notice}
-      </p>
     </Card>
   );
 }
 
 function ArchiveSection({ project }: { project: Project }) {
   const setArchived = useSetArchived(project.key);
+  const toast = useToast();
   const archived = Boolean(project.archivedAt);
+  const unarchive = () => setArchived.mutate(false, { onSuccess: () => toast.success(t.projects.unarchivedToast(project.name)) });
   return (
     <Card className="space-y-3 p-4" data-project-archive>
       <SectionTitle>{t.projects.archiveTitle}</SectionTitle>
@@ -360,7 +325,15 @@ function ArchiveSection({ project }: { project: Project }) {
       <Button
         variant="secondary"
         loading={setArchived.isPending}
-        onClick={() => setArchived.mutate(!archived)}
+        onClick={() => {
+          if (archived) {
+            unarchive();
+            return;
+          }
+          setArchived.mutate(true, {
+            onSuccess: () => toast.success(t.projects.archivedToast(project.name), { action: { label: t.projects.undo, onClick: unarchive } }),
+          });
+        }}
         data-action={archived ? "unarchive-project" : "archive-project"}
       >
         {archived ? t.projects.unarchive : t.projects.archive}
@@ -372,37 +345,24 @@ function ArchiveSection({ project }: { project: Project }) {
 function DeleteSection({ project }: { project: Project }) {
   const remove = useDeleteProject(project.key);
   const navigate = useNavigate();
-  const [confirming, setConfirming] = useState(false);
+  const confirm = useConfirm();
   return (
     <Card className="space-y-3 border-danger/40 p-4" data-project-danger>
       <SectionTitle>{t.projects.dangerTitle}</SectionTitle>
       <p className="text-sm text-ink-muted">{t.projects.dangerBody}</p>
-      <Button variant="danger" onClick={() => setConfirming(true)} data-action="delete-project">
+      {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
+      <Button
+        variant="danger"
+        loading={remove.isPending}
+        onClick={async () => {
+          if (await confirm({ noun: t.kit.confirm.things.project(project.name), body: t.projects.confirmBody(project.name, project.key) })) {
+            remove.mutate(undefined, { onSuccess: () => void navigate({ to: PROJECTS_PATH }) });
+          }
+        }}
+        data-action="delete-project"
+      >
         {t.projects.delete}
       </Button>
-      {confirming && (
-        <Dialog title={t.projects.confirmTitle} onClose={() => setConfirming(false)} data-confirm-delete-project="">
-          <p className="text-sm text-ink">{t.projects.confirmBody(project.name, project.key)}</p>
-          {remove.error && (
-            <div className="mt-3">
-              <ErrorBanner>{remove.error.message}</ErrorBanner>
-            </div>
-          )}
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setConfirming(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() => remove.mutate(undefined, { onSuccess: () => void navigate({ to: PROJECTS_PATH }) })}
-              data-action="confirm-delete-project"
-            >
-              {t.projects.confirmDelete}
-            </Button>
-          </div>
-        </Dialog>
-      )}
     </Card>
   );
 }

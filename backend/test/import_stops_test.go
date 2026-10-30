@@ -246,7 +246,7 @@ func TestOnlyTheMakerMapsAndStartsAnImport(t *testing.T) {
 		csvID := obj(t, want(t, uploadCSV(t, maker, s.key, "x.csv", file), http.StatusCreated, "upload a CSV"), "import")["id"].(string)
 		reqifID := obj(t, want(t, maker.upload(t, "/api/v1/projects/"+s.key+"/reqif-imports", "s.reqif", supplierFile(t)), http.StatusCreated, "upload a ReqIF"),
 			"import")["id"].(string)
-		if _, err := s.f.h.super.Exec(context.Background(), `UPDATE project_grant SET role = 'editor' WHERE project_id = $1 AND user_id = $2`, s.projectID, makerID); err != nil {
+		if _, err := s.f.h.super.Exec(context.Background(), `UPDATE role_assignment SET role = 'editor' WHERE project_id = $1 AND user_id = $2`, s.projectID, makerID); err != nil {
 			t.Fatal(err)
 		}
 		s.f.h.settle(t)

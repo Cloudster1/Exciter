@@ -36,7 +36,7 @@ func (h *harness) signInRows(t *testing.T, m member) uuid.UUID {
 	}{
 		{`INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)`, []any{group, m.user}},
 		{`INSERT INTO oidc_provider (issuer, client_id, client_secret) VALUES ('https://id.test', 'exciter', '\x01'::bytea)`, nil},
-		{`INSERT INTO oidc_group_role (group_ref, role) VALUES ($1, 'member')`, []any{name}},
+		{`INSERT INTO role_assignment (role, group_id) VALUES ('viewer', $1)`, []any{group}},
 		{`INSERT INTO oidc_login (state, nonce, code_verifier, expires_at) VALUES (gen_random_uuid()::text, 'n', 'v', now() + interval '1 hour')`, nil},
 		{`INSERT INTO join_request (user_id) VALUES ($1)`, []any{m.user}},
 		{`INSERT INTO user_identity (issuer, subject, user_id) VALUES ('https://id.test', gen_random_uuid()::text, $1)`, []any{m.user}},
@@ -50,7 +50,7 @@ func (h *harness) signInRows(t *testing.T, m member) uuid.UUID {
 	return group
 }
 
-// Straight through SQL as exciter_app: the provider, its mapping and the waiting people show only to an
+// Straight through SQL as exciter_app: the provider, the grants and the waiting people show only to an
 // administrator, groups and their members change only for one, nothing shows to a connection without the
 // installation, and the tables that span it nothing.
 func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
@@ -59,8 +59,8 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 	a := h.owner(t, "iota")
 	h.signInRows(t, a)
 	ctx := context.Background()
-	tenantTables := []string{"groups", "group_member", "oidc_provider", "oidc_group_role", "join_request"}
-	adminTables := []string{"oidc_provider", "oidc_group_role", "join_request"}
+	tenantTables := []string{"groups", "group_member", "oidc_provider", "role_assignment", "join_request"}
+	adminTables := []string{"oidc_provider", "role_assignment", "join_request"}
 	// Everybody reads these, since grants, pickers and reviews name groups; only administrators write them.
 	adminWrittenTables := []string{"groups", "group_member"}
 	globalTables := []string{"user_session", "user_identity"}
@@ -115,8 +115,8 @@ func TestRawSQLKeepsSignInToItsAdministrators(t *testing.T) {
 		if tag, err := plain.Exec(ctx, `UPDATE oidc_provider SET issuer = 'https://evil.test'`); err != nil || tag.RowsAffected() != 0 {
 			t.Errorf("a plain member repointed the provider: %v %v", tag, err)
 		}
-		if _, err := plain.Exec(ctx, `INSERT INTO oidc_group_role (group_ref, role) VALUES ('mine', 'admin')`); !isPolicyViolation(err) {
-			t.Errorf("a plain member mapped a group: %v", err)
+		if _, err := plain.Exec(ctx, `INSERT INTO role_assignment (role, group_id) SELECT 'administrator', id FROM groups WHERE name LIKE 'staff-%' LIMIT 1`); !isPolicyViolation(err) {
+			t.Errorf("a plain member granted a group administering: %v", err)
 		}
 	})
 

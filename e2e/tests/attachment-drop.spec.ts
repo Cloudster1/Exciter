@@ -5,12 +5,13 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Attaching files (#312): dropped on the panel, chosen through the button, refused when too large, and offered to
 // a reader only to read.
 
 const KEY = uniqueKey("DROP");
-const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
+const REQUIREMENT = `/projects/${KEY}/r/${KEY}-R1`;
 // The stack's EXCITER_UPLOAD_LIMIT, 50 MB, and a byte past it.
 const TOO_LARGE = 50 * 1024 * 1024 + 1;
 
@@ -64,17 +65,10 @@ test.describe("attaching files", { tag: "@desktop" }, () => {
     await expect(panel.locator('[data-attachment="large.bin"]')).toHaveCount(0);
 
     const me = must(await api.GET("/auth/me")).user;
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        params: { path: { projectKey: KEY } },
-        body: {
-          grants: [
-            { subject: { type: "user", id: me.id }, role: "admin" },
-            { subject: { type: "user", id: people.bob.id }, role: "viewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: me.id }, role: "admin" },
+      { subject: { type: "user", id: people.bob.id }, role: "viewer" },
+    ]);
     const bob = await pageAs("bob");
     const bobs = bob.locator("[data-attachments]");
     await openUntil(bob, REQUIREMENT, () => expect(bob.getByText("You may read this project but not change its requirements.")).toBeVisible(ONE_LOOK));

@@ -51,7 +51,7 @@ test.describe("history pages", { tag: "@desktop" }, () => {
   test("a reader walks the pages of a long history, opens one revision and loads the older activity", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Long history" } }));
     const key = await revised(api, REVISIONS);
-    const history = `/p/${KEY}/r/${key}/history`;
+    const history = `/projects/${KEY}/r/${key}/history`;
 
     await page.goto(history);
     await expect(page.locator(`[data-revision-row="${REVISIONS}"]`)).toBeVisible();
@@ -94,7 +94,7 @@ test.describe("history pages", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Long history" } }));
     const key = await revised(api, 3);
 
-    await page.goto(`/p/${KEY}/r/${key}/history`);
+    await page.goto(`/projects/${KEY}/r/${key}/history`);
     const compare = page.locator('[data-action="compare-selected"]');
     await expect(compare).toBeDisabled();
     await page.getByRole("checkbox", { name: "Select Revision 1 to compare" }).check();

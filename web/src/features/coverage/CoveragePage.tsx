@@ -14,7 +14,7 @@ import {
 } from "@/api/coverage";
 import { useTypes } from "@/api/attributes";
 import type { Project } from "@/api/projects";
-import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Checkbox, Chip, EmptyState, ErrorBanner, IconButton, PageHeader, SectionTitle, Select, Skeleton, Tag, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COVERAGE_PAGE_SIZE } from "@/config";
 import { t } from "@/i18n";
@@ -23,13 +23,13 @@ import { Pages } from "./Pages";
 /** A project's coverage: the report and its rules, and the way to its traceability matrix. */
 export function CoveragePage({ project }: { project: Project }) {
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-coverage={project.key}>
+    <Page width="content" className="space-y-4" data-coverage={project.key}>
       <PageHeader
         title={t.coverage.title}
         meta={t.coverage.intro}
         actions={
           <Link
-            to="/p/$projectKey/matrix"
+            to="/projects/$projectKey/matrix"
             params={{ projectKey: project.key }}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
             data-action="open-matrix"
@@ -41,7 +41,7 @@ export function CoveragePage({ project }: { project: Project }) {
       />
       <Report project={project} />
       <Rules project={project} />
-    </div>
+    </Page>
   );
 }
 
@@ -113,7 +113,7 @@ function Report({ project }: { project: Project }) {
             {data.rows.map((row) => (
               <li key={row.requirement.id} className="flex flex-wrap items-center gap-2 py-2" data-coverage-row={row.requirement.key}>
                 <Link
-                  to="/p/$projectKey/r/$reqKey"
+                  to="/projects/$projectKey/r/$reqKey"
                   params={{ projectKey: project.key, reqKey: row.requirement.key }}
                   className="min-w-0 flex-1 truncate text-sm text-ink hover:text-accent hover:underline"
                 >

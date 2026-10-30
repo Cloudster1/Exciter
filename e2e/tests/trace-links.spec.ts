@@ -49,7 +49,7 @@ test.describe("trace links", { tag: "@desktop" }, () => {
 
   test("alice links requirements, reads a link from both ends, is refused a circle, and removes a link", async ({ page, api }) => {
     await makeProject(api);
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.locator("[data-requirement-links]");
     await expect(panel).toContainText("Nothing is linked to this requirement yet.");
     await link(page, "This requirement derives from", `${KEY}-R2`);
@@ -57,19 +57,19 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     await expect(page.getByText(`Linked: derives from ${KEY}-R2.`)).toBeAttached();
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     await expect(panel.locator(`[data-link-group="derives:incoming"] [data-link="${KEY}-R1"]`)).toContainText("Pay the basket");
     await link(page, "This requirement derives from", `${KEY}-R3`);
     await expect(panel.locator(`[data-link="${KEY}-R3"]`)).toBeVisible();
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R3`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R3`);
     await link(page, "This requirement derives from", `${KEY}-R1`);
     await expect(panel.getByRole("alert")).toContainText(`${KEY}-R1 already derives from ${KEY}-R3 through ${KEY}-R2`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await panel.getByRole("button", { name: `Remove the link derives from ${KEY}-R2` }).click();
     await expect(panel).toContainText("Nothing is linked to this requirement yet.");
-    await page.goto(`/p/${KEY}/r/${KEY}-R2/history?tab=activity`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2/history?tab=activity`);
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`${KEY}-R1`);
   });
 
@@ -78,7 +78,7 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: ELSEWHERE, name: "Ledger" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: ELSEWHERE } }, body: { title: "Ledger keeps every payment" } }));
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const form = page.getByRole("form", { name: "Add a link" });
     const picker = form.getByRole("combobox", { name: "Requirement" });
     await form.getByRole("combobox", { name: "Link type" }).selectOption({ label: "This requirement derives from" });
@@ -96,13 +96,13 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     await expect(panel.locator(`[data-link-group="derives:outgoing"] [data-link="${ELSEWHERE}-R1"]`)).toContainText("Ledger keeps every payment");
     await expect(panel.locator(`[data-link="${KEY}-R2"]`)).toHaveCount(0);
 
-    await page.goto(`/p/${ELSEWHERE}/r/${ELSEWHERE}-R1`);
+    await page.goto(`/projects/${ELSEWHERE}/r/${ELSEWHERE}-R1`);
     await expect(panel.locator(`[data-link-group="derives:incoming"] [data-link="${KEY}-R1"]`)).toContainText("Pay the basket");
   });
 
   test("alice makes a link type for all projects, and a project turns it off", async ({ page, api }) => {
     await makeProject(api);
-    await page.goto("/settings/link-types");
+    await page.goto("/admin/link-types");
     await expect(page.locator('[data-link-type="derives"]')).toBeVisible();
     await page.locator('[data-action="new-link-type"]').click();
     await page.getByRole("textbox", { name: "Name" }).fill(NAME);
@@ -112,17 +112,17 @@ test.describe("trace links", { tag: "@desktop" }, () => {
     await page.locator('[data-action="save-link-type"]').click();
     await expect(page.locator(`[data-link-type="${MADE}"]`)).toContainText(`${READS} / is mitigated by`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const types = page.getByRole("form", { name: "Add a link" }).getByRole("combobox", { name: "Link type" });
     await expect(types.locator("option", { hasText: `This requirement ${READS}` })).toHaveCount(1);
 
-    await page.goto(`/p/${KEY}/settings?tab=links`);
+    await page.goto(`/projects/${KEY}/settings/links`);
     // The box shows what the server holds, so it clears once the list is read again.
     await page.getByRole("checkbox", { name: `Use ${NAME} in this project` }).click();
     await expect(page.getByRole("checkbox", { name: `Use ${NAME} in this project` })).not.toBeChecked();
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(types.locator("option", { hasText: "This requirement derives from" })).toHaveCount(1);
     await expect(types.locator("option", { hasText: `This requirement ${READS}` })).toHaveCount(0);
   });

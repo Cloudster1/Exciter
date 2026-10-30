@@ -45,7 +45,7 @@ export const tokensDe: typeof tokensEn = {
   revoke: "Widerrufen",
   revokeLabel: (name: string) => `${name} widerrufen`,
   revokeOwnedLabel: (name: string, owner: string) => `${name} von ${owner} widerrufen`,
-  confirmRevoke: (name: string) => `${name} widerrufen? Alles, was es nutzt, wird ab jetzt abgewiesen.`,
+  confirmRevoke: "Alles, was es nutzt, wird ab jetzt abgewiesen.",
   revoked: (name: string) => `${name} wurde widerrufen.`,
   mcpTitle: "Einen Assistenten anbinden",
   mcpBody: "Ein Assistent, der das Model Context Protocol spricht, kann unter der Adresse unten in Ihrem Namen Anforderungen suchen, lesen und schreiben.",
@@ -57,8 +57,7 @@ export const tokensDe: typeof tokensEn = {
   mcpReadOnly: "Mit einem Token nur zum Lesen bekommt der Assistent nur die Werkzeuge, die lesen, und ändert nie eine Anforderung.",
   mcpProjects: "Mit einem auf Projekte beschränkten Token sieht der Assistent nur diese Projekte und bekommt die Werkzeuge, die alle betreffen, nicht.",
   mcpTokenPlaceholder: "<Ihr Token>",
-  allTitle: "Alle Zugriffstoken",
+  allTitle: "Token aller",
   allIntro: "Die persönlichen Zugriffstoken aller, jeweils mit Inhaber. Widerrufen Sie eines, das nicht mehr gelten soll.",
   allEmpty: "Noch niemand hat ein Token erstellt.",
-  notAdmin: "Nur ein Administrator sieht die Token aller. Ihre eigenen finden Sie unter Ihrem Konto.",
 };

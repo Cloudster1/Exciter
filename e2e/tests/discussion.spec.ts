@@ -4,7 +4,8 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // The edges of the discussion (#312): a comment cancelled, edited to mention bob, resolved and reopened; another's
 // comment moderated; and a reader, and a member without a grant, kept out of it.
@@ -33,7 +34,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
   test("alice cancels, then edits her comment to mention bob, who hears of it, resolves and reopens", async ({ page, api, pageAs, people }) => {
     await projectWithOne(api, TALK);
-    const requirement = `/p/${TALK}/r/${TALK}-R1`;
+    const requirement = `/projects/${TALK}/r/${TALK}-R1`;
     await page.goto(requirement);
     const discussion = page.getByRole("region", { name: "Discussion" });
     await discussion.getByRole("button", { name: "Comment" }).click();
@@ -86,7 +87,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
   test("alice deletes bob's comment, and a reader and a member without a grant stay out", async ({ page, api, apiAs, pageAs, people }) => {
     await projectWithOne(api, RULE);
     const reqKey = `${RULE}-R1`;
-    const requirement = `/p/${RULE}/r/${reqKey}`;
+    const requirement = `/projects/${RULE}/r/${reqKey}`;
     const reqPath = { params: { path: { reqKey } } };
     const bobsThread = must(
       await (await apiAs("bob")).POST("/requirements/{reqKey}/comments", { ...reqPath, body: { bodyMarkdown: "This is off topic." } }),
@@ -97,14 +98,10 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
     const discussion = page.getByRole("region", { name: "Discussion" });
     await openUntil(page, requirement, () => expect(discussion.getByRole("article")).toContainText("This is off topic.", ONE_LOOK));
-    let asked = "";
-    page.once("dialog", (dialog) => {
-      asked = dialog.message();
-      void dialog.accept();
-    });
     await discussion.locator(`[data-comment="${bobsThread.id}"]`).getByRole("button", { name: "Delete" }).click();
+    await expect(page.locator("[data-confirm]")).toContainText(`Delete ${people.bob.name}'s comment?`);
+    await confirm(page);
     await expect(discussion.getByText("This comment was deleted.")).toBeVisible();
-    expect(asked).toContain(`Delete ${people.bob.name}'s comment?`);
     const bob = await pageAs("bob");
     const bobs = bob.getByRole("region", { name: "Discussion" });
     await openUntil(bob, requirement, () => expect(bobs.getByText("This comment was deleted.")).toBeVisible(ONE_LOOK));
@@ -113,16 +110,11 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
     const me = must(await api.GET("/auth/me")).user;
     const grants = (bobRole?: "viewer") =>
-      api.PUT("/projects/{projectKey}/grants", {
-        params: { path: { projectKey: RULE } },
-        body: {
-          grants: [
-            { subject: { type: "user", id: me.id }, role: "admin" },
-            ...(bobRole ? [{ subject: { type: "user" as const, id: people.bob.id }, role: bobRole }] : []),
-          ],
-        },
-      });
-    must(await grants());
+      setProjectGrants(api, RULE, [
+        { subject: { type: "user", id: me.id }, role: "admin" },
+        ...(bobRole ? [{ subject: { type: "user" as const, id: people.bob.id }, role: bobRole }] : []),
+      ]);
+    await grants();
     await page.goto(requirement);
     await discussion.getByRole("button", { name: "Comment" }).click();
     await page.locator("#new-comment").click();
@@ -135,7 +127,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
     await page.keyboard.press("Escape");
     await discussion.getByRole("button", { name: "Cancel" }).click();
 
-    must(await grants("viewer"));
+    await grants("viewer");
     await openUntil(bob, requirement, () => expect(bobs.getByText(/You may read this discussion but not take part/)).toBeVisible(ONE_LOOK));
     await expect(bobs.getByRole("article")).toContainText("Let us keep to the brakes.");
     await expect(bobs.getByRole("button", { name: "Comment" })).toHaveCount(0);

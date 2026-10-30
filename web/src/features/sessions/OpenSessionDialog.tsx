@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useBaselines } from "@/api/baselines";
 import { ApiError } from "@/api/client";
@@ -6,7 +6,7 @@ import { subjectKey, type Subject } from "@/api/permissions";
 import type { Project } from "@/api/projects";
 import { useSessionActions, type SessionInput, type SessionScope } from "@/api/sessions";
 import { useTree } from "@/api/tree";
-import { Button, Dialog, ErrorBanner, Field, IconButton, Select, SelectInput } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Field, IconButton, Select, SelectInput, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SESSION_TITLE_MAX_LENGTH } from "@/config";
 import { SubjectGlyph, SubjectPicker } from "@/features/permissions/SubjectPicker";
@@ -18,6 +18,7 @@ type Since = "" | "approved" | "baseline";
 
 /** Opens a review session over a section, a baseline or a query, with who takes part, a deadline and a quorum (#204). */
 export function OpenSessionDialog({ project, scope: initial, onClose }: { project: Project; scope?: Partial<SessionScope>; onClose: () => void }) {
+  const formId = useId();
   const { open } = useSessionActions(project.key);
   const navigate = useNavigate();
   const { data: tree } = useTree(project.key);
@@ -58,13 +59,13 @@ export function OpenSessionDialog({ project, scope: initial, onClose }: { projec
       since: since === "approved" ? { base: "approved" } : since === "baseline" && sinceBaseline ? { base: "baseline", baselineId: sinceBaseline } : undefined,
     };
     open.mutate(body, {
-      onSuccess: (made) => void navigate({ to: "/p/$projectKey/sessions/$sessionId", params: { projectKey: project.key, sessionId: made.id } }),
+      onSuccess: (made) => void navigate({ to: "/projects/$projectKey/sessions/$sessionId", params: { projectKey: project.key, sessionId: made.id } }),
     });
   }
 
   return (
-    <Dialog title={t.sessions.openTitle} onClose={onClose} wide data-open-session="">
-      <form onSubmit={submit} className="space-y-3" noValidate aria-label={t.sessions.openTitle}>
+    <Dialog open title={t.sessions.openTitle} onClose={onClose} size="lg" attrs={{ "data-open-session": "" }}>
+      <form id={formId} onSubmit={submit} className="space-y-3" noValidate aria-label={t.sessions.openTitle}>
         {open.error && Object.keys(fields).length === 0 && <ErrorBanner>{open.error.message}</ErrorBanner>}
         <Field
           label={t.sessions.name}
@@ -191,14 +192,14 @@ export function OpenSessionDialog({ project, scope: initial, onClose }: { projec
             onChange={(event) => setQuorum(event.target.value)}
           />
         </div>
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t.sessions.cancel}
           </Button>
-          <Button type="submit" loading={open.isPending} disabled={!title.trim()} data-action="open-session-send">
+          <Button type="submit" form={formId} loading={open.isPending} disabled={!title.trim()} data-action="open-session-send">
             {t.sessions.openSend}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

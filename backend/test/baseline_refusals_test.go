@@ -60,7 +60,7 @@ func (s *baselineScene) baselineRow(t *testing.T, id string) string {
 // wall takes the project from everyone, so only those granted it read it; carol keeps reading it by a grant of her own.
 func (s *baselineScene) wall(t *testing.T) {
 	t.Helper()
-	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 		t.Fatal(err)
 	}
 	s.h.grantAs(t, s.projectID, s.carolID, "viewer")
@@ -370,7 +370,7 @@ func TestABaselineIsSignedAfterSigningInAgainAtTheProvider(t *testing.T) {
 		resp, body := b.postJSON(t, "/api/v1/baselines/"+id+"/signatures", map[string]any{"meaning": got["meaning"], "reauthentication": proof})
 		return resp.StatusCode, body
 	}
-	page := "/p/" + key + "/baselines/" + first
+	page := "/projects/" + key + "/baselines/" + first
 	landing, err := url.Parse(b.reauthenticate(t, "alice", alicePassword, page))
 	if err != nil || landing.Path != page || landing.Query().Get("signature") == "" {
 		t.Fatalf("the re-authentication landed on %v", landing)

@@ -360,17 +360,19 @@ type member struct {
 // suffix is unique per call, so repeated runs against a kept database do not collide.
 func (h *harness) suffix() string { return uuid.NewString()[:8] }
 
-// owner makes somebody an owner of the installation, who goes when the whole test ends, after its projects.
+// owner makes somebody a member of the installation who administers it, as an owner of before did, and who goes
+// when the whole test ends, after its projects.
 func (h *harness) owner(t *testing.T, label string) member {
 	t.Helper()
 	ctx := context.Background()
 	var m member
 	email := fmt.Sprintf("%s-%s@example.test", label, h.suffix())
-	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, $2, 'owner') RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, $2, 'member') RETURNING id`,
 		email, "Person of "+label).Scan(&m.user); err != nil {
 		t.Fatalf("create the owner %s: %v", email, err)
 	}
 	h.later(t, m.user)
+	h.administers(t, m.user)
 	m.ctx = db.WithUser(ctx, m.user)
 	h.settle(t)
 	return m

@@ -5,7 +5,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast } from "../fixtures/shell";
 import { PRINTED } from "../fixtures/stack";
 
 // Dashboards shared and arranged (#319): alice shares a dashboard bob then reads by its address, copies its link,
@@ -55,13 +55,13 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
 
   test("alice shares a dashboard, bob reads it by its address, and loses it when she stops", async ({ page, api, pageAs }) => {
     await makeProject(api);
-    await page.goto(`/p/${KEY}/dashboards`);
+    await page.goto(`/projects/${KEY}/dashboards`);
     await page.locator('[data-action="new-dashboard"]').click();
     await page.getByLabel("Name", { exact: true }).fill("Brakes");
     await page.locator('[data-action="create-dashboard"]').click();
     await expect(page.getByRole("heading", { level: 1, name: "Brakes" })).toBeVisible();
     const address = new URL(page.url()).pathname;
-    expect(address).toMatch(new RegExp(`^/p/${KEY}/dashboards/[0-9a-f-]{36}$`));
+    expect(address).toMatch(new RegExp(`^/projects/${KEY}/dashboards/[0-9a-f-]{36}$`));
     const titles = await page.locator("[data-dashboard-grid] > li").evaluateAll((items) => items.map((item) => item.getAttribute("data-widget")));
     expect(titles.length).toBeGreaterThan(0);
 
@@ -81,14 +81,16 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
     await expectAccessible(bob);
     // While shared, Brakes is in bob's list, so its absence later is the unsharing and not a list that never shows it.
     const sharedWithBob = bob.getByRole("region", { name: "Shared with the project" }).locator('[data-dashboard-item="Brakes"]');
-    await openUntil(bob, `/p/${KEY}/dashboards`, () => expect(sharedWithBob).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/dashboards`, () => expect(sharedWithBob).toBeVisible(ONE_LOOK));
     await expect(sharedWithBob).toContainText("By Alice");
 
     await page.locator('[data-action="arrange-dashboard"]').click();
     await page.locator('[data-action="share-dashboard"]').click();
     await expect(page.locator('[data-action="share-dashboard"]')).toHaveText("Share");
     // Bob keeps no dashboard of his own, so the list is empty once Brakes is no longer shared.
-    await openUntil(bob, `/p/${KEY}/dashboards`, () => expect(bob.getByText("No dashboard yet. Make one, from a template or empty.")).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/dashboards`, () =>
+      expect(bob.getByText("No dashboard yet. Make one, from a template or empty.")).toBeVisible(ONE_LOOK),
+    );
     await expect(bob.locator('[data-dashboard-item="Brakes"]')).toHaveCount(0);
     await bob.goto(address);
     await expect(bob.getByText("That dashboard or widget was not found. It may have been deleted, or not shared with you.")).toBeVisible();
@@ -99,7 +101,7 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
     await makeProject(api);
     const dashboard = await makeDashboard(api, "Brake report", true);
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-    await page.goto(`/p/${KEY}/dashboards/${dashboard.id}`);
+    await page.goto(`/projects/${KEY}/dashboards/${dashboard.id}`);
     await expect(page.locator('[data-widget="By priority"] [data-bar]')).toHaveCount(2);
 
     await page.locator('[data-action="copy-dashboard-link"]').click();
@@ -121,7 +123,7 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
   test("alice renames a dashboard and changes, widens and removes its widgets, then deletes it", async ({ page, api }) => {
     await makeProject(api);
     const dashboard = await makeDashboard(api, "Brakes", false);
-    await page.goto(`/p/${KEY}/dashboards/${dashboard.id}`);
+    await page.goto(`/projects/${KEY}/dashboards/${dashboard.id}`);
     await page.locator('[data-action="arrange-dashboard"]').click();
 
     const settings = page.locator("[data-dashboard-settings]");
@@ -157,20 +159,20 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
 
     await page.locator('[data-action="arrange-dashboard"]').click();
     await page.locator('[data-action="delete-dashboard"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/dashboards$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/dashboards$`));
     await expect(page.locator('[data-dashboard-item="Pedals"]')).toHaveCount(0);
   });
 
   test("alice makes a shared dashboard the project's home, which shows it above the requirements", async ({ page, api }) => {
     await makeProject(api);
     const dashboard = await makeDashboard(api, "Overview", true);
-    await page.goto(`/p/${KEY}/settings`);
+    await page.goto(`/projects/${KEY}/settings/details`);
     await page.getByLabel("Home dashboard").selectOption({ label: "Overview" });
     const details = page.locator("[data-project-details]");
     await details.getByRole("button", { name: "Save" }).click();
-    await expect(details.getByText("Saved.")).toBeVisible();
+    await expect(toast(page, "Saved.")).toBeVisible();
 
-    await page.goto(`/p/${KEY}`);
+    await page.goto(`/projects/${KEY}`);
     const home = page.locator("[data-home-dashboard]");
     await expect(home.locator('[data-widget-card="breakdown"] [data-bar]')).toHaveCount(2);
     await expect(home.locator('[data-widget-card="count"]')).toBeVisible();
@@ -182,7 +184,7 @@ test.describe("dashboards shared and arranged", { tag: "@desktop" }, () => {
     expect(dashboardBox && listBox && dashboardBox.y + dashboardBox.height <= listBox.y, "the dashboard ends above the requirements").toBe(true);
     await expectAccessible(page);
     await home.getByRole("link", { name: "Overview" }).click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/dashboards/${dashboard.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/dashboards/${dashboard.id}$`));
     await expect(page.locator("main").getByText("Home", { exact: true })).toBeVisible();
   });
 

@@ -53,8 +53,8 @@ func TestASessionOverTheAPI(t *testing.T) {
 	}
 
 	signedIn := want(t, b.post(t, "/api/v1/auth/login", map[string]any{"email": email, "password": adminPassword}), http.StatusOK, "sign in")
-	if signedIn.Body["role"] != "owner" || obj(t, signedIn, "installation")["name"] == "" {
-		t.Errorf("the session lands as %s, want the installation's owner", signedIn.Raw)
+	if signedIn.Body["role"] != "member" || signedIn.Body["administers"] != true || obj(t, signedIn, "installation")["name"] == "" {
+		t.Errorf("the session lands as %s, want a member who administers the installation", signedIn.Raw)
 	}
 	if _, listed := signedIn.Body["organizations"]; listed {
 		t.Errorf("the sign-in still lists organizations: %s", signedIn.Raw)
@@ -181,9 +181,10 @@ func TestTheBootstrapIsIdempotent(t *testing.T) {
 		t.Errorf("the replaced password still signs in: %v", err)
 	}
 	var role string
+	var administers bool
 	if err := h.super.QueryRow(context.Background(), `
-		SELECT role FROM app_user WHERE email = $1 AND role IS NOT NULL`, email).Scan(&role); errors.Is(err, pgx.ErrNoRows) || role != "owner" {
-		t.Errorf("the administrator is %q (%v), want the owner", role, err)
+		SELECT role, perm_is_administrator(id) FROM app_user WHERE email = $1 AND role IS NOT NULL`, email).Scan(&role, &administers); errors.Is(err, pgx.ErrNoRows) || role != "member" || !administers {
+		t.Errorf("the bootstrapped account is %q and administers %v (%v), want a member who administers", role, administers, err)
 	}
 	if _, err := accounts.EnsureAdmin(ctx, email, "", "short"); !errors.Is(err, auth.ErrPasswordTooShort) {
 		t.Errorf("a short password was accepted: %v", err)

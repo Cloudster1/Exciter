@@ -12,7 +12,7 @@ import { expectAccessible } from "../fixtures/shell";
 
 const KEY = uniqueKey("HEAR");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };

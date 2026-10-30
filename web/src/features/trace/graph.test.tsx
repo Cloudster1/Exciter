@@ -117,7 +117,7 @@ describe("the trace graph", () => {
 
   it("draws every node with its marks, says what the reader may not see, and lists the impact by level", async () => {
     stubGraph();
-    await renderAt("/p/CHK/r/CHK-R1/trace");
+    await renderAt("/projects/CHK/r/CHK-R1/trace");
     const canvas = await screen.findByRole("group", { name: /The trace graph of CHK-R1/ });
     await waitFor(() => expect(canvas.querySelectorAll("[data-graph-node]")).toHaveLength(5));
     expect(screen.getByText("2 linked requirements you may not see")).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe("the trace graph", () => {
         return { status: 200, body: { graph } };
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1/trace");
+    await renderAt("/projects/CHK/r/CHK-R1/trace");
     await screen.findByRole("group", { name: /The trace graph of CHK-R1/ });
     await userEvent.selectOptions(screen.getByLabelText("Direction"), "up");
     await userEvent.selectOptions(screen.getByLabelText("Depth"), "4");
@@ -152,7 +152,7 @@ describe("the trace graph", () => {
 
   it("is listed as nested lists, each node below the one it was reached by, with its marks in words", async () => {
     stubGraph();
-    await renderAt("/p/CHK/r/CHK-R1/trace?view=list");
+    await renderAt("/projects/CHK/r/CHK-R1/trace?view=list");
     const list = await screen.findByRole("list", { name: /The trace graph of CHK-R1/ });
     const r3 = within(list).getByText("CHK-R3").closest("li")!;
     expect(within(r3).getByText("WEB-9")).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe("the trace graph", () => {
 
   it("says where a graph too large stops, and offers to zoom and fit it", async () => {
     stubGraph({ "GET /requirements/CHK-R1/graph": { status: 200, body: { graph: { ...graph, truncated: true } } } });
-    await renderAt("/p/CHK/r/CHK-R1/trace");
+    await renderAt("/projects/CHK/r/CHK-R1/trace");
     const stop = await screen.findByText("The graph stops at 5 nodes. Follow fewer levels or link types to see the rest.");
     expect(stop).toHaveAttribute("role", "status");
     for (const name of ["Zoom in", "Zoom out", "Fit the graph"]) {
@@ -179,14 +179,14 @@ describe("the trace graph", () => {
 
   it("says nothing of a stop when the whole graph is drawn", async () => {
     stubGraph();
-    await renderAt("/p/CHK/r/CHK-R1/trace");
+    await renderAt("/projects/CHK/r/CHK-R1/trace");
     await screen.findByRole("group", { name: /The trace graph of CHK-R1/ });
     expect(screen.queryByText(/The graph stops at/)).not.toBeInTheDocument();
   });
 
   it("is reached from the requirement's page", async () => {
     stubGraph({ "GET /requirements/CHK-R1/links": { status: 200, body: { links: [] } } });
-    await renderAt("/p/CHK/r/CHK-R1");
-    expect(await screen.findByRole("link", { name: "Trace graph" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1/trace");
+    await renderAt("/projects/CHK/r/CHK-R1");
+    expect(await screen.findByRole("link", { name: "Trace graph" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1/trace");
   });
 });

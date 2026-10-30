@@ -5,7 +5,7 @@ import { matrixHref, useMatrix } from "@/api/coverage";
 import type { Project } from "@/api/projects";
 import { useStatuses } from "@/api/workflows";
 import { ApiError } from "@/api/client";
-import { ButtonLink, Card, EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/ui";
+import { ButtonLink, Card, EmptyState, ErrorBanner, PageHeader, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { MATRIX_COLUMN_PAGE_SIZE, MATRIX_PAGE_SIZE } from "@/config";
 import { Pages } from "@/features/coverage/Pages";
@@ -35,7 +35,7 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
   const { data: types = [] } = useTypes(project.key);
   const { data: statuses = [] } = useStatuses(project.key);
   const { data: attributes = [] } = useAttributes(project.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   return (
     <div className="space-y-4" data-matrix={project.key}>
       <PageHeader
@@ -44,7 +44,7 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/p/$projectKey/chains"
+              to="/projects/$projectKey/chains"
               params={{ projectKey: project.key }}
               className="text-sm font-medium text-accent hover:underline"
               data-action="open-chains"
@@ -85,13 +85,10 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
           onOpen={(view) => {
             onAddress(view ? fromMatrixView(view) : {});
             // Saving says so before it opens the view saved, which has lost nothing to say.
-            if (view?.dropped.length) setNotice(t.matrix.dropped(view.dropped.length));
+            if (view?.dropped.length) toast.success(t.matrix.dropped(view.dropped.length));
           }}
-          onNotice={setNotice}
+          onNotice={toast.success}
         />
-        <p role="status" className="text-sm text-ink-muted empty:hidden" data-matrix-notice>
-          {notice}
-        </p>
       </div>
       <MatrixToolbar
         project={project}

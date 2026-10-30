@@ -1,21 +1,18 @@
 import { createRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, Page } from "@/components/ui";
 import { INSTALLATION_PATH } from "@/config";
-import { AdminsOnly } from "@/features/auth/AdminsOnly";
 import { InstallationSettings } from "@/features/installation/InstallationSettings";
 import { t } from "@/i18n";
-import { appRoute } from "./app";
+import { adminRoute } from "./admin";
 
-/** Where an administrator renames the installation. */
+/** The installation itself: what it is called, the theme everybody sees until they choose, and the suite demo. */
 export const installationRoute = createRoute({
-  getParentRoute: () => appRoute,
+  getParentRoute: () => adminRoute,
   path: INSTALLATION_PATH,
   component: () => (
-    <AdminsOnly title={t.installation.title} refusal={t.installation.notAdmin}>
-      <div className="mx-auto max-w-3xl">
-        <PageHeader title={t.installation.title} />
-        <InstallationSettings />
-      </div>
-    </AdminsOnly>
+    <Page width="narrow" data-installation-page="">
+      <PageHeader title={t.installation.title} />
+      <InstallationSettings />
+    </Page>
   ),
 });

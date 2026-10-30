@@ -34,6 +34,16 @@ WHERE l.deleted_at IS NULL AND (l.source_id = $1 OR l.target_id = $1)`
 
 const linkOrder = ` ORDER BY lt.project_id IS NOT NULL, lt.id, l.source_id = $1 DESC, op.key, o.number`
 
+// linkWithEnds is live link $1 with its ends s and t in projects sp and tp, each looked up by id: joined freely, the
+// planner may walk the whole requirement index to meet the link, weighing the reader's view of every row on the way.
+const linkWithEnds = `
+	FROM trace_link l
+	CROSS JOIN LATERAL (SELECT * FROM requirement WHERE id = l.source_id OFFSET 0) s
+	CROSS JOIN LATERAL (SELECT * FROM project WHERE id = s.project_id OFFSET 0) sp
+	CROSS JOIN LATERAL (SELECT * FROM requirement WHERE id = l.target_id OFFSET 0) t
+	CROSS JOIN LATERAL (SELECT * FROM project WHERE id = t.project_id OFFSET 0) tp
+	WHERE l.id = $1 AND l.deleted_at IS NULL`
+
 // found is a link as read, before its type is put in.
 type found struct {
 	link   Link
@@ -369,10 +379,7 @@ func (s *Service) Unlink(ctx context.Context, actor, id uuid.UUID) (db.LSN, erro
 			SELECT l.source_id, l.target_id,
 			       perm_requirement_editable(l.source_id, $2) OR perm_requirement_editable(l.target_id, $2),
 			       sp.archived_at IS NOT NULL AND tp.archived_at IS NOT NULL
-			FROM trace_link l
-			JOIN requirement s ON s.id = l.source_id JOIN project sp ON sp.id = s.project_id
-			JOIN requirement t ON t.id = l.target_id JOIN project tp ON tp.id = t.project_id
-			WHERE l.id = $1 AND l.deleted_at IS NULL`, id, actor).Scan(&source, &target, &editable, &archived)
+			`+linkWithEnds, id, actor).Scan(&source, &target, &editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound
 		}

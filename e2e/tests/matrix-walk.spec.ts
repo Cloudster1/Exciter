@@ -56,7 +56,7 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${ROWS_KEY}/matrix`);
+    await page.goto(`/projects/${ROWS_KEY}/matrix`);
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.getByRole("columnheader", { name: `${ROWS_KEY}-R2` })).toBeVisible();
     await page.getByLabel("Columns from").selectOption({ label: "Caliper columns" });
@@ -79,7 +79,7 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
       Array.from({ length: PAGED_REQUIREMENTS }, (_, i) => `Brake check ${i + 1}`),
     );
 
-    await page.goto(`/p/${PAGED_KEY}/matrix?columnQuery=${encodeURIComponent("kind = requirement")}`);
+    await page.goto(`/projects/${PAGED_KEY}/matrix?columnQuery=${encodeURIComponent("kind = requirement")}`);
     const address = page.url();
     const matrix = page.getByRole("table", { name: "Matrix" });
     const rows = page.getByRole("navigation", { name: "Matrix" });
@@ -123,7 +123,7 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${SUSPECT_KEY}/matrix`);
+    await page.goto(`/projects/${SUSPECT_KEY}/matrix`);
     await page.getByRole("button", { name: `${SUSPECT_KEY}-R1 to ${SUSPECT_KEY}-R2: Derives (suspect)` }).click();
     const panel = page.getByRole("dialog", { name: `${SUSPECT_KEY}-R1 and ${SUSPECT_KEY}-R2` });
     await expect(panel.getByText("Suspect", { exact: true })).toBeVisible();
@@ -139,10 +139,10 @@ test.describe("walking the traceability matrix", { tag: "@desktop" }, () => {
     await expect(page.getByRole("button", { name: `${SUSPECT_KEY}-R1 to ${SUSPECT_KEY}-R2: Derives`, exact: true })).toBeVisible();
 
     await page.locator('[data-action="open-chains"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${SUSPECT_KEY}/chains$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${SUSPECT_KEY}/chains$`));
     await expect(page.getByRole("heading", { name: "Chains", level: 1 })).toBeVisible();
     await page.locator('[data-action="open-matrix"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${SUSPECT_KEY}/matrix$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${SUSPECT_KEY}/matrix$`));
     await expect(page.getByRole("button", { name: `${SUSPECT_KEY}-R1 to ${SUSPECT_KEY}-R2: Derives`, exact: true })).toBeVisible();
   });
 });

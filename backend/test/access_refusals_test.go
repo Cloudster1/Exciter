@@ -45,9 +45,7 @@ func TestAProjectAdministratorByGrantRunsItAndAnEditorDoesNot(t *testing.T) {
 	adminID, editorID := f.h.namedPerson(t, "Ada Granted"), f.h.namedPerson(t, "Eddie Editor")
 	admin, editor := f.api.as(t, adminID), f.api.as(t, editorID)
 	id := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Granted"}), http.StatusCreated, "make a project"), "project")["id"].(string)
-	grants := func(c *client, rows ...map[string]any) response {
-		return c.put(t, "/api/v1/projects/"+key+"/grants", map[string]any{"grants": rows})
-	}
+	grants := func(c *client, rows ...any) response { return c.setGrants(t, key, rows) }
 	want(t, grants(f.owner,
 		grantRow(subjectOf("user", f.home.user), "admin"),
 		grantRow(subjectOf("user", adminID), "admin"),
@@ -84,13 +82,13 @@ func TestAProjectAdministratorByGrantRunsItAndAnEditorDoesNot(t *testing.T) {
 		if got["key"] != moved || len(got["formerKeys"].([]any)) != 1 || got["formerKeys"].([]any)[0] != key {
 			t.Errorf("the key moved to %v", got)
 		}
-		replaced := want(t, admin.put(t, "/api/v1/projects/"+moved+"/grants", map[string]any{"grants": []any{
+		want(t, admin.setGrants(t, moved, []any{
 			grantRow(subjectOf("user", f.home.user), "admin"),
 			grantRow(subjectOf("user", adminID), "admin"),
 			grantRow(subjectOf("user", editorID), "viewer"),
-		}}), http.StatusOK, "replace the grants")
-		if rows := rolesOf(t, replaced); !slices.ContainsFunc(rows, func(r string) bool { return r == "user:Eddie Editor=viewer" }) {
-			t.Errorf("the editor is not a viewer after the replacement: %v", rows)
+		}), http.StatusOK, "replace the grants")
+		if rows := admin.grantsOf(t, moved); !slices.Contains(rows, "viewer:Eddie Editor") || slices.Contains(rows, "editor:Eddie Editor") {
+			t.Errorf("the editor is not a viewer alone after the replacement: %v", rows)
 		}
 		if can := obj(t, want(t, editor.get(t, "/api/v1/projects/"+moved), http.StatusOK, "read as the viewer"), "project", "can"); can["edit"] != false {
 			t.Errorf("the replaced grants still let the editor edit: %v", can)
@@ -99,12 +97,12 @@ func TestAProjectAdministratorByGrantRunsItAndAnEditorDoesNot(t *testing.T) {
 
 	t.Run("an archived project is deleted by its administrator alone", func(t *testing.T) {
 		// Eddie is an editor again, so the refusals below are an editor's and not a viewer's.
-		regranted := want(t, admin.put(t, "/api/v1/projects/"+moved+"/grants", map[string]any{"grants": []any{
+		want(t, admin.setGrants(t, moved, []any{
 			grantRow(subjectOf("user", f.home.user), "admin"),
 			grantRow(subjectOf("user", adminID), "admin"),
 			grantRow(subjectOf("user", editorID), "editor"),
-		}}), http.StatusOK, "make him an editor again")
-		if rows := rolesOf(t, regranted); !slices.Contains(rows, "user:Eddie Editor=editor") {
+		}), http.StatusOK, "make him an editor again")
+		if rows := admin.grantsOf(t, moved); !slices.Contains(rows, "editor:Eddie Editor") {
 			t.Fatalf("Eddie is not an editor again: %v", rows)
 		}
 		if can := obj(t, want(t, editor.get(t, "/api/v1/projects/"+moved), http.StatusOK, "read as the editor again"), "project", "can"); can["edit"] != true || can["administer"] != false {
@@ -126,31 +124,30 @@ func TestAProjectAdministratorByGrantRunsItAndAnEditorDoesNot(t *testing.T) {
 	})
 }
 
-// An administrator by grant may hand the project over, dropping their own admin grant in the table they save.
+// An administrator by grant may hand the project over, taking their own admin grant away once another holds one.
 func TestAnAdministratorByGrantHandsTheProjectOver(t *testing.T) {
 	key := projectKey(t, "PAH")
 	f := newProjectFixture(t)
 	leavingID := f.h.namedPerson(t, "Lea Leaving")
 	leaving := f.api.as(t, leavingID)
 	want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Handed over"}), http.StatusCreated, "make a project")
-	grants := "/api/v1/projects/" + key + "/grants"
-	want(t, f.owner.put(t, grants, map[string]any{"grants": []any{grantRow(subjectOf("user", leavingID), "admin")}}), http.StatusOK, "make her its administrator")
+	want(t, f.owner.setGrants(t, key, []any{grantRow(subjectOf("user", leavingID), "admin")}), http.StatusOK, "make her its administrator")
 
-	handed := want(t, leaving.put(t, grants, map[string]any{"grants": []any{
+	want(t, leaving.setGrants(t, key, []any{
 		grantRow(subjectOf("user", f.home.user), "admin"),
 		grantRow(subjectOf("user", leavingID), "editor"),
-	}}), http.StatusOK, "hand the project over")
-	sameList(t, "the grants she saved", rolesOf(t, handed), "user:Lea Leaving=editor", "user:Person of projects=admin")
-	sameList(t, "the grants as stored", rolesOf(t, want(t, f.owner.get(t, grants), http.StatusOK, "read the grants")), "user:Lea Leaving=editor", "user:Person of projects=admin")
+	}), http.StatusOK, "hand the project over")
+	sameList(t, "the grants as stored", f.owner.grantsOf(t, key), "admin:Person of projects", "editor:Lea Leaving")
 	if can := obj(t, want(t, leaving.get(t, "/api/v1/projects/"+key), http.StatusOK, "read as the editor she is now"), "project", "can"); can["administer"] != false || can["edit"] != true {
 		t.Errorf("after handing it over she reads %v", can)
 	}
-	refuse(t, "her saving again", leaving.put(t, grants, map[string]any{"grants": []any{grantRow(subjectOf("user", leavingID), "admin")}}), http.StatusForbidden, "forbidden")
+	refuse(t, "her granting herself again", leaving.post(t, "/api/v1/role-assignments", map[string]any{"role": "admin", "projectKey": key, "userId": leavingID}),
+		http.StatusForbidden, "forbidden")
 }
 
-// A mapping is an administrator's alone to remove, and posting a mapped group again changes its one row in place,
-// which the next sign-in follows.
-func TestAGroupRoleIsChangedInPlaceAndKeptFromMembers(t *testing.T) {
+// A group's grant across the installation is an administrator's alone to give and take, granting it again is the
+// one grant, and the next sign-in follows it.
+func TestAGroupsGrantIsKeptFromMembers(t *testing.T) {
 	h := newHarness(t)
 	kc := newKeycloak(t)
 	a := newAPIServer(t, h)
@@ -160,42 +157,38 @@ func TestAGroupRoleIsChangedInPlaceAndKeptFromMembers(t *testing.T) {
 	admin, _ := adminOf(t, h, a)
 	member := a.as(t, h.addPerson(t, "member"))
 	const group = "exciter-administrators"
-	mapping := func() (string, string) {
-		var id, role string
-		if err := h.super.QueryRow(context.Background(), `SELECT id, role FROM oidc_group_role WHERE group_ref = $1`, group).Scan(&id, &role); err != nil {
-			t.Fatalf("read the mapping: %v", err)
-		}
-		return id, role
+
+	id := mapGroup(t, admin, group, "administrator")
+	if b := signedIn(t, a, "alice", alicePassword); !b.administers(t) {
+		t.Fatal("alice does not administer with her group granted the administrator role")
 	}
 
-	id := mapGroup(t, admin, group, "admin")
-	if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "admin" {
-		t.Fatalf("alice is %q with her group mapped to admin", role)
-	}
-
-	t.Run("a member unmaps nothing", func(t *testing.T) {
-		refuse(t, "a member unmaps the group", member.delete(t, groupRolesPath+"/"+id), http.StatusForbidden, "forbidden")
-		if got, role := mapping(); got != id || role != "admin" {
-			t.Fatalf("the mapping is %s to %s after a member's refusal, want %s to admin", got, role, id)
+	t.Run("a member takes nothing away and grants nothing", func(t *testing.T) {
+		refuse(t, "a member takes the group's grant", member.delete(t, "/api/v1/role-assignments/"+id), http.StatusForbidden, "forbidden")
+		refuse(t, "a member grants the group a role", member.post(t, "/api/v1/role-assignments", map[string]any{"role": "viewer", "groupId": providerGroup(t, admin, group)}),
+			http.StatusForbidden, "forbidden")
+		if n := h.countRows(t, `SELECT count(*) FROM role_assignment WHERE id = $1`, id); n != 1 {
+			t.Fatal("the group's grant went on a member's refusal")
 		}
 	})
 
-	t.Run("the same group posted again changes its one row", func(t *testing.T) {
-		again := mapGroup(t, admin, group, "member")
-		if again != id {
-			t.Errorf("posting the group again answered the mapping %s, want %s changed in place", again, id)
+	t.Run("the same grant posted again is the one grant", func(t *testing.T) {
+		if again := mapGroup(t, admin, group, "administrator"); again != id {
+			t.Errorf("granting the group again answered the grant %s, want %s", again, id)
 		}
-		if n := h.countRows(t, `SELECT count(*) FROM oidc_group_role WHERE group_ref = $1`, group); n != 1 {
-			t.Fatalf("the group is mapped %d times", n)
+		if n := h.countRows(t, `SELECT count(*) FROM role_assignment a JOIN groups g ON g.id = a.group_id
+			WHERE g.external_ref = $1 AND a.project_id IS NULL AND a.role = 'administrator'`, group); n != 1 {
+			t.Fatalf("the group holds the role %d times", n)
 		}
-		if got, role := mapping(); got != id || role != "member" {
-			t.Fatalf("the mapping is %s to %s, want %s to member", got, role, id)
+	})
+
+	t.Run("taken away, the next sign-in follows", func(t *testing.T) {
+		want(t, admin.delete(t, "/api/v1/role-assignments/"+id), http.StatusNoContent, "take the group's grant")
+		if b := signedIn(t, a, "alice", alicePassword); b.roleIn(t) != "member" || b.administers(t) {
+			t.Fatal("alice still administers after her group's grant went")
 		}
-		if role := signedIn(t, a, "alice", alicePassword).roleIn(t); role != "member" {
-			t.Fatalf("alice is %q at the sign-in after the change, want member", role)
-		}
-		if role, source := h.standing(t, aliceEmail); role != "member" || source != "oidc" {
-			t.Fatalf("alice's membership is %s from %s", role, source)
+		if role := h.standing(t, aliceEmail); role != "member" {
+			t.Fatalf("alice's membership is %s", role)
 		}
 	})
 }

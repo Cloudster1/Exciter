@@ -1,8 +1,8 @@
 import type { SVGProps } from "react";
 import { ICON_SIZE_PX, ICON_STROKE } from "@/config";
 
-// Glyphs drawn here on a 16px grid rather than an icon library, the same set
-// Armature draws: one weight, one corner radius.
+// Glyphs drawn here on a 16px grid rather than an icon library, the one set the
+// suite draws: one weight, one corner radius, and a name drawn alike in every tool.
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "children"> & {
   /** Says what the icon means when it stands alone; beside text it is decoration. */
   label?: string;
@@ -56,23 +56,23 @@ export const Icon = {
   X: makeIcon("x", ["m4 4 8 8", "m12 4-8 8"]),
   Plus: makeIcon("plus", ["M8 3v10", "M3 8h10"]),
   Users: makeIcon("users", ["M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M2.5 14a5.5 5.5 0 0 1 11 0"]),
-  Bold: makeIcon("bold", ["M4.5 3h4a2.5 2.5 0 0 1 0 5h-4z", "M4.5 8h4.5a2.5 2.5 0 0 1 0 5H4.5z"]),
+  Bold: makeIcon("bold", ["M5 3h4a2.5 2.5 0 0 1 0 5H5z", "M5 8h4.5a2.5 2.5 0 0 1 0 5H5z"]),
   Italic: makeIcon("italic", ["M7 3h5", "M4 13h5", "M9.5 3l-3 10"]),
   Strike: makeIcon("strike", [
     "M2.5 8h11",
-    "M11 4.5C10.5 3.5 9.4 3 8 3 6.3 3 5 3.9 5 5.2c0 1 .7 1.6 2 2",
-    "M5 11c.5 1.2 1.6 2 3.2 2 1.8 0 3-.9 3-2.3 0-.6-.2-1.1-.6-1.4",
+    "M11 4.5C10.4 3.6 9.3 3 8 3 6.3 3 5 4 5 5.3c0 .7.3 1.3 1 1.7",
+    "M5 11.5c.6.9 1.7 1.5 3 1.5 1.7 0 3-1 3-2.3 0-.5-.2-1-.5-1.4",
   ]),
-  Code: makeIcon("code", ["m5.5 4.5-3 3.5 3 3.5", "m10.5 4.5 3 3.5-3 3.5"]),
-  Link: makeIcon("link", ["M6.5 9.5a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5l-.5.5", "M9.5 6.5a2.5 2.5 0 0 0-3.5 0l-2 2a2.5 2.5 0 0 0 3.5 3.5l.5-.5"]),
-  Heading: makeIcon("heading", ["M3.5 3v10", "M10.5 3v10", "M3.5 8h7", "M12.5 13h2"]),
-  ListBullet: makeIcon("list-bullet", ["M6 4h7.5", "M6 8h7.5", "M6 12h7.5", "M2.5 4h.01", "M2.5 8h.01", "M2.5 12h.01"]),
-  ListOrdered: makeIcon("list-ordered", ["M6 4h7.5", "M6 8h7.5", "M6 12h7.5", "M2 3l1-.5V6", "M2 9.5c.3-.5 1.8-.6 1.8.3 0 .7-1.8 1.4-1.8 2.2h2"]),
-  Quote: makeIcon("quote", ["M3 4v8", "M6 5h7.5", "M6 8h7.5", "M6 11h5"]),
-  CodeBlock: makeIcon("code-block", ["M2.5 3h11v10h-11z", "m6.5 6.5-1.5 1.5 1.5 1.5", "m9.5 6.5 1.5 1.5-1.5 1.5"]),
-  Rule: makeIcon("rule", ["M2 8h12"]),
-  Table: makeIcon("table", ["M2.5 3h11v10h-11z", "M2.5 6.5h11", "M2.5 10h11", "M6.5 3v10"]),
-  Diagram: makeIcon("diagram", ["M2 2.5h5v4H2z", "M9 9.5h5v4H9z", "M4.5 6.5v5H9"]),
+  Code: makeIcon("code", ["M5.5 5 2.5 8l3 3", "M10.5 5l3 3-3 3", "M9 3.5 7 12.5"]),
+  Link: makeIcon("link", ["M6.5 9.5 9.5 6.5", "M7 4.5l1.3-1.3a2.8 2.8 0 0 1 4 4L11 8.5", "M9 11.5l-1.3 1.3a2.8 2.8 0 0 1-4-4L5 7.5"]),
+  Heading: makeIcon("heading", ["M3.5 3.5v9", "M9.5 3.5v9", "M3.5 8h6", "M12.5 8.5v4"]),
+  Lines: makeIcon("lines", ["M6 4.5h7.5", "M6 8h7.5", "M6 11.5h7.5", "M3 4.5h.01", "M3 8h.01", "M3 11.5h.01"]),
+  OrderedList: makeIcon("ordered-list", ["M6.5 4.5h6", "M6.5 8h6", "M6.5 11.5h6", "M2.5 3.5h1v2.5", "M2.5 9h1.5l-1.5 2h1.5"]),
+  Quote: makeIcon("quote", ["M4 4.5v7", "M7 5h6", "M7 8h6", "M7 11h4"]),
+  CodeBlock: makeIcon("code-block", ["M2.5 2.5h11v11h-11z", "M6 6.5 4.5 8 6 9.5", "M10 6.5 11.5 8 10 9.5"]),
+  Divider: makeIcon("divider", ["M2.5 8h11", "M4.5 4.5h7", "M4.5 11.5h7"]),
+  Table: makeIcon("table", ["M2.5 3h11v10h-11z", "M2.5 6.5h11", "M2.5 10h11", "M7 3v10"]),
+  Diagram: makeIcon("diagram", ["M2 2.5h5v3.5H2z", "M9 10h5v3.5H9z", "M4.5 6v5.75H9"]),
   Everyone: makeIcon("everyone", [
     "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z",
     "M2 8h12",
@@ -117,7 +117,7 @@ export const Icon = {
   Comment: makeIcon("comment", ["M2.5 3.5h11v7.5h-6l-3 2.5V11h-2z"]),
   Bell: makeIcon("bell", ["M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z", "M6.5 13.5a1.5 1.5 0 0 0 3 0"]),
   Eye: makeIcon("eye", ["M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z", "M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"]),
-  Info: makeIcon("info", ["M8 14.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z", "M8 7.5v4", "M8 5h.01"]),
+  Info: makeIcon("info", ["M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12Z", "M8 7.5V11", "M8 5.5h.01"]),
   Book: makeIcon("book", ["M8 4.5C6.5 3.3 4.5 3 2.5 3v9.5c2 0 4 .3 5.5 1.5 1.5-1.2 3.5-1.5 5.5-1.5V3c-2 0-4 .3-5.5 1.5Z", "M8 4.5V14"]),
 } as const;
 

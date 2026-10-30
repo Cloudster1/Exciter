@@ -4,6 +4,7 @@ import { Button, Card, ErrorBanner, Field, IconButton, Segmented, Tag } from "@/
 import { Icon } from "@/components/icons";
 import { KILOBYTE, THEME_ASSET_MAX_BYTES, THEME_CSS_MAX_BYTES, THEME_CSS_ROWS, THEME_ICON_PREVIEW_PX } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { AssetSelect, isImage, type Patch } from "./editorHelpers";
 
 // The editor's tabs for the icons, the backdrop, the theme's files and the extra CSS.
@@ -152,11 +153,12 @@ export function BackdropTab({ spec, patch, assets }: { spec: ThemeSpec; patch: P
   );
 }
 
-export function FilesTab({ theme, spec, onNotice }: { theme?: Theme; spec: ThemeSpec; onNotice: (notice: string) => void }) {
+export function FilesTab({ theme, spec, onNotice }: { theme?: Theme; spec: ThemeSpec; onNotice: (message: string) => void }) {
   const uploadAsset = useUploadThemeAsset();
   const deleteAsset = useDeleteThemeAsset();
   const fileInput = useRef<HTMLInputElement>(null);
   const [tooBig, setTooBig] = useState(false);
+  const confirm = useConfirm();
   if (!theme) {
     return (
       <Card className="p-4">
@@ -222,8 +224,9 @@ export function FilesTab({ theme, spec, onNotice }: { theme?: Theme; spec: Theme
                 label={t.themes.editor.removeFile(a.name)}
                 size="sm"
                 disabled={used.has(a.id) || deleteAsset.isPending}
-                onClick={() => {
-                  if (window.confirm(t.themes.editor.confirmRemoveFile(a.name))) {
+                onClick={async () => {
+                  const noun = t.kit.confirm.things.named(t.kit.confirm.things.file, a.name);
+                  if (await confirm({ noun, verb: t.kit.confirm.verbs.remove, body: t.themes.editor.confirmRemoveFile })) {
                     deleteAsset.mutate({ id: theme.id, assetId: a.id }, { onSuccess: () => onNotice(t.themes.editor.removed(a.name)) });
                   }
                 }}

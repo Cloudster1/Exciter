@@ -41,7 +41,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
   if (n.codeScan) {
     return (
       <Link
-        to="/p/$projectKey/code-tags"
+        to="/projects/$projectKey/code-tags"
         params={{ projectKey: n.codeScan.projectKey }}
         onClick={follow}
         className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
@@ -56,7 +56,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
   if (n.execution) {
     return (
       <Link
-        to="/p/$projectKey/tests/executions/$executionId"
+        to="/projects/$projectKey/tests/executions/$executionId"
         params={{ projectKey: n.execution.projectKey, executionId: n.execution.id }}
         onClick={follow}
         className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
@@ -71,7 +71,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
   if (n.session) {
     return (
       <Link
-        to="/p/$projectKey/sessions/$sessionId"
+        to="/projects/$projectKey/sessions/$sessionId"
         params={{ projectKey: n.session.projectKey, sessionId: n.session.id }}
         onClick={follow}
         className={cx(look, "hover:bg-surface-raised focus-visible:-outline-offset-2")}
@@ -92,7 +92,7 @@ export function NotificationRow({ notification: n, onFollow }: { notification: N
   }
   return (
     <Link
-      to="/p/$projectKey/r/$reqKey"
+      to="/projects/$projectKey/r/$reqKey"
       params={{ projectKey: n.requirement.projectKey, reqKey: n.requirement.key }}
       hash={n.threadId ? threadAnchor(n.threadId) : undefined}
       onClick={() => {

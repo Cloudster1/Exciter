@@ -30,7 +30,7 @@ const transfer = () => ({ dataTransfer: { setData: vi.fn(), effectAllowed: "", d
 describe("the tree from the keyboard", () => {
   it("walks, folds, opens and follows a requirement", async () => {
     stubTree();
-    const router = await renderAt("/p/CHK/spec");
+    const router = await renderAt("/projects/CHK/spec");
     await screen.findByRole("tree");
     item("1 Scope").focus();
     await userEvent.keyboard("{ArrowDown}");
@@ -54,12 +54,12 @@ describe("the tree from the keyboard", () => {
     expect(item("1 Scope")).toHaveFocus();
 
     await userEvent.keyboard("{ArrowDown}{Enter}");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R2"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R2"));
   });
 
   it("moves with M where the project is open to its reader's edits", async () => {
     stubTree();
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("tree");
     expect(item("1.2 Ship")).toHaveAttribute("aria-keyshortcuts", "M");
     expect(item("1.2 Ship")).toHaveAttribute("draggable", "true");
@@ -73,7 +73,7 @@ describe("the tree from the keyboard", () => {
     ["an archived project", aProject({ archivedAt: "2026-10-20T08:00:00Z", archivedByName: "Ada Lovelace" })],
   ])("offers no move to %s", async (_, project) => {
     stubTree(project);
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("tree");
     for (const name of ["1 Scope", "1.1 Pay", "1.2 Ship", "2 Later"]) {
       expect(item(name)).toHaveAttribute("draggable", "false");
@@ -88,7 +88,7 @@ describe("the tree from the keyboard", () => {
 describe("dragging in the tree", () => {
   it("takes no drop below the dragged requirement itself, and one elsewhere", async () => {
     const sent = stubTree();
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("tree");
     fireEvent.dragStart(item("1 Scope"), transfer());
     // An event the tree accepts is one it prevents the default of, which fireEvent answers false.
@@ -123,7 +123,7 @@ describe("a move the server refuses for a status", () => {
         body: { error: { code: "validation_failed", message: "Some fields need attention.", fields: { statusMapping: refusal } } },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("tree");
     item("1.2 Ship").focus();
     await userEvent.keyboard("m");

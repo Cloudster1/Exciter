@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Review sessions (#204): alice opens a session over a section from the document, bob decides each requirement in
 // review mode, a revised one comes back in round two, and alice closes the session with a baseline.
@@ -27,25 +28,18 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     test.setTimeout(60_000);
     const project = { params: { path: { projectKey: KEY } } };
     must(await api.POST("/projects", { body: { key: KEY, name: "Sessions" } }));
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...project,
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "everyone" }, role: "editor" },
-            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "everyone" }, role: "editor" },
+      { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+    ]);
     const write = async (body: Record<string, unknown>) =>
       must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: body as never })).requirement;
     const braking = await write({ kind: "section", title: "Braking" });
     const pads = await write({ title: "Pads wear evenly", place: { parentId: braking.id, afterId: null } });
     const lights = await write({ title: "Lights follow the pedal", place: { parentId: braking.id, afterId: pads.id } });
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await page.locator(`[data-spec-entry="${braking.key}"] [data-action="open-session"]`).click();
     const dialog = page.getByRole("dialog", { name: "Open a review session" });
     await dialog.getByLabel("Title").fill("Braking review");
@@ -80,7 +74,7 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     await page.getByRole("dialog", { name: "Start the next round" }).getByRole("button", { name: "Start" }).click();
     await expect(page.getByText("Round 2 started.")).toBeVisible();
 
-    await openUntil(bob, `/p/${KEY}/spec?session=${new URL(sessionURL).pathname.split("/").pop()}&waiting=true&changes=round`, () =>
+    await openUntil(bob, `/projects/${KEY}/spec?session=${new URL(sessionURL).pathname.split("/").pop()}&waiting=true&changes=round`, () =>
       expect(bob.locator(`[data-spec-entry="${lights.key}"] [data-action="approve-entry"]`)).toBeVisible(ONE_LOOK),
     );
     await bob.locator(`[data-spec-entry="${lights.key}"] [data-action="approve-entry"]`).click();

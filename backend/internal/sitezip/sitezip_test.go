@@ -20,7 +20,7 @@ const printed = `<!doctype html><html><head><style>.print-view{color:black}</sty
 <nav data-print-contents=""><ol><li><a href="#entry-CHK-R1">1 Braking</a></li><li><a href="#entry-CHK-R3">2 Lights</a></li><li><a href="#glossary">Glossary</a></li></ol></nav>
 <section data-print-entry="CHK-R1" data-entry-depth="0"><h2 id="entry-CHK-R1">1 Braking</h2></section>
 <section data-print-entry="CHK-R2" data-entry-depth="1"><h3 id="entry-CHK-R2">1.1 Pedal</h3><p>The pedal shall travel 40 mm, see <a href="#entry-CHK-R3">CHK-R3</a> and <a href="#term-x">brake</a>.</p>
-<img src="/api/v1/attachments/` + picture + `/file?inline=1" alt="pedal"><a href="/p/CHK/r/CHK-R2">open</a></section>
+<img src="/api/v1/attachments/` + picture + `/file?inline=1" alt="pedal"><a href="/projects/CHK/r/CHK-R2">open</a></section>
 <section data-print-entry="CHK-R3" data-entry-depth="0"><h2 id="entry-CHK-R3">2 Lights</h2><p>Lights follow the pedal &lt;/script&gt;.</p></section>
 <section data-print-glossary=""><h2 id="glossary">Glossary</h2><dl><dt id="term-x">Brake</dt></dl></section>
 </article></main></body></html>`
@@ -64,7 +64,7 @@ func TestAPrintedSpecificationBecomesLinkedPagesWithASearch(t *testing.T) {
 	}
 	part := files["part-1.html"]
 	if !strings.Contains(part, "1.1 Pedal") || !strings.Contains(part, `href="part-2.html#entry-CHK-R3"`) || !strings.Contains(part, `href="glossary.html#term-x"`) ||
-		!strings.Contains(part, `src="media/`+picture+`.png"`) || strings.Contains(part, "/p/CHK/r/") || !strings.Contains(part, `rel="next"`) {
+		!strings.Contains(part, `src="media/`+picture+`.png"`) || strings.Contains(part, "/projects/CHK/r/") || !strings.Contains(part, `rel="next"`) {
 		t.Errorf("the first part reads %s", part)
 	}
 	if strings.Contains(files["part-2.html"], "1.1 Pedal") {

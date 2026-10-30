@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useDuplicateSettings, useSaveDuplicateSettings } from "@/api/duplicates";
 import type { Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { DUPLICATE_THRESHOLD_MAX, DUPLICATE_THRESHOLD_MIN, DUPLICATE_THRESHOLD_STEP } from "@/config";
 import { t } from "@/i18n";
 import { percent } from "./SimilarHint";
@@ -15,14 +15,13 @@ const rounded = (value: number) => Math.round(value * PERCENT) / PERCENT;
  * set it. */
 export function DuplicateSettingsCard({ project }: { project: Project }) {
   const { data, error, refetch } = useDuplicateSettings(project.key);
-  // The notice outlives the form, which starts again from the threshold saved.
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!data) return <Skeleton />;
-  return <ThresholdForm key={data.threshold} project={project} saved={data.threshold} notice={notice} onNotice={setNotice} />;
+  return <ThresholdForm key={data.threshold} project={project} saved={data.threshold} />;
 }
 
-function ThresholdForm({ project, saved, notice, onNotice }: { project: Project; saved: number; notice: string; onNotice: (notice: string) => void }) {
+function ThresholdForm({ project, saved }: { project: Project; saved: number }) {
+  const toast = useToast();
   // Typed in whole percent, which is how the rest of the client shows a similarity; sent as the fraction it is.
   const [typed, setTyped] = useState(String(Math.round(saved * PERCENT)));
   const save = useSaveDuplicateSettings(project.key);
@@ -32,11 +31,10 @@ function ThresholdForm({ project, saved, notice, onNotice }: { project: Project;
   const threshold = typed.trim() === "" ? Number.NaN : rounded(Number(typed) / PERCENT);
   function submit(event: FormEvent) {
     event.preventDefault();
-    onNotice("");
     // The saved threshold remounts this form, which drops a mutate call's own onSuccess; the promise resolves regardless.
     void save
       .mutateAsync(threshold)
-      .then(() => onNotice(l.saved))
+      .then(() => toast.success(l.saved))
       .catch(() => {});
   }
   return (
@@ -74,9 +72,6 @@ function ThresholdForm({ project, saved, notice, onNotice }: { project: Project;
         )}
       </form>
       {save.error && Object.keys(fields).length === 0 && <ErrorBanner>{save.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }

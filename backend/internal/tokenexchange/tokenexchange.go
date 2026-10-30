@@ -152,7 +152,7 @@ func Why(partner string, err error) string {
 	var r *Refusal
 	switch {
 	case errors.As(err, &r) && r.Code == "invalid_client":
-		return partner + " did not accept Exciter's client id and secret, so you were not connected at sign-in. An Exciter administrator checks them under Settings, " + partner + "; until then, connect with a token below."
+		return partner + " did not accept Exciter's client id and secret, so you were not connected at sign-in. An Exciter administrator checks them under Admin, " + partner + "; until then, connect with a token below."
 	case errors.As(err, &r) && r.Code == "unauthorized_client":
 		return partner + " does not let Exciter connect people at sign-in yet: " + sentence(r.Description) + " Connect with a token below meanwhile."
 	case errors.As(err, &r):

@@ -90,7 +90,7 @@ describe("the project's watch button", () => {
       "GET /projects/CHK/requirements": { status: 200, body: { requirements: [], total: 0, limit: 50, offset: 0 } },
       "PUT /projects/CHK/watch": broken,
     });
-    await renderAt("/p/CHK");
+    await renderAt("/projects/CHK");
     await userEvent.click(await screen.findByRole("button", { name: "Watch project" }));
     expect(await screen.findByText(t.watch.failed)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch project" })).toHaveAttribute("aria-pressed", "false");

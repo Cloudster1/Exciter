@@ -47,7 +47,7 @@ describe("a requirement's code", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = (await screen.findByRole("heading", { name: "Code" })).closest("[data-code-links]") as HTMLElement;
     expect(await within(panel).findByRole("link", { name: "brakes/engage.go:12" })).toHaveAttribute(
       "href",
@@ -87,7 +87,7 @@ describe("the project's code tags", () => {
         return { status: 200, body: { tags: [outdated, orphaned], total: 2, limit: 50, offset: 0 } };
       },
     });
-    await renderAt("/p/CHK/code-tags");
+    await renderAt("/projects/CHK/code-tags");
     const table = await screen.findByRole("table", { name: "Code tags" });
     expect(within(table).getByText("Outdated: revision 1 of 3")).toBeInTheDocument();
     expect(within(table).getByText("names no requirement")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("the code tag words", () => {
         body: { words: { implements: ["implements", "satisfies"], verifies: ["verifies"], projectKeys: ["CHK"], updatedAt: "2026-10-17T10:00:00Z" } },
       },
     });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     const words = await screen.findByRole("textbox", { name: "Words for implements" });
     expect(words).toHaveValue("implements");
     await userEvent.type(words, ", satisfies");

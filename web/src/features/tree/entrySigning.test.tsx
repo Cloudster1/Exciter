@@ -62,7 +62,7 @@ function stubSigned(more: Parameters<typeof stubDocument>[1] = {}) {
 describe("a signed approval in the document", () => {
   it("opens the signature instead of deciding", async () => {
     const sent = stubSigned();
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Approve" }));
     const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
@@ -73,9 +73,9 @@ describe("a signed approval in the document", () => {
 
   it("finishes a signature the identity provider interrupted for that review only", async () => {
     sessionStorage.setItem("exciter.signing", JSON.stringify({ reviewId: "rv-ship", decision: "approve", comment: "Ships on time." }));
-    window.history.replaceState(null, "", "/p/CHK/spec?sign=approve&review=rv-ship&signature=proof");
+    window.history.replaceState(null, "", "/projects/CHK/spec?sign=approve&review=rv-ship&signature=proof");
     const sent = stubSigned({ "POST /reviews/rv-ship/decisions": { status: 200, body: { review: aReview("rv-ship", "CHK-R3", "Ship") } } });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
     expect(within(dialog).getByRole("status")).toHaveTextContent("You signed in again.");
     expect(screen.getAllByRole("dialog")).toHaveLength(1);

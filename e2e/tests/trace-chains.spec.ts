@@ -3,7 +3,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // The trace model and its chains (#151): alice sets two levels in the project's settings and reads where a chain
 // from a need breaks.
@@ -37,7 +37,7 @@ test.describe("trace chains", { tag: "@desktop" }, () => {
     }
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-R3` } }, body: { typeKey: "derives", otherKey: `${KEY}-R1` } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=trace`);
+    await page.goto(`/projects/${KEY}/settings/trace`);
     await page.getByRole("button", { name: "Add a level" }).click();
     await page.getByLabel("Name").fill("Need");
     await page.getByRole("group", { name: "Types: Need" }).getByRole("button", { name: "Need" }).click();
@@ -46,10 +46,11 @@ test.describe("trace chains", { tag: "@desktop" }, () => {
     await page.getByRole("group", { name: "Types: System" }).getByRole("button", { name: "System" }).click();
     await page.getByRole("group", { name: "Reached from the level before by: System" }).getByRole("button", { name: "Is derived into" }).click();
     await page.getByRole("button", { name: "Save the model" }).click();
-    await expect(page.getByText("The trace model is saved.")).toBeVisible();
+    await expect(toast(page, "The trace model is saved.")).toBeVisible();
+    await dismissToasts(page);
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/chains`);
+    await page.goto(`/projects/${KEY}/chains`);
     const table = page.getByRole("table", { name: "Chains" });
     await expect(table.locator("[data-chain-line]")).toHaveCount(2);
     await expect(table.locator("[data-broken]")).toContainText(`${KEY}-R2`);

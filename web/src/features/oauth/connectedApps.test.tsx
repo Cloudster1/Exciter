@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ALL_CONNECTED_APPS_PATH, CONNECTED_APPS_PATH } from "@/config";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 afterEach(() => {
@@ -21,7 +21,7 @@ const aGrant = (over: Record<string, unknown> = {}) => ({
   lastUsedAt: "2026-10-17T10:00:00Z",
   ...over,
 });
-const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "" };
+const owner = { id: "0195f000-0000-7000-8000-00000000000b", email: "bob@exciter.test", name: "Bob", locale: "", timezone: "" };
 
 describe("connected apps", () => {
   it("says a partner app was connected at the person's sign-in there, not where it sends back to", async () => {
@@ -57,7 +57,6 @@ describe("connected apps", () => {
         return { status: 204 };
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(CONNECTED_APPS_PATH);
     const table = await screen.findByRole("table", { name: "Connected apps" });
@@ -71,6 +70,7 @@ describe("connected apps", () => {
     expect(await axeViolations()).toEqual([]);
 
     await user.click(within(desk).getByRole("button", { name: "Disconnect Desk assistant" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Disconnect app Desk assistant?");
     expect(await screen.findByText("Desk assistant was disconnected.")).toBeInTheDocument();
     expect(sent.some((each) => each.method === "DELETE")).toBe(true);
     await waitFor(() => expect(screen.queryByText("Desk assistant")).not.toBeInTheDocument());
@@ -86,9 +86,9 @@ describe("connected apps", () => {
 
   it("keeps an app connected when the person thinks again", async () => {
     const sent = stubApi({ "GET /oauth/grants": { status: 200, body: { grants: [aGrant()] } } });
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     await renderAt(CONNECTED_APPS_PATH);
     await userEvent.click(await screen.findByRole("button", { name: "Disconnect Desk assistant" }));
+    await answerConfirm(false);
     expect(sent.some((each) => each.method === "DELETE")).toBe(false);
   });
 });
@@ -100,18 +100,19 @@ describe("everybody's connected apps", () => {
       "GET /oauth/grants/everyone": { status: 200, body: { grants: [theirs] } },
       [`DELETE /oauth/grants/everyone/${theirs.id}`]: { status: 204 },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await renderAt(ALL_CONNECTED_APPS_PATH);
-    const table = await screen.findByRole("table", { name: "All connected apps" });
+    const table = await screen.findByRole("table", { name: "Everybody's connected apps" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Disconnect Desk assistant of Bob" }));
+    await answerConfirm(true);
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/oauth/grants/everyone/${theirs.id}`)).toBe(true));
   });
 
-  it("tells a member whose page it is", async () => {
+  it("is where the page of before leads, and tells a member whose page it is", async () => {
     stubApi({});
-    await renderAt(ALL_CONNECTED_APPS_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText(/Only an administrator sees everybody.s connected apps/)).toBeInTheDocument();
+    const router = await renderAt("/settings/all-connected-apps", { me: { ...signedIn, administers: false } });
+    await waitFor(() => expect(router.state.location.pathname).toBe(ALL_CONNECTED_APPS_PATH));
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
   });
 });

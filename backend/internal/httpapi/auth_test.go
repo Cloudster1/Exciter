@@ -54,7 +54,7 @@ func TestAuthenticationActsForThePerson(t *testing.T) {
 	s.Auth = fakeAuth{
 		"member":       {UserID: person, Role: auth.RoleMember},
 		"switched-off": {UserID: uuid.New()},
-		"admin":        {UserID: uuid.New(), Role: auth.RoleAdmin},
+		"admin":        {UserID: uuid.New(), Role: auth.RoleMember, Granted: []string{auth.PermissionCreateProjects, auth.PermissionAdministerInstallation}},
 	}
 
 	_, body := serve(t, authenticated(s), bearer("member"))

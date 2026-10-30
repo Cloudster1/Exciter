@@ -15,7 +15,7 @@ export const armatureEn = {
   webhookTitle: "Webhook",
   webhookIntro: "Armature tells Exciter when issues change, so a requirement shows the change at once instead of within a minute.",
   webhookSteps: [
-    "In Armature, open Settings, then Webhooks.",
+    "In Armature, open Admin, then Webhooks.",
     "Add an endpoint with the address below and subscribe it to the topics listed.",
     "Paste the secret Armature shows once into the field above, then save.",
   ],
@@ -30,12 +30,12 @@ export const armatureEn = {
   disconnectTitle: "Disconnect",
   disconnectIntro: "Disconnecting forgets the address, the webhook secret and every member's token. Requirements show issue keys only.",
   disconnect: "Disconnect Armature",
-  confirmDisconnect: "Disconnect Armature? Every member's token is forgotten, and requirements show issue keys only.",
+  confirmDisconnect: "Every member's token is forgotten, and requirements show issue keys only.",
   disconnected: "Armature is disconnected.",
   signIn: {
     title: "Connect people at sign-in",
     intro:
-      "When Exciter and Armature share an identity provider, Exciter connects each person to Armature as they sign in, so nobody pastes a token. Register Exciter in Armature under Settings, Connected apps, with Exciter's client in the identity provider as its Keycloak client, and paste the id and secret Armature shows.",
+      "When Exciter and Armature share an identity provider, Exciter connects each person to Armature as they sign in, so nobody pastes a token. Register Exciter in Armature under Admin, Connected apps, with Exciter's client in the identity provider as its Keycloak client, and paste the id and secret Armature shows.",
     on: "People are connected to Armature when they sign in.",
     off: "The operator has not switched this on for this server (EXCITER_ARMATURE_TOKEN_EXCHANGE), so people connect with a token.",
     notOffered: "This Armature does not offer oauth.token-exchange@1 yet, so people connect with a token until it is updated.",
@@ -46,7 +46,7 @@ export const armatureEn = {
   account: {
     title: "Armature account",
     intro: "Connect your Armature account so requirements show you the issues you may see in Armature.",
-    notConfigured: "Exciter is not connected to Armature yet. Ask an administrator to connect it under Settings, Armature.",
+    notConfigured: "Exciter is not connected to Armature yet. Ask an administrator to connect it under Admin, Armature.",
     steps: "In Armature, open Tokens and make a token without the read scope, so Exciter can also create issues and link them for you. Then paste it here.",
     openArmature: "Open Armature",
     token: "Armature token",
@@ -60,7 +60,7 @@ export const armatureEn = {
     check: "Check again",
     checked: "Armature accepts your token.",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect your Armature account? Requirements show issue keys only until you connect again.",
+    confirmDisconnect: "Requirements show issue keys only until you connect again.",
     disconnected: "Your Armature account is disconnected.",
     rejected: "Armature no longer accepts your token. Make a new one under Tokens in Armature and paste it here.",
     unreachable: "Armature did not answer the last check. Check again in a moment.",

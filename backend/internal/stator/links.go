@@ -191,6 +191,12 @@ func (s *Service) pageToLink(ctx context.Context, id uuid.UUID) (*Page, error) {
 	return page, nil
 }
 
+// linkedRequirement is link l's requirement r in project p, each looked up by id: joined freely, the planner may
+// walk the whole requirement index to meet the link, weighing the reader's view of every row on the way.
+const linkedRequirement = `
+	CROSS JOIN LATERAL (SELECT * FROM requirement WHERE id = l.requirement_id OFFSET 0) r
+	CROSS JOIN LATERAL (SELECT * FROM project WHERE id = r.project_id OFFSET 0) p`
+
 // Unlink removes a trace to a page.
 func (s *Service) Unlink(ctx context.Context, id uuid.UUID) (db.LSN, error) {
 	actor, err := actorOf(ctx)
@@ -237,7 +243,7 @@ func (s *Service) Clear(ctx context.Context, id uuid.UUID, in ClearInput) (*Link
 		err := tx.QueryRow(ctx, `
 			SELECT r.id, COALESCE(l.page_version, 0), r.trashed_at IS NOT NULL, perm_requirement_editable(r.id, $2),
 			       p.archived_at IS NOT NULL
-			FROM stator_page_link l JOIN requirement r ON r.id = l.requirement_id JOIN project p ON p.id = r.project_id
+			FROM stator_page_link l`+linkedRequirement+`
 			WHERE l.id = $1`, id, actor).Scan(&requirementID, &version, &trashed, &editable, &archived)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrLinkNotFound

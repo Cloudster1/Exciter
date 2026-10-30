@@ -263,7 +263,7 @@ function TitleCell({ projectKey, row, editable, onSave }: { projectKey: string; 
   }
   return (
     <span className="inline-flex items-center gap-1">
-      <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey, reqKey: row.key }} className="font-medium text-ink hover:text-accent hover:underline">
+      <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey, reqKey: row.key }} className="font-medium text-ink hover:text-accent hover:underline">
         {row.title}
       </Link>
       {editable && (

@@ -44,7 +44,7 @@ function stubViews(more: Parameters<typeof stubApi>[0] = {}, project = aProject(
   });
 }
 
-const openMine = `/p/CHK/grid?sort=title&columns=${encodeURIComponent(JSON.stringify(mine.columns))}&view=${mine.id}`;
+const openMine = `/projects/CHK/grid?sort=title&columns=${encodeURIComponent(JSON.stringify(mine.columns))}&view=${mine.id}`;
 
 describe("a saved view", () => {
   it("saves the grid's filter, order and columns into the open view", async () => {
@@ -99,7 +99,7 @@ describe("a saved view", () => {
 
   it("keeps sharing to the project's editors, and says so", async () => {
     stubViews({}, aProject({ roles: ["viewer"], can: { view: true, comment: true, edit: false, approve: false, administer: false, purge: false } }));
-    await renderAt("/p/CHK/grid");
+    await renderAt("/projects/CHK/grid");
     await screen.findByRole("table");
     await userEvent.click(screen.getByRole("button", { name: "Save as a view" }));
     const dialog = screen.getByRole("dialog", { name: "Save as a view" });

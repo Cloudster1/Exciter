@@ -568,6 +568,44 @@ Adapted from Armature at 51eac53, for the menu layout the tools share (#280):
 - web/src/features/shell/Rail.tsx: the avatar and the theme at the rail's
   foot
 
+Adapted from Armature at 7df9d51, for the suite's kit (#474), by way of
+Stator's port at 48412115:
+- web/src/components/ui: Page, Popover, Toolbar, Pager, ListSearch,
+  SearchPicker, Stat, ProgressBar, DateInput, MentionTextarea, Spotlight,
+  Count, Toast, Dialog with ConfirmDialog, Drawer and DockedPanel, overlay.ts,
+  Menu's groups, Tabs, Chip and ErrorBanner, with kit.test.tsx,
+  overlays.test.tsx, Pager.test.tsx and MentionTextarea.test.tsx
+- web/src/i18n/kit.en.ts and kit.de.ts
+- web/src/components/icons.tsx: the glyphs the suite shares
+- web/src/lib/format.ts: the reader's time zone and relative times, from
+  Stator's, with its test
+- backend/internal/auth: SetTimezone and KnownTimezone, and migration 01519
+  from Stator's 00940
+
+Adapted from Stator at 2ff6ab6a, for roles, groups and grants (#471), as
+Stator took them from Armature:
+
+- backend/internal/perm: roles.go, groups.go and assign.go, the roles, the
+  matrix's permissions, groups and grants
+- backend/internal/httpapi/access_handlers.go
+- backend/internal/oidc/grouproles.go: letting somebody in by a group that
+  holds a grant
+- migration 01540 from Stator's 00960: the role and role_assignment tables,
+  Everyone, and the guards that keep built-in roles, Everyone and an active
+  administrator
+
+Adapted from Stator at 3d3239b4 and e75d46c1, for project settings as the
+suite's standard lays them out (#472):
+- web/src/features/projects/settingsSections.ts from Stator's
+  features/spaces/settingsSections.ts: the sections, the ones only
+  administrators use, and where an old address leads
+- web/src/features/projects/ProjectSettings.tsx ProjectSettingsLayout from
+  Stator's SpaceSettingsLayout, and the archive with Undo from SpaceArchive
+- web/src/routes/project-settings.tsx: the redirect from an old address,
+  from Stator's movedSpaceRoute
+- web/src/components/ui/Tabs.tsx: the first tab in the tab order when the
+  section shown is none of them
+
 The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
 titles and texts of the public GitHub issues of Armature, Exciter and Stator
 that carry a user story, as scripts/demo-snapshot.sh took them on the date
@@ -582,7 +620,7 @@ anew in a scene with tools and books, and cropped and resized for the icons.
 These pictures are under that license, not under the license of the code.
 
 The avatar menu's links to Armature and Stator (#298) show their own icons,
-taken unchanged: web/public/tools/armature.webp is Armature's
-web/public/emblem.webp at 51eac53, web/public/tools/stator.png Stator's
-web/public/favicon-32.png at ffd3addb. Both show the Go gopher too, under the
-same license, as those products' NOTICE files say.
+taken unchanged, each its 96 px mark: web/public/tools/armature.webp is
+Armature's web/public/mark-96.webp at 746787d, web/public/tools/stator.webp
+Stator's web/public/mark-96.webp at 2ab5252f. Both show the Go gopher too,
+under the same license, as those products' NOTICE files say.

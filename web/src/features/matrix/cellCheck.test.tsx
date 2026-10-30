@@ -81,7 +81,7 @@ function stubCheck(canLink: boolean, more: Parameters<typeof stubApi>[0] = {}) {
 describe("a suspect link in a matrix cell", () => {
   it("is checked in the dialog of the link between the cell's row and column, which leaves the panel open", async () => {
     const sent = stubCheck(true, { [`POST /links/${moved.id}/clear`]: { status: 200, body: { link: { ...moved, suspect: [] } } } });
-    await renderAt("/p/CHK/matrix");
+    await renderAt("/projects/CHK/matrix");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R1 to CHK-R2: Derives (suspect)" }));
     const panel = await screen.findByRole("dialog", { name: "CHK-R1 and CHK-R2" });
     expect(await within(panel).findByText("Suspect")).toBeInTheDocument();
@@ -99,12 +99,12 @@ describe("a suspect link in a matrix cell", () => {
     );
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Check: CHK-R1 derives from CHK-R2" })).toBeNull());
     expect(screen.getByRole("dialog", { name: "CHK-R1 and CHK-R2" })).toBeInTheDocument();
-    expect(within(panel).getByRole("status")).toHaveTextContent("The link to CHK-R2 is confirmed.");
+    expect(await screen.findByText("The link to CHK-R2 is confirmed.")).toBeInTheDocument();
   });
 
   it("is marked for a reader, who is offered no check", async () => {
     stubCheck(false);
-    await renderAt("/p/CHK/matrix");
+    await renderAt("/projects/CHK/matrix");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R1 to CHK-R2: Derives (suspect)" }));
     const panel = await screen.findByRole("dialog", { name: "CHK-R1 and CHK-R2" });
     expect(await within(panel).findByText("Suspect")).toBeInTheDocument();

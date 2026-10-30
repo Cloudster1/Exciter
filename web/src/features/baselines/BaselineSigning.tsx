@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ApiError } from "@/api/client";
 import { useBaselineSignatures, useSignBaseline, type Baseline } from "@/api/baselines";
-import { Button, Card, SectionTitle, Tag } from "@/components/ui";
+import { Button, Card, SectionTitle, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { SignatureDialog } from "@/features/reviews/SignatureDialog";
 import { RELEASE, resumeBaselineSigning } from "@/features/reviews/signing";
@@ -25,7 +25,7 @@ export function BaselineSigning({ baseline }: { baseline: Baseline }) {
   // A sign-in at the provider comes back to this page with the proof, once.
   const [resumed] = useState(() => resumeBaselineSigning(baseline.id));
   const [open, setOpen] = useState(Boolean(resumed));
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const { data: signatures } = useBaselineSignatures(baseline.id, Boolean(signing && signing.signatures > 0));
   if (!signing) {
     return (
@@ -58,9 +58,6 @@ export function BaselineSigning({ baseline }: { baseline: Baseline }) {
           ))}
         </ol>
       )}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
       {signing.canSign && (
         <Button icon={<Icon.Check />} onClick={() => setOpen(true)} data-action="sign-baseline">
           {t.control.sign}
@@ -74,7 +71,7 @@ export function BaselineSigning({ baseline }: { baseline: Baseline }) {
           onClose={() => setOpen(false)}
           onSigned={() => {
             setOpen(false);
-            setNotice(t.control.signedNotice);
+            toast.success(t.control.signedNotice);
           }}
         />
       )}

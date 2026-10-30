@@ -31,7 +31,7 @@ test.describe("control", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: SIGN_KEY, name: "Released" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
 
-    await page.goto(`/p/${SIGN_KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${SIGN_KEY}/settings/approval`);
     const rule = page.locator("[data-signing-rule]");
     await rule.getByRole("button", { name: "Name who signs" }).click();
     await rule.getByRole("combobox", { name: "Add a person or group" }).pressSequentially(people.bob.email.split("@")[0]!);
@@ -43,7 +43,7 @@ test.describe("control", { tag: "@desktop" }, () => {
 
     const bob = await pageAs("bob");
     const signing = bob.locator("[data-baseline-signing]");
-    await openUntil(bob, `/p/${SIGN_KEY}/baselines/${taken.id}`, () => expect(signing.getByRole("button", { name: "Sign" })).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${SIGN_KEY}/baselines/${taken.id}`, () => expect(signing.getByRole("button", { name: "Sign" })).toBeVisible(ONE_LOOK));
     await signing.getByRole("button", { name: "Sign" }).click();
     const dialog = bob.getByRole("dialog", { name: "Sign the baseline" });
     await expect(dialog).toContainText(`I release the baseline Release 1.0 of ${SIGN_KEY} as the agreed state of its requirements.`);
@@ -67,14 +67,14 @@ test.describe("control", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: LOCK_KEY, name: "Locked" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
 
-    await page.goto(`/p/${LOCK_KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${LOCK_KEY}/settings/workflow`);
     const row = page.locator('[data-status-row="In review"]');
     await row.getByRole("button", { name: "Edit" }).click();
     await page.getByLabel("Locks its requirements").check();
     await page.getByRole("button", { name: "Save status" }).click();
     await expect(page.locator('[data-status-row="In review"] [data-status-locks]')).toBeVisible();
 
-    await page.goto(`/p/${LOCK_KEY}/r/${LOCK_KEY}-R1`);
+    await page.goto(`/projects/${LOCK_KEY}/r/${LOCK_KEY}-R1`);
     await expect(page.getByRole("button", { name: "Edit" })).toBeVisible();
     await page.getByRole("button", { name: "Submit for review" }).click();
     await expect(page.getByText(`${LOCK_KEY}-R1 is locked in the status In review. Take it out of In review to change it.`)).toBeVisible();

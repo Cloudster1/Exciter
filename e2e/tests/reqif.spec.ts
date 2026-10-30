@@ -38,7 +38,7 @@ test.describe("ReqIF exchange", { tag: "@desktop" }, () => {
     must(
       await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${SOURCE}-R3` } }, body: { typeKey: "derives", otherKey: `${SOURCE}-R2` } }),
     );
-    await page.goto(`/p/${SOURCE}`);
+    await page.goto(`/projects/${SOURCE}`);
     const uploaded = await page.request.post(`/api/v1/requirements/${SOURCE}-R2/attachments`, {
       multipart: { file: { name: "curve.png", mimeType: "image/png", buffer: PIXEL } },
     });
@@ -53,12 +53,12 @@ test.describe("ReqIF exchange", { tag: "@desktop" }, () => {
     };
     must(await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey: `${SOURCE}-R2` } }, body: { statement, baseRevision: 1 } }));
 
-    await page.goto(`/p/${SOURCE}/settings?tab=reqif`);
+    await page.goto(`/projects/${SOURCE}/settings/reqif`);
     const download = page.waitForEvent("download");
     await page.locator('[data-action="export-reqifz"]').click();
     const file = await (await download).path();
 
-    await page.goto(`/p/${TARGET}/settings?tab=reqif`);
+    await page.goto(`/projects/${TARGET}/settings/reqif`);
     await page.getByLabel("ReqIF file").setInputFiles({ name: `${SOURCE}.reqifz`, mimeType: "application/zip", buffer: readFileSync(file) });
     await page.locator('[data-action="upload-reqif"]').click();
     await expect(page.getByText("Nothing keeps the import from starting.")).toBeVisible();
@@ -71,7 +71,7 @@ test.describe("ReqIF exchange", { tag: "@desktop" }, () => {
     expect(tree.map((node) => `${node.outline} ${node.title}`)).toEqual(["1 Braking", "1.1 Stop within 40 m", "2 Warn the driver"]);
     const links = must(await api.GET("/requirements/{reqKey}/links", { params: { path: { reqKey: `${TARGET}-R3` } } })).links;
     expect(links.map((link) => link.other.key)).toEqual([`${TARGET}-R2`]);
-    await page.goto(`/p/${TARGET}/r/${TARGET}-R2`);
+    await page.goto(`/projects/${TARGET}/r/${TARGET}-R2`);
     const shown = "[data-statement] figure[data-image] img";
     await expect(page.locator(shown)).toBeVisible();
     await expect.poll(() => page.locator(shown).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);

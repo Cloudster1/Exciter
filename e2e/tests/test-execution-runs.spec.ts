@@ -66,7 +66,7 @@ async function anExecution(api: ExciterApi, testCase: { parameters: { name: stri
 }
 
 async function coverageReads(page: Page, said: string) {
-  await page.goto(`/p/${KEY}/coverage`);
+  await page.goto(`/projects/${KEY}/coverage`);
   await expect(async () => {
     await page.reload();
     await expect(page.locator(`[data-coverage-row="${KEY}-R1"]`)).toContainText(said, { timeout: 2_000 });
@@ -113,7 +113,7 @@ test.describe("running a test execution", { tag: "@desktop" }, () => {
     await expect(page.getByText(/Version: 2\.4 · Configuration: Summer tyres/)).toBeVisible();
     await coverageReads(page, "Verified: Full");
 
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}`);
+    await page.goto(`/projects/${KEY}/tests/executions/${execution.id}`);
     await page.locator('[data-action="close-execution"]').click();
     const close = page.getByRole("dialog", { name: "Close the test execution" });
     await close.getByRole("checkbox", { name: "Abort it, so its results count for nothing" }).check();
@@ -147,7 +147,7 @@ test.describe("running a test execution", { tag: "@desktop" }, () => {
   test("alice walks a case's iterations, keeping what each came to, and overrides the steps", async ({ page, api }) => {
     test.setTimeout(60_000);
     const { caseKey, execution } = await anExecution(api, { parameters: [{ name: "Speed", values: ["30", "50"] }] });
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}/run/${caseKey}?iteration=1`);
+    await page.goto(`/projects/${KEY}/tests/executions/${execution.id}/run/${caseKey}?iteration=1`);
     const outcome = page.locator("[data-case-outcome]");
     const step = (n: number) => page.getByRole("group", { name: `Outcome of step ${n}` });
 
@@ -181,7 +181,7 @@ test.describe("running a test execution", { tag: "@desktop" }, () => {
     await expect(outcome).toHaveAttribute("data-case-outcome", "blocked");
     await expect(page.locator('[data-run-step="1"]')).toHaveAttribute("data-step-outcome", "failed");
 
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}`);
+    await page.goto(`/projects/${KEY}/tests/executions/${execution.id}`);
     await expect(page.locator(`[data-case-run="${caseKey}#1"]`)).toHaveAttribute("data-outcome", "passed");
     await expect(page.locator(`[data-case-run="${caseKey}#2"]`)).toHaveAttribute("data-outcome", "blocked");
   });

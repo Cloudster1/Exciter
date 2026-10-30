@@ -68,7 +68,7 @@ const shaped = {
 describe("a project's types", () => {
   it("lists them with the default marked, and makes a new one", async () => {
     const sent = stubApi({ ...shaped, "POST /projects/CHK/types": { status: 201, body: { type: { ...iface, id: "new", name: "Constraint" } } } });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings");
     await userEvent.click(await screen.findByRole("tab", { name: "Types" }));
     const row = (await screen.findByText("Functional")).closest("tr")!;
     expect(within(row).getByText("Default")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("a project's types", () => {
 describe("a project's attributes", () => {
   it("defines a select with its options, on the types picked", async () => {
     const sent = stubApi({ ...shaped, "POST /projects/CHK/attributes": { status: 201, body: { attribute: verification } } });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings");
     await userEvent.click(await screen.findByRole("tab", { name: "Attributes" }));
     await userEvent.click(await screen.findByRole("button", { name: "New attribute" }));
     const form = document.querySelector<HTMLElement>("[data-attribute-form]")!;
@@ -115,7 +115,7 @@ describe("a project's attributes", () => {
 
   it("renames an option under its own id", async () => {
     const sent = stubApi({ ...shaped, [`PATCH /projects/CHK/attributes/${verification.id}`]: { status: 200, body: { attribute: verification } } });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings");
     await userEvent.click(await screen.findByRole("tab", { name: "Attributes" }));
     const row = (await screen.findByText("Verification")).closest("tr")!;
     await userEvent.click(within(row).getByRole("button", { name: "Edit" }));
@@ -137,7 +137,7 @@ describe("a requirement's attributes", () => {
       "POST /projects/CHK/requirements": { status: 201, body: { requirement: made } },
       "GET /requirements/CHK-R2": { status: 200, body: { requirement: made } },
     });
-    await renderAt("/p/CHK/new");
+    await renderAt("/projects/CHK/new");
     await userEvent.type(await screen.findByLabelText("Title"), "Pay");
     await userEvent.selectOptions(await screen.findByLabelText("Verification (required)"), analysis.id);
     await userEvent.selectOptions(screen.getByLabelText("Type"), iface.id);
@@ -168,7 +168,7 @@ describe("a requirement's attributes", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const value = await waitFor(() => {
       const found = document.querySelector('[data-attribute-value="Verification"]');
       expect(found).not.toBeNull();

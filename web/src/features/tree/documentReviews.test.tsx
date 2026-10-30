@@ -49,7 +49,7 @@ describe("reviews in the document", () => {
         return { status: 200, body: { review: { id: "rv-pay" } } };
       },
     });
-    const router = await renderAt("/p/CHK/spec");
+    const router = await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("button", { name: "Review what waits for me" }));
     await waitFor(() => expect(router.state.location.search).toEqual({ waiting: true, changes: "approved" }));
     await waitFor(() => expect(asked.some((query) => query.get("waiting") === "true" && query.get("changes") === "approved")).toBe(true));
@@ -69,7 +69,7 @@ describe("reviews in the document", () => {
     stubDocument([entry(pay, "Pay at once.", { review: pending() })], {
       "POST /reviews/rv-pay/decisions": { status: 409, body: { error: { code: "review_closed", message: "This review is no longer waiting." } } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.type(within(entryOf("CHK-R2")).getByLabelText("Your comment"), "Not like this.");
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Reject" }));
@@ -90,7 +90,7 @@ describe("reviews in the document", () => {
         },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("checkbox", { name: "Select everything in Scope" }));
     await userEvent.click(within(document.body.querySelector<HTMLElement>("[data-selection-bar]")!).getByRole("button", { name: "Ask for review" }));
     await waitFor(() =>
@@ -121,7 +121,7 @@ describe("reviews in the document", () => {
         };
       },
     });
-    await renderAt("/p/CHK/spec?changes=approved");
+    await renderAt("/projects/CHK/spec?changes=approved");
     await userEvent.click(await screen.findByRole("button", { name: "Ask for review of what changed here" }));
     await userEvent.click(screen.getByRole("switch", { name: "Show changes" }));
     await waitFor(() => expect(screen.queryByRole("button", { name: "Ask for review of what changed here" })).toBeNull());
@@ -134,7 +134,7 @@ describe("reviews in the document", () => {
       "GET /requirements/CHK-R2": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", title: "Pay" }) } },
       "GET /requirements/CHK-R2/comments": { status: 200, body: { threads: [] } },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await screen.findByRole("heading", { name: "1.1 Pay" });
     await userEvent.click(within(entryOf("CHK-R2")).getByRole("button", { name: "Comments (1 open)" }));
     expect(await within(entryOf("CHK-R2")).findByRole("button", { name: "Hide the comments" })).toHaveAttribute("aria-expanded", "true");

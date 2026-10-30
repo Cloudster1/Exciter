@@ -71,7 +71,7 @@ describe("the template settings", () => {
     });
     // The form never reaches the stub whole in jsdom, so what goes into it is watched instead.
     const appended = vi.spyOn(FormData.prototype, "append");
-    await renderAt("/p/CHK/settings?tab=templates");
+    await renderAt("/projects/CHK/settings/templates");
     const own = (await screen.findByText("Supplier")).closest("[data-template]") as HTMLElement;
     const shared = screen.getByText("House style").closest("[data-template]") as HTMLElement;
     expect(within(shared).getByText(/From SYS/)).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe("the template settings", () => {
         body: { project: aProject({ can: { view: true, comment: true, edit: true, approve: false, administer: false, purge: false } }) },
       },
     });
-    await renderAt("/p/CHK/settings?tab=templates");
+    await renderAt("/projects/CHK/settings/templates");
     expect(await screen.findByText(/Only the project's administrators upload and change its templates./)).toBeInTheDocument();
     expect(screen.queryByLabelText("Word file")).not.toBeInTheDocument();
   });
@@ -130,7 +130,7 @@ describe("exporting through a template", () => {
         return { status: 200, body: {} };
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     await userEvent.click(await screen.findByRole("button", { name: `Export ${aProject().name}` }));
     await userEvent.click(screen.getByRole("menuitem", { name: "HTML site" }));
     const dialog = await screen.findByRole("dialog");

@@ -110,7 +110,7 @@ export function MatrixTable({ project, matrix }: { project: Project; matrix: Mat
             <tr key={row.id} className="border-t border-border">
               <th scope="row" className="sticky left-0 max-w-64 truncate bg-surface py-1 pr-2 text-left font-normal">
                 <Link
-                  to="/p/$projectKey/r/$reqKey"
+                  to="/projects/$projectKey/r/$reqKey"
                   params={{ projectKey: project.key, reqKey: row.key }}
                   className="text-ink hover:text-accent hover:underline"
                 >

@@ -38,7 +38,7 @@ function stubTraceSettings() {
 describe("the evidence settings once saved", () => {
   it("show the new counting branch and say it was saved", async () => {
     stubTraceSettings();
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     const branch = await screen.findByRole("textbox", { name: "Counting branch" });
     await userEvent.clear(branch);
     await userEvent.type(branch, "release");
@@ -51,7 +51,7 @@ describe("the evidence settings once saved", () => {
 
   it("show the new tag words and say they were saved", async () => {
     stubTraceSettings();
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     const implementing = await screen.findByRole("textbox", { name: "Words for implements" });
     await userEvent.type(implementing, ", satisfies");
     await userEvent.click(within(screen.getByRole("form", { name: "Code tag words" })).getByRole("button", { name: "Save" }));

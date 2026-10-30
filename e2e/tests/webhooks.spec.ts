@@ -5,14 +5,14 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
 // Outbound webhooks (#48), adapted from Stator's spec: a webhook for alice's project alone, so other specs' events never
 // reach it, whose bin on the armature-stub receives a revision signed with the secret shown once.
 
 // web/src/config.ts WEBHOOKS_PATH and WEBHOOK_SIGNATURE_HEADER.
-const WEBHOOKS_PATH = "/settings/webhooks";
+const WEBHOOKS_PATH = "/admin/webhooks";
 const SIGNATURE_HEADER = "X-Exciter-Signature-256";
 const SECRET_PREFIX = "exciter_whs_";
 // The api and the worker reach the stub on the stack's network by this name, which EXCITER_OUTBOUND_ALLOW lets through.
@@ -105,7 +105,8 @@ test.describe("outbound webhooks", { tag: "@desktop" }, () => {
 
     await row.getByRole("button", { name: "Actions for Test bench" }).click();
     await page.getByRole("menuitem", { name: "Send a test ping" }).click();
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText("The ping reached Test bench. The receiver answered 204.");
+    await expect(toast(page, "The ping reached Test bench. The receiver answered 204.")).toHaveText("The ping reached Test bench. The receiver answered 204.");
+    await dismissToasts(page);
     await row.getByRole("button", { name: "Actions for Test bench" }).click();
     await page.getByRole("menuitem", { name: "Delivery log" }).click();
     const log = page.getByRole("dialog", { name: "Deliveries to Test bench" });
@@ -117,7 +118,10 @@ test.describe("outbound webhooks", { tag: "@desktop" }, () => {
     await row.getByRole("button", { name: "Actions for Test bench" }).click();
     await page.getByRole("menuitem", { name: "Turn off" }).click();
     await expect(row).toHaveAttribute("data-webhook-enabled", "false");
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText("Test bench is off. Nothing is sent until it is turned on again.");
+    await expect(toast(page, "Test bench is off. Nothing is sent until it is turned on again.")).toHaveText(
+      "Test bench is off. Nothing is sent until it is turned on again.",
+    );
+    await dismissToasts(page);
   });
 
   test("alice adds a webhook in the CloudEvents envelope, and a revision reaches the receiver as a CloudEvent, signed as before", async ({
@@ -164,6 +168,7 @@ test.describe("outbound webhooks", { tag: "@desktop" }, () => {
     await row.getByRole("button", { name: "Actions for Broker" }).click();
     await page.getByRole("menuitem", { name: "Send in Version 1" }).click();
     await expect(row.locator("[data-webhook-version]")).toHaveText("Version 1");
-    await expect(page.locator("[data-webhooks-notice]")).toHaveText("Broker is sent in Version 1 from the next delivery on.");
+    await expect(toast(page, "Broker is sent in Version 1 from the next delivery on.")).toHaveText("Broker is sent in Version 1 from the next delivery on.");
+    await dismissToasts(page);
   });
 });

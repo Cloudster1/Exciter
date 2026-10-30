@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { INSTALLATION_PATH } from "@/config";
+import { ALL_CONNECTED_APPS_PATH, INSTALLATION_PATH } from "@/config";
 import { renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
@@ -37,13 +37,13 @@ describe("the installation page", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Acme requirements" })).toHaveAttribute("href", "/"));
   });
 
-  it("switches OAuth connections off and says so", async () => {
+  it("switches OAuth connections off on Connected apps and says so", async () => {
     const sent = stubApi({
       "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
       "PUT /installation/oauth-connections": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: false } } }),
     });
     const user = userEvent.setup();
-    await renderAt(INSTALLATION_PATH);
+    await renderAt(ALL_CONNECTED_APPS_PATH);
     const toggle = await screen.findByRole("switch", { name: "Let assistants connect with OAuth" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     await user.click(toggle);
@@ -108,7 +108,7 @@ describe("the installation page", () => {
     current = demo("done");
     expect(await screen.findByText("The demo holds 1540 requirements and 12 links; 3 links wait.", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText(/Your Armature account is not connected/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "EXC" })).toHaveAttribute("href", "/p/EXC");
+    expect(screen.getByRole("link", { name: "EXC" })).toHaveAttribute("href", "/projects/EXC");
     expect(screen.queryByRole("button", { name: "Add the suite demo" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Link the demo again" }));
     expect(await screen.findByText("The demo is being linked to Armature and Stator.")).toBeInTheDocument();
@@ -130,9 +130,27 @@ describe("the installation page", () => {
     expect(await screen.findByText("The key EXC is taken by another project.")).toBeInTheDocument();
   });
 
-  it("tells a member to ask an administrator", async () => {
-    stubApi({});
-    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText("Only an administrator can rename the installation. Ask one of them.")).toBeInTheDocument();
+  it("names the theme everybody sees until they choose, from the themes shared with everyone", async () => {
+    const shared = { id: "t2", name: "House", shared: true, default: false, ownerId: "x", ownerName: "X", active: false, inUse: 0, spec: {}, assets: [] };
+    const sent = stubApi({
+      "GET /installation": () => ({ status: 200, body: { installation: { name: "Demo", oauthConnections: true } } }),
+      "GET /themes": () => ({ status: 200, body: { themes: [{ ...shared, id: "t1", name: "Private", shared: false }, shared] } }),
+      "PUT /themes/default": () => ({ status: 200, body: { theme: { ...shared, default: true } } }),
+    });
+    await renderAt(INSTALLATION_PATH);
+    const select = await screen.findByRole("combobox", { name: "Default theme" });
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(select).toHaveValue("");
+    expect(screen.queryByRole("option", { name: "Private" })).toBeNull();
+    await userEvent.selectOptions(select, "t2");
+    await waitFor(() => expect(sent.find((r) => r.path === "/themes/default")?.body).toEqual({ themeId: "t2" }));
+    expect(await screen.findByText("House is what everybody sees until they choose.")).toBeInTheDocument();
+  });
+
+  it("tells a member the page is the administrators', and asks nothing", async () => {
+    const sent = stubApi({});
+    await renderAt(INSTALLATION_PATH, { me: { ...signedIn, administers: false } });
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
+    expect(sent.some((r) => r.path === "/installation")).toBe(false);
   });
 });

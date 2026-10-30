@@ -4,7 +4,7 @@ import { ApiError } from "@/api/client";
 import { linkWays, useProjectLinkTypes } from "@/api/links";
 import type { Project } from "@/api/projects";
 import { LEVEL_KINDS, useSaveTraceModel, useTraceModel, type LevelKind, type TraceModel, type TraceModelInput, type TraceModelStep } from "@/api/trace";
-import { Button, Card, ErrorBanner, Field, IconButton, SectionTitle, Select, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, IconButton, SectionTitle, Select, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { TRACE_LEVEL_NAME_MAX, TRACE_MAX_LEVELS } from "@/config";
 import { t } from "@/i18n";
@@ -52,14 +52,13 @@ const capitalized = (phrase: string) => phrase.charAt(0).toUpperCase() + phrase.
 /** A project's trace model (#151), its levels added, reordered and removed in place by its administrators. */
 export function TraceModelCard({ project }: { project: Project }) {
   const { data: model, error, refetch } = useTraceModel(project.key);
-  // Kept above the form, which starts again from each saved model, so the word that it was saved outlives it.
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!model) return <Skeleton />;
-  return <ModelForm key={model.updatedAt ?? "unset"} project={project} model={model} notice={notice} onNotice={setNotice} />;
+  return <ModelForm key={model.updatedAt ?? "unset"} project={project} model={model} />;
 }
 
-function ModelForm({ project, model, notice, onNotice: setNotice }: { project: Project; model: TraceModel; notice: string; onNotice: (n: string) => void }) {
+function ModelForm({ project, model }: { project: Project; model: TraceModel }) {
+  const toast = useToast();
   const [levels, setLevels] = useState<Draft[]>(() => drafts(model));
   const save = useSaveTraceModel(project.key);
   const { data: types = [] } = useTypes(project.key);
@@ -75,8 +74,7 @@ function ModelForm({ project, model, notice, onNotice: setNotice }: { project: P
   };
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
-    save.mutate(input(levels), { onSuccess: () => setNotice(t.chains.saved) });
+    save.mutate(input(levels), { onSuccess: () => toast.success(t.chains.saved) });
   }
   return (
     <Card className="space-y-4 p-4" data-trace-model>
@@ -192,9 +190,6 @@ function ModelForm({ project, model, notice, onNotice: setNotice }: { project: P
           </div>
         )}
       </form>
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }

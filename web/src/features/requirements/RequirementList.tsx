@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { Project } from "@/api/projects";
 import { useRequirements } from "@/api/requirements";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { REQUIREMENT_PAGE_SIZE } from "@/config";
 import { ProjectWatchButton } from "@/features/watching/ProjectWatchButton";
@@ -21,9 +21,9 @@ export function RequirementList({ project, label }: { project: Project; label?: 
   const [watchFailed, setWatchFailed] = useState(false);
   const { data, error, isLoading, refetch } = useRequirements(project.key, { limit: REQUIREMENT_PAGE_SIZE, offset, label });
   const mayWrite = project.can.edit;
-  const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
+  const create = () => navigate({ to: "/projects/$projectKey/new", params: { projectKey: project.key } });
   return (
-    <div className="mx-auto max-w-5xl" data-requirement-list={project.key}>
+    <Page width="content" data-requirement-list={project.key}>
       <PageHeader
         title={t.requirements.title}
         meta={t.projects.projectAndKey(project.name, project.key)}
@@ -54,7 +54,7 @@ export function RequirementList({ project, label }: { project: Project; label?: 
             <Icon.Label />
             {t.labels.filtered(label)}
           </span>
-          <Link to="/p/$projectKey" params={{ projectKey: project.key }} search={{}} className="text-accent hover:underline" data-action="clear-label">
+          <Link to="/projects/$projectKey" params={{ projectKey: project.key }} search={{}} className="text-accent hover:underline" data-action="clear-label">
             {t.labels.clearFilter}
           </Link>
           <Link to="/labels/$name" params={{ name: label }} search={{}} className="text-accent hover:underline" data-action="label-everywhere">
@@ -100,7 +100,7 @@ export function RequirementList({ project, label }: { project: Project; label?: 
                   </Td>
                   <Td>
                     <Link
-                      to="/p/$projectKey/r/$reqKey"
+                      to="/projects/$projectKey/r/$reqKey"
                       params={{ projectKey: project.key, reqKey: row.key }}
                       className="font-medium text-ink hover:text-accent hover:underline"
                     >
@@ -155,6 +155,6 @@ export function RequirementList({ project, label }: { project: Project; label?: 
           )}
         </>
       )}
-    </div>
+    </Page>
   );
 }

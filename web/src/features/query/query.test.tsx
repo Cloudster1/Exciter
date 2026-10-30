@@ -57,7 +57,7 @@ function stubGrid(grid?: (params: URLSearchParams) => { status: number; body: un
 describe("the grid's query", () => {
   it("switches the words box for a query box that completes at the caret and runs on Enter", async () => {
     const asked = stubGrid();
-    const router = await renderAt("/p/CHK/grid?q=basket");
+    const router = await renderAt("/projects/CHK/grid?q=basket");
     await screen.findByRole("table", { name: "Requirements of the project, as the grid shows them" });
     await userEvent.click(screen.getByRole("button", { name: "Query" }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));
@@ -79,7 +79,7 @@ describe("the grid's query", () => {
 
   it("points at the character a refused query went wrong at, instead of a banner", async () => {
     stubGrid(() => ({ status: 400, body: { error: { code: "bad_query", message: 'Unknown field "ownr". Write owner if you mean that one.', position: 9 } } }));
-    await renderAt("/p/CHK/grid?query=title+~+x+ownr+%3D+me");
+    await renderAt("/projects/CHK/grid?query=title+~+x+ownr+%3D+me");
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Unknown field");
     expect(alert.querySelector("[data-query-caret]")?.textContent).toBe("        ^");
@@ -90,7 +90,7 @@ describe("the grid's query", () => {
 
   it("explains what a query can say, and takes an example", async () => {
     stubGrid();
-    await renderAt("/p/CHK/grid?query=kind+%3D+section");
+    await renderAt("/projects/CHK/grid?query=kind+%3D+section");
     await userEvent.click(await screen.findByRole("button", { name: "What a query can say" }));
     const help = await screen.findByRole("dialog", { name: "What a query can say" });
     expect(within(help).getByText("approved, pending, outdated or none")).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("the grid's query", () => {
 
   it("runs the query on Enter when the list opened under a pointer that did not move", async () => {
     stubGrid();
-    const router = await renderAt("/p/CHK/grid?query=x");
+    const router = await renderAt("/projects/CHK/grid?query=x");
     const box = await screen.findByRole("combobox", { name: "Query" });
     await userEvent.clear(box);
     await userEvent.type(box, "kind = section");
@@ -114,17 +114,17 @@ describe("the grid's query", () => {
 
   it("opens a requirement the text finds", async () => {
     stubGrid();
-    const router = await renderAt("/p/CHK/grid?query=x");
+    const router = await renderAt("/projects/CHK/grid?query=x");
     const box = await screen.findByRole("combobox", { name: "Query" });
     await userEvent.clear(box);
     await userEvent.type(box, "pay");
     await userEvent.click(await screen.findByRole("option", { name: /Pay the basket/ }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R1"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R1"));
   });
 
   it("goes back to words, taking the query away", async () => {
     stubGrid();
-    const router = await renderAt("/p/CHK/grid?query=kind+%3D+section");
+    const router = await renderAt("/projects/CHK/grid?query=kind+%3D+section");
     await screen.findByRole("combobox", { name: "Query" });
     await userEvent.click(screen.getByRole("button", { name: "Words" }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));

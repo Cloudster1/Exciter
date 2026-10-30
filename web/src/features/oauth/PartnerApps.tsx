@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useCreatePartnerApp, useDeletePartnerApp, usePartnerApps, useRotatePartnerSecret, useUpdatePartnerApp, type PartnerApp } from "@/api/oauth";
-import { Button, Card, Checkbox, ErrorBanner, Field, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, Skeleton, Tag, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COPY_FEEDBACK_MS, PARTNER_WRITE_SCOPE, TOKEN_READ_SCOPE } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 /** The tools beside Exciter that connect each person at their sign-in there, for administrators to register (#273). */
 export function PartnerApps() {
@@ -13,17 +14,20 @@ export function PartnerApps() {
   const rotate = useRotatePartnerSecret();
   const remove = useDeletePartnerApp();
   const [fresh, setFresh] = useState<PartnerApp | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const failed = error ?? update.error ?? rotate.error ?? remove.error;
 
-  function rotateSecret(app: PartnerApp) {
-    if (!window.confirm(t.oauth.partnerConfirmRotate(app.name))) return;
+  async function rotateSecret(app: PartnerApp) {
+    const asked = { noun: t.kit.confirm.things.secretOf(app.name), verb: t.kit.confirm.verbs.rotate, body: t.oauth.partnerConfirmRotate(app.name) };
+    if (!(await confirm(asked))) return;
     rotate.mutate(app.id, { onSuccess: setFresh });
   }
 
-  function removeApp(app: PartnerApp) {
-    if (!window.confirm(t.oauth.partnerConfirmRemove(app.name))) return;
-    remove.mutate(app.id, { onSuccess: () => setNotice(t.oauth.partnerRemoved(app.name)) });
+  async function removeApp(app: PartnerApp) {
+    const noun = t.kit.confirm.things.named(t.kit.confirm.things.app, app.name);
+    if (!(await confirm({ noun, verb: t.kit.confirm.verbs.remove, body: t.oauth.partnerConfirmRemove }))) return;
+    remove.mutate(app.id, { onSuccess: () => toast.success(t.oauth.partnerRemoved(app.name)) });
   }
 
   // The box follows the change at once, as the list catches up only once it is saved.
@@ -44,9 +48,6 @@ export function PartnerApps() {
       </div>
       {failed && <ErrorBanner>{failed.message}</ErrorBanner>}
       {fresh?.secret && <FreshPartnerSecret app={fresh} onDone={() => setFresh(null)} />}
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-partner-notice>
-        {notice}
-      </p>
       {!apps && !error && <Skeleton />}
       {apps && apps.length === 0 && <p className="text-sm text-ink-muted">{t.oauth.partnersEmpty}</p>}
       {apps && apps.length > 0 && (

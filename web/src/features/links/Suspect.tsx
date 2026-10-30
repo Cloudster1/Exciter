@@ -2,8 +2,8 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { ApiError } from "@/api/client";
 import { useComparison } from "@/api/history";
 import { useClearances, useClearLink, type MovedEnd } from "@/api/links";
-import { Button, Dialog, ErrorBanner, Field, Skeleton, Tag } from "@/components/ui";
-import { CLEAR_COMMENT_MAX_LENGTH } from "@/config";
+import { Button, Drawer, ErrorBanner, Field, Skeleton, Tag } from "@/components/ui";
+import { CLEAR_COMMENT_MAX_LENGTH, DOCUMENT_DRAWER_WIDTH } from "@/config";
 import { ComparisonView } from "@/features/history/RequirementHistory";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -64,7 +64,7 @@ export function ClearDialog({
   }
 
   return (
-    <Dialog title={title} fill onClose={onClose} data-clear-dialog="">
+    <Drawer open title={title} onClose={onClose} width={DOCUMENT_DRAWER_WIDTH} attrs={{ "data-clear-dialog": "" }}>
       <div className="space-y-4">
         <p className="text-sm text-ink-muted">{intro}</p>
         {children}
@@ -98,7 +98,7 @@ export function ClearDialog({
           </div>
         </form>
       </div>
-    </Dialog>
+    </Drawer>
   );
 }
 

@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { request } from "@playwright/test";
 import { expect, test } from "../fixtures/auth";
 import { withDatabase } from "../fixtures/db";
-import { expectAccessible, openAccountMenu } from "../fixtures/shell";
+import { expectAccessible, openAccountMenu, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // Nothing listens there; the browser is stopped on its way back and answered by the test instead.
@@ -131,9 +131,10 @@ test.describe("connecting an app", { tag: "@desktop" }, () => {
     await expect(row.locator("[data-app-last-used]")).not.toHaveText("Never used");
     await expectAccessible(page);
 
-    page.once("dialog", (dialog) => dialog.accept());
     await row.getByRole("button", { name: "Disconnect Listed assistant" }).click();
-    await expect(page.locator("[data-apps-notice]")).toHaveText("Listed assistant was disconnected.");
+    await confirm(page);
+    await expect(toast(page, "Listed assistant was disconnected.")).toHaveText("Listed assistant was disconnected.");
+    await dismissToasts(page);
     await expect(row).toHaveCount(0);
     expect(await app.status()).toBe(401);
   });

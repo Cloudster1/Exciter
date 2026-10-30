@@ -171,7 +171,10 @@ type saveOIDCProviderRequest struct {
 	GroupsClaim  string `json:"groupsClaim,omitempty"`
 	Scopes       string `json:"scopes,omitempty"`
 	CreateGroups bool   `json:"createGroups"`
-	Enabled      bool   `json:"enabled"`
+	// AdmitByGroup lets somebody new in whose group is mapped to a role, at
+	// sign-in and at a partner's token exchange. Left out, it is off.
+	AdmitByGroup bool `json:"admitByGroup"`
+	Enabled      bool `json:"enabled"`
 }
 
 func (s *Server) handleSaveOIDCProvider(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +194,7 @@ func (s *Server) handleSaveOIDCProvider(w http.ResponseWriter, r *http.Request) 
 		GroupsClaim:  req.GroupsClaim,
 		Scopes:       req.Scopes,
 		CreateGroups: req.CreateGroups,
+		AdmitByGroup: req.AdmitByGroup,
 		Enabled:      req.Enabled,
 	})
 	noteWrite(r.Context(), lsn)
@@ -199,64 +203,6 @@ func (s *Server) handleSaveOIDCProvider(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	respondJSON(w, r, http.StatusOK, providerView{Provider: saved, CallbackURL: s.OIDCCallbackURL})
-}
-
-type setGroupRoleRequest struct {
-	// Group is a value of the provider's groups claim.
-	Group string `json:"group"`
-	// Role is what the group grants: member, or admin.
-	Role auth.OrgRole `json:"role"`
-}
-
-func (s *Server) handleListGroupRoles(w http.ResponseWriter, r *http.Request) {
-	if s.OIDC == nil {
-		respondError(w, r, errSignInOff)
-		return
-	}
-	mapping, err := s.OIDC.GroupRoles(r.Context())
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"groupRoles": mapping})
-}
-
-func (s *Server) handleSetGroupRole(w http.ResponseWriter, r *http.Request) {
-	if s.OIDC == nil {
-		respondError(w, r, errSignInOff)
-		return
-	}
-	var req setGroupRoleRequest
-	if err := decodeJSON(w, r, &req); err != nil {
-		respondError(w, r, err)
-		return
-	}
-	saved, lsn, err := s.OIDC.SetGroupRole(r.Context(), req.Group, req.Role, userFrom(r), s.clientIP(r))
-	noteWrite(r.Context(), lsn)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respondJSON(w, r, http.StatusOK, map[string]any{"groupRole": saved})
-}
-
-func (s *Server) handleRemoveGroupRole(w http.ResponseWriter, r *http.Request) {
-	if s.OIDC == nil {
-		respondError(w, r, errSignInOff)
-		return
-	}
-	id, apiErr := pathUUID(r, "groupRoleID", "group role's")
-	if apiErr != nil {
-		respondError(w, r, apiErr)
-		return
-	}
-	lsn, err := s.OIDC.RemoveGroupRole(r.Context(), id, userFrom(r), s.clientIP(r))
-	noteWrite(r.Context(), lsn)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-	respondNoContent(w)
 }
 
 // handleReauthStart sends a signed-in person to the provider to prove again who they are, for a signature (#46);

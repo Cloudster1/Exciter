@@ -16,7 +16,7 @@ import {
   type Severity,
   type WordRule,
 } from "@/api/quality";
-import { Button, Card, Checkbox, ErrorBanner, Field, SectionTitle, SelectInput, Skeleton } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, SectionTitle, SelectInput, Skeleton, useToast } from "@/components/ui";
 import { QUALITY_MAX_WORDS, QUALITY_WORD_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
@@ -44,16 +44,15 @@ function wordLists(settings: QualitySettings): Record<WordRule, QualityWords> {
 export function QualityRulesCard({ project }: { project: Project }) {
   const { data: settings, error, refetch } = useQualitySettings(project.key);
   const { data: catalogue } = useQualityRules();
-  // The notice outlives the form, which starts again from the settings saved.
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!settings || !catalogue) return <Skeleton />;
-  return <RulesForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} notice={notice} onNotice={setNotice} />;
+  return <RulesForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} />;
 }
 
-type FormProps = { project: Project; settings: QualitySettings; catalogue: QualityRule[]; notice: string; onNotice: (notice: string) => void };
+type FormProps = { project: Project; settings: QualitySettings; catalogue: QualityRule[] };
 
-function RulesForm({ project, settings, catalogue, notice, onNotice }: FormProps) {
+function RulesForm({ project, settings, catalogue }: FormProps) {
+  const toast = useToast();
   const [rules, setRules] = useState(() => ruleSettings(settings, catalogue));
   const { data: types } = useTypes(project.key);
   const save = useSaveQualitySettings(project.key);
@@ -63,11 +62,10 @@ function RulesForm({ project, settings, catalogue, notice, onNotice }: FormProps
   const change = (rule: string, next: Partial<QualityRuleSetting>) => setRules(rules.map((each) => (each.rule === rule ? { ...each, ...next } : each)));
   function submit(event: FormEvent) {
     event.preventDefault();
-    onNotice("");
     // The saved settings remount this form, which drops a mutate call's own onSuccess; the promise resolves regardless.
     void save
       .mutateAsync({ rules, words: wordLists(settings) })
-      .then(() => onNotice(l.saved))
+      .then(() => toast.success(l.saved))
       .catch(() => {});
   }
   const offered = (types ?? []).filter((type) => !type.retired);
@@ -142,9 +140,6 @@ function RulesForm({ project, settings, catalogue, notice, onNotice }: FormProps
         )}
       </form>
       {save.error && <ErrorBanner>{Object.values(fields)[0] ?? save.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }
@@ -153,13 +148,13 @@ function RulesForm({ project, settings, catalogue, notice, onNotice }: FormProps
 export function QualityWordsCard({ project }: { project: Project }) {
   const { data: settings, error, refetch } = useQualitySettings(project.key);
   const { data: catalogue } = useQualityRules();
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!settings || !catalogue) return <Skeleton />;
-  return <WordsForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} notice={notice} onNotice={setNotice} />;
+  return <WordsForm key={settings.updatedAt ?? "default"} project={project} settings={settings} catalogue={catalogue} />;
 }
 
-function WordsForm({ project, settings, catalogue, notice, onNotice }: FormProps) {
+function WordsForm({ project, settings, catalogue }: FormProps) {
+  const toast = useToast();
   const [lists, setLists] = useState(() =>
     Object.fromEntries(Object.entries(wordLists(settings)).map(([rule, words]) => [rule, { add: words.add.join(", "), except: words.except.join(", ") }])),
   );
@@ -170,11 +165,10 @@ function WordsForm({ project, settings, catalogue, notice, onNotice }: FormProps
   const most = QUALITY_MAX_WORDS * (QUALITY_WORD_MAX_LENGTH + 2);
   function submit(event: FormEvent) {
     event.preventDefault();
-    onNotice("");
     const words = Object.fromEntries(WORD_RULES.map((rule) => [rule, { add: listOf(lists[rule]?.add ?? ""), except: listOf(lists[rule]?.except ?? "") }]));
     void save
       .mutateAsync({ rules: ruleSettings(settings, catalogue), words })
-      .then(() => onNotice(l.saved))
+      .then(() => toast.success(l.saved))
       .catch(() => {});
   }
   // A refusal names the list as words.<rule>.add or words.<rule>.except.
@@ -215,9 +209,6 @@ function WordsForm({ project, settings, catalogue, notice, onNotice }: FormProps
         )}
       </form>
       {save.error && Object.keys(fields).length === 0 && <ErrorBanner>{save.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }

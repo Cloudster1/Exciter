@@ -53,7 +53,7 @@ func (s *lockScene) otherProject(t *testing.T, prefix, role string) string {
 	t.Helper()
 	key := projectKey(t, prefix)
 	made := obj(t, want(t, s.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": key}), http.StatusCreated, "make "+key), "project")
-	if _, err := s.h.super.Exec(t.Context(), `UPDATE project_grant SET role = $2 WHERE project_id = $1 AND subject_type = 'everyone'`, made["id"], role); err != nil {
+	if _, err := s.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = $2 WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, made["id"], role); err != nil {
 		t.Fatal(err)
 	}
 	return key

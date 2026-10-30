@@ -7,7 +7,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openShowing, openUntil } from "../fixtures/replica";
 import { chooseTheme, createTheme, themeSpec, uniqueName } from "../fixtures/seed";
-import { openAccountMenu } from "../fixtures/shell";
+import { dismissToasts, openAccountMenu } from "../fixtures/shell";
 
 // Armature's own theme file, kept byte for byte beside the backend's theme tests.
 const MINECRAFT = resolve(dirname(fileURLToPath(import.meta.url)), "../../backend/internal/theme/testdata/minecraft.armature-theme.json");
@@ -18,12 +18,18 @@ const MEADOW_SPEC = JSON.parse(readFileSync(MEADOW, "utf8")).spec as { colors: {
 
 const THEMES_PATH = "/settings/themes";
 const DEFAULT_THEME_PATH = "/settings/default-theme";
+const INSTALLATION_PATH = "/admin/installation";
+const defaultSelect = (page: Page) => page.locator("[data-default-theme-select]");
+// A closed select's options have no box, so Playwright never counts them visible; they are only attached.
+const defaultOption = (page: Page, name: string) => defaultSelect(page).locator("option", { hasText: name });
 const customStyle = (page: Page) => page.locator("style#exciter-theme");
 const row = (page: Page, name: string) => page.locator(`[data-theme-row="${name}"]`);
-const notice = (page: Page) => page.locator("[data-themes-notice]");
+// What the page said last, in the toast in the corner.
+const notice = (page: Page) => page.locator("[data-toast]").last().locator("[data-toast-message]");
 const rootVar = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
 
 async function rowAction(page: Page, name: string, action: string) {
+  await dismissToasts(page);
   await row(page, name).locator('[data-action="theme-menu"]').click();
   await page.locator(`[role="menu"] [data-action="${action}"]`).click();
 }
@@ -143,27 +149,29 @@ test.describe("themes", { tag: "@desktop" }, () => {
     expect(await rootVar(page, "--color-primary")).toBe(MEADOW_SPEC.colors.light.primary);
   });
 
-  test("the default, named under Settings, reaches a member who has not chosen", async ({ page, api, apiAs, pageAs }, testInfo) => {
+  test("the default, named under Admin, Installation, reaches a member who has not chosen", async ({ page, api, apiAs, pageAs }, testInfo) => {
     // Each spec's people start on the built-in theme, so bob is made to have chosen nothing.
     await chooseTheme(await apiAs("bob"), null);
     const name = uniqueName(testInfo, "default");
     await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
 
-    await openShowing(page, DEFAULT_THEME_PATH, page.locator(`[data-default-theme-choice="${name}"]`));
-    await page.locator(`[data-default-theme-choice="${name}"]`).click();
-    await expect(page.locator("[data-default-theme-notice]")).toHaveText(`${name} is what everybody sees until they choose.`);
+    // The page of its own it once had sends a bookmark on to the installation, where the default is named now.
+    await openUntil(page, DEFAULT_THEME_PATH, () => expect(defaultOption(page, name)).toBeAttached(ONE_LOOK));
+    await expect(page).toHaveURL(/\/admin\/installation$/);
+    await defaultSelect(page).selectOption({ label: name });
+    await expect(notice(page)).toHaveText(`${name} is what everybody sees until they choose.`);
 
     const bob = await pageAs("bob");
-    await openShowing(bob, THEMES_PATH, bob.getByText(`You are using ${name}, the default for everyone.`));
+    await openShowing(bob, THEMES_PATH, bob.getByText(`You are using ${name}, everyone's default.`));
     await expect(customStyle(bob)).toBeAttached();
     expect(await rootVar(bob, "--color-canvas")).toBe("#0f0f0f");
 
     await bob.locator('[data-action="built-in-theme"]').click();
-    await expect(bob.getByText(`You are using the built-in theme, over ${name}, the default for everyone.`)).toBeVisible();
+    await expect(bob.getByText(`You are using the built-in theme, over everyone's default ${name}.`)).toBeVisible();
     await expect(customStyle(bob)).toHaveCount(0);
   });
 
-  test("the default is named and taken back from the Themes page, and bob steps between it, his choice and the built-in", async ({
+  test("the default is named and taken back under Admin, Installation, and bob steps between it, his choice and the built-in", async ({
     page,
     api,
     apiAs,
@@ -175,17 +183,19 @@ test.describe("themes", { tag: "@desktop" }, () => {
     const house = await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
     const using = (who: Page, words: string) => openShowing(who, THEMES_PATH, who.getByText(words, { exact: true }));
 
-    await page.goto(THEMES_PATH);
-    await rowAction(page, name, "default-theme");
+    await openUntil(page, INSTALLATION_PATH, () => expect(defaultOption(page, name)).toBeAttached(ONE_LOOK));
+    await defaultSelect(page).selectOption({ label: name });
     await expect(notice(page)).toHaveText(`${name} is what everybody sees until they choose.`);
-    await expect(row(page, name)).toHaveAttribute("data-theme-default", "true");
+    await dismissToasts(page);
+    await expect(page.locator("[data-default-theme]")).toHaveAttribute("data-default-theme", name);
     const bob = await pageAs("bob");
-    await using(bob, `You are using ${name}, the default for everyone.`);
+    await using(bob, `You are using ${name}, everyone's default.`);
     await expect(customStyle(bob)).toBeAttached();
 
-    await rowAction(page, name, "undefault-theme");
+    await defaultSelect(page).selectOption("");
     await expect(notice(page)).toHaveText("Everyone sees the built-in theme again.");
-    await expect(row(page, name)).toHaveAttribute("data-theme-default", "false");
+    await dismissToasts(page);
+    await expect(page.locator("[data-default-theme]")).toHaveAttribute("data-default-theme", "");
     await using(bob, "You are using the built-in theme.");
     await expect(customStyle(bob)).toHaveCount(0);
 
@@ -198,21 +208,21 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await rowAction(bob, name, "use-theme");
     await expect(notice(bob)).toHaveText(`Now using ${name}.`);
     await rowAction(bob, name, "stop-theme");
-    await expect(notice(bob)).toHaveText("Back to the default for everyone.");
-    await expect(bob.getByText(`You are using ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+    await expect(notice(bob)).toHaveText("Back to everyone's default.");
+    await expect(bob.getByText(`You are using ${name}, everyone's default.`, { exact: true })).toBeVisible();
 
     await bob.locator('[data-action="built-in-theme"]').click();
-    await expect(bob.getByText(`You are using the built-in theme, over ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+    await expect(bob.getByText(`You are using the built-in theme, over everyone's default ${name}.`, { exact: true })).toBeVisible();
     await expect(customStyle(bob)).toHaveCount(0);
     await bob.locator('[data-action="org-default-theme"]').click();
     await expect(notice(bob)).toHaveText(`Now using ${name}.`);
-    await expect(bob.getByText(`You are using ${name}, the default for everyone.`, { exact: true })).toBeVisible();
+    await expect(bob.getByText(`You are using ${name}, everyone's default.`, { exact: true })).toBeVisible();
     await expect(customStyle(bob)).toBeAttached();
 
-    // The page must know the default bob just used, or choosing the built-in one would look like no change.
-    await openShowing(page, DEFAULT_THEME_PATH, page.locator(`[data-default-theme-choice="${name}"][aria-checked="true"]`));
-    await page.locator('[data-default-theme-choice="built-in"]').click();
-    await expect(page.locator("[data-default-theme-notice]")).toHaveText("Everyone sees the built-in theme again.");
+    // The page must know the default bob just used, or taking it back would look like no change.
+    await openShowing(page, INSTALLATION_PATH, page.locator(`[data-default-theme="${name}"]`));
+    await defaultSelect(page).selectOption("");
+    await expect(notice(page)).toHaveText("Everyone sees the built-in theme again.");
     await using(bob, "You are using the built-in theme.");
     await expect(customStyle(bob)).toHaveCount(0);
     await expect.poll(async () => must(await bobApi.GET("/themes/default")).theme).toBeNull();

@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { createTheme, listThemes, themeSpec, uniqueName } from "../fixtures/seed";
-import { startInScheme } from "../fixtures/shell";
+import { confirm, dismissToasts, startInScheme } from "../fixtures/shell";
 
 // The editor and the Themes page's row menu, clicked as alice and bob, the spec's own. Nothing here names the
 // default for everyone, which themes.spec.ts does alone, so these run beside the rest.
@@ -21,13 +21,15 @@ const CHOSEN_ACCENT = "#00aa00";
 
 const customStyle = (page: Page) => page.locator("style#exciter-theme");
 const row = (page: Page, name: string) => page.locator(`[data-theme-row="${name}"]`);
-const notice = (page: Page) => page.locator("[data-themes-notice]");
-const editorNotice = (page: Page) => page.locator("[data-theme-notice]");
+// What the page said last, in the toast in the corner.
+const notice = (page: Page) => page.locator("[data-toast]").last().locator("[data-toast-message]");
+const editorNotice = notice;
 const rootVar = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
 const accent = (page: Page) => rootVar(page, "--color-accent");
 const menuItem = (page: Page, action: string) => page.locator(`[role="menu"] [data-action="${action}"]`);
 
 async function openMenu(page: Page, name: string) {
+  await dismissToasts(page);
   await row(page, name).locator('[data-action="theme-menu"]').click();
   await expect(page.getByRole("menu")).toBeVisible();
 }
@@ -137,6 +139,7 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
     const remove = pixel.locator('[data-action="remove-theme-file"]');
     const tab = (which: string) => page.locator(`[data-theme-tab="${which}"]`).click();
     const save = async () => {
+      await dismissToasts(page);
       await page.locator('[data-action="save-theme"]').click();
       await expect(editorNotice(page)).toHaveText(`Saved ${name}.`);
     };
@@ -173,8 +176,9 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
     await save();
     await tab("files");
     await expect(remove).toBeEnabled();
-    page.once("dialog", (dialog) => dialog.accept());
+    await dismissToasts(page);
     await remove.click();
+    await confirm(page);
     await expect(editorNotice(page)).toHaveText("Removed pixel.png.");
     await expect(pixel).toHaveCount(0);
 
@@ -220,13 +224,10 @@ test.describe("the theme editor and the row menu", { tag: "@desktop" }, () => {
 
     // Bob's choice is kept while the theme is private, so he still counts; his write may reach alice a replica later.
     await openUntil(page, THEMES_PATH, () => expect(row(page, name)).toContainText("1 person", ONE_LOOK));
-    const asked = page.waitForEvent("dialog").then(async (dialog) => {
-      const message = dialog.message();
-      await dialog.accept();
-      return message;
-    });
     await rowAction(page, name, "delete-theme");
-    expect(await asked).toBe(`Delete ${name} and its files for good? The one person using it goes back to the built-in theme.`);
+    await expect(page.locator("[data-confirm]")).toContainText(`Delete theme ${name}?`);
+    await expect(page.locator("[data-confirm]")).toContainText("Its files go with it for good. The one person using it goes back to the built-in theme.");
+    await confirm(page);
     await expect(notice(page)).toHaveText(`Deleted ${name}.`);
     await expect(row(page, name)).toHaveCount(0);
   });

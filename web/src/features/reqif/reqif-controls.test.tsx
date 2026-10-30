@@ -68,7 +68,7 @@ function fileOf(size: number): File {
 }
 
 async function uploaded() {
-  await renderAt("/p/CHK/settings?tab=reqif");
+  await renderAt("/projects/CHK/settings/reqif");
   await userEvent.upload(await screen.findByLabelText("ReqIF file"), fileOf(1));
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
 }
@@ -76,7 +76,7 @@ async function uploaded() {
 describe("a ReqIF import past the happy path", () => {
   it("does not upload a file over the limit", async () => {
     stubApi(settings);
-    await renderAt("/p/CHK/settings?tab=reqif");
+    await renderAt("/projects/CHK/settings/reqif");
     const input = await screen.findByLabelText("ReqIF file");
     await userEvent.upload(input, fileOf(REQIF_MAX_BYTES + 1));
     expect(screen.getByRole("button", { name: "Upload" })).toBeDisabled();

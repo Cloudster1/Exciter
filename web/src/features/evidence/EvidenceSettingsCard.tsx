@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
 import { useEvidenceSettings, useSaveEvidenceSettings } from "@/api/testResults";
-import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { TEST_NAME_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
@@ -11,29 +11,26 @@ export function EvidenceSettingsCard({ project }: { project: Project }) {
   const { data, error, refetch } = useEvidenceSettings(project.key);
   // Kept above the form, which starts again from the branch it saved, so the word that it saved outlives it.
   const save = useSaveEvidenceSettings(project.key);
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!data) return <Skeleton />;
-  return <SettingsForm key={data.countingBranch} project={project} branch={data.countingBranch} save={save} notice={notice} setNotice={setNotice} />;
+  return <SettingsForm key={data.countingBranch} project={project} branch={data.countingBranch} save={save} />;
 }
 
 interface FormProps {
   project: Project;
   branch: string;
   save: ReturnType<typeof useSaveEvidenceSettings>;
-  notice: string;
-  setNotice: (notice: string) => void;
 }
 
-function SettingsForm({ project, branch: saved, save, notice, setNotice }: FormProps) {
+function SettingsForm({ project, branch: saved, save }: FormProps) {
+  const toast = useToast();
   const [branch, setBranch] = useState(saved);
   const may = project.can.administer && !project.archivedAt;
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const l = t.evidence.settings;
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
-    save.mutate(branch.trim(), { onSuccess: () => setNotice(l.saved) });
+    save.mutate(branch.trim(), { onSuccess: () => toast.success(l.saved) });
   }
   return (
     <Card className="space-y-3 p-4" data-evidence-settings>
@@ -59,9 +56,6 @@ function SettingsForm({ project, branch: saved, save, notice, setNotice }: FormP
         )}
       </form>
       {save.error && Object.keys(fields).length === 0 && <ErrorBanner>{save.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }

@@ -55,7 +55,7 @@ const selected = () => options().findIndex((each) => each.getAttribute("aria-sel
 describe("the query box's keys", () => {
   it("opens the list on Arrow Down and goes round it both ways", async () => {
     stubGrid();
-    await renderAt("/p/CHK/grid?query=x");
+    await renderAt("/projects/CHK/grid?query=x");
     const box = await screen.findByRole("combobox", { name: "Query" });
     await userEvent.click(box);
     expect(screen.queryByRole("listbox")).toBeNull();
@@ -82,7 +82,7 @@ describe("the query box's keys", () => {
 
   it("takes the first completion on Tab, or the one picked, and leaves the box on Shift Tab", async () => {
     stubGrid();
-    await renderAt("/p/CHK/grid?query=x");
+    await renderAt("/projects/CHK/grid?query=x");
     const box = await screen.findByRole("combobox", { name: "Query" });
     await userEvent.clear(box);
     await userEvent.type(box, "sta");
@@ -105,7 +105,7 @@ describe("the query box's keys", () => {
 
   it("runs what is typed when Run is clicked", async () => {
     const asked = stubGrid();
-    const router = await renderAt("/p/CHK/grid?query=x");
+    const router = await renderAt("/projects/CHK/grid?query=x");
     const box = await screen.findByRole("combobox", { name: "Query" });
     await userEvent.clear(box);
     await userEvent.type(box, "kind = section");

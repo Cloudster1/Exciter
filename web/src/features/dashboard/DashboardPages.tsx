@@ -47,7 +47,7 @@ export function DashboardsPage({ project }: { project: Project }) {
                   <li key={d.id}>
                     <Card className="flex items-center justify-between gap-2 p-3" data-dashboard-item={d.name}>
                       <Link
-                        to="/p/$projectKey/dashboards/$dashboardId"
+                        to="/projects/$projectKey/dashboards/$dashboardId"
                         params={{ projectKey: project.key, dashboardId: d.id }}
                         className="font-medium text-ink hover:text-accent hover:underline"
                       >
@@ -80,7 +80,7 @@ function NewDashboard({ project, onCancel }: { project: Project; onCancel: () =>
     event.preventDefault();
     actions.create.mutate(
       { name, shared, template: template || undefined },
-      { onSuccess: (d) => void navigate({ to: "/p/$projectKey/dashboards/$dashboardId", params: { projectKey: project.key, dashboardId: d.id } }) },
+      { onSuccess: (d) => void navigate({ to: "/projects/$projectKey/dashboards/$dashboardId", params: { projectKey: project.key, dashboardId: d.id } }) },
     );
   }
   return (
@@ -132,7 +132,7 @@ export function DashboardPage({ project, dashboardId }: { project: Project; dash
     <div className="space-y-4" data-dashboard={dashboard.name}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/dashboards" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/dashboards" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.dashboard.back}
           </Link>
         }
@@ -209,7 +209,9 @@ export function DashboardPage({ project, dashboardId }: { project: Project; dash
             variant="ghost"
             size="sm"
             onClick={() =>
-              actions.remove.mutate(dashboard.id, { onSuccess: () => void navigate({ to: "/p/$projectKey/dashboards", params: { projectKey: project.key } }) })
+              actions.remove.mutate(dashboard.id, {
+                onSuccess: () => void navigate({ to: "/projects/$projectKey/dashboards", params: { projectKey: project.key } }),
+              })
             }
             data-action="delete-dashboard"
           >
@@ -231,7 +233,7 @@ export function HomeDashboard({ project }: { project: Project }) {
     <section aria-label={dashboard.name} className="mb-6 space-y-2" data-home-dashboard>
       <h2 className="text-sm font-semibold text-ink">
         <Link
-          to="/p/$projectKey/dashboards/$dashboardId"
+          to="/projects/$projectKey/dashboards/$dashboardId"
           params={{ projectKey: project.key, dashboardId: dashboard.id }}
           className="hover:text-accent hover:underline"
         >

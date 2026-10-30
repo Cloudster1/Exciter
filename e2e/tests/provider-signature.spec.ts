@@ -12,7 +12,7 @@ import { expectAccessible } from "../fixtures/shell";
 
 const KEY = uniqueKey("PSIG");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 
 /** Types the password again on Keycloak's re-authentication form, which keeps the username it knows, and waits until
  *  the browser is back in Exciter. */

@@ -1,35 +1,33 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useRemoveStatorConnection, useSaveStatorConnection, useStatorConnection, type StatorConnection, type StatorConnectionInput } from "@/api/stator";
-import { Button, Card, Checkbox, ErrorBanner, Field, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, Field, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COPY_FEEDBACK_MS, STATOR_WEBHOOK_SECRET_PREFIX } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 /** The installation's Stator instance and its webhook, for administrators, as Armature's page. */
 export function ConnectionSettings() {
   const { data, isLoading, error } = useStatorConnection();
-  // Held here rather than in the form: a save remounts the form, and what it
-  // says about that save has to outlive the remount.
+  // Held here rather than in the form: a save remounts the form, and its
+  // pending state has to outlive the remount.
   const save = useSaveStatorConnection();
   const remove = useRemoveStatorConnection();
-  const [notice, setNotice] = useState("");
+  const confirm = useConfirm();
+  const toast = useToast();
   if (isLoading) return <Skeleton />;
   if (error) return <ErrorBanner>{error instanceof ApiError && error.status === 403 ? t.stator.notAdmin : error.message}</ErrorBanner>;
   const connection = data ?? null;
 
-  function disconnect() {
-    if (!window.confirm(t.stator.confirmDisconnect)) return;
-    setNotice("");
-    remove.mutate(undefined, { onSuccess: () => setNotice(t.stator.disconnected) });
+  async function disconnect() {
+    if (!(await confirm({ noun: t.nav.stator, verb: t.kit.confirm.verbs.disconnect, body: t.stator.confirmDisconnect }))) return;
+    remove.mutate(undefined, { onSuccess: () => toast.success(t.stator.disconnected) });
   }
 
   return (
     <div className="space-y-6">
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-stator-notice>
-        {notice}
-      </p>
-      <ConnectionForm key={connection?.updatedAt ?? "new"} connection={connection} save={save} onSaved={setNotice} />
+      <ConnectionForm key={connection?.updatedAt ?? "new"} connection={connection} save={save} onSaved={() => toast.success(t.stator.saved)} />
       {connection && <Webhook connection={connection} />}
       {connection && (
         <section aria-labelledby="stator-disconnect" className="space-y-2">
@@ -54,7 +52,7 @@ function ConnectionForm({
 }: {
   connection: StatorConnection | null;
   save: ReturnType<typeof useSaveStatorConnection>;
-  onSaved: (notice: string) => void;
+  onSaved: () => void;
 }) {
   const [baseUrl, setBaseUrl] = useState(connection?.baseUrl ?? "");
   const [secret, setSecret] = useState("");
@@ -67,14 +65,13 @@ function ConnectionForm({
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    onSaved("");
     const body: StatorConnectionInput = { baseUrl: baseUrl.trim() };
     if (secret.trim()) body.webhookSecret = secret.trim();
     else if (forget) body.webhookSecret = "";
     if (clientId.trim() !== (connection?.clientId ?? "")) body.clientId = clientId.trim();
     if (clientSecret.trim()) body.clientSecret = clientSecret.trim();
     else if (forgetClient) body.clientSecret = "";
-    save.mutate(body, { onSuccess: () => onSaved(t.stator.saved) });
+    save.mutate(body, { onSuccess: onSaved });
   }
 
   return (

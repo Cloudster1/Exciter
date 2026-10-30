@@ -53,7 +53,7 @@ test.describe("code tags", { tag: "@desktop" }, () => {
     const token = must(await api.POST("/tokens", { body: { name: `scan ${KEY}`, scopes: ["evidence"] } })).token;
     await scanAsCI(token.secret!);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.locator("[data-code-links]");
     await expect(panel.getByRole("link", { name: "brakes/engage.go:12" })).toHaveAttribute(
       "href",
@@ -62,7 +62,7 @@ test.describe("code tags", { tag: "@desktop" }, () => {
     await expect(panel.getByText("Implements")).toBeVisible();
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/code-tags`);
+    await page.goto(`/projects/${KEY}/code-tags`);
     const table = page.getByRole("table", { name: "Code tags" });
     await expect(table.locator('[data-code-tag="brakes/ghost.go:3"]')).toHaveAttribute("data-state", "orphaned");
     await expect(table).toContainText("names no requirement");

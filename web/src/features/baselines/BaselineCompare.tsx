@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { NOW, useBaselineComparison, type BaselineComparison, type ItemChange } from "@/api/baselines";
 import type { Project } from "@/api/projects";
-import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Tag } from "@/components/ui";
+import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Tag, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -19,10 +19,10 @@ export function BaselineCompare({ project, baselineId, other }: { project: Proje
   if (!data) return <Skeleton />;
   const nothing = data.items.length === 0 && data.links.length === 0 && data.externalLinks.length === 0;
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-baseline-comparison="">
+    <Page width="content" className="space-y-4" data-baseline-comparison="">
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/baselines/$baselineId" params={{ projectKey: project.key, baselineId }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/baselines/$baselineId" params={{ projectKey: project.key, baselineId }} className="hover:text-accent hover:underline">
             {data.from.baseline?.name ?? t.baseline.title}
           </Link>
         }
@@ -65,7 +65,7 @@ export function BaselineCompare({ project, baselineId, other }: { project: Proje
           </ul>
         </Card>
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -86,7 +86,7 @@ function Item({ project, item }: { project: Project; item: ItemChange }) {
             <>
               <span data-revised="">{t.baseline.revised(from.revision, to.revision)}</span>
               <Link
-                to="/p/$projectKey/r/$reqKey/history"
+                to="/projects/$projectKey/r/$reqKey/history"
                 params={{ projectKey: project.key, reqKey: item.key }}
                 search={{ from: from.revision, to: to.revision }}
                 className="text-accent hover:underline"

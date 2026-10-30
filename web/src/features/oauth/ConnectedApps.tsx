@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { useEndGrant, useGrants, type Grant } from "@/api/oauth";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PARTNER_CLIENT_KIND, TOKEN_EVIDENCE_SCOPE, TOKEN_READ_SCOPE } from "@/config";
 import { reachOf, when } from "@/features/tokens/TokensPage";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 
 /** The app a grant connects, with what it reaches; a row of either list. */
 export function AppCell({ grant }: { grant: Grant }) {
@@ -29,20 +29,19 @@ export function lastUsed(grant: Grant): string {
 export function ConnectedApps() {
   const { data: grants, error } = useGrants();
   const end = useEndGrant();
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
 
-  function endGrant(grant: Grant) {
-    if (!window.confirm(t.oauth.confirmEnd(grant.client.name))) return;
-    end.mutate(grant.id, { onSuccess: () => setNotice(t.oauth.ended(grant.client.name)) });
+  async function endGrant(grant: Grant) {
+    const noun = t.kit.confirm.things.named(t.kit.confirm.things.app, grant.client.name);
+    if (!(await confirm({ noun, verb: t.kit.confirm.verbs.disconnect, body: t.oauth.confirmEnd }))) return;
+    end.mutate(grant.id, { onSuccess: () => toast.success(t.oauth.ended(grant.client.name)) });
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <Page width="narrow" className="space-y-4">
       <PageHeader title={t.oauth.appsTitle} meta={t.oauth.appsIntro} />
       {(error ?? end.error) && <ErrorBanner>{(error ?? end.error)?.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-apps-notice>
-        {notice}
-      </p>
       {!grants && !error && <Skeleton />}
       {grants && grants.length === 0 && <EmptyState icon={<Icon.Link />} title={t.oauth.appsEmpty} description={t.oauth.appsEmptyBody} />}
       {grants && grants.length > 0 && (
@@ -84,6 +83,6 @@ export function ConnectedApps() {
           </tbody>
         </Table>
       )}
-    </div>
+    </Page>
   );
 }

@@ -18,7 +18,7 @@ export function ProjectTable({ projects, label }: { projects: Project[]; label: 
         {projects.map((project) => (
           <tr key={project.id} data-project-row={project.key} data-archived={project.archivedAt ? "" : undefined}>
             <Td>
-              <Link to="/p/$projectKey" params={{ projectKey: project.key }} className="font-medium text-ink hover:text-accent hover:underline">
+              <Link to="/projects/$projectKey" params={{ projectKey: project.key }} className="font-medium text-ink hover:text-accent hover:underline">
                 {project.name}
               </Link>
               {project.archivedAt && <Tag className="ml-2 align-middle">{t.projects.archived}</Tag>}

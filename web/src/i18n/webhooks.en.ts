@@ -7,7 +7,6 @@ type Version = (typeof WEBHOOK_VERSIONS)[number];
 export const webhooksEn = {
   title: "Webhooks",
   intro: "Where Exciter posts what happens to requirements, signed so the receiver can tell it came from here.",
-  notAdmin: "Only an administrator keeps the webhooks. Ask one of them to add the address you need.",
   newTitle: "Add a webhook",
   name: "Name",
   namePlaceholder: "Test management",
@@ -77,8 +76,8 @@ export const webhooksEn = {
   turnOn: "Turn on",
   rotate: "Rotate the secret",
   delete: "Delete",
-  confirmDelete: (name: string) => `Delete ${name}? It stops receiving at once, and its delivery log goes with it.`,
-  confirmRotate: (name: string) => `Rotate the secret of ${name}? The receiver refuses every delivery until it has the new one.`,
+  confirmDelete: "It stops receiving at once, and its delivery log goes with it.",
+  confirmRotate: "The receiver refuses every delivery until it has the new one.",
   deleted: (name: string) => `${name} was deleted.`,
   turnedOff: (name: string) => `${name} is off. Nothing is sent until it is turned on again.`,
   turnedOn: (name: string) => `${name} is on again.`,

@@ -38,10 +38,10 @@ func TestTheBootstrapConfiguresTheProviderAndItsMembersOnce(t *testing.T) {
 	if err != nil || len(done.Added) != 2 || !done.ProviderCreated {
 		t.Fatalf("the first run = %+v, %v; want both let in and the provider made", done, err)
 	}
-	for email, role := range map[string]string{first: "admin", second: "member"} {
+	for email, administers := range map[string]bool{first: true, second: false} {
 		if n := h.countRows(t, `
-			SELECT count(*) FROM app_user WHERE email = $1 AND role = $2 AND role_source = 'manual'`, email, role); n != 1 {
-			t.Errorf("%s is not let in as %s", email, role)
+			SELECT count(*) FROM app_user u WHERE email = $1 AND role = 'member' AND perm_is_administrator(u.id) = $2`, email, administers); n != 1 {
+			t.Errorf("%s is not let in as a member who administers: %v", email, administers)
 		}
 	}
 	if n := h.countRows(t, `

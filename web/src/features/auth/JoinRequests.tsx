@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useAdmitJoinRequest, useDeclineJoinRequest, useJoinRequests, type JoinRequest } from "@/api/auth";
-import { Button, Card, ErrorBanner } from "@/components/ui";
+import { Button, Card, ErrorBanner, useToast } from "@/components/ui";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 
@@ -12,17 +11,17 @@ export function JoinRequests() {
   const { data } = useJoinRequests();
   const admit = useAdmitJoinRequest();
   const decline = useDeclineJoinRequest();
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const requests = data ?? [];
   const failure = admit.error ?? decline.error;
-  if (requests.length === 0 && !notice) return null;
+  if (requests.length === 0) return null;
 
   function letIn(request: JoinRequest) {
-    admit.mutate({ userId: request.userId, role: "member" }, { onSuccess: () => setNotice(t.sso.admitted(request.name || request.email)) });
+    admit.mutate({ userId: request.userId, role: "member" }, { onSuccess: () => toast.success(t.sso.admitted(request.name || request.email)) });
   }
 
   function turnAway(request: JoinRequest) {
-    decline.mutate({ userId: request.userId }, { onSuccess: () => setNotice(t.sso.declined(request.name || request.email)) });
+    decline.mutate({ userId: request.userId }, { onSuccess: () => toast.success(t.sso.declined(request.name || request.email)) });
   }
 
   return (
@@ -30,11 +29,6 @@ export function JoinRequests() {
       <h2 className="text-sm font-semibold text-ink">{t.sso.waitingTitle}</h2>
       <p className="text-sm text-ink-muted">{t.sso.waitingIntro}</p>
       {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-      {notice && (
-        <p role="status" className="text-sm text-ink-muted">
-          {notice}
-        </p>
-      )}
       <ul className="divide-y divide-border">
         {requests.map((request) => (
           <li key={request.userId} className="flex flex-wrap items-center gap-3 py-2" data-join-request={request.email}>

@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { WEBHOOK_DELIVERIES_PAGE_SIZE } from "@/config";
 import { api } from "./client";
 import type { components } from "./schema";

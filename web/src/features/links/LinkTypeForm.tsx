@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useTypes } from "@/api/attributes";
 import { COUNTS, SUSPECT_ENDS, useLinkTypeActions, type Counts, type LinkType, type LinkTypeRule, type SuspectEnd } from "@/api/links";
-import { Button, Checkbox, Dialog, ErrorBanner, Field, IconButton, Select, SelectInput } from "@/components/ui";
+import { Button, Checkbox, Dialog, ErrorBanner, Field, IconButton, Select, SelectInput, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { LINK_TYPE_KEY_MAX_LENGTH, LINK_TYPE_MAX_RULES, LINK_TYPE_NAME_MAX_LENGTH, LINK_TYPE_PHRASE_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
@@ -103,6 +103,7 @@ export function LinkTypeForm({ projectKey, type, onDone }: { projectKey?: string
 
 /** The pairs of the project's requirement types a link type joins there; none is any pair. */
 export function PairsDialog({ projectKey, type, onClose }: { projectKey: string; type: LinkType; onClose: () => void }) {
+  const formId = useId();
   const { data: types } = useTypes(projectKey);
   const { use } = useLinkTypeActions(projectKey);
   const [pairs, setPairs] = useState<LinkTypeRule[]>(type.rules);
@@ -122,8 +123,9 @@ export function PairsDialog({ projectKey, type, onClose }: { projectKey: string;
   );
 
   return (
-    <Dialog title={t.linkTypes.pairsTitle(type.name)} onClose={onClose} data-pairs-dialog="">
+    <Dialog open title={t.linkTypes.pairsTitle(type.name)} onClose={onClose} attrs={{ "data-pairs-dialog": "" }}>
       <form
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault();
           use.mutate({ id: type.id, enabled: type.enabled, rules: pairs }, { onSuccess: onClose });
@@ -151,14 +153,14 @@ export function PairsDialog({ projectKey, type, onClose }: { projectKey: string;
         >
           {t.linkTypes.addPair}
         </Button>
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             {t.linkTypes.cancel}
           </Button>
-          <Button type="submit" loading={use.isPending} data-action="save-pairs">
+          <Button type="submit" form={formId} loading={use.isPending} data-action="save-pairs">
             {t.linkTypes.savePairs}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

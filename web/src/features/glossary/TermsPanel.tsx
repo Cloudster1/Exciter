@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import { useClearTermUse, useRequirementTerms, type RequirementTerm } from "@/api/glossary";
 import type { Project } from "@/api/projects";
 import type { Requirement } from "@/api/requirements";
-import { Button, Card, Dialog, ErrorBanner, Field, SectionTitle, Skeleton, Tag } from "@/components/ui";
+import { Button, Card, Dialog, ErrorBanner, Field, SectionTitle, Skeleton, Tag, useToast, DialogFooter } from "@/components/ui";
 import { TERM_COMMENT_MAX_LENGTH, TERM_COMMENT_ROWS } from "@/config";
 import { t } from "@/i18n";
 
@@ -14,7 +14,7 @@ export function TermsPanel({ project, requirement }: { project: Project; require
   const section = requirement.kind === "section";
   const { data: terms, error, refetch } = useRequirementTerms(requirement.key, !section);
   const [confirming, setConfirming] = useState<RequirementTerm | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   if (section) return null;
   const l = t.glossary.panel;
   const may = requirement.can.edit && !project.archivedAt && !requirement.trashedAt;
@@ -30,7 +30,7 @@ export function TermsPanel({ project, requirement }: { project: Project; require
             {terms.map((use) => (
               <li key={use.term.id} className="flex flex-wrap items-center gap-2 text-sm" data-requirement-term={use.term.name} data-suspect={use.suspect}>
                 <Link
-                  to="/p/$projectKey/glossary/$termId"
+                  to="/projects/$projectKey/glossary/$termId"
                   params={{ projectKey: use.term.projectKey, termId: use.term.id }}
                   className="font-medium text-ink hover:text-accent hover:underline"
                 >
@@ -51,7 +51,6 @@ export function TermsPanel({ project, requirement }: { project: Project; require
                     size="sm"
                     aria-label={l.confirmLabel(use.term.name)}
                     onClick={() => {
-                      setNotice("");
                       setConfirming(use);
                     }}
                     data-action="confirm-term"
@@ -63,9 +62,6 @@ export function TermsPanel({ project, requirement }: { project: Project; require
             ))}
           </ul>
         )}
-        <p role="status" className="text-sm text-ink-muted empty:hidden">
-          {notice}
-        </p>
       </section>
       {confirming && (
         <ConfirmDialog
@@ -73,7 +69,7 @@ export function TermsPanel({ project, requirement }: { project: Project; require
           use={confirming}
           onClose={() => setConfirming(null)}
           onDone={() => {
-            setNotice(l.confirmed(confirming.term.name));
+            toast.success(l.confirmed(confirming.term.name));
             setConfirming(null);
           }}
         />
@@ -83,6 +79,7 @@ export function TermsPanel({ project, requirement }: { project: Project; require
 }
 
 function ConfirmDialog({ reqKey, use, onClose, onDone }: { reqKey: string; use: RequirementTerm; onClose: () => void; onDone: () => void }) {
+  const formId = useId();
   const l = t.glossary.panel;
   const [comment, setComment] = useState("");
   const clear = useClearTermUse(reqKey);
@@ -93,8 +90,8 @@ function ConfirmDialog({ reqKey, use, onClose, onDone }: { reqKey: string; use: 
     clear.mutate({ termId: use.term.id, termRevision: use.definitionRevision, comment: comment.trim() }, { onSuccess: onDone });
   }
   return (
-    <Dialog title={l.confirmTitle} onClose={onClose} data-confirm-term="">
-      <form onSubmit={submit} className="space-y-4" noValidate>
+    <Dialog open title={l.confirmTitle} onClose={onClose} attrs={{ "data-confirm-term": "" }}>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.confirmIntro(use.term.name, use.definitionRevision)}</p>
         {clear.error && !fields.comment && <ErrorBanner>{clear.error.message}</ErrorBanner>}
         <Field
@@ -107,14 +104,14 @@ function ConfirmDialog({ reqKey, use, onClose, onDone }: { reqKey: string; use: 
           onChange={(event) => setComment(event.target.value)}
           autoFocus
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={clear.isPending} disabled={!comment.trim()} data-action="send-confirm-term">
+          <Button type="submit" form={formId} loading={clear.isPending} disabled={!comment.trim()} data-action="send-confirm-term">
             {l.confirmSend}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );

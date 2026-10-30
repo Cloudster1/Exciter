@@ -402,8 +402,10 @@ func rankAt(ctx context.Context, tx db.DBTX, projectID uuid.UUID, place Place, m
 // lastAtTop is the rank after everything at the top of a project, where a node without a place goes.
 func lastAtTop(ctx context.Context, tx db.DBTX, projectID uuid.UUID) (string, error) {
 	var last string
+	// Ordering by parent_id as well lets the tree index hand the rows over last first, since IS NULL does not pin
+	// the column for the planner; ordering by rank alone sorted every row of the project, each through its policy.
 	err := tx.QueryRow(ctx, `SELECT rank FROM requirement WHERE project_id = $1 AND parent_id IS NULL
-		AND trashed_at IS NULL ORDER BY rank DESC, number DESC LIMIT 1`, projectID).Scan(&last)
+		AND trashed_at IS NULL ORDER BY parent_id DESC NULLS FIRST, rank DESC, number DESC LIMIT 1`, projectID).Scan(&last)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
 	}

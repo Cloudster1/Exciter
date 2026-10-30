@@ -16,18 +16,19 @@ const (
 	defaultTheme     = "names the default theme for everyone"
 	armatureLink     = "connects the installation to an Armature stub of its own"
 	statorLink       = "connects the installation to the Stator stub, and sets what it offers"
-	singleSignOn     = "sets up the one identity provider, its group roles and who waits, and moves the realm's people"
+	singleSignOn     = "sets up the one identity provider, the grants across the installation and who waits, and moves the realm's people"
 	installationName = "renames the installation"
 	webhookEndpoints = "keeps the installation's webhooks, which hear every project"
 	oauthConnections = "switches OAuth connections off for everyone"
 	suiteDemo        = "adds or takes away the suite demo, of which the installation has one"
+	roles            = "changes the roles and the grants across the installation, which every grant reads"
 )
 
 // keepers are the helpers that put such a setting back, with what each is for.
 var keepers = map[string]string{
 	"keepLinkTypes": linkTypes, "keepDefaultTheme": defaultTheme, "keepArmature": armatureLink, "keepStator": statorLink,
 	"singleSignOn": singleSignOn, "keepInstallationName": installationName, "keepWebhooks": webhookEndpoints,
-	"keepOAuthConnections": oauthConnections, "keepSuiteDemo": suiteDemo,
+	"keepOAuthConnections": oauthConnections, "keepSuiteDemo": suiteDemo, "keepRoles": roles,
 }
 
 // installationWide is every test that changes a setting of the whole installation. The suite runs one test at a
@@ -145,31 +146,30 @@ var installationWide = map[string]string{
 	"TestRawSQLKeepsStatorLinksAtTheirPageAndTokensToAConnection":   statorLink,
 	"TestStatorsExchangeAtSignInStandsOnItsOwn":                     singleSignOn,
 
-	"TestSignInThroughKeycloak":                              singleSignOn,
-	"TestPeopleAreConnectedToArmatureAndStatorAtSignIn":      singleSignOn,
-	"TestASignatureAfterSigningInAgainAtTheProvider":         singleSignOn,
-	"TestABaselineIsSignedAfterSigningInAgainAtTheProvider":  singleSignOn,
-	"TestSignInRefusals":                                     singleSignOn,
-	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":   singleSignOn,
-	"TestOnlyExistingGroupsAreJoinedWhenCreationIsOff":       singleSignOn,
-	"TestTheProviderIsTheAdministratorsToConfigure":          singleSignOn,
-	"TestGroupRolesAreRefusedWhatCannotWork":                 singleSignOn,
-	"TestAMappedGroupGrantsItsRoleAndTakesItBack":            singleSignOn,
-	"TestAMappedGroupLetsSomebodyInWithoutWaiting":           singleSignOn,
-	"TestTheOwnerIsNeverDemotedByAMapping":                   singleSignOn,
-	"TestAnAdministratorSwitchesOffASignedInMember":          singleSignOn,
-	"TestANewPersonWaitsUntilAnAdministratorLetsThemIn":      singleSignOn,
-	"TestTheBootstrapConfiguresTheProviderAndItsMembersOnce": singleSignOn,
-	"TestTheBootstrapIsIdempotent":                           singleSignOn,
-	"TestRawSQLKeepsGroupRolesToTheAdministrators":           singleSignOn,
-	"TestRawSQLKeepsJoinRequestsToTheirAdministrators":       singleSignOn,
-	"TestRawSQLKeepsSignInToItsAdministrators":               singleSignOn,
-	"TestAGroupKeepsItsMembersInItsOrganization":             singleSignOn,
-	"TestAPartnerAppExchangesAPersonsTokenFromTheRealm":      singleSignOn,
-	"TestAnExchangeIsRefusedWhatTheRealmDidNotVouchFor":      singleSignOn,
-	"TestAnExchangeLetsInWhomTheMappingLetsIn":               singleSignOn,
+	"TestSignInThroughKeycloak":                                      singleSignOn,
+	"TestPeopleAreConnectedToArmatureAndStatorAtSignIn":              singleSignOn,
+	"TestASignatureAfterSigningInAgainAtTheProvider":                 singleSignOn,
+	"TestABaselineIsSignedAfterSigningInAgainAtTheProvider":          singleSignOn,
+	"TestSignInRefusals":                                             singleSignOn,
+	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":           singleSignOn,
+	"TestOnlyExistingGroupsAreJoinedWhenCreationIsOff":               singleSignOn,
+	"TestTheProviderIsTheAdministratorsToConfigure":                  singleSignOn,
+	"TestAProviderGroupsGrantsReachItsPeopleAndGoWithTheGroup":       singleSignOn,
+	"TestAMappedGroupLetsSomebodyInWithoutWaiting":                   singleSignOn,
+	"TestAnAdministratorByNameKeepsItWhateverTheGroups":              singleSignOn,
+	"TestAnAdministratorSwitchesOffASignedInMember":                  singleSignOn,
+	"TestANewPersonWaitsUntilAnAdministratorLetsThemIn":              singleSignOn,
+	"TestTheBootstrapConfiguresTheProviderAndItsMembersOnce":         singleSignOn,
+	"TestTheBootstrapIsIdempotent":                                   singleSignOn,
+	"TestRawSQLKeepsJoinRequestsToTheirAdministrators":               singleSignOn,
+	"TestRawSQLKeepsSignInToItsAdministrators":                       singleSignOn,
+	"TestAGroupKeepsItsMembersInItsOrganization":                     singleSignOn,
+	"TestAPartnerAppExchangesAPersonsTokenFromTheRealm":              singleSignOn,
+	"TestAnExchangeIsRefusedWhatTheRealmDidNotVouchFor":              singleSignOn,
+	"TestAMappedGroupLetsSomebodyNewInAtSignInOnlyWhenTurnedOn":      singleSignOn,
+	"TestAMappedGroupLetsAPartnerConnectSomebodyNewOnlyWhenTurnedOn": singleSignOn,
 
-	"TestAGroupRoleIsChangedInPlaceAndKeptFromMembers":           singleSignOn,
+	"TestAGroupsGrantIsKeptFromMembers":                          singleSignOn,
 	"TestAJoinRequestIsAnsweredByAnAdministratorAsMemberOrAdmin": singleSignOn,
 	"TestAProviderWithoutAClientIDIsRefusedAndTheSavedOneKept":   singleSignOn,
 	"TestAMemberCannotLinkTheSuiteDemoAgain":                     suiteDemo,
@@ -184,6 +184,11 @@ var installationWide = map[string]string{
 	"TestAReadSeesOneMomentThroughout":               installationName,
 
 	"TestOAuthConnectionsAreSwitchedOffAndOn": oauthConnections,
+
+	"TestAccessOverTheAPI":                             roles,
+	"TestARenamedAndANewRoleReachTheButtons":           roles,
+	"TestRawSQLKeepsRolesAndGrantsToTheAdministrators": roles,
+	"TestRawSQLHoldsProjectsToTheirGrants":             roles,
 }
 
 // The list above is what the code does: a test that reaches a keeper, itself or through a fixture, is listed with

@@ -174,7 +174,7 @@ function TermHits({ terms }: { terms: TermHit[] }) {
           <li key={term.id} className="py-1.5" data-search-term={term.name}>
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                to="/p/$projectKey/glossary/$termId"
+                to="/projects/$projectKey/glossary/$termId"
                 params={{ projectKey: term.projectKey, termId: term.id }}
                 className="font-medium text-accent hover:underline"
               >
@@ -198,7 +198,7 @@ function HitRow({ hit }: { hit: Hit }) {
     <li className="py-3" data-search-hit={ref.key}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-ink-muted">{ref.key}</span>
-        <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: ref.projectKey, reqKey: ref.key }} className="font-medium text-accent hover:underline">
+        <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: ref.projectKey, reqKey: ref.key }} className="font-medium text-accent hover:underline">
           <Highlight segments={title} />
         </Link>
         {ref.kind === "section" && <Tag>{t.requirements.kinds.section}</Tag>}

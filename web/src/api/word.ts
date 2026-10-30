@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { api } from "./client";
 import { reqifKey, type ReqIFImport } from "./reqif";
 

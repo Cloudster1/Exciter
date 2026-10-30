@@ -129,21 +129,21 @@ func toAPIError(err error) *APIError {
 		return &APIError{Status: http.StatusForbidden, Code: "account_switched_off", Message: "Your account has been switched off. Ask an administrator."}
 	case errors.Is(err, auth.ErrBadLocale):
 		return ErrValidation(map[string]string{"locale": "Choose English, German, or the language of your browser."})
+	case errors.Is(err, auth.ErrBadTimezone):
+		return ErrValidation(map[string]string{"timezone": "Choose a time zone from the list, or the one of your browser."})
 	case errors.Is(err, auth.ErrNoSuchMember):
 		return ErrNotFound("That person is not a member here. Reload the list to see who is.")
-	case errors.Is(err, auth.ErrOwnerStanding):
-		return ErrConflict("An owner's role does not change. Change somebody else's instead.")
-	case errors.Is(err, auth.ErrOwnerOnly):
-		return ErrForbidden("Only an owner can switch another owner off. Ask an owner to do it.")
 	case errors.Is(err, auth.ErrLastAdministrator):
 		return &APIError{Status: http.StatusConflict, Code: "last_administrator",
-			Message: "The last active administrator cannot be switched off. Make somebody else an administrator first."}
+			Message: "The last active administrator cannot be switched off or made a guest. Make somebody else an administrator first."}
 	case errors.Is(err, auth.ErrSwitchSelfOff):
 		return ErrConflict("You cannot switch yourself off. Ask another administrator to do it.")
 	case errors.Is(err, auth.ErrChangeOwnRole):
 		return ErrConflict("You cannot change your own role. Ask another administrator to do it.")
 	case errors.Is(err, auth.ErrBadRole):
-		return ErrValidation(map[string]string{"role": "Make the person an admin, a member or a guest."})
+		return ErrValidation(map[string]string{"role": "Make the person a member or a guest. To let them administer, grant them the administrator role under Access."})
+	case errors.Is(err, auth.ErrBadNewRole):
+		return ErrValidation(map[string]string{"role": "Add the person as an admin, a member or a guest."})
 	case errors.Is(err, auth.ErrBadMemberEmail):
 		return ErrValidation(map[string]string{"email": sentence(err.Error())})
 	case errors.Is(err, auth.ErrBadMemberName):
@@ -156,8 +156,6 @@ func toAPIError(err error) *APIError {
 		return ErrNotFound("That person is not waiting to be let in. Reload the list; somebody may have answered already.")
 	case errors.Is(err, auth.ErrBadJoinRole):
 		return ErrValidation(map[string]string{"role": "Let the person in as member or admin."})
-	case errors.Is(err, oidc.ErrNoSuchGroupRole):
-		return ErrNotFound("That group is not mapped to a role. Reload the list; somebody may have removed it already.")
 	case errors.Is(err, oidc.ErrNotConfigured):
 		return &APIError{Status: http.StatusNotFound, Code: "sso_not_configured",
 			Message: "Exciter does not sign in through an identity provider yet. Sign in with a password, or ask an administrator to set one up."}

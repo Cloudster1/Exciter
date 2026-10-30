@@ -61,10 +61,10 @@ describe("the glossary page", () => {
       },
       "POST /projects/CHK/terms": { status: 201, body: { term: aTerm({ id: "0195f000-0000-7000-8000-0000000007a3", name: "Throttle" }) } },
     });
-    await renderAt("/p/CHK/glossary");
+    await renderAt("/projects/CHK/glossary");
     const table = await screen.findByRole("table", { name: "Glossary" });
-    expect(within(table).getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/p/CHK/glossary/${TERM_ID}`);
-    expect(within(table).getByRole("link", { name: "Wheel" })).toHaveAttribute("href", `/p/LIB/glossary/${LIBRARY_TERM_ID}`);
+    expect(within(table).getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/projects/CHK/glossary/${TERM_ID}`);
+    expect(within(table).getByRole("link", { name: "Wheel" })).toHaveAttribute("href", `/projects/LIB/glossary/${LIBRARY_TERM_ID}`);
     const row = document.querySelector('[data-term-row="Brake pedal"]') as HTMLElement;
     expect(row).toHaveTextContent("This project");
     expect(row).toHaveTextContent("1 requirement");
@@ -147,7 +147,7 @@ describe("a term's page", () => {
       [`DELETE /terms/${TERM_ID}`]: { status: 204 },
       "GET /projects/CHK/terms": { status: 200, body: { terms: [], total: 0, limit: 50, offset: 0 } },
     });
-    const router = await renderAt(`/p/CHK/glossary/${TERM_ID}`);
+    const router = await renderAt(`/projects/CHK/glossary/${TERM_ID}`);
     expect(await screen.findByRole("heading", { level: 1, name: "Brake pedal" })).toBeInTheDocument();
     expect(screen.getByText("The lever the driver presses to slow the car.")).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "Synonyms" })).getByText("brake")).toBeInTheDocument();
@@ -161,7 +161,7 @@ describe("a term's page", () => {
     expect(second.querySelector('[data-term-change="Name"] ins')).toHaveTextContent("Added: pedal");
     expect(document.querySelector('[data-term-revision="1"]')).toHaveTextContent("The first revision.");
     const uses = screen.getByRole("table", { name: "Used by" });
-    expect(within(uses).getByRole("link", { name: /CHK-R1/ })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(within(uses).getByRole("link", { name: /CHK-R1/ })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(within(uses).getByText("Suspect")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
 
@@ -184,7 +184,7 @@ describe("a term's page", () => {
     await userEvent.click(screen.getByRole("button", { name: "Delete term" }));
     const dialog = await screen.findByRole("dialog", { name: "Delete the term" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/glossary"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/glossary"));
     expect(sent.some((r) => r.method === "DELETE" && r.path === `/terms/${TERM_ID}`)).toBe(true);
   });
 
@@ -198,7 +198,7 @@ describe("a term's page", () => {
       [`GET /terms/${TERM_ID}/revisions`]: { status: 200, body: { revisions } },
       [`GET /terms/${TERM_ID}/uses`]: { status: 200, body: { uses: [], total: 0, limit: 50, offset: 0 } },
     });
-    await renderAt(`/p/CHK/glossary/${TERM_ID}`);
+    await renderAt(`/projects/CHK/glossary/${TERM_ID}`);
     expect(await screen.findByRole("heading", { level: 1, name: "Brake pedal" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete term" })).toBeNull();
@@ -221,10 +221,10 @@ describe("a requirement's terms", () => {
         return { status: 200, body: { term: { ...suspect, seenRevision: 2, suspect: false } } };
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Terms" });
     const item = await within(panel).findByText("Brake pedal");
-    expect(item.closest("a")).toHaveAttribute("href", `/p/CHK/glossary/${TERM_ID}`);
+    expect(item.closest("a")).toHaveAttribute("href", `/projects/CHK/glossary/${TERM_ID}`);
     expect(within(panel).getByText("By its words")).toBeInTheDocument();
     expect(within(panel).getByText("Suspect")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -237,7 +237,7 @@ describe("a requirement's terms", () => {
     await waitFor(() =>
       expect(sent.find((r) => r.method === "POST" && r.path.endsWith("/clear"))?.body).toEqual({ termRevision: 2, comment: "The driver still presses it." }),
     );
-    expect(await within(panel).findByText("Confirmed under the definition of Brake pedal.")).toBeInTheDocument();
+    expect(await screen.findByText("Confirmed under the definition of Brake pedal.")).toBeInTheDocument();
     await waitFor(() => expect(within(panel).queryByText("Suspect")).toBeNull());
   });
 
@@ -262,13 +262,13 @@ describe("a requirement's terms", () => {
       "GET /requirements/CHK-R1/terms": { status: 200, body: { terms: [{ ...suspect, explicit: true, seenRevision: 2, suspect: false }] } },
       [`GET /terms/${TERM_ID}`]: { status: 200, body: { term: aTerm() } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const words = await screen.findByRole("button", { name: "stop lever" });
     expect(words).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(words);
     const definition = await screen.findByRole("dialog", { name: "Brake pedal" });
     expect(within(definition).getByText("The lever the driver presses to slow the car.")).toBeInTheDocument();
-    expect(within(definition).getByRole("link", { name: "Open in the glossary" })).toHaveAttribute("href", `/p/CHK/glossary/${TERM_ID}`);
+    expect(within(definition).getByRole("link", { name: "Open in the glossary" })).toHaveAttribute("href", `/projects/CHK/glossary/${TERM_ID}`);
     expect(words).toHaveAttribute("aria-expanded", "true");
     expect(await axeViolations()).toEqual([]);
     await userEvent.keyboard("{Escape}");
@@ -309,7 +309,7 @@ describe("terms while a requirement is written", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const mark = await waitFor(
       () => {
@@ -482,7 +482,7 @@ describe("the library glossaries of a project", () => {
       "GET /quality-rules": { status: 200, body: { rules: [] } },
       "GET /projects/CHK/types": { status: 200, body: { types: [] } },
     });
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("region", { name: "Library glossaries" });
     const chosen = await within(card).findByRole("list", { name: "Chosen libraries" });
     expect(within(chosen).getByText("Vehicle words")).toBeInTheDocument();
@@ -495,7 +495,7 @@ describe("the library glossaries of a project", () => {
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(card).getByRole("button", { name: "Save libraries" }));
     await waitFor(() => expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ libraries: ["STD", "LIB"] }));
-    expect(await within(card).findByText("The library glossaries are saved.")).toBeInTheDocument();
+    expect(await screen.findByText("The library glossaries are saved.")).toBeInTheDocument();
   });
 });
 
@@ -515,7 +515,7 @@ describe("the search", () => {
     });
     await renderAt("/search?q=brake");
     const terms = await screen.findByRole("region", { name: "Terms" });
-    expect(within(terms).getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/p/CHK/glossary/${TERM_ID}`);
+    expect(within(terms).getByRole("link", { name: "Brake pedal" })).toHaveAttribute("href", `/projects/CHK/glossary/${TERM_ID}`);
     expect(within(terms).getByText("The lever the driver presses")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
   });

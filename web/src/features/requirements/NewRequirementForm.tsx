@@ -5,7 +5,7 @@ import type { Project } from "@/api/projects";
 import { findPeople, useCreateRequirement, type NewRequirement, type Requirement } from "@/api/requirements";
 import type { Place } from "@/api/tree";
 import { useAttributes, useTypes } from "@/api/attributes";
-import { Button, ErrorBanner, Field, Labelled, PageHeader, Segmented, Select } from "@/components/ui";
+import { Button, ErrorBanner, Field, Labelled, PageHeader, Segmented, Select, Page } from "@/components/ui";
 import { REQUIREMENT_TITLE_MAX_LENGTH, REVISION_COMMENT_MAX_LENGTH } from "@/config";
 import { Editor, type EditorControls } from "@/features/editor/Editor";
 import { emptyDoc, isEmptyDoc, type Doc } from "@/features/editor/schema";
@@ -29,14 +29,14 @@ export function NewRequirementForm({ project }: { project: Project }) {
   const navigate = useNavigate();
   if (!project.can.edit) return <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>;
   return (
-    <div className="mx-auto max-w-3xl" data-new-requirement>
+    <Page width="narrow" data-new-requirement>
       <PageHeader title={t.requirements.createTitle} meta={t.projects.projectAndKey(project.name, project.key)} />
       <RequirementCreate
         project={project}
-        onCreated={(made) => void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: made.key } })}
-        onCancel={() => void navigate({ to: "/p/$projectKey", params: { projectKey: project.key } })}
+        onCreated={(made) => void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: made.key } })}
+        onCancel={() => void navigate({ to: "/projects/$projectKey", params: { projectKey: project.key } })}
       />
-    </div>
+    </Page>
   );
 }
 

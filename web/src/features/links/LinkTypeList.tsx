@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLinkTypeActions, useOrgLinkTypes, useProjectLinkTypes, type LinkType } from "@/api/links";
 import type { Project } from "@/api/projects";
-import { Button, Card, Checkbox, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, ErrorBanner, PageHeader, Skeleton, Table, Tag, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { LinkTypeForm, PairsDialog } from "./LinkTypeForm";
@@ -14,12 +14,12 @@ const PROJECT_COLUMNS = 5;
 export function OrgLinkTypes() {
   const { data: types, error, refetch } = useOrgLinkTypes();
   return (
-    <div className="mx-auto max-w-3xl space-y-6" data-org-link-types>
+    <Page width="narrow" className="space-y-6" data-org-link-types>
       <PageHeader title={t.linkTypes.title} />
       {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
       {!types && !error && <Skeleton />}
       {types && <LinkTypeTable types={types} intro={t.linkTypes.orgIntro} mayCreate mayShape={() => true} />}
-    </div>
+    </Page>
   );
 }
 

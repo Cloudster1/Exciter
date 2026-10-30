@@ -218,7 +218,7 @@ func (s *Service) ListEveryonesAPITokens(ctx context.Context) ([]OrgAPIToken, er
 	out := []OrgAPIToken{}
 	err := s.db.Read(ctx, func(ctx context.Context, tx db.DBTX) error {
 		rows, err := tx.Query(ctx, `
-			SELECT `+tokenColumns+`, u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, '')
+			SELECT `+tokenColumns+`, u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, '')
 			FROM api_token t JOIN app_user u ON u.id = t.user_id
 			WHERE NOT t.for_render
 			ORDER BY t.created_at DESC, t.id`)
@@ -228,7 +228,7 @@ func (s *Service) ListEveryonesAPITokens(ctx context.Context) ([]OrgAPIToken, er
 		defer rows.Close()
 		for rows.Next() {
 			var owner User
-			t, err := scanToken(rows, &owner.ID, &owner.Email, &owner.Name, &owner.AvatarURL, &owner.Locale)
+			t, err := scanToken(rows, &owner.ID, &owner.Email, &owner.Name, &owner.AvatarURL, &owner.Locale, &owner.Timezone)
 			if err != nil {
 				return err
 			}
@@ -273,8 +273,8 @@ SELECT t.id, t.name, t.scopes, t.last_used_at, t.expires_at, t.projects_only,
        ARRAY(SELECT tp.project_id FROM api_token_project tp WHERE tp.token_id = t.id ORDER BY tp.project_id),
        ARRAY(SELECT p.key FROM api_token_project tp JOIN project p ON p.id = tp.project_id
              WHERE tp.token_id = t.id ORDER BY p.key),
-       u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       (SELECT name FROM installation), u.role
+       u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
+       (SELECT name FROM installation), u.role, perm_installation_grants(u.id)
 FROM api_token t
 JOIN app_user u ON u.id = t.user_id AND u.role IS NOT NULL
 WHERE t.token_hash = $1 AND (t.expires_at IS NULL OR t.expires_at > now())`
@@ -293,8 +293,8 @@ func (s *Service) authenticateAPIToken(ctx context.Context, secret string) (*Pri
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, apiTokenPrincipalSQL, HashToken(secret)).Scan(
 			&tok.ID, &tok.Name, &tok.Scopes, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
-			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active,
-			&p.InstallationName, &p.Role,
+			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active,
+			&p.InstallationName, &p.Role, &p.Granted,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {

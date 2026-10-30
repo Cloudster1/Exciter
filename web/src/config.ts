@@ -41,6 +41,35 @@ export const ICON_STROKE = 1.5;
 
 /** The gap between a menu's trigger and its list, in pixels. */
 export const MENU_GAP_PX = 4;
+/** The tallest a menu, popover or list of suggestions grows before it scrolls, in pixels. */
+export const POPOVER_MAX_HEIGHT_PX = 560;
+/** The least room a menu or popover leaves between itself and the window's edge, in pixels. */
+export const POPOVER_EDGE_PX = 8;
+/** How far down the window a dialog starts, in percent of its height. */
+export const DIALOG_TOP_VH = 12;
+/** The room a dialog leaves below itself once scrolled to its end, in pixels. */
+export const DIALOG_BOTTOM_PX = 16;
+/** How wide a drawer or a docked panel opens from the right, in pixels. */
+export const DRAWER_WIDTH = 704;
+/** How wide a drawer that shows a document opens, such as the changes a suspect link waits on, in pixels. */
+export const DOCUMENT_DRAWER_WIDTH = 1024;
+/** A list's search box waits this long after the last key before it asks the server. */
+export const LIST_SEARCH_DELAY_MS = 250;
+/** A typed date's year below this is one still being typed, such as 0002 on the way to 2026. */
+export const MIN_DATE_YEAR = 1000;
+/** How far a callout sits from the element it points at. */
+export const SPOTLIGHT_GAP_PX = 8;
+/** The callout's width, the room it reserves below the element, and the ring around the element. */
+export const SPOTLIGHT_WIDTH_PX = 320;
+export const SPOTLIGHT_HEIGHT_PX = 120;
+export const SPOTLIGHT_RING_PX = 4;
+/** How long the callout waits for its element to appear after a navigation. */
+export const SPOTLIGHT_WAIT_MS = 3000;
+/** The largest count a badge writes out; more reads as this with a plus. */
+export const COUNT_MAX = 99;
+/** How long a toast stays, and how many stack before the oldest goes. */
+export const TOAST_MS = 6000;
+export const TOAST_MAX = 3;
 
 /** How long a query's answer stays fresh before a refetch. */
 export const QUERY_STALE_MS = 10_000;
@@ -48,40 +77,57 @@ export const QUERY_STALE_MS = 10_000;
 /** Where a visitor without a session is sent, with where they were headed in `next`. */
 export const LOGIN_PATH = "/login";
 
+/** How long which build answers stays fresh before a refetch; it changes only with a deployment. */
+export const META_STALE_MS = 5 * 60_000;
+/** How much of a commit hash the build stamp shows, as git abbreviates it. */
+export const COMMIT_SHORT_LENGTH = 7;
+
 /** Who is signed in changes only by signing in or out, so the answer is kept a minute. */
 export const ME_STALE_MS = 60_000;
 
+/** Where this browser remembers the requirements opened last, which the palette offers before anything is typed. */
+export const RECENT_STORAGE_KEY = "exciter.recent";
+/** How many of them the palette offers. */
+export const RECENT_MAX = 8;
+
 /** Where this browser remembers the interface language the person chose, so a reload starts in it. */
 export const LANGUAGE_STORAGE_KEY = "exciter.language";
+/** The most time zones the profile lists for what was typed; the rest wait for a closer search. */
+export const TIME_ZONE_MATCHES_MAX = 50;
 
-/** Where an administrator renames the installation. */
-export const INSTALLATION_PATH = "/settings/installation";
+/** The Admin area: everything that is the installation's, for its administrators. */
+export const ADMIN_PATH = "/admin";
+/** Where an administrator renames the installation and names its default theme. */
+export const INSTALLATION_PATH = "/admin/installation";
+/** Where an administrator lets waiting people in, adds people, and switches an account off or back on. */
+export const USERS_PATH = "/admin/users";
 /** Where a person lets an app connect as them through OAuth (#188); the API sends the browser here. */
 export const OAUTH_CONSENT_PATH = "/oauth/consent";
 
-/** Where an administrator manages the installation's people. */
-export const MEMBERS_PATH = "/settings/members";
-
-/** Where an administrator sets up single sign-on, maps its groups to roles and lets waiting people in. */
-export const SSO_PATH = "/settings/sso";
+/** Where an administrator decides who may do what: roles, the matrix, members, groups and single sign-on, a tab each. */
+export const ACCESS_PATH = "/admin/access";
+/** One tab of the Access page, named by its key; a plain string, which scripts/e2e-reach.mjs reads routes by. */
+export const ACCESS_TAB_PATH = "/admin/access/$tab";
+/** An address of the settings area from before Admin, and one of the Access page's tabs there, both sent on to Admin. */
+export const SETTINGS_MOVED_PATH = "/settings/$section";
+export const SETTINGS_ACCESS_TAB_PATH = "/settings/access/$tab";
+/** How many grants the Roles tab and a project's permissions list at once. */
+export const ASSIGNMENT_PAGE_SIZE = 50;
 /** The groups claim and scopes an identity provider starts with, matching the API's defaults. */
 export const SSO_DEFAULT_GROUPS_CLAIM = "groups";
 export const SSO_DEFAULT_SCOPES = "openid profile email";
-/** The group a mapping's form shows as an example, the development realm's administrators. */
-export const SSO_GROUP_EXAMPLE = "exciter-administrators";
 /** What a sign-in through the provider came back with when the person is known there but not let in here. */
 export const SSO_WAITING = "not_a_member";
 
 /** Where an administrator reads the installation's audit log. */
-export const AUDIT_PATH = "/settings/audit";
+export const AUDIT_PATH = "/admin/audit";
 /** Entries the audit log shows per page, within the API's 200; the export has the rest. */
 export const AUDIT_PAGE_SIZE = 50;
 /** Where the audit log is downloaded as a spreadsheet, under the API's base. */
 export const AUDIT_EXPORT_PATH = "/audit/export";
 
-/** Where a person picks, makes and imports themes, and where an administrator names the installation's default. */
+/** Where a person picks, makes and imports themes. */
 export const THEMES_PATH = "/settings/themes";
-export const DEFAULT_THEME_PATH = "/settings/default-theme";
 /** The largest file a theme takes, matching the API's limit. */
 export const THEME_ASSET_MAX_BYTES = 12 * 1024 * 1024;
 /** The most extra CSS a theme carries, matching the API's limit. */
@@ -242,7 +288,7 @@ export const LINK_TYPE_PHRASE_MAX_LENGTH = 60;
 /** The most rules a link type takes in a project, the server's trace.MaxRules. */
 export const LINK_TYPE_MAX_RULES = 50;
 /** Where the installation's link types are kept. */
-export const LINK_TYPES_PATH = "/settings/link-types";
+export const LINK_TYPES_PATH = "/admin/link-types";
 
 /** The longest description and widest picture a statement keeps, the server's document.MaxAltLength and MaxImageWidth. */
 export const IMAGE_ALT_MAX_LENGTH = 500;
@@ -261,12 +307,12 @@ export const INLINE_FILE_TYPES: readonly string[] = ["image/png", "image/jpeg", 
 /** Below this many of a unit a file size shows one decimal, as 3.4 MB; from it on, whole numbers. */
 export const FILE_SIZE_DECIMALS_BELOW = 10;
 
-/** Where a person keeps their personal access tokens, and where administrators see everybody's (#22, #86). */
+/** Where a person keeps their personal access tokens (#22). */
 export const TOKENS_PATH = "/settings/tokens";
-export const ALL_TOKENS_PATH = "/settings/all-tokens";
-/** A person's apps connected with OAuth, and everybody's for the administrators (#189). */
+/** A person's apps connected with OAuth (#189). */
 export const CONNECTED_APPS_PATH = "/settings/connected-apps";
-export const ALL_CONNECTED_APPS_PATH = "/settings/all-connected-apps";
+/** The installation's connected apps for its administrators: the partner apps, and everybody's grants and tokens (#86, #189). */
+export const ALL_CONNECTED_APPS_PATH = "/admin/connected-apps";
 /** The scopes a token may carry, one at most, and the longest name it takes: the API's auth.ScopeRead, auth.ScopeEvidence
  * and MaxTokenNameLength. */
 export const TOKEN_READ_SCOPE = "read";
@@ -286,14 +332,14 @@ export const MCP_PATH = `${API_BASE}/mcp`;
 export const MCP_SERVER_NAME = "exciter";
 export const DAY_MS = 24 * 60 * 60 * 1000;
 /** Where an administrator connects Armature, and where a person connects their own Armature account (#26). */
-export const ARMATURE_SETTINGS_PATH = "/settings/armature";
+export const ARMATURE_SETTINGS_PATH = "/admin/armature";
 export const ARMATURE_ACCOUNT_PATH = "/settings/armature-account";
 /** Where an administrator connects Stator, and where a person connects their own Stator account (#40). */
-export const STATOR_SETTINGS_PATH = "/settings/stator";
+export const STATOR_SETTINGS_PATH = "/admin/stator";
 export const STATOR_ACCOUNT_PATH = "/settings/stator-account";
-/** The other tools' icons, served from Exciter itself since its pages load no image from elsewhere (#298). */
+/** The other tools' 96 px marks, one format for all, served from Exciter itself since its pages load no image from elsewhere (#298). */
 export const ARMATURE_ICON_PATH = "/tools/armature.webp";
-export const STATOR_ICON_PATH = "/tools/stator.png";
+export const STATOR_ICON_PATH = "/tools/stator.webp";
 /** How a Stator personal access token and a webhook secret begin, the API's stator.TokenPrefix and WebhookSecretPrefix. */
 export const STATOR_TOKEN_PREFIX = "stator_pat_";
 export const STATOR_WEBHOOK_SECRET_PREFIX = "stator_whs_";
@@ -324,7 +370,7 @@ export const ARMATURE_CREATE_MAX = 50;
 export const COPY_FEEDBACK_MS = 2000;
 
 /** Where an administrator keeps the installation's outbound webhooks (#48). */
-export const WEBHOOKS_PATH = "/settings/webhooks";
+export const WEBHOOKS_PATH = "/admin/webhooks";
 /** The topic that takes every event, and the events a webhook may take, as the API lists them. */
 export const WEBHOOK_TOPIC_ANY = "*";
 export const WEBHOOK_TOPICS = [
@@ -383,8 +429,6 @@ export const WATCHING_PATH = "/settings/watching";
 export const PROFILE_PATH = "/settings/profile";
 /** How often the bell asks for the unread count; it also asks when the window regains focus. */
 export const UNREAD_POLL_MS = 30_000;
-/** Above this many unread the badge shows the number with a plus. */
-export const UNREAD_BADGE_MAX = 99;
 /** How many notifications the bell's panel lists, within the API's limit of 100. */
 export const NOTIFICATION_PANEL_SIZE = 20;
 /** How many notifications one page of the notifications page lists, within the API's limit of 100. */

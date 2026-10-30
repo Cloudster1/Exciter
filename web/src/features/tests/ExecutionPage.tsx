@@ -30,7 +30,7 @@ export function ExecutionPage({ project, executionId }: { project: Project; exec
   return (
     <div className="mx-auto max-w-5xl space-y-5" data-execution-page={e.id} data-execution-state={e.state}>
       <p className="text-sm">
-        <Link to="/p/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
+        <Link to="/projects/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
           {t.tests.allTests}
         </Link>
       </p>
@@ -122,7 +122,7 @@ function CaseTable({ project, execution: e }: { project: Project; execution: Tes
               <Td>{run.ci ? t.tests.fromCI : (run.recordedBy?.name ?? "")}</Td>
               <Td className="text-right">
                 <Link
-                  to="/p/$projectKey/tests/executions/$executionId/run/$reqKey"
+                  to="/projects/$projectKey/tests/executions/$executionId/run/$reqKey"
                   params={{ projectKey: project.key, executionId: e.id, reqKey: run.case.key }}
                   search={{ iteration: run.iteration }}
                   className="text-sm text-accent hover:underline"
@@ -150,7 +150,7 @@ function EditDialog({ project, execution: e, onClose }: { project: Project; exec
     update.mutate({ id: e.id, title, version, configuration }, { onSuccess: onClose });
   }
   return (
-    <Dialog title={t.tests.editTitle} onClose={onClose}>
+    <Dialog open title={t.tests.editTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate>
         {update.error && Object.keys(fields).length === 0 && <ErrorBanner>{update.error.message}</ErrorBanner>}
         <Field
@@ -196,7 +196,7 @@ function CloseDialog({ project, execution: e, onClose }: { project: Project; exe
     close.mutate({ id: e.id, comment, abort }, { onSuccess: onClose });
   }
   return (
-    <Dialog title={t.tests.closeTitle} onClose={onClose}>
+    <Dialog open title={t.tests.closeTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate>
         <p className="text-sm text-ink">{t.tests.closeBody}</p>
         {close.error && <ErrorBanner>{close.error.message}</ErrorBanner>}

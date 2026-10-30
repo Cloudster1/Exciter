@@ -20,7 +20,7 @@ func statementSaying(text string) map[string]any {
 // grantAs gives person role in the project behind the policies' back.
 func (h *harness) grantAs(t *testing.T, project, person uuid.UUID, role string) {
 	t.Helper()
-	if _, err := h.super.Exec(t.Context(), `INSERT INTO project_grant (project_id, subject_type, user_id, role) VALUES ($1, 'user', $2, $3)`,
+	if _, err := h.super.Exec(t.Context(), `INSERT INTO role_assignment (project_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
 		project, person, role); err != nil {
 		t.Fatal(err)
 	}

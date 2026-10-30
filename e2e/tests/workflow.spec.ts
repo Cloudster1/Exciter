@@ -6,9 +6,10 @@ import { expect, type User } from "../fixtures/auth";
 import { peopleTest as test, type Person } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("FLOW");
-const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
+const REQUIREMENT = `/projects/${KEY}/r/${KEY}-R1`;
 /** How many moves each leg of a drag is made of. */
 const DRAG_STEPS = 4;
 
@@ -25,18 +26,11 @@ async function removeProject(api: ExciterApi) {
 async function makeProject(api: ExciterApi, people: Record<User, Person>) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Flowing" } }));
   must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Pay the basket" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      params: { path: { projectKey: KEY } },
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
 }
 
 /** Draws a transition the way a person does: from a status's ring onto another, in small steps, since React
@@ -98,7 +92,7 @@ test.describe("workflow", { tag: "@desktop" }, () => {
 
   test("an administrator draws a workflow and a type follows it", async ({ page, api, people }) => {
     await makeProject(api, people);
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await expect(page.getByRole("figure", { name: "Workflow Default" })).toBeVisible();
     await expect(page.locator('[data-status-row="Obsolete"]')).toBeVisible();
     await expectAccessible(page);
@@ -114,7 +108,7 @@ test.describe("workflow", { tag: "@desktop" }, () => {
     await expect(page.locator('[data-workflow-edge-label="Ask"]')).toBeVisible();
     await expectAccessible(page);
     await page.locator('[data-action="save-workflow"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/settings?tab=workflow`);
+    await expect(page).toHaveURL(`/projects/${KEY}/settings/workflow`);
     await expect(page.locator('[data-workflow-card="Lean"]')).toBeVisible();
 
     await page.getByLabel("Workflow of Requirement").selectOption({ label: "Lean" });

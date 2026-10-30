@@ -43,7 +43,7 @@ test.describe("the specification", { tag: "@desktop" }, () => {
     await write({ title: "Ship", place: { parentId: scope.id, afterId: pay.id } });
     await write({ title: "Extra" });
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const tree = page.getByRole("tree");
     await expect(tree.getByRole("treeitem", { name: "1.2 Ship" })).toBeVisible();
     await expect(page.locator(`[data-spec-entry="${KEY}-R2"] [data-spec-outline]`)).toHaveText("1.1");
@@ -71,7 +71,7 @@ test.describe("the specification", { tag: "@desktop" }, () => {
       );
     }
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const main = page.locator("main");
     const tree = page.getByRole("navigation", { name: "Requirement tree" });
     const last = tree.getByRole("treeitem", { name: `${LONG_SPEC} Need ${LONG_SPEC}` });
@@ -105,16 +105,16 @@ test.describe("the specification", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: OTHER, name: "Other" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Travel" } }));
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.locator('[data-action="move-requirement"]').click();
     const dialog = page.locator('[data-place-dialog="move"]');
     await dialog.getByLabel("Project", { exact: true }).selectOption(OTHER);
     await expectAccessible(page);
     await dialog.locator('[data-action="confirm-move"]').click();
-    await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R1`);
+    await expect(page).toHaveURL(`/projects/${OTHER}/r/${OTHER}-R1`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
-    await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${OTHER}/r/${OTHER}-R1`);
     await expect(page.locator("[data-former-keys]")).toContainText(`${KEY}-R1`);
   });
 
@@ -131,7 +131,7 @@ test.describe("the specification", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.locator('[data-action="move-requirement"]').click();
     const dialog = page.locator('[data-place-dialog="move"]');
     await dialog.getByLabel("Project", { exact: true }).selectOption(OTHER);
@@ -139,7 +139,7 @@ test.describe("the specification", { tag: "@desktop" }, () => {
     await where.selectOption({ label: "Proposed" });
     await expectAccessible(page);
     await dialog.locator('[data-action="confirm-move"]').click();
-    await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R1`);
+    await expect(page).toHaveURL(`/projects/${OTHER}/r/${OTHER}-R1`);
     const moved = must(await api.GET("/requirements/{reqKey}", { params: { path: { reqKey: `${OTHER}-R1` } } })).requirement;
     expect(moved.status?.name).toBe("Proposed");
   });

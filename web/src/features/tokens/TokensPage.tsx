@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
 import { useCreateToken, useRevokeToken, useTokens, type ApiToken } from "@/api/tokens";
-import { Button, Card, Checkbox, EmptyState, ErrorBanner, Field, PageHeader, Select, Table, Tag, Td, Th } from "@/components/ui";
+import { Button, Card, Checkbox, EmptyState, ErrorBanner, Field, PageHeader, Select, Table, Tag, Td, Th, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import {
   COPY_FEEDBACK_MS,
@@ -15,6 +15,7 @@ import {
   TOKEN_READ_SCOPE,
 } from "@/config";
 import { t } from "@/i18n";
+import { useConfirm } from "@/features/shell/ConfirmProvider";
 import { localDateFormat } from "@/lib/format";
 import { ProjectPicker } from "./ProjectPicker";
 
@@ -42,28 +43,29 @@ export function TokensPage() {
   const { data, isLoading, error } = useTokens();
   const revoke = useRevokeToken();
   const [fresh, setFresh] = useState<ApiToken | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
   const tokens = data ?? [];
   const failure = error ?? revoke.error;
   const now = new Date();
 
-  function revokeToken(token: ApiToken) {
-    if (!window.confirm(t.tokens.confirmRevoke(token.name))) return;
+  async function revokeToken(token: ApiToken) {
+    const noun = t.kit.confirm.things.named(t.kit.confirm.things.token, token.name);
+    if (!(await confirm({ noun, verb: t.kit.confirm.verbs.revoke, body: t.tokens.confirmRevoke }))) return;
     revoke.mutate(token.id, {
       onSuccess: () => {
-        setNotice(t.tokens.revoked(token.name));
+        toast.success(t.tokens.revoked(token.name));
         if (fresh?.id === token.id) setFresh(null);
       },
     });
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <Page width="narrow">
       <PageHeader title={t.tokens.title} meta={t.tokens.intro} />
       {fresh?.secret && <FreshToken secret={fresh.secret} onDone={() => setFresh(null)} />}
       <CreateTokenForm
         onCreated={(token) => {
-          setNotice("");
           setFresh(token);
         }}
       />
@@ -72,9 +74,6 @@ export function TokensPage() {
           {t.tokens.yours}
         </h2>
         {failure && <ErrorBanner>{failure.message}</ErrorBanner>}
-        <p role="status" className="text-sm text-ink-muted empty:hidden" data-tokens-notice>
-          {notice}
-        </p>
         {isLoading ? null : tokens.length === 0 ? (
           <EmptyState icon={<Icon.Key />} title={t.tokens.empty} description={t.tokens.emptyBody} />
         ) : (
@@ -126,7 +125,7 @@ export function TokensPage() {
         )}
       </section>
       <ConnectAssistant />
-    </div>
+    </Page>
   );
 }
 

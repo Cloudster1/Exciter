@@ -50,7 +50,7 @@ describe("the full search", () => {
     expect(asked[0]?.get("q")).toBe("basket");
     expect(asked[0]?.getAll("label")).toEqual(["checkout"]);
     const row = document.querySelector('[data-search-hit="CHK-R1"]') as HTMLElement;
-    expect(within(row).getByRole("link", { name: "Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(within(row).getByRole("link", { name: "Pay the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(within(row).getAllByText("basket")[0]?.tagName).toBe("MARK");
     expect(row).toHaveTextContent("Checkout / Ada Lovelace changed it on");
     expect(await axeViolations()).toEqual([]);
@@ -105,11 +105,11 @@ describe("the palette", () => {
     const option = await screen.findByRole("option", { name: /CHK-R4 Print the receipt/ });
     expect(option).toHaveTextContent("Checkout 2.1");
     expect(asked.at(-1)).toBe("chk-r4");
-    const options = within(screen.getByRole("listbox")).getAllByRole("option");
+    const options = within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option");
     expect(options.at(-1)).toHaveTextContent("Search everything for chk-r4");
     expect(await axeViolations()).toEqual([]);
     await userEvent.keyboard("{Enter}");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R4"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R4"));
 
     await userEvent.keyboard("{Control>}k{/Control}");
     await userEvent.type(screen.getByRole("combobox"), "receipt");

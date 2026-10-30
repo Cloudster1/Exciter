@@ -31,7 +31,7 @@ test.describe("Markdown", { tag: "@desktop" }, () => {
       }),
     ).requirement;
 
-    await openShowing(page, `/p/${KEY}/r/${made.key}`, page.locator("[data-statement] strong"));
+    await openShowing(page, `/projects/${KEY}/r/${made.key}`, page.locator("[data-statement] strong"));
     const statement = page.locator("[data-statement]");
     await expect(statement.locator("strong")).toHaveText("engage");
     await expect(statement.locator("code")).toHaveText("100 ms");

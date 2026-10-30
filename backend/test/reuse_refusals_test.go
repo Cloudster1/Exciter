@@ -34,7 +34,7 @@ func newReuseScene(t *testing.T, prefix string) *reuseScene {
 	want(t, f.owner.patch(t, "/api/v1/projects/"+s.lib, map[string]any{"settings": map[string]any{"library": true}}), http.StatusOK, "mark the library")
 	app := obj(t, want(t, f.owner.post(t, "/api/v1/projects", map[string]any{"key": s.app, "name": "Product"}), http.StatusCreated, "make the product"), "project")
 	appID := uuid.MustParse(app["id"].(string))
-	if _, err := f.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND subject_type = 'everyone'`, appID); err != nil {
+	if _, err := f.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, appID); err != nil {
 		t.Fatal(err)
 	}
 	f.h.grantAs(t, appID, editorID, "editor")

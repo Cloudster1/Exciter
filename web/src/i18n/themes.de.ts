@@ -8,13 +8,13 @@ export const themesDe: typeof themesEn = {
   importTheme: "Design importieren",
   importFile: "Designdatei",
   usingBuiltIn: "Sie verwenden das Standarddesign.",
-  usingBuiltInOverDefault: (name: string) => `Sie verwenden das Standarddesign statt ${name}, der Vorgabe für alle.`,
+  usingBuiltInOverDefault: (name: string) => `Sie verwenden das Standarddesign statt des Standards für alle, ${name}.`,
   using: (name: string) => `Sie verwenden ${name}.`,
-  usingDefault: (name: string) => `Sie verwenden ${name}, die Vorgabe für alle.`,
+  usingDefault: (name: string) => `Sie verwenden ${name}, den Standard für alle.`,
   usingArmature: (name: string) => `Sie verwenden ${name}, Ihr Design in Armature.`,
   usingArmatureBuiltIn: "Sie verwenden das eingebaute Design, wie in Armature.",
   useBuiltIn: "Standarddesign verwenden",
-  useOrgDefault: "Vorgabe für alle verwenden",
+  useOrgDefault: "Den Standard für alle verwenden",
   show: "Anzeigen",
   viewMine: "Meine",
   viewShared: "Mit mir geteilt",
@@ -28,21 +28,19 @@ export const themesDe: typeof themesEn = {
   columnActions: "Aktionen",
   you: "Sie",
   tagShared: "Geteilt",
-  tagDefault: "Vorgabe für alle",
+  tagDefault: "Standard für alle",
   tagInUse: "In Verwendung",
   people: (n: number) => (n === 1 ? "1 Person" : `${n} Personen`),
   actionsFor: (name: string) => `Aktionen für ${name}`,
   use: "Dieses Design verwenden",
   stopUsing: "Nicht mehr verwenden",
-  makeDefault: "Zur Vorgabe für alle machen",
-  undefault: "Nicht mehr Vorgabe für alle",
   edit: "Bearbeiten",
   exportFile: "Als Datei exportieren",
   share: "Mit allen teilen",
   stopSharing: "Nicht mehr teilen",
   delete: "Löschen",
-  confirmDelete: (name: string, inUse: number) =>
-    `${name} und seine Dateien endgültig löschen? ${
+  confirmDelete: (inUse: number) =>
+    `Seine Dateien gehen endgültig mit. ${
       inUse === 0
         ? "Niemand verwendet es."
         : inUse === 1
@@ -51,7 +49,7 @@ export const themesDe: typeof themesEn = {
     }`,
   nowUsing: (name: string) => `Sie verwenden jetzt ${name}.`,
   backToBuiltIn: "Zurück zum Standarddesign.",
-  backToDefault: "Zurück zur Vorgabe für alle.",
+  backToDefault: "Zurück zum Standard für alle.",
   defaultSet: (name: string) => `${name} sehen alle, bis sie selbst wählen.`,
   defaultCleared: "Alle sehen wieder das Standarddesign.",
   sharedNow: (name: string) => `${name} ist mit allen geteilt.`,
@@ -132,7 +130,7 @@ export const themesDe: typeof themesEn = {
     kilobytes: (n: number) => `${n} KB`,
     inUse: "In Verwendung",
     removeFile: (name: string) => `${name} entfernen`,
-    confirmRemoveFile: (name: string) => `${name} aus den Dateien des Designs entfernen?`,
+    confirmRemoveFile: "Sie wird aus den Dateien des Designs entfernt.",
     added: (name: string) => `${name} hinzugefügt.`,
     removed: (name: string) => `${name} entfernt.`,
     extraCSS: "Zusätzliches CSS",
@@ -215,16 +213,5 @@ export const themesDe: typeof themesEn = {
     rejected:
       "Armature akzeptiert Ihr Token nicht mehr, daher sehen Sie das Design, das Sie ohne Folgen hätten. Fügen Sie unter Ihr Konto, Armature-Konto ein neues Token ein.",
     notConnected: "Verbinden Sie Ihr Armature-Konto unter Ihr Konto, Armature-Konto, um Ihr Armature-Design hier zu sehen.",
-  },
-  orgDefault: {
-    title: "Design für alle",
-    intro: "Was alle sehen, bis sie selbst ein Design wählen. Nur ein geteiltes Design kann die Vorgabe sein.",
-    notAdmin: "Nur ein Administrator legt das Design für alle fest. Fragen Sie einen, oder wählen Sie unter Designs ein eigenes Design.",
-    choices: "Das Design für alle",
-    builtIn: "Standarddesign",
-    builtInBody: "Das Clay-Aussehen, das Exciter, Armature und Stator teilen.",
-    by: (owner: string) => `Geteilt von ${owner}`,
-    noneShared: "Noch hat niemand ein Design geteilt. Teilen Sie eines unter Designs und machen Sie es hier zur Vorgabe.",
-    openThemes: "Designs öffnen",
   },
 };

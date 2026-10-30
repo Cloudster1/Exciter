@@ -42,7 +42,7 @@ export function RisksPage({ project, view }: { project: Project; view: RisksView
           <Tabs<RisksView>
             label={t.risks.nav}
             value={view}
-            onChange={(next) => void navigate({ to: "/p/$projectKey/risks", params: { projectKey: project.key }, search: { view: next } })}
+            onChange={(next) => void navigate({ to: "/projects/$projectKey/risks", params: { projectKey: project.key }, search: { view: next } })}
             panelId="risks-panel"
             tabs={[
               { value: "table", label: t.risks.views.table, attrs: { "data-tab": "table" } },

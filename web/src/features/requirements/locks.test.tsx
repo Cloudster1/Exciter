@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Requirement } from "@/api/requirements";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -38,7 +38,7 @@ function stubRequirement(requirement: Requirement, more: Record<string, Answer> 
 describe("a locked requirement", () => {
   it("says which status locks it, still takes comments, and offers no edit", async () => {
     stubRequirement(aRequirement({ status: released, lock: byStatus, can: lockedCan }), {}, false);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const banner = await screen.findByText("CHK-R1 is locked in the status Released. Take it out of Released to change it.");
     expect(banner.closest("[data-lock]")).toHaveAttribute("data-lock", "status");
     expect(screen.getByText("It still takes comments, reviews and transitions.")).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("a locked requirement", () => {
     const sent = stubRequirement(aRequirement(), {
       "POST /requirements/CHK-R1/lock": { status: 200, body: { requirement: aRequirement({ lock: byHand, can: lockedCan }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Lock" }));
     const dialog = await screen.findByRole("dialog", { name: "Lock CHK-R1" });
     expect(within(dialog).getByRole("button", { name: "Lock" })).toBeDisabled();
@@ -65,19 +65,19 @@ describe("a locked requirement", () => {
   });
 
   it("is unlocked by hand by an administrator", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const sent = stubRequirement(aRequirement({ lock: byHand, can: lockedCan }), {
       "DELETE /requirements/CHK-R1/lock": { status: 200, body: { requirement: aRequirement() } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Unlock" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Unlock this requirement?");
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE")).toBe(true));
     expect(await screen.findByText("CHK-R1 is unlocked.")).toBeInTheDocument();
   });
 
   it("offers nobody an unlock of a lock by its status", async () => {
     stubRequirement(aRequirement({ status: released, lock: byStatus, can: lockedCan }));
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText(/is locked in the status Released/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Unlock" })).toBeNull();
   });
@@ -93,7 +93,7 @@ describe("a status that locks", () => {
       "GET /workflow-rule-types": { status: 200, body: { ruleTypes: [] } },
       [`PATCH /projects/CHK/statuses/${draft.id}`]: { status: 200, body: { status: { ...draft, locks: true } } },
     });
-    await renderAt("/p/CHK/settings?tab=workflow");
+    await renderAt("/projects/CHK/settings/workflow");
     const approvedRow = await waitFor(() => {
       const row = document.querySelector('[data-status-row="Approved"]');
       expect(row).not.toBeNull();

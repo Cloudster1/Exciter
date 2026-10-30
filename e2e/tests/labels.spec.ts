@@ -35,7 +35,7 @@ test.describe("labels", { tag: "@desktop" }, () => {
       must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title } }));
     }
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const labels = page.locator("[data-requirement-labels]");
     await expect(labels).toContainText("No labels yet.");
     const box = labels.getByRole("combobox", { name: "Add a label" });
@@ -46,21 +46,21 @@ test.describe("labels", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-revision]")).toHaveAttribute("data-revision", "1");
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     const second = page.locator("[data-requirement-labels]").getByRole("combobox", { name: "Add a label" });
     await second.fill(LABEL.slice(0, SUGGEST_FROM));
     await page.locator(`[data-label-option="${LABEL}"]`).click();
     await expect(page.locator(`[data-requirement-labels] [data-label="${LABEL}"]`)).toBeVisible();
 
     await page.locator(`[data-requirement-labels] [data-label="${LABEL}"]`).getByRole("link").click();
-    await expect(page).toHaveURL(`/p/${KEY}?label=${LABEL}`);
+    await expect(page).toHaveURL(`/projects/${KEY}?label=${LABEL}`);
     await expect(page.locator("[data-label-filter]")).toContainText(`Showing requirements labelled ${LABEL}`);
     await expect(page.locator("[data-requirement-row]")).toHaveCount(2);
     await expect(page.locator(`[data-requirement-row="${KEY}-R3"]`)).toHaveCount(0);
     await expectAccessible(page);
 
     await page.locator('[data-label-filter] [data-action="clear-label"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}`);
+    await expect(page).toHaveURL(`/projects/${KEY}`);
     await expect(page.locator("[data-label-filter]")).toHaveCount(0);
     await expect(page.locator("[data-requirement-row]")).toHaveCount(3);
     await page.goBack();
@@ -72,10 +72,10 @@ test.describe("labels", { tag: "@desktop" }, () => {
     await expect(page.locator(`[data-labelled-requirement="${KEY}-R1"]`)).toContainText("Pay the basket");
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.getByRole("button", { name: `Remove label ${LABEL}` }).click();
     await expect(page.locator("[data-requirement-labels]")).toContainText("No labels yet.");
-    await page.goto(`/p/${KEY}/r/${KEY}-R1/history?tab=activity`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1/history?tab=activity`);
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText(`changed the labels from ${LABEL} to nothing`);
   });
 

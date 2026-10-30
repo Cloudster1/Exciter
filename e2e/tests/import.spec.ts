@@ -40,13 +40,13 @@ test.describe("CSV import and export", { tag: "@desktop" }, () => {
       await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${SOURCE}-R3` } }, body: { typeKey: "derives", otherKey: `${SOURCE}-R2` } }),
     );
 
-    await page.goto(`/p/${SOURCE}/grid?columns=key&columns=kind&columns=title`);
+    await page.goto(`/projects/${SOURCE}/grid?columns=key&columns=kind&columns=title`);
     await expect(page.locator(`[data-grid="${SOURCE}"]`)).toContainText("Pay the basket");
     const download = page.waitForEvent("download");
     await page.locator('[data-action="export-csv"]').click();
     const file = await (await download).path();
 
-    await page.goto(`/p/${TARGET}/settings?tab=import`);
+    await page.goto(`/projects/${TARGET}/settings/import`);
     await page.getByLabel("CSV file").setInputFiles({ name: "export.csv", mimeType: "text/csv", buffer: readFileSync(file) });
     await page.locator('[data-action="upload-import"]').click();
     await expect(page.getByText("Nothing keeps the import from starting.")).toBeVisible();
@@ -55,7 +55,7 @@ test.describe("CSV import and export", { tag: "@desktop" }, () => {
     await page.locator('[data-action="start-import"]').click();
     await expect(page.locator('[data-import-step="done"]')).toContainText("3 requirements made", { timeout: 30_000 });
 
-    await page.goto(`/p/${TARGET}`);
+    await page.goto(`/projects/${TARGET}`);
     for (const title of ["Checkout", "Pay the basket", "Refund"]) await expect(page.getByRole("link", { name: title })).toBeVisible();
     const tree = must(await api.GET("/projects/{projectKey}/tree", { params: { path: { projectKey: TARGET } } })).nodes;
     expect(tree.map((node) => `${node.outline} ${node.title}`)).toEqual(["1 Checkout", "1.1 Pay the basket", "2 Refund"]);

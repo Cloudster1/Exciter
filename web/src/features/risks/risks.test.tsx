@@ -78,7 +78,7 @@ describe("a risk's level", () => {
 describe("a risk", () => {
   it("shows its rating with the level of each side", async () => {
     stubApi(stubs);
-    await renderAt("/p/CHK/r/CHK-R2");
+    await renderAt("/projects/CHK/r/CHK-R2");
     const rating = await screen.findByRole("table", { name: "Risk rating" });
     expect(within(rating).getByRole("row", { name: /Before mitigation 4 3 12 High/ })).toBeInTheDocument();
     expect(within(rating).getByRole("row", { name: /After mitigation 2 3 6 Medium/ })).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("a risk", () => {
 
   it("is rated by picking values, the level showing as they are picked", async () => {
     const sent = stubApi({ ...stubs, "PATCH /requirements/CHK-R2": { status: 200, body: { requirement: { ...ice, revision: 2 } } } });
-    await renderAt("/p/CHK/r/CHK-R2");
+    await renderAt("/projects/CHK/r/CHK-R2");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const rating = await screen.findByRole("group", { name: "Risk rating" });
     await userEvent.selectOptions(within(rating).getByRole("combobox", { name: "Severity after mitigation" }), "1");
@@ -107,7 +107,7 @@ describe("the risk scheme", () => {
       "GET /projects/CHK/risk-scheme": { status: 200, body: { scheme: null } },
       "PUT /projects/CHK/risk-scheme": { status: 200, body: { scheme: savedScheme() } },
     });
-    await renderAt("/p/CHK/settings?tab=risks");
+    await renderAt("/projects/CHK/settings/risks");
     await userEvent.click(await screen.findByRole("button", { name: "Start from five by five" }));
     const matrix = screen.getByRole("table", { name: "Matrix" });
     await userEvent.selectOptions(within(matrix).getByRole("combobox", { name: "Level at severity 5 and probability 1" }), "High");
@@ -122,7 +122,7 @@ describe("the risk scheme", () => {
 
   it("keeps a value a rating uses", async () => {
     stubApi(stubs);
-    await renderAt("/p/CHK/settings?tab=risks");
+    await renderAt("/projects/CHK/settings/risks");
     const severity = await screen.findByRole("group", { name: "Severity" });
     expect(within(severity).getByText("A risk is rated on this value, so it stays.")).toBeInTheDocument();
     const probability = screen.getByRole("group", { name: "Probability" });

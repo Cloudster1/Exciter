@@ -114,7 +114,7 @@ describe("a review session", () => {
       "POST /projects/CHK/review-sessions": { status: 201, body: { session: aSession() } },
       [`GET /review-sessions/${sessionId}`]: { status: 200, body: { session: aSession() } },
     });
-    await renderAt("/p/CHK/sessions");
+    await renderAt("/projects/CHK/sessions");
     await userEvent.click(await screen.findByRole("button", { name: "Open review session" }));
     const dialog = await screen.findByRole("dialog", { name: "Open a review session" });
     await userEvent.type(within(dialog).getByLabelText("Title"), "Braking review");
@@ -142,7 +142,7 @@ describe("a review session", () => {
       [`GET /review-sessions/${sessionId}`]: { status: 200, body: { session: aSession() } },
       [`POST /review-sessions/${sessionId}/close`]: { status: 200, body: { session: aSession({ state: "closed", closedAt: "2026-10-02T08:00:00Z" }) } },
     });
-    await renderAt(`/p/CHK/sessions/${sessionId}`);
+    await renderAt(`/projects/CHK/sessions/${sessionId}`);
     const item = (await screen.findByText("Brake lights follow the pedal")).closest("tr")!;
     expect(item).toHaveAttribute("data-session-outcome", "approved");
     expect(item).toHaveTextContent("1 open thread");
@@ -180,7 +180,7 @@ describe("a review session", () => {
     });
     await renderAt("/reviews");
     const mine = await screen.findByRole("list", { name: "Your review sessions" });
-    expect(within(mine).getByRole("link", { name: "Braking review" })).toHaveAttribute("href", `/p/CHK/sessions/${sessionId}`);
+    expect(within(mine).getByRole("link", { name: "Braking review" })).toHaveAttribute("href", `/projects/CHK/sessions/${sessionId}`);
     expect(mine).toHaveTextContent("2 wait for you");
     expect(await axeViolations()).toEqual([]);
   });

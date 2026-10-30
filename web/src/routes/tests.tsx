@@ -10,31 +10,33 @@ import { ProjectPage } from "./projects";
 
 export const testsRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/tests",
+  path: "/projects/$projectKey/tests",
   component: function ProjectTestsPage() {
     const { projectKey } = testsRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/tests" render={(project) => <TestsPage key={project.id} project={project} />} />;
+    return <ProjectPage projectKey={projectKey} to="/projects/$projectKey/tests" render={(project) => <TestsPage key={project.id} project={project} />} />;
   },
 });
 
 export const testPlanRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/tests/plans/$planId",
+  path: "/projects/$projectKey/tests/plans/$planId",
   component: function ProjectTestPlanPage() {
     const { projectKey, planId } = testPlanRoute.useParams();
-    return <ProjectPage projectKey={projectKey} to="/p/$projectKey/tests" render={(project) => <PlanPage key={planId} project={project} planId={planId} />} />;
+    return (
+      <ProjectPage projectKey={projectKey} to="/projects/$projectKey/tests" render={(project) => <PlanPage key={planId} project={project} planId={planId} />} />
+    );
   },
 });
 
 export const testExecutionRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/tests/executions/$executionId",
+  path: "/projects/$projectKey/tests/executions/$executionId",
   component: function ProjectTestExecutionPage() {
     const { projectKey, executionId } = testExecutionRoute.useParams();
     return (
       <ProjectPage
         projectKey={projectKey}
-        to="/p/$projectKey/tests"
+        to="/projects/$projectKey/tests"
         render={(project) => <ExecutionPage key={executionId} project={project} executionId={executionId} />}
       />
     );
@@ -43,7 +45,7 @@ export const testExecutionRoute = createRoute({
 
 export const testRunRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/tests/executions/$executionId/run/$reqKey",
+  path: "/projects/$projectKey/tests/executions/$executionId/run/$reqKey",
   validateSearch: (search: Record<string, unknown>): { iteration?: number } => {
     const n = Number(search.iteration);
     return Number.isInteger(n) && n >= 1 ? { iteration: n } : {};
@@ -54,7 +56,7 @@ export const testRunRoute = createRoute({
     return (
       <ProjectPage
         projectKey={projectKey}
-        to="/p/$projectKey/tests"
+        to="/projects/$projectKey/tests"
         render={(project) => <StepRunner project={project} executionId={executionId} caseKey={reqKey} iteration={iteration ?? 1} />}
       />
     );

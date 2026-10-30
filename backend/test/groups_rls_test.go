@@ -27,7 +27,7 @@ func TestRawSQLKeepsGroupsToTheAdministrators(t *testing.T) {
 		a.user).Scan(&project); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := h.super.Exec(ctx, `INSERT INTO project_grant (project_id, subject_type, group_id, role) VALUES ($1, 'group', $2, 'admin')`,
+	if _, err := h.super.Exec(ctx, `INSERT INTO role_assignment (project_id, group_id, role) VALUES ($1, $2, 'admin')`,
 		project, wardens); err != nil {
 		t.Fatal(err)
 	}

@@ -44,7 +44,7 @@ func canReads(t *testing.T, what string, can map[string]any, rights ...string) {
 // and comment, nobody the edits a lock holds, and nobody anything in an archived project (#310).
 func TestTheSpecificationSaysWhatItsReaderMayDo(t *testing.T) {
 	s := newMoveScene(t, "SC")
-	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE subject_type = 'everyone' AND project_id = $1`, s.id); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE group_id = (SELECT id FROM groups WHERE builtin = 'everyone') AND project_id = $1`, s.id); err != nil {
 		t.Fatal(err)
 	}
 	reviewerID := s.f.h.addPerson(t, "member")
@@ -121,7 +121,7 @@ func TestAMoveToAnotherProjectIsPostedOncePerRequirement(t *testing.T) {
 		from, toKey := p["fromKey"].(string), p["toKey"].(string)
 		seen[from]++
 		req := p["requirement"].(map[string]any)
-		if wanted[from] != toKey || req["key"] != toKey || !strings.HasSuffix(req["url"].(string), "/p/"+to+"/r/"+toKey) ||
+		if wanted[from] != toKey || req["key"] != toKey || !strings.HasSuffix(req["url"].(string), "/projects/"+to+"/r/"+toKey) ||
 			p["actor"].(map[string]any)["id"] != s.editor.user.String() {
 			t.Errorf("a move reads %s", d.Body)
 		}
@@ -168,7 +168,7 @@ func TestADocumentLeavesOutALinkItsReaderMayNotFollow(t *testing.T) {
 	s := newMoveScene(t, "DL")
 	hidden := projectKey(t, "DLH")
 	hiddenID := s.project(t, hidden, "Hidden", "viewer", false)
-	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, hiddenID); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, hiddenID); err != nil {
 		t.Fatal(err)
 	}
 	s.f.h.settle(t)

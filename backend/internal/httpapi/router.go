@@ -238,9 +238,6 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Delete("/users/requests/{userID}", s.handleDeclineJoinRequest)
 			r.Get("/oidc-provider", s.handleGetOIDCProvider)
 			r.Put("/oidc-provider", s.handleSaveOIDCProvider)
-			r.Get("/oidc-provider/group-roles", s.handleListGroupRoles)
-			r.Post("/oidc-provider/group-roles", s.handleSetGroupRole)
-			r.Delete("/oidc-provider/group-roles/{groupRoleID}", s.handleRemoveGroupRole)
 			r.Get("/audit", s.handleListAudit)
 			r.Get("/audit/facets", s.handleAuditFacets)
 			r.Get("/audit/export", s.handleExportAudit)
@@ -282,7 +279,7 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Use(requireAuth, s.projectsOn)
 			r.Get("/projects", s.handleListProjects)
 			r.Get("/project-templates", s.handleListProjectTemplates)
-			r.With(requireAdmin).Post("/projects", s.handleCreateProject)
+			r.With(requireCreateProjects).Post("/projects", s.handleCreateProject)
 			r.Get("/projects/key-check", s.handleCheckProjectKey)
 			r.Get("/projects/{projectKey}", s.handleGetProject)
 			r.Patch("/projects/{projectKey}", s.handleUpdateProject)
@@ -290,8 +287,6 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Put("/projects/{projectKey}/key", s.handleChangeProjectKey)
 			r.Put("/projects/{projectKey}/archive", s.handleArchiveProject)
 			r.Delete("/projects/{projectKey}/archive", s.handleUnarchiveProject)
-			r.With(s.permsOn).Get("/projects/{projectKey}/grants", s.handleListProjectGrants)
-			r.With(s.permsOn).Put("/projects/{projectKey}/grants", s.handleSetProjectGrants)
 			r.With(s.permsOn).Get("/projects/{projectKey}/access/{userID}", s.handleInspectProjectAccess)
 		})
 
@@ -746,12 +741,29 @@ func (s *Server) Routes(allowedOrigins []string) http.Handler {
 			r.Get("/requirements/{reqKey}/test-executions", s.handleListTestCaseResults)
 		})
 
-		// What the caller may do across the installation, and the people and groups a grant names.
+		// What the caller may do across the installation, and the roles, groups and grants that decide it (#471).
 		r.Group(func(r chi.Router) {
 			r.Use(requireAuth)
 			r.Get("/access/me", s.handleMyAccess)
 			r.With(s.permsOn).Get("/people", s.handleListPeople)
 			r.With(s.permsOn).Get("/groups", s.handleListGroups)
+			r.With(s.permsOn).Get("/roles", s.handleListRoles)
+			r.With(s.permsOn).Get("/permissions", s.handleListPermissions)
+			r.With(s.permsOn).Get("/role-assignments", s.handleListAssignments)
+			r.With(s.permsOn).Post("/role-assignments", s.handleGrantRole)
+			r.With(s.permsOn).Delete("/role-assignments/{assignmentID}", s.handleRevokeRole)
+			r.Group(func(r chi.Router) {
+				r.Use(requireAdmin, s.permsOn)
+				r.Post("/roles", s.handleCreateRole)
+				r.Patch("/roles/{roleKey}", s.handleUpdateRole)
+				r.Delete("/roles/{roleKey}", s.handleDeleteRole)
+				r.Post("/groups", s.handleCreateGroup)
+				r.Get("/groups/{groupID}", s.handleGetGroup)
+				r.Patch("/groups/{groupID}", s.handleUpdateGroup)
+				r.Delete("/groups/{groupID}", s.handleDeleteGroup)
+				r.Post("/groups/{groupID}/members", s.handleAddGroupMember)
+				r.Delete("/groups/{groupID}/members/{userID}", s.handleRemoveGroupMember)
+			})
 		})
 
 		r.Group(func(r chi.Router) {

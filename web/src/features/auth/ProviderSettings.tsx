@@ -1,18 +1,18 @@
 import { useState, type FormEvent } from "react";
 import { ApiError } from "@/api/client";
-import { ssoStartURL, useProvider, useSaveProvider, type Provider } from "@/api/auth";
-import { Button, Card, Checkbox, ErrorBanner, Field, Skeleton } from "@/components/ui";
+import { ssoStartURL, useProvider, useSaveProvider, type Provider, type SaveProviderInput } from "@/api/auth";
+import { Button, Card, Checkbox, ErrorBanner, Field, Skeleton, useToast } from "@/components/ui";
 import { HTTP_FORBIDDEN, SSO_DEFAULT_GROUPS_CLAIM, SSO_DEFAULT_SCOPES } from "@/config";
 import { t } from "@/i18n";
+
+// Adapted from Armature's and Stator's ProviderSettings.
 
 interface Draft {
   issuer: string;
   clientId: string;
   clientSecret: string;
   groupsClaim: string;
-  scopes: string;
-  createGroups: boolean;
-  enabled: boolean;
+  admitByGroup: boolean;
 }
 
 function draftOf(provider: Provider | null | undefined): Draft {
@@ -21,62 +21,50 @@ function draftOf(provider: Provider | null | undefined): Draft {
     clientId: provider?.clientId ?? "",
     clientSecret: "",
     groupsClaim: provider?.groupsClaim ?? SSO_DEFAULT_GROUPS_CLAIM,
-    scopes: provider?.scopes ?? SSO_DEFAULT_SCOPES,
-    createGroups: provider?.createGroups ?? false,
-    enabled: provider?.enabled ?? true,
+    admitByGroup: provider?.admitByGroup ?? false,
   };
 }
 
-/** The installation's identity provider, for its administrators. */
+/** The installation's identity provider, the Single sign-on tab of Access. */
 export function ProviderSettings() {
   const { data, isLoading, error } = useProvider();
-  // Held here rather than in the form: a save remounts the form, and what it says about that save outlives it.
+  // Held here rather than in the form: a save remounts the form, and its error has to outlive the remount.
   const save = useSaveProvider();
-  const [saved, setSaved] = useState(false);
   if (isLoading) return <Skeleton />;
   if (error) return <ErrorBanner>{error instanceof ApiError && error.status === HTTP_FORBIDDEN ? t.sso.notAdmin : error.message}</ErrorBanner>;
   // Keyed by the saved row, so a save that comes back starts the form afresh.
-  return (
-    <ProviderForm
-      key={data?.provider?.updatedAt ?? "new"}
-      provider={data?.provider ?? null}
-      callbackUrl={data?.callbackUrl ?? ""}
-      save={save}
-      saved={saved}
-      onSaved={setSaved}
-    />
-  );
+  return <ProviderForm key={data?.provider?.updatedAt ?? "new"} provider={data?.provider ?? null} save={save} />;
 }
 
-// The client secret is write-only: it never comes back, and a blank field
-// keeps the stored one, so saving the rest of the form cannot erase it.
-function ProviderForm({
-  provider,
-  callbackUrl,
-  save,
-  saved,
-  onSaved,
-}: {
-  provider: Provider | null;
-  callbackUrl: string;
-  save: ReturnType<typeof useSaveProvider>;
-  saved: boolean;
-  onSaved: (saved: boolean) => void;
-}) {
+// The client secret is write-only: it never comes back, and a blank field keeps the stored one, so saving the rest
+// of the form cannot erase it. The scopes and creating groups are dynamo-connect's to set, so the form sends back
+// what is stored.
+function ProviderForm({ provider, save }: { provider: Provider | null; save: ReturnType<typeof useSaveProvider> }) {
   const [draft, setDraft] = useState(() => draftOf(provider));
+  const toast = useToast();
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const formError = save.error && Object.keys(fields).length === 0 ? save.error.message : null;
+  const address = `${window.location.origin}${ssoStartURL()}`;
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
-    onSaved(false);
+  }
+
+  function send(body: SaveProviderInput, done: string) {
+    save.mutate(body, { onSuccess: () => toast.success(done) });
   }
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const { clientSecret, ...rest } = draft;
-    onSaved(false);
-    save.mutate(clientSecret ? { ...rest, clientSecret } : rest, { onSuccess: () => onSaved(true) });
+    const kept = { scopes: provider?.scopes ?? SSO_DEFAULT_SCOPES, createGroups: provider?.createGroups ?? false };
+    send({ ...rest, ...kept, ...(clientSecret ? { clientSecret } : {}), enabled: true }, t.sso.saved);
+  }
+
+  function turnOff() {
+    if (!provider) return;
+    const { issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup } = provider;
+    send({ issuer, clientId, groupsClaim, scopes, createGroups, admitByGroup, enabled: false }, t.sso.turnedOff);
   }
 
   return (
@@ -106,32 +94,38 @@ function ProviderForm({
             label={t.sso.groupsClaim}
             value={draft.groupsClaim}
             hint={t.sso.groupsClaimHint}
+            error={fields.groupsClaim}
             onChange={(event) => set("groupsClaim", event.target.value)}
           />
-          <Field label={t.sso.scopes} value={draft.scopes} onChange={(event) => set("scopes", event.target.value)} />
         </div>
-        <div className="flex flex-col gap-2">
-          <Checkbox label={t.sso.enabled} checked={draft.enabled} onChange={(event) => set("enabled", event.target.checked)} />
-          <Checkbox label={t.sso.createGroups} checked={draft.createGroups} onChange={(event) => set("createGroups", event.target.checked)} />
+        <div>
+          <Checkbox
+            label={t.sso.admitByGroup}
+            checked={draft.admitByGroup}
+            aria-describedby="sso-admit-by-group"
+            onChange={(event) => set("admitByGroup", event.target.checked)}
+            data-admit-by-group
+          />
+          <p id="sso-admit-by-group" className="pl-6 text-xs text-ink-muted">
+            {t.sso.admitByGroupDetail}
+          </p>
         </div>
-        {callbackUrl && (
-          <p className="text-sm text-ink-muted">
-            {t.sso.callback} <code className="rounded bg-surface-raised px-1 font-mono text-xs text-ink">{callbackUrl}</code>
-          </p>
-        )}
-        {provider?.enabled && (
-          <p className="text-sm text-ink-muted">
-            {t.sso.signInAt} <code className="rounded bg-surface-raised px-1 font-mono text-xs text-ink">{ssoStartURL()}</code>
-          </p>
-        )}
         {formError && <ErrorBanner>{formError}</ErrorBanner>}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" loading={save.isPending} data-action="save-sso">
             {provider ? t.sso.save : t.sso.setUp}
           </Button>
-          {saved && (
-            <span role="status" className="text-sm text-ink-muted">
-              {t.sso.saved}
+          {provider?.enabled && (
+            <Button type="button" variant="ghost" disabled={save.isPending} onClick={turnOff} data-action="turn-off-sso">
+              {t.sso.turnOff}
+            </Button>
+          )}
+          {provider && (
+            <span className="text-sm text-ink-muted" data-sso-state={provider.enabled ? "on" : "off"}>
+              {provider.enabled ? t.sso.signInAt : t.sso.offAddress}{" "}
+              <code className="rounded bg-surface-raised px-1 font-mono text-xs break-all text-ink" data-sso-start>
+                {address}
+              </code>
             </span>
           )}
         </div>

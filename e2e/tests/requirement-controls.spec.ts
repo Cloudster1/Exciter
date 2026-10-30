@@ -4,7 +4,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
+import { expectAccessible, openProjectSettings, confirm } from "../fixtures/shell";
 
 // The controls of a requirement's page and of the trash (#309): a lock by hand as another person meets it, a copy
 // with what is below it, the owner taken off, and the trash emptied by its administrator.
@@ -21,7 +21,7 @@ async function removeProject(api: ExciterApi, projectKey: string) {
 }
 
 const project = { params: { path: { projectKey: KEY } } };
-const requirement = (n: number) => `/p/${KEY}/r/${KEY}-R${n}`;
+const requirement = (n: number) => `/projects/${KEY}/r/${KEY}-R${n}`;
 
 async function write(api: ExciterApi, title: string, parentId: string | null = null, projectKey = KEY) {
   return must(
@@ -62,8 +62,8 @@ test.describe("requirement controls", { tag: "@desktop" }, () => {
     await expect(bob.locator('[data-action="unlock-requirement"]')).toHaveCount(0);
     await expectAccessible(bob);
 
-    page.once("dialog", (confirm) => void confirm.accept());
     await page.locator('[data-action="unlock-requirement"]').click();
+    await confirm(page);
     await expect(page.getByText(`${KEY}-R1 is unlocked.`)).toBeVisible();
     await expect(page.locator("[data-lock]")).toHaveCount(0);
 
@@ -106,7 +106,7 @@ test.describe("requirement controls", { tag: "@desktop" }, () => {
     const into = page.getByRole("dialog", { name: `Copy ${KEY}-R1` });
     await into.getByLabel("Project").selectOption(OTHER);
     await into.locator('[data-action="confirm-copy"]').click();
-    await expect(page).toHaveURL(`/p/${OTHER}/r/${OTHER}-R2`);
+    await expect(page).toHaveURL(`/projects/${OTHER}/r/${OTHER}-R2`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pay the basket");
   });
 
@@ -135,17 +135,17 @@ test.describe("requirement controls", { tag: "@desktop" }, () => {
 
     await page.goto(requirement(1));
     await page.locator('[data-action="trash-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}`);
+    await expect(page).toHaveURL(`/projects/${KEY}`);
 
     const bob = await pageAs("bob");
-    await openUntil(bob, `/p/${KEY}/trash`, () => expect(bob.locator(`[data-trash-item="${KEY}-R1"]`)).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/settings/trash`, () => expect(bob.locator(`[data-trash-item="${KEY}-R1"]`)).toBeVisible(ONE_LOOK));
     await expect(bob.getByText("Only the project's administrators delete from the trash for good.")).toBeVisible();
     await expect(bob.getByRole("button", { name: "Delete for good" })).toHaveCount(0);
     await expect(bob.locator('[data-action="empty-trash"]')).toHaveCount(0);
     await expect(bob.locator('[data-action="restore-requirement"]')).toBeVisible();
 
-    await openProjectAdmin(page, KEY);
-    await page.locator(`[data-project-nav="${KEY}"]`).getByRole("link", { name: "Trash" }).click();
+    await openProjectSettings(page, KEY);
+    await page.locator('[data-settings-tab="trash"]').click();
     await expect(page.locator("[data-trash-item]")).toHaveCount(1);
     await page.locator('[data-action="empty-trash"]').click();
     const dialog = page.getByRole("dialog", { name: "Empty the trash for good?" });

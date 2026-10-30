@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm } from "../fixtures/shell";
 
 // Baselines (#37): alice takes a baseline, R1 changes and R3 is written, and comparing the baseline with now says so
 // before she locks it.
@@ -33,7 +33,7 @@ test.describe("baselines", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title: "Brakes engage within 100 ms" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title: "Brake lights follow the pedal" } }));
 
-    await page.goto(`/p/${KEY}/baselines`);
+    await page.goto(`/projects/${KEY}/baselines`);
     await page.getByRole("button", { name: "Take baseline" }).click();
     const form = page.getByRole("form", { name: "Take a baseline" });
     await form.getByLabel("Name").fill("Release 1.0");
@@ -60,12 +60,12 @@ test.describe("baselines", { tag: "@desktop" }, () => {
     await expect(items.locator(`[data-item-change="${KEY}-R3"]`)).toContainText("Added");
     await expectAccessible(page);
     await items.locator(`[data-item-change="${KEY}-R1"]`).getByRole("link", { name: "Show the change" }).click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R1/history\\?from=1&to=2`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R1/history\\?from=1&to=2`));
 
     await page.goBack();
     await page.getByRole("link", { name: "Release 1.0" }).click();
-    page.once("dialog", (dialog) => void dialog.accept());
     await page.getByRole("button", { name: "Lock" }).click();
+    await confirm(page);
     await expect(page.getByText("A locked baseline keeps its name and is never deleted.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(0);
   });
@@ -90,7 +90,7 @@ test.describe("baselines", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${MATRIX_KEY}/baselines/${taken.id}`);
+    await page.goto(`/projects/${MATRIX_KEY}/baselines/${taken.id}`);
     await page.getByRole("button", { name: "Matrix", exact: true }).click();
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.locator(`[data-cell="${MATRIX_KEY}-R1:${MATRIX_KEY}-R2"]`)).toHaveAttribute("title", `${MATRIX_KEY}-R1 to ${MATRIX_KEY}-R2: Derives`);

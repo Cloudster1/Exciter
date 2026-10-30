@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Webhook } from "@/api/webhooks";
 import { WEBHOOKS_PATH } from "@/config";
 import { en } from "@/i18n/en";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { aProject } from "@/test/projects";
 
 // Copying a fresh secret and turning down the confirm of a rotation or a deletion (#328).
@@ -49,14 +49,11 @@ function clipboardThat(writeText: (text: string) => Promise<void>) {
 
 describe("a fresh secret", () => {
   it("is copied when the clipboard takes it, and says to copy it by hand when it does not", async () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
-    );
     webhooks();
     await renderAt(WEBHOOKS_PATH);
     await userEvent.click(await screen.findByRole("button", { name: "Actions for Team chat" }));
     await userEvent.click(screen.getByRole("menuitem", { name: en.webhooks.rotate }));
+    await answerConfirm(true);
     expect(await screen.findByLabelText("Secret for Team chat")).toHaveValue(fresh);
     const copy = screen.getByRole("button", { name: en.webhooks.copy });
 
@@ -77,19 +74,16 @@ describe("a fresh secret", () => {
 
 describe("turning the confirm down", () => {
   it("sends neither a rotation nor a deletion, and leaves the webhook as it was", async () => {
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
     const sent = webhooks();
     await renderAt(WEBHOOKS_PATH);
     const actions = await screen.findByRole("button", { name: "Actions for Team chat" });
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole("menuitem", { name: en.webhooks.rotate }));
+    expect(await answerConfirm(false)).toHaveTextContent(en.webhooks.confirmRotate);
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole("menuitem", { name: en.webhooks.delete }));
+    expect(await answerConfirm(false)).toHaveTextContent(en.webhooks.confirmDelete);
 
-    await waitFor(() => expect(confirm).toHaveBeenCalledTimes(2));
-    expect(confirm).toHaveBeenNthCalledWith(1, en.webhooks.confirmRotate("Team chat"));
-    expect(confirm).toHaveBeenNthCalledWith(2, en.webhooks.confirmDelete("Team chat"));
     expect(sent.filter((s) => s.method !== "GET")).toEqual([]);
     expect(screen.queryByLabelText("Secret for Team chat")).toBeNull();
     expect(screen.queryByText(en.webhooks.deleted("Team chat"))).toBeNull();

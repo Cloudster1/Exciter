@@ -105,7 +105,7 @@ describe("importing a Word document", () => {
     });
     // The form never reaches the stub whole in jsdom, so what goes into it is watched instead.
     const appended = vi.spyOn(FormData.prototype, "append");
-    await renderAt("/p/CHK/settings?tab=word");
+    await renderAt("/projects/CHK/settings/word");
     await userEvent.upload(
       await screen.findByLabelText("Word document"),
       new File(["PK"], "brakes.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
@@ -167,7 +167,7 @@ describe("importing a Word document", () => {
     expect(within(result.closest("[data-reqif-step]") as HTMLElement).getByText("1 requirement changed")).toBeInTheDocument();
   });
 
-  it("tells somebody who does not run the project whose import it is", async () => {
+  it("hides the section from somebody who does not run the project, and says who to ask", async () => {
     stubApi({
       ...settings,
       "GET /projects/CHK": {
@@ -175,9 +175,10 @@ describe("importing a Word document", () => {
         body: { project: aProject({ can: { view: true, comment: true, edit: true, approve: false, administer: false, purge: false } }) },
       },
     });
-    await renderAt("/p/CHK/settings?tab=word");
-    expect(await screen.findByText("Only the project's administrators import into it. Ask one of them.")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Word document")).not.toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/word");
+    expect(await screen.findByText("Only the project's administrators change its settings")).toBeInTheDocument();
+    expect(screen.getByText("Ask one of them, or ask for the role.")).toBeInTheDocument();
+    expect(document.querySelector('[data-settings-refused="word"]')).not.toBeNull();
   });
 
   it("says why a file was refused", async () => {
@@ -194,7 +195,7 @@ describe("importing a Word document", () => {
         },
       },
     });
-    await renderAt("/p/CHK/settings?tab=word");
+    await renderAt("/projects/CHK/settings/word");
     await userEvent.upload(await screen.findByLabelText("Word document"), new File(["hello"], "notes.txt", { type: "text/plain" }), { applyAccept: false });
     await userEvent.click(screen.getByRole("button", { name: "Upload" }));
     expect(await screen.findByText("notes.txt is not a Word document. Save it as .docx and upload it again.")).toBeInTheDocument();

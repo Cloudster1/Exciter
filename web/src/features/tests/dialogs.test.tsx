@@ -101,7 +101,7 @@ const refusal = (status: number, code: string, message: string, fields?: Record<
 });
 
 async function openStartDialog() {
-  await renderAt(`/p/CHK/tests/plans/${planId}`);
+  await renderAt(`/projects/CHK/tests/plans/${planId}`);
   await userEvent.click(await screen.findByRole("button", { name: "Start an execution" }));
   return screen.findByRole("dialog", { name: "Start a test execution" });
 }
@@ -195,7 +195,7 @@ describe("filing a failure", () => {
         "No Armature is connected, so no issue can be filed. Ask an administrator to connect one.",
       ),
     });
-    await renderAt(`/p/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=1`);
+    await renderAt(`/projects/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=1`);
     await userEvent.click(await screen.findByRole("button", { name: "File an issue" }));
     const dialog = await screen.findByRole("dialog", { name: "File the failure as an Armature issue" });
     const projects = await within(dialog).findByRole("combobox", { name: "Armature project" });
@@ -220,7 +220,7 @@ describe("filing a failure", () => {
 
   it("says Armature is not set up when the projects cannot be listed, and files nothing", async () => {
     stubApi({ ...stubs, "GET /armature/projects": { status: 200, body: { status: "not_configured", projects: [] } } });
-    await renderAt(`/p/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=1`);
+    await renderAt(`/projects/CHK/tests/executions/${executionId}/run/CHK-R2?iteration=1`);
     await userEvent.click(await screen.findByRole("button", { name: "File an issue" }));
     const dialog = await screen.findByRole("dialog", { name: "File the failure as an Armature issue" });
     await waitFor(() => expect(within(dialog).queryByRole("combobox", { name: "Armature project" })).not.toBeInTheDocument());

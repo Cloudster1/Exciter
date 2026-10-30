@@ -7,6 +7,9 @@ import (
 	"slices"
 	"strings"
 	"time"
+	// The zones a person may choose are checked against the binary's own database,
+	// so the container needs no zoneinfo of its own.
+	_ "time/tzdata"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -60,9 +63,9 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT id, email, name, COALESCE(avatar_url, ''), COALESCE(locale, ''), is_active, password_hash
+			SELECT id, email, name, COALESCE(avatar_url, ''), COALESCE(locale, ''), COALESCE(timezone, ''), is_active, password_hash
 			FROM app_user WHERE email = $1`, email,
-		).Scan(&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active, &stored)
+		).Scan(&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active, &stored)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _, _ = VerifyPassword(password, decoyHash, s.params)
@@ -93,7 +96,7 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 		}
 	}
 
-	p.Role, p.InstallationName, err = s.standing(ctx, p.UserID)
+	p.Role, p.Granted, p.InstallationName, err = s.standing(ctx, p.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +127,8 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent, ip stri
 // somebody who does not belong, which is told apart from no session.
 const sessionPrincipalSQL = `
 SELECT s.id, s.last_seen_at, s.proof,
-       u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-       (SELECT name FROM installation), u.role
+       u.id, u.email, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
+       (SELECT name FROM installation), u.role, perm_installation_grants(u.id)
 FROM user_session s
 JOIN app_user u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.expires_at > now()`
@@ -145,12 +148,13 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 		active     bool
 		name       *string
 		memberRole *string
+		granted    []string
 	)
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, sessionPrincipalSQL, HashToken(secret)).Scan(
 			&sessionID, &lastSeen, &p.Proof,
-			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active,
-			&name, &memberRole,
+			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active,
+			&name, &memberRole, &granted,
 		)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -173,6 +177,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*Principal, 
 	}
 	p.InstallationName = *name
 	p.Role = OrgRole(*memberRole)
+	p.Granted = granted
 	if s.now().Sub(lastSeen) > lastSeenEvery {
 		_, _ = s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			_, err := tx.Exec(ctx, `UPDATE user_session SET last_seen_at = now() WHERE id = $1`, sessionID)
@@ -191,21 +196,24 @@ func (s *Service) Logout(ctx context.Context, sessionID uuid.UUID) error {
 	return err
 }
 
-// standing is the person's role in the installation, empty when they hold none, and the installation's name.
-func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, string, error) {
+// standing is the person's standing in the installation, empty when they hold none, the permissions their grants
+// across it give them, and the installation's name.
+func (s *Service) standing(ctx context.Context, userID uuid.UUID) (OrgRole, []string, string, error) {
 	var role *string
+	var granted []string
 	var name string
 	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
-			SELECT (SELECT role FROM app_user WHERE id = $1), name FROM installation`, userID).Scan(&role, &name)
+			SELECT (SELECT role FROM app_user WHERE id = $1), perm_installation_grants($1), name FROM installation`,
+			userID).Scan(&role, &granted, &name)
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", "", ErrNoInstallation
+		return "", nil, "", ErrNoInstallation
 	}
 	if err != nil || role == nil {
-		return "", name, err
+		return "", nil, name, err
 	}
-	return OrgRole(*role), name, nil
+	return OrgRole(*role), granted, name, nil
 }
 
 // SetLocale records the language a person reads the interface in;
@@ -218,6 +226,32 @@ func (s *Service) SetLocale(ctx context.Context, userID uuid.UUID, locale Locale
 		_, err := tx.Exec(ctx, `UPDATE app_user SET locale = NULLIF($2, '') WHERE id = $1`, userID, string(locale))
 		return err
 	})
+}
+
+// SetTimezone records the zone a person's dates are written in; an empty zone
+// hands the choice back to their browser.
+func (s *Service) SetTimezone(ctx context.Context, userID uuid.UUID, zone string) (db.LSN, error) {
+	if !KnownTimezone(zone) {
+		return 0, ErrBadTimezone
+	}
+	return s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		_, err := tx.Exec(ctx, `UPDATE app_user SET timezone = NULLIF($2, '') WHERE id = $1`, userID, zone)
+		return err
+	})
+}
+
+// KnownTimezone reports whether a zone may be chosen: empty, for the browser's,
+// or an IANA name from the zone database the binary carries.
+func KnownTimezone(zone string) bool {
+	if zone == "" {
+		return true
+	}
+	// LoadLocation reads "Local" as the server's own zone, which is nobody's choice.
+	if zone == "Local" || strings.TrimSpace(zone) != zone {
+		return false
+	}
+	_, err := time.LoadLocation(zone)
+	return err == nil
 }
 
 // AccountID finds the account of an address, for a bootstrap acting in that
@@ -233,7 +267,7 @@ func (s *Service) AccountID(ctx context.Context, email string) (uuid.UUID, error
 	return id, err
 }
 
-// EnsureAdmin makes email a local owner of the installation, reporting whether
+// EnsureAdmin makes email a local member who administers the installation, reporting whether
 // the account is new. Run again it changes nothing, or resets a changed password.
 func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string) (bool, error) {
 	email = NormalizeEmail(email)
@@ -280,10 +314,11 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, name, password string)
 		if err != nil {
 			return fmt.Errorf("create the administrator: %w", err)
 		}
-		_, err = tx.Exec(ctx, `
-			UPDATE app_user SET role = 'owner', role_source = 'manual'
-			WHERE id = $1 AND role IS DISTINCT FROM 'owner'`, userID)
-		return err
+		if _, err := tx.Exec(ctx, `
+			UPDATE app_user SET role = 'member' WHERE id = $1 AND role IS DISTINCT FROM 'member'`, userID); err != nil {
+			return err
+		}
+		return GrantAdministrator(ctx, tx, userID, nil)
 	})
 	return created, err
 }

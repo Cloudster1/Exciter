@@ -42,7 +42,7 @@ func statorError(err error) *APIError {
 		return &APIError{Status: status, Code: refused.Code, Message: sentence(refused.Message), Fields: refused.Fields, cause: err}
 	case errors.Is(err, stator.ErrNotConfigured):
 		return &APIError{Status: http.StatusConflict, Code: "stator_not_configured",
-			Message: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Settings, Stator."}
+			Message: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Admin, Stator."}
 	case errors.Is(err, stator.ErrNotConnected):
 		return &APIError{Status: http.StatusConflict, Code: "stator_not_connected",
 			Message: "You have not connected your Stator account. Paste a Stator token under Your account, Stator account, then try again."}

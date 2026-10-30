@@ -9,7 +9,6 @@ import { armatureAccountRoute, armatureSettingsRoute } from "./armature";
 import { webhooksRoute } from "./webhooks";
 import { statorAccountRoute, statorSettingsRoute } from "./stator";
 import { auditRoute } from "./audit";
-import { defaultThemeRoute } from "./default-theme";
 import { homeRoute } from "./home";
 import { installationRoute } from "./installation";
 import { consentRoute } from "./consent";
@@ -20,12 +19,9 @@ import {
   newProjectRoute,
   gridRoute,
   newRequirementRoute,
-  projectPermissionsRoute,
   projectRoute,
-  projectSettingsRoute,
   projectsRoute,
   specRoute,
-  trashRoute,
   suspectsRoute,
   baselinesRoute,
   coverageRoute,
@@ -42,16 +38,18 @@ import {
   baselineCompareRoute,
   sessionsRoute,
   sessionRoute,
-  workflowDesignRoute,
 } from "./projects";
+import { movedProjectRoute, projectSettingsRoute, projectSettingsSectionRoutes, workflowDesignRoute } from "./project-settings";
 import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from "./requirements";
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
-import { linkTypesRoute, membersRoute, profileRoute, settingsRoute } from "./settings";
-import { ssoRoute } from "./sso";
+import { linkTypesRoute, profileRoute, settingsRoute } from "./settings";
+import { accessRoute, accessTabRoute } from "./access";
+import { adminIndexRoute, adminRoute, settingsAccessTabRoute, settingsMovedRoute } from "./admin";
+import { usersRoute } from "./users";
 import { themeEditRoute, themeNewRoute } from "./theme-editor";
 import { themesRoute } from "./themes";
-import { allTokensRoute, tokensRoute } from "./tokens";
+import { tokensRoute } from "./tokens";
 import { allConnectedAppsRoute, connectedAppsRoute } from "./connected-apps";
 import {
   printBaselineDocumentRoute,
@@ -67,6 +65,7 @@ import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  movedProjectRoute,
   printProjectDocumentRoute,
   printBaselineDocumentRoute,
   printDashboardRoute,
@@ -79,10 +78,9 @@ const routeTree = rootRoute.addChildren([
     newProjectRoute,
     projectRoute,
     projectSettingsRoute,
+    ...projectSettingsSectionRoutes,
     workflowDesignRoute,
-    projectPermissionsRoute,
     newRequirementRoute,
-    trashRoute,
     suspectsRoute,
     baselinesRoute,
     coverageRoute,
@@ -114,22 +112,26 @@ const routeTree = rootRoute.addChildren([
     searchRoute,
     settingsRoute,
     profileRoute,
-    installationRoute,
     consentRoute,
-    membersRoute,
-    linkTypesRoute,
-    ssoRoute,
-    auditRoute,
-    defaultThemeRoute,
+    adminRoute.addChildren([
+      adminIndexRoute,
+      installationRoute,
+      accessRoute,
+      accessTabRoute,
+      usersRoute,
+      linkTypesRoute,
+      armatureSettingsRoute,
+      statorSettingsRoute,
+      allConnectedAppsRoute,
+      webhooksRoute,
+      auditRoute,
+    ]),
+    settingsMovedRoute,
+    settingsAccessTabRoute,
     themesRoute,
     tokensRoute,
     connectedAppsRoute,
-    allConnectedAppsRoute,
-    allTokensRoute,
-    armatureSettingsRoute,
-    webhooksRoute,
     armatureAccountRoute,
-    statorSettingsRoute,
     statorAccountRoute,
     notificationsRoute,
     notificationSettingsRoute,

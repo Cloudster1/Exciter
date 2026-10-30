@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useId, useEffect, useRef, useState, type FormEvent } from "react";
 import { useBaselines } from "@/api/baselines";
 import { fetchFile, saveFile, type DocumentFormat } from "@/api/documents";
 import { useExportTemplates, withTemplate } from "@/api/templates";
-import { Button, Dialog, ErrorBanner, Select, Skeleton } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, Select, Skeleton, DialogFooter } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 
@@ -36,7 +36,7 @@ export function FileExportDialog({
   // A server without templates answers that it has none set up, which is no reason to stop an export.
   const asking = Boolean(projectKey) && !templates.isError && (templates.isPending || offered.length > 0) && !choice;
   return (
-    <Dialog title={t.documents.title(t.documents[format], title)} onClose={onClose} data-document-export={asking ? "choosing" : undefined}>
+    <Dialog open title={t.documents.title(t.documents[format], title)} onClose={onClose} attrs={asking ? { "data-document-export": "choosing" } : undefined}>
       {asking ? (
         templates.isPending ? (
           <Skeleton />
@@ -61,6 +61,7 @@ function ChooseTemplate({
   onChoose: (c: Choice) => void;
   onClose: () => void;
 }) {
+  const formId = useId();
   const [template, setTemplate] = useState("");
   const [since, setSince] = useState("");
   const marks = templates.find((tpl) => tpl.id === template)?.include.changeMarks ?? false;
@@ -72,7 +73,7 @@ function ChooseTemplate({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3" data-export-choose>
+    <form id={formId} onSubmit={submit} className="space-y-3" data-export-choose>
       <Select label={t.templates.template} id="export-template" value={template} onChange={(e) => setTemplate(e.target.value)} data-export-template>
         <option value="">{t.templates.noTemplate}</option>
         {templates.map((tpl) => (
@@ -91,14 +92,14 @@ function ChooseTemplate({
           ))}
         </Select>
       )}
-      <div className="flex justify-end gap-2 pt-3">
+      <DialogFooter>
         <Button type="button" variant="secondary" onClick={onClose}>
           {t.documents.cancel}
         </Button>
-        <Button type="submit" icon={<Icon.Download />} data-action="export-with-template">
+        <Button type="submit" form={formId} icon={<Icon.Download />} data-action="export-with-template">
           {t.templates.export}
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   );
 }
@@ -140,11 +141,11 @@ function Making({ format, href, onClose }: { format: DocumentFormat; href: strin
         </p>
       )}
       <p className="mt-3 text-xs text-ink-muted">{t.documents.note}</p>
-      <div className="flex justify-end pt-3">
+      <DialogFooter>
         <Button type="button" variant="secondary" onClick={onClose} data-action={`close-${format}`}>
           {error ? t.documents.close : t.documents.cancel}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }

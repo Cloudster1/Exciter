@@ -320,8 +320,8 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 			                       WHERE tp.token_hash = t.token_hash ORDER BY p.key)
 			            ELSE ARRAY(SELECT p.key FROM oauth_grant_project gp JOIN project p ON p.id = gp.project_id
 			                       WHERE gp.grant_id = g.id ORDER BY p.key) END,
-			       u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), u.is_active,
-			       i.name, u.role, i.oauth_connections
+			       u.id, u.email::text, u.name, COALESCE(u.avatar_url, ''), COALESCE(u.locale, ''), COALESCE(u.timezone, ''), u.is_active,
+			       i.name, u.role, perm_installation_grants(u.id), i.oauth_connections
 			FROM oauth_token t
 			JOIN oauth_grant g ON g.id = t.grant_id
 			JOIN oauth_client c ON c.id = g.client_id
@@ -329,7 +329,7 @@ func (s *Service) Authenticate(ctx context.Context, secret string) (*auth.Princi
 			CROSS JOIN installation i
 			WHERE t.token_hash = $1 AND t.kind = 'access' AND t.expires_at > now()`, auth.HashToken(secret)).Scan(
 			&tok.ID, &tok.Name, &readOnly, &evidence, &partner, &lastUsed, &tok.ExpiresAt, &only, &p.TokenProjects, &tok.Projects,
-			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &active, &p.InstallationName, &p.Role, &on)
+			&p.UserID, &p.Email, &p.Name, &p.AvatarURL, &p.Locale, &p.Timezone, &active, &p.InstallationName, &p.Role, &p.Granted, &on)
 	})
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):

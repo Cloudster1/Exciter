@@ -26,9 +26,10 @@ test.describe("the interface in German", () => {
       await expect(page.getByRole("link", { name: "Start", exact: true }).first()).toBeVisible();
       await heading(page, "/settings", "Einstellungen");
       await heading(page, "/settings/themes", "Designs");
-      await heading(page, "/settings/members", "Mitglieder");
+      await heading(page, "/admin/access/members", "Zugriff");
+      await expect(page.getByRole("tab", { name: "Mitglieder" })).toHaveAttribute("aria-selected", "true");
 
-      await heading(page, "/settings/audit", "Protokoll");
+      await heading(page, "/admin/audit", "Protokoll");
       const when = page.locator("[data-audit-row] time").first();
       await expect(when).toBeVisible();
       const at = new Date((await when.getAttribute("datetime"))!);
@@ -37,11 +38,13 @@ test.describe("the interface in German", () => {
       await expect(when).toHaveText(new RegExp(`^${two(at.getUTCDate())}\\.${two(at.getUTCMonth() + 1)}\\.${at.getUTCFullYear()}, \\d{2}:\\d{2}:\\d{2}$`));
 
       await heading(page, "/settings/profile", "Ihr Profil");
-      await expect(page.locator('[data-language="browser"]')).toBeChecked();
-      await page.getByRole("radio", { name: "English" }).click();
+      await expect(page.getByLabel("Sprache der Oberfläche", { exact: true })).toHaveValue("");
+      await page.getByLabel("Sprache der Oberfläche", { exact: true }).selectOption("en");
+      await page.getByRole("button", { name: "Speichern", exact: true }).click();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Your profile" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "en");
-      await page.locator('[data-language="browser"]').click();
+      await page.getByLabel("Interface language", { exact: true }).selectOption("");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Ihr Profil" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "de");
     } finally {
@@ -61,7 +64,7 @@ test.describe("the interface in German", () => {
           body: { title: "Bremsweg unter 40 m", statement: paragraph("Das Fahrzeug hält an.") },
         }),
       );
-      for (const place of ["/", "/projects", "/settings/members", "/settings/themes", `/p/${KEY}/r/${KEY}-R1`]) {
+      for (const place of ["/", "/projects", "/admin/access/members", "/admin/access/matrix", "/settings/themes", `/projects/${KEY}/r/${KEY}-R1`]) {
         await test.step(place, async () => {
           await openShell(page, place);
           await expect(page.locator("html")).toHaveAttribute("lang", "de");

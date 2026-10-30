@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
-import { subjectKey, useInspectAccess, type AccessReport, type AccessRight, type AccessStep, type Subject } from "@/api/permissions";
+import { grantSubject } from "@/api/access";
+import { useInspectAccess, type AccessReport, type AccessRight, type AccessStep, type Subject } from "@/api/permissions";
 import type { Project } from "@/api/projects";
 import { Icon } from "@/components/icons";
 import { Dialog, ErrorBanner, Skeleton, Tag, cx } from "@/components/ui";
@@ -12,12 +13,10 @@ export function decidingStep(right: AccessRight): number {
 }
 
 /** One step as a sentence about the person checked. */
-export function stepSentence(step: AccessStep, report: Pick<AccessReport, "role" | "roleSource">): string {
+export function stepSentence(step: AccessStep, report: Pick<AccessReport, "role">): string {
   switch (step.kind) {
-    case "orgAdmin": {
-      const role = t.access.orgAdmin(report.role === "owner");
-      return report.roleSource === "oidc" ? `${role} ${t.access.fromProvider}` : role;
-    }
+    case "orgAdmin":
+      return t.access.orgAdmin;
     case "guest":
       if (report.role !== "guest") return t.access.memberReached;
       return step.passed ? t.access.guestNamed : t.access.guestNotReached;
@@ -32,7 +31,7 @@ export function stepSentence(step: AccessStep, report: Pick<AccessReport, "role"
 export function AccessDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const [person, setPerson] = useState<Subject>();
   return (
-    <Dialog title={t.access.title(project.name)} wide onClose={onClose} data-access-dialog={project.key}>
+    <Dialog open title={t.access.title(project.name)} size="lg" onClose={onClose} attrs={{ "data-access-dialog": project.key }}>
       <div className="space-y-4">
         <p className="text-sm text-ink-muted">{t.access.intro}</p>
         <SubjectPicker label={t.access.pickerLabel} peopleOnly inline onPick={setPerson} />
@@ -105,13 +104,16 @@ function Step({ step, report, deciding }: { step: AccessStep; report: AccessRepo
           <ul className="flex flex-wrap gap-1.5" data-grant-list>
             {step.grants.map((grant) => (
               <li
-                key={subjectKey(grant.subject)}
+                key={grant.id}
                 className="inline-flex h-7 items-center gap-1.5 rounded-control border border-border bg-surface-raised px-2 text-sm text-ink"
-                data-grant={grant.subject.name}
+                data-grant={grantSubject(grant)}
               >
-                <SubjectGlyph type={grant.subject.type} />
-                <span>{grant.subject.type === "everyone" ? t.permissions.everyone : grant.subject.name}</span>
-                <span className="text-xs text-ink-subtle">{t.permissions.roles[grant.role]}</span>
+                <SubjectGlyph type={grant.groupId ? "group" : "user"} />
+                <span>{grantSubject(grant)}</span>
+                <span className="text-xs text-ink-subtle">
+                  {grant.roleName}
+                  {grant.projectKey ? "" : ` (${t.accessAdmin.grants.everywhere})`}
+                </span>
               </li>
             ))}
           </ul>

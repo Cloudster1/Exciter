@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ApiError } from "@/api/client";
 import { useDeleteTerm, useTerm, useTermRevisions, useTermUses, useUpdateTerm, type Term, type TermRevision } from "@/api/glossary";
 import type { Project } from "@/api/projects";
-import { Button, Card, Dialog, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td } from "@/components/ui";
+import { Button, Card, Dialog, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, useToast, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { HTTP_NOT_FOUND, TERM_USES_PAGE_SIZE } from "@/config";
 import { DocView } from "@/features/editor/DocView";
@@ -31,7 +31,7 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
   const l = t.glossary;
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   // Opened at this revision; a newer one refuses the save until the author loads it.
   const [base, setBase] = useState(term.revision);
   const update = useUpdateTerm(term.id);
@@ -40,10 +40,10 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
   const mayDelete = own && project.can.administer && !project.archivedAt;
   const stale = update.error instanceof ApiError && update.error.code === "stale_revision";
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-term-page={term.name}>
+    <Page width="narrow" className="space-y-4" data-term-page={term.name}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/glossary" params={{ projectKey: project.key }} className="hover:text-ink hover:underline">
+          <Link to="/projects/$projectKey/glossary" params={{ projectKey: project.key }} className="hover:text-ink hover:underline">
             {l.term.back}
           </Link>
         }
@@ -57,7 +57,6 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
                 onClick={() => {
                   update.reset();
                   setBase(term.revision);
-                  setNotice("");
                   setEditing(true);
                 }}
                 data-action="edit-term"
@@ -78,9 +77,6 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
         <span>{l.term.revision(term.revision, term.updatedBy.name, when.format(new Date(term.updatedAt)))}</span>
         {!own && <span>{l.term.fromLibrary(term.projectKey)}</span>}
       </div>
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-term-notice>
-        {notice}
-      </p>
       {editing ? (
         <Card className="space-y-3 p-4">
           {stale && (
@@ -120,7 +116,7 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
                 {
                   onSuccess: (saved) => {
                     setEditing(false);
-                    setNotice(l.term.saved(saved.revision));
+                    toast.success(l.term.saved(saved.revision));
                   },
                 },
               )
@@ -144,7 +140,7 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
       <Uses termId={term.id} />
       <Revisions termId={term.id} />
       {deleting && <DeleteDialog project={project} term={term} onClose={() => setDeleting(false)} />}
-    </div>
+    </Page>
   );
 }
 
@@ -185,7 +181,7 @@ function Uses({ termId }: { termId: string }) {
                 <tr key={use.requirement.id} data-term-use-row={use.requirement.key} data-suspect={use.suspect}>
                   <Td>
                     <Link
-                      to="/p/$projectKey/r/$reqKey"
+                      to="/projects/$projectKey/r/$reqKey"
                       params={{ projectKey: use.requirement.projectKey, reqKey: use.requirement.key }}
                       className="text-ink hover:text-accent hover:underline"
                     >
@@ -302,23 +298,32 @@ function DeleteDialog({ project, term, onClose }: { project: Project; term: Term
   const remove = useDeleteTerm(term.id);
   const navigate = useNavigate();
   return (
-    <Dialog title={l.deleteTitle} onClose={onClose} data-delete-term="">
-      <div className="space-y-4">
-        <p className="text-sm text-ink">{l.deleteIntro(term.name)}</p>
-        {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
-        <div className="flex justify-end gap-2">
+    <Dialog
+      open
+      title={l.deleteTitle}
+      onClose={onClose}
+      attrs={{ "data-delete-term": "" }}
+      footer={
+        <>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
           <Button
             variant="danger"
             loading={remove.isPending}
-            onClick={() => remove.mutate(undefined, { onSuccess: () => void navigate({ to: "/p/$projectKey/glossary", params: { projectKey: project.key } }) })}
+            onClick={() =>
+              remove.mutate(undefined, { onSuccess: () => void navigate({ to: "/projects/$projectKey/glossary", params: { projectKey: project.key } }) })
+            }
             data-action="confirm-delete-term"
           >
             {l.deleteConfirm}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-ink">{l.deleteIntro(term.name)}</p>
+        {remove.error && <ErrorBanner>{remove.error.message}</ErrorBanner>}
       </div>
     </Dialog>
   );

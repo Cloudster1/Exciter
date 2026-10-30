@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTypes } from "@/api/attributes";
 import { ApiError } from "@/api/client";
@@ -16,7 +16,22 @@ import {
 import { linkWays, useProjectLinkTypes } from "@/api/links";
 import type { Project } from "@/api/projects";
 import { useRequirement, type Requirement } from "@/api/requirements";
-import { Button, Card, Dialog, EmptyState, ErrorBanner, Field, PageHeader, Segmented, Select, Skeleton, Tag } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  PageHeader,
+  Segmented,
+  Select,
+  Skeleton,
+  Tag,
+  useToast,
+  DialogFooter,
+  Page,
+} from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { DUPLICATE_REASON_MAX_LENGTH, DUPLICATE_REASON_ROWS } from "@/config";
 import { DocView } from "@/features/editor/DocView";
@@ -36,7 +51,7 @@ export function DuplicatesPage({ project }: { project: Project }) {
   const [filter, setFilter] = useState<PairFilter>(NO_FILTER);
   const pairs = useDuplicatePairs(project.key, filter);
   const [deciding, setDeciding] = useState<Deciding | null>(null);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const l = t.duplicates.page;
   const may = project.can.edit && !project.archivedAt;
   const shown = pairs.data?.pages.flatMap((page) => page.pairs) ?? [];
@@ -44,11 +59,11 @@ export function DuplicatesPage({ project }: { project: Project }) {
   const fields = pairs.error instanceof ApiError ? pairs.error.fields : {};
   const general = pairs.error && !queryFailure(pairs.error) && Object.keys(fields).length === 0;
   function decided(message: string) {
-    setNotice(message);
+    toast.success(message);
     setDeciding(null);
   }
   return (
-    <div className="mx-auto max-w-6xl space-y-4" data-duplicates-page={project.key}>
+    <Page width="content" className="space-y-4" data-duplicates-page={project.key}>
       <PageHeader title={l.title} meta={l.intro} />
       {threshold !== undefined && (
         <p className="text-sm text-ink-muted" data-duplicates-threshold={threshold}>
@@ -61,7 +76,6 @@ export function DuplicatesPage({ project }: { project: Project }) {
         sectionError={fields.section}
         typeError={fields.type}
         onFilter={(next) => {
-          setNotice("");
           setFilter((was) => ({ ...was, ...next }));
         }}
       />
@@ -74,9 +88,6 @@ export function DuplicatesPage({ project }: { project: Project }) {
         onSubmit={(query) => setFilter((was) => ({ ...was, query }))}
       />
       {!may && <p className="text-sm text-ink-muted">{l.readOnly}</p>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden" data-duplicates-notice>
-        {notice}
-      </p>
       {general && <ErrorBanner onRetry={() => void pairs.refetch()}>{pairs.error.message}</ErrorBanner>}
       {pairs.isPending && <Skeleton />}
       {pairs.data && shown.length === 0 && <EmptyState icon={<Icon.Check />} title={l.none} description={l.noneHint} />}
@@ -92,7 +103,6 @@ export function DuplicatesPage({ project }: { project: Project }) {
                 pair={pair}
                 may={may}
                 onDecide={(kind) => {
-                  setNotice("");
                   setDeciding({ kind, pair });
                 }}
               />
@@ -108,9 +118,9 @@ export function DuplicatesPage({ project }: { project: Project }) {
       {deciding?.kind === "dismiss" && <DismissDialog project={project} pair={deciding.pair} onClose={() => setDeciding(null)} onDone={decided} />}
       {deciding?.kind === "link" && <LinkDialog project={project} pair={deciding.pair} onClose={() => setDeciding(null)} onDone={decided} />}
       {deciding?.kind === "merge" && (
-        <MergeDialog project={project} pair={deciding.pair} onClose={() => setDeciding(null)} onDone={(message) => setNotice(message)} />
+        <MergeDialog project={project} pair={deciding.pair} onClose={() => setDeciding(null)} onDone={(message) => toast.success(message)} />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -211,7 +221,7 @@ function Side({ side, requirement }: { side: DuplicatePair["a"]; requirement?: R
   return (
     <div className="min-w-0 space-y-2 rounded-control border border-border p-3" data-pair-side={side.key}>
       <h3 className="text-sm font-medium text-ink">
-        <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: side.projectKey, reqKey: side.key }} className="hover:text-accent hover:underline">
+        <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: side.projectKey, reqKey: side.key }} className="hover:text-accent hover:underline">
           <span className="font-mono text-xs text-ink-muted">{side.key}</span> {side.title}
         </Link>
       </h3>
@@ -299,6 +309,7 @@ function Refusal({ error, onClose }: { error: Error | null; onClose: () => void 
 }
 
 function DismissDialog({ project, pair, onClose, onDone }: { project: Project; pair: DuplicatePair; onClose: () => void; onDone: (notice: string) => void }) {
+  const formId = useId();
   const l = t.duplicates.dismiss;
   const [reason, setReason] = useState("");
   const dismiss = useDismissPair(project.key);
@@ -311,8 +322,8 @@ function DismissDialog({ project, pair, onClose, onDone }: { project: Project; p
     );
   }
   return (
-    <Dialog title={l.title} onClose={onClose} data-dismiss-pair="">
-      <form onSubmit={submit} className="space-y-4" noValidate>
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-dismiss-pair": "" }}>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro(pair.a.key, pair.b.key)}</p>
         <Refusal error={dismiss.error} onClose={onClose} />
         <Field
@@ -325,20 +336,21 @@ function DismissDialog({ project, pair, onClose, onDone }: { project: Project; p
           onChange={(event) => setReason(event.target.value)}
           autoFocus
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={dismiss.isPending} disabled={!reason.trim()} data-action="confirm-dismiss-pair">
+          <Button type="submit" form={formId} loading={dismiss.isPending} disabled={!reason.trim()} data-action="confirm-dismiss-pair">
             {l.send}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );
 }
 
 function LinkDialog({ project, pair, onClose, onDone }: { project: Project; pair: DuplicatePair; onClose: () => void; onDone: (notice: string) => void }) {
+  const formId = useId();
   const l = t.duplicates.link;
   const { data: types } = useProjectLinkTypes(project.key);
   const ways = linkWays(types ?? [], (phrase) => l.reads(pair.a.key, phrase, pair.b.key));
@@ -357,8 +369,8 @@ function LinkDialog({ project, pair, onClose, onDone }: { project: Project; pair
     link.mutate({ source, target, linkTypeKey: type.key }, { onSuccess: () => onDone(l.done(pair.a.key, pair.b.key)) });
   }
   return (
-    <Dialog title={l.title} onClose={onClose} data-link-pair="">
-      <form onSubmit={submit} className="space-y-4" noValidate>
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-link-pair": "" }}>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro}</p>
         <Refusal error={link.error} onClose={onClose} />
         {!types && <Skeleton />}
@@ -372,20 +384,21 @@ function LinkDialog({ project, pair, onClose, onDone }: { project: Project; pair
             ))}
           </Select>
         )}
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={link.isPending} disabled={!way} data-action="confirm-link-pair">
+          <Button type="submit" form={formId} loading={link.isPending} disabled={!way} data-action="confirm-link-pair">
             {l.send}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );
 }
 
 function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pair: DuplicatePair; onClose: () => void; onDone: (notice: string) => void }) {
+  const formId = useId();
   const l = t.duplicates.merge;
   const [keepKey, setKeepKey] = useState(pair.a.key);
   const [comment, setComment] = useState("");
@@ -411,8 +424,8 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
   }
   if (result) return <MergeResult result={result} kept={keep.key} trashed={gone.key} onClose={onClose} />;
   return (
-    <Dialog title={l.title} onClose={onClose} data-merge-pair="">
-      <form onSubmit={submit} className="space-y-4" noValidate>
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-merge-pair": "" }}>
+      <form id={formId} onSubmit={submit} className="space-y-4" noValidate>
         <p className="text-sm text-ink">{l.intro}</p>
         <Refusal error={merge.error} onClose={onClose} />
         <Segmented
@@ -433,14 +446,14 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
           error={fields.comment}
           onChange={(event) => setComment(event.target.value)}
         />
-        <div className="flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
-            {t.common.cancel}
+            {t.kit.cancel}
           </Button>
-          <Button type="submit" loading={merge.isPending} data-action="confirm-merge-pair">
+          <Button type="submit" form={formId} loading={merge.isPending} data-action="confirm-merge-pair">
             {l.send}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Dialog>
   );
@@ -450,7 +463,7 @@ function MergeDialog({ project, pair, onClose, onDone }: { project: Project; pai
 function MergeResult({ result, kept, trashed, onClose }: { result: DuplicateMerge; kept: string; trashed: string; onClose: () => void }) {
   const l = t.duplicates.merge;
   return (
-    <Dialog title={l.title} onClose={onClose} data-merge-result="">
+    <Dialog open title={l.title} onClose={onClose} attrs={{ "data-merge-result": "" }}>
       <div className="space-y-4">
         <p className="text-sm text-ink">{l.done(kept, trashed)}</p>
         <section aria-labelledby="merge-links-title" className="space-y-2">
@@ -475,11 +488,11 @@ function MergeResult({ result, kept, trashed, onClose }: { result: DuplicateMerg
             </ul>
           )}
         </section>
-        <div className="flex justify-end">
+        <DialogFooter>
           <Button onClick={onClose} data-action="close-merge" autoFocus>
             {l.close}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

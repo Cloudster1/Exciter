@@ -3,12 +3,12 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL, statorURL } from "../fixtures/stack";
 
 // The Armature spec of the same flow, for Stator (#40).
 
-const SETTINGS_PATH = "/settings/stator";
+const SETTINGS_PATH = "/admin/stator";
 const ACCOUNT_PATH = "/settings/stator-account";
 // The stub makes a person of any name on first use, in the tenant its token names; this spec's is a tenant of its
 // own, and the connection is the installation's, so the spec runs alone.
@@ -52,7 +52,8 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expect(page.locator('[data-action="disconnect-stator"]')).toBeVisible();
       await expectAccessible(page);
 
-      await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Stator account" }).click();
+      await page.goto("/settings");
+      await page.locator('[data-settings-link="stator-account"]').click();
       await expect(page).toHaveURL(new RegExp(`${ACCOUNT_PATH}$`));
       const section = page.locator("[data-stator-account]");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Stator account" })).toBeVisible();
@@ -68,17 +69,20 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
       await expectAccessible(page);
 
       await section.locator('[data-action="check-stator"]').click();
-      await expect(section.getByText("Stator accepts your token.")).toBeVisible();
+      await expect(toast(page, "Stator accepts your token.")).toBeVisible();
+      await dismissToasts(page);
 
-      page.once("dialog", (dialog) => dialog.accept());
       await section.locator('[data-action="disconnect-stator-account"]').click();
-      await expect(section.getByText("Your Stator account is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Your Stator account is disconnected.")).toBeVisible();
+      await dismissToasts(page);
       await expect(section.getByLabel("Stator token", { exact: true })).toBeVisible();
 
       await page.goto(SETTINGS_PATH);
-      page.once("dialog", (dialog) => dialog.accept());
       await page.locator('[data-action="disconnect-stator"]').click();
-      await expect(page.getByText("Stator is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Stator is disconnected.")).toBeVisible();
+      await dismissToasts(page);
     });
   }
 
@@ -123,11 +127,11 @@ test.describe("connecting Stator", { tag: "@desktop" }, () => {
   test("a member is told to ask an administrator until Stator is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");
     await openShowing(bob, ACCOUNT_PATH, bob.locator('[data-stator-status="not_configured"]'));
-    await expect(bob.locator('[data-stator-status="not_configured"]')).toContainText("Ask an administrator to connect it under Settings, Stator.");
+    await expect(bob.locator('[data-stator-status="not_configured"]')).toContainText("Ask an administrator to connect it under Admin, Stator.");
 
     expect((await api.PUT("/stator/connection", { body: { baseUrl: statorURL() } })).response.status).toBe(200);
     await openShowing(bob, ACCOUNT_PATH, bob.getByLabel("Stator token", { exact: true }));
     await bob.goto(SETTINGS_PATH);
-    await expect(bob.getByText("Only an administrator can connect Stator.")).toBeVisible();
+    await expect(bob.getByText("Only administrators can open this page")).toBeVisible();
   });
 });

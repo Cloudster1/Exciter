@@ -2,12 +2,12 @@ import type { Page } from "@playwright/test";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { openShowing } from "../fixtures/replica";
-import { expectAccessible, startInScheme, type ColourScheme } from "../fixtures/shell";
+import { expectAccessible, startInScheme, type ColourScheme, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { armatureURL } from "../fixtures/stack";
 
 // Stator's spec of the same flow (#26), with the account on a page of its own.
 
-const SETTINGS_PATH = "/settings/armature";
+const SETTINGS_PATH = "/admin/armature";
 const ACCOUNT_PATH = "/settings/armature-account";
 // The stub makes a person of any name on first use, in the Armature organization its token names; this spec's is a
 // tenant of its own, and the connection is the installation's, so the spec runs alone.
@@ -62,7 +62,8 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expect(page.locator('[data-action="disconnect-armature"]')).toBeVisible();
       await expectAccessible(page);
 
-      await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Armature account" }).click();
+      await page.goto("/settings");
+      await page.locator('[data-settings-link="armature-account"]').click();
       await expect(page).toHaveURL(new RegExp(`${ACCOUNT_PATH}$`));
       const section = page.locator("[data-armature-account]");
       await expect(page.locator("main").getByRole("heading", { level: 1, name: "Armature account" })).toBeVisible();
@@ -81,17 +82,20 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
       await expectAccessible(page);
 
       await section.locator('[data-action="check-armature"]').click();
-      await expect(section.getByText("Armature accepts your token.")).toBeVisible();
+      await expect(toast(page, "Armature accepts your token.")).toBeVisible();
+      await dismissToasts(page);
 
-      page.once("dialog", (dialog) => dialog.accept());
       await section.locator('[data-action="disconnect-armature-account"]').click();
-      await expect(section.getByText("Your Armature account is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Your Armature account is disconnected.")).toBeVisible();
+      await dismissToasts(page);
       await expect(section.getByLabel("Armature token", { exact: true })).toBeVisible();
 
       await page.goto(SETTINGS_PATH);
-      page.once("dialog", (dialog) => dialog.accept());
       await page.locator('[data-action="disconnect-armature"]').click();
-      await expect(page.getByText("Armature is disconnected.")).toBeVisible();
+      await confirm(page);
+      await expect(toast(page, "Armature is disconnected.")).toBeVisible();
+      await dismissToasts(page);
     });
   }
 
@@ -114,11 +118,11 @@ test.describe("connecting Armature", { tag: "@desktop" }, () => {
   test("a member is told to ask an administrator until Armature is connected", async ({ pageAs, api }) => {
     const bob = await pageAs("bob");
     await openShowing(bob, ACCOUNT_PATH, bob.locator('[data-armature-status="not_configured"]'));
-    await expect(bob.locator('[data-armature-status="not_configured"]')).toContainText("Ask an administrator to connect it under Settings, Armature.");
+    await expect(bob.locator('[data-armature-status="not_configured"]')).toContainText("Ask an administrator to connect it under Admin, Armature.");
 
     expect((await api.PUT("/armature/connection", { body: { baseUrl: armatureURL() } })).response.status).toBe(200);
     await openShowing(bob, ACCOUNT_PATH, bob.getByLabel("Armature token", { exact: true }));
     await bob.goto(SETTINGS_PATH);
-    await expect(bob.getByText("Only an administrator can connect Armature.")).toBeVisible();
+    await expect(bob.getByText("Only administrators can open this page")).toBeVisible();
   });
 });

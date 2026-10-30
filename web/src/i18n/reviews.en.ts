@@ -21,7 +21,7 @@ export const reviewEn = {
   approve: "Approve",
   reject: "Reject",
   withdraw: "Withdraw",
-  confirmWithdraw: "Withdraw this review? The approvers are no longer asked.",
+  confirmWithdraw: "The approvers are no longer asked.",
   history: "Earlier reviews",
   states: { pending: "Pending", approved: "Approved", rejected: "Rejected", withdrawn: "Withdrawn", superseded: "Superseded" } as Record<
     Review["state"],
@@ -53,7 +53,7 @@ export const reviewEn = {
   save: "Save rule",
   saved: "The rule is saved. Reviews already asked for keep the approvers they had.",
   remove: "Remove",
-  confirmRemove: "Remove this rule? Reviews already asked for keep their approvers.",
+  confirmRemove: "Reviews already asked for keep their approvers.",
   removed: "The rule is removed.",
   readOnly: "Only the project's administrators set who approves.",
 

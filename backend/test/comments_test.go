@@ -56,7 +56,7 @@ func newCommentWorld(t *testing.T, prefix string) *commentWorld {
 	w.owner, w.bob, w.carol, w.dave = api.as(t, w.ownerID), api.as(t, w.bobID), api.as(t, w.carolID), api.as(t, w.daveID)
 	project := obj(t, want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": "Discussed"}), http.StatusCreated, "make a project"), "project")
 	w.projectID = uuid.MustParse(project["id"].(string))
-	if _, err := h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND subject_type = 'everyone'`, w.projectID); err != nil {
+	if _, err := h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, w.projectID); err != nil {
 		t.Fatal(err)
 	}
 	h.grantAs(t, w.projectID, w.bobID, "editor")

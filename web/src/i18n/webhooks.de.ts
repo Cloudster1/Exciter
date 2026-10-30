@@ -3,7 +3,6 @@ import type { webhooksEn } from "./webhooks.en";
 export const webhooksDe: typeof webhooksEn = {
   title: "Webhooks",
   intro: "Wohin Exciter meldet, was mit Anforderungen geschieht, signiert, damit der Empfänger erkennt, dass es von hier kommt.",
-  notAdmin: "Nur Administratoren pflegen die Webhooks. Bitte eine Administratorin oder einen Administrator, die nötige Adresse einzutragen.",
   newTitle: "Webhook hinzufügen",
   name: "Name",
   namePlaceholder: "Testmanagement",
@@ -74,8 +73,8 @@ export const webhooksDe: typeof webhooksEn = {
   turnOn: "Anschalten",
   rotate: "Geheimnis erneuern",
   delete: "Löschen",
-  confirmDelete: (name: string) => `${name} löschen? Er erhält ab sofort nichts mehr, und sein Zustellprotokoll geht mit.`,
-  confirmRotate: (name: string) => `Das Geheimnis von ${name} erneuern? Der Empfänger lehnt jede Zustellung ab, bis er das neue hat.`,
+  confirmDelete: "Er erhält ab sofort nichts mehr, und sein Zustellprotokoll geht mit.",
+  confirmRotate: "Der Empfänger lehnt jede Zustellung ab, bis er das neue hat.",
   deleted: (name: string) => `${name} wurde gelöscht.`,
   turnedOff: (name: string) => `${name} ist aus. Bis er wieder angeschaltet wird, wird nichts gesendet.`,
   turnedOn: (name: string) => `${name} ist wieder an.`,

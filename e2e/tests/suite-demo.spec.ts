@@ -5,7 +5,7 @@ import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { expectAccessible } from "../fixtures/shell";
 
-const INSTALLATION_PATH = "/settings/installation";
+const INSTALLATION_PATH = "/admin/installation";
 const DEMO_KEYS = ["ARM", "EXC", "STA"];
 // The stack's worker builds the whole demo, about 1,500 requirements, a step at a time beside every other spec's work.
 const BUILD_TIMEOUT_MS = 8 * 60_000;
@@ -52,7 +52,7 @@ test.describe("the suite demo", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await card.getByRole("link", { name: "EXC", exact: true }).click();
-    await expect(page).toHaveURL(/\/p\/EXC$/);
+    await expect(page).toHaveURL(/\/projects\/EXC$/);
     for (const section of ["Introduction", "Functional requirements"]) {
       await expect(page.getByRole("link", { name: section, exact: true })).toBeVisible();
     }

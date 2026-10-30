@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { QuickHit } from "@/api/search";
-import { SEARCH_PATH } from "@/config";
+import { RECENT_STORAGE_KEY, SEARCH_PATH } from "@/config";
 import { t } from "@/i18n";
 import { arrival, renderAt, stubApi, type Answer } from "@/test/app";
+import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -25,7 +26,7 @@ const hit = (key: string, title: string): QuickHit => ({
 
 const found = (...hits: QuickHit[]): Answer => ({ status: 200, body: { requirements: hits } });
 const options = () =>
-  within(screen.getByRole("listbox"))
+  within(screen.getByRole("dialog", { name: t.switcher.title }))
     .getAllByRole("option")
     .map((option) => option.getAttribute("data-quick-switcher-option"));
 
@@ -106,5 +107,44 @@ describe("the palette from the pointer", () => {
     const dialog = screen.getByRole("dialog", { name: t.switcher.title });
     await userEvent.click(dialog);
     expect(screen.getByRole("dialog", { name: t.switcher.title })).toBeInTheDocument();
+  });
+});
+
+describe("the palette's groups", () => {
+  it("reads each kind out as a group of its own, the projects and actions among them", async () => {
+    stubApi({
+      "GET /search/quick": found(hit("BRK-R1", "Brake within 100 ms")),
+      "GET /projects": { status: 200, body: { projects: [aProject({ key: "BRK", name: "Brakes" })] } },
+    });
+    await renderAt("/");
+    await userEvent.type(await openPalette(), "br");
+    await screen.findByRole("option", { name: /BRK-R1 Brake within 100 ms/ });
+    await screen.findByRole("option", { name: /^Brakes/ });
+    expect(screen.getByRole("listbox", { name: "Requirements" })).toContainElement(screen.getByRole("option", { name: /BRK-R1/ }));
+    expect(screen.getByRole("listbox", { name: "Projects" })).toContainElement(screen.getByRole("option", { name: /^Brakes/ }));
+    expect(screen.getByRole("listbox", { name: "Search" })).toContainElement(screen.getByRole("option", { name: /Search everything for br/ }));
+  });
+
+  it("offers what can be done, by its words", async () => {
+    const sent = stubApi({ "GET /search/quick": found(), "POST /notifications/read": { status: 204 } });
+    await renderAt("/");
+    await userEvent.type(await openPalette(), "mark all");
+    const action = await screen.findByRole("option", { name: /Mark all notifications as read/ });
+    expect(screen.getByRole("listbox", { name: "Actions" })).toContainElement(action);
+    await userEvent.click(action);
+    await waitFor(() => expect(sent.some((each) => each.method === "POST" && each.path === "/notifications/read")).toBe(true));
+  });
+
+  it("offers the requirements opened last before anything is typed", async () => {
+    localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify([{ id: "r1", key: "BRK-R7", title: "Hold on a slope", projectKey: "BRK" }]));
+    try {
+      await renderAt("/");
+      await openPalette();
+      const recent = screen.getByRole("listbox", { name: "Recently opened" });
+      expect(within(recent).getByRole("option")).toHaveTextContent("BRK-R7 Hold on a slope");
+      expect(options()[0]).toBe("recent:r1");
+    } finally {
+      localStorage.removeItem(RECENT_STORAGE_KEY);
+    }
   });
 });

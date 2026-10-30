@@ -62,7 +62,7 @@ export function TraceGraphPage({
       if (!node.requirement) return;
       setChosen(undefined);
       void navigate({
-        to: "/p/$projectKey/r/$reqKey/trace",
+        to: "/projects/$projectKey/r/$reqKey/trace",
         params: { projectKey: node.requirement.projectKey, reqKey: node.requirement.key },
         search: address,
       });
@@ -76,7 +76,7 @@ export function TraceGraphPage({
       <PageHeader
         crumb={
           <Link
-            to="/p/$projectKey/r/$reqKey"
+            to="/projects/$projectKey/r/$reqKey"
             params={{ projectKey: project.key, reqKey: requirement.key }}
             className="hover:text-accent hover:underline"
             data-action="back-to-requirement"
@@ -289,7 +289,7 @@ function OpenLink({ node, issueUrl }: { node: TraceGraphNode; issueUrl: (key: st
   if (node.requirement) {
     return (
       <Link
-        to="/p/$projectKey/r/$reqKey"
+        to="/projects/$projectKey/r/$reqKey"
         params={{ projectKey: node.requirement.projectKey, reqKey: node.requirement.key }}
         className="text-sm font-medium text-accent hover:underline"
         data-action="graph-open"

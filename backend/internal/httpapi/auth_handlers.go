@@ -57,8 +57,10 @@ var errSignInOff = &APIError{Status: http.StatusServiceUnavailable, Code: "sign_
 type meResponse struct {
 	User         auth.User                 `json:"user"`
 	Installation installation.Installation `json:"installation"`
-	// Role is the caller's standing in the installation.
+	// Role is the caller's standing in the installation, member or guest; what they may do is their grants'.
 	Role auth.OrgRole `json:"role"`
+	// Administers says a grant lets the caller administer the installation, which decides the Admin entries.
+	Administers bool `json:"administers"`
 	// Token is the personal access token the request rides on; null for a session.
 	Token *auth.CallingToken `json:"token"`
 	// SignsWith is how the person signs an approval (#46): password, provider, or empty when they cannot.
@@ -67,9 +69,10 @@ type meResponse struct {
 
 func (s *Server) me(r *http.Request, p *auth.Principal) (*meResponse, error) {
 	out := &meResponse{
-		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale},
+		User:         auth.User{ID: p.UserID, Email: p.Email, Name: p.Name, AvatarURL: p.AvatarURL, Locale: p.Locale, Timezone: p.Timezone},
 		Installation: installation.Installation{Name: p.InstallationName},
 		Role:         p.Role,
+		Administers:  p.CanAdminister(),
 		Token:        p.Token,
 	}
 	// The principal carries the name alone; what else the installation says is read, so it is never answered false.
@@ -162,12 +165,19 @@ func (s *Server) handleMeAs(w http.ResponseWriter, r *http.Request, p *auth.Prin
 type updateMeRequest struct {
 	// Locale is the interface language, "en" or "de"; empty follows the browser.
 	Locale *auth.Locale `json:"locale,omitempty"`
+	// Timezone is the IANA zone dates are written in; empty follows the browser.
+	Timezone *string `json:"timezone,omitempty"`
 }
 
 func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	var req updateMeRequest
 	if err := decodeJSON(w, r, &req); err != nil {
 		respondError(w, r, err)
+		return
+	}
+	// The two are saved by one button, so a zone that would be refused keeps the language from being saved alone.
+	if req.Timezone != nil && !auth.KnownTimezone(*req.Timezone) {
+		respondError(w, r, auth.ErrBadTimezone)
 		return
 	}
 	p := *PrincipalFrom(r.Context())
@@ -179,6 +189,15 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		p.Locale = *req.Locale
+	}
+	if req.Timezone != nil {
+		lsn, err := s.Accounts.SetTimezone(r.Context(), p.UserID, *req.Timezone)
+		noteWrite(r.Context(), lsn)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		p.Timezone = *req.Timezone
 	}
 	s.handleMeAs(w, r, &p)
 }

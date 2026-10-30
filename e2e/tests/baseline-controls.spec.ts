@@ -6,7 +6,7 @@ import { withDatabase } from "../fixtures/db";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 import { unzipText } from "../fixtures/unzip";
 
 // The baseline controls baselines.spec.ts and control.spec.ts leave alone (#316): a rename and a delete, a baseline
@@ -39,7 +39,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
     const taken = must(await api.POST("/projects/{projectKey}/baselines", { ...project, body: { name: "Release 1.0" } })).baseline;
 
-    await page.goto(`/p/${RENAME_KEY}/baselines/${taken.id}`);
+    await page.goto(`/projects/${RENAME_KEY}/baselines/${taken.id}`);
     await page.locator('[data-action="rename-baseline"]').click();
     const form = page.getByRole("form", { name: "Rename" });
     await form.getByLabel("Name").fill("Release 1.0 final");
@@ -52,10 +52,11 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(list.getByRole("link", { name: "Release 1.0", exact: true })).toHaveCount(0);
 
     await list.getByRole("link", { name: "Release 1.0 final" }).click();
-    page.once("dialog", (dialog) => void dialog.accept());
     await page.locator('[data-action="delete-baseline"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${RENAME_KEY}/baselines(\\?|$)`));
-    await expect(page.getByRole("status").filter({ hasText: "The baseline Release 1.0 final is deleted." })).toBeVisible();
+    await confirm(page);
+    await expect(page).toHaveURL(new RegExp(`/projects/${RENAME_KEY}/baselines$`));
+    await expect(toast(page, "The baseline Release 1.0 final is deleted.")).toBeVisible();
+    await dismissToasts(page);
     await expect(page.getByText("No baseline yet.")).toBeVisible();
     const gone = await api.GET("/baselines/{baselineID}", { params: { path: { baselineID: taken.id } } });
     expect(gone.response.status).toBe(404);
@@ -73,7 +74,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     );
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Lights follow the pedal" } }));
 
-    await page.goto(`/p/${SECTION_KEY}/baselines`);
+    await page.goto(`/projects/${SECTION_KEY}/baselines`);
     await page.getByRole("button", { name: "Take baseline" }).click();
     const form = page.getByRole("form", { name: "Take a baseline" });
     await form.getByLabel("Name").fill("Braking 1.0");
@@ -98,7 +99,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brake fluid is checked" } }));
     must(await api.POST("/projects/{projectKey}/baselines", { ...project, body: { name: "Release 2" } }));
 
-    await page.goto(`/p/${SECTION_KEY}/baselines/${before.id}`);
+    await page.goto(`/projects/${SECTION_KEY}/baselines/${before.id}`);
     await page.getByLabel("Compare with").selectOption({ label: "Release 2" });
     await page.getByRole("button", { name: "Compare" }).click();
     await expect(page.getByRole("heading", { name: "Release 1 compared with Release 2" })).toBeVisible();
@@ -143,7 +144,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${XLSX_KEY}/baselines/${taken.id}`);
+    await page.goto(`/projects/${XLSX_KEY}/baselines/${taken.id}`);
     await page.getByRole("button", { name: "Matrix", exact: true }).click();
     await page.getByLabel("Compare the matrix with").selectOption("now");
     await expect(page.getByRole("table", { name: "Matrix" }).locator(`[data-cell="${XLSX_KEY}-R1:${XLSX_KEY}-R3"] [data-change="added"]`)).toBeVisible();
@@ -172,7 +173,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
       await db.query("INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)", [made.rows[0]!.id, people.alice.id]);
     });
 
-    await page.goto(`/p/${SIGN_KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${SIGN_KEY}/settings/approval`);
     const rule = page.locator("[data-signing-rule]");
     await expect(rule).toContainText(`1 signature of ${people.alice.name}`);
     await rule.locator('[data-action="edit-signing-rule"]').click();
@@ -190,7 +191,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(rule.locator("[data-signing-rule-summary]")).toContainText(GROUP);
     await expect(rule.locator("[data-signing-rule-summary]")).not.toContainText(people.alice.name);
     const taken = must(await api.POST("/projects/{projectKey}/baselines", { ...project, body: { name: "Release 1.0" } })).baseline;
-    const baselinePage = `/p/${SIGN_KEY}/baselines/${taken.id}`;
+    const baselinePage = `/projects/${SIGN_KEY}/baselines/${taken.id}`;
 
     const bob = await pageAs("bob");
     const bobs = bob.locator("[data-baseline-signing]");
@@ -203,7 +204,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(bobs).toContainText("Signing: 1 of 2 signatures");
 
     const marked = page.locator('[data-baseline="Release 1.0"] [data-baseline-signed="signing"]');
-    await openUntil(page, `/p/${SIGN_KEY}/baselines`, () => expect(marked).toBeVisible(ONE_LOOK));
+    await openUntil(page, `/projects/${SIGN_KEY}/baselines`, () => expect(marked).toBeVisible(ONE_LOOK));
     await expect(marked).toContainText("Signing: 1 of 2 signatures");
 
     const signing = page.locator("[data-baseline-signing]");
@@ -217,16 +218,16 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await expect(signing).toContainText("Signed, with 2 of 2 signatures");
     await expect(signing.locator("[data-baseline-signatures] li")).toHaveCount(2);
 
-    await page.goto(`/p/${SIGN_KEY}/settings?tab=approval`);
-    page.once("dialog", (confirm) => void confirm.accept());
+    await page.goto(`/projects/${SIGN_KEY}/settings/approval`);
     await rule.locator('[data-action="remove-signing-rule"]').click();
-    await expect(rule).toContainText("Baselines are no longer signed.");
+    await confirm(page);
+    await expect(toast(page, "Baselines are no longer signed.")).toBeVisible();
     await expect(rule.locator("[data-signing-rule-summary]")).toHaveText("Nobody signs this project's baselines.");
 
     await page.goto(baselinePage);
     await expect(signing).toContainText("Signed, with 2 of 2 signatures");
     const later = must(await api.POST("/projects/{projectKey}/baselines", { ...project, body: { name: "Release 2.0" } })).baseline;
-    await openUntil(page, `/p/${SIGN_KEY}/baselines/${later.id}`, () => expect(page.locator('[data-baseline-signing="none"]')).toBeVisible(ONE_LOOK));
+    await openUntil(page, `/projects/${SIGN_KEY}/baselines/${later.id}`, () => expect(page.locator('[data-baseline-signing="none"]')).toBeVisible(ONE_LOOK));
     await expect(page.getByRole("button", { name: "Sign" })).toHaveCount(0);
   });
 });

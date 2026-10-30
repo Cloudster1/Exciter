@@ -38,7 +38,7 @@ test.describe("risk report", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/risks`);
+    await page.goto(`/projects/${KEY}/risks`);
     const row = page.locator(`[data-fmea-row="${KEY}-R4"]`);
     await expect(row.locator('[data-risk-level-tag="High"]').first()).toBeVisible();
     await expect(page.locator('[data-action="risk-report-pdf"]')).toHaveAttribute("href", new RegExp(`/projects/${KEY}/risk-report\\.pdf`));

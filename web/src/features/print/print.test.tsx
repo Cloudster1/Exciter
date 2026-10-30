@@ -127,7 +127,7 @@ describe("exporting a specification", () => {
         body: { error: { code: "render_unavailable", message: "PDF export is not set up on this server. Export the document as Word instead." } },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     const menu = await screen.findByRole("button", { name: `Export ${aProject().name}` });
     await userEvent.click(menu);
     await userEvent.click(screen.getByRole("menuitem", { name: "Word" }));

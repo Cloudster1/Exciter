@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Project } from "@/api/projects";
 import { useMySessions, useProjectSessions, type SessionSummary } from "@/api/sessions";
-import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Tag } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, PageHeader, Skeleton, Tag, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
@@ -16,7 +16,7 @@ function SessionRow({ session: s }: { session: SessionSummary }) {
     <li className="flex flex-col gap-0.5 py-3" data-session={s.title}>
       <span className="flex flex-wrap items-center gap-2">
         <Link
-          to="/p/$projectKey/sessions/$sessionId"
+          to="/projects/$projectKey/sessions/$sessionId"
           params={{ projectKey: s.projectKey, sessionId: s.id }}
           className="text-sm font-medium text-ink hover:text-accent hover:underline"
         >
@@ -48,7 +48,7 @@ export function SessionList({ project }: { project: Project }) {
   const [opening, setOpening] = useState(false);
   const mayOpen = project.can.edit && !project.archivedAt;
   return (
-    <div className="mx-auto max-w-3xl space-y-4" data-session-list="">
+    <Page width="narrow" className="space-y-4" data-session-list="">
       <PageHeader
         title={t.sessions.title}
         meta={t.sessions.intro}
@@ -74,7 +74,7 @@ export function SessionList({ project }: { project: Project }) {
         </ul>
       )}
       {opening && <OpenSessionDialog project={project} onClose={() => setOpening(false)} />}
-    </div>
+    </Page>
   );
 }
 

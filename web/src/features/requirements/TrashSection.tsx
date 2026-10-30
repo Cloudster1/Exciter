@@ -1,47 +1,39 @@
 import { useState } from "react";
 import type { Project } from "@/api/projects";
 import { useTrash, useTrashActions, type TrashItem } from "@/api/requirements";
-import { Button, Dialog, ErrorBanner, PageHeader, Skeleton, Table, Td, Th } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, SectionTitle, Skeleton, Table, Td, Th, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 
 const trashedAt = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
-/** A project's trash: its editors restore, its administrators delete for good, one or all. */
-export function TrashPage({ project }: { project: Project }) {
+/** A project's trash, a section of its settings: its editors restore, its administrators delete for good, one or all. */
+export function TrashSection({ project }: { project: Project }) {
   const mayOpen = project.can.edit;
   const mayPurge = project.can.purge;
   const { data, error, refetch } = useTrash(project.key, mayOpen);
   const actions = useTrashActions(project.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const [purging, setPurging] = useState<TrashItem | "all" | null>(null);
   const failed = actions.restore.error ?? actions.purge.error ?? actions.empty.error;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4" data-trash={project.key}>
-      <PageHeader
-        title={t.requirements.trashTitle}
-        meta={t.projects.projectAndKey(project.name, project.key)}
-        actions={
-          mayPurge &&
-          data &&
-          data.length > 0 && (
-            <Button variant="danger" icon={<Icon.Trash />} onClick={() => setPurging("all")} data-action="empty-trash">
-              {t.requirements.emptyTrash}
-            </Button>
-          )
-        }
-      />
+    <section aria-labelledby="project-trash-title" className="space-y-4" data-trash={project.key}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle id="project-trash-title">{t.requirements.trashTitle}</SectionTitle>
+        {mayPurge && data && data.length > 0 && (
+          <Button variant="danger" icon={<Icon.Trash />} onClick={() => setPurging("all")} data-action="empty-trash">
+            {t.requirements.emptyTrash}
+          </Button>
+        )}
+      </div>
       {!mayOpen ? (
         <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>
       ) : (
         <>
           <p className="text-sm text-ink-muted">{t.requirements.trashIntro}</p>
           {!mayPurge && <p className="text-sm text-ink-muted">{t.requirements.purgeOnlyAdmins}</p>}
-          <p role="status" className="text-sm text-ink-muted empty:hidden">
-            {notice}
-          </p>
           {failed && <ErrorBanner>{failed.message}</ErrorBanner>}
           {error && <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>}
           {!data && !error && <Skeleton />}
@@ -74,7 +66,7 @@ export function TrashPage({ project }: { project: Project }) {
                         variant="secondary"
                         size="sm"
                         loading={actions.restore.isPending && actions.restore.variables === item.id}
-                        onClick={() => actions.restore.mutate(item.id, { onSuccess: () => setNotice(t.requirements.restored(item.key)) })}
+                        onClick={() => actions.restore.mutate(item.id, { onSuccess: () => toast.success(t.requirements.restored(item.key)) })}
                         data-action="restore-requirement"
                       >
                         {t.requirements.restore}
@@ -93,27 +85,34 @@ export function TrashPage({ project }: { project: Project }) {
         </>
       )}
       {purging && (
-        <Dialog title={purging === "all" ? t.requirements.emptyTrashTitle : t.requirements.purgeTitle} onClose={() => setPurging(null)} data-confirm-purge="">
+        <Dialog
+          open
+          title={purging === "all" ? t.requirements.emptyTrashTitle : t.requirements.purgeTitle}
+          onClose={() => setPurging(null)}
+          attrs={{ "data-confirm-purge": "" }}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setPurging(null)}>
+                {t.kit.cancel}
+              </Button>
+              <Button
+                variant="danger"
+                loading={actions.purge.isPending || actions.empty.isPending}
+                onClick={() => {
+                  const done = { onSettled: () => setPurging(null) };
+                  if (purging === "all") actions.empty.mutate(undefined, done);
+                  else actions.purge.mutate(purging.id, done);
+                }}
+                data-action="confirm-purge"
+              >
+                {t.requirements.purge}
+              </Button>
+            </>
+          }
+        >
           <p className="text-sm text-ink">{purging === "all" ? t.requirements.emptyTrashBody : t.requirements.purgeBody(purging.key)}</p>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setPurging(null)}>
-              {t.common.cancel}
-            </Button>
-            <Button
-              variant="danger"
-              loading={actions.purge.isPending || actions.empty.isPending}
-              onClick={() => {
-                const done = { onSettled: () => setPurging(null) };
-                if (purging === "all") actions.empty.mutate(undefined, done);
-                else actions.purge.mutate(purging.id, done);
-              }}
-              data-action="confirm-purge"
-            >
-              {t.requirements.purge}
-            </Button>
-          </div>
         </Dialog>
       )}
-    </div>
+    </section>
   );
 }

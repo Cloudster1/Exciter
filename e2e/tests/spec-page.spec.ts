@@ -8,6 +8,7 @@ import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { unzipText } from "../fixtures/unzip";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Every control of the specification page, each used as its reader would and checked for what it changed (#310).
 
@@ -41,18 +42,11 @@ async function scoped(api: ExciterApi) {
 
 /** Bob reviews and approves in the project, which everybody else edits. */
 async function bobApproves(api: ExciterApi, people: Record<"alice" | "bob", Person>) {
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
   must(
     await api.PUT("/projects/{projectKey}/approval-rules", {
       ...project,
@@ -72,7 +66,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
 
   test("alice folds and opens the tree and moves a requirement with the keyboard alone", async ({ page, api }) => {
     const { pay, other } = await scoped(api);
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const tree = page.getByRole("tree");
     const item = (name: string) => tree.getByRole("treeitem", { name });
 
@@ -101,7 +95,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     for (let n = 1; n <= PAGED; n++) {
       must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: `Need ${n}` } }));
     }
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const entries = page.locator("[data-spec-entry]");
     await expect(entries).toHaveCount(SPEC_PAGE);
     await page.locator('[data-action="spec-more"]').click();
@@ -120,7 +114,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     )!;
     must(await api.POST("/requirements/{reqKey}/transitions", { params: { path: { reqKey: pay.key } }, body: { transitionId: submit.id } }));
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await expect(entryOf(page, pay.key).locator('[data-status="In review"]')).toBeVisible();
     const filter = page.locator("[data-filter-status]");
     await filter.selectOption({ label: "In review" });
@@ -153,7 +147,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     );
     expect((await api.DELETE("/requirements/{reqKey}", { params: { path: { reqKey: other.key } } })).response.status).toBe(204);
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await page.locator('[data-action="show-changes"]').click();
     await page.locator("[data-changes-base]").selectOption("baseline");
     await page.locator("[data-changes-baseline]").selectOption({ label: "Before" });
@@ -181,14 +175,14 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     const { pay, ship, other } = await scoped(api);
     await bobApproves(api, people);
     const bob = await pageAs("bob");
-    await openUntil(bob, `/p/${KEY}/spec`, () => expect(entryOf(bob, pay.key)).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/spec`, () => expect(entryOf(bob, pay.key)).toBeVisible(ONE_LOOK));
     await bob.locator('[data-action="review-mode"]').click();
     await expect(bob.locator("[data-nothing-waiting]")).toHaveText("Nothing in this project waits for your decision.");
     await expect(bob.locator("[data-spec-entry]")).toHaveCount(0);
 
     for (const each of [pay, ship]) await askReview(api, each.key);
     await expect(async () => {
-      await bob.goto(`/p/${KEY}/spec`);
+      await bob.goto(`/projects/${KEY}/spec`);
       await bob.locator('[data-action="review-mode"]').click();
       await expect(bob.locator("[data-review-progress]")).toHaveText("0 of 2 decided", ONE_LOOK);
     }).toPass();
@@ -196,7 +190,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     for (const waiting of [pay.key, ship.key]) await expect(entryOf(bob, waiting).locator("[data-entry-review]")).toBeVisible();
     await expect(entryOf(bob, other.key)).toHaveCount(0);
     await expectAccessible(bob);
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await expect(entryOf(page, other.key)).toBeVisible();
   });
 
@@ -204,7 +198,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     const { scope, pay, ship } = await scoped(api);
     must(await api.POST("/requirements/{reqKey}/comments", { params: { path: { reqKey: pay.key } }, body: { body: paragraph("Which cards?") } as never }));
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const comments = entryOf(page, pay.key).locator('[data-action="entry-comments"]');
     await expect(comments).toHaveText("Comments (1 open)");
     await comments.click();
@@ -228,14 +222,14 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
     await expect(entryOf(page, pay.key).locator("[data-spec-outline]")).toHaveText("1.2");
     await expect(entryOf(page, ship.key).locator("[data-spec-outline]")).toHaveText("1.3");
 
-    await page.goto(`/p/${KEY}/r/${pay.key}`);
+    await page.goto(`/projects/${KEY}/r/${pay.key}`);
     await expect(page.getByRole("region", { name: "Discussion" }).getByRole("article")).toContainText("Every card the shop takes.");
   });
 
   test("alice exports a section as Word from its own menu, and its print view says it is ready", async ({ page, api }) => {
     test.setTimeout(60_000);
     const { scope } = await scoped(api);
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await expect(entryOf(page, scope.key).getByRole("heading")).toHaveText("1 Scope");
     const download = page.waitForEvent("download");
     await entryOf(page, scope.key).getByRole("button", { name: "Export Scope" }).click();
@@ -260,7 +254,7 @@ test.describe("the specification page", { tag: "@desktop" }, () => {
 
     const bob = await pageAs("bob");
     const approve = entryOf(bob, pay.key).locator('[data-action="approve-entry"]');
-    await openUntil(bob, `/p/${KEY}/spec?waiting=true&changes=approved`, () => expect(approve).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/spec?waiting=true&changes=approved`, () => expect(approve).toBeVisible(ONE_LOOK));
     await approve.click();
     const dialog = bob.getByRole("dialog", { name: "Sign: approve" });
     await expect(dialog).toContainText(`I approve revision 1 of ${pay.key}, Pay, as one of its approvers.`);

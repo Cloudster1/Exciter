@@ -23,19 +23,22 @@ const (
 	ActionAuditExported = "audit.exported"
 	// ActionMemberCreated is a person an administrator added with a password.
 	ActionMemberCreated = "member.created"
-	// ActionMemberRoleChanged is a member's standing an administrator, or the identity provider's groups, changed.
+	// ActionMemberRoleChanged is a member's standing an administrator changed; older entries name the provider's groups.
 	ActionMemberRoleChanged = "member.role_changed"
 	// ActionMemberRemoved is somebody taken out before letting go meant switching off (#86); older entries keep it.
 	ActionMemberRemoved = "member.removed"
 	// ActionMemberSwitchedOff and ActionMemberSwitchedOn are an administrator letting somebody go and back.
 	ActionMemberSwitchedOff = "member.switched_off"
 	ActionMemberSwitchedOn  = "member.switched_on"
-	// ActionMemberJoined is somebody let in by a mapped group on their first sign-in, with nobody as its actor.
+	// ActionMemberJoined is somebody let in by a group that holds a grant, at sign-in or a partner's token exchange, with nobody
+	// as its actor; its data names the group and where.
 	ActionMemberJoined = "member.joined"
 	// ActionMemberAdmitted and ActionMemberDeclined answer somebody waiting to be let in.
 	ActionMemberAdmitted   = "member.admitted"
 	ActionMemberDeclined   = "member.declined"
 	ActionSSOProviderSaved = "sso.provider_saved"
+	// ActionGroupRoleSet and ActionGroupRoleRemoved mapped a provider group to a role before grants did (#471);
+	// older entries keep them.
 	ActionGroupRoleSet     = "sso.group_role_set"
 	ActionGroupRoleRemoved = "sso.group_role_removed"
 	// ActionThemeDefaultSet is the theme the installation shows to whoever has not chosen one, named or cleared.
@@ -46,7 +49,8 @@ const (
 	ActionProjectArchived   = "project.archived"
 	ActionProjectUnarchived = "project.unarchived"
 	ActionProjectDeleted    = "project.deleted"
-	// ActionProjectGrantsChanged keeps a project's grants before and after.
+	// ActionProjectGrantsChanged kept a project's grants before and after, before each grant was its own (#471);
+	// older entries keep it.
 	ActionProjectGrantsChanged = "project.grants_changed"
 	// ActionRequirementPurged and ActionTrashEmptied keep which keys went for good, since their history goes too.
 	ActionRequirementPurged = "requirement.purged"
@@ -162,6 +166,17 @@ const (
 	ActionRiskSchemeSaved = "risk_scheme.saved"
 	// ActionSuiteDemoAdded keeps who added the suite demo and from which snapshot (#270).
 	ActionSuiteDemoAdded = "installation.suite_demo_added"
+	// ActionRoleCreated to ActionGrantRemoved keep the roles, groups and grants that decide who may do what (#471).
+	ActionRoleCreated        = "role.created"
+	ActionRoleUpdated        = "role.updated"
+	ActionRoleDeleted        = "role.deleted"
+	ActionGroupCreated       = "group.created"
+	ActionGroupUpdated       = "group.updated"
+	ActionGroupDeleted       = "group.deleted"
+	ActionGroupMemberAdded   = "group.member_added"
+	ActionGroupMemberRemoved = "group.member_removed"
+	ActionGrantAdded         = "grant.added"
+	ActionGrantRemoved       = "grant.removed"
 )
 
 // Actions is every action the log may hold, for a filter to offer and a
@@ -186,7 +201,9 @@ var Actions = []string{
 	ActionExportTemplateUploaded, ActionExportTemplateChanged, ActionExportTemplateDeleted,
 	ActionTestExecutionStarted, ActionTestExecutionRecorded, ActionTestExecutionIssueFiled, ActionTestExecutionClosed,
 	ActionRiskSchemeSaved, ActionOAuthAppCreated, ActionOAuthAppUpdated, ActionOAuthAppSecretRotated, ActionOAuthAppDeleted,
-	ActionSuiteDemoAdded,
+	ActionSuiteDemoAdded, ActionRoleCreated, ActionRoleUpdated, ActionRoleDeleted,
+	ActionGroupCreated, ActionGroupUpdated, ActionGroupDeleted, ActionGroupMemberAdded, ActionGroupMemberRemoved,
+	ActionGrantAdded, ActionGrantRemoved,
 }
 
 // Redacted stands in the record for a value that looked like a credential.

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { reauthStartURL, useMe } from "@/api/auth";
-import { Button, ButtonLink, Dialog, ErrorBanner, Input } from "@/components/ui";
+import { Button, ButtonLink, Dialog, ErrorBanner, Input, DialogFooter } from "@/components/ui";
 import { t } from "@/i18n";
 
 /**
@@ -51,7 +51,7 @@ export function SignatureDialog({
   }
 
   return (
-    <Dialog title={title} onClose={onClose} data-sign-dialog={kind}>
+    <Dialog open title={title} onClose={onClose} attrs={{ "data-sign-dialog": kind }}>
       <div className="space-y-3">
         <p className="text-sm text-ink-muted">{intro}</p>
         <figure className="rounded-control border border-border bg-surface-raised p-3">
@@ -104,11 +104,11 @@ export function SignatureDialog({
             {t.review.cannotSign}
           </p>
         )}
-        <div className="flex justify-end">
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} data-action="cancel-sign">
             {t.review.cancelSign}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </Dialog>
   );

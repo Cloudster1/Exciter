@@ -31,7 +31,7 @@ export const statorEn = {
   disconnectTitle: "Disconnect",
   disconnectIntro: "Disconnecting forgets the address, the webhook secret and every member's token.",
   disconnect: "Disconnect Stator",
-  confirmDisconnect: "Disconnect Stator? Every member's token is forgotten.",
+  confirmDisconnect: "Every member's token is forgotten.",
   disconnected: "Stator is disconnected.",
   signIn: {
     title: "Connect people at sign-in",
@@ -47,7 +47,7 @@ export const statorEn = {
   account: {
     title: "Stator account",
     intro: "Connect your Stator account so requirements show you the pages you may read in Stator.",
-    notConfigured: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Settings, Stator.",
+    notConfigured: "Exciter is not connected to Stator yet. Ask an administrator to connect it under Admin, Stator.",
     steps:
       "In Stator, open Your account, then Access tokens, and make a token that is not marked read-only, so Exciter can also show your links on pages. Then paste it here.",
     openStator: "Open Stator",
@@ -60,7 +60,7 @@ export const statorEn = {
     check: "Check again",
     checked: "Stator accepts your token.",
     disconnect: "Disconnect",
-    confirmDisconnect: "Disconnect your Stator account? Requirements show page links without their titles until you connect again.",
+    confirmDisconnect: "Requirements show page links without their titles until you connect again.",
     disconnected: "Your Stator account is disconnected.",
     rejected: "Stator no longer accepts your token. Make a new one under Your account, Access tokens in Stator and paste it here.",
     unreachable: "Stator did not answer the last check. Check again in a moment.",

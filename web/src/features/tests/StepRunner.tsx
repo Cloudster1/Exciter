@@ -69,7 +69,7 @@ function Runner({
     .join(", ");
   const goTo = (to: { case: { key: string }; iteration: number }) =>
     void navigate({
-      to: "/p/$projectKey/tests/executions/$executionId/run/$reqKey",
+      to: "/projects/$projectKey/tests/executions/$executionId/run/$reqKey",
       params: { projectKey: project.key, executionId, reqKey: to.case.key },
       search: { iteration: to.iteration },
     });
@@ -94,7 +94,7 @@ function Runner({
     <div className="mx-auto max-w-4xl space-y-5" data-step-runner={`${c.run.case.key}#${c.run.iteration}`}>
       <p className="text-sm">
         <Link
-          to="/p/$projectKey/tests/executions/$executionId"
+          to="/projects/$projectKey/tests/executions/$executionId"
           params={{ projectKey: project.key, executionId }}
           className="text-ink-muted hover:text-accent hover:underline"
         >

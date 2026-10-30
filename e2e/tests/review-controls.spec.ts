@@ -4,14 +4,14 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/shell";
 
 // Every control of a review and of the approval rules (#317): bob rejects with a comment that alice then reads, alice
 // asks again and withdraws, and a rule of one type is added, changed and removed.
 
 const KEY = uniqueKey("RVC");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };
@@ -59,8 +59,8 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     const waiting = bob.locator('[data-count="reviews"]');
     await openUntil(bob, "/reviews", () => expect(waiting).toBeVisible(ONE_LOOK));
 
-    page.once("dialog", (dialog) => void dialog.accept());
     await approval.locator('[data-action="withdraw-review"]').click();
+    await confirm(page);
     await expect(approval.locator('[data-past-review="withdrawn"]')).toBeVisible();
     await expect(approval.locator("[data-pending-review]")).toHaveCount(0);
     await expect(approval.getByRole("button", { name: "Ask for review" })).toBeVisible();
@@ -78,7 +78,7 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     ).requirement;
     const other = must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Lights dim at night" } })).requirement;
 
-    await page.goto(`/p/${KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${KEY}/settings/approval`);
     const rules = page.locator("[data-approval-rules]");
     await rules.getByRole("button", { name: "Add a rule" }).click();
     await rules.getByLabel("Applies to").selectOption({ label: "Safety" });
@@ -88,17 +88,17 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     const rule = rules.locator('[data-approval-rule="Safety"]');
     await expect(rule).toContainText(`1 of ${people.bob.name}`);
 
-    await page.goto(`/p/${KEY}/r/${safe.key}`);
+    await page.goto(`/projects/${KEY}/r/${safe.key}`);
     const approval = page.getByRole("region", { name: "Approval" });
     await approval.getByRole("button", { name: "Ask for review" }).click();
     await approval.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(approval.locator("[data-review-approvers]")).toHaveText(people.bob.name);
-    await page.goto(`/p/${KEY}/r/${other.key}`);
+    await page.goto(`/projects/${KEY}/r/${other.key}`);
     await approval.getByRole("button", { name: "Ask for review" }).click();
     await approval.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(approval).toContainText("Nobody approves requirements of this type yet.");
 
-    await page.goto(`/p/${KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${KEY}/settings/approval`);
     await rule.locator('[data-action="edit-rule"]').click();
     const form = rules.locator("[data-rule-form]");
     await expect(form.getByLabel("Applies to")).toBeDisabled();
@@ -108,16 +108,18 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     await form.getByLabel("The author of a revision may approve it too").check();
     await expectAccessible(page);
     await form.getByRole("button", { name: "Save rule" }).click();
-    await expect(rules.getByRole("status")).toHaveText("The rule is saved. Reviews already asked for keep the approvers they had.");
+    await expect(toast(page, "The rule is saved.")).toHaveText("The rule is saved. Reviews already asked for keep the approvers they had.");
+    await dismissToasts(page);
     await expect(rule).toContainText("2 of");
     await expect(rule).toContainText(people.alice.name);
     await expect(rule).toContainText("The author may approve");
     const saved = must(await api.GET("/projects/{projectKey}/approval-rules", project)).rules;
     expect(saved).toEqual([expect.objectContaining({ typeId: safety.id, required: 2, authorMayApprove: true })]);
 
-    page.once("dialog", (dialog) => void dialog.accept());
     await rule.locator('[data-action="remove-rule"]').click();
-    await expect(rules.getByRole("status")).toHaveText("The rule is removed.");
+    await confirm(page);
+    await expect(toast(page, "The rule is removed.")).toBeVisible();
+    await dismissToasts(page);
     await expect(rules.locator("[data-approval-rules-empty]")).toBeVisible();
     await expect.poll(async () => must(await api.GET("/projects/{projectKey}/approval-rules", project)).rules).toEqual([]);
   });

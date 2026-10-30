@@ -38,7 +38,7 @@ func (s *moveScene) project(t *testing.T, key, name, role string, edits bool) uu
 	t.Helper()
 	made := obj(t, want(t, s.f.owner.post(t, "/api/v1/projects", map[string]any{"key": key, "name": name}), http.StatusCreated, "make "+key), "project")
 	id := uuid.MustParse(made["id"].(string))
-	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE project_grant SET role = $2 WHERE project_id = $1 AND subject_type = 'everyone'`, id, role); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = $2 WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, id, role); err != nil {
 		t.Fatal(err)
 	}
 	if edits {
@@ -90,7 +90,7 @@ func TestAMoveIsRefusedWhereItsPersonMayNotWrite(t *testing.T) {
 	s.project(t, archived, "Archived", "editor", true)
 	want(t, s.f.owner.put(t, "/api/v1/projects/"+archived+"/archive", nil), http.StatusOK, "archive a project")
 	// Only the editor writes in the scene's project; the reviewer reads, comments and approves.
-	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE project_grant SET role = 'viewer' WHERE subject_type = 'everyone' AND project_id = $1`, s.id); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `UPDATE role_assignment SET role = 'viewer' WHERE group_id = (SELECT id FROM groups WHERE builtin = 'everyone') AND project_id = $1`, s.id); err != nil {
 		t.Fatal(err)
 	}
 	reviewerID := s.f.h.addPerson(t, "member")
@@ -251,7 +251,7 @@ func TestAnOldKeyTellsNothingToWhoCannotFollowIt(t *testing.T) {
 	s := newMoveScene(t, "MK")
 	to := projectKey(t, "MKT")
 	toID := s.project(t, to, "Secret", "viewer", true)
-	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, toID); err != nil {
+	if _, err := s.f.h.super.Exec(t.Context(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, toID); err != nil {
 		t.Fatal(err)
 	}
 	onlyHere := s.f.api.as(t, s.f.h.addPerson(t, "member"))

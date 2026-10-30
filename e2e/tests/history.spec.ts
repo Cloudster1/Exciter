@@ -37,9 +37,9 @@ test.describe("history", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.locator("[data-history-link]").click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R1/history`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R1/history`));
     await expect(page.locator('[data-revision-row="2"]')).toContainText("Later.");
     await expectAccessible(page);
 
@@ -58,7 +58,7 @@ test.describe("history", { tag: "@desktop" }, () => {
     await page.getByRole("tab", { name: "Activity" }).click();
     await expect(page.locator('[data-activity-entry="revision"]').first()).toContainText("wrote revision 3");
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-statement]")).toHaveText("The shopper pays at once.");
   });
 });

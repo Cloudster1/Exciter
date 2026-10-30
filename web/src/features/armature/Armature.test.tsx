@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ArmatureAccount, ArmatureConnection } from "@/api/armature";
 import { ARMATURE_ACCOUNT_PATH, ARMATURE_SETTINGS_PATH } from "@/config";
-import { renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 
 // Stator's tests of the same pages, with the account on a page of its own.
@@ -126,19 +126,18 @@ describe("connecting Armature as an administrator", () => {
       },
       "GET /armature/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } },
     });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(ARMATURE_SETTINGS_PATH);
     await user.click(await screen.findByRole("button", { name: "Disconnect Armature" }));
-    expect(confirm).toHaveBeenCalled();
+    expect(await answerConfirm(true)).toHaveTextContent("Disconnect Armature?");
     expect(await screen.findByText("Armature is disconnected.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Connect Armature" })).toBeInTheDocument();
   });
 
   it("tells a member the page is for administrators", async () => {
     const sent = stubApi({});
-    await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, role: "member" } });
-    expect(await screen.findByText("Only an administrator can connect Armature.")).toBeInTheDocument();
+    await renderAt(ARMATURE_SETTINGS_PATH, { me: { ...signedIn, administers: false } });
+    expect(await screen.findByText("Only administrators can open this page")).toBeInTheDocument();
     expect(sent.some((r) => r.path === "/armature/connection")).toBe(false);
   });
 
@@ -186,7 +185,7 @@ describe("connecting one's own Armature account", () => {
   it("says to ask an administrator while Exciter has no connection", async () => {
     stubApi({ "GET /armature/account": { status: 200, body: { account: account({ configured: false, baseUrl: "", status: "not_configured" }) } } });
     await renderAt(ARMATURE_ACCOUNT_PATH);
-    expect(await screen.findByText(/Ask an administrator to connect it under Settings, Armature/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ask an administrator to connect it under Admin, Armature/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Armature token")).toBeNull();
   });
 
@@ -259,7 +258,6 @@ describe("connecting one's own Armature account", () => {
         return { status: 204 };
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = userEvent.setup();
     await renderAt(ARMATURE_ACCOUNT_PATH);
     await user.click(await screen.findByRole("button", { name: "Check again" }));
@@ -267,6 +265,7 @@ describe("connecting one's own Armature account", () => {
     expect(screen.getByLabelText("Paste a new token")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
+    expect(await answerConfirm(true)).toHaveTextContent("Disconnect your Armature account?");
     expect(await screen.findByText("Your Armature account is disconnected.")).toBeInTheDocument();
     expect(await screen.findByLabelText("Armature token")).toBeInTheDocument();
   });

@@ -53,7 +53,7 @@ describe("the requirement's watch button", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByRole("button", { name: "Watch" })).toHaveAttribute("aria-haspopup", "menu");
     await userEvent.click(within(await openMenu()).getByRole("menuitem", { name: "Watch this requirement" }));
     await waitFor(() => expect(sent.some((each) => each.method === "PUT" && each.path === "/requirements/CHK-R1/watch")).toBe(true));
@@ -68,7 +68,7 @@ describe("the requirement's watch button", () => {
       watching: { requirement: false, project: true },
       more: { "DELETE /projects/CHK/watch": { status: 204 } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const menu = await openMenu();
     expect(within(menu).getByRole("menuitem", { name: "Covered by your watch on the whole project" })).toHaveAttribute("aria-disabled", "true");
     expect(await axeViolations()).toEqual([]);
@@ -93,7 +93,7 @@ describe("the requirement's watch button", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(within(await openMenu()).getByRole("menuitem", { name: "Who is watching" }));
     const dialog = await screen.findByRole("dialog", { name: "Who is watching CHK-R1" });
     const list = await within(dialog).findByRole("list", { name: "Who is watching" });
@@ -104,7 +104,7 @@ describe("the requirement's watch button", () => {
 
   it("says so when watching cannot be changed", async () => {
     stubRequirement({ more: { "PUT /requirements/CHK-R1/watch": { status: 500, body: { error: { code: "internal", message: "Broken." } } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(within(await openMenu()).getByRole("menuitem", { name: "Watch this requirement" }));
     expect(await screen.findByText("Watching could not be changed. Try again in a moment.")).toBeInTheDocument();
   });
@@ -121,7 +121,7 @@ describe("the project's watch button", () => {
         return { status: 200, body: { watch: { id: "w1", kind: "project", projectKey: "CHK", requirement: null, createdAt: "2026-10-01T08:00:00Z" } } };
       },
     });
-    await renderAt("/p/CHK");
+    await renderAt("/projects/CHK");
     const button = await screen.findByRole("button", { name: "Watch project" });
     expect(button).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(button);
@@ -158,7 +158,7 @@ describe("the watching list", () => {
     });
     await renderAt("/settings/watching");
     const row = (await screen.findByText("Project OPS")).closest("tr") as HTMLElement;
-    expect(screen.getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(screen.getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(row).toHaveTextContent("Every requirement of the project");
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(row).getByRole("button", { name: "Stop watching Project OPS" }));

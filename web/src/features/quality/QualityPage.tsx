@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { Project } from "@/api/projects";
 import { useProjectQuality, type QualitySummary } from "@/api/quality";
-import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, Th } from "@/components/ui";
+import { Card, EmptyState, ErrorBanner, PageHeader, SectionTitle, Skeleton, Table, Tag, Td, Th, Page } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { QUALITY_PAGE_SIZE } from "@/config";
 import { Pages } from "@/features/coverage/Pages";
@@ -19,7 +19,7 @@ export function QualityPage({ project }: { project: Project }) {
   const { data, error, refetch } = useProjectQuality(project.key, query, offset);
   const l = t.quality;
   return (
-    <div className="mx-auto max-w-5xl space-y-4" data-quality-page={project.key}>
+    <Page width="content" className="space-y-4" data-quality-page={project.key}>
       <PageHeader title={l.pageTitle} meta={l.pageIntro} />
       <QueryInput
         projectKey={project.key}
@@ -66,7 +66,7 @@ export function QualityPage({ project }: { project: Project }) {
                       <tr key={row.id} data-quality-row={row.key}>
                         <Td>
                           <Link
-                            to="/p/$projectKey/r/$reqKey"
+                            to="/projects/$projectKey/r/$reqKey"
                             params={{ projectKey: project.key, reqKey: row.key }}
                             className="text-ink hover:text-accent hover:underline"
                           >
@@ -96,7 +96,7 @@ export function QualityPage({ project }: { project: Project }) {
           </Card>
         </>
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -155,7 +155,7 @@ function RulesBroken({ projectKey, summary }: { projectKey: string; summary: Qua
         <li key={each.rule} className="space-y-1" data-rule-count={each.rule}>
           <div className="flex items-baseline justify-between gap-2 text-sm">
             <Link
-              to="/p/$projectKey/grid"
+              to="/projects/$projectKey/grid"
               params={{ projectKey }}
               search={{ query: `qualityFinding = ${each.rule}` }}
               className="font-medium text-ink hover:text-accent hover:underline"

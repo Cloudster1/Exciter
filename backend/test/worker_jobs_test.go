@@ -105,7 +105,7 @@ func TestTheReviewReminderRemindsEachDueSessionOnce(t *testing.T) {
 	h := ownOutbox(t, newHarness(t), "exciter_review_reminder_test")
 	ctx := context.Background()
 	var moderator, project uuid.UUID
-	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, 'A moderator', 'owner') RETURNING id`,
+	if err := h.super.QueryRow(ctx, `INSERT INTO app_user (email, name, role) VALUES ($1, 'A moderator', 'member') RETURNING id`,
 		"moderator-"+uuid.NewString()+"@example.test").Scan(&moderator); err != nil {
 		t.Fatalf("make the moderator: %v", err)
 	}

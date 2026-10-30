@@ -4,7 +4,8 @@ import { expect, type User } from "../fixtures/auth";
 import { peopleTest as test, type Person } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Shaping a project in its settings (#322): every control of the types, attributes, field rules, statuses and the
 // workflow designer is used, and what it changed is checked where a requirement meets it.
@@ -22,17 +23,10 @@ async function removeProject(api: ExciterApi) {
 /** The project, with alice its administrator and bob an editor. */
 async function makeProject(api: ExciterApi, people: Record<User, Person>) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Shaped" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "user", id: people.bob.id }, role: "editor" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "user", id: people.bob.id }, role: "editor" },
+  ]);
 }
 
 async function statusIds(api: ExciterApi) {
@@ -61,7 +55,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     const fallback = must(await api.GET("/projects/{projectKey}", project)).project.settings.defaultTypeId!;
     must(await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey: written.key } }, body: { typeId: fallback, baseRevision: 1 } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=types`);
+    await page.goto(`/projects/${KEY}/settings/types`);
     await page.locator('[data-type="Interface"] [data-action="edit-type"]').click();
     const form = page.locator("[data-type-form]");
     await form.getByLabel("Name", { exact: true }).fill("Port");
@@ -81,7 +75,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     await expect(page.locator('[data-type="Legacy"]')).toBeVisible();
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     const select = page.locator("select[data-type-select]");
     await expect(select.locator("option")).toHaveText(["Requirement", "Port", "Legacy"]);
     await select.selectOption({ label: "Port" });
@@ -97,7 +91,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/attributes", { ...attributes, body: { name: "Notes", kind: "text" } }));
     must(await api.POST("/projects/{projectKey}/attributes", { ...attributes, body: { name: "Unused", kind: "boolean" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=attributes`);
+    await page.goto(`/projects/${KEY}/settings/attributes`);
     await page.locator('[data-attribute="Verification"] [data-action="edit-attribute"]').click();
     const form = page.locator("[data-attribute-form]");
     await form.getByLabel("New option").fill("Inspection");
@@ -113,13 +107,13 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
       .toEqual(["Notes", "Verification"]);
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await expect(page.locator("[data-attribute-field]")).toHaveCount(2);
     await expect(page.locator("[data-attribute-field]").first()).toHaveAttribute("data-attribute-field", "Notes");
     await page.getByLabel("Title", { exact: true }).fill("Inspect the brakes yearly");
     await page.getByLabel("Verification", { exact: true }).selectOption({ label: "Inspection" });
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-attribute-values]")).toContainText("Inspection");
   });
 
@@ -128,40 +122,41 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/attributes", { ...project, body: { name: "Risk", kind: "text" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=attributes`);
+    await page.goto(`/projects/${KEY}/settings/attributes`);
     await page.locator('[data-attribute="Risk"] [data-action="edit-attribute"]').click();
     const form = page.locator("[data-attribute-form]");
     await form.getByLabel("Required from").selectOption({ label: "In review" });
     await form.locator('[data-action="add-permit"]').click();
     const line = form.locator('[data-permit="1"]');
-    await line.getByLabel("Admin", { exact: true }).check();
+    await line.getByLabel("Project administrator", { exact: true }).check();
     await line.getByLabel("Draft", { exact: true }).check();
     await expectAccessible(page);
     await form.locator('[data-action="save-attribute"]').click();
     await expect(page.locator('[data-attribute="Risk"]')).toBeVisible();
     await expect(page.locator("[data-attribute-form]")).toHaveCount(0);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const bar = page.locator("[data-transition-bar]");
     await bar.getByRole("button", { name: "Submit for review" }).click();
     await expect(bar).toContainText("Give Risk a value; requirements in In review need it.");
     await expect(bar.locator('[data-status="Draft"]')).toBeVisible();
 
     const bob = await pageAs("bob");
-    await openUntil(bob, `/p/${KEY}/r/${KEY}-R1`, () => expect(bob.locator('[data-action="edit-requirement"]')).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${KEY}/r/${KEY}-R1`, () => expect(bob.locator('[data-action="edit-requirement"]')).toBeVisible(ONE_LOOK));
     await bob.locator('[data-action="edit-requirement"]').click();
     await expect(bob.locator('[data-attribute-field="Risk"]')).toContainText("Only admins change Risk in Draft.");
 
-    await page.goto(`/p/${KEY}/settings?tab=fields`);
+    await page.goto(`/projects/${KEY}/settings/fields`);
     const owner = page.locator('[data-fixed-field="owner"]');
     await owner.getByLabel("Required from").selectOption({ label: "In review" });
     await owner.locator('[data-action="save-field-rule"]').click();
-    await expect(owner.getByRole("status")).toHaveText("The rule of Owner is saved.");
+    await expect(toast(page, "The rule of Owner is saved.")).toBeVisible();
+    await dismissToasts(page);
     await expectAccessible(page);
 
     const riskId = must(await api.GET("/projects/{projectKey}/attributes", project)).attributes[0]!.id;
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes hold on a slope", attributes: { [riskId]: "low" } } }));
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     await bar.getByRole("button", { name: "Submit for review" }).click();
     await expect(bar).toContainText("Give the owner a value");
     await expect(bar.locator('[data-status="Draft"]')).toBeVisible();
@@ -169,7 +164,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
 
   test("alice makes and deletes a status, and one a workflow names stays", async ({ page, api, people }) => {
     await makeProject(api, people);
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await page.locator('[data-action="new-status"]').click();
     const coin = page.locator("[data-status-list] [data-new-status]");
     await coin.getByLabel("Status name").fill("Parked");
@@ -189,7 +184,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
 
   test("alice draws a workflow in the inspector, and new requirements start where she said", async ({ page, api, people }) => {
     await makeProject(api, people);
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await page.locator('[data-action="new-workflow"]').click();
     await page.getByLabel("Name", { exact: true }).fill("Lean");
     for (const status of ["Draft", "In review", "Approved"]) {
@@ -226,7 +221,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await page.locator('[data-action="save-workflow"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/settings?tab=workflow`);
+    await expect(page).toHaveURL(`/projects/${KEY}/settings/workflow`);
     await expect(page.locator('[data-workflow-card="Lean"]')).toContainText("3 statuses, 1 transition");
     await expect(page.locator('[data-status-row="Parked"]')).toBeVisible();
 
@@ -234,7 +229,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     await page.getByRole("dialog", { name: "Follow Lean" }).locator('[data-action="confirm-assign"]').click();
     await expect(page.locator('[data-workflow-card="Lean"]')).toContainText("Followed by Requirement.");
     const made = must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Brakes engage within 100 ms" } })).requirement;
-    await page.goto(`/p/${KEY}/r/${made.key}`);
+    await page.goto(`/projects/${KEY}/r/${made.key}`);
     await expect(page.locator('[data-transition-bar] [data-status="In review"]')).toBeVisible();
   });
 
@@ -246,7 +241,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     must(await workflow("Spare"));
     const busy = must(await workflow("Busy")).workflow;
 
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await page.getByRole("button", { name: "Delete Spare" }).click();
     await expect(page.locator('[data-workflow-card="Spare"]')).toHaveCount(0);
 

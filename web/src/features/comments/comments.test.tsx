@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Comment, Thread } from "@/api/comments";
-import { renderAt, signedIn, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, signedIn, stubApi, type Answer } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 import { aRequirement } from "@/test/requirements";
@@ -107,7 +107,7 @@ describe("the discussion on a requirement", () => {
     stubPage({
       threads: [aThread({ comments: [aComment({ via: { kind: "oauth", name: "Desk assistant" }, body: say("Checked overnight.") })] })],
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const thread = (await within(await section()).findAllByRole("article"))[0]!;
     const mark = within(thread).getByText(/through Desk assistant/);
     expect(mark).toHaveAttribute("data-via", "oauth");
@@ -117,7 +117,7 @@ describe("the discussion on a requirement", () => {
 
   it("lists threads with their replies and revisions, a placeholder for what was deleted, and what each allows", async () => {
     stubPage();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const threads = await within(await section()).findAllByRole("article");
     expect(threads).toHaveLength(2);
     const first = threads[0]!;
@@ -136,7 +136,7 @@ describe("the discussion on a requirement", () => {
 
   it("starts a thread with the comment editor, which offers no rules, tables or files", async () => {
     const sent = stubPage({ threads: [], more: { "POST /requirements/CHK-R1/comments": { status: 201, body: { thread: aThread() } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await within(await section()).findByText("Nobody has said anything about this requirement yet.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Comment" }));
     const box = await write("new-comment", "Looks right");
@@ -162,8 +162,7 @@ describe("the discussion on a requirement", () => {
         [`DELETE /comments/${replyId}`]: { status: 204 },
       },
     });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const first = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(first).getByRole("button", { name: "Reply" }));
     expect(await write(`reply-${threadId}`, "Agreed")).toHaveAccessibleName("Your reply to Grace Hopper");
@@ -178,13 +177,15 @@ describe("the discussion on a requirement", () => {
     await userEvent.click(within(mine).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(sent.some((each) => each.method === "PATCH" && each.path === `/comments/${replyId}`)).toBe(true));
     await userEvent.click(await within(mine).findByRole("button", { name: "Delete" }));
+    const asked = await answerConfirm(true);
+    expect(asked).toHaveTextContent("Delete your comment?");
+    expect(asked).toHaveTextContent("Its place in the thread stays.");
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/comments/${replyId}`)).toBe(true));
-    expect(window.confirm).toHaveBeenCalledWith("Delete your comment? Its place in the thread stays.");
   });
 
   it("tells a reader they may follow but not take part", async () => {
     stubPage({ comment: false, threads: [aThread({ can: { reply: false, resolve: false } })] });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await section();
     expect(await within(region).findByText(/You may read this discussion but not take part/)).toBeInTheDocument();
     expect(within(region).queryByRole("button", { name: "Comment" })).toBeNull();

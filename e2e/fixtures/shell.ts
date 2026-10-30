@@ -4,10 +4,11 @@ import { expect, test, type Page } from "@playwright/test";
 /** Below this width the shell is a drawer, as web/src/config.ts SIDEBAR_DRAWER_BELOW_PX says. */
 const DRAWER_BELOW_PX = 768;
 
-/** Opens a project's folded Project admin group in the sidebar, where its trash, settings and permissions are. */
-export async function openProjectAdmin(page: Page, projectKey: string): Promise<void> {
-  const fold = page.locator(`[data-project-nav="${projectKey}"]`).getByRole("button", { name: "Project admin" });
-  if ((await fold.getAttribute("aria-expanded")) !== "true") await fold.click();
+/** Follows the project's Settings entry in the sidebar, opening the drawer first on a phone. */
+export async function openProjectSettings(page: Page, projectKey: string): Promise<void> {
+  const entry = page.locator(`[data-project-nav="${projectKey}"] [data-nav="project-settings"] a`);
+  if ((page.viewportSize()?.width ?? DRAWER_BELOW_PX) < DRAWER_BELOW_PX) await page.locator('[data-action="drawer"]').click();
+  await entry.click();
 }
 
 /** The palettes the theme button steps through, as web/src/lib/theme.ts stores them. */
@@ -78,3 +79,37 @@ export async function openAccountMenu(page: Page): Promise<void> {
 
 /** An item of the open menu, by its data-action. */
 export const menuItem = (page: Page, action: string) => page.locator(`[role="menu"] [data-action="${action}"]`);
+
+/** Answers the open ConfirmDialog with its danger button and waits for it to close. */
+export async function confirm(page: Page): Promise<void> {
+  const dialog = page.locator("[data-confirm]");
+  await dialog.locator('[data-action="confirm"]').click();
+  await expect(dialog).toHaveCount(0);
+}
+
+/** Closes every toast in the corner, which would otherwise sit over the controls beneath it. */
+export async function dismissToasts(page: Page): Promise<void> {
+  const close = page.locator('[data-toast] [data-action="dismiss-toast"]');
+  // A toast may time out between counting and clicking.
+  for (let left = await close.count(); left > 0; left--)
+    await close
+      .first()
+      .click({ timeout: 1000 })
+      .catch(() => {});
+}
+
+/** The sentence of the latest toast that says it, without the dismiss button's name. */
+export function toast(page: Page, text: string | RegExp) {
+  // Matched on the message alone, so a pattern anchored at its end is not thrown by the dismiss button's name.
+  return page.locator("[data-toast-message]").filter({ hasText: text }).last();
+}
+
+/** Opens an Admin page the way an administrator finds it: the Admin entry at the foot of the sidebar, then the page,
+ *  by its id in web/src/features/shell/places.ts, in Admin's section nav. */
+export async function openAdmin(page: Page, id: string): Promise<void> {
+  await openShell(page, "/");
+  await page.locator('[data-sidebar] [data-nav="admin"]').getByRole("link").click();
+  await expect(page.locator("[data-admin-index]")).toBeVisible();
+  await page.locator(`[data-admin-nav] [data-nav="${id}"]`).getByRole("link").click();
+  await expect(page.locator(`[data-admin-nav] [data-nav="${id}"] a`)).toHaveAttribute("data-status", "active");
+}

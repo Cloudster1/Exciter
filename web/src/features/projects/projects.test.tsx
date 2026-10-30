@@ -3,13 +3,13 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Me } from "@/api/auth";
 import { NEW_PROJECT_PATH, PROJECTS_PATH } from "@/config";
-import { arrival, renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, arrival, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const member: Me = { ...signedIn, role: "member" };
+const member: Me = { ...signedIn, administers: false };
 const checkout = aProject();
 const billing = aProject({ id: "0195f000-0000-7000-8000-0000000000f3", key: "BIL", name: "Billing", description: "" });
 
@@ -20,7 +20,7 @@ describe("the project list", () => {
     const row = await screen.findByText("Checkout");
     expect(row.closest("tr")).toHaveAttribute("data-project-row", "CHK");
     expect(within(row.closest("tr")!).getByText("CHK")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/p/CHK");
+    expect(screen.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/projects/CHK");
     expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
   });
 
@@ -54,8 +54,8 @@ describe("a new project", () => {
     await userEvent.type(await screen.findByLabelText("Name"), "Checkout service");
     await waitFor(() => expect(screen.getByLabelText("Key")).toHaveValue("CS2"));
     await userEvent.click(screen.getByRole("button", { name: "Create project" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CS2"));
-    await arrival(router, "/p/CS2");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CS2"));
+    await arrival(router, "/projects/CS2");
     expect(sent.find((r) => r.method === "POST")?.body).toEqual({ name: "Checkout service", key: "CS2", description: "" });
   });
 
@@ -118,9 +118,9 @@ describe("a new project", () => {
 describe("a project's settings", () => {
   it("moves to the current key when opened by a key the project had", async () => {
     stubApi({ "GET /projects/PAY": { status: 200, body: { project: aProject({ formerKeys: ["PAY"] }) } } });
-    const router = await renderAt("/p/PAY/settings");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/settings"));
-    await arrival(router, "/p/CHK/settings");
+    const router = await renderAt("/projects/PAY/settings/details");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/settings/details"));
+    await arrival(router, "/projects/CHK/settings/details");
     expect(await screen.findByText("Former keys, which still work: PAY")).toBeInTheDocument();
   });
 
@@ -131,11 +131,11 @@ describe("a project's settings", () => {
       "GET /projects/PAY": { status: 200, body: { project: moved } },
       "PUT /projects/CHK/key": { status: 200, body: { project: moved } },
     });
-    const router = await renderAt("/p/CHK/settings");
+    const router = await renderAt("/projects/CHK/settings/details");
     await userEvent.type(await screen.findByLabelText("New key"), "pay");
     await userEvent.click(screen.getByRole("button", { name: "Change key" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/PAY/settings"));
-    await arrival(router, "/p/PAY/settings");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/PAY/settings/details"));
+    await arrival(router, "/projects/PAY/settings/details");
     expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ key: "PAY" });
     expect(await screen.findByText("Former keys, which still work: CHK")).toBeInTheDocument();
   });
@@ -149,7 +149,7 @@ describe("a project's settings", () => {
         return { status: 200, body: { project: changed } };
       },
     });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings/details");
     const name = await screen.findByLabelText("Name");
     await userEvent.clear(name);
     await userEvent.type(name, "Checkout and payment");
@@ -171,7 +171,7 @@ describe("a project's settings", () => {
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
       "PATCH /projects/CHK": { status: 200, body: { project: aProject({ settings: { ...checkout.settings, signedApprovals: true } }) } },
     });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings/details");
     const box = await screen.findByRole("checkbox", { name: "Approvals are electronic signatures" });
     expect(box).not.toBeChecked();
     await userEvent.click(box);
@@ -190,7 +190,7 @@ describe("a project's settings", () => {
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
       "PATCH /projects/CHK": { status: 200, body: { project: aProject({ settings: { ...checkout.settings, library: true } }) } },
     });
-    await renderAt("/p/CHK/settings");
+    await renderAt("/projects/CHK/settings/details");
     await userEvent.click(await screen.findByRole("checkbox", { name: "This project is a library" }));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect((sent.find((r) => r.method === "PATCH")?.body as { settings: { library: boolean } }).settings.library).toBe(true));
@@ -198,10 +198,12 @@ describe("a project's settings", () => {
 
   it("shows a member the settings without a way to change them", async () => {
     stubApi({ "GET /projects/CHK": { status: 200, body: { project: aProject({ can: { ...checkout.can, administer: false, purge: false } }) } } });
-    await renderAt("/p/CHK/settings", { me: member });
-    expect(await screen.findByText("Only the project's administrators change its settings.")).toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/details", { me: member });
+    expect(await screen.findByText("Only the project's administrators change its settings. Ask one of them, or ask for the role.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Archive project" })).toBeNull();
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.getAttribute("data-settings-tab"));
+    expect(tabs).toEqual(["details", "types", "attributes", "fields", "workflow", "approval", "links", "trace", "quality", "risks", "templates", "trash"]);
   });
 
   it("archives, and deletes an archived project only after asking", async () => {
@@ -212,17 +214,28 @@ describe("a project's settings", () => {
         project = aProject({ archivedAt: "2026-10-12T08:00:00Z" });
         return { status: 200, body: { project } };
       },
+      "DELETE /projects/CHK/archive": () => {
+        project = checkout;
+        return { status: 200, body: { project } };
+      },
       "DELETE /projects/CHK": { status: 204 },
     });
-    const router = await renderAt("/p/CHK/settings");
+    const router = await renderAt("/projects/CHK/settings/details");
     expect(screen.queryByRole("button", { name: "Delete project" })).toBeNull();
+    await userEvent.click(await screen.findByRole("button", { name: "Archive project" }));
+    expect(await screen.findByText(/This project is archived/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(screen.queryByText(/This project is archived/)).toBeNull());
+    expect(await screen.findByText("Checkout is back from the archive.")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: "Archive project" }));
     expect(await screen.findByText(/This project is archived/)).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveAttribute("readonly");
     await userEvent.click(screen.getByRole("button", { name: "Delete project" }));
-    const dialog = screen.getByRole("dialog", { name: "Delete this project for good?" });
-    expect(within(dialog).getByText(/Checkout \(CHK\) and everything in it/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole("button", { name: "Delete for good" }));
+    const dialog = await answerConfirm(false);
+    expect(dialog.textContent).toMatch(/Checkout \(CHK\) and everything in it/);
+    expect(sent.some((r) => r.method === "DELETE" && r.path === "/projects/CHK")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Delete project" }));
+    await answerConfirm(true);
     await waitFor(() => expect(router.state.location.pathname).toBe(PROJECTS_PATH));
     await arrival(router, PROJECTS_PATH);
     expect(sent.some((r) => r.method === "DELETE" && r.path === "/projects/CHK")).toBe(true);
@@ -237,21 +250,18 @@ describe("the sidebar inside a project", () => {
       "GET /projects/BIL": { status: 200, body: { project: billing } },
       "GET /projects/BIL/requirements": { status: 200, body: { rows: [], total: 0, limit: 50, offset: 0 } },
     });
-    const router = await renderAt("/p/CHK/settings");
+    const router = await renderAt("/projects/CHK/settings/details");
     const nav = await waitFor(() => {
       const found = document.querySelector<HTMLElement>('[data-project-nav="CHK"]');
       expect(found).not.toBeNull();
       return found!;
     });
-    const admin = within(nav).getByRole("button", { name: "Project admin" });
-    expect(admin).toHaveAttribute("aria-expanded", "false");
-    expect(within(nav).queryByRole("link", { name: "Project settings" })).toBeNull();
-    await userEvent.click(admin);
-    expect(within(nav).getByRole("link", { name: "Project settings" })).toHaveAttribute("href", "/p/CHK/settings");
+    expect(within(nav).queryByRole("button", { name: "Project admin" })).toBeNull();
+    expect(within(nav).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/projects/CHK/settings");
     await userEvent.click(within(nav).getByRole("button", { name: /Switch project/ }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Billing (BIL)" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/BIL"));
-    await arrival(router, "/p/BIL");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/BIL"));
+    await arrival(router, "/projects/BIL");
   });
 
   it("shows the last project visited where the route names none", async () => {
@@ -259,7 +269,7 @@ describe("the sidebar inside a project", () => {
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
       "GET /projects": { status: 200, body: { projects: [checkout] } },
     });
-    const router = await renderAt("/p/CHK/settings");
+    const router = await renderAt("/projects/CHK/settings/details");
     await waitFor(() => expect(document.querySelector('[data-project-nav="CHK"]')).not.toBeNull());
     await router.navigate({ to: "/search" });
     await arrival(router, "/search");

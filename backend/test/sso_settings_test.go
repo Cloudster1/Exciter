@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	providerPath   = "/api/v1/oidc-provider"
-	groupRolesPath = "/api/v1/oidc-provider/group-roles"
+	providerPath = "/api/v1/oidc-provider"
 )
 
 // An administrator sets the provider up through the settings page's API; the secret goes in and never comes
@@ -91,34 +90,4 @@ func TestTheProviderIsTheAdministratorsToConfigure(t *testing.T) {
 		want(t, member.get(t, providerPath), http.StatusForbidden, "a member reads the provider")
 		want(t, member.put(t, providerPath, body), http.StatusForbidden, "a member saves the provider")
 	})
-}
-
-// Group roles need a provider, a group and a grantable role, and are an administrator's alone.
-func TestGroupRolesAreRefusedWhatCannotWork(t *testing.T) {
-	h := newHarness(t)
-	a := newAPIServer(t, h)
-	h.singleSignOn(t)
-	admin, _ := adminOf(t, h, a)
-	member := a.as(t, h.addPerson(t, "member"))
-
-	got := want(t, admin.post(t, groupRolesPath, map[string]any{"group": "engineering", "role": "member"}), http.StatusUnprocessableEntity, "map before a provider")
-	if msg, _ := obj(t, got, "error", "fields")["group"].(string); !strings.Contains(msg, "single sign-on first") {
-		t.Errorf("mapping without a provider says %s", got.Raw)
-	}
-	want(t, admin.put(t, providerPath, map[string]any{"issuer": "https://id.example.test", "clientId": "exciter", "enabled": true, "createGroups": false}), http.StatusOK, "set up a provider")
-	for name, attempt := range map[string]map[string]any{
-		"a blank group":   {"group": "  ", "role": "member"},
-		"ownership":       {"group": "founders", "role": "owner"},
-		"a role made up":  {"group": "founders", "role": "king"},
-		"no role at all ": {"group": "founders"},
-	} {
-		if code := errorCode(t, want(t, admin.post(t, groupRolesPath, attempt), http.StatusUnprocessableEntity, name)); code != "validation_failed" {
-			t.Errorf("%s answers %s", name, code)
-		}
-	}
-	want(t, member.get(t, groupRolesPath), http.StatusForbidden, "a member lists the mapping")
-	want(t, member.post(t, groupRolesPath, map[string]any{"group": "engineering", "role": "admin"}), http.StatusForbidden, "a member maps a group")
-	if code := errorCode(t, want(t, admin.delete(t, groupRolesPath+"/"+h.suffix()+"-not-a-uuid"), http.StatusBadRequest, "unmap a malformed id")); code == "" {
-		t.Error("a malformed id answers without a code")
-	}
 }

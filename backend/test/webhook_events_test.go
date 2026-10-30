@@ -58,7 +58,7 @@ func TestRequirementEventsReachTheReceiverAsTheOwnerMayReadThem(t *testing.T) {
 	revised := awaitTopic(t, bin, webhook.TopicRequirementRevised, r1, 2)
 	p := revised[0].payload()
 	req := p["requirement"].(map[string]any)
-	if req["key"] != r1 || req["project"].(map[string]any)["key"] != w.key || !strings.HasSuffix(req["url"].(string), "/p/"+w.key+"/r/"+r1) ||
+	if req["key"] != r1 || req["project"].(map[string]any)["key"] != w.key || !strings.HasSuffix(req["url"].(string), "/projects/"+w.key+"/r/"+r1) ||
 		p["actor"].(map[string]any)["id"] != w.bobID.String() || asNumber(p["revision"]) < 2 {
 		t.Errorf("a revision reads %s", revised[0].Body)
 	}
@@ -200,7 +200,7 @@ func TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent(t *testing.T) {
 	h := w.h
 	annID := h.addPerson(t, "admin")
 	ann := newAPIServer(t, h).as(t, annID)
-	if _, err := h.super.Exec(context.Background(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, w.projectID); err != nil {
+	if _, err := h.super.Exec(context.Background(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, w.projectID); err != nil {
 		t.Fatal(err)
 	}
 	bin, address := hookBin(t)
@@ -210,7 +210,7 @@ func TestAPayloadIsWithheldWhatItsOwnerMayNotViewWhenItIsSent(t *testing.T) {
 	awaitTopic(t, bin, webhook.TopicRequirementRevised, w.reqKey, 1)
 
 	// Ann made it as an administrator; as a member who is granted nothing, she may not see the project.
-	h.cleanupExec(t, h.super, `UPDATE app_user SET role = 'member' WHERE id = $1`, annID)
+	h.cleanupExec(t, h.super, `DELETE FROM role_assignment WHERE user_id = $1 AND project_id IS NULL`, annID)
 	h.settle(t)
 	want(t, w.bob.patch(t, "/api/v1/requirements/"+w.reqKey, map[string]any{"title": "Brakes engage within 80 ms", "baseRevision": 2}), http.StatusOK, "bob revises again")
 	log := h.awaitState(t, id, webhook.TopicRequirementRevised, `"revision": 3`, "withheld", 1)

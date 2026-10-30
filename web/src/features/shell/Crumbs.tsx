@@ -1,18 +1,21 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useMe } from "@/api/auth";
+import { useProject } from "@/api/projects";
 import { Breadcrumbs, type Crumb } from "@/components/ui";
-import { crumbsFor } from "./places";
+import { crumbsFor, projectOfPath } from "./places";
 
 /** Where the reader is, at the top of the page's sticky strip: the installation, then the places the page lies
  *  under, each a link, and the page itself when it is a place. */
 export function PlaceCrumbs() {
   const { data: me } = useMe();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const projectKey = projectOfPath(pathname);
+  const { data: project } = useProject(projectKey ?? "");
   if (!me) return null;
   const crumbs: Crumb[] = [
     { label: me.installation.name, render: (label) => <Link to="/">{label}</Link> },
-    ...crumbsFor(pathname).map(({ label, path }) => ({
+    ...crumbsFor(pathname, { projectName: projectKey && project ? project.name : undefined }).map(({ label, path }) => ({
       label,
       render: path ? (shown: ReactNode) => <Link to={path}>{shown}</Link> : (shown: ReactNode) => <span aria-current="page">{shown}</span>,
     })),

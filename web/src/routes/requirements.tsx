@@ -12,7 +12,7 @@ import { appRoute } from "./app";
 /** A requirement's page. A key it had, or its project had, still finds it, and the address follows to the current one. */
 export const requirementRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/r/$reqKey",
+  path: "/projects/$projectKey/r/$reqKey",
   component: function RequirementRoutePage() {
     const { reqKey } = requirementRoute.useParams();
     const { data: requirement, error, refetch } = useRequirement(reqKey);
@@ -20,7 +20,12 @@ export const requirementRoute = createRoute({
     const navigate = useNavigate();
     useEffect(() => {
       if (requirement && requirement.key !== reqKey) {
-        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, hash: true, replace: true });
+        void navigate({
+          to: "/projects/$projectKey/r/$reqKey",
+          params: { projectKey: requirement.projectKey, reqKey: requirement.key },
+          hash: true,
+          replace: true,
+        });
       }
     }, [requirement, reqKey, navigate]);
     if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
@@ -40,7 +45,12 @@ export const permalinkRoute = createRoute({
     const navigate = useNavigate();
     useEffect(() => {
       if (requirement) {
-        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: requirement.projectKey, reqKey: requirement.key }, hash: true, replace: true });
+        void navigate({
+          to: "/projects/$projectKey/r/$reqKey",
+          params: { projectKey: requirement.projectKey, reqKey: requirement.key },
+          hash: true,
+          replace: true,
+        });
       }
     }, [requirement, navigate]);
     if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
@@ -57,7 +67,7 @@ function count(value: unknown, min: number): number | undefined {
 /** A requirement's history, where the search says which revision, comparison or window is open. */
 export const historyRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/r/$reqKey/history",
+  path: "/projects/$projectKey/r/$reqKey/history",
   validateSearch: (search: Record<string, unknown>): HistorySearch => ({
     revision: count(search.revision, 1),
     from: count(search.from, 0),
@@ -74,7 +84,7 @@ export const historyRoute = createRoute({
     useEffect(() => {
       if (requirement && requirement.key !== reqKey) {
         void navigate({
-          to: "/p/$projectKey/r/$reqKey/history",
+          to: "/projects/$projectKey/r/$reqKey/history",
           params: { projectKey: requirement.projectKey, reqKey: requirement.key },
           search,
           replace: true,
@@ -90,7 +100,7 @@ export const historyRoute = createRoute({
         requirement={requirement}
         search={search}
         onSearch={(next) =>
-          void navigate({ to: "/p/$projectKey/r/$reqKey/history", params: { projectKey: project.key, reqKey: requirement.key }, search: next })
+          void navigate({ to: "/projects/$projectKey/r/$reqKey/history", params: { projectKey: project.key, reqKey: requirement.key }, search: next })
         }
       />
     );
@@ -100,7 +110,7 @@ export const historyRoute = createRoute({
 /** A requirement's trace graph (#211), where the search says which way, how deep and through what it looks. */
 export const traceGraphRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/p/$projectKey/r/$reqKey/trace",
+  path: "/projects/$projectKey/r/$reqKey/trace",
   validateSearch: (search: Record<string, unknown>): GraphAddress => readGraphAddress(search),
   component: function TraceGraphRoutePage() {
     const { reqKey } = traceGraphRoute.useParams();
@@ -111,7 +121,7 @@ export const traceGraphRoute = createRoute({
     useEffect(() => {
       if (requirement && requirement.key !== reqKey) {
         void navigate({
-          to: "/p/$projectKey/r/$reqKey/trace",
+          to: "/projects/$projectKey/r/$reqKey/trace",
           params: { projectKey: requirement.projectKey, reqKey: requirement.key },
           search,
           replace: true,
@@ -128,7 +138,12 @@ export const traceGraphRoute = createRoute({
         requirement={requirement}
         address={search}
         onAddress={(next) =>
-          void navigate({ to: "/p/$projectKey/r/$reqKey/trace", params: { projectKey: project.key, reqKey: requirement.key }, search: next, replace: true })
+          void navigate({
+            to: "/projects/$projectKey/r/$reqKey/trace",
+            params: { projectKey: project.key, reqKey: requirement.key },
+            search: next,
+            replace: true,
+          })
         }
       />
     );

@@ -59,7 +59,7 @@ function PlanList({ project }: { project: Project }) {
           {plans.map((plan) => (
             <li key={plan.id} className="flex flex-wrap items-baseline gap-2 px-4 py-3" data-plan={plan.title}>
               <Link
-                to="/p/$projectKey/tests/plans/$planId"
+                to="/projects/$projectKey/tests/plans/$planId"
                 params={{ projectKey: project.key, planId: plan.id }}
                 className="font-medium text-ink hover:underline"
               >
@@ -89,12 +89,12 @@ function NewPlanDialog({ project, onClose }: { project: Project; onClose: () => 
     event.preventDefault();
     create.mutate(
       { title: title.trim(), description: description.trim() || undefined, scope, ...(scope === "query" ? { query } : {}) },
-      { onSuccess: (plan) => void navigate({ to: "/p/$projectKey/tests/plans/$planId", params: { projectKey: project.key, planId: plan.id } }) },
+      { onSuccess: (plan) => void navigate({ to: "/projects/$projectKey/tests/plans/$planId", params: { projectKey: project.key, planId: plan.id } }) },
     );
   }
 
   return (
-    <Dialog title={t.tests.newPlanTitle} onClose={onClose}>
+    <Dialog open title={t.tests.newPlanTitle} onClose={onClose}>
       <form onSubmit={submit} className="space-y-3" noValidate data-plan-form>
         {create.error && Object.keys(fields).length === 0 && <ErrorBanner>{create.error.message}</ErrorBanner>}
         <Field
@@ -166,7 +166,7 @@ export function ExecutionTable({ executions, label }: { executions: TestExecutio
           <tr key={e.id} data-execution={e.title}>
             <Td>
               <Link
-                to="/p/$projectKey/tests/executions/$executionId"
+                to="/projects/$projectKey/tests/executions/$executionId"
                 params={{ projectKey: e.projectKey, executionId: e.id }}
                 className="font-medium text-ink hover:underline"
               >

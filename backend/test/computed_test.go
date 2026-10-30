@@ -309,7 +309,7 @@ func TestRawSQLKeepsComputedValuesToTheWorker(t *testing.T) {
 		t.Errorf("a reviewer of the project sees %d computed rows, %v", seen, err)
 	}
 	outsider := s.h.addPerson(t, "member")
-	if _, err := s.h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+	if _, err := s.h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.h.appConn(t, outsider).QueryRow(ctx, `SELECT count(*)::int FROM requirement_computed WHERE project_id = $1`, s.projectID).Scan(&seen); err != nil || seen != 0 {

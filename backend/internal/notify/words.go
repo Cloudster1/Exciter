@@ -94,17 +94,17 @@ func RequirementURL(appURL string, requirementID uuid.UUID, s Subject) string {
 
 // SessionURL is where a notification about a review session leads: the session's page.
 func SessionURL(appURL, projectKey string, id uuid.UUID) string {
-	return fmt.Sprintf("%s/p/%s/sessions/%s", appURL, projectKey, id)
+	return fmt.Sprintf("%s/projects/%s/sessions/%s", appURL, projectKey, id)
 }
 
 // CodeTagsURL is where a notification about a code scan leads: the project's outdated and orphaned tags.
 func CodeTagsURL(appURL, projectKey string) string {
-	return fmt.Sprintf("%s/p/%s/code-tags", appURL, projectKey)
+	return fmt.Sprintf("%s/projects/%s/code-tags", appURL, projectKey)
 }
 
 // ExecutionURL is where a notification about a test execution leads: the execution's page.
 func ExecutionURL(appURL, projectKey string, id uuid.UUID) string {
-	return fmt.Sprintf("%s/p/%s/tests/executions/%s", appURL, projectKey, id)
+	return fmt.Sprintf("%s/projects/%s/tests/executions/%s", appURL, projectKey, id)
 }
 
 // link is where one mailed notification leads.

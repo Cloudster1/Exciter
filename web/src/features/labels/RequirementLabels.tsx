@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAddLabel, useRemoveLabel } from "@/api/labels";
 import type { Requirement } from "@/api/requirements";
-import { Card, ErrorBanner, IconButton, SectionTitle } from "@/components/ui";
+import { Card, ErrorBanner, IconButton, SectionTitle, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { LabelCombobox } from "./LabelCombobox";
@@ -16,7 +15,7 @@ export function LabelLink({ name, projectKey, onRemove }: { name: string; projec
       data-label={name}
     >
       {projectKey ? (
-        <Link to="/p/$projectKey" params={{ projectKey }} search={{ label: name }} className={look}>
+        <Link to="/projects/$projectKey" params={{ projectKey }} search={{ label: name }} className={look}>
           <Icon.Label className="size-3" />
           {name}
         </Link>
@@ -45,7 +44,7 @@ export function LabelLink({ name, projectKey, onRemove }: { name: string; projec
 export function RequirementLabels({ requirement }: { requirement: Requirement }) {
   const add = useAddLabel(requirement.key);
   const remove = useRemoveLabel(requirement.key);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const editable = requirement.can.edit;
   const error = add.error ?? remove.error;
 
@@ -64,7 +63,7 @@ export function RequirementLabels({ requirement }: { requirement: Requirement })
                     editable
                       ? () => {
                           add.reset();
-                          remove.mutate(name, { onSuccess: () => setNotice(t.labels.removed(name)) });
+                          remove.mutate(name, { onSuccess: () => toast.success(t.labels.removed(name)) });
                         }
                       : undefined
                   }
@@ -82,15 +81,12 @@ export function RequirementLabels({ requirement }: { requirement: Requirement })
               exclude={requirement.labels}
               onPick={(name) => {
                 remove.reset();
-                add.mutate(name, { onSuccess: () => setNotice(t.labels.added(name)) });
+                add.mutate(name, { onSuccess: () => toast.success(t.labels.added(name)) });
               }}
             />
           </div>
         )}
         {error && <ErrorBanner>{error.message}</ErrorBanner>}
-        <p role="status" className="sr-only" data-label-notice>
-          {notice}
-        </p>
       </section>
     </Card>
   );

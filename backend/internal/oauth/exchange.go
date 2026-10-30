@@ -70,7 +70,7 @@ func (s *Service) exchange(ctx context.Context, c *client, in TokenRequest) (*To
 	}
 	if c.KeycloakClientID == "" || s.people == nil {
 		return nil, refuse(ErrUnauthorizedClient, fmt.Sprintf(
-			"%s may not exchange identity provider tokens. An Exciter administrator names its Keycloak client under Settings, Partner apps.", c.Name))
+			"%s may not exchange identity provider tokens. An Exciter administrator names its Keycloak client under Admin, Connected apps.", c.Name))
 	}
 	readOnly, ok := partnerScopeAsked(in.Scope, c.Scopes)
 	if !ok {

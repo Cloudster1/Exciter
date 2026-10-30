@@ -38,8 +38,7 @@ test.describe("computed attributes", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/settings`);
-    await page.getByRole("tab", { name: "Attributes" }).click();
+    await page.goto(`/projects/${KEY}/settings/attributes`);
     await page.getByRole("button", { name: "New attribute" }).click();
     const form = page.locator("[data-attribute-form]");
     await form.getByLabel("Name", { exact: true }).fill("Total cost");
@@ -51,7 +50,7 @@ test.describe("computed attributes", { tag: "@desktop" }, () => {
     await form.getByRole("button", { name: "New attribute" }).click();
     await expect(page.locator('[data-attribute="Total cost"]').getByText("Computed")).toBeVisible();
 
-    await page.goto(`/p/${KEY}/r/${section.key}`);
+    await page.goto(`/projects/${KEY}/r/${section.key}`);
     const total = page.locator('[data-attribute-value="Total cost"]');
     await expect(async () => {
       await page.reload();

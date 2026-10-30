@@ -131,7 +131,7 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
   const summary = spec.data?.pages[0]?.changes ?? null;
   const keys = entries.map((entry) => entry.node.key);
   const mayWrite = project.can.edit && !project.archivedAt;
-  const create = () => navigate({ to: "/p/$projectKey/new", params: { projectKey: project.key } });
+  const create = () => navigate({ to: "/projects/$projectKey/new", params: { projectKey: project.key } });
   const selectable = (entry: SpecEntry) => entry.node.kind !== "section" && (entry.can.transition || (mayCreate && entry.can.link));
   const pickable = entries.filter(selectable);
   const mayMove = pickable.some((entry) => entry.can.transition);
@@ -390,16 +390,23 @@ export function SpecPage({ project, address = {}, onAddress }: { project: Projec
 
 function DiscardDialog({ onKeep, onDiscard }: { onKeep: () => void; onDiscard: () => void }) {
   return (
-    <Dialog title={t.tree.discardTitle} onClose={onKeep} data-discard-dialog="">
+    <Dialog
+      open
+      title={t.tree.discardTitle}
+      onClose={onKeep}
+      attrs={{ "data-discard-dialog": "" }}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onKeep} data-action="keep-editing">
+            {t.tree.keepEditing}
+          </Button>
+          <Button variant="danger" onClick={onDiscard} data-action="discard-changes">
+            {t.tree.discard}
+          </Button>
+        </>
+      }
+    >
       <p className="mb-4 text-sm text-ink-muted">{t.tree.discardBody}</p>
-      <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={onKeep} data-action="keep-editing">
-          {t.tree.keepEditing}
-        </Button>
-        <Button variant="danger" onClick={onDiscard} data-action="discard-changes">
-          {t.tree.discard}
-        </Button>
-      </div>
     </Dialog>
   );
 }
@@ -473,7 +480,7 @@ function Entry({
           {titleDiff ? <DiffTitle blocks={titleDiff} /> : node.title}
         </Heading>
         <Link
-          to="/p/$projectKey/r/$reqKey"
+          to="/projects/$projectKey/r/$reqKey"
           params={{ projectKey: project.key, reqKey: node.key }}
           className="font-mono text-xs text-ink-subtle hover:text-accent"
         >
@@ -481,7 +488,7 @@ function Entry({
         </Link>
         {entry.comments.open > 0 && (
           <Link
-            to="/p/$projectKey/r/$reqKey"
+            to="/projects/$projectKey/r/$reqKey"
             params={{ projectKey: project.key, reqKey: node.key }}
             hash={COMMENTS_ID}
             className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-accent"

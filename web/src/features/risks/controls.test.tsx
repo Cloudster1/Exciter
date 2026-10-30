@@ -77,7 +77,7 @@ describe("the risk scheme's controls", () => {
     "by priority number asks a threshold of every level but the first and has no matrix",
     async () => {
       const sent = stubApi({ ...stubs, "PUT /projects/CHK/risk-scheme": { status: 200, body: { scheme: savedScheme() } } });
-      await renderAt("/p/CHK/settings?tab=risks");
+      await renderAt("/projects/CHK/settings/risks");
       expect(await screen.findByRole("table", { name: "Matrix" })).toBeInTheDocument();
       await userEvent.selectOptions(screen.getByRole("combobox", { name: "A rating gives its level by" }), "rpn");
       expect(screen.queryByRole("table", { name: "Matrix" })).toBeNull();
@@ -96,7 +96,7 @@ describe("the risk scheme's controls", () => {
     "rates detection too once it is ticked",
     async () => {
       const sent = stubApi({ ...stubs, "PUT /projects/CHK/risk-scheme": { status: 200, body: { scheme: savedScheme() } } });
-      await renderAt("/p/CHK/settings?tab=risks");
+      await renderAt("/projects/CHK/settings/risks");
       expect(screen.queryByRole("group", { name: "Detection" })).toBeNull();
       await userEvent.click(await screen.findByRole("checkbox", { name: "Rate detection too" }));
       const detection = screen.getByRole("group", { name: "Detection" });
@@ -112,7 +112,7 @@ describe("the risk scheme's controls", () => {
     "gives the cells of a removed level to the first level",
     async () => {
       const sent = stubApi({ ...stubs, "PUT /projects/CHK/risk-scheme": { status: 200, body: { scheme: savedScheme() } } });
-      await renderAt("/p/CHK/settings?tab=risks");
+      await renderAt("/projects/CHK/settings/risks");
       const cell = await screen.findByRole("combobox", { name: "Level at severity 5 and probability 5" });
       expect(cell).toHaveValue("High");
       await userEvent.click(screen.getByRole("button", { name: "Remove the level High" }));
@@ -136,7 +136,7 @@ describe("the risk scheme's controls", () => {
         body: { error: { code: "validation_failed", message: "Check the scheme.", fields: { "levels[1].name": name, matrix: cells } } },
       },
     });
-    await renderAt("/p/CHK/settings?tab=risks");
+    await renderAt("/projects/CHK/settings/risks");
     await userEvent.click(await screen.findByRole("button", { name: "Save the scheme" }));
     expect(await screen.findByLabelText("Name of level 2")).toHaveAccessibleDescription(name);
     expect(screen.getByLabelText("Name of level 1")).not.toHaveAccessibleDescription(name);
@@ -155,7 +155,7 @@ describe("the risk matrix's controls", () => {
         return { status: 200, body: { matrix: matrix(side as "before" | "effective") } };
       },
     });
-    await renderAt("/p/CHK/risks?view=matrix");
+    await renderAt("/projects/CHK/risks?view=matrix");
     const grid = await screen.findByRole("table", { name: "Risk matrix" });
     await userEvent.click(within(grid).getByRole("button", { name: "1 risk at severity 4 and probability 3" }));
     expect(await screen.findByRole("region", { name: "Risks at severity 4 and probability 3" })).toBeInTheDocument();
@@ -174,7 +174,7 @@ describe("the risk matrix's controls", () => {
           ? { status: 400, body: { error: { code: "bad_query", message: refusal, position: 0 } } }
           : { status: 200, body: { matrix: matrix("effective") } },
     });
-    await renderAt("/p/CHK/risks?view=matrix");
+    await renderAt("/projects/CHK/risks?view=matrix");
     await screen.findByRole("table", { name: "Risk matrix" });
     const box = screen.getByRole("combobox", { name: "Query" });
     await userEvent.type(box, "bogus{Enter}");
@@ -193,7 +193,7 @@ describe("the FMEA table's pages", () => {
         return { status: 200, body: { risks: [row], total, unrated: 0 } };
       },
     });
-    await renderAt("/p/CHK/risks");
+    await renderAt("/projects/CHK/risks");
     await screen.findByRole("table", { name: "FMEA table" });
     expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Next" }));

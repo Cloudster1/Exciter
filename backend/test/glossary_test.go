@@ -175,7 +175,7 @@ func TestAGlossaryMarksWhereRequirementsUseItsTerms(t *testing.T) {
 	t.Run("a project uses a library's glossary as far as the reader may read it", func(t *testing.T) {
 		lib := projectKey(t, "GLL")
 		made := obj(t, want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": lib, "name": "Parts"}), http.StatusCreated, "make a library"), "project")
-		if _, err := w.h.super.Exec(context.Background(), `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, made["id"]); err != nil {
+		if _, err := w.h.super.Exec(context.Background(), `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, made["id"]); err != nil {
 			t.Fatal(err)
 		}
 		caliper := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+lib+"/terms", map[string]any{"name": "Caliper"}), http.StatusCreated, "define Caliper"), "term")
@@ -267,7 +267,7 @@ func TestRawSQLKeepsGlossariesToTheirReaders(t *testing.T) {
 	if _, err := w.h.super.Exec(ctx, `UPDATE project SET settings = settings || '{"library": true}' WHERE id = $1`, made["id"]); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := w.h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = $1 AND subject_type = 'everyone'`, made["id"]); err != nil {
+	if _, err := w.h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, made["id"]); err != nil {
 		t.Fatal(err)
 	}
 	hidden := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+other+"/terms", map[string]any{"name": "Hidden"}), http.StatusCreated, "a library term"), "term")

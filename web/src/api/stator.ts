@@ -1,4 +1,5 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "./mutation";
 import { STATOR_LOOKUP_MAX_PAGES, STATOR_SEARCH_LIMIT } from "@/config";
 import { api } from "./client";
 import { refreshSuspects } from "./links";

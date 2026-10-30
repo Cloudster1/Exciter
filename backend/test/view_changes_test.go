@@ -131,7 +131,7 @@ func TestAViewIsRefusedWhenChangedOrDeletedByWhoMayNot(t *testing.T) {
 func TestASharedViewStaysWhenTheRightToEditIsLost(t *testing.T) {
 	t.Run("an owner made a viewer", func(t *testing.T) {
 		s := newViewScene(t, "VWV")
-		if _, err := s.f.h.super.Exec(context.Background(), `UPDATE project_grant SET role = 'viewer' WHERE project_id = $1 AND subject_type = 'everyone'`, s.projectID); err != nil {
+		if _, err := s.f.h.super.Exec(context.Background(), `UPDATE role_assignment SET role = 'viewer' WHERE project_id = $1 AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, s.projectID); err != nil {
 			t.Fatal(err)
 		}
 		s.f.h.settle(t)

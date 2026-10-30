@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { formatSize, isImage, showsInPlace } from "@/api/attachments";
-import { renderAt, stubApi, type Answer } from "@/test/app";
+import { answerConfirm, renderAt, stubApi, type Answer } from "@/test/app";
 import { anAttachment } from "@/test/attachments";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
@@ -57,7 +57,7 @@ describe("files", () => {
 describe("a requirement's files", () => {
   it("lists them for a reader, each to open or download, and offers nothing to change", async () => {
     stubRequirement({ edit: false });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "2 files" });
     expect(within(panel).getByRole("link", { name: "Open basket.png" })).toHaveAttribute("href", `/api/v1/attachments/${picture.id}?inline=true`);
     expect(within(panel).getAllByRole("link", { name: "Download spec.pdf" })[0]).toHaveAttribute("download", "spec.pdf");
@@ -80,7 +80,7 @@ describe("a requirement's files", () => {
             : { status: 413, body: { error: { code: "too_large", message: "That file is too large: a requirement takes files of up to 50 MB." } } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("No files are attached. Attach one, or drop it here.")).toBeInTheDocument();
     const input = document.querySelector<HTMLInputElement>("[data-attachment-input]")!;
     await userEvent.upload(input, [new File(["%PDF"], "spec.pdf", { type: "application/pdf" }), new File(["x"], "big.bin")]);
@@ -92,12 +92,13 @@ describe("a requirement's files", () => {
 
   it("deletes a file once its editor agrees", async () => {
     const sent = stubRequirement({ more: { [`DELETE /attachments/${spec.id}`]: { status: 204 } } });
-    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const remove = await screen.findByRole("button", { name: "Delete spec.pdf" });
     await userEvent.click(remove);
+    expect(await answerConfirm(false)).toHaveTextContent("Delete attachment spec.pdf?");
     expect(sent.some((each) => each.method === "DELETE")).toBe(false);
     await userEvent.click(remove);
+    await answerConfirm(true);
     expect(await screen.findByText("Deleted spec.pdf.")).toBeInTheDocument();
     expect(sent.find((each) => each.method === "DELETE")?.path).toBe(`/attachments/${spec.id}`);
   });
@@ -119,7 +120,7 @@ describe("files in a statement", () => {
       ],
     };
     stubRequirement({ requirement: aRequirement({ statement }) });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const shown = await screen.findByRole("img", { name: "The basket" });
     expect(shown).toHaveAttribute("src", `/api/v1/attachments/${picture.id}?inline=true`);
     expect(shown).toHaveStyle({ width: "320px" });
@@ -135,7 +136,7 @@ describe("files in a statement", () => {
         "PATCH /requirements/CHK-R1": { status: 200, body: { requirement: aRequirement({ revision: 2 }) } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const editor = document.querySelector<HTMLElement>("#edit-statement")!;
     const input = editor.closest("[data-editor-frame]")!.querySelector<HTMLInputElement>("[data-editor-file-input]")!;

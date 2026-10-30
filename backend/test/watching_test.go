@@ -417,7 +417,7 @@ func TestRawSQLKeepsWatchesAndNotificationsToTheirPeople(t *testing.T) {
 	ctx := context.Background()
 	hidden := projectKey(t, "WCX")
 	want(t, w.owner.post(t, "/api/v1/projects", map[string]any{"key": hidden, "name": "Hidden"}), http.StatusCreated, "make a hidden project")
-	if _, err := h.super.Exec(ctx, `DELETE FROM project_grant WHERE project_id = (SELECT id FROM project WHERE key = $1) AND subject_type = 'everyone'`, hidden); err != nil {
+	if _, err := h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = (SELECT id FROM project WHERE key = $1) AND group_id = (SELECT id FROM groups WHERE builtin = 'everyone')`, hidden); err != nil {
 		t.Fatal(err)
 	}
 	secret := obj(t, want(t, w.owner.post(t, "/api/v1/projects/"+hidden+"/requirements", map[string]any{"title": "Secret"}), http.StatusCreated, "write a secret"), "requirement")["id"].(string)
