@@ -390,16 +390,25 @@ $$;
 -- +goose StatementEnd
 
 -- Whether a grant lets somebody administer the installation. It asks for the one permission rather than gathering
--- them all, as the policies call it for every row they weigh.
+-- them all, as the policies call it for every row they weigh, and starts from the person's own grants, then their
+-- groups', rather than reading every administrator's grant.
 -- +goose StatementBegin
 CREATE FUNCTION perm_is_administrator(actor uuid) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
+    LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
-    SELECT EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member') AND EXISTS (
-        SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
-        WHERE a.project_id IS NULL AND 'administerInstallation' = ANY (r.permissions)
-          AND (a.user_id = actor OR (a.group_id IS NOT NULL AND EXISTS (
-              SELECT 1 FROM group_member gm WHERE gm.group_id = a.group_id AND gm.user_id = actor))))
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM app_user m WHERE m.id = actor AND m.role = 'member') THEN
+        RETURN false;
+    END IF;
+    IF EXISTS (SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
+               WHERE a.user_id = actor AND a.project_id IS NULL AND 'administerInstallation' = ANY (r.permissions)) THEN
+        RETURN true;
+    END IF;
+    RETURN EXISTS (SELECT 1 FROM group_member gm
+                   JOIN role_assignment a ON a.group_id = gm.group_id AND a.project_id IS NULL
+                   JOIN role r ON r.key = a.role
+                   WHERE gm.user_id = actor AND 'administerInstallation' = ANY (r.permissions));
+END
 $$;
 -- +goose StatementEnd
 
@@ -427,7 +436,9 @@ ALTER POLICY project_made_by_admins ON project
 -- member, those across the installation. An archived project allows only view, and administer, which is what
 -- unarchives and deletes it.
 -- The policies ask this of every row they weigh, so it is plpgsql: each step plans once a session and runs only
--- when the one before it has not answered, where one SQL statement set up all of its parts at every call.
+-- when the one before it has not answered, where one SQL statement set up all of its parts at every call. A
+-- member's own grant across the installation goes first, so an administrator in a project they hold nothing in
+-- answers before the project's grants are read, and no step gathers every group or permission somebody holds.
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION perm_project_holds(project uuid, actor uuid, permission text) RETURNS boolean
     LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp
@@ -444,12 +455,24 @@ BEGIN
     IF standing IS NULL THEN
         RETURN false;
     END IF;
-    RETURN EXISTS (
-            SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
-            WHERE a.project_id = perm_project_holds.project
-              AND (a.user_id = actor OR a.group_id IN (SELECT gm.group_id FROM group_member gm WHERE gm.user_id = actor))
-              AND permission = ANY (perm_role_held(standing, r.permissions)))
-        OR (standing = 'member' AND permission = ANY (perm_installation_grants(actor)));
+    IF standing = 'member' AND EXISTS (
+        SELECT 1 FROM role_assignment a JOIN role r ON r.key = a.role
+        WHERE a.user_id = actor AND a.project_id IS NULL AND permission = ANY (r.permissions)) THEN
+        RETURN true;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM role_assignment a
+        JOIN role r ON r.key = a.role
+        LEFT JOIN group_member gm ON gm.group_id = a.group_id AND gm.user_id = actor
+        WHERE a.project_id = perm_project_holds.project AND (a.user_id = actor OR gm.user_id IS NOT NULL)
+          AND permission = ANY (perm_role_held(standing, r.permissions))) THEN
+        RETURN true;
+    END IF;
+    RETURN standing = 'member' AND EXISTS (
+        SELECT 1 FROM group_member gm
+        JOIN role_assignment a ON a.group_id = gm.group_id AND a.project_id IS NULL
+        JOIN role r ON r.key = a.role
+        WHERE gm.user_id = actor AND permission = ANY (r.permissions));
 END
 $$;
 -- +goose StatementEnd
