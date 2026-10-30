@@ -221,7 +221,7 @@ test.describe("baseline controls", { tag: "@desktop" }, () => {
     await page.goto(`/p/${SIGN_KEY}/settings?tab=approval`);
     await rule.locator('[data-action="remove-signing-rule"]').click();
     await confirm(page);
-    await expect(rule).toContainText("Baselines are no longer signed.");
+    await expect(toast(page, "Baselines are no longer signed.")).toBeVisible();
     await expect(rule.locator("[data-signing-rule-summary]")).toHaveText("Nobody signs this project's baselines.");
 
     await page.goto(baselinePage);

@@ -99,5 +99,6 @@ export async function dismissToasts(page: Page): Promise<void> {
 
 /** The sentence of the latest toast that says it, without the dismiss button's name. */
 export function toast(page: Page, text: string | RegExp) {
-  return page.locator("[data-toast]").filter({ hasText: text }).last().locator("[data-toast-message]");
+  // Matched on the message alone, so a pattern anchored at its end is not thrown by the dismiss button's name.
+  return page.locator("[data-toast-message]").filter({ hasText: text }).last();
 }
