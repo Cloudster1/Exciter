@@ -62,13 +62,21 @@ func requirementLinks(ctx context.Context, tx db.DBTX, reader uuid.UUID, other *
 	if len(rows) == 0 || len(ids) == 0 {
 		return l, nil
 	}
+	// Each row finds its links by index in either direction and each link its state and type by id: matched by
+	// either end at once, every live link of the installation was read and checked for visibility (#477).
 	found, err := tx.Query(ctx, `
 		SELECT row_end.id, row_end.other_id, v.id, lt.name, lt.key, row_end.direction, v.suspect
-		FROM trace_link_state v
-		JOIN link_type lt ON lt.id = v.type_id
-		CROSS JOIN LATERAL (VALUES (v.source_id, v.target_id, 'outgoing'), (v.target_id, v.source_id, 'incoming'))
-		     AS row_end (id, other_id, direction)
-		WHERE row_end.id = ANY ($1) AND row_end.other_id = ANY ($2)
+		FROM (SELECT DISTINCT unnest($1::uuid[])) AS r(id)
+		CROSS JOIN LATERAL (
+			SELECT l.id AS link, l.source_id AS id, l.target_id AS other_id, 'outgoing' AS direction FROM trace_link l
+			WHERE l.source_id = r.id AND l.deleted_at IS NULL
+			UNION ALL
+			SELECT l.id, l.target_id, l.source_id, 'incoming' FROM trace_link l
+			WHERE l.target_id = r.id AND l.deleted_at IS NULL
+		) row_end
+		CROSS JOIN LATERAL (SELECT s.id, s.type_id, s.suspect FROM trace_link_state s WHERE s.id = row_end.link OFFSET 0) v
+		CROSS JOIN LATERAL (SELECT t.name, t.key, t.forward, t.backward FROM link_type t WHERE t.id = v.type_id OFFSET 0) lt
+		WHERE row_end.other_id = ANY ($2)
 		  AND (COALESCE(cardinality($3::text[]), 0) = 0 OR lt.key = ANY ($3))
 		  AND ($4 = 'both' OR row_end.direction = $4 OR lt.forward = lt.backward)
 		ORDER BY lt.name, v.id`, rows, ids, q.LinkTypes, string(q.Direction))

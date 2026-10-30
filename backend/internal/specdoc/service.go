@@ -156,17 +156,29 @@ type reading struct {
 }
 
 func (r *reading) contents(doc *Document, ids []uuid.UUID) error {
+	// Each type and status is looked up once by id: joined to the requirements, a status was checked for visibility
+	// once per requirement, and every type of the installation when the planner hashed them (#477).
 	rows, err := r.tx.Query(r.ctx, `
+		WITH r AS MATERIALIZED (
+			SELECT r.id, r.project_id, r.statement, r.rationale, r.attributes, r.type_id, r.status_id, r.owner_id, r.priority,
+			       r.preconditions, r.steps, r.parameters, r.risk
+			FROM requirement r WHERE r.id = ANY($1)
+		), types AS (
+			SELECT t.id, t.name FROM (SELECT DISTINCT type_id FROM r WHERE type_id IS NOT NULL) u
+			CROSS JOIN LATERAL (SELECT t.id, t.name FROM requirement_type t WHERE t.id = u.type_id OFFSET 0) t
+		), statuses AS (
+			SELECT st.id, st.name FROM (SELECT DISTINCT status_id FROM r WHERE status_id IS NOT NULL) u
+			CROSS JOIN LATERAL (SELECT s.id, s.name FROM req_status s WHERE s.id = u.status_id OFFSET 0) st
+		)
 		SELECT r.id, r.statement, r.rationale, r.attributes || requirement_computed_of(r.id), COALESCE(t.name, ''), COALESCE(st.name, ''),
 		       COALESCE(NULLIF(u.name, ''), u.email::text, ''), COALESCE(r.priority, ''),
 		       COALESCE((SELECT array_agg(l.name ORDER BY l.name) FROM requirement_label l WHERE l.requirement_id = r.id), '{}'),
 		       r.preconditions, r.steps, r.parameters,
 		       r.risk, CASE WHEN r.risk IS NOT NULL THEN risk_view(r.project_id, r.risk, r.id) END
-		FROM requirement r
-		LEFT JOIN requirement_type t ON t.id = r.type_id
-		LEFT JOIN req_status st ON st.id = r.status_id
-		LEFT JOIN app_user u ON u.id = r.owner_id
-		WHERE r.id = ANY($1)`, ids)
+		FROM r
+		LEFT JOIN types t ON t.id = r.type_id
+		LEFT JOIN statuses st ON st.id = r.status_id
+		LEFT JOIN app_user u ON u.id = r.owner_id`, ids)
 	if err != nil {
 		return err
 	}
