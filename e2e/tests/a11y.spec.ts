@@ -10,7 +10,17 @@ import { expectAccessible, openShell, startInScheme, type ColourScheme } from ".
 const DRAWER_BELOW_PX = 768;
 
 /** The pages no sidebar link leads to: the settings hub, the forms under a place, and a path that leads nowhere. */
-const OFF_THE_SIDEBAR = ["/settings", "/projects/new", "/settings/themes/new", "/no-such-page"];
+// The Access page's link opens its first tab; the others are addresses of their own.
+const OFF_THE_SIDEBAR = [
+  "/settings",
+  "/projects/new",
+  "/settings/themes/new",
+  "/settings/access/matrix",
+  "/settings/access/members",
+  "/settings/access/groups",
+  "/settings/access/sso",
+  "/no-such-page",
+];
 
 /** Where each group of places is listed: the work's in "Where you are", the person's and the installation's in the
  *  settings area. */
@@ -35,8 +45,7 @@ const AT_LEAST = {
   ],
   settings: [
     "/settings/installation",
-    "/settings/members",
-    "/settings/sso",
+    "/settings/access",
     "/settings/link-types",
     "/settings/all-tokens",
     "/settings/all-connected-apps",

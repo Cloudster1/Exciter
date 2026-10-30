@@ -5,6 +5,7 @@ import { peopleTest as test, type Person } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Shaping a project in its settings (#322): every control of the types, attributes, field rules, statuses and the
 // workflow designer is used, and what it changed is checked where a requirement meets it.
@@ -22,17 +23,10 @@ async function removeProject(api: ExciterApi) {
 /** The project, with alice its administrator and bob an editor. */
 async function makeProject(api: ExciterApi, people: Record<User, Person>) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Shaped" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "user", id: people.bob.id }, role: "editor" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "user", id: people.bob.id }, role: "editor" },
+  ]);
 }
 
 async function statusIds(api: ExciterApi) {
@@ -134,7 +128,7 @@ test.describe("shaping a project", { tag: "@desktop" }, () => {
     await form.getByLabel("Required from").selectOption({ label: "In review" });
     await form.locator('[data-action="add-permit"]').click();
     const line = form.locator('[data-permit="1"]');
-    await line.getByLabel("Admin", { exact: true }).check();
+    await line.getByLabel("Project administrator", { exact: true }).check();
     await line.getByLabel("Draft", { exact: true }).check();
     await expectAccessible(page);
     await form.locator('[data-action="save-attribute"]').click();

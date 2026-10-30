@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Review sessions (#204): alice opens a session over a section from the document, bob decides each requirement in
 // review mode, a revised one comes back in round two, and alice closes the session with a baseline.
@@ -27,18 +28,11 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     test.setTimeout(60_000);
     const project = { params: { path: { projectKey: KEY } } };
     must(await api.POST("/projects", { body: { key: KEY, name: "Sessions" } }));
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...project,
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "everyone" }, role: "editor" },
-            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "everyone" }, role: "editor" },
+      { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+    ]);
     const write = async (body: Record<string, unknown>) =>
       must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: body as never })).requirement;
     const braking = await write({ kind: "section", title: "Braking" });

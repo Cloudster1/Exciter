@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible, confirm } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // The edges of the discussion (#312): a comment cancelled, edited to mention bob, resolved and reopened; another's
 // comment moderated; and a reader, and a member without a grant, kept out of it.
@@ -109,16 +110,11 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
     const me = must(await api.GET("/auth/me")).user;
     const grants = (bobRole?: "viewer") =>
-      api.PUT("/projects/{projectKey}/grants", {
-        params: { path: { projectKey: RULE } },
-        body: {
-          grants: [
-            { subject: { type: "user", id: me.id }, role: "admin" },
-            ...(bobRole ? [{ subject: { type: "user" as const, id: people.bob.id }, role: bobRole }] : []),
-          ],
-        },
-      });
-    must(await grants());
+      setProjectGrants(api, RULE, [
+        { subject: { type: "user", id: me.id }, role: "admin" },
+        ...(bobRole ? [{ subject: { type: "user" as const, id: people.bob.id }, role: bobRole }] : []),
+      ]);
+    await grants();
     await page.goto(requirement);
     await discussion.getByRole("button", { name: "Comment" }).click();
     await page.locator("#new-comment").click();
@@ -131,7 +127,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
     await page.keyboard.press("Escape");
     await discussion.getByRole("button", { name: "Cancel" }).click();
 
-    must(await grants("viewer"));
+    await grants("viewer");
     await openUntil(bob, requirement, () => expect(bobs.getByText(/You may read this discussion but not take part/)).toBeVisible(ONE_LOOK));
     await expect(bobs.getByRole("article")).toContainText("Let us keep to the brakes.");
     await expect(bobs.getByRole("button", { name: "Comment" })).toHaveCount(0);

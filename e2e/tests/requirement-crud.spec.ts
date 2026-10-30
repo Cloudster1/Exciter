@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("REQ");
 const LIST_PATH = `/p/${KEY}`;
@@ -113,17 +114,10 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     ).requirement;
     const me = must(await api.GET("/auth/me")).user;
     const bobId = people.bob.id;
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        params: { path: { projectKey: KEY } },
-        body: {
-          grants: [
-            { subject: { type: "user", id: me.id }, role: "admin" },
-            { subject: { type: "user", id: bobId }, role: "viewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: me.id }, role: "admin" },
+      { subject: { type: "user", id: bobId }, role: "viewer" },
+    ]);
 
     const bob = await pageAs("bob");
     // Alice wrote it and narrowed the grants, so bob's read may come from a replica a moment behind.

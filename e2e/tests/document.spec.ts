@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("DOC");
 
@@ -99,18 +100,11 @@ test.describe("the document", { tag: "@desktop" }, () => {
 
   test("submits a section for review at once, and a reviewer approves from the document", async ({ page, api, pageAs, people }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Document" } }));
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        params: { path: { projectKey: KEY } },
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "everyone" }, role: "editor" },
-            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "everyone" }, role: "editor" },
+      { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+    ]);
     const write = async (body: Record<string, unknown>) =>
       must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: body as never })).requirement;
     const scope = await write({ kind: "section", title: "Scope" });
@@ -188,18 +182,11 @@ test.describe("the document", { tag: "@desktop" }, () => {
   test("an author asks for review of a section, and a reviewer approves one and rejects another in the document", async ({ page, api, pageAs, people }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Document" } }));
     const path = { params: { path: { projectKey: KEY } } };
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...path,
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "everyone" }, role: "editor" },
-            { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "everyone" }, role: "editor" },
+      { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+    ]);
     must(
       await api.PUT("/projects/{projectKey}/approval-rules", {
         ...path,

@@ -6,6 +6,7 @@ import type { Person } from "../fixtures/people";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("GRDV");
 const project = { params: { path: { projectKey: KEY } } };
@@ -153,17 +154,10 @@ test.describe("the grid", { tag: "@desktop" }, () => {
 
   test("a shared view is seen by a viewer as alice keeps it, until she deletes it", async ({ page, api, people, pageAs }) => {
     await makeProject(api, people.alice);
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...project,
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "user", id: people.bob.id }, role: "viewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "user", id: people.bob.id }, role: "viewer" },
+    ]);
     const name = "Team order";
     await page.goto(`/p/${KEY}/grid?sort=title`);
     await page.locator('[data-action="save-view"]').click();

@@ -8,6 +8,7 @@ import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
 import { unzipText } from "../fixtures/unzip";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Every control of the specification page, each used as its reader would and checked for what it changed (#310).
 
@@ -41,18 +42,11 @@ async function scoped(api: ExciterApi) {
 
 /** Bob reviews and approves in the project, which everybody else edits. */
 async function bobApproves(api: ExciterApi, people: Record<"alice" | "bob", Person>) {
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
   must(
     await api.PUT("/projects/{projectKey}/approval-rules", {
       ...project,

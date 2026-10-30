@@ -26,7 +26,8 @@ test.describe("the interface in German", () => {
       await expect(page.getByRole("link", { name: "Start", exact: true }).first()).toBeVisible();
       await heading(page, "/settings", "Einstellungen");
       await heading(page, "/settings/themes", "Designs");
-      await heading(page, "/settings/members", "Mitglieder");
+      await heading(page, "/settings/access/members", "Zugriff");
+      await expect(page.getByRole("tab", { name: "Mitglieder" })).toHaveAttribute("aria-selected", "true");
 
       await heading(page, "/settings/audit", "Protokoll");
       const when = page.locator("[data-audit-row] time").first();
@@ -63,7 +64,7 @@ test.describe("the interface in German", () => {
           body: { title: "Bremsweg unter 40 m", statement: paragraph("Das Fahrzeug hält an.") },
         }),
       );
-      for (const place of ["/", "/projects", "/settings/members", "/settings/themes", `/p/${KEY}/r/${KEY}-R1`]) {
+      for (const place of ["/", "/projects", "/settings/access/members", "/settings/access/matrix", "/settings/themes", `/p/${KEY}/r/${KEY}-R1`]) {
         await test.step(place, async () => {
           await openShell(page, place);
           await expect(page.locator("html")).toHaveAttribute("lang", "de");

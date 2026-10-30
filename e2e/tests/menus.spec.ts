@@ -22,7 +22,7 @@ test.describe("the avatar menu and the settings area", { tag: "@desktop" }, () =
   test("an administrator finds their own pages, Settings and the settings area with both groups", async ({ page, people }) => {
     await openShell(page, "/search");
     await expect(page.locator("[data-top-bar]")).toHaveCount(0);
-    await expect(page.locator("[data-sidebar]").getByRole("link", { name: "Members" })).toHaveCount(0);
+    await expect(page.locator("[data-sidebar]").getByRole("link", { name: "Access" })).toHaveCount(0);
 
     await openAccountMenu(page);
     const header = page.locator("[data-account-header]");
@@ -39,8 +39,7 @@ test.describe("the avatar menu and the settings area", { tag: "@desktop" }, () =
     expect(await settingsGroup(page, "you")).toEqual([...OWN_PAGES, "Armature account", "Stator account"]);
     expect(await settingsGroup(page, "settings")).toEqual([
       "Installation",
-      "Members",
-      "Single sign-on",
+      "Access",
       "Link types",
       "All tokens",
       "All connected apps",
@@ -51,9 +50,12 @@ test.describe("the avatar menu and the settings area", { tag: "@desktop" }, () =
     ]);
     await expectAccessible(page);
 
-    await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Members" }).click();
-    await expect(page).toHaveURL(/\/settings\/members$/);
+    await page.locator("[data-settings-sidebar]").getByRole("link", { name: "Access" }).click();
+    await expect(page).toHaveURL(/\/settings\/access\/roles$/);
+    await page.getByRole("tab", { name: "Members" }).click();
+    await expect(page).toHaveURL(/\/settings\/access\/members$/);
     const crumbs = page.locator("[data-shell-strip]").getByRole("navigation", { name: "Breadcrumb" });
+    await expect(crumbs.getByText("Access")).toHaveAttribute("aria-current", "page");
     await crumbs.getByRole("link", { name: "Settings" }).click();
     await expect(page).toHaveURL(/\/settings$/);
 
@@ -117,7 +119,7 @@ test.describe("the drawer at phone width", { tag: "@mobile" }, () => {
     await page.locator('[data-action="drawer"]').click();
     const drawer = page.getByRole("dialog", { name: "Navigation" });
     await expect(drawer.getByRole("navigation", { name: "Where you are" }).getByRole("link", { name: "Reviews" })).toBeVisible();
-    await expect(drawer.getByRole("link", { name: "Members" })).toHaveCount(0);
+    await expect(drawer.getByRole("link", { name: "Access" })).toHaveCount(0);
     await expectAccessible(page);
 
     await drawer.locator('[data-action="account"]').click();
@@ -129,7 +131,7 @@ test.describe("the drawer at phone width", { tag: "@mobile" }, () => {
     await page.locator('[data-action="drawer"]').click();
     const settings = page.getByRole("dialog", { name: "Navigation" }).getByRole("navigation", { name: "Settings" });
     await expect(settings.getByRole("link", { name: "Your profile" })).toBeVisible();
-    await expect(settings.getByRole("link", { name: "Members" })).toBeVisible();
+    await expect(settings.getByRole("link", { name: "Access" })).toBeVisible();
     await expectAccessible(page);
     await page.getByRole("dialog", { name: "Navigation" }).getByRole("link", { name: "Back to Exciter" }).click();
     await expect(page).toHaveURL(/\/$/);

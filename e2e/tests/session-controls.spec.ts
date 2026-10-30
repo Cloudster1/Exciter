@@ -7,6 +7,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Every control of the project's sessions page and a session's report (#317): alice opens a session over a baseline
 // and one over a query of what changed since its last approval, and downloads the report while bob's inbox lists it.
@@ -26,18 +27,11 @@ async function removeProject(api: ExciterApi) {
 async function aProject(api: ExciterApi, people: { alice: { id: string }; bob: { id: string } }) {
   const project = { params: { path: { projectKey: KEY } } };
   must(await api.POST("/projects", { body: { key: KEY, name: "Session controls" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      ...project,
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
   const write = async (body: Record<string, unknown>) =>
     must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: body as never })).requirement;
   const braking = await write({ kind: "section", title: "Braking" });

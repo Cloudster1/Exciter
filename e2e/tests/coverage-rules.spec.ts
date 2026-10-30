@@ -6,6 +6,7 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Coverage rules for one type and the sources they count, and the report as its reader walks it (#314).
 
@@ -95,17 +96,10 @@ test.describe("coverage rules", { tag: "@desktop" }, () => {
     const project = { params: { path: { projectKey: KEY } } };
     must(await api.POST("/projects", { body: { key: KEY, name: "Read coverage" } }));
     const me = must(await api.GET("/auth/me")).user;
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...project,
-        body: {
-          grants: [
-            { subject: { type: "user", id: me.id }, role: "admin" },
-            { subject: { type: "user", id: people.bob.id }, role: "viewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: me.id }, role: "admin" },
+      { subject: { type: "user", id: people.bob.id }, role: "viewer" },
+    ]);
     must(await api.PUT("/projects/{projectKey}/coverage-rules", { ...project, body: { decomposed: true, implemented: false, verified: false } }));
     const total = COVERAGE_PAGE_SIZE + 1;
     for (let n = 1; n <= total; n++) await write(api, `Brake requirement ${n}`);

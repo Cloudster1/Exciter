@@ -5,6 +5,7 @@ import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 // Suspect links (#36): R2 derives from R1, R1 changes, and R2's link waits in the project's list until alice reads
 // the change and confirms it.
@@ -95,17 +96,10 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
   test("the list walks its pages, and bob, who only reads the project, sees it without Check", async ({ page, api, pageAs, people }) => {
     const projectKey = { params: { path: { projectKey: KEY } } };
     must(await api.POST("/projects", { body: { key: KEY, name: "Suspected" } }));
-    must(
-      await api.PUT("/projects/{projectKey}/grants", {
-        ...projectKey,
-        body: {
-          grants: [
-            { subject: { type: "user", id: people.alice.id }, role: "admin" },
-            { subject: { type: "user", id: people.bob.id }, role: "viewer" },
-          ],
-        },
-      }),
-    );
+    await setProjectGrants(api, KEY, [
+      { subject: { type: "user", id: people.alice.id }, role: "admin" },
+      { subject: { type: "user", id: people.bob.id }, role: "viewer" },
+    ]);
     must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title: "Brakes engage within 100 ms" } }));
     for (let n = 1; n <= WAITING; n++) {
       const below = must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title: `Brake light ${n} follows the pedal` } }));

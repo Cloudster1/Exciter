@@ -103,11 +103,12 @@ export async function ownerApi(): Promise<ExciterApi> {
   }
 }
 
-/** Where the page's session acts now, and with which role. */
-export async function standing(page: Page): Promise<{ role?: string }> {
+/** Where the page's session acts now: its standing, member or guest, and whether a grant makes it administer. */
+export async function standing(page: Page): Promise<{ role?: string; administers?: boolean }> {
   const me = await page.request.get(ME_PATH);
   if (!me.ok()) return {};
-  return { role: ((await me.json()) as { role?: string }).role };
+  const { role, administers } = (await me.json()) as { role?: string; administers?: boolean };
+  return { role, administers };
 }
 
 interface SessionFixtures {

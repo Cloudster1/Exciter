@@ -6,6 +6,7 @@ import { expect, type User } from "../fixtures/auth";
 import { peopleTest as test, type Person } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { expectAccessible } from "../fixtures/shell";
+import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("FLOW");
 const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
@@ -25,18 +26,11 @@ async function removeProject(api: ExciterApi) {
 async function makeProject(api: ExciterApi, people: Record<User, Person>) {
   must(await api.POST("/projects", { body: { key: KEY, name: "Flowing" } }));
   must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Pay the basket" } }));
-  must(
-    await api.PUT("/projects/{projectKey}/grants", {
-      params: { path: { projectKey: KEY } },
-      body: {
-        grants: [
-          { subject: { type: "user", id: people.alice.id }, role: "admin" },
-          { subject: { type: "everyone" }, role: "editor" },
-          { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
-        ],
-      },
-    }),
-  );
+  await setProjectGrants(api, KEY, [
+    { subject: { type: "user", id: people.alice.id }, role: "admin" },
+    { subject: { type: "everyone" }, role: "editor" },
+    { subject: { type: "user", id: people.bob.id }, role: "reviewer" },
+  ]);
 }
 
 /** Draws a transition the way a person does: from a status's ring onto another, in small steps, since React
