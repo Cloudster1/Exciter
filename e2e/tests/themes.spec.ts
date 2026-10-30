@@ -20,6 +20,8 @@ const THEMES_PATH = "/settings/themes";
 const DEFAULT_THEME_PATH = "/settings/default-theme";
 const INSTALLATION_PATH = "/admin/installation";
 const defaultSelect = (page: Page) => page.locator("[data-default-theme-select]");
+// A closed select's options have no box, so Playwright never counts them visible; they are only attached.
+const defaultOption = (page: Page, name: string) => defaultSelect(page).locator("option", { hasText: name });
 const customStyle = (page: Page) => page.locator("style#exciter-theme");
 const row = (page: Page, name: string) => page.locator(`[data-theme-row="${name}"]`);
 // What the page said last, in the toast in the corner.
@@ -154,7 +156,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
 
     // The page of its own it once had sends a bookmark on to the installation, where the default is named now.
-    await openShowing(page, DEFAULT_THEME_PATH, defaultSelect(page).locator("option", { hasText: name }));
+    await openUntil(page, DEFAULT_THEME_PATH, () => expect(defaultOption(page, name)).toBeAttached(ONE_LOOK));
     await expect(page).toHaveURL(/\/admin\/installation$/);
     await defaultSelect(page).selectOption({ label: name });
     await expect(notice(page)).toHaveText(`${name} is what everybody sees until they choose.`);
@@ -181,7 +183,7 @@ test.describe("themes", { tag: "@desktop" }, () => {
     const house = await createTheme(api, name, themeSpec({ colors: { light: { canvas: "#0f0f0f" }, dark: { canvas: "#0f0f0f" } } }), true);
     const using = (who: Page, words: string) => openShowing(who, THEMES_PATH, who.getByText(words, { exact: true }));
 
-    await openShowing(page, INSTALLATION_PATH, defaultSelect(page).locator("option", { hasText: name }));
+    await openUntil(page, INSTALLATION_PATH, () => expect(defaultOption(page, name)).toBeAttached(ONE_LOOK));
     await defaultSelect(page).selectOption({ label: name });
     await expect(notice(page)).toHaveText(`${name} is what everybody sees until they choose.`);
     await dismissToasts(page);

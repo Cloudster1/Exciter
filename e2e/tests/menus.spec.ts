@@ -88,7 +88,7 @@ test.describe("the avatar menu, the settings area and Admin", { tag: "@desktop" 
     await expectAccessible(page);
 
     await page.keyboard.press("ControlOrMeta+k");
-    await page.getByRole("combobox").fill("admin");
+    await page.locator("[data-quick-switcher-input]").fill("admin");
     await expect(page.locator('[data-quick-switcher-option^="place:/admin"]')).toHaveCount(0);
     await page.keyboard.press("Escape");
 
@@ -123,12 +123,12 @@ test.describe("the avatar menu, the settings area and Admin", { tag: "@desktop" 
   test("the palette offers Your profile, and every Admin page as Admin / <page>", async ({ page }) => {
     await openShell(page, "/");
     await page.keyboard.press("ControlOrMeta+k");
-    await page.getByRole("combobox").fill("your profile");
+    await page.locator("[data-quick-switcher-input]").fill("your profile");
     await page.locator(`[data-quick-switcher-option="place:/settings/profile"]`).click();
     await expect(page).toHaveURL(/\/settings\/profile$/);
 
     await page.keyboard.press("ControlOrMeta+k");
-    await page.getByRole("combobox").fill("link types");
+    await page.locator("[data-quick-switcher-input]").fill("link types");
     await expect(page.locator(`[data-quick-switcher-option="place:/admin/link-types"]`)).toContainText("Admin / Link types");
     await page.locator(`[data-quick-switcher-option="place:/admin/link-types"]`).click();
     await expect(page).toHaveURL(/\/admin\/link-types$/);

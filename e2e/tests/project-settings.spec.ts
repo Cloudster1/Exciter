@@ -88,7 +88,7 @@ test.describe("a project's settings", () => {
     await page.goto(`/projects/${KEY}`);
     await expect(page.locator(`[data-project-nav="${KEY}"]`)).toBeVisible();
     await page.keyboard.press("ControlOrMeta+k");
-    await page.getByRole("combobox").fill("project settings");
+    await page.locator("[data-quick-switcher-input]").fill("project settings");
     await page.locator(`[data-quick-switcher-option="place:project-settings:${KEY}"]`).click();
     await expect(page).toHaveURL(`/projects/${KEY}/settings/details`);
   });

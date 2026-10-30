@@ -107,7 +107,9 @@ test.describe("the Access page", { tag: "@desktop" }, () => {
       const comment = page.locator(`[data-permission-cell="${key}:comment"]`);
       await expect(page.locator(`[data-permission-cell="${key}:view"]`)).toBeChecked();
       await expect(comment).not.toBeChecked();
-      await comment.check();
+      // The box shows what the server holds, so it ticks once the save is back; check() looks at once and finds it unticked.
+      await comment.click();
+      await expect(comment).toBeChecked();
       await expect(toast(page, `${role} may now comment on requirements.`)).toBeVisible();
       await dismissToasts(page);
       await page.reload();
