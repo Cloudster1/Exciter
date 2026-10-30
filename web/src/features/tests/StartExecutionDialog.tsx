@@ -47,7 +47,7 @@ export function StartExecutionDialog({ project, plan, onClose }: { project: Proj
         ),
       },
       {
-        onSuccess: (e) => void navigate({ to: "/p/$projectKey/tests/executions/$executionId", params: { projectKey: project.key, executionId: e.id } }),
+        onSuccess: (e) => void navigate({ to: "/projects/$projectKey/tests/executions/$executionId", params: { projectKey: project.key, executionId: e.id } }),
       },
     );
   }

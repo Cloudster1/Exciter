@@ -11,7 +11,7 @@ import { setProjectGrants } from "../fixtures/grants";
 // a reader only to read.
 
 const KEY = uniqueKey("DROP");
-const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
+const REQUIREMENT = `/projects/${KEY}/r/${KEY}-R1`;
 // The stack's EXCITER_UPLOAD_LIMIT, 50 MB, and a byte past it.
 const TOO_LARGE = 50 * 1024 * 1024 + 1;
 

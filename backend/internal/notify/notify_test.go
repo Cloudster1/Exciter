@@ -157,3 +157,17 @@ func TestADigestGathersEveryUpdate(t *testing.T) {
 		}
 	}
 }
+
+// Mails and notifications lead to /projects/, where the suite puts a project; /p/ only redirects.
+func TestAProjectsPagesAreLinkedUnderProjects(t *testing.T) {
+	id := uuid.MustParse("0195f000-0000-7000-8000-0000000000a1")
+	for got, want := range map[string]string{
+		SessionURL("https://exciter.example", "CHK", id):   "https://exciter.example/projects/CHK/sessions/" + id.String(),
+		CodeTagsURL("https://exciter.example", "CHK"):      "https://exciter.example/projects/CHK/code-tags",
+		ExecutionURL("https://exciter.example", "CHK", id): "https://exciter.example/projects/CHK/tests/executions/" + id.String(),
+	} {
+		if got != want {
+			t.Errorf("a link reads %q, want %q", got, want)
+		}
+	}
+}

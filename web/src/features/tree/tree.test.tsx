@@ -66,7 +66,7 @@ describe("the specification", () => {
         body: { entries: [entry(scope, "What is in scope."), entry(pay, "Pay at once.")], total: 3, limit: 50, offset: 0 },
       },
     });
-    await renderAt("/p/CHK/spec");
+    await renderAt("/projects/CHK/spec");
     const tree = await screen.findByRole("tree");
     expect(within(tree).getByRole("treeitem", { name: "1.1 Pay" })).toHaveAttribute("aria-level", "2");
     const document = screen.getByRole("article", { name: "Specification" });
@@ -85,7 +85,7 @@ describe("moving and copying from a requirement's page", () => {
       "GET /requirements/CHK-R3": { status: 200, body: { requirement: aRequirement({ id: "h", key: "CHK-R3", title: "Ship" }) } },
       "POST /requirements/CHK-R3/move": { status: 200, body: { requirement: aRequirement({ id: "h", key: "CHK-R3", title: "Ship", outline: "1.1.1" }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R3");
+    await renderAt("/projects/CHK/r/CHK-R3");
     await userEvent.click(await screen.findByRole("button", { name: "Move" }));
     const dialog = screen.getByRole("dialog", { name: "Move CHK-R3" });
     // Itself and what is below it are no place for it.
@@ -108,7 +108,7 @@ describe("moving and copying from a requirement's page", () => {
       "POST /requirements/CHK-R1/copy": { status: 201, body: { requirement: aRequirement({ key: "SYS-R1", projectKey: "SYS" }), copied: 3 } },
       "GET /requirements/SYS-R1": { status: 200, body: { requirement: aRequirement({ key: "SYS-R1", projectKey: "SYS" }) } },
     });
-    const router = await renderAt("/p/CHK/r/CHK-R1");
+    const router = await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Copy" }));
     const dialog = screen.getByRole("dialog", { name: "Copy CHK-R1" });
     await userEvent.selectOptions(within(dialog).getByLabelText("Project"), "SYS");
@@ -121,7 +121,7 @@ describe("moving and copying from a requirement's page", () => {
         links: false,
       }),
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/SYS/r/SYS-R1"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/SYS/r/SYS-R1"));
   });
 });
 
@@ -143,7 +143,7 @@ describe("moving into a project with other statuses", () => {
   });
 
   async function openMove() {
-    await renderAt("/p/CHK/r/CHK-R3");
+    await renderAt("/projects/CHK/r/CHK-R3");
     await userEvent.click(await screen.findByRole("button", { name: "Move" }));
     const dialog = screen.getByRole("dialog", { name: "Move CHK-R3" });
     await userEvent.selectOptions(within(dialog).getByLabelText("Project"), "SYS");

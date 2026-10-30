@@ -62,7 +62,7 @@ export function BaselineList({ project }: { project: Project }) {
             <li key={b.id} className="flex flex-col gap-0.5 py-3" data-baseline={b.name}>
               <span className="flex flex-wrap items-center gap-2">
                 <Link
-                  to="/p/$projectKey/baselines/$baselineId"
+                  to="/projects/$projectKey/baselines/$baselineId"
                   params={{ projectKey: project.key, baselineId: b.id }}
                   className="text-sm font-medium text-ink hover:text-accent hover:underline"
                 >

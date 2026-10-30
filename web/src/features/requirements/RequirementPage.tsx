@@ -55,7 +55,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
     <Page width="narrow" className="space-y-5" data-requirement={requirement.key}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.requirements.backToList}
           </Link>
         }
@@ -76,7 +76,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
             {!section && <QualityBadge score={requirement.quality.score} stale={requirement.quality.stale} />}
             {requirement.outline && <span data-outline={requirement.outline}>{requirement.outline}</span>}
             <Link
-              to="/p/$projectKey/r/$reqKey/history"
+              to="/projects/$projectKey/r/$reqKey/history"
               params={{ projectKey: project.key, reqKey: requirement.key }}
               search={{}}
               className="hover:text-accent hover:underline"
@@ -86,7 +86,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
             </Link>
             {!section && (
               <Link
-                to="/p/$projectKey/r/$reqKey/trace"
+                to="/projects/$projectKey/r/$reqKey/trace"
                 params={{ projectKey: project.key, reqKey: requirement.key }}
                 search={{}}
                 className="hover:text-accent hover:underline"
@@ -121,7 +121,7 @@ export function RequirementPage({ project, requirement }: { project: Project; re
       {requirement.copiedFrom && (
         <p className="text-sm text-ink-muted" data-copied-from>
           <Link
-            to="/p/$projectKey/r/$reqKey"
+            to="/projects/$projectKey/r/$reqKey"
             params={{ projectKey: requirement.copiedFrom.projectKey, reqKey: requirement.copiedFrom.key }}
             className="hover:text-accent hover:underline"
           >
@@ -292,7 +292,7 @@ function TrashSection({ project, requirement }: { project: Project; requirement:
           onClose={() => setPlacing(null)}
           onDone={(r) => {
             setPlacing(null);
-            void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
+            void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
           }}
         />
       )}
@@ -305,7 +305,7 @@ function TrashSection({ project, requirement }: { project: Project; requirement:
           // onSuccess; the promise resolves regardless.
           void trash
             .mutateAsync()
-            .then(() => navigate({ to: "/p/$projectKey", params: { projectKey: project.key } }))
+            .then(() => navigate({ to: "/projects/$projectKey", params: { projectKey: project.key } }))
             .catch(() => {})
         }
         data-action="trash-requirement"
@@ -334,7 +334,7 @@ function ReuseAction({ project, requirement }: { project: Project; requirement: 
           onClose={() => setOpen(false)}
           onDone={(r) => {
             setOpen(false);
-            void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
+            void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey: r.projectKey, reqKey: r.key } });
           }}
         />
       )}

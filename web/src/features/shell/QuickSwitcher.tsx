@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useLogout, useMe, useMyAccess } from "@/api/auth";
 import { useMarkRead } from "@/api/notifications";
 import { useProjects } from "@/api/projects";
@@ -12,7 +12,9 @@ import { ADMIN_PATH, NEW_PROJECT_PATH, QUICK_SEARCH_DEBOUNCE_MS, SEARCH_PATH } f
 import { t } from "@/i18n";
 import { useDebounced } from "@/lib/debounce";
 import { recentRequirements } from "@/lib/recent";
+import { projectSettingsPath } from "@/features/projects/settingsSections";
 import { adminEntry, areaTitle, placesFor } from "./places";
+import { useLastProject } from "./state";
 
 interface Option {
   key: string;
@@ -54,13 +56,14 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
   const [recent] = useState(recentRequirements);
   const projects = useProjects();
   const actions = useActions();
+  const lastProject = useLastProject(useParams({ strict: false }).projectKey);
   useEscape(true, onClose);
   useFocusReturn(true, ref, true);
 
   const typed = text.trim();
   const words = useDebounced(typed, QUICK_SEARCH_DEBOUNCE_MS);
   const quick = useQuickSearch(typed ? words : "");
-  const toRequirement = (projectKey: string, reqKey: string) => () => void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey, reqKey } });
+  const toRequirement = (projectKey: string, reqKey: string) => () => void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey, reqKey } });
   // The server matched these already; an answer to an earlier word, kept on show while the newer one loads, is not
   // offered for it.
   const found: Option[] =
@@ -90,19 +93,31 @@ export function QuickSwitcher({ onClose }: { onClose: () => void }) {
           label: project.name,
           hint: project.key,
           icon: "Folder",
-          pick: () => void navigate({ to: "/p/$projectKey", params: { projectKey: project.key } }),
+          pick: () => void navigate({ to: "/projects/$projectKey", params: { projectKey: project.key } }),
         }))
     : [];
   const reachable = placesFor(me);
-  const places: Option[] = (me?.administers ? [...reachable, adminEntry()] : reachable)
-    .map((place) => ({
+  const projectSettings: Option[] = lastProject
+    ? [
+        {
+          key: `place:project-settings:${lastProject}`,
+          label: t.projects.settings,
+          hint: lastProject,
+          icon: "Settings",
+          pick: () => void navigate({ href: projectSettingsPath(lastProject) }),
+        },
+      ]
+    : [];
+  const places: Option[] = [
+    ...(me?.administers ? [...reachable, adminEntry()] : reachable).map((place) => ({
       key: `place:${place.path}`,
       label: place.area === "admin" && place.path !== ADMIN_PATH ? t.admin.inPalette(place.label) : place.label,
       hint: place.area === "you" ? areaTitle(place.area) : "",
       icon: place.icon,
       pick: () => void navigate({ to: place.path }),
-    }))
-    .filter((option) => matches(`${option.hint} ${option.label}`, typed));
+    })),
+    ...projectSettings,
+  ].filter((option) => matches(`${option.hint} ${option.label}`, typed));
   const searchEverything: Option[] = typed
     ? [
         {

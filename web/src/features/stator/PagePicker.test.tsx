@@ -46,7 +46,7 @@ function stubForm() {
 
 async function openForm() {
   const user = userEvent.setup();
-  await renderAt("/p/CHK/r/CHK-R1");
+  await renderAt("/projects/CHK/r/CHK-R1");
   const form = await screen.findByRole("form", { name: "Link a Stator page" });
   return { user, form, box: within(form).getByRole("combobox", { name: "Page" }) };
 }

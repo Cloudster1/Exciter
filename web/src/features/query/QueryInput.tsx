@@ -105,7 +105,7 @@ export function QueryInput({
   function choose(row: Suggestion) {
     if (row.kind === "requirement") {
       setDismissed(true);
-      if (row.reqKey) void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey, reqKey: row.reqKey } });
+      if (row.reqKey) void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey, reqKey: row.reqKey } });
       return;
     }
     // The row's range was measured on the text the suggestions were asked for, which may be a keystroke behind:

@@ -34,7 +34,7 @@ test.describe("diagrams", { tag: "@desktop" }, () => {
   test("alice draws a PlantUML diagram in a statement and reads it drawn on the requirement and in the document", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Diagrams" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Pump control" } }));
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.getByRole("button", { name: "Edit" }).click();
 
     const frame = page.locator("[data-editor-frame]").filter({ has: page.locator("#edit-statement") });
@@ -64,7 +64,7 @@ test.describe("diagrams", { tag: "@desktop" }, () => {
     expect((await download).suggestedFilename()).toBe("diagram.svg");
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const entry = page.locator(`[data-spec-entry="${KEY}-R1"]`);
     await expect(entry.getByRole("img", { name: "Pump and valve" })).toBeVisible();
     await expect.poll(() => drawn(page, `[data-spec-entry="${KEY}-R1"] [data-diagram] img`)).toBe(true);

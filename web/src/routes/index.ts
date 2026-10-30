@@ -19,12 +19,9 @@ import {
   newProjectRoute,
   gridRoute,
   newRequirementRoute,
-  projectPermissionsRoute,
   projectRoute,
-  projectSettingsRoute,
   projectsRoute,
   specRoute,
-  trashRoute,
   suspectsRoute,
   baselinesRoute,
   coverageRoute,
@@ -41,8 +38,8 @@ import {
   baselineCompareRoute,
   sessionsRoute,
   sessionRoute,
-  workflowDesignRoute,
 } from "./projects";
+import { movedProjectRoute, projectSettingsRoute, projectSettingsSectionRoutes, workflowDesignRoute } from "./project-settings";
 import { historyRoute, permalinkRoute, requirementRoute, traceGraphRoute } from "./requirements";
 import { reviewsRoute } from "./reviews";
 import { searchRoute } from "./search";
@@ -68,6 +65,7 @@ import { RouteError, rootRoute } from "./root";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  movedProjectRoute,
   printProjectDocumentRoute,
   printBaselineDocumentRoute,
   printDashboardRoute,
@@ -80,10 +78,9 @@ const routeTree = rootRoute.addChildren([
     newProjectRoute,
     projectRoute,
     projectSettingsRoute,
+    ...projectSettingsSectionRoutes,
     workflowDesignRoute,
-    projectPermissionsRoute,
     newRequirementRoute,
-    trashRoute,
     suspectsRoute,
     baselinesRoute,
     coverageRoute,

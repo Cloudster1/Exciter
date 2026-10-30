@@ -75,7 +75,7 @@ describe("importing a file", () => {
         return { status: 200, body: { import: { ...answered, state: "done", done: 1, imported: ["CHK-R1"], finishedAt: "2026-10-13T08:01:00Z" } } };
       },
     });
-    await renderAt("/p/CHK/settings?tab=import");
+    await renderAt("/projects/CHK/settings/import");
     await userEvent.upload(await screen.findByLabelText("CSV file"), new File(["Title,Type\nPay,Feature\n"], "spec.csv", { type: "text/csv" }));
     await userEvent.click(screen.getByRole("button", { name: "Upload" }));
     expect(await screen.findByText(/spec.csv: 1 row/)).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("importing a file", () => {
     expect(within(result.closest("[data-import-step]") as HTMLElement).getByText("1 of 1 rows")).toBeInTheDocument();
   });
 
-  it("tells somebody who does not run the project whose import it is", async () => {
+  it("hides the section from somebody who does not run the project, and says who to ask", async () => {
     stubApi({
       ...settings,
       "GET /projects/CHK": {
@@ -108,7 +108,9 @@ describe("importing a file", () => {
         body: { project: aProject({ can: { view: true, comment: true, edit: true, approve: false, administer: false, purge: false } }) },
       },
     });
-    await renderAt("/p/CHK/settings?tab=import");
-    expect(await screen.findByText("Only the project's administrators import into it. Ask one of them.")).toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/import");
+    expect(await screen.findByText("Only the project's administrators change its settings")).toBeInTheDocument();
+    expect(screen.getByText("Ask one of them, or ask for the role.")).toBeInTheDocument();
+    expect(document.querySelector('[data-settings-refused="import"]')).not.toBeNull();
   });
 });

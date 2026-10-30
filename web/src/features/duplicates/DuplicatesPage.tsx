@@ -221,7 +221,7 @@ function Side({ side, requirement }: { side: DuplicatePair["a"]; requirement?: R
   return (
     <div className="min-w-0 space-y-2 rounded-control border border-border p-3" data-pair-side={side.key}>
       <h3 className="text-sm font-medium text-ink">
-        <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: side.projectKey, reqKey: side.key }} className="hover:text-accent hover:underline">
+        <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: side.projectKey, reqKey: side.key }} className="hover:text-accent hover:underline">
           <span className="font-mono text-xs text-ink-muted">{side.key}</span> {side.title}
         </Link>
       </h3>

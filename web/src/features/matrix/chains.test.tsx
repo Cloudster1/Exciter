@@ -61,7 +61,7 @@ function stubSettings(answer: TraceModel, more: Parameters<typeof stubApi>[0] = 
 describe("the trace model", () => {
   it("is built level by level and saved whole", async () => {
     const sent = stubSettings(unset, { "PUT /projects/CHK/trace-model": { status: 200, body: { model } } });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     expect(await screen.findByText("No trace model yet. Add the first level, such as Stakeholder.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Add a level" }));
     await userEvent.type(screen.getByLabelText("Name"), "Need");
@@ -98,7 +98,7 @@ describe("the trace model", () => {
         },
       },
     });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     await userEvent.click(await screen.findByRole("button", { name: "Save the model" }));
     const level = document.querySelector('[data-trace-level="1"]') as HTMLElement;
     expect(await within(level).findByText("Pick the links that lead to this level from the one before.")).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("the trace model", () => {
 
   it("is read-only for anybody who does not administer the project", async () => {
     stubSettings({ ...model, can: { edit: false } });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     expect(await screen.findByText("Only the project's administrators set its trace model.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save the model" })).toBeNull();
     expect(screen.getAllByLabelText("Name")[0]).toBeDisabled();
@@ -149,7 +149,7 @@ describe("the chains", () => {
         return { status: 200, body: { chains } };
       },
     });
-    const router = await renderAt("/p/CHK/chains");
+    const router = await renderAt("/projects/CHK/chains");
     const table = await screen.findByRole("table", { name: "Chains" });
     expect(
       within(table)
@@ -179,9 +179,9 @@ describe("the chains", () => {
     stubSettings(unset, {
       "GET /projects/CHK/trace-chains": { status: 200, body: { chains: { ...chains, levels: [], roots: [], lines: [], broken: 0, total: 0 } } },
     });
-    await renderAt("/p/CHK/chains");
+    await renderAt("/projects/CHK/chains");
     expect(await screen.findByText("This project has no trace model, so there are no chains to follow.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Set the trace model" })).toHaveAttribute("href", "/p/CHK/settings?tab=trace");
+    expect(screen.getByRole("link", { name: "Set the trace model" })).toHaveAttribute("href", "/projects/CHK/settings/trace");
   });
 });
 

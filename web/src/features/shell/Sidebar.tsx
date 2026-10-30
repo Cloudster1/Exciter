@@ -136,13 +136,7 @@ function SidebarGroups({ onNavigate }: { onNavigate?: () => void }) {
           </NavItem>
         ))}
       </SidebarGroup>
-      <ProjectNav
-        open={isOpen("project", true)}
-        onToggle={() => toggleGroup("project", true)}
-        adminOpen={isOpen("project-admin", false)}
-        onToggleAdmin={() => toggleGroup("project-admin", false)}
-        onNavigate={onNavigate}
-      />
+      <ProjectNav open={isOpen("project", true)} onToggle={() => toggleGroup("project", true)} onNavigate={onNavigate} />
       {me?.administers && (
         <div className="mt-3" data-nav={admin.id}>
           <NavItem to={admin.path} icon={admin.icon} rail={false} trailing={<JoinRequestsCount />} onNavigate={onNavigate}>

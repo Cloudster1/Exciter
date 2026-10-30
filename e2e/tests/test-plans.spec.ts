@@ -48,7 +48,7 @@ test.describe("a test plan's page", { tag: "@desktop" }, () => {
     const plan = must(
       await api.POST("/projects/{projectKey}/test-plans", { ...path, body: { title: "Every road", scope: "cases", cases: [wet!, ice!, slope!] } }),
     ).plan;
-    await page.goto(`/p/${KEY}/tests/plans/${plan.id}`);
+    await page.goto(`/projects/${KEY}/tests/plans/${plan.id}`);
     await expect(listed(page)).toHaveCount(3);
 
     await page.getByRole("button", { name: `Move ${wet} down` }).click();
@@ -68,7 +68,7 @@ test.describe("a test plan's page", { tag: "@desktop" }, () => {
     const plan = must(
       await api.POST("/projects/{projectKey}/test-plans", { ...path, body: { title: "By query", scope: "query", query: 'type = "Test case"' } }),
     ).plan;
-    await page.goto(`/p/${KEY}/tests/plans/${plan.id}`);
+    await page.goto(`/projects/${KEY}/tests/plans/${plan.id}`);
     await expect(listed(page)).toHaveCount(3);
 
     await page.getByRole("textbox", { name: "Query" }).fill('type = "Test case" AND title ~ wet');
@@ -93,21 +93,21 @@ test.describe("a test plan's page", { tag: "@desktop" }, () => {
         body: { title: "Before the plan went", planId: plan.id, testers: [{ subjectType: "user", userId: me.id }] },
       }),
     ).execution;
-    await page.goto(`/p/${KEY}/tests/plans/${plan.id}`);
+    await page.goto(`/projects/${KEY}/tests/plans/${plan.id}`);
 
     await page.locator('[data-action="delete-plan"]').click();
     const dialog = page.getByRole("dialog", { name: "Delete Short lived" });
     await expect(dialog.getByText("The executions it started keep its title.")).toBeVisible();
     await expectAccessible(page);
     await dialog.locator('[data-action="confirm-delete-plan"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/tests(\\?|$)`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/tests(\\?|$)`));
     await page.getByRole("tab", { name: "Plans" }).click();
     await expect(page.getByText("No test plan yet.")).toBeVisible();
     await expect(page.locator('[data-plan="Short lived"]')).toHaveCount(0);
 
     await page.getByRole("tab", { name: "Executions" }).click();
     await expect(page.locator('[data-execution="Before the plan went"]')).toContainText("Short lived");
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}`);
+    await page.goto(`/projects/${KEY}/tests/executions/${execution.id}`);
     await expect(page.getByText(/^Plan: Short lived · /)).toBeVisible();
   });
 });

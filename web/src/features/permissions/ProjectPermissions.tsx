@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { permissionWords, useRoles } from "@/api/access";
 import type { Project } from "@/api/projects";
-import { Button, Card, PageHeader, Page } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { RoleTable } from "@/features/access/RoleTable";
 import { t } from "@/i18n";
@@ -16,8 +16,7 @@ export function ProjectPermissions({ project }: { project: Project }) {
   const [inspecting, setInspecting] = useState(false);
   const archived = Boolean(project.archivedAt);
   return (
-    <Page width="narrow" className="space-y-6" data-project-permissions={project.key}>
-      <PageHeader title={t.permissions.title} meta={t.projects.projectAndKey(project.name, project.key)} />
+    <div className="space-y-6" data-project-permissions={project.key}>
       {!project.can.administer ? (
         <p className="text-sm text-ink-muted">{t.permissions.notProjectAdmin}</p>
       ) : (
@@ -35,7 +34,7 @@ export function ProjectPermissions({ project }: { project: Project }) {
           {inspecting && <AccessDialog project={project} onClose={() => setInspecting(false)} />}
         </>
       )}
-    </Page>
+    </div>
   );
 }
 

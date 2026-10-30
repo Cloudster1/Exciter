@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type { Assignment } from "@/api/access";
 import type { AccessReport } from "@/api/permissions";
 import { accessAnswers, accessIds, grantPage, roleList } from "@/test/access";
-import { answerConfirm, renderAt, signedIn, stubApi } from "@/test/app";
+import { answerConfirm, arrival, renderAt, signedIn, stubApi } from "@/test/app";
 import { axeViolations } from "@/test/axe";
 import { aProject } from "@/test/projects";
 
@@ -50,7 +50,7 @@ function projectApi(extra: Parameters<typeof stubApi>[0] = {}) {
 describe("a project's permissions", () => {
   it("lists who holds which role in the project, Everyone in the reader's words, and offers no role of the installation alone", async () => {
     const sent = projectApi();
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     const table = await screen.findByRole("table", { name: "Who holds which role" });
     expect(within(table).getByText("Everyone").closest("tr")).toHaveTextContent("Editor");
     expect(within(table).getByText("Ada Lovelace").closest("tr")).toHaveTextContent("Project administrator");
@@ -64,7 +64,7 @@ describe("a project's permissions", () => {
 
   it("grants a role to a person one at a time", async () => {
     const sent = projectApi();
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     const form = await waitFor(() => {
       const found = document.querySelector<HTMLElement>("[data-grant-form]");
       expect(found).not.toBeNull();
@@ -81,7 +81,7 @@ describe("a project's permissions", () => {
 
   it("takes a grant away once asked", async () => {
     const sent = projectApi();
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     await userEvent.click(await screen.findByRole("button", { name: "Revoke Editor from Everyone" }));
     await answerConfirm(true);
     expect(await screen.findByText("Everyone no longer holds Editor in this project.")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("a project's permissions", () => {
   it("shows the server's refusal to take the last grant that runs the project", async () => {
     const refusal = "Somebody has to administer the project. Grant Project administrator to somebody else first.";
     projectApi({ "DELETE /role-assignments/p-1": { status: 409, body: { error: { code: "no_administrator", message: refusal } } } });
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     await userEvent.click(await screen.findByRole("button", { name: "Revoke Editor from Everyone" }));
     await answerConfirm(true);
     expect(await screen.findByText(refusal)).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("a project's permissions", () => {
       "GET /roles": { status: 200, body: { roles: roleList.map((role) => (role.role === "editor" ? { ...role, name: "Author" } : role)) } },
       "GET /role-assignments": { status: 200, body: grantPage([{ ...saved[0]!, roleName: "Author" }]) },
     });
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     expect(await screen.findByRole("button", { name: "Revoke Author from Everyone" })).toBeInTheDocument();
     expect(within(screen.getByRole("combobox", { name: "Role" })).getByRole("option", { name: "Author" })).toBeInTheDocument();
     expect(document.querySelector('[data-project-role="editor"] dt')).toHaveTextContent("Author");
@@ -111,8 +111,8 @@ describe("a project's permissions", () => {
 
   it("changes nothing in an archived project", async () => {
     projectApi({ "GET /projects/CHK": { status: 200, body: { project: aProject({ archivedAt: "2026-10-02T08:00:00Z" }) } } });
-    await renderAt("/p/CHK/permissions");
-    expect(await screen.findByText(/This project is archived/)).toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/permissions");
+    expect(await screen.findByText(/its grants stay as they are/)).toBeInTheDocument();
     await screen.findByRole("table", { name: "Who holds which role" });
     expect(document.querySelector("[data-grant-form]")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Revoke/ })).toBeNull();
@@ -120,8 +120,15 @@ describe("a project's permissions", () => {
 
   it("tells somebody who does not administer the project that its administrators decide", async () => {
     const sent = stubApi({ "GET /projects/CHK": { status: 200, body: { project: aProject({ can: { ...checkout.can, administer: false, purge: false } }) } } });
-    await renderAt("/p/CHK/permissions");
-    expect(await screen.findByText("Only the project's administrators see and change who may do what in it.")).toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/permissions");
+    const refused = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-settings-refused="permissions"]');
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(refused).toHaveTextContent("Only the project's administrators change its settings");
+    expect(refused).toHaveTextContent("Ask one of them, or ask for the role.");
+    expect(screen.queryByRole("tab", { name: "Permissions" })).toBeNull();
     expect(sent.some((r) => r.path === "/role-assignments")).toBe(false);
   });
 });
@@ -149,7 +156,7 @@ describe("the access inspector", () => {
       "GET /people": { status: 200, body: { people: [paul] } },
       [`GET /projects/CHK/access/${paul.id}`]: { status: 200, body: { access: report } },
     });
-    await renderAt("/p/CHK/permissions");
+    await renderAt("/projects/CHK/settings/permissions");
     await userEvent.click(await screen.findByRole("button", { name: "Check somebody's access" }));
     const dialog = screen.getByRole("dialog", { name: "Access to Checkout" });
     await userEvent.type(within(dialog).getByRole("combobox", { name: "Member" }), "pau");
@@ -163,16 +170,17 @@ describe("the access inspector", () => {
   });
 });
 
-describe("the sidebar inside a project", () => {
-  it("links the permissions for the project's administrators only", async () => {
+describe("the project's settings", () => {
+  it("offer the permissions as a tab to the project's administrators", async () => {
     stubApi({ "GET /projects/CHK": { status: 200, body: { project: checkout } } });
-    await renderAt("/p/CHK/settings");
-    const nav = await waitFor(() => {
-      const found = document.querySelector<HTMLElement>('[data-project-nav="CHK"]');
-      expect(found).not.toBeNull();
-      return found!;
-    });
-    await userEvent.click(within(nav).getByRole("button", { name: "Project admin" }));
-    expect(within(nav).getByRole("link", { name: "Permissions" })).toHaveAttribute("href", "/p/CHK/permissions");
+    const router = await renderAt("/projects/CHK/settings/details");
+    await userEvent.click(await screen.findByRole("tab", { name: "Permissions" }));
+    await arrival(router, "/projects/CHK/settings/permissions");
+  });
+
+  it("are where the old permissions address leads", async () => {
+    projectApi();
+    const router = await renderAt("/p/CHK/permissions");
+    await arrival(router, "/projects/CHK/settings/permissions");
   });
 });

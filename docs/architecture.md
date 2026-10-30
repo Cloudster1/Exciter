@@ -292,7 +292,7 @@ app role holds no privilege on.
   `internal/trace/matrix.go`, its rows those `search.Keep` keeps in the
   grid's order, its columns the requirements or Armature issues they reach
   through the link types, direction and relations asked for. Its web page,
-  `/p/$projectKey/matrix`, keeps the whole layout in its address. A
+  `/projects/$projectKey/matrix`, keeps the whole layout in its address. A
   project's trace model (`trace_level` and its types and steps, replaced
   whole) names the levels its chain report (`internal/trace/chain_report.go`)
   follows from each root, one query per level for the whole page.

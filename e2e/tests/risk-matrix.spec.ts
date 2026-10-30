@@ -77,7 +77,7 @@ test.describe("risk matrix", { tag: "@desktop" }, () => {
     must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Check the brakes on ice" } }));
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { typeKey: "mitigates", otherKey: `${KEY}-R2` } }));
 
-    await page.goto(`/p/${KEY}/risks`);
+    await page.goto(`/projects/${KEY}/risks`);
     const row = page.locator(`[data-fmea-row="${KEY}-R2"]`);
     await expect(row.locator('[data-risk-state="claimed"]')).toBeVisible();
     await expect(row.locator(`[data-mitigation="${KEY}-R1"]`)).toContainText("Not in effect");

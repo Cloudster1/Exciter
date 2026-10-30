@@ -28,7 +28,7 @@ function stubbed(answers: Record<string, { status: number; body?: unknown }> = {
 }
 
 async function openDialog() {
-  await renderAt("/p/CHK/sessions");
+  await renderAt("/projects/CHK/sessions");
   await userEvent.click(await screen.findByRole("button", { name: "Open review session" }));
   return screen.findByRole("dialog", { name: "Open a review session" });
 }

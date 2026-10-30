@@ -30,7 +30,7 @@ export function ExecutionPage({ project, executionId }: { project: Project; exec
   return (
     <div className="mx-auto max-w-5xl space-y-5" data-execution-page={e.id} data-execution-state={e.state}>
       <p className="text-sm">
-        <Link to="/p/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
+        <Link to="/projects/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
           {t.tests.allTests}
         </Link>
       </p>
@@ -122,7 +122,7 @@ function CaseTable({ project, execution: e }: { project: Project; execution: Tes
               <Td>{run.ci ? t.tests.fromCI : (run.recordedBy?.name ?? "")}</Td>
               <Td className="text-right">
                 <Link
-                  to="/p/$projectKey/tests/executions/$executionId/run/$reqKey"
+                  to="/projects/$projectKey/tests/executions/$executionId/run/$reqKey"
                   params={{ projectKey: project.key, executionId: e.id, reqKey: run.case.key }}
                   search={{ iteration: run.iteration }}
                   className="text-sm text-accent hover:underline"

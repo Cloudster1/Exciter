@@ -7,13 +7,13 @@ import { WorkflowDesigner } from "./designer/WorkflowDesigner";
 /** The designer as a page of its own, wide enough for the canvas and the inspector side by side. */
 export function WorkflowDesignPage({ project, workflowId }: { project: Project; workflowId?: string }) {
   const navigate = useNavigate();
-  const back = () => navigate({ to: "/p/$projectKey/settings", params: { projectKey: project.key }, search: { tab: "workflow" } });
+  const back = () => navigate({ to: "/projects/$projectKey/settings/workflow", params: { projectKey: project.key } });
   const mayChange = project.can.administer && !project.archivedAt;
   return (
     <div className="space-y-5" data-workflow-design-page>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/settings" params={{ projectKey: project.key }} search={{ tab: "workflow" }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/settings/workflow" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.workflows.backToSettings}
           </Link>
         }

@@ -594,6 +594,18 @@ Stator took them from Armature:
   Everyone, and the guards that keep built-in roles, Everyone and an active
   administrator
 
+Adapted from Stator at 3d3239b4 and e75d46c1, for project settings as the
+suite's standard lays them out (#472):
+- web/src/features/projects/settingsSections.ts from Stator's
+  features/spaces/settingsSections.ts: the sections, the ones only
+  administrators use, and where an old address leads
+- web/src/features/projects/ProjectSettings.tsx ProjectSettingsLayout from
+  Stator's SpaceSettingsLayout, and the archive with Undo from SpaceArchive
+- web/src/routes/project-settings.tsx: the redirect from an old address,
+  from Stator's movedSpaceRoute
+- web/src/components/ui/Tabs.tsx: the first tab in the tab order when the
+  section shown is none of them
+
 The suite demo's snapshot (backend/internal/demo/snapshot, #270) holds the
 titles and texts of the public GitHub issues of Armature, Exciter and Stator
 that carry a user story, as scripts/demo-snapshot.sh took them on the date

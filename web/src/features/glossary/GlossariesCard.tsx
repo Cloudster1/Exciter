@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ApiError } from "@/api/client";
 import { useGlossaries, useSaveGlossaries, type Glossaries } from "@/api/glossary";
 import { useProjects, type Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, IconButton, SectionTitle, SelectInput, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, IconButton, SectionTitle, SelectInput, Skeleton, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GLOSSARY_MAX_LIBRARIES } from "@/config";
 import { t } from "@/i18n";
@@ -20,7 +20,7 @@ function GlossariesForm({ project, glossaries }: { project: Project; glossaries:
   const l = t.glossary.settings;
   const [chosen, setChosen] = useState(() => [...glossaries.libraries].sort((a, b) => a.position - b.position).map((each) => each.projectKey));
   const [adding, setAdding] = useState("");
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const may = project.can.administer && !project.archivedAt;
   const { data: projects } = useProjects(false, may);
   const save = useSaveGlossaries(project.key);
@@ -32,7 +32,6 @@ function GlossariesForm({ project, glossaries }: { project: Project; glossaries:
   const full = chosen.length >= GLOSSARY_MAX_LIBRARIES;
 
   function change(next: string[]) {
-    setNotice("");
     setChosen(next);
   }
   function move(index: number, by: number) {
@@ -114,16 +113,13 @@ function GlossariesForm({ project, glossaries }: { project: Project; glossaries:
         )}
         {full && may && <p className="text-xs text-ink-subtle">{l.tooMany(GLOSSARY_MAX_LIBRARIES)}</p>}
         {may && (
-          <Button loading={save.isPending} onClick={() => save.mutate(chosen, { onSuccess: () => setNotice(l.saved) })} data-action="save-glossaries">
+          <Button loading={save.isPending} onClick={() => save.mutate(chosen, { onSuccess: () => toast.success(l.saved) })} data-action="save-glossaries">
             {l.save}
           </Button>
         )}
         {save.error && !Object.keys(fields).some((name) => name.startsWith("libraries[")) && (
           <ErrorBanner>{fields.libraries ?? save.error.message}</ErrorBanner>
         )}
-        <p role="status" className="text-sm text-ink-muted empty:hidden">
-          {notice}
-        </p>
       </section>
     </Card>
   );

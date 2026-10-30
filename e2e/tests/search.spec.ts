@@ -50,12 +50,12 @@ test.describe("search", { tag: "@desktop" }, () => {
     await page.locator("[data-quick-switcher-input]").fill(`${KEY.toLowerCase()}-r2`);
     await expect(page.locator(`[data-quick-switcher-option^="requirement:"]`)).toContainText(`${KEY}-R2 Refund a payment`);
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R2`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R2`);
   });
 
   test("alice narrows and orders the grid, edits a priority in place, and saves the grid as a shared view", async ({ page, api }) => {
     await makeProject(api);
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     const rows = page.locator("[data-grid-row]");
     await expect(rows).toHaveCount(3);
     await expectAccessible(page);
@@ -82,7 +82,7 @@ test.describe("search", { tag: "@desktop" }, () => {
     await dialog.locator('[data-action="confirm-save-view"]').click();
     await expect(page.locator("[data-grid-notice]")).toHaveText("Saved the view Ordered by title.");
 
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     await page.locator("[data-view-select]").selectOption({ label: "Ordered by title (Shared)" });
     await expect(page).toHaveURL(/sort=title/);
     await expect(page.locator('[data-grid-column="labels"]')).toBeVisible();
@@ -91,7 +91,7 @@ test.describe("search", { tag: "@desktop" }, () => {
   test("alice narrows the grid with a query, completed as she types, and sees where one went wrong", async ({ page, api }) => {
     await makeProject(api);
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-R3` } }, body: { typeKey: "derives", otherKey: `${KEY}-R1` } }));
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     const rows = page.locator("[data-grid-row]");
     await expect(rows).toHaveCount(3);
     await page.locator('[data-mode="query"]').click();

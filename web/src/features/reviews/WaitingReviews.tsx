@@ -34,7 +34,7 @@ export function WaitingReviewsScreen() {
             {rows.map((review) => (
               <li key={review.id} className="flex min-w-0 flex-col gap-0.5 py-3" data-waiting-review={review.id}>
                 <Link
-                  to="/p/$projectKey/r/$reqKey"
+                  to="/projects/$projectKey/r/$reqKey"
                   params={{ projectKey: review.requirement.projectKey, reqKey: review.requirement.key }}
                   className="truncate text-sm font-medium text-ink hover:text-accent hover:underline"
                 >
@@ -46,7 +46,7 @@ export function WaitingReviewsScreen() {
                   <span data-waiting-approvals={`${review.approvals}/${review.required}`}>{t.review.approvals(review.approvals, review.required)}</span>
                   <span aria-hidden="true">·</span>
                   <Link
-                    to="/p/$projectKey/spec"
+                    to="/projects/$projectKey/spec"
                     params={{ projectKey: review.requirement.projectKey }}
                     search={{ waiting: true, changes: "approved" }}
                     className="hover:text-accent hover:underline"

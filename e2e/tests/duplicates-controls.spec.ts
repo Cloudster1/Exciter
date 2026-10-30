@@ -54,7 +54,7 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/duplicates`);
+    await page.goto(`/projects/${KEY}/duplicates`);
     const brakes = page.locator("[data-pair]", { has: page.locator(`[data-pair-side="${short.key}"]`) });
     await expect(brakes.locator(`[data-pair-side="${long.key}"]`)).toBeVisible();
     await brakes.locator('[data-action="link-pair"]').click();
@@ -87,11 +87,11 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-pair]")).toHaveCount(0);
 
     const links = page.locator("[data-requirement-links]");
-    await page.goto(`/p/${KEY}/r/${short.key}`);
+    await page.goto(`/projects/${KEY}/r/${short.key}`);
     await expect(links.locator(`[data-link="${long.key}"]`)).toBeVisible();
-    await page.goto(`/p/${KEY}/r/${long.key}`);
+    await page.goto(`/projects/${KEY}/r/${long.key}`);
     await expect(links.locator(`[data-link="${short.key}"]`)).toBeVisible();
-    await page.goto(`/p/${KEY}/r/${lamp.key}`);
+    await page.goto(`/projects/${KEY}/r/${lamp.key}`);
     await expect(links.locator(`[data-link-group="derives:incoming"] [data-link="${gauge.key}"]`)).toBeVisible();
     const trashed = must(await api.GET("/requirements/{reqKey}", { params: { path: { reqKey: lamps.key } } })).requirement;
     expect(trashed.trashedAt).toBeTruthy();
@@ -104,7 +104,7 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
     const lamp = await write(api, "Headlamps dim at dusk", lighting.id);
     const lamps = await write(api, "Headlamps dim at dusk automatically", lighting.id);
 
-    await page.goto(`/p/${KEY}/duplicates`);
+    await page.goto(`/projects/${KEY}/duplicates`);
     const pairs = page.locator("[data-pair]");
     const more = page.locator('[data-action="more-pairs"]');
     await expect(more).toBeVisible();
@@ -131,7 +131,7 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
 
     const other = await page.context().newPage();
     try {
-      await other.goto(`/p/${KEY}/r/${lamp.key}`);
+      await other.goto(`/projects/${KEY}/r/${lamp.key}`);
       await other.locator('[data-action="edit-requirement"]').click();
       await other.getByLabel("Title", { exact: true }).fill("Headlamps dim at dusk on their own");
       await other.locator('[data-action="save-requirement"]').click();
@@ -156,20 +156,21 @@ test.describe("duplicates decided", { tag: "@desktop" }, () => {
     await project(api);
     const short = await write(api, "Brakes engage within 100 ms");
     await write(api, "Brakes engage within 100 milliseconds");
-    await page.goto(`/p/${KEY}/duplicates`);
+    await page.goto(`/projects/${KEY}/duplicates`);
     await expect(page.locator("[data-pair]", { has: page.locator(`[data-pair-side="${short.key}"]`) })).toBeVisible();
     await expect(page.locator("[data-duplicates-threshold]")).toHaveText("Listed from 40% alike, as the project's quality settings set it.");
 
-    await page.goto(`/p/${KEY}/settings?tab=quality`);
+    await page.goto(`/projects/${KEY}/settings/quality`);
     const card = page.getByRole("form", { name: "Duplicates" });
     const threshold = card.getByRole("spinbutton", { name: "Similarity threshold in percent" });
     await expect(threshold).toHaveValue("40");
     await threshold.fill("95");
     await card.locator('[data-action="save-duplicate-settings"]').click();
-    await expect(page.locator("[data-duplicate-settings]").getByRole("status")).toHaveText("The threshold is saved.");
+    await expect(toast(page, "The threshold is saved.")).toBeVisible();
+    await dismissToasts(page);
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/duplicates`);
+    await page.goto(`/projects/${KEY}/duplicates`);
     await expect(page.locator("[data-duplicates-threshold]")).toHaveText("Listed from 95% alike, as the project's quality settings set it.");
     await expect(page.locator("[data-pair]")).toHaveCount(0);
     await expect(page.getByText("No likely duplicates.")).toBeVisible();

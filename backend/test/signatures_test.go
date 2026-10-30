@@ -159,7 +159,7 @@ func TestASignatureAfterSigningInAgainAtTheProvider(t *testing.T) {
 	if _, me := b.me(t); me["signsWith"] != "provider" {
 		t.Fatalf("alice signs with %v", me["signsWith"])
 	}
-	page := "/p/" + key + "/r/" + key + "-R1"
+	page := "/projects/" + key + "/r/" + key + "-R1"
 	landing := b.reauthenticate(t, "alice", alicePassword, page)
 	target, err := url.Parse(landing)
 	if err != nil || target.Host != appHost || target.Path != page || target.Query().Get("signature") == "" {

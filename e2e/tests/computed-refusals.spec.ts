@@ -24,8 +24,7 @@ async function removeProject(api: ExciterApi) {
 }
 
 async function openAttributes(page: Page) {
-  await page.goto(`/p/${KEY}/settings`);
-  await page.getByRole("tab", { name: "Attributes" }).click();
+  await page.goto(`/projects/${KEY}/settings/attributes`);
 }
 
 /** Holds one requirement's computed values, so the worker's batch over the project waits until released and the
@@ -130,7 +129,7 @@ test.describe("computed attributes refused and recomputed", { tag: "@desktop" },
     await expect(page.locator("[data-recompute]")).toHaveCount(0, { timeout: WORKED_OUT_MS });
     await expect(page.locator('[data-attribute="Score"] code')).toHaveText(`10 - "Weight"`);
 
-    await page.goto(`/p/${KEY}/grid?columns=key&columns=title&columns=${score.id}`);
+    await page.goto(`/projects/${KEY}/grid?columns=key&columns=title&columns=${score.id}`);
     await page.locator(`[data-grid-column="${score.id}"] [data-action="sort-column"]`).click();
     await expect(page).toHaveURL(new RegExp(`sort=${score.id}`));
     await expect.poll(() => rowKeys(page)).toEqual([made[2]!.key, made[1]!.key, made[0]!.key]);

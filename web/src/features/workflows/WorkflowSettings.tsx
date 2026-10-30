@@ -23,7 +23,8 @@ export function WorkflowSettings({ project }: { project: Project }) {
   const { remove } = useWorkflowActions(project.key);
   const [assigning, setAssigning] = useState<Assigning | null>(null);
   const navigate = useNavigate();
-  const design = (workflowId: string) => navigate({ to: "/p/$projectKey/settings/workflows/$workflowId", params: { projectKey: project.key, workflowId } });
+  const design = (workflowId: string) =>
+    navigate({ to: "/projects/$projectKey/settings/workflows/$workflowId", params: { projectKey: project.key, workflowId } });
   const mayChange = project.can.administer && !project.archivedAt;
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!workflows || !statuses) return <Skeleton />;

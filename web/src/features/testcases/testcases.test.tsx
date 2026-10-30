@@ -48,7 +48,7 @@ const stubs = {
 describe("a test case", () => {
   it("shows its preconditions, its parameters by iteration and its steps", async () => {
     stubApi(stubs);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const steps = await screen.findByRole("table", { name: "Steps" });
     expect(within(steps).getByRole("row", { name: /2 Press the pedal\. The car stops within 40 m\./ })).toBeInTheDocument();
     expect(screen.getByText("The car stands on a wet road.")).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe("a test case", () => {
     "moves and removes steps, sets parameters, and sends the case whole",
     async () => {
       const sent = stubApi({ ...stubs, "PATCH /requirements/CHK-R1": { status: 200, body: { requirement: { ...brake, revision: 2 } } } });
-      await renderAt("/p/CHK/r/CHK-R1");
+      await renderAt("/projects/CHK/r/CHK-R1");
       await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
       const steps = await screen.findByRole("group", { name: "Steps" });
       await userEvent.click(within(steps).getByRole("button", { name: "Move step 2 up" }));

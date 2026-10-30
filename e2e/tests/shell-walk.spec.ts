@@ -13,7 +13,7 @@ import { WEB_URL } from "../fixtures/stack";
 
 const KEY = uniqueKey("SHL");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 const SEARCH = `/search?q=brake&project=${KEY}`;
 
 async function removeProject(api: ExciterApi) {

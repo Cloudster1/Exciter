@@ -83,7 +83,7 @@ test.describe("a CSV import past the happy path", { tag: "@desktop" }, () => {
   test("alice answers what matches nothing, then discards a file and stops a long one", async ({ page, api }) => {
     test.setTimeout(90_000);
     must(await api.POST("/projects", { body: { key: CSV, name: "Spreadsheet" } }));
-    await page.goto(`/p/${CSV}/settings?tab=import`);
+    await page.goto(`/projects/${CSV}/settings/import`);
     const csv = (name: string, buffer: Buffer) => ({ name, mimeType: "text/csv", buffer });
 
     await upload(page, "CSV file", "upload-import", csv("problems.csv", Buffer.from("title,type,owner\nShip it,Feature,nobody@exciter.test\n")));
@@ -129,7 +129,7 @@ test.describe("a ReqIF import past the happy path", { tag: "@desktop" }, () => {
   test("alice discards a file and stops a long one", async ({ page, api }) => {
     test.setTimeout(90_000);
     must(await api.POST("/projects", { body: { key: REQIF, name: "Exchange" } }));
-    await page.goto(`/p/${REQIF}/settings?tab=reqif`);
+    await page.goto(`/projects/${REQIF}/settings/reqif`);
     const reqif = (name: string, buffer: Buffer) => ({ name, mimeType: "application/xml", buffer });
 
     const discarded = await upload(page, "ReqIF file", "upload-reqif", reqif("small.reqif", manyObjects(1)));
@@ -160,12 +160,12 @@ test.describe("a ReqIF import past the happy path", { tag: "@desktop" }, () => {
       await api.POST("/projects/{projectKey}/attributes", { params: { path: { projectKey: REQIF } }, body: { name: "Weight", kind: "text" } }),
     ).attribute;
 
-    await page.goto(`/p/${SOURCE}/settings?tab=reqif`);
+    await page.goto(`/projects/${SOURCE}/settings/reqif`);
     const download = page.waitForEvent("download");
     await page.locator('[data-action="export-reqif"]').click();
     const file = readFileSync(await (await download).path());
 
-    await page.goto(`/p/${REQIF}/settings?tab=reqif`);
+    await page.goto(`/projects/${REQIF}/settings/reqif`);
     await upload(page, "ReqIF file", "upload-reqif", { name: `${SOURCE}.reqif`, mimeType: "application/xml", buffer: file });
     await expect(page.locator("[data-reqif-problems]")).toContainText("Weight");
     await expect(page.locator('[data-action="start-reqif"]')).toBeDisabled();
@@ -185,7 +185,7 @@ test.describe("a Word import past the happy path", { tag: "@desktop" }, () => {
 
   test("alice changes the heading pattern, sees the tree follow, and discards the document", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: WORD, name: "From Word" } }));
-    await page.goto(`/p/${WORD}/settings?tab=word`);
+    await page.goto(`/projects/${WORD}/settings/word`);
     const id = await upload(page, "Word document", "upload-word", {
       name: "lamps.docx",
       mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -214,7 +214,7 @@ test.describe("a shared template", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: OWNER, name: "Keeps it" } }));
     must(await api.POST("/projects", { body: { key: OTHER, name: "Borrows it" } }));
     const name = `Shared ${OWNER}`;
-    await page.goto(`/p/${OWNER}/settings?tab=templates`);
+    await page.goto(`/projects/${OWNER}/settings/templates`);
     for (const [key, called] of [
       [OWNER, name],
       [OTHER, "Own"],
@@ -232,7 +232,7 @@ test.describe("a shared template", { tag: "@desktop" }, () => {
       expect(made.status()).toBe(201);
     }
     const options = async () => {
-      await page.goto(`/p/${OTHER}/spec`);
+      await page.goto(`/projects/${OTHER}/spec`);
       await page.locator("main").locator('[data-action="export-menu"]').first().click();
       await page.getByRole("menuitem", { name: "Word" }).click();
       const chooser = page.getByRole("dialog").getByRole("combobox", { name: "Template" });
@@ -241,14 +241,14 @@ test.describe("a shared template", { tag: "@desktop" }, () => {
     };
     expect(await options()).not.toContain(`${name} (${OWNER})`);
 
-    await page.goto(`/p/${OWNER}/settings?tab=templates`);
+    await page.goto(`/projects/${OWNER}/settings/templates`);
     const card = page.locator(`[data-template="${name}"]`);
     await card.getByLabel("Offer it to every project").check();
     await card.locator('[data-action="save-template"]').click();
     await expect(card.getByText("The template is saved.")).toBeVisible();
     expect(await options()).toContain(`${name} (${OWNER})`);
 
-    await page.goto(`/p/${OWNER}/settings?tab=templates`);
+    await page.goto(`/projects/${OWNER}/settings/templates`);
     await card.locator('[data-action="delete-template"]').click();
     await expectAccessible(page);
     await page.getByRole("dialog").locator('[data-action="confirm-delete-template"]').click();

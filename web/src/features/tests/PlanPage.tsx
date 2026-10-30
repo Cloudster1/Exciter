@@ -22,7 +22,7 @@ export function PlanPage({ project, planId }: { project: Project; planId: string
   return (
     <div className="mx-auto max-w-4xl space-y-5" data-plan-page={plan.id}>
       <p className="text-sm">
-        <Link to="/p/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
+        <Link to="/projects/$projectKey/tests" params={{ projectKey: project.key }} className="text-ink-muted hover:text-accent hover:underline">
           {t.tests.allTests}
         </Link>
       </p>
@@ -56,7 +56,7 @@ export function PlanPage({ project, planId }: { project: Project; planId: string
 
 function CaseLink({ project, caseKey, title }: { project: Project; caseKey: string; title: string }) {
   return (
-    <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: caseKey }} className="text-ink hover:underline">
+    <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: caseKey }} className="text-ink hover:underline">
       <span className="mr-2 font-mono text-xs text-ink-muted">{caseKey}</span>
       {title}
     </Link>
@@ -194,7 +194,7 @@ function DeletePlanDialog({ project, plan, onClose }: { project: Project; plan: 
         <Button
           variant="danger"
           loading={remove.isPending}
-          onClick={() => remove.mutate(plan.id, { onSuccess: () => void navigate({ to: "/p/$projectKey/tests", params: { projectKey: project.key } }) })}
+          onClick={() => remove.mutate(plan.id, { onSuccess: () => void navigate({ to: "/projects/$projectKey/tests", params: { projectKey: project.key } }) })}
           data-action="confirm-delete-plan"
         >
           {t.tests.delete}

@@ -44,11 +44,11 @@ describe("a reused requirement", () => {
   it("says what it follows and that its source moved on, and takes the source's latest revision", async () => {
     const taken = reused({ revision: 2, reuse: { state: "following", revision: 3, source, behind: false } });
     const sent = stubPage(reused(), { "POST /requirements/APP-R1/reuse/take": { status: 200, body: { requirement: taken } } });
-    await renderAt("/p/APP/r/APP-R1");
+    await renderAt("/projects/APP/r/APP-R1");
     const banner = await screen.findByText("Follows LIB-R2 from the library, at its revision 2.");
-    expect(banner.closest("a")).toHaveAttribute("href", "/p/LIB/r/LIB-R2");
+    expect(banner.closest("a")).toHaveAttribute("href", "/projects/LIB/r/LIB-R2");
     expect(screen.getByText("LIB-R2 has revision 3 now.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "What changed in the source" })).toHaveAttribute("href", "/p/LIB/r/LIB-R2/history?from=2&to=3");
+    expect(screen.getByRole("link", { name: "What changed in the source" })).toHaveAttribute("href", "/projects/LIB/r/LIB-R2/history?from=2&to=3");
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(screen.getByRole("button", { name: "Take revision 3" }));
     await waitFor(() => expect(sent.find((r) => r.path === "/requirements/APP-R1/reuse/take")?.body).toEqual({ revision: 3 }));
@@ -58,7 +58,7 @@ describe("a reused requirement", () => {
   it("is edited without its words while it follows, and made a variant to change them", async () => {
     const variant = reused({ reuse: { state: "variant", revision: 2, source, behind: true } });
     const sent = stubPage(reused(), { "POST /requirements/APP-R1/reuse/variant": { status: 200, body: { requirement: variant } } });
-    await renderAt("/p/APP/r/APP-R1");
+    await renderAt("/projects/APP/r/APP-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const form = document.querySelector<HTMLElement>("[data-requirement-edit]")!;
     expect(within(form).getByText(/follow the library source/)).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("a reused requirement", () => {
         can: { edit: false, transition: false, delete: false, link: false, comment: false },
       }),
     );
-    await renderAt("/p/APP/r/APP-R1");
+    await renderAt("/projects/APP/r/APP-R1");
     expect(await screen.findByText("A variant of a library requirement you may not read, branched at its revision 2.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Take revision/ })).toBeNull();
   });
@@ -96,7 +96,7 @@ describe("reusing a library's requirement", () => {
       "GET /projects/APP": { status: 200, body: { project: product } },
       "GET /requirements/APP-R1": { status: 200, body: { requirement: made } },
     });
-    await renderAt("/p/LIB/r/LIB-R2");
+    await renderAt("/projects/LIB/r/LIB-R2");
     await userEvent.click(await screen.findByRole("button", { name: "Reuse in a project" }));
     const dialog = await screen.findByRole("dialog", { name: "Reuse LIB-R2" });
     const projects = within(dialog).getByLabelText("Project");

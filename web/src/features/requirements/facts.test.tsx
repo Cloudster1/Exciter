@@ -24,7 +24,7 @@ describe("a requirement's facts", () => {
       "GET /requirements/CHK-R1": { status: 200, body: { requirement: owned } },
       "PATCH /requirements/CHK-R1": { status: 200, body: { requirement: { ...owned, owner: null } } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await screen.findByText("Bob Builder");
     await userEvent.click(within(facts()).getByRole("button", { name: "Remove the owner" }));
     await waitFor(() => expect(sent.filter((r) => r.method === "PATCH").map((r) => r.body)).toEqual([{ ownerId: null }]));
@@ -39,7 +39,7 @@ describe("a requirement's facts", () => {
         body: { error: { code: "validation_failed", message: "Some fields need attention.", fields: { ownerId: OWNER_REFUSED } } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await screen.findByText("Bob Builder");
     await userEvent.click(within(facts()).getByRole("button", { name: "Remove the owner" }));
     const refusal = await within(facts()).findByText(OWNER_REFUSED);
@@ -55,7 +55,7 @@ describe("a requirement's facts", () => {
       "GET /projects/CHK": { status: 200, body: { project } },
       "GET /requirements/CHK-R1": { status: 200, body: { requirement } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await screen.findByText("Bob Builder");
     expect(within(facts()).queryByRole("combobox", { name: "Change the owner" })).toBeNull();
     expect(within(facts()).queryByRole("button", { name: "Remove the owner" })).toBeNull();

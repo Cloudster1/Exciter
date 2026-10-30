@@ -3,7 +3,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // Risks and their ratings (#259): alice sets the project's risk scheme, marks a type as risks, rates a hazard and
 // reads its rating's history value by value.
@@ -26,14 +26,15 @@ test.describe("risks", { tag: "@desktop" }, () => {
     test.setTimeout(60_000);
     must(await api.POST("/projects", { body: { key: KEY, name: "Brakes" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=risks`);
+    await page.goto(`/projects/${KEY}/settings/risks`);
     await page.locator('[data-action="start-risk-scheme"]').click();
     await page.getByRole("table", { name: "Matrix" }).getByRole("combobox", { name: "Level at severity 5 and probability 1" }).selectOption("High");
     await expectAccessible(page);
     await page.locator('[data-action="save-risk-scheme"]').click();
-    await expect(page.getByText("The risk scheme is saved.")).toBeVisible();
+    await expect(toast(page, "The risk scheme is saved.")).toBeVisible();
+    await dismissToasts(page);
 
-    await page.goto(`/p/${KEY}/settings?tab=types`);
+    await page.goto(`/projects/${KEY}/settings/types`);
     await page.getByRole("button", { name: "New type" }).click();
     const form = page.locator("[data-type-form]");
     await form.getByLabel("Name", { exact: true }).fill("Hazard");
@@ -41,7 +42,7 @@ test.describe("risks", { tag: "@desktop" }, () => {
     await form.locator('[data-action="save-type"]').click();
     await expect(page.locator('[data-type="Hazard"] [data-risk-type]')).toBeVisible();
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title").fill("Brakes fail on ice");
     await page.locator("[data-type-select]").selectOption({ label: "Hazard" });
     const rating = page.getByRole("group", { name: "Risk rating" });

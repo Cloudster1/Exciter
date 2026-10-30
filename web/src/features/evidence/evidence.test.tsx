@@ -52,7 +52,7 @@ describe("a requirement's test results", () => {
       aResult({ test: "lights follow the pedal", outcome: "failed", message: "lights stayed off", revision: 1, outdated: true }),
       aResult({ branch: "feature/lights", outcome: "failed", counts: false, job: "browser", runUrl: "" }),
     ]);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = (await screen.findByRole("heading", { name: "Test results" })).closest("[data-test-results]") as HTMLElement;
     const branches = (await within(panel).findAllByRole("heading", { level: 3 })).map((h) => h.textContent);
     expect(branches).toEqual(["On main, which counts", "On feature/lights"]);
@@ -69,7 +69,7 @@ describe("a requirement's test results", () => {
 
   it("says how a test names a requirement when none does yet", async () => {
     stubRequirement([]);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText(/A test names it with \[verifies KEY\] in its name/)).toBeInTheDocument();
   });
 });
@@ -88,7 +88,7 @@ describe("the counting branch", () => {
 
   it("is named by an administrator in the project's trace settings", async () => {
     const sent = stubSettings();
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     const branch = await screen.findByRole("textbox", { name: "Counting branch" });
     expect(branch).toHaveValue("main");
     expect(await axeViolations()).toEqual([]);
@@ -100,7 +100,7 @@ describe("the counting branch", () => {
 
   it("is only read by somebody who does not administer the project", async () => {
     stubSettings({ view: true, comment: false, edit: false, approve: false, administer: false, purge: false });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     expect(await screen.findByRole("textbox", { name: "Counting branch" })).toBeDisabled();
     expect(screen.getByText("Only the project's administrators name the counting branch.")).toBeInTheDocument();
   });

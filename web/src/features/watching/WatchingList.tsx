@@ -59,14 +59,19 @@ export function WatchingList() {
                   <Td>
                     {watch.requirement ? (
                       <Link
-                        to="/p/$projectKey/r/$reqKey"
+                        to="/projects/$projectKey/r/$reqKey"
                         params={{ projectKey: watch.requirement.projectKey, reqKey: watch.requirement.key }}
                         className="font-medium text-accent hover:underline"
                       >
                         <span className="font-mono">{watch.requirement.key}</span> {watch.requirement.title}
                       </Link>
                     ) : (
-                      <Link to="/p/$projectKey" params={{ projectKey: watch.projectKey }} search={{}} className="font-medium text-accent hover:underline">
+                      <Link
+                        to="/projects/$projectKey"
+                        params={{ projectKey: watch.projectKey }}
+                        search={{}}
+                        className="font-medium text-accent hover:underline"
+                      >
                         {t.watch.projectNamed(watch.projectKey)}
                       </Link>
                     )}

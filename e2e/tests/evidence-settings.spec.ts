@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 import { WEB_URL } from "../fixtures/stack";
 
 // The evidence settings and the code tags page (#323): alice names the counting branch and a tag word in the
@@ -78,7 +78,7 @@ async function scanned(secret: string, key: string, tags: Tag[]) {
 
 /** Reads the coverage report until it says what is expected: the worker clears its cache once it hears of a change. */
 async function coverageReads(page: Page, key: string, said: string) {
-  await page.goto(`/p/${key}/coverage`);
+  await page.goto(`/projects/${key}/coverage`);
   await expect(async () => {
     await page.reload();
     await expect(page.getByRole("list", { name: "Requirements" })).toContainText(said, { timeout: 2_000 });
@@ -99,14 +99,15 @@ test.describe("evidence settings and code tags", { tag: "@desktop" }, () => {
       await ranOn(token.secret!, BRANCH_KEY, "release", true);
       await coverageReads(page, BRANCH_KEY, "Verified: Full");
 
-      await page.goto(`/p/${BRANCH_KEY}/settings?tab=trace`);
+      await page.goto(`/projects/${BRANCH_KEY}/settings/trace`);
       const card = page.locator("[data-evidence-settings]");
       await card.getByLabel("Counting branch").fill("release");
       await card.locator('[data-action="save-evidence-settings"]').click();
-      await expect(card.getByRole("status")).toHaveText("Saved.");
+      await expect(toast(page, "Saved.")).toBeVisible();
+      await dismissToasts(page);
       await expectAccessible(page);
 
-      await page.goto(`/p/${BRANCH_KEY}/r/${BRANCH_KEY}-R1`);
+      await page.goto(`/projects/${BRANCH_KEY}/r/${BRANCH_KEY}-R1`);
       const panel = page.locator("[data-test-results]");
       await expect(panel.getByRole("heading", { name: "On release, which counts" })).toBeVisible();
       await expect(panel.getByRole("heading", { name: "On main", exact: true })).toBeVisible();
@@ -121,18 +122,19 @@ test.describe("evidence settings and code tags", { tag: "@desktop" }, () => {
     const token = await projectWithToken(api, WORDS_KEY);
     try {
       await scanned(token.secret!, WORDS_KEY, [{ path: "brakes/engage.go", line: 12, word: "satisfies", key: `${WORDS_KEY}-R1` }]);
-      await page.goto(`/p/${WORDS_KEY}/r/${WORDS_KEY}-R1`);
+      await page.goto(`/projects/${WORDS_KEY}/r/${WORDS_KEY}-R1`);
       const code = page.locator("[data-code-links]");
       await expect(code).toContainText("No scan tags this requirement yet.");
 
-      await page.goto(`/p/${WORDS_KEY}/settings?tab=trace`);
+      await page.goto(`/projects/${WORDS_KEY}/settings/trace`);
       const card = page.locator("[data-code-tag-words]");
       await card.getByLabel("Words for implements").fill("implements, satisfies");
       await card.locator('[data-action="save-code-tag-words"]').click();
-      await expect(card.getByRole("status")).toHaveText("Saved.");
+      await expect(toast(page, "Saved.")).toBeVisible();
+      await dismissToasts(page);
       await expectAccessible(page);
 
-      await page.goto(`/p/${WORDS_KEY}/r/${WORDS_KEY}-R1`);
+      await page.goto(`/projects/${WORDS_KEY}/r/${WORDS_KEY}-R1`);
       await expect(code.getByRole("link", { name: "brakes/engage.go:12" })).toHaveAttribute(
         "href",
         `https://git.example/acme/checkout/blob/${COMMIT}/brakes/engage.go#L12`,
@@ -161,7 +163,7 @@ test.describe("evidence settings and code tags", { tag: "@desktop" }, () => {
       }));
       await scanned(token.secret!, TAGS_KEY, [...ghosts, { path: "brakes/engage.go", line: 12, word: "implements", key: `${TAGS_KEY}-R1`, revision: 1 }]);
 
-      await page.goto(`/p/${TAGS_KEY}/code-tags`);
+      await page.goto(`/projects/${TAGS_KEY}/code-tags`);
       const table = page.getByRole("table", { name: "Code tags" });
       const rows = table.locator("[data-code-tag]");
       const next = page.getByRole("button", { name: "Next" });

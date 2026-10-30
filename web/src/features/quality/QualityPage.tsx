@@ -66,7 +66,7 @@ export function QualityPage({ project }: { project: Project }) {
                       <tr key={row.id} data-quality-row={row.key}>
                         <Td>
                           <Link
-                            to="/p/$projectKey/r/$reqKey"
+                            to="/projects/$projectKey/r/$reqKey"
                             params={{ projectKey: project.key, reqKey: row.key }}
                             className="text-ink hover:text-accent hover:underline"
                           >
@@ -155,7 +155,7 @@ function RulesBroken({ projectKey, summary }: { projectKey: string; summary: Qua
         <li key={each.rule} className="space-y-1" data-rule-count={each.rule}>
           <div className="flex items-baseline justify-between gap-2 text-sm">
             <Link
-              to="/p/$projectKey/grid"
+              to="/projects/$projectKey/grid"
               params={{ projectKey }}
               search={{ query: `qualityFinding = ${each.rule}` }}
               className="font-medium text-ink hover:text-accent hover:underline"

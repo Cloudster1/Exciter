@@ -46,7 +46,7 @@ test.describe("creating Armature issues from requirements", { tag: "@desktop" },
   });
 
   test("alice leaves a requirement out of the round, and clears a selection she does not want (#326)", async ({ page, api }) => {
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const document = page.getByRole("article", { name: "Specification" });
     const bar = page.locator("[data-selection-bar]");
     await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
@@ -91,7 +91,7 @@ test.describe("creating Armature issues from requirements", { tag: "@desktop" },
       });
     expect((await steer(refused)).status).toBe(204);
     try {
-      await page.goto(`/p/${KEY}/spec`);
+      await page.goto(`/projects/${KEY}/spec`);
       const document = page.getByRole("article", { name: "Specification" });
       await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
       await document.getByRole("checkbox", { name: `Select ${KEY}-R2` }).check();
@@ -113,7 +113,7 @@ test.describe("creating Armature issues from requirements", { tag: "@desktop" },
   });
 
   test("alice files an issue per picked requirement, and each requirement shows its issue", async ({ page }) => {
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const document = page.getByRole("article", { name: "Specification" });
     await document.getByRole("checkbox", { name: `Select ${KEY}-R1` }).check();
     await document.getByRole("checkbox", { name: `Select ${KEY}-R2` }).check();
@@ -133,7 +133,7 @@ test.describe("creating Armature issues from requirements", { tag: "@desktop" },
     await dialog.getByRole("button", { name: "Done" }).click();
     await expect(page.getByText("2 requirements selected")).toBeHidden();
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     const link = panel.locator('[data-armature-relation="verifies"] [data-armature-link="CP-6"]');
     await expect(link.getByRole("link", { name: new RegExp(`${KEY}-R1 Brakes engage within 100 ms`) })).toBeVisible();

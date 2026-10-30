@@ -125,7 +125,7 @@ function FmeaRow({
   return (
     <tr data-fmea-row={row.risk.key}>
       <Td className="min-w-48 align-top">
-        <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: row.risk.key }} className="font-medium text-accent">
+        <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: project.key, reqKey: row.risk.key }} className="font-medium text-accent">
           {row.risk.key}
         </Link>{" "}
         <span className="text-ink">{row.risk.title}</span>
@@ -145,7 +145,7 @@ function FmeaRow({
               {m.source.hidden ? (
                 <span className="text-ink-muted">{t.risks.hidden}</span>
               ) : (
-                <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: m.source.projectKey, reqKey: m.source.key }} className="text-accent">
+                <Link to="/projects/$projectKey/r/$reqKey" params={{ projectKey: m.source.projectKey, reqKey: m.source.key }} className="text-accent">
                   {m.source.key}
                 </Link>
               )}

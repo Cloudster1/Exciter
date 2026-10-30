@@ -26,7 +26,7 @@ test.describe("test cases", { tag: "@desktop" }, () => {
     test.setTimeout(60_000);
     must(await api.POST("/projects", { body: { key: KEY, name: "Brakes" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=types`);
+    await page.goto(`/projects/${KEY}/settings/types`);
     await page.getByRole("button", { name: "New type" }).click();
     const form = page.locator("[data-type-form]");
     await form.getByLabel("Name", { exact: true }).fill("Test case");
@@ -34,7 +34,7 @@ test.describe("test cases", { tag: "@desktop" }, () => {
     await form.locator('[data-action="save-type"]').click();
     await expect(page.locator('[data-type="Test case"] [data-test-case-type]')).toBeVisible();
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title").fill("Brake on a wet road");
     await page.locator("[data-type-select]").selectOption({ label: "Test case" });
     const steps = page.getByRole("group", { name: "Steps" });

@@ -46,7 +46,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
   });
 
   test("alice traces a requirement to an issue she finds by its summary, and Armature shows it from Exciter", async ({ page }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     await expect(panel.getByText(/No issue yet/)).toBeVisible();
 
@@ -75,7 +75,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     const reqKey = `${KEY}-R1`;
     must(await api.POST("/requirements/{reqKey}/armature-links", { params: { path: { reqKey } }, body: { issueKey: "CP-1", relation: "implements" } }));
     must(await api.PATCH("/requirements/{reqKey}", { params: { path: { reqKey } }, body: { title: "Brakes engage within 80 ms", baseRevision: 1 } }));
-    await page.goto(`/p/${KEY}/r/${reqKey}`);
+    await page.goto(`/projects/${KEY}/r/${reqKey}`);
     const link = page.getByRole("region", { name: "Armature issues" }).locator('[data-armature-link="CP-1"]');
     await expect(link.getByText("Suspect")).toBeVisible();
 
@@ -99,7 +99,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     must(await api.POST("/requirements/{reqKey}/armature-links", { params: { path: { reqKey } }, body: { issueKey: "CP-1", relation: "implements" } }));
     const bob = await pageAs("bob");
     const chip = bob.locator('[data-armature-link="CP-1"] [data-armature-issue="CP-1"]');
-    await openShowing(bob, `/p/${KEY}/r/${reqKey}`, chip);
+    await openShowing(bob, `/projects/${KEY}/r/${reqKey}`, chip);
     await expect(chip).toHaveAttribute("data-state", "connect");
     await expect(chip.getByRole("link", { name: "CP-1", exact: true })).toBeVisible();
     await expect(chip.locator('[data-status-category="done"]')).toHaveText(/Done/);
@@ -118,7 +118,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
     await bob.locator('[data-action="connect-armature"]').click();
     await expect(bob.locator("[data-armature-user]")).toContainText("Connected as Bob");
 
-    await bob.goto(`/p/${KEY}/r/${reqKey}`);
+    await bob.goto(`/projects/${KEY}/r/${reqKey}`);
     const live = bob.locator('[data-armature-link="CP-1"] [data-armature-issue="CP-1"]');
     await expect(live).toHaveAttribute("data-state", "issue");
     await expect(live).toContainText("Set up the build pipeline");
@@ -128,7 +128,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
   });
 
   test("alice picks another issue, and one she may not see is never offered to trace (#326)", async ({ page, api }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     const form = panel.getByRole("form", { name: "Trace to an Armature issue" });
     const box = form.getByRole("combobox", { name: "Issue" });
@@ -162,7 +162,7 @@ test.describe("tracing requirements to Armature issues", { tag: "@desktop" }, ()
         body: { issueKey: "CP-1", relation: "implements" },
       }),
     );
-    await page.goto(`/p/${KEY}/r/${KEY}-R1/trace`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1/trace`);
     await page.locator("[data-graph-canvas] [data-graph-node]", { hasText: "CP-1" }).click();
     const chosen = page.locator('[data-graph-chosen="CP-1"]');
     await expect(chosen).toContainText("Set up the build pipeline");

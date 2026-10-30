@@ -72,9 +72,9 @@ describe("a project's baselines", () => {
         body: { baseline: aBaseline({ id: laterId, name: "Braking 1.0", root: ref("CHK-R2", "Braking", 1, "section") }) },
       },
     });
-    await renderAt("/p/CHK/baselines");
+    await renderAt("/projects/CHK/baselines");
     const list = await screen.findByRole("list", { name: "Baselines" });
-    expect(within(list).getByRole("link", { name: "Release 1.0" })).toHaveAttribute("href", `/p/CHK/baselines/${id}`);
+    expect(within(list).getByRole("link", { name: "Release 1.0" })).toHaveAttribute("href", `/projects/CHK/baselines/${id}`);
     expect(list).toHaveTextContent("Locked");
     expect(list).toHaveTextContent("3 requirements");
     await userEvent.click(screen.getByRole("button", { name: "Take baseline" }));
@@ -95,7 +95,7 @@ describe("a project's baselines", () => {
       },
       "GET /projects/CHK/baselines": { status: 200, body: { baselines: [] } },
     });
-    await renderAt("/p/CHK/baselines");
+    await renderAt("/projects/CHK/baselines");
     expect(await screen.findByText("No baseline yet.")).toBeInTheDocument();
     expect(screen.getByText("Only the project's administrators take, change and delete baselines.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Take baseline" })).toBeNull();
@@ -169,7 +169,7 @@ describe("a baseline", () => {
         return { status: 200, body: { matrix: matrix(query.get("with") === "now") } };
       },
     });
-    await renderAt(`/p/CHK/baselines/${id}`);
+    await renderAt(`/projects/CHK/baselines/${id}`);
     await userEvent.click(await screen.findByRole("button", { name: "Matrix" }));
     const table = await screen.findByRole("table", { name: "Matrix" });
     expect(table.querySelector('[data-cell="CHK-R1:CHK-R2"]')).toHaveAttribute("title", "CHK-R1 to CHK-R2: Derives");
@@ -200,7 +200,7 @@ describe("a baseline", () => {
         },
       },
     });
-    await renderAt(`/p/CHK/baselines/${id}`);
+    await renderAt(`/projects/CHK/baselines/${id}`);
     await userEvent.click(await screen.findByRole("button", { name: "Matrix" }));
     expect(await screen.findByText(/was taken before suspect state, Armature status and Stator pages were recorded/)).toBeInTheDocument();
     await waitFor(() => expect(document.querySelector('[data-cell="CHK-R1:CHK-R2"]')).toHaveAttribute("title", "CHK-R1 to CHK-R2: Derives (not recorded)"));
@@ -208,7 +208,7 @@ describe("a baseline", () => {
 
   it("reads as a specification at the revisions it holds, and its administrators lock it", async () => {
     const sent = stubBaseline(aBaseline(), { [`PATCH /baselines/${id}`]: { status: 200, body: { baseline: aBaseline({ locked: true }) } } });
-    await renderAt(`/p/CHK/baselines/${id}`);
+    await renderAt(`/projects/CHK/baselines/${id}`);
     const spec = await screen.findByRole("list", { name: "Release 1.0" });
     const first = within(spec).getAllByRole("listitem")[0]!;
     expect(first).toHaveTextContent("1 Brakes engage within 100 ms");
@@ -233,11 +233,11 @@ describe("a baseline", () => {
         return { status: 204 };
       },
     });
-    const router = await renderAt(`/p/CHK/baselines/${id}`);
+    const router = await renderAt(`/projects/CHK/baselines/${id}`);
     await screen.findByRole("list", { name: "Release 1.0" });
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     await answerConfirm(true);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/baselines"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/baselines"));
     expect((await screen.findByText("The baseline Release 1.0 is deleted.")).closest("[data-toast]")).toHaveAttribute("role", "status");
     // Asked for again, the deleted baseline would turn its page into a refusal before it led here.
     const deletedAt = sent.findIndex((each) => each.method === "DELETE" && each.path === `/baselines/${id}`);
@@ -247,17 +247,17 @@ describe("a baseline", () => {
 
   it("is compared with another baseline of the project, picked by its name", async () => {
     stubBaseline();
-    const router = await renderAt(`/p/CHK/baselines/${id}`);
+    const router = await renderAt(`/projects/CHK/baselines/${id}`);
     await screen.findByRole("option", { name: "Release 1.1" });
     await userEvent.selectOptions(screen.getByLabelText("Compare with"), "Release 1.1");
     await userEvent.click(screen.getByRole("button", { name: "Compare" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/CHK/baselines/${id}/compare`));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/projects/CHK/baselines/${id}/compare`));
     expect(router.state.location.search).toEqual({ with: laterId });
   });
 
   it("once locked offers nothing to change", async () => {
     stubBaseline(aBaseline({ locked: true, lockedAt: "2026-10-02T08:00:00Z" }));
-    await renderAt(`/p/CHK/baselines/${id}`);
+    await renderAt(`/projects/CHK/baselines/${id}`);
     expect(await screen.findByText("A locked baseline keeps its name and is never deleted.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Lock" })).toBeNull();
@@ -306,12 +306,12 @@ describe("a comparison", () => {
       "GET /projects/CHK": { status: 200, body: { project: aProject() } },
       [`GET /baselines/${id}/compare`]: { status: 200, body: { comparison } },
     });
-    await renderAt(`/p/CHK/baselines/${id}/compare?with=now`);
+    await renderAt(`/projects/CHK/baselines/${id}/compare?with=now`);
     const items = await screen.findByRole("list", { name: "Requirements" });
     const r3 = items.querySelector('[data-item-change="CHK-R3"]') as HTMLElement;
     expect(r3).toHaveTextContent("Revision 1 to 3");
     expect(r3).toHaveTextContent("Moved from 2.1 to 2.2");
-    expect(within(r3).getByRole("link", { name: "Show the change" })).toHaveAttribute("href", "/p/CHK/r/CHK-R3/history?from=1&to=3");
+    expect(within(r3).getByRole("link", { name: "Show the change" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R3/history?from=1&to=3");
     expect(items.querySelector('[data-item-change="CHK-R4"]')).toHaveTextContent("Added");
     expect(items.querySelector('[data-item-change="CHK-R1"]')).toHaveTextContent("Removed");
     expect(screen.getByRole("list", { name: "Trace links" })).toHaveTextContent("CHK-R3 derives CHK-R1");
@@ -323,7 +323,7 @@ describe("a comparison", () => {
       "GET /projects/CHK": { status: 200, body: { project: aProject() } },
       [`GET /baselines/${id}/compare`]: { status: 200, body: { comparison: { ...comparison, items: [], links: [] } } },
     });
-    await renderAt(`/p/CHK/baselines/${id}/compare`);
+    await renderAt(`/projects/CHK/baselines/${id}/compare`);
     expect(await screen.findByText("Nothing differs.")).toBeInTheDocument();
   });
 });
@@ -372,7 +372,7 @@ describe("a signed baseline", () => {
         body: { baseline: aBaseline({ locked: true, signing: signing({ signatures: 1, frozen: true, canSign: false, meaning: "" }) }) },
       },
     });
-    await renderAt(`/p/CHK/baselines/${id}`, { me: { ...signedIn, signsWith: "password" } });
+    await renderAt(`/projects/CHK/baselines/${id}`, { me: { ...signedIn, signsWith: "password" } });
     const panel = await screen.findByRole("heading", { name: "Signing" });
     expect(panel.closest("[data-baseline-signing]")).toHaveTextContent("Released by 2 signatures");
     await userEvent.click(screen.getByRole("button", { name: "Sign" }));
@@ -392,7 +392,7 @@ describe("a signed baseline", () => {
 
   it("says it is signed, by whom, and offers no rename or delete", async () => {
     stubSigned(aBaseline({ locked: true, signing: signing({ signatures: 2, signed: true, frozen: true, canSign: false, meaning: "" }) }));
-    await renderAt(`/p/CHK/baselines/${id}`);
+    await renderAt(`/projects/CHK/baselines/${id}`);
     const panel = (await screen.findByRole("heading", { name: "Signing" })).closest("[data-baseline-signing]") as HTMLElement;
     expect(panel).toHaveAttribute("data-baseline-signing", "signed");
     expect(panel).toHaveTextContent("Signed, with 2 of 2 signatures");
@@ -405,7 +405,7 @@ describe("a signed baseline", () => {
 
   it("is marked in the list while it is being signed", async () => {
     stubSigned(aBaseline({ locked: true, signing: signing({ signatures: 1, frozen: true }) }));
-    await renderAt("/p/CHK/baselines");
+    await renderAt("/projects/CHK/baselines");
     const list = await screen.findByRole("list", { name: "Baselines" });
     expect(list.querySelector("[data-baseline-signed]")).toHaveTextContent("Signing: 1 of 2 signatures");
   });
@@ -418,7 +418,7 @@ describe("a signed baseline", () => {
       "GET /projects/CHK/baseline-signing": { status: 200, body: { rule: null } },
       "PUT /projects/CHK/baseline-signing": { status: 200, body: { rule: { required: 1, signers: [], updatedAt: "2026-10-02T08:00:00Z" } } },
     });
-    await renderAt("/p/CHK/settings?tab=approval");
+    await renderAt("/projects/CHK/settings/approval");
     const card = (await screen.findByRole("heading", { name: "Who signs baselines" })).closest("[data-signing-rule]") as HTMLElement;
     expect(await within(card).findByText("Nobody signs this project's baselines.")).toBeInTheDocument();
     await userEvent.click(within(card).getByRole("button", { name: "Name who signs" }));

@@ -58,7 +58,7 @@ func TestRequirementEventsReachTheReceiverAsTheOwnerMayReadThem(t *testing.T) {
 	revised := awaitTopic(t, bin, webhook.TopicRequirementRevised, r1, 2)
 	p := revised[0].payload()
 	req := p["requirement"].(map[string]any)
-	if req["key"] != r1 || req["project"].(map[string]any)["key"] != w.key || !strings.HasSuffix(req["url"].(string), "/p/"+w.key+"/r/"+r1) ||
+	if req["key"] != r1 || req["project"].(map[string]any)["key"] != w.key || !strings.HasSuffix(req["url"].(string), "/projects/"+w.key+"/r/"+r1) ||
 		p["actor"].(map[string]any)["id"] != w.bobID.String() || asNumber(p["revision"]) < 2 {
 		t.Errorf("a revision reads %s", revised[0].Body)
 	}

@@ -12,7 +12,7 @@ import { expectAccessible } from "../fixtures/shell";
 
 const KEY = uniqueKey("SIGN");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };
@@ -31,7 +31,7 @@ test.describe("approval", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Signed off" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Brakes engage within 100 ms" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${KEY}/settings/approval`);
     const rules = page.locator("[data-approval-rules]");
     await rules.getByRole("button", { name: "Add a rule" }).click();
     await rules.getByRole("combobox", { name: "Add a person or a group" }).pressSequentially(people.bob.email.split("@")[0]!);
@@ -84,7 +84,7 @@ test.describe("approval", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/settings`);
+    await page.goto(`/projects/${KEY}/settings/details`);
     const signing = page.getByRole("checkbox", { name: "Approvals are electronic signatures" });
     await signing.check();
     const saved = page.waitForResponse((response) => response.request().method() === "PATCH" && response.url().endsWith(`/projects/${KEY}`));

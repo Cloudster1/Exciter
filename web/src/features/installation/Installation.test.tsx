@@ -108,7 +108,7 @@ describe("the installation page", () => {
     current = demo("done");
     expect(await screen.findByText("The demo holds 1540 requirements and 12 links; 3 links wait.", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText(/Your Armature account is not connected/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "EXC" })).toHaveAttribute("href", "/p/EXC");
+    expect(screen.getByRole("link", { name: "EXC" })).toHaveAttribute("href", "/projects/EXC");
     expect(screen.queryByRole("button", { name: "Add the suite demo" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Link the demo again" }));
     expect(await screen.findByText("The demo is being linked to Armature and Stator.")).toBeInTheDocument();

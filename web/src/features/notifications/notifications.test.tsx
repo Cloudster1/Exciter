@@ -130,7 +130,7 @@ describe("the notification bell", () => {
     expect(await axeViolations()).toEqual([]);
 
     await userEvent.click(first);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R1"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R1"));
     expect(sent.find((each) => each.method === "POST" && each.path === "/notifications/read")?.body).toEqual({ ids: ["0195f000-0000-7000-8000-0000000000e1"] });
     expect(screen.queryByRole("dialog", { name: "Notifications" })).toBeNull();
     await screen.findByRole("button", { name: "Notifications" });

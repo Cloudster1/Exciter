@@ -33,7 +33,11 @@ export function ReuseBanner({ requirement, onNotice }: { requirement: Requiremen
     >
       <p>
         {source ? (
-          <Link to="/p/$projectKey/r/$reqKey" params={{ projectKey: source.projectKey, reqKey: source.key }} className="hover:text-accent hover:underline">
+          <Link
+            to="/projects/$projectKey/r/$reqKey"
+            params={{ projectKey: source.projectKey, reqKey: source.key }}
+            className="hover:text-accent hover:underline"
+          >
             {said}
           </Link>
         ) : (
@@ -44,7 +48,7 @@ export function ReuseBanner({ requirement, onNotice }: { requirement: Requiremen
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span data-reuse-source-revision={source.revision}>{t.reuse.behind(source.key, source.revision)}</span>
           <Link
-            to="/p/$projectKey/r/$reqKey/history"
+            to="/projects/$projectKey/r/$reqKey/history"
             params={{ projectKey: source.projectKey, reqKey: source.key }}
             search={{ from: reuse.revision, to: source.revision }}
             className="text-accent hover:underline"

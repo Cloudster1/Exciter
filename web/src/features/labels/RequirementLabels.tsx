@@ -15,7 +15,7 @@ export function LabelLink({ name, projectKey, onRemove }: { name: string; projec
       data-label={name}
     >
       {projectKey ? (
-        <Link to="/p/$projectKey" params={{ projectKey }} search={{ label: name }} className={look}>
+        <Link to="/projects/$projectKey" params={{ projectKey }} search={{ label: name }} className={look}>
           <Icon.Label className="size-3" />
           {name}
         </Link>

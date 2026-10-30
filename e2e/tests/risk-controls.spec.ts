@@ -5,7 +5,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 import { unzipText } from "../fixtures/unzip";
 
 // Every control of the Risks settings tab, the FMEA table, the risk matrix and the three downloads, each checked for
@@ -101,11 +101,11 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     const { write } = await riskProject(api, key);
     const risk = await write("Brakes fail on ice", side(4, 3));
 
-    await page.goto(`/p/${key}/risks`);
+    await page.goto(`/projects/${key}/risks`);
     const row = page.locator(`[data-fmea-row="${risk}"]`);
     await expect(row.locator('[data-risk-level-tag="High"]').first()).toBeVisible();
 
-    await page.goto(`/p/${key}/settings?tab=risks`);
+    await page.goto(`/projects/${key}/settings/risks`);
     await page.getByLabel("A rating gives its level by").selectOption("rpn");
     await expect(page.getByRole("table", { name: "Matrix" })).toHaveCount(0);
     await page.getByRole("checkbox", { name: "Rate detection too" }).check();
@@ -116,13 +116,14 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     await page.getByLabel("High from priority number").fill("30");
     await expectAccessible(page);
     await page.locator('[data-action="save-risk-scheme"]').click();
-    await expect(page.getByText("The risk scheme is saved.")).toBeVisible();
+    await expect(toast(page, "The risk scheme is saved.")).toBeVisible();
+    await dismissToasts(page);
     const saved = must(await api.GET("/projects/{projectKey}/risk-scheme", { params: { path: { projectKey: key } } })).scheme!;
     expect(saved.method).toBe("rpn");
     expect(saved.levels.map((l) => l.minRpn)).toEqual([null, 10, 30]);
     expect(saved.scales.find((s) => s.dimension === "detection")?.values[0]?.name).toBe("Found at once");
 
-    await page.goto(`/p/${key}/risks`);
+    await page.goto(`/projects/${key}/risks`);
     // The row rates detection only once it has loaded under the saved scheme; only then does no level tag mean none.
     const detectionBefore = row.getByRole("combobox", { name: `Detection before mitigation of ${risk}` });
     await expect(detectionBefore).toBeVisible();
@@ -141,7 +142,7 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     const { write, path } = await riskProject(api, key);
     const risk = await write("Brakes fail on ice", side(5, 5));
 
-    await page.goto(`/p/${key}/settings?tab=risks`);
+    await page.goto(`/projects/${key}/settings/risks`);
     await page.locator('[data-action="add-risk-level"]').click();
     await page.getByLabel("Name of level 4").fill("Critical");
     await page.getByLabel("Pick Colour of level 4").fill("#7c3aed");
@@ -152,19 +153,21 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     await corner.selectOption("Critical");
     await expectAccessible(page);
     await page.locator('[data-action="save-risk-scheme"]').click();
-    await expect(page.getByText("The risk scheme is saved.")).toBeVisible();
+    await expect(toast(page, "The risk scheme is saved.")).toBeVisible();
+    await dismissToasts(page);
     const added = must(await api.GET("/projects/{projectKey}/risk-scheme", path)).scheme!;
     expect(added.levels[3]).toEqual({ name: "Critical", colour: "#7c3aed", acceptable: true, minRpn: null });
 
-    await page.goto(`/p/${key}/risks`);
+    await page.goto(`/projects/${key}/risks`);
     await expect(page.locator(`[data-fmea-row="${risk}"] [data-risk-level-tag="Critical"]`).first()).toBeVisible();
 
-    await page.goto(`/p/${key}/settings?tab=risks`);
+    await page.goto(`/projects/${key}/settings/risks`);
     await page.getByRole("button", { name: "Remove the level Critical" }).click();
     await expect(corner).toHaveValue("Low");
     await expect(corner.locator("option", { hasText: "Critical" })).toHaveCount(0);
     await page.locator('[data-action="save-risk-scheme"]').click();
-    await expect(page.getByText("The risk scheme is saved.")).toBeVisible();
+    await expect(toast(page, "The risk scheme is saved.")).toBeVisible();
+    await dismissToasts(page);
     const removed = must(await api.GET("/projects/{projectKey}/risk-scheme", path)).scheme!;
     expect(removed.levels.map((l) => l.name)).toEqual(["Low", "Medium", "High"]);
     expect(removed.matrix.find((c) => c.severity === 5 && c.probability === 5)?.level).toBe("Low");
@@ -192,7 +195,7 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     let last = rated;
     for (let i = 1; i <= PAGE; i++) last = await write(`Hazard ${i}`);
 
-    await page.goto(`/p/${key}/risks`);
+    await page.goto(`/projects/${key}/risks`);
     const row = page.locator(`[data-fmea-row="${rated}"]`);
     await expect(row.locator('[data-risk-level-tag="High"]')).toHaveCount(2);
     await row.getByRole("combobox", { name: `Severity before mitigation of ${rated}` }).selectOption("1");
@@ -221,7 +224,7 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     expect(new URL(href, "http://exciter.test").searchParams.get("query")).toBe("rpn >= 3");
     await expectAccessible(page);
 
-    await page.goto(`/p/${key}/r/${rated}`);
+    await page.goto(`/projects/${key}/r/${rated}`);
     await page.locator("[data-history-link]").click();
     await expect(page.locator('[data-revision-row="2"]')).toBeVisible();
   });
@@ -244,7 +247,7 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: control } }, body: { typeKey: "mitigates", otherKey: hazard } }));
     must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: check } }, body: { typeKey: "verifies", otherKey: control } }));
 
-    await page.goto(`/p/${key}/risks?view=matrix`);
+    await page.goto(`/projects/${key}/risks?view=matrix`);
     const cell = (at: string) => page.locator(`[data-risk-cell="${at}"]`);
     await expect(cell("2:3")).toHaveAttribute("data-count", "1");
     await expect(cell("4:3")).toHaveAttribute("data-count", "0");
@@ -271,7 +274,7 @@ test.describe("risk controls", { tag: "@desktop" }, () => {
     const ice = await write("Brakes fail on ice", side(4, 3));
     const squeal = await write("Brakes squeal", side(1, 1));
 
-    await page.goto(`/p/${key}/risks`);
+    await page.goto(`/projects/${key}/risks`);
     await expect(page.locator(`[data-fmea-row="${ice}"]`)).toBeVisible();
     const workbook = unzipText(await downloaded(page, "export-risks"));
     expect(workbook["xl/sharedStrings.xml"]).toContain("Brakes fail on ice");

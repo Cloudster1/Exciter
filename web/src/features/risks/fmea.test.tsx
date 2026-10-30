@@ -90,7 +90,7 @@ describe("a risk's mitigations", () => {
       "GET /requirements/CHK-R2": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", title: "Brakes fail on ice", risk: view }) } },
       "GET /requirements/CHK-R2/mitigations": { status: 200, body: mitigations },
     });
-    await renderAt("/p/CHK/r/CHK-R2");
+    await renderAt("/projects/CHK/r/CHK-R2");
     const panel = await screen.findByRole("region", { name: /Mitigations/ });
     expect(await within(panel).findByText("Claimed")).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: "CHK-R1 Stop on ice" })).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("a risk's mitigations", () => {
 describe("the FMEA table", () => {
   it("lists the risks and rates one in place over the revision it read", async () => {
     const sent = stubApi({ ...stubs, "PATCH /requirements/CHK-R2": { status: 200, body: { requirement: aRequirement({ key: "CHK-R2", revision: 2 }) } } });
-    await renderAt("/p/CHK/risks");
+    await renderAt("/projects/CHK/risks");
     const table = await screen.findByRole("table", { name: "FMEA table" });
     expect(within(table).getByRole("link", { name: "CHK-R1" })).toBeInTheDocument();
     expect(screen.getByText("1 risk is not rated yet.")).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe("the FMEA table", () => {
 describe("the risk matrix", () => {
   it("counts the risks in each cell and opens a cell's risks", async () => {
     const sent = stubApi(stubs);
-    await renderAt("/p/CHK/risks?view=matrix");
+    await renderAt("/projects/CHK/risks?view=matrix");
     const grid = await screen.findByRole("table", { name: "Risk matrix" });
     await userEvent.click(within(grid).getByRole("button", { name: "1 risk at severity 4 and probability 3" }));
     const risks = await screen.findByRole("region", { name: "Risks at severity 4 and probability 3" });

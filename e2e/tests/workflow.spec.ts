@@ -9,7 +9,7 @@ import { expectAccessible } from "../fixtures/shell";
 import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("FLOW");
-const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
+const REQUIREMENT = `/projects/${KEY}/r/${KEY}-R1`;
 /** How many moves each leg of a drag is made of. */
 const DRAG_STEPS = 4;
 
@@ -92,7 +92,7 @@ test.describe("workflow", { tag: "@desktop" }, () => {
 
   test("an administrator draws a workflow and a type follows it", async ({ page, api, people }) => {
     await makeProject(api, people);
-    await page.goto(`/p/${KEY}/settings?tab=workflow`);
+    await page.goto(`/projects/${KEY}/settings/workflow`);
     await expect(page.getByRole("figure", { name: "Workflow Default" })).toBeVisible();
     await expect(page.locator('[data-status-row="Obsolete"]')).toBeVisible();
     await expectAccessible(page);
@@ -108,7 +108,7 @@ test.describe("workflow", { tag: "@desktop" }, () => {
     await expect(page.locator('[data-workflow-edge-label="Ask"]')).toBeVisible();
     await expectAccessible(page);
     await page.locator('[data-action="save-workflow"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/settings?tab=workflow`);
+    await expect(page).toHaveURL(`/projects/${KEY}/settings/workflow`);
     await expect(page.locator('[data-workflow-card="Lean"]')).toBeVisible();
 
     await page.getByLabel("Workflow of Requirement").selectOption({ label: "Lean" });

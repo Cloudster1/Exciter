@@ -62,7 +62,9 @@ for (const file of reachFiles) {
   }
 }
 
-const pattern = (route) => new RegExp(`^${route.replace(/[.*+?^{}()|[\]\\]/g, "\\$&").replace(/\$[A-Za-z]+/g, "[^/]+")}$`);
+// A parameter stands for one segment, and a trailing splat, as /p/$, for at least one more.
+const pattern = (route) =>
+  new RegExp(`^${route.replace(/[.*+?^{}()|[\]\\]/g, "\\$&").replace(/\$[A-Za-z]+/g, "[^/]+").replace(/\/\$$/, "/.+")}$`);
 const reached = (route) => {
   const re = pattern(route);
   for (const path of reachedPaths) if (re.test(path)) return true;

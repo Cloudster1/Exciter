@@ -17,6 +17,7 @@ import {
   Table,
   Td,
   Th,
+  useToast,
 } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { RISK_DEFAULT_LEVELS, RISK_DEFAULT_SCALE, RISK_MAX_LEVELS, RISK_MAX_SCALE_VALUE, TYPE_COLOURS } from "@/config";
@@ -30,11 +31,9 @@ type Level = Draft["levels"][number];
 /** A project's risk scheme (#259): its administrators set the scales, the levels and how a rating gives its level. */
 export function RiskSchemeCard({ project }: { project: Project }) {
   const { data, error, refetch } = useRiskScheme(project.key);
-  // A saved scheme reads afresh into a new form, so the notice that it is saved lives here.
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (data === undefined) return <Skeleton />;
-  return <SchemeForm key={data?.updatedAt ?? "none"} project={project} scheme={data} notice={notice} setNotice={setNotice} />;
+  return <SchemeForm key={data?.updatedAt ?? "none"} project={project} scheme={data} />;
 }
 
 /** The scheme as the form edits it. */
@@ -77,24 +76,14 @@ function settleMatrix(draft: Draft): Draft {
   return { ...draft, matrix };
 }
 
-function SchemeForm({
-  project,
-  scheme,
-  notice,
-  setNotice,
-}: {
-  project: Project;
-  scheme: RiskScheme | null;
-  notice: string;
-  setNotice: (notice: string) => void;
-}) {
+function SchemeForm({ project, scheme }: { project: Project; scheme: RiskScheme | null }) {
+  const toast = useToast();
   const may = project.can.administer && !project.archivedAt;
   const save = useSaveRiskScheme(project.key);
   const [draft, setDraft] = useState<Draft | null>(scheme ? draftOf(scheme) : null);
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const held = (dimension: Dimension) => new Set(scheme?.scales.find((s) => s.dimension === dimension)?.held ?? []);
   const change = (next: Draft) => {
-    setNotice("");
     setDraft(settleMatrix(next));
   };
 
@@ -128,9 +117,8 @@ function SchemeForm({
   }
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
     const body = { ...draft!, levels: draft!.levels.map((l) => ({ ...l, colour: l.colour.toLowerCase() })) };
-    save.mutate(body, { onSuccess: () => setNotice(t.risks.saved) });
+    save.mutate(body, { onSuccess: () => toast.success(t.risks.saved) });
   }
 
   return (
@@ -176,9 +164,6 @@ function SchemeForm({
             {t.risks.save}
           </Button>
         )}
-        <p role="status" className="text-sm text-ink-muted empty:hidden">
-          {notice}
-        </p>
       </form>
     </Card>
   );

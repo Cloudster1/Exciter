@@ -39,7 +39,7 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     const pads = await write({ title: "Pads wear evenly", place: { parentId: braking.id, afterId: null } });
     const lights = await write({ title: "Lights follow the pedal", place: { parentId: braking.id, afterId: pads.id } });
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await page.locator(`[data-spec-entry="${braking.key}"] [data-action="open-session"]`).click();
     const dialog = page.getByRole("dialog", { name: "Open a review session" });
     await dialog.getByLabel("Title").fill("Braking review");
@@ -74,7 +74,7 @@ test.describe("review sessions", { tag: "@desktop" }, () => {
     await page.getByRole("dialog", { name: "Start the next round" }).getByRole("button", { name: "Start" }).click();
     await expect(page.getByText("Round 2 started.")).toBeVisible();
 
-    await openUntil(bob, `/p/${KEY}/spec?session=${new URL(sessionURL).pathname.split("/").pop()}&waiting=true&changes=round`, () =>
+    await openUntil(bob, `/projects/${KEY}/spec?session=${new URL(sessionURL).pathname.split("/").pop()}&waiting=true&changes=round`, () =>
       expect(bob.locator(`[data-spec-entry="${lights.key}"] [data-action="approve-entry"]`)).toBeVisible(ONE_LOOK),
     );
     await bob.locator(`[data-spec-entry="${lights.key}"] [data-action="approve-entry"]`).click();

@@ -200,7 +200,7 @@ func TestAMoveReachesTheWebhooksOfBothProjects(t *testing.T) {
 		actor, _ := p["actor"].(map[string]any)
 		address, _ := req["url"].(string)
 		if p["fromKey"] != from || p["toKey"] != toKey || req["key"] != toKey || project["key"] != to ||
-			!strings.HasSuffix(address, "/p/"+to+"/r/"+toKey) || actor["id"] != s.editor.user.String() {
+			!strings.HasSuffix(address, "/projects/"+to+"/r/"+toKey) || actor["id"] != s.editor.user.String() {
 			t.Errorf("%s webhook reads the move as %s", each.name, moved[0].Body)
 		}
 		if each.cloudEvent {

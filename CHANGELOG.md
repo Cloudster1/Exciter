@@ -64,6 +64,22 @@ and the versioning [Semantic Versioning](https://semver.org/).
   "Turn it off". Scopes, creating groups and the callback address leave the
   form; a save sends back what is stored, so what dynamo-connect set stays
   (#470).
+- Projects live at `/projects/<key>` and their settings at
+  `/projects/<key>/settings/<section>`, one address per section in the
+  suite's order: Details (with the key, archiving and deleting at its
+  foot), Types, Attributes, Fields, Workflow, Approval, Links, Trace,
+  Quality, Risks, Templates, Permissions, Import, ReqIF, Word and Trash.
+  The tabs sit in the page header, the crumbs are the project then
+  Settings, and the workflow designer sits below Workflow. One Settings
+  entry in the project's sidebar, for every member, and in the palette
+  replaces the folded Project admin group; Permissions and the trash are
+  sections now. Members see the settings read-only, Permissions, Import,
+  ReqIF and Word are hidden from them, and opened by address say who to
+  ask. Saving says so in a toast, archiving offers Undo and deleting asks
+  first. Mails, notifications and webhook payloads link to `/projects/`,
+  and every old `/p/<key>/...` address, such as the requirement links
+  Stator builds, redirects there with its search and hash, before sign-in;
+  `/settings?tab=` opens the section the tab named (#472).
 
 - Owner, admin, member and guest give way to a standing, member or guest,
   and grants: owners and admins are members who hold the administrator

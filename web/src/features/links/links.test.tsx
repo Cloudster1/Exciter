@@ -62,12 +62,12 @@ describe("groupLinks", () => {
 describe("a requirement's links", () => {
   it("lists them by type and direction, each a way to the other end, and offers a reader nothing to change", async () => {
     stubRequirement({ edit: false });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Trace links" });
     const derived = await within(panel).findByRole("heading", { name: "Derives from" });
     expect(derived.closest("[data-link-group]")).toHaveAttribute("data-link-group", "derives:outgoing");
     expect(within(panel).getByRole("heading", { name: "Is verified by" })).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: "SYS-R2 Keep a ledger" })).toHaveAttribute("href", "/p/SYS/r/SYS-R2");
+    expect(within(panel).getByRole("link", { name: "SYS-R2 Keep a ledger" })).toHaveAttribute("href", "/projects/SYS/r/SYS-R2");
     expect(within(panel).queryByRole("button", { name: /Remove the link/ })).not.toBeInTheDocument();
     expect(within(panel).queryByRole("form", { name: "Add a link" })).not.toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -83,7 +83,7 @@ describe("a requirement's links", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("Nothing is linked to this requirement yet.")).toBeInTheDocument();
     const form = await screen.findByRole("form", { name: "Add a link" });
     const select = within(form).getByRole("combobox", { name: "Link type" });
@@ -135,7 +135,7 @@ describe("a requirement's links", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const form = await screen.findByRole("form", { name: "Add a link" });
     await userEvent.type(within(form).getByRole("combobox", { name: "Requirement" }), "CHK-R2");
     await screen.findByRole("option", { name: /Refund a payment/ });
@@ -146,7 +146,7 @@ describe("a requirement's links", () => {
 
   it("removes a link from this end", async () => {
     const sent = stubRequirement({ more: { [`DELETE /links/${aLink(sys).id}`]: { status: 204 } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Remove the link derives from SYS-R2" }));
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/links/${aLink(sys).id}`)).toBe(true));
     expect(await screen.findByText("Removed the link derives from SYS-R2.")).toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("link types", () => {
       [`PUT /projects/CHK/link-types/${derives.id}`]: { status: 200, body: { linkType: { ...derives, enabled: false } } },
       [`PUT /projects/CHK/link-types/${verifies.id}`]: { status: 200, body: { linkType: verifies } },
     });
-    await renderAt("/p/CHK/settings?tab=links");
+    await renderAt("/projects/CHK/settings/links");
     const table = await screen.findByRole("table", { name: "Link types" });
     expect(
       within(table)

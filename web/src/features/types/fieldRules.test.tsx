@@ -61,7 +61,7 @@ function stubSettings(more: Parameters<typeof stubApi>[0] = {}) {
 describe("the field rules' settings", () => {
   it("make an attribute required from a status, depend on another, and changed only by some roles", async () => {
     const sent = stubSettings({ [`PATCH /projects/CHK/attributes/${brake.id}`]: { status: 200, body: { attribute: brake } } });
-    await renderAt("/p/CHK/settings?tab=attributes");
+    await renderAt("/projects/CHK/settings/attributes");
     const row = (await screen.findByText("Brake")).closest("tr")!;
     await userEvent.click(within(row).getByRole("button", { name: "Edit" }));
     const form = document.querySelector<HTMLElement>("[data-attribute-form]")!;
@@ -94,7 +94,7 @@ describe("the field rules' settings", () => {
         return { status: 200, body: { rule: { field: "owner", requiredFrom: review.id, editableBy: [] } } };
       },
     });
-    await renderAt("/p/CHK/settings?tab=fields");
+    await renderAt("/projects/CHK/settings/fields");
     const title = await screen.findByRole("form", { name: "Title" });
     expect(within(title).getByText("Always required")).toBeInTheDocument();
     const owner = screen.getByRole("form", { name: "Owner" });
@@ -104,7 +104,7 @@ describe("the field rules' settings", () => {
     await waitFor(() => expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ requiredFrom: review.id, editableBy: [] }));
     await waitFor(() => expect(sent.filter((r) => r.method === "GET" && r.path === "/projects/CHK/field-rules").length).toBeGreaterThan(1));
     const saved = screen.getByRole("form", { name: "Owner" });
-    expect(await within(saved).findByText("The rule of Owner is saved.")).toBeInTheDocument();
+    expect(await screen.findByText("The rule of Owner is saved.")).toBeInTheDocument();
     expect(within(saved).getByLabelText("Required from")).toHaveValue(review.id);
   });
 });
@@ -130,7 +130,7 @@ describe("a requirement under field rules", () => {
   it("shows a field the reader's roles may not change in its status as it is, with who does", async () => {
     const adminsOnly = [{ roles: ["admin"], statuses: [] }];
     stubRequirement(fixed({ priority: { editableBy: adminsOnly } }), [anAttribute({ ...vehicle, editableBy: adminsOnly })]);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const facts = (await screen.findByText("Only admins change the priority in Approved.")).closest("[data-requirement-facts]") as HTMLElement;
     expect(within(facts).getByRole("combobox", { name: "Priority" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -143,7 +143,7 @@ describe("a requirement under field rules", () => {
   it("offers a dependent attribute only the choices the other allows, and clears one it no longer allows", async () => {
     const dependent = anAttribute({ ...brake, dependsOn: { attributeId: vehicle.id, choices: { [car.id]: [disc.id] } } });
     stubRequirement(fixed(), [vehicle, dependent], aRequirement({ attributes: { [vehicle.id]: bike.id, [brake.id]: rim.id } }));
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const brakes = await screen.findByLabelText("Brake");
     expect(

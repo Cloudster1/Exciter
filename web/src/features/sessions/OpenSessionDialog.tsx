@@ -59,7 +59,7 @@ export function OpenSessionDialog({ project, scope: initial, onClose }: { projec
       since: since === "approved" ? { base: "approved" } : since === "baseline" && sinceBaseline ? { base: "baseline", baselineId: sinceBaseline } : undefined,
     };
     open.mutate(body, {
-      onSuccess: (made) => void navigate({ to: "/p/$projectKey/sessions/$sessionId", params: { projectKey: project.key, sessionId: made.id } }),
+      onSuccess: (made) => void navigate({ to: "/projects/$projectKey/sessions/$sessionId", params: { projectKey: project.key, sessionId: made.id } }),
     });
   }
 

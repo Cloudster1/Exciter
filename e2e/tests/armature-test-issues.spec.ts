@@ -69,7 +69,7 @@ test.describe("filing a failed test case in Armature", { tag: "@desktop" }, () =
       }),
     ).execution;
 
-    await page.goto(`/p/${KEY}/tests/executions/${execution.id}/run/${made.key}?iteration=1`);
+    await page.goto(`/projects/${KEY}/tests/executions/${execution.id}/run/${made.key}?iteration=1`);
     await page.getByRole("group", { name: "Outcome of step 1" }).getByRole("button", { name: "Passed" }).click();
     await page.getByRole("group", { name: "Outcome of step 2" }).getByRole("button", { name: "Failed" }).click();
     await page.locator('[data-step-note="2"]').fill("It slid on.");
@@ -87,7 +87,7 @@ test.describe("filing a failed test case in Armature", { tag: "@desktop" }, () =
     await expect(issues).toContainText(/Issues: [A-Z]+-\d+/);
     const issueKey = (await issues.textContent())!.replace(/^Issues: /, "").trim();
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     await expect(panel.locator(`[data-armature-link="${issueKey}"]`)).toBeVisible();
     await expect(panel.locator(`[data-armature-link="${issueKey}"]`)).toContainText(made.key);

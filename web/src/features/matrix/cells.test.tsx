@@ -67,7 +67,7 @@ describe("a matrix cell", () => {
       [`DELETE /links/${suspectLink.id}`]: { status: 204 },
       "POST /requirements/CHK-R1/links": { status: 201, body: { link: aLink({ key: "CHK-R3", title: "Horn sounds" }) } },
     });
-    await renderAt("/p/CHK/matrix");
+    await renderAt("/projects/CHK/matrix");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R1 to CHK-R2: Derives (suspect)" }));
     const panel = await screen.findByRole("dialog", { name: "CHK-R1 and CHK-R2" });
     expect(within(panel).getByText("Derives from CHK-R2")).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe("a matrix cell", () => {
 
   it("is read-only for a reader who may not link the row, and an empty cell is no button", async () => {
     stubCells(aMatrix(false));
-    await renderAt("/p/CHK/matrix");
+    await renderAt("/projects/CHK/matrix");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R1 to CHK-R2: Derives (suspect)" }));
     const panel = await screen.findByRole("dialog", { name: "CHK-R1 and CHK-R2" });
     expect(await within(panel).findByText("Derives from CHK-R2")).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("a matrix cell", () => {
         "POST /requirements/CHK-R1/armature-links": { status: 201, body: { link: { ...trace, issueKey: "WEB-2", relation: "verifies" } } },
       },
     );
-    await renderAt("/p/CHK/matrix?columns=issues");
+    await renderAt("/projects/CHK/matrix?columns=issues");
     await userEvent.click(await screen.findByRole("button", { name: "CHK-R1 to WEB-1: implements" }));
     expect(await within(await screen.findByRole("dialog", { name: "CHK-R1 and WEB-1" })).findByText("Implemented by WEB-1")).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");

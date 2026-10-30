@@ -62,7 +62,7 @@ function stubMatrix(matrix: Matrix = issues) {
 describe("the traceability matrix", () => {
   it("lays the links out, a suspect one marked, with the whole of it to download", async () => {
     stubMatrix();
-    await renderAt("/p/CHK/matrix?columns=issues");
+    await renderAt("/projects/CHK/matrix?columns=issues");
     const table = await screen.findByRole("table", { name: "Matrix" });
     expect(within(table).getByRole("columnheader", { name: "WEB-1" })).toBeInTheDocument();
     expect(table.querySelector('[data-cell="CHK-R1:WEB-1"]')).toHaveAttribute("title", "CHK-R1 to WEB-1: implements");
@@ -92,7 +92,7 @@ describe("the traceability matrix", () => {
       columnLinks: [1, 1],
       columnTotal: 2,
     });
-    await renderAt("/p/CHK/matrix?columns=tests");
+    await renderAt("/projects/CHK/matrix?columns=tests");
     const table = await screen.findByRole("table", { name: "Matrix" });
     expect(within(table).getByRole("columnheader", { name: "engage" })).toBeInTheDocument();
     expect(within(table).getByRole("img", { name: "CHK-R1 to engage: Passed (outdated)" })).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("the traceability matrix", () => {
 
   it("counts the link types and the direction picked, and keeps them in the address and the download", async () => {
     const asked = stubMatrix({ ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 });
-    const router = await renderAt("/p/CHK/matrix");
+    const router = await renderAt("/projects/CHK/matrix");
     const types = await screen.findByRole("group", { name: "Link types" });
     expect(screen.getByText("Every link type counts while none is picked.")).toBeInTheDocument();
     await userEvent.click(await within(types).findByRole("button", { name: "Verifies" }));
@@ -120,7 +120,7 @@ describe("the traceability matrix", () => {
 
   it("offers relations for issue columns instead of link types", async () => {
     const asked = stubMatrix();
-    await renderAt("/p/CHK/matrix?columns=issues");
+    await renderAt("/projects/CHK/matrix?columns=issues");
     const relations = await screen.findByRole("group", { name: "Relations" });
     expect(screen.queryByRole("group", { name: "Link types" })).toBeNull();
     await userEvent.click(within(relations).getByRole("button", { name: "Verified by" }));
@@ -129,7 +129,7 @@ describe("the traceability matrix", () => {
 
   it("starts from what the address holds", async () => {
     const asked = stubMatrix({ ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 });
-    await renderAt("/p/CHK/matrix?linkType=derives&direction=outgoing&columnProject=SYS&sort=key&desc=true");
+    await renderAt("/projects/CHK/matrix?linkType=derives&direction=outgoing&columnProject=SYS&sort=key&desc=true");
     await waitFor(() => expect(asked.length).toBeGreaterThan(0));
     const first = asked[0]!;
     expect(first.getAll("linkType")).toEqual(["derives"]);
@@ -184,7 +184,7 @@ describe("the matrix's page columns", () => {
         return { status: 200, body: { status: "ok", pages: ids.map((id) => ({ id, page: id === TIMING ? timing : null })) } };
       },
     });
-    await renderAt("/p/CHK/matrix?columns=pages");
+    await renderAt("/projects/CHK/matrix?columns=pages");
     const table = await screen.findByRole("table", { name: "Matrix" });
     expect(await within(table).findByRole("columnheader", { name: "Brake timing" })).toBeInTheDocument();
     expect(within(table).getByRole("columnheader", { name: `ENG/${THREAT}` })).toBeInTheDocument();
@@ -207,7 +207,7 @@ describe("the matrix's gaps", () => {
 
   it("counts every row's and column's links and marks the ones without", async () => {
     stubMatrix(notes);
-    await renderAt("/p/CHK/matrix?columnQuery=type%20%3D%20Note");
+    await renderAt("/projects/CHK/matrix?columnQuery=type%20%3D%20Note");
     const table = await screen.findByRole("table", { name: "Matrix" });
     const gaps = table.querySelectorAll("[data-gap]");
     expect(gaps).toHaveLength(2);
@@ -223,7 +223,7 @@ describe("the matrix's gaps", () => {
       rows: [{ ...row(1, "Brake on a wet road"), lastRun }, row(2, "Brake lights follow the pedal")],
       columns: [{ requirement: ref(4, "Warn on a wet road"), issueKey: "", page: null, lastRun: { ...lastRun, outcome: "none", executionId: null } }],
     });
-    await renderAt("/p/CHK/matrix?columnQuery=type%20%3D%20Note");
+    await renderAt("/projects/CHK/matrix?columnQuery=type%20%3D%20Note");
     const table = await screen.findByRole("table", { name: "Matrix" });
     expect(
       within(table)
@@ -236,7 +236,7 @@ describe("the matrix's gaps", () => {
 
   it("keeps the column filter apart from the rows' and offers gaps in columns only with it", async () => {
     const asked = stubMatrix(notes);
-    const router = await renderAt("/p/CHK/matrix");
+    const router = await renderAt("/projects/CHK/matrix");
     const gaps = await screen.findByLabelText("Only gaps");
     expect(within(gaps).getByRole("option", { name: "Columns without a link" })).toBeDisabled();
     expect(screen.getByText("Columns without a link need a column filter.")).toBeInTheDocument();
@@ -262,7 +262,7 @@ describe("the matrix's gaps", () => {
         body: { error: { code: "bad_query", message: "There is no field nonsense.", position: 1, fields: { columnQuery: "There is no field nonsense." } } },
       },
     });
-    await renderAt("/p/CHK/matrix?columnQuery=nonsense");
+    await renderAt("/projects/CHK/matrix?columnQuery=nonsense");
     const filter = await screen.findByRole("search", { name: "Column filter" });
     expect(await within(filter).findByText("There is no field nonsense.")).toBeInTheDocument();
     expect(screen.getAllByText("There is no field nonsense.")).toHaveLength(1);
@@ -302,7 +302,7 @@ describe("matrix views", () => {
       "POST /projects/CHK/views": { status: 201, body: { view: { ...view, id: "0195f000-0000-7000-8000-000000000f12", name: "Mine" } } },
       "GET /projects/CHK/matrix": { status: 200, body: { matrix: { ...issues, columns: [], cells: [], columnLinks: [], columnTotal: 0 } } },
     });
-    const router = await renderAt("/p/CHK/matrix");
+    const router = await renderAt("/projects/CHK/matrix");
     await screen.findByRole("option", { name: "Verified" });
     await userEvent.selectOptions(screen.getByLabelText("Views"), "Verified");
     await waitFor(() => expect(router.state.location.search).toEqual({ view: view.id, linkType: ["verifies"], direction: "incoming", gaps: "rows" }));

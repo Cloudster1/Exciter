@@ -22,7 +22,7 @@ test.describe("types and attributes", { tag: "@desktop" }, () => {
 
   test("an administrator shapes a project's types and attributes, and a requirement is held to them", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Attributed" } }));
-    await page.goto(`/p/${KEY}/settings`);
+    await page.goto(`/projects/${KEY}/settings`);
 
     await page.getByRole("tab", { name: "Types" }).click();
     await expect(page.locator('[data-type="Requirement"]')).toContainText("Default");
@@ -47,13 +47,13 @@ test.describe("types and attributes", { tag: "@desktop" }, () => {
     await form.locator('[data-action="save-attribute"]').click();
     await expect(page.locator('[data-attribute="Verification"]')).toContainText("Required");
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Pay the basket");
     await page.locator('[data-action="create-requirement"]').click();
     await expect(page.getByText("Verification is required. Give it a value.")).toBeVisible();
     await page.getByLabel("Verification (required)").selectOption({ label: "Test" });
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator('[data-attribute-value="Verification"]')).toBeVisible();
     await expect(page.locator("[data-attribute-values]")).toContainText("Test");
     await expect(page.locator('[data-requirement-type="Requirement"]')).toBeVisible();

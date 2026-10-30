@@ -120,7 +120,7 @@ describe("importing a ReqIF file", () => {
         };
       },
     });
-    await renderAt("/p/CHK/settings?tab=reqif");
+    await renderAt("/projects/CHK/settings/reqif");
     expect(await screen.findByRole("link", { name: /Download .reqifz/ })).toHaveAttribute("href", "/api/v1/projects/CHK/export.reqifz");
     await userEvent.upload(await screen.findByLabelText("ReqIF file"), new File(["<REQ-IF/>"], "supplier.reqif", { type: "application/xml" }));
     await userEvent.click(screen.getByRole("button", { name: "Upload" }));
@@ -145,7 +145,7 @@ describe("importing a ReqIF file", () => {
     expect(within(result.closest("[data-reqif-step]") as HTMLElement).getByText("3 of 3 objects")).toBeInTheDocument();
   });
 
-  it("lets somebody who does not run the project export, and tells them whose import it is", async () => {
+  it("hides the section from somebody who does not run the project, and says who to ask", async () => {
     stubApi({
       ...settings,
       "GET /projects/CHK": {
@@ -153,9 +153,9 @@ describe("importing a ReqIF file", () => {
         body: { project: aProject({ can: { view: true, comment: true, edit: true, approve: false, administer: false, purge: false } }) },
       },
     });
-    await renderAt("/p/CHK/settings?tab=reqif");
-    expect(await screen.findByText("Only the project's administrators import into it. Ask one of them.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Download .reqif$/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText("ReqIF file")).not.toBeInTheDocument();
+    await renderAt("/projects/CHK/settings/reqif");
+    expect(await screen.findByText("Only the project's administrators change its settings")).toBeInTheDocument();
+    expect(screen.getByText("Ask one of them, or ask for the role.")).toBeInTheDocument();
+    expect(document.querySelector('[data-settings-refused="reqif"]')).not.toBeNull();
   });
 });

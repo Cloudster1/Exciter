@@ -44,7 +44,7 @@ export function MatrixPage({ project, address, onAddress }: { project: Project; 
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/p/$projectKey/chains"
+              to="/projects/$projectKey/chains"
               params={{ projectKey: project.key }}
               className="text-sm font-medium text-accent hover:underline"
               data-action="open-chains"

@@ -9,20 +9,8 @@ import { useLastProject } from "@/features/shell/state";
 import { t } from "@/i18n";
 
 /** The project the reader is in, or was in last, in the sidebar: a switcher to the others, the project's pages, and
- *  its administration folded under Project admin. */
-export function ProjectNav({
-  open,
-  onToggle,
-  adminOpen,
-  onToggleAdmin,
-  onNavigate,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  adminOpen: boolean;
-  onToggleAdmin: () => void;
-  onNavigate?: () => void;
-}) {
+ *  its settings, which every member may open. */
+export function ProjectNav({ open, onToggle, onNavigate }: { open: boolean; onToggle: () => void; onNavigate?: () => void }) {
   const projectKey = useLastProject(useParams({ strict: false }).projectKey);
   const { data: project } = useProject(projectKey ?? "");
   const { data: projects } = useProjects(false, Boolean(project));
@@ -37,7 +25,7 @@ export function ProjectNav({
   const items: MenuItem[] = [
     ...others.map((each) => ({
       label: `${each.name} (${each.key})`,
-      onSelect: go(() => navigate({ to: "/p/$projectKey", params: { projectKey: each.key } })),
+      onSelect: go(() => navigate({ to: "/projects/$projectKey", params: { projectKey: each.key } })),
       attrs: { "data-switch-to": each.key },
     })),
     ...(projects && others.length === 0 ? [{ label: t.projects.noOtherProjects, onSelect: () => {}, disabled: true }] : []),
@@ -68,63 +56,53 @@ export function ProjectNav({
             </Button>
           )}
         />
-        <NavItem to={`/p/${project.key}`} icon="Folder" rail={false} onNavigate={onNavigate} exact>
+        <NavItem to={`/projects/${project.key}`} icon="Folder" rail={false} onNavigate={onNavigate} exact>
           {t.requirements.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/spec`} icon="Table" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/spec`} icon="Table" rail={false} onNavigate={onNavigate}>
           {t.tree.specTitle}
         </NavItem>
-        <NavItem to={`/p/${project.key}/grid`} icon="Table" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/grid`} icon="Table" rail={false} onNavigate={onNavigate}>
           {t.grid.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/baselines`} icon="Archive" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/baselines`} icon="Archive" rail={false} onNavigate={onNavigate}>
           {t.baseline.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/tests`} icon="Check" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/tests`} icon="Check" rail={false} onNavigate={onNavigate}>
           {t.tests.nav}
         </NavItem>
-        <NavItem to={`/p/${project.key}/risks`} icon="Warning" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/risks`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.risks.nav}
         </NavItem>
-        <NavItem to={`/p/${project.key}/sessions`} icon="Check" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/sessions`} icon="Check" rail={false} onNavigate={onNavigate}>
           {t.sessions.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/coverage`} icon="Link" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/coverage`} icon="Link" rail={false} onNavigate={onNavigate}>
           {t.coverage.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/dashboards`} icon="Monitor" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/dashboards`} icon="Monitor" rail={false} onNavigate={onNavigate}>
           {t.dashboard.nav}
         </NavItem>
-        <NavItem to={`/p/${project.key}/quality`} icon="Check" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/quality`} icon="Check" rail={false} onNavigate={onNavigate}>
           {t.quality.pageTitle}
         </NavItem>
-        <NavItem to={`/p/${project.key}/glossary`} icon="Book" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/glossary`} icon="Book" rail={false} onNavigate={onNavigate}>
           {t.glossary.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/duplicates`} icon="Copy" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/duplicates`} icon="Copy" rail={false} onNavigate={onNavigate}>
           {t.duplicates.page.title}
         </NavItem>
-        <NavItem to={`/p/${project.key}/suspects`} icon="Warning" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/suspects`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.suspect.listTitle}
         </NavItem>
-        <NavItem to={`/p/${project.key}/code-tags`} icon="Warning" rail={false} onNavigate={onNavigate}>
+        <NavItem to={`/projects/${project.key}/code-tags`} icon="Warning" rail={false} onNavigate={onNavigate}>
           {t.evidence.codeTags.title}
         </NavItem>
-        <SidebarGroup id="project-admin" title={t.nav.projectAdmin} open={adminOpen} onToggle={onToggleAdmin} nested>
-          {project.can.edit && (
-            <NavItem to={`/p/${project.key}/trash`} icon="Trash" rail={false} onNavigate={onNavigate}>
-              {t.requirements.trashTitle}
-            </NavItem>
-          )}
-          <NavItem to={`/p/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
-            {t.projects.settings}
+        <div data-nav="project-settings">
+          <NavItem to={`/projects/${project.key}/settings`} icon="Settings" rail={false} onNavigate={onNavigate}>
+            {t.projects.settingsTitle}
           </NavItem>
-          {project.can.administer && (
-            <NavItem to={`/p/${project.key}/permissions`} icon="Shield" rail={false} onNavigate={onNavigate}>
-              {t.permissions.navLabel}
-            </NavItem>
-          )}
-        </SidebarGroup>
+        </div>
       </div>
     </SidebarGroup>
   );

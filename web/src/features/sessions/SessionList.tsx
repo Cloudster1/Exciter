@@ -16,7 +16,7 @@ function SessionRow({ session: s }: { session: SessionSummary }) {
     <li className="flex flex-col gap-0.5 py-3" data-session={s.title}>
       <span className="flex flex-wrap items-center gap-2">
         <Link
-          to="/p/$projectKey/sessions/$sessionId"
+          to="/projects/$projectKey/sessions/$sessionId"
           params={{ projectKey: s.projectKey, sessionId: s.id }}
           className="text-sm font-medium text-ink hover:text-accent hover:underline"
         >

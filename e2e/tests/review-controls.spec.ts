@@ -11,7 +11,7 @@ import { expectAccessible, confirm, toast, dismissToasts } from "../fixtures/she
 
 const KEY = uniqueKey("RVC");
 const REQ_KEY = `${KEY}-R1`;
-const REQUIREMENT = `/p/${KEY}/r/${REQ_KEY}`;
+const REQUIREMENT = `/projects/${KEY}/r/${REQ_KEY}`;
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };
@@ -78,7 +78,7 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     ).requirement;
     const other = must(await api.POST("/projects/{projectKey}/requirements", { ...project, body: { title: "Lights dim at night" } })).requirement;
 
-    await page.goto(`/p/${KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${KEY}/settings/approval`);
     const rules = page.locator("[data-approval-rules]");
     await rules.getByRole("button", { name: "Add a rule" }).click();
     await rules.getByLabel("Applies to").selectOption({ label: "Safety" });
@@ -88,17 +88,17 @@ test.describe("review controls", { tag: "@desktop" }, () => {
     const rule = rules.locator('[data-approval-rule="Safety"]');
     await expect(rule).toContainText(`1 of ${people.bob.name}`);
 
-    await page.goto(`/p/${KEY}/r/${safe.key}`);
+    await page.goto(`/projects/${KEY}/r/${safe.key}`);
     const approval = page.getByRole("region", { name: "Approval" });
     await approval.getByRole("button", { name: "Ask for review" }).click();
     await approval.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(approval.locator("[data-review-approvers]")).toHaveText(people.bob.name);
-    await page.goto(`/p/${KEY}/r/${other.key}`);
+    await page.goto(`/projects/${KEY}/r/${other.key}`);
     await approval.getByRole("button", { name: "Ask for review" }).click();
     await approval.getByRole("button", { name: "Ask", exact: true }).click();
     await expect(approval).toContainText("Nobody approves requirements of this type yet.");
 
-    await page.goto(`/p/${KEY}/settings?tab=approval`);
+    await page.goto(`/projects/${KEY}/settings/approval`);
     await rule.locator('[data-action="edit-rule"]').click();
     const form = rules.locator("[data-rule-form]");
     await expect(form.getByLabel("Applies to")).toBeDisabled();

@@ -4,11 +4,11 @@ import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { ONE_LOOK, openUntil } from "../fixtures/replica";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible, openProjectAdmin } from "../fixtures/shell";
+import { expectAccessible, openProjectSettings } from "../fixtures/shell";
 import { setProjectGrants } from "../fixtures/grants";
 
 const KEY = uniqueKey("REQ");
-const LIST_PATH = `/p/${KEY}`;
+const LIST_PATH = `/projects/${KEY}`;
 
 /** Archives and deletes the project the test made, so each test starts without it. */
 async function removeProject(api: ExciterApi) {
@@ -63,8 +63,8 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await page.locator('[data-action="trash-requirement"]').click();
     await expect(page).toHaveURL(LIST_PATH);
     await expect(page.getByText("No requirements yet")).toBeVisible();
-    await openProjectAdmin(page, KEY);
-    await page.locator(`[data-project-nav="${KEY}"]`).getByRole("link", { name: "Trash" }).click();
+    await openProjectSettings(page, KEY);
+    await page.locator('[data-settings-tab="trash"]').click();
     await expect(page.locator(`[data-trash-item="${KEY}-R1"]`)).toBeVisible();
     await expectAccessible(page);
     await page.locator('[data-action="restore-requirement"]').click();
@@ -80,7 +80,7 @@ test.describe("requirements", { tag: "@desktop" }, () => {
     await expect(page.locator(`[data-requirement-row="${KEY}-R2"]`)).toContainText("Refund the basket");
 
     expect((await api.DELETE("/requirements/{reqKey}", { params: { path: { reqKey: `${KEY}-R1` } } })).response.status).toBe(204);
-    await page.goto(`${LIST_PATH}/trash`);
+    await page.goto(`${LIST_PATH}/settings/trash`);
     await page.locator('[data-action="purge-requirement"]').click();
     await page.locator('[data-action="confirm-purge"]').click();
     await expect(page.getByText("The trash is empty.")).toBeVisible();

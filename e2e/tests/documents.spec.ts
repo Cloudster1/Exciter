@@ -42,7 +42,7 @@ test.describe("exporting documents", { tag: "@desktop" }, () => {
     );
     const baseline = must(await api.POST("/projects/{projectKey}/baselines", { ...path, body: { name: "Release 1" } })).baseline;
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await expect(page.getByRole("heading", { name: /Stop within 40 m/ })).toBeVisible();
     const pdf = await exportAs(page, "PDF");
     expect(pdf.name).toMatch(new RegExp(`^${KEY}-\\d{4}-\\d{2}-\\d{2}\\.pdf$`));
@@ -52,7 +52,7 @@ test.describe("exporting documents", { tag: "@desktop" }, () => {
     expect(word.data.subarray(0, 2).toString()).toBe("PK");
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/baselines/${baseline.id}`);
+    await page.goto(`/projects/${KEY}/baselines/${baseline.id}`);
     await expect(page.getByRole("heading", { name: "Release 1" })).toBeVisible();
     const taken = await exportAs(page, "Word");
     expect(taken.name).toMatch(new RegExp(`^${KEY}-release-1-.*\\.docx$`));

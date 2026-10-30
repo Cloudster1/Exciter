@@ -370,7 +370,7 @@ func TestABaselineIsSignedAfterSigningInAgainAtTheProvider(t *testing.T) {
 		resp, body := b.postJSON(t, "/api/v1/baselines/"+id+"/signatures", map[string]any{"meaning": got["meaning"], "reauthentication": proof})
 		return resp.StatusCode, body
 	}
-	page := "/p/" + key + "/baselines/" + first
+	page := "/projects/" + key + "/baselines/" + first
 	landing, err := url.Parse(b.reauthenticate(t, "alice", alicePassword, page))
 	if err != nil || landing.Path != page || landing.Query().Get("signature") == "" {
 		t.Fatalf("the re-authentication landed on %v", landing)

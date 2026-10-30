@@ -39,7 +39,7 @@ test.describe("Word import", { tag: "@desktop" }, () => {
   test("alice imports a Word document as a specification and reads it there", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "From Word" } }));
 
-    await page.goto(`/p/${KEY}/settings?tab=word`);
+    await page.goto(`/projects/${KEY}/settings/word`);
     await page.locator("[data-word-file]").setInputFiles({
       name: "brakes.docx",
       mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -60,7 +60,7 @@ test.describe("Word import", { tag: "@desktop" }, () => {
     await page.locator('[data-action="start-word"]').click();
     await expect(page.locator('[data-reqif-step="done"]')).toBeVisible({ timeout: 30_000 });
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     const spec = page.locator("[data-spec-document]");
     // The specification numbers its sections, as the tree beside it does.
     await expect(spec.getByRole("heading", { name: "1 Braking" })).toBeVisible();

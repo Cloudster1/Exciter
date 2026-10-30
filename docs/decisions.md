@@ -3,6 +3,20 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-10-30: Projects move to /projects/, and /p/ only redirects (#472)
+
+The suite's standard puts a project at `/projects/<key>`, as Armature does,
+and its settings at `/projects/<key>/settings/<section>`, since `/p/` means
+a project here and a page in Stator. Links people keep, mails already sent
+and the requirement links Stator builds as `{exciter}/p/{key}/r/{key}`
+still answer: `/p/<rest>` redirects to `/projects/<rest>` with its search
+and hash, before sign-in, and Permissions and the trash, which were pages of
+their own, to their sections. The print view stays at `/print/p/`, since
+only the renderer opens it. Each section is a route of its own with its
+whole path written out, so the browser suite's reach check sees every one.
+**Reconsider if** Stator links to `/projects/` itself, when the redirect
+only serves old mails and bookmarks.
+
 ## 2026-10-30: A mapped group lets somebody new in once an administrator says so (#469)
 
 Armature lets people in by their groups only once an administrator turns it

@@ -46,7 +46,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
       must(await api.POST("/requirements/{reqKey}/links", { params: { path: { reqKey: `${KEY}-${from}` } }, body: { typeKey, otherKey: `${KEY}-R1` } }));
     }
 
-    await page.goto(`/p/${KEY}/matrix`);
+    await page.goto(`/projects/${KEY}/matrix`);
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.locator(`[data-cell="${KEY}-R1:${KEY}-R2"]`)).toHaveAttribute("title", `${KEY}-R1 to ${KEY}-R2: Derives`);
 
@@ -90,7 +90,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${GAP_KEY}/matrix`);
+    await page.goto(`/projects/${GAP_KEY}/matrix`);
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.locator(`[data-cell="${GAP_KEY}-R1:${GAP_KEY}-R2"]`)).toBeVisible();
     await page.getByLabel("Only gaps").selectOption("rows");
@@ -113,7 +113,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
       must(await api.POST("/projects/{projectKey}/requirements", { ...projectKey, body: { title } }));
     }
 
-    await page.goto(`/p/${CELL_KEY}/matrix?columnQuery=${encodeURIComponent("kind = requirement")}`);
+    await page.goto(`/projects/${CELL_KEY}/matrix?columnQuery=${encodeURIComponent("kind = requirement")}`);
     await page.getByRole("button", { name: `Links between ${CELL_KEY}-R2 and ${CELL_KEY}-R1` }).click();
     const panel = page.getByRole("dialog", { name: `${CELL_KEY}-R2 and ${CELL_KEY}-R1` });
     await expect(panel.getByText("No link between these yet.")).toBeVisible();
@@ -144,7 +144,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${VIEW_KEY}/matrix`);
+    await page.goto(`/projects/${VIEW_KEY}/matrix`);
     await page.getByRole("group", { name: "Link types" }).getByRole("button", { name: "Verifies" }).click();
     await page.getByRole("button", { name: "Incoming" }).click();
     await page.getByRole("button", { name: "Save as a view" }).click();
@@ -155,7 +155,7 @@ test.describe("the traceability matrix", { tag: "@desktop" }, () => {
     await expect(page.getByRole("status").filter({ hasText: "Saved the view Verified." })).toBeVisible();
 
     const bob = await pageAs("bob");
-    await bob.goto(`/p/${VIEW_KEY}/matrix`);
+    await bob.goto(`/projects/${VIEW_KEY}/matrix`);
     await bob.getByLabel("Views").selectOption({ label: "Verified (Shared)" });
     await expect(bob.getByRole("group", { name: "Link types" }).getByRole("button", { name: "Verifies" })).toHaveAttribute("aria-pressed", "true");
     await expect(bob.getByRole("button", { name: "Incoming" })).toHaveAttribute("aria-pressed", "true");

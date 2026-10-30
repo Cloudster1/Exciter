@@ -51,7 +51,7 @@ test.describe("the suite's shell", () => {
       await expect(projects.locator(`[data-quick-switcher-option="project:${KEY}"]`)).toBeVisible();
       await expectAccessible(page);
       await projects.locator(`[data-quick-switcher-option="project:${KEY}"]`).click();
-      await expect(page).toHaveURL(new RegExp(`/p/${KEY}$`));
+      await expect(page).toHaveURL(new RegExp(`/projects/${KEY}$`));
 
       await page.keyboard.press("ControlOrMeta+k");
       await page.locator("[data-quick-switcher-input]").fill("new project");

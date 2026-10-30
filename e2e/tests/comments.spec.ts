@@ -9,7 +9,7 @@ import { expectAccessible, confirm } from "../fixtures/shell";
 // Comments and mentions (#33): alice asks on a requirement and names bob, bob answers and resolves the thread.
 
 const KEY = uniqueKey("TALK");
-const REQUIREMENT = `/p/${KEY}/r/${KEY}-R1`;
+const REQUIREMENT = `/projects/${KEY}/r/${KEY}-R1`;
 
 async function removeProject(api: ExciterApi) {
   const path = { params: { path: { projectKey: KEY } } };

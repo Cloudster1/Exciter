@@ -16,16 +16,16 @@ const list = (rows: unknown[]) => ({ status: 200, body: { rows, total: rows.leng
 describe("a project's requirements", () => {
   it("lists them by key, each a link to its page, and offers editors a new one", async () => {
     stubApi({ "GET /projects/CHK": { status: 200, body: { project: checkout } }, "GET /projects/CHK/requirements": list([row]) });
-    await renderAt("/p/CHK");
+    await renderAt("/projects/CHK");
     const link = await screen.findByRole("link", { name: "Pay the basket" });
-    expect(link).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(link).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(link.closest("tr")).toHaveAttribute("data-requirement-row", "CHK-R1");
     expect(screen.getByRole("button", { name: "New requirement" })).toBeInTheDocument();
   });
 
   it("tells a reader nothing is written yet, and offers no button", async () => {
     stubApi({ "GET /projects/CHK": { status: 200, body: { project: reader } }, "GET /projects/CHK/requirements": list([]) });
-    await renderAt("/p/CHK");
+    await renderAt("/projects/CHK");
     expect(await screen.findByText("Nothing is written in this project yet.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "New requirement" })).toBeNull();
   });
@@ -39,13 +39,13 @@ describe("a new requirement", () => {
       "POST /projects/CHK/requirements": { status: 201, body: { requirement: section } },
       "GET /requirements/CHK-R2": { status: 200, body: { requirement: section } },
     });
-    const router = await renderAt("/p/CHK/new");
+    const router = await renderAt("/projects/CHK/new");
     await userEvent.click(await screen.findByRole("button", { name: "Section" }));
     expect(screen.queryByLabelText("Rationale")).toBeNull();
     await userEvent.type(screen.getByLabelText("Title"), "Checkout");
     await userEvent.click(screen.getByRole("button", { name: "New requirement" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R2"));
-    await arrival(router, "/p/CHK/r/CHK-R2");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R2"));
+    await arrival(router, "/projects/CHK/r/CHK-R2");
     expect(sent.find((r) => r.method === "POST")?.body).toEqual({ kind: "section", title: "Checkout", comment: "" });
   });
 });
@@ -60,7 +60,7 @@ describe("a requirement's page", () => {
         return { status: 200, body: { requirement: aRequirement({ title: body.title, revision: 2 }) } };
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("The shopper pays at once.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const title = screen.getByLabelText("Title");
@@ -94,7 +94,7 @@ describe("a requirement's page", () => {
         return { status: 200, body: { requirement: aRequirement({ title: "Mine", revision: 3 }) } };
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const title = screen.getByLabelText("Title");
     await userEvent.clear(title);
@@ -113,9 +113,9 @@ describe("a requirement's page", () => {
       "GET /requirements/CHK-R1": { status: 200, body: { requirement: moved } },
       "GET /projects/PAY": { status: 200, body: { project: aProject({ key: "PAY", formerKeys: ["CHK"] }) } },
     });
-    const router = await renderAt("/p/CHK/r/CHK-R1");
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/PAY/r/PAY-R1"));
-    await arrival(router, "/p/PAY/r/PAY-R1");
+    const router = await renderAt("/projects/CHK/r/CHK-R1");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/PAY/r/PAY-R1"));
+    await arrival(router, "/projects/PAY/r/PAY-R1");
     expect(await screen.findByText("Former keys, which still work: CHK-R1")).toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe("a requirement's page", () => {
         body: { requirement: aRequirement({ can: { edit: false, transition: false, delete: false, link: false, comment: false } }) },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("You may read this project but not change its requirements.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
@@ -142,8 +142,8 @@ describe("a permalink", () => {
       "GET /projects/CHK": { status: 200, body: { project: checkout } },
     });
     const router = await renderAt(`/r/${pay.id}`);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R1"));
-    await arrival(router, "/p/CHK/r/CHK-R1");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R1"));
+    await arrival(router, "/projects/CHK/r/CHK-R1");
   });
 });
 
@@ -165,7 +165,7 @@ describe("the trash", () => {
       [`POST /projects/CHK/trash/${pay.id}/restore`]: { status: 200, body: { requirement: pay } },
       [`DELETE /projects/CHK/trash/${pay.id}`]: { status: 204 },
     });
-    await renderAt("/p/CHK/trash");
+    await renderAt("/projects/CHK/settings/trash");
     const entry = (await screen.findByText("Pay the basket")).closest("tr")!;
     await userEvent.click(within(entry).getByRole("button", { name: "Restore" }));
     expect(await screen.findByText("CHK-R1 is back.")).toBeInTheDocument();

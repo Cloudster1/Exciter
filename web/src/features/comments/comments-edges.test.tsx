@@ -89,7 +89,7 @@ const posted = (sent: { method: string; path: string }[]) => sent.filter((each) 
 describe("the discussion's edges", () => {
   it("cancels a new comment without sending anything, and offers to comment again", async () => {
     const sent = stubPage();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await within(await section()).findByRole("button", { name: "Comment" }));
     await write("new-comment", "Second thoughts");
     await userEvent.click(within(await section()).getByRole("button", { name: "Cancel" }));
@@ -104,7 +104,7 @@ describe("the discussion's edges", () => {
         "POST /requirements/CHK-R1/comments": { status: 500, body: { error: { code: "internal", message: "The discussion is down. Try again." } } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await within(await section()).findByRole("button", { name: "Comment" }));
     await write("new-comment", "Worth keeping");
     await userEvent.click(within(await section()).getByRole("button", { name: "Post comment" }));
@@ -117,7 +117,7 @@ describe("the discussion's edges", () => {
       threads: [aThread({ comments: [aComment({ can: { edit: false, delete: true } })] })],
       more: { [`DELETE /comments/${threadId}`]: { status: 204 } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const thread = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(thread).getByRole("button", { name: "Delete" }));
     const asked = await answerConfirm(true);
@@ -128,7 +128,7 @@ describe("the discussion's edges", () => {
 
   it("sends nothing when the deletion is not confirmed", async () => {
     const sent = stubPage({ threads: [aThread({ comments: [aComment({ can: { edit: false, delete: true } })] })] });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const thread = (await within(await section()).findAllByRole("article"))[0]!;
     await userEvent.click(within(thread).getByRole("button", { name: "Delete" }));
     await answerConfirm(false);
@@ -140,7 +140,7 @@ describe("the discussion's edges", () => {
       threads: [aThread({ resolved: true, resolvedByName: "Grace Hopper", resolvedAt: "2026-10-01T09:00:00Z" })],
       more: { [`DELETE /comment-threads/${threadId}/resolution`]: { status: 200, body: { thread: aThread() } } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await within(await section()).findByRole("button", { name: "Reopen" }));
     await waitFor(() => expect(sent.some((each) => each.method === "DELETE" && each.path === `/comment-threads/${threadId}/resolution`)).toBe(true));
   });
@@ -153,7 +153,7 @@ describe("the discussion's edges", () => {
     ],
   ])("says the discussion is closed for %s, and offers no comment", async (_, page) => {
     stubPage({ ...page, threads: [aThread({ can: { reply: false, resolve: false } })] });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await section();
     expect(await within(region).findByText(t.comments.closed)).toBeInTheDocument();
     expect(within(region).queryByText(t.comments.readOnly)).toBeNull();

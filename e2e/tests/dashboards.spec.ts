@@ -32,7 +32,7 @@ test.describe("dashboards", { tag: "@desktop" }, () => {
       must(await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title, priority } }));
     }
 
-    await page.goto(`/p/${KEY}/dashboards`);
+    await page.goto(`/projects/${KEY}/dashboards`);
     await page.getByRole("button", { name: "New dashboard" }).click();
     await page.getByLabel("Name", { exact: true }).fill("Brakes");
     await page.getByRole("button", { name: "Make the dashboard" }).click();
@@ -58,7 +58,7 @@ test.describe("dashboards", { tag: "@desktop" }, () => {
       .locator("[data-chart=bars]")
       .getByRole("link", { name: /Open the 2 with must/ })
       .click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/grid`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/grid`));
     await expect(page.locator("[data-grid-count]")).toContainText("2");
   });
 });

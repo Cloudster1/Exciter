@@ -23,7 +23,7 @@ test.describe("writing rules", { tag: "@desktop" }, () => {
 
   test("a vague word is marked as it is typed, and the mark goes once the words are measurable", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Written well" } }));
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Respond");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -43,10 +43,10 @@ test.describe("writing rules", { tag: "@desktop" }, () => {
     await expectAccessible(page);
 
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-quality-badge]")).toBeVisible();
 
-    await page.goto(`/p/${KEY}/quality`);
+    await page.goto(`/projects/${KEY}/quality`);
     await expect(page.getByRole("heading", { level: 1, name: "Quality" })).toBeVisible();
     await expect(page.getByRole("table", { name: "Lowest first" }).locator(`[data-quality-row="${KEY}-R1"]`)).toBeVisible();
     await expectAccessible(page);

@@ -38,14 +38,14 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     must(await api.PATCH("/projects/{projectKey}", { params: { path: { projectKey: LIB } }, body: { settings: { library: true } } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: LIB } }, body: { title: "Brakes engage within 100 ms" } }));
 
-    await page.goto(`/p/${LIB}/r/${LIB}-R1`);
+    await page.goto(`/projects/${LIB}/r/${LIB}-R1`);
     await page.locator('[data-action="reuse-requirement"]').click();
     const dialog = page.getByRole("dialog", { name: `Reuse ${LIB}-R1` });
     await dialog.getByLabel("Project").selectOption(APP);
     await expectAccessible(page);
     await dialog.getByRole("button", { name: "Reuse", exact: true }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/p/${APP}/r/${APP}-R1$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${APP}/r/${APP}-R1$`));
     const banner = page.locator("[data-reuse]");
     await expect(banner).toContainText(`Follows ${LIB}-R1 from the library, at its revision 1.`);
     await page.locator('[data-action="edit-requirement"]').click();
@@ -79,7 +79,7 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${APP}/r/${APP}-R1`);
+    await page.goto(`/projects/${APP}/r/${APP}-R1`);
     const banner = page.locator("[data-reuse]");
     await page.locator('[data-action="make-variant"]').click();
     await expect(toast(page, "This is a variant now. Its words are its own.")).toHaveText("This is a variant now. Its words are its own.");
@@ -112,7 +112,7 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     const title = `Regenerative braking recovers energy downhill ${LIB}`;
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: LIB } }, body: { title } }));
 
-    await page.goto(`/p/${APP}/new`);
+    await page.goto(`/projects/${APP}/new`);
     await page.getByLabel("Title", { exact: true }).fill(title);
     const hit = page.locator(`[data-similar-hint] [data-similar="${LIB}-R1"][data-library]`);
     await expect(hit).toBeVisible();
@@ -122,7 +122,7 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
     await expect(dialog.getByLabel("Project")).toHaveValue(APP);
     await dialog.locator('[data-action="confirm-reuse"]').click();
 
-    await expect(page).toHaveURL(new RegExp(`/p/${APP}/r/${APP}-R1$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${APP}/r/${APP}-R1$`));
     await expect(page.locator("[data-reuse]")).toContainText(`Follows ${LIB}-R1 from the library, at its revision 1.`);
   });
 
@@ -143,15 +143,15 @@ test.describe("reuse and variants", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${LIB}/r/${section.key}`);
+    await page.goto(`/projects/${LIB}/r/${section.key}`);
     await page.locator('[data-action="reuse-requirement"]').click();
     const dialog = page.getByRole("dialog", { name: `Reuse ${section.key}` });
     await dialog.getByLabel("Project").selectOption(APP);
     await expect(dialog.getByRole("checkbox", { name: "Reuse everything below it too" })).toBeChecked();
     await dialog.locator('[data-action="confirm-reuse"]').click();
-    await expect(page).toHaveURL(new RegExp(`/p/${APP}/r/${APP}-R1$`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${APP}/r/${APP}-R1$`));
 
-    await page.goto(`/p/${APP}/spec`);
+    await page.goto(`/projects/${APP}/spec`);
     for (const key of [`${APP}-R1`, `${APP}-R2`, `${APP}-R3`]) {
       await expect(page.locator(`[data-spec-entry="${key}"] [data-spec-reuse="following"]`)).toHaveText("Reused");
     }

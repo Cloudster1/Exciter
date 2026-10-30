@@ -34,7 +34,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
 
   test("alice cancels, then edits her comment to mention bob, who hears of it, resolves and reopens", async ({ page, api, pageAs, people }) => {
     await projectWithOne(api, TALK);
-    const requirement = `/p/${TALK}/r/${TALK}-R1`;
+    const requirement = `/projects/${TALK}/r/${TALK}-R1`;
     await page.goto(requirement);
     const discussion = page.getByRole("region", { name: "Discussion" });
     await discussion.getByRole("button", { name: "Comment" }).click();
@@ -87,7 +87,7 @@ test.describe("the discussion's edges", { tag: "@desktop" }, () => {
   test("alice deletes bob's comment, and a reader and a member without a grant stay out", async ({ page, api, apiAs, pageAs, people }) => {
     await projectWithOne(api, RULE);
     const reqKey = `${RULE}-R1`;
-    const requirement = `/p/${RULE}/r/${reqKey}`;
+    const requirement = `/projects/${RULE}/r/${reqKey}`;
     const reqPath = { params: { path: { reqKey } } };
     const bobsThread = must(
       await (await apiAs("bob")).POST("/requirements/{reqKey}/comments", { ...reqPath, body: { bodyMarkdown: "This is off topic." } }),

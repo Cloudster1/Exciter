@@ -68,9 +68,9 @@ describe("normalizeLabel", () => {
 describe("labels on a requirement", () => {
   it("shows each label as a way to the project's requirements that carry it", async () => {
     stubRequirement({ edit: false, labels: ["checkout", "release"] });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const list = await screen.findByRole("list", { name: "Labels" });
-    expect(within(list).getByRole("link", { name: "release" })).toHaveAttribute("href", "/p/CHK?label=release");
+    expect(within(list).getByRole("link", { name: "release" })).toHaveAttribute("href", "/projects/CHK?label=release");
     expect(screen.queryByRole("combobox", { name: "Add a label" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove label release" })).not.toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
@@ -87,7 +87,7 @@ describe("labels on a requirement", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const input = await screen.findByRole("combobox", { name: "Add a label" });
     await userEvent.type(input, "rel");
     const options = await screen.findByRole("listbox", { name: "Labels to pick" });
@@ -119,7 +119,7 @@ describe("labels on a requirement", () => {
 
   it("says why a typed name cannot be a label, and does not send it", async () => {
     const sent = stubRequirement();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const input = await screen.findByRole("combobox", { name: "Add a label" });
     await userEvent.type(input, "a/b{Enter}");
     expect(await screen.findByText(/Use letters, digits, hyphens/)).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe("labels on a requirement", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Remove label release" }));
     await waitFor(() => expect(removed).toEqual(["release"]));
     await waitFor(() => expect(screen.queryByRole("link", { name: "release" })).not.toBeInTheDocument());
@@ -165,7 +165,7 @@ describe("the project's list by label", () => {
         return { status: 200, body: { rows: [row], total: 1, limit: 50, offset: 0 } };
       },
     });
-    await renderAt("/p/CHK?label=release");
+    await renderAt("/projects/CHK?label=release");
     const filter = await screen.findByText("Showing requirements labelled release");
     expect(asked).toEqual(["release"]);
     expect(within(filter.closest("[data-label-filter]") as HTMLElement).getByRole("link", { name: "Show every project" })).toHaveAttribute(
@@ -173,7 +173,7 @@ describe("the project's list by label", () => {
       "/labels/release",
     );
     const labels = await screen.findByRole("list", { name: "Labels" });
-    expect(within(labels).getByRole("link", { name: "checkout" })).toHaveAttribute("href", "/p/CHK?label=checkout");
+    expect(within(labels).getByRole("link", { name: "checkout" })).toHaveAttribute("href", "/projects/CHK?label=checkout");
     expect(await axeViolations()).toEqual([]);
   });
 });
@@ -200,7 +200,7 @@ describe("the label page", () => {
     const router = await renderAt("/labels/release");
     expect(await screen.findByText("1 to 1 of 45 requirements")).toBeInTheDocument();
     const row = document.querySelector('[data-labelled-requirement="CHK-R7"]') as HTMLElement;
-    expect(within(row).getByRole("link", { name: "Refund the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R7");
+    expect(within(row).getByRole("link", { name: "Refund the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R7");
     expect(row).toHaveTextContent("Checkout / Ada Lovelace changed it on");
     expect(within(row).getByRole("link", { name: "plan" })).toHaveAttribute("href", "/labels/plan");
     expect(await axeViolations()).toEqual([]);

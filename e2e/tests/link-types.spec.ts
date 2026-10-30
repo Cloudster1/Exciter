@@ -67,7 +67,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(guards).toContainText(GUARDS.name);
     await expect(guards).not.toContainText("Never saved");
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R3`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R3`);
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${SHIELDS}` })).toHaveCount(1);
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${GUARDS.forward}` })).toHaveCount(0);
 
@@ -75,7 +75,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await guards.locator('[data-action="retire-link-type"]').click();
     await expect(guards).toHaveAttribute("data-retired", "");
     await expect(guards.locator('[data-action="restore-link-type"]')).toHaveText("Use again");
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator(`[data-link-group="${GUARDS.key}:outgoing"] [data-link="${KEY}-R2"]`)).toContainText("Brakes hold");
     // The options load apart from the links, so a type still in use shows first that they are there.
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${CHECKS.forward}` })).toHaveCount(1);
@@ -84,7 +84,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await page.goto("/admin/link-types");
     await guards.locator('[data-action="restore-link-type"]').click();
     await expect(guards).not.toHaveAttribute("data-retired", "");
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(linkTypeOptions(page).filter({ hasText: `This requirement ${SHIELDS}` })).toHaveCount(1);
 
     await page.goto("/admin/link-types");
@@ -100,7 +100,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
       must(await api.POST("/projects/{projectKey}/types", { params: { path: { projectKey: KEY } }, body: { name, icon: "requirement", colour: "#4f6bed" } }));
     }
 
-    await page.goto(`/p/${KEY}/settings?tab=links`);
+    await page.goto(`/projects/${KEY}/settings/links`);
     await page.locator('[data-action="new-link-type"]').click();
     await page.getByRole("textbox", { name: "Name" }).fill("Tests");
     await page.getByRole("textbox", { name: "Reads from the source" }).fill("tests");
@@ -121,7 +121,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(dialog).toBeHidden();
     await expect(derives.locator("[data-link-type-pairs]")).toHaveText("1 pair of types");
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(linkTypeOptions(page).filter({ hasText: "This requirement tests" })).toHaveCount(1);
     const form = page.getByRole("form", { name: "Add a link" });
     await form.getByRole("combobox", { name: "Link type" }).selectOption({ label: "This requirement derives from" });
@@ -131,7 +131,7 @@ test.describe("link types", { tag: "@desktop" }, () => {
     await expect(form.getByRole("alert")).toContainText(`In ${KEY}, Derives links do not join a Requirement to a Requirement.`);
     await expect(page.locator(`[data-link="${KEY}-R2"]`)).toHaveCount(0);
 
-    await page.goto(`/p/${OTHER}/r/${OTHER}-R1`);
+    await page.goto(`/projects/${OTHER}/r/${OTHER}-R1`);
     await expect(linkTypeOptions(page).filter({ hasText: "This requirement derives from" })).toHaveCount(1);
     await expect(linkTypeOptions(page).filter({ hasText: "This requirement tests" })).toHaveCount(0);
   });

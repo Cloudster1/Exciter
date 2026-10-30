@@ -81,7 +81,7 @@ test.describe("Armature's webhooks", { tag: "@desktop" }, () => {
   });
 
   test("a requirement follows its issue as it moves on, loses its link and goes", async ({ page }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Armature issues" });
     const link = panel.locator('[data-armature-link="CP-4"]');
     await expect(link.locator('[data-status-category="todo"]')).toBeVisible();

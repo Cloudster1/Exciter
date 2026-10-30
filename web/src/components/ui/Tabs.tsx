@@ -26,6 +26,8 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   const id = useId();
+  // A section opened by address may not be among the tabs; the first then takes focus, so the list stays reachable.
+  const focusable = tabs.some((tab) => tab.value === value) ? value : tabs[0]?.value;
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const step =
       event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "Home" ? -index : event.key === "End" ? tabs.length - 1 - index : 0;
@@ -50,7 +52,7 @@ export function Tabs<T extends string>({
               id={`${id}-${tab.value}`}
               aria-selected={selected}
               aria-controls={panelId}
-              tabIndex={selected ? 0 : -1}
+              tabIndex={tab.value === focusable ? 0 : -1}
               onClick={() => onChange(tab.value)}
               onKeyDown={(event) => onKeyDown(event, index)}
               {...tab.attrs}

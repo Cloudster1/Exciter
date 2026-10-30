@@ -34,7 +34,7 @@ test.describe("watching", { tag: "@desktop" }, () => {
   test("alice stops watching, watches the whole project, and sees who else watches", async ({ page, api, apiAs, people }) => {
     await projectWith(api, MENU, "Brakes engage within 100 ms");
     must(await (await apiAs("bob")).PUT("/projects/{projectKey}/watch", { params: { path: { projectKey: MENU } } }));
-    await page.goto(`/p/${MENU}/r/${MENU}-R1`);
+    await page.goto(`/projects/${MENU}/r/${MENU}-R1`);
     const button = page.locator('[data-action="watch-menu"]');
     // Alice wrote R1, so she watches it.
     await expect(button).toHaveText("Watching");
@@ -69,7 +69,7 @@ test.describe("watching", { tag: "@desktop" }, () => {
     await projectWith(api, WHOLE, "Brakes engage within 100 ms", "Brakes report wear");
     const bob = await pageAs("bob");
     const watch = bob.getByRole("button", { name: "Watch project" });
-    await openUntil(bob, `/p/${WHOLE}`, () => expect(watch).toBeVisible(ONE_LOOK));
+    await openUntil(bob, `/projects/${WHOLE}`, () => expect(watch).toBeVisible(ONE_LOOK));
     await expect(watch).toHaveAttribute("aria-pressed", "false");
     await watch.click();
     const watching = bob.getByRole("button", { name: "Watching project" });
@@ -84,7 +84,7 @@ test.describe("watching", { tag: "@desktop" }, () => {
     const told = new RegExp(`${people.alice.name} saved a new revision of ${WHOLE}-R2`);
     const bell = bob.getByRole("button", { name: /^Notifications, \d+ unread$/ });
     await expect(async () => {
-      await bob.goto(`/p/${WHOLE}`);
+      await bob.goto(`/projects/${WHOLE}`);
       await bell.click(ONE_LOOK);
       await expect(bob.getByRole("dialog", { name: "Notifications" }).getByRole("link", { name: told })).toContainText("Sooner.", ONE_LOOK);
     }).toPass();
@@ -116,7 +116,7 @@ test.describe("watching", { tag: "@desktop" }, () => {
     await expect(bob.getByText(`You no longer watch ${LIST}-R1 Brakes engage within 100 ms.`)).toBeVisible();
     await expect(requirementRow).toHaveCount(0);
 
-    await bob.goto(`/p/${LIST}/r/${LIST}-R1`);
+    await bob.goto(`/projects/${LIST}/r/${LIST}-R1`);
     await expect(bob.locator('[data-action="watch-menu"]')).toHaveText("Watch");
   });
 });

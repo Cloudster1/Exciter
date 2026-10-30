@@ -47,7 +47,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
     <Page width="content" className="space-y-5" data-session-page={s.id} data-session-state={s.state}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/sessions" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/sessions" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.sessions.back}
           </Link>
         }
@@ -70,7 +70,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
         {s.state === "open" && (
           <ButtonLink
             variant="primary"
-            href={`/p/${encodeURIComponent(project.key)}/spec?session=${s.id}&waiting=true&changes=round`}
+            href={`/projects/${encodeURIComponent(project.key)}/spec?session=${s.id}&waiting=true&changes=round`}
             data-action="review-session-in-document"
           >
             {t.sessions.reviewInDocument}
@@ -113,7 +113,7 @@ export function SessionPage({ project, sessionId }: { project: Project; sessionI
                 <Td>
                   <span className="text-ink-muted tabular-nums">{item.outline}</span>{" "}
                   <Link
-                    to="/p/$projectKey/r/$reqKey"
+                    to="/projects/$projectKey/r/$reqKey"
                     params={{ projectKey: project.key, reqKey: item.requirement.key }}
                     className="font-mono text-xs text-ink-muted hover:text-accent"
                   >

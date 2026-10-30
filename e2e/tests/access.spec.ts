@@ -88,7 +88,7 @@ test.describe("the Access page", { tag: "@desktop" }, () => {
       await expect(grantRow(page, renamedGroup, "editor")).toContainText(`Accessed (${KEY})`);
       await expectAccessible(page);
 
-      await page.goto(`/p/${KEY}/permissions`);
+      await page.goto(`/projects/${KEY}/settings/permissions`);
       await expect(grantRow(page, bob, "reviewer")).toBeVisible();
       await expect(grantRow(page, renamedGroup, "editor")).toBeVisible();
 
@@ -123,7 +123,7 @@ test.describe("the Access page", { tag: "@desktop" }, () => {
       await dismissToasts(page);
       await expect(column).toContainText(renamedRole);
 
-      await page.goto(`/p/${KEY}/permissions`);
+      await page.goto(`/projects/${KEY}/settings/permissions`);
       await expect(page.locator(`[data-project-role="${key}"]`)).toContainText(renamedRole);
       await expect(page.locator(`[data-project-role="${key}"]`)).toContainText("Comment on requirements");
 

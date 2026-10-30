@@ -119,7 +119,7 @@ export function EntryChanges({ projectKey, entry, change }: { projectKey: string
       )}
       {comparison.attributes.some((attribute) => attribute.change !== "equal") && <AttributeChanges attributes={comparison.attributes} />}
       <Link
-        to="/p/$projectKey/r/$reqKey/history"
+        to="/projects/$projectKey/r/$reqKey/history"
         params={{ projectKey, reqKey: entry.node.key }}
         search={{ from: change.from, to: change.to }}
         className="text-xs text-ink-muted hover:text-accent hover:underline"

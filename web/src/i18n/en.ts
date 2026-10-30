@@ -68,7 +68,6 @@ export const en = {
     stator: "Stator",
     groupRequirements: "Requirements",
     groupYou: "You",
-    projectAdmin: "Project admin",
     unread: (n: number) => `${n} unread`,
     backTo: (app: string) => `Back to ${app}`,
     settingsArea: "Settings",

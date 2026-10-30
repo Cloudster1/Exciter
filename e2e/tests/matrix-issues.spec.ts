@@ -41,7 +41,7 @@ test.describe("Armature issues as the matrix's columns", { tag: "@desktop" }, ()
   });
 
   test("alice shows the issues the rows are traced to, narrows them by relation, and traces a row to one from its cell", async ({ page }) => {
-    await page.goto(`/p/${KEY}/matrix`);
+    await page.goto(`/projects/${KEY}/matrix`);
     await page.getByRole("group", { name: "Columns" }).getByRole("button", { name: "Armature issues" }).click();
     await expect(page).toHaveURL(/columns=issues/);
     const matrix = page.getByRole("table", { name: "Matrix" });

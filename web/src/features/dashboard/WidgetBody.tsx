@@ -19,7 +19,7 @@ export function WidgetBody({ projectKey, kind, config, data }: { projectKey: str
     (cond: string, label: string, count: number) =>
     (children: ReactNode): ReactNode => (
       <Link
-        to="/p/$projectKey/grid"
+        to="/projects/$projectKey/grid"
         params={{ projectKey }}
         search={bucketAddress(data, cond, view)}
         className="hover:text-accent hover:underline"
@@ -130,7 +130,7 @@ function RowList({ projectKey, data }: { projectKey: string; data: WidgetData })
       {data.rows.map((row) => (
         <li key={row.id} className="flex min-w-0 items-baseline gap-2">
           <Link
-            to="/p/$projectKey/r/$reqKey"
+            to="/projects/$projectKey/r/$reqKey"
             params={{ projectKey, reqKey: row.key }}
             className="shrink-0 font-mono text-xs text-ink-muted hover:text-accent hover:underline"
           >

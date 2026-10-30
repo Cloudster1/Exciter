@@ -62,7 +62,7 @@ function node(name: string) {
 describe("a project's workflow settings", () => {
   it("draws the workflow it follows, lists its workflows and statuses, and maps statuses when it follows another", async () => {
     const sent = stubApi({ ...shaped, "PUT /projects/CHK/workflow": { status: 200, body: { workflow: { ...lean, projectDefault: true } } } });
-    await renderAt("/p/CHK/settings?tab=workflow");
+    await renderAt("/projects/CHK/settings/workflow");
     expect(await screen.findByRole("figure", { name: "Workflow Default" })).toBeInTheDocument();
     expect(node("Approved")).toBeInTheDocument();
     expect(document.querySelector('[data-workflow-card="Default"]')).toHaveTextContent("The project's");
@@ -92,7 +92,7 @@ describe("a project's workflow settings", () => {
         },
       },
     });
-    await renderAt("/p/CHK/settings?tab=workflow");
+    await renderAt("/projects/CHK/settings/workflow");
     await userEvent.selectOptions(await screen.findByLabelText("Workflow of Functional"), "Lean");
     await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Follow this workflow" }));
     expect(await screen.findByText("Requirements are in Approved, which this workflow lacks.")).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("a project's workflow settings", () => {
 
   it("shows a reader the workflow and nothing to change", async () => {
     stubApi({ ...shaped, "GET /projects/CHK": { status: 200, body: { project: aProject({ can: { ...project.can, administer: false } }) } } });
-    await renderAt("/p/CHK/settings?tab=workflow");
+    await renderAt("/projects/CHK/settings/workflow");
     expect(await screen.findByRole("figure", { name: "Workflow Default" })).toBeInTheDocument();
     expect(screen.getByLabelText("The project follows")).toBeDisabled();
     expect(screen.queryByRole("button", { name: "New workflow" })).toBeNull();
@@ -111,7 +111,7 @@ describe("a project's workflow settings", () => {
 describe("the workflow designer", () => {
   it("builds a workflow from the inspector alone and sends the picture with it", async () => {
     const sent = stubApi({ ...shaped, "POST /projects/CHK/workflows": { status: 201, body: { workflow: lean } } });
-    const router = await renderAt("/p/CHK/settings/workflows/new");
+    const router = await renderAt("/projects/CHK/settings/workflows/new");
     await userEvent.type(await screen.findByLabelText("Name"), "Lean");
 
     // The first status placed is where requirements start, and a status on the canvas is no longer on offer.
@@ -141,7 +141,7 @@ describe("the workflow designer", () => {
     expect(screen.getByText("Project role (Roles: Reviewer)")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Create workflow" }));
-    await arrival(router, "/p/CHK/settings");
+    await arrival(router, "/projects/CHK/settings/workflow");
     const input = sent.find((r) => r.method === "POST")?.body as { name: string; steps: unknown[]; transitions: unknown[] };
     expect(input.name).toBe("Lean");
     expect(input.steps).toEqual([
@@ -160,7 +160,7 @@ describe("the workflow designer", () => {
         ],
       },
     ]);
-    expect(router.state.location.search).toEqual({ tab: "workflow" });
+    expect(router.state.location.pathname).toBe("/projects/CHK/settings/workflow");
   });
 
   it("opens a saved workflow and keeps its transitions' ids and revision steps on save", async () => {
@@ -169,7 +169,7 @@ describe("the workflow designer", () => {
       [`GET /projects/CHK/workflows/${flow.id}`]: { status: 200, body: { workflow: flow } },
       [`PUT /projects/CHK/workflows/${flow.id}`]: { status: 200, body: { workflow: flow } },
     });
-    const router = await renderAt(`/p/CHK/settings/workflows/${flow.id}`);
+    const router = await renderAt(`/projects/CHK/settings/workflows/${flow.id}`);
     await waitFor(() => expect(screen.getByLabelText("Name")).toHaveValue("Default"));
     expect(node("Draft").dataset.x).toBe("40");
     expect(Number(node("In review").dataset.x)).toBeGreaterThan(40);
@@ -178,7 +178,7 @@ describe("the workflow designer", () => {
     const panel = document.querySelector("[data-edge-panel]") as HTMLElement;
     await userEvent.click(within(panel).getByRole("button", { name: "Remove rule Comment required" }));
     await userEvent.click(screen.getByRole("button", { name: "Save workflow" }));
-    await arrival(router, "/p/CHK/settings");
+    await arrival(router, "/projects/CHK/settings/workflow");
     const input = sent.find((r) => r.method === "PUT")?.body as { steps: { onRevisionStatusId?: string }[]; transitions: { id: string; rules: unknown[] }[] };
     expect(input.transitions.map((each) => each.id)).toEqual(flow.transitions.map((each) => each.id));
     expect(input.transitions[2]?.rules).toEqual([]);
@@ -187,7 +187,7 @@ describe("the workflow designer", () => {
 
   it("says what would stop a save before the server has to", async () => {
     stubApi(shaped);
-    await renderAt("/p/CHK/settings/workflows/new");
+    await renderAt("/projects/CHK/settings/workflows/new");
     expect(await screen.findByText(/The workflow needs a name/)).toBeInTheDocument();
     expect(screen.getByText(/Put at least one status on the canvas/)).toBeInTheDocument();
   });
@@ -212,7 +212,7 @@ describe("a requirement's status", () => {
         body: { requirement: aRequirement({ status: { id: review.id, name: "In review", category: "review" } }) },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const bar = await waitFor(() => {
       const found = document.querySelector<HTMLElement>("[data-transition-bar]");
       expect(found).not.toBeNull();
@@ -232,7 +232,7 @@ describe("a requirement's status", () => {
         body: { error: { code: "transition_unavailable", message: "CHK-R1 moved to In review meanwhile. Pick one of the transitions it offers now." } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Reject" }));
     const dialog = await screen.findByRole("dialog", { name: "Reject" });
     expect(within(dialog).getByRole("button", { name: "Reject" })).toBeDisabled();
@@ -244,7 +244,7 @@ describe("a requirement's status", () => {
 
   it("shows the status of a requirement in the trash, and offers nothing", async () => {
     stubApi({ ...base, "GET /requirements/CHK-R1": { status: 200, body: { requirement: { ...inDraft, trashedAt: "2026-10-02T08:00:00Z" } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const bar = await waitFor(() => {
       const found = document.querySelector<HTMLElement>("[data-transition-bar]");
       expect(found).not.toBeNull();

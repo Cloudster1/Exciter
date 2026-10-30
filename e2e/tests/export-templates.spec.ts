@@ -43,7 +43,7 @@ test.describe("exporting through a template", { tag: "@desktop" }, () => {
       await api.POST("/projects/{projectKey}/requirements", { ...path, body: { title: "Stop within 40 m", place: { parentId: section.id, afterId: null } } }),
     );
 
-    await page.goto(`/p/${KEY}/settings?tab=templates`);
+    await page.goto(`/projects/${KEY}/settings/templates`);
     const upload = page.getByRole("form", { name: "New template" });
     await upload.getByLabel("Word file").setInputFiles({
       name: "supplier.docx",
@@ -60,7 +60,7 @@ test.describe("exporting through a template", { tag: "@desktop" }, () => {
     await expect(card.getByText("The template is saved.")).toBeVisible();
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/spec`);
+    await page.goto(`/projects/${KEY}/spec`);
     await expect(page.getByRole("heading", { name: /Stop within 40 m/ })).toBeVisible();
     const word = await exportAs(page, "Word", async () => {
       const dialog = page.getByRole("dialog");

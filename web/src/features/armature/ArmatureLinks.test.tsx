@@ -93,7 +93,7 @@ function stubPage({
 describe("a requirement's Armature issues", () => {
   it("shows each issue live by relation, with what Armature has not been told yet", async () => {
     stubPage();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Armature issues" });
     const cp1 = await within(panel).findByRole("link", { name: /Set up the build pipeline/ });
     expect(cp1).toHaveAttribute("href", `${BASE}/issues/CP-1`);
@@ -130,7 +130,7 @@ describe("a requirement's Armature issues", () => {
         [`POST /armature-links/${link.id}/clear`]: { status: 200, body: { link: { ...link, suspect: false, reviewedRevision: 2 } } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Armature issues" });
     await waitFor(() => expect(panel.querySelector('[data-armature-link="CP-1"]')).toHaveTextContent("Suspect"));
     await userEvent.click(within(panel).getByRole("button", { name: "Check the trace to CP-1" }));
@@ -143,7 +143,7 @@ describe("a requirement's Armature issues", () => {
 
   it("shows a reader without a token the key and the stored status, and how to connect", async () => {
     const sent = stubPage({ account: withoutToken, edit: false });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Armature issues" });
     await waitFor(() => expect(panel.querySelector('[data-armature-issue="CP-2"]')).not.toBeNull());
     const chip = panel.querySelector<HTMLElement>('[data-armature-issue="CP-2"]')!;
@@ -158,7 +158,7 @@ describe("a requirement's Armature issues", () => {
 
   it("tells a reader without a token when the stored status may be out of date", async () => {
     stubPage({ account: withoutToken, edit: false, links: [aLink("CP-1", { statusCategory: "in_progress", statusStale: true })] });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Armature issues" });
     await waitFor(() => expect(panel.querySelector('[data-armature-issue="CP-1"]')).not.toBeNull());
     const chip = panel.querySelector<HTMLElement>('[data-armature-issue="CP-1"]')!;
@@ -168,14 +168,14 @@ describe("a requirement's Armature issues", () => {
 
   it("says Armature needs an update when it no longer offers issue reads", async () => {
     stubPage({ links: [aLink("CP-1")], more: { "GET /armature/issues": { status: 200, body: { status: "outdated", issues: [] } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Armature issues" });
     await waitFor(() => expect(panel.querySelector('[data-armature-issue="CP-1"]')).toHaveTextContent("Armature needs an update to show this issue"));
   });
 
   it("is not there while Exciter has no Armature", async () => {
     stubPage({ account: { ...withoutToken, configured: false, baseUrl: "", status: "not_configured" } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await screen.findByRole("region", { name: "Trace links" });
     expect(screen.queryByRole("region", { name: "Armature issues" })).toBeNull();
   });
@@ -201,7 +201,7 @@ describe("a requirement's Armature issues", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const form = await screen.findByRole("form", { name: "Trace to an Armature issue" });
     await user.selectOptions(within(form).getByLabelText("Relation"), "verifies");
     await user.type(within(form).getByRole("combobox", { name: "Issue" }), "signing");
@@ -229,7 +229,7 @@ describe("a requirement's Armature issues", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await user.click(await screen.findByRole("button", { name: "Remove CP-1, Implemented by the issue" }));
     expect(await screen.findByText(/No issue yet/)).toBeInTheDocument();
     expect(screen.getByText("The trace to CP-1 was removed.")).toBeInTheDocument();

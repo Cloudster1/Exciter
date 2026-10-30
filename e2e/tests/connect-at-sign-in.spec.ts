@@ -65,7 +65,7 @@ test.describe("connecting alice to Armature and Stator as she signs in", { tag: 
 
     expect((await page.request.post("/api/v1/projects", { data: { key: KEY, name: "Connected at sign-in" } })).ok()).toBe(true);
     expect((await page.request.post(`/api/v1/projects/${KEY}/requirements`, { data: { title: "Brakes engage within 100 ms" } })).ok()).toBe(true);
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
 
     const issues = page.getByRole("region", { name: "Armature issues" });
     const issueForm = issues.getByRole("form", { name: "Trace to an Armature issue" });

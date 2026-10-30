@@ -4,10 +4,11 @@ import { expect, test, type Page } from "@playwright/test";
 /** Below this width the shell is a drawer, as web/src/config.ts SIDEBAR_DRAWER_BELOW_PX says. */
 const DRAWER_BELOW_PX = 768;
 
-/** Opens a project's folded Project admin group in the sidebar, where its trash, settings and permissions are. */
-export async function openProjectAdmin(page: Page, projectKey: string): Promise<void> {
-  const fold = page.locator(`[data-project-nav="${projectKey}"]`).getByRole("button", { name: "Project admin" });
-  if ((await fold.getAttribute("aria-expanded")) !== "true") await fold.click();
+/** Follows the project's Settings entry in the sidebar, opening the drawer first on a phone. */
+export async function openProjectSettings(page: Page, projectKey: string): Promise<void> {
+  const entry = page.locator(`[data-project-nav="${projectKey}"] [data-nav="project-settings"] a`);
+  if ((page.viewportSize()?.width ?? DRAWER_BELOW_PX) < DRAWER_BELOW_PX) await page.locator('[data-action="drawer"]').click();
+  await entry.click();
 }
 
 /** The palettes the theme button steps through, as web/src/lib/theme.ts stores them. */

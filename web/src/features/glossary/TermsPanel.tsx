@@ -30,7 +30,7 @@ export function TermsPanel({ project, requirement }: { project: Project; require
             {terms.map((use) => (
               <li key={use.term.id} className="flex flex-wrap items-center gap-2 text-sm" data-requirement-term={use.term.name} data-suspect={use.suspect}>
                 <Link
-                  to="/p/$projectKey/glossary/$termId"
+                  to="/projects/$projectKey/glossary/$termId"
                   params={{ projectKey: use.term.projectKey, termId: use.term.id }}
                   className="font-medium text-ink hover:text-accent hover:underline"
                 >

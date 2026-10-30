@@ -41,7 +41,7 @@ test.describe("coverage rules", { tag: "@desktop" }, () => {
     await write(api, "Brakes were discussed at length", note.id);
     must(await api.PUT("/projects/{projectKey}/coverage-rules", { ...project, body: { decomposed: true, implemented: false, verified: false } }));
 
-    await page.goto(`/p/${KEY}/coverage`);
+    await page.goto(`/projects/${KEY}/coverage`);
     const rules = page.getByRole("list", { name: "Rules" });
     await expect(rowOf(page, `${KEY}-R2`)).toContainText("Decomposed: None");
     await page.getByLabel("Add a rule for").selectOption({ label: "Note" });
@@ -74,7 +74,7 @@ test.describe("coverage rules", { tag: "@desktop" }, () => {
     must(await api.PUT("/projects/{projectKey}/coverage-rules", { ...project, body: { decomposed: false, implemented: false, verified: true } }));
     await uploadPassingResult(api, KEY, `${KEY}-R1`);
 
-    await page.goto(`/p/${KEY}/coverage`);
+    await page.goto(`/projects/${KEY}/coverage`);
     await expect(rowOf(page, `${KEY}-R1`)).toContainText("Verified: None");
     await expect(rowOf(page, `${KEY}-R2`)).toContainText("Verified: Full");
     const sources = page.getByRole("group", { name: "Verified from: Every other type" });
@@ -106,7 +106,7 @@ test.describe("coverage rules", { tag: "@desktop" }, () => {
     const last = `${KEY}-R${total}`;
 
     const bob = await pageAs("bob");
-    await bob.goto(`/p/${KEY}/coverage`);
+    await bob.goto(`/projects/${KEY}/coverage`);
     await expect(bob.getByText("Only the project's administrators set what coverage asks.")).toBeVisible();
     const every = bob.getByRole("list", { name: "Rules" }).locator('[data-rule="Every other type"]');
     for (const box of ["Decomposed", "Implemented", "Verified"]) await expect(every.getByLabel(box, { exact: true })).toBeDisabled();
@@ -127,7 +127,7 @@ test.describe("coverage rules", { tag: "@desktop" }, () => {
 
     await pages.getByRole("button", { name: "Next" }).click();
     await rowOf(bob, last).getByRole("link").click();
-    await expect(bob).toHaveURL(new RegExp(`/p/${KEY}/r/${last}$`));
+    await expect(bob).toHaveURL(new RegExp(`/projects/${KEY}/r/${last}$`));
     await expect(bob.getByRole("heading", { level: 1 })).toHaveText(`Brake requirement ${total}`);
   });
 });

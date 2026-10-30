@@ -147,7 +147,7 @@ export function GlossaryPage({ project }: { project: Project }) {
                 <tr key={term.id} data-term-row={term.name}>
                   <Td>
                     <Link
-                      to="/p/$projectKey/glossary/$termId"
+                      to="/projects/$projectKey/glossary/$termId"
                       params={{ projectKey: term.projectKey, termId: term.id }}
                       className="font-medium text-ink hover:text-accent hover:underline"
                     >

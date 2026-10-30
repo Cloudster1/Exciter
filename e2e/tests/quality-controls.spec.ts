@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // Writing rules (#320): a finding is shown in the text, accepted with a reason and taken back, and the score follows;
 // an administrator adds a word to a list and switches a rule off, and the findings follow both.
@@ -48,7 +48,7 @@ test.describe("writing rules in use", { tag: "@desktop" }, () => {
 
   test("alice shows a finding in the text, accepts it with a reason and takes it back, and the score follows", async ({ page, api }) => {
     await vagueRequirement(api);
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const badge = page.locator("[data-quality-badge]");
     const before = await scoreOf(badge);
     expect(before).not.toBe(FULL);
@@ -81,18 +81,19 @@ test.describe("writing rules in use", { tag: "@desktop" }, () => {
 
   test("alice adds a word to a list and switches a rule off, and the findings follow", async ({ page, api }) => {
     await vagueRequirement(api);
-    await page.goto(`/p/${KEY}/quality`);
+    await page.goto(`/projects/${KEY}/quality`);
     const row = page.getByRole("table", { name: "Lowest first" }).locator(`[data-quality-row="${KEY}-R1"]`);
     await expect(row.locator('[data-rule="vague"]')).toBeVisible();
 
-    await page.goto(`/p/${KEY}/settings?tab=quality`);
+    await page.goto(`/projects/${KEY}/settings/quality`);
     const words = page.getByRole("form", { name: "Word lists" });
     await words.getByRole("textbox", { name: "Vague word: words to add" }).fill("snappy");
     await words.locator('[data-action="save-quality-words"]').click();
-    await expect(page.locator("[data-quality-words]").getByRole("status")).toHaveText("Saved. The requirements are being checked again.");
+    await expect(toast(page, "Saved. The requirements are being checked again.")).toBeVisible();
+    await dismissToasts(page);
     await expectAccessible(page);
 
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Feel");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -100,15 +101,16 @@ test.describe("writing rules in use", { tag: "@desktop" }, () => {
     await expect(statement.locator(".finding", { hasText: "snappy" })).toBeVisible();
     await expect(page.locator('[data-findings] [data-finding-item][data-rule="vague"]')).toContainText("snappy");
 
-    await page.goto(`/p/${KEY}/settings?tab=quality`);
+    await page.goto(`/projects/${KEY}/settings/quality`);
     const rules = page.getByRole("form", { name: "Writing rules" });
     await rules.getByRole("checkbox", { name: "Check Vague word" }).uncheck();
     await rules.locator('[data-action="save-quality-rules"]').click();
-    await expect(page.locator("[data-quality-rules]").getByRole("status")).toHaveText("Saved. The scores follow.");
+    await expect(toast(page, "Saved. The scores follow.")).toBeVisible();
+    await dismissToasts(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-quality-badge]")).toHaveAttribute("data-quality-badge", FULL);
-    await page.goto(`/p/${KEY}/quality`);
+    await page.goto(`/projects/${KEY}/quality`);
     await expect(row).toBeVisible();
     await expect(row.locator('[data-rule="vague"]')).toHaveCount(0);
     await expectAccessible(page);

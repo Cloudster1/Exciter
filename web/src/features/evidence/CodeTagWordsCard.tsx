@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useCodeTagWords, useSaveCodeTagWords } from "@/api/code";
 import { ApiError } from "@/api/client";
 import type { Project } from "@/api/projects";
-import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, Field, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { CODE_TAG_MAX_WORDS, CODE_TAG_WORD_MAX_LENGTH } from "@/config";
 import { t } from "@/i18n";
 
@@ -17,20 +17,9 @@ export function CodeTagWordsCard({ project }: { project: Project }) {
   const { data, error, refetch } = useCodeTagWords(project.key);
   // Kept above the form, which starts again from the words it saved, so the word that it saved outlives it.
   const save = useSaveCodeTagWords(project.key);
-  const [notice, setNotice] = useState("");
   if (error) return <ErrorBanner onRetry={() => void refetch()}>{error.message}</ErrorBanner>;
   if (!data) return <Skeleton />;
-  return (
-    <WordsForm
-      key={data.updatedAt ?? "default"}
-      project={project}
-      implementsWords={data.implements}
-      verifiesWords={data.verifies}
-      save={save}
-      notice={notice}
-      setNotice={setNotice}
-    />
-  );
+  return <WordsForm key={data.updatedAt ?? "default"} project={project} implementsWords={data.implements} verifiesWords={data.verifies} save={save} />;
 }
 
 interface FormProps {
@@ -38,11 +27,10 @@ interface FormProps {
   implementsWords: string[];
   verifiesWords: string[];
   save: ReturnType<typeof useSaveCodeTagWords>;
-  notice: string;
-  setNotice: (notice: string) => void;
 }
 
-function WordsForm({ project, implementsWords, verifiesWords, save, notice, setNotice }: FormProps) {
+function WordsForm({ project, implementsWords, verifiesWords, save }: FormProps) {
+  const toast = useToast();
   const [implementing, setImplementing] = useState(implementsWords.join(", "));
   const [verifying, setVerifying] = useState(verifiesWords.join(", "));
   const may = project.can.administer && !project.archivedAt;
@@ -51,8 +39,7 @@ function WordsForm({ project, implementsWords, verifiesWords, save, notice, setN
   const most = CODE_TAG_MAX_WORDS * (CODE_TAG_WORD_MAX_LENGTH + 2);
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
-    save.mutate({ implements: listOf(implementing), verifies: listOf(verifying) }, { onSuccess: () => setNotice(l.saved) });
+    save.mutate({ implements: listOf(implementing), verifies: listOf(verifying) }, { onSuccess: () => toast.success(l.saved) });
   }
   return (
     <Card className="space-y-3 p-4" data-code-tag-words>
@@ -93,9 +80,6 @@ function WordsForm({ project, implementsWords, verifiesWords, save, notice, setN
         )}
       </form>
       {save.error && Object.keys(fields).length === 0 && <ErrorBanner>{save.error.message}</ErrorBanner>}
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </Card>
   );
 }

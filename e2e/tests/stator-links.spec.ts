@@ -47,7 +47,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
   });
 
   test("alice links a page she finds by its title, and confirms the link once Stator publishes a new version", async ({ page }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.getByRole("region", { name: "Stator pages" });
     await expect(panel.getByText(/No page yet/)).toBeVisible();
 
@@ -89,7 +89,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     const timing = await pageId("Brake timing");
     must(await api.POST("/requirements/{reqKey}/stator-links", { params: { path: { reqKey: `${KEY}-R1` } }, body: { pageId: timing, relation: "describes" } }));
 
-    await page.goto(`/p/${KEY}/matrix?columns=pages`);
+    await page.goto(`/projects/${KEY}/matrix?columns=pages`);
     const matrix = page.getByRole("table", { name: "Matrix" });
     await expect(matrix.getByRole("columnheader", { name: "Brake timing" })).toBeVisible();
     await page.getByRole("button", { name: `${KEY}-R1 to Brake timing: describes` }).click();
@@ -116,7 +116,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     );
 
     await stub(`/pages/${timing}`, { method: "DELETE" });
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const deleted = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${timing}"]`);
     await expect
       .poll(async () => {
@@ -128,7 +128,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     await expectAccessible(page);
 
     await stub(`/pages/${braking}/move`, { method: "POST", body: JSON.stringify({ spaceKey: "SEC" }) });
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     const moved = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${braking}"]`);
     await expect
       .poll(async () => {
@@ -150,7 +150,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     const bob = await pageAs("bob");
     const chip = bob.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-page="${timing}"]`);
     // Alice's link and her project may reach bob's reads a replica later.
-    await openShowing(bob, `/p/${KEY}/r/${KEY}-R1`, chip);
+    await openShowing(bob, `/projects/${KEY}/r/${KEY}-R1`, chip);
     await expect(chip).toHaveAttribute("data-state", "connect");
     await expect(chip.getByRole("link", { name: "ENG Page in Stator" })).toHaveAttribute("href", `${statorURL()}/s/ENG/p/${timing}`);
     await expect(chip).toContainText("Version 2");
@@ -161,7 +161,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
   });
 
   test("alice picks a page, then picks another before linking", async ({ page }) => {
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const form = page.getByRole("region", { name: "Stator pages" }).getByRole("form", { name: "Link a Stator page" });
     await form.getByRole("combobox", { name: "Page" }).fill("brake tim");
     await form.getByRole("option", { name: /Brake timing/ }).click();
@@ -187,7 +187,7 @@ test.describe("tracing requirements to Stator pages", { tag: "@desktop" }, () =>
     };
     await expect.poll(async () => (await remote())?.title, { timeout: 30_000 }).toBe(`${KEY}-R1 Brakes engage within 100 ms (describes)`);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const link = page.getByRole("region", { name: "Stator pages" }).locator(`[data-stator-link="${timing}"]`);
     await expect(link).toHaveAttribute("data-sync", "synced");
     await expect(link.getByText("Waiting for Stator")).toBeHidden();

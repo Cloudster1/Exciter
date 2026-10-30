@@ -66,7 +66,6 @@ export const de: Messages = {
     stator: "Stator",
     groupRequirements: "Anforderungen",
     groupYou: "Sie",
-    projectAdmin: "Projektverwaltung",
     unread: (n: number) => `${n} ungelesen`,
     backTo: (app: string) => `Zurück zu ${app}`,
     settingsArea: "Einstellungen",

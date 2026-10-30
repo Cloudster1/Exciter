@@ -43,7 +43,7 @@ function TermView({ project, term, onReload }: { project: Project; term: Term; o
     <Page width="narrow" className="space-y-4" data-term-page={term.name}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/glossary" params={{ projectKey: project.key }} className="hover:text-ink hover:underline">
+          <Link to="/projects/$projectKey/glossary" params={{ projectKey: project.key }} className="hover:text-ink hover:underline">
             {l.term.back}
           </Link>
         }
@@ -181,7 +181,7 @@ function Uses({ termId }: { termId: string }) {
                 <tr key={use.requirement.id} data-term-use-row={use.requirement.key} data-suspect={use.suspect}>
                   <Td>
                     <Link
-                      to="/p/$projectKey/r/$reqKey"
+                      to="/projects/$projectKey/r/$reqKey"
                       params={{ projectKey: use.requirement.projectKey, reqKey: use.requirement.key }}
                       className="text-ink hover:text-accent hover:underline"
                     >
@@ -311,7 +311,9 @@ function DeleteDialog({ project, term, onClose }: { project: Project; term: Term
           <Button
             variant="danger"
             loading={remove.isPending}
-            onClick={() => remove.mutate(undefined, { onSuccess: () => void navigate({ to: "/p/$projectKey/glossary", params: { projectKey: project.key } }) })}
+            onClick={() =>
+              remove.mutate(undefined, { onSuccess: () => void navigate({ to: "/projects/$projectKey/glossary", params: { projectKey: project.key } }) })
+            }
             data-action="confirm-delete-term"
           >
             {l.deleteConfirm}

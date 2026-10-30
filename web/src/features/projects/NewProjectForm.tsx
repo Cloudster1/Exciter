@@ -33,7 +33,7 @@ export function NewProjectForm() {
     event.preventDefault();
     create.mutate(
       { name, key: shownKey, description, ...(template ? { template } : {}) },
-      { onSuccess: (made) => void navigate({ to: "/p/$projectKey", params: { projectKey: made.key } }) },
+      { onSuccess: (made) => void navigate({ to: "/projects/$projectKey", params: { projectKey: made.key } }) },
     );
   }
 

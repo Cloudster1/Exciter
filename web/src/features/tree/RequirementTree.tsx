@@ -133,7 +133,7 @@ export function RequirementTree({
         break;
       case "Enter":
         handled();
-        void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: node.key } });
+        void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: node.key } });
         break;
       case "m":
       case "M":
@@ -229,7 +229,7 @@ export function RequirementTree({
                   {node.outline}
                 </span>
                 <Link
-                  to="/p/$projectKey/r/$reqKey"
+                  to="/projects/$projectKey/r/$reqKey"
                   params={{ projectKey: project.key, reqKey: node.key }}
                   tabIndex={-1}
                   className={cx("min-w-0 flex-1 truncate", node.kind === "section" && "font-semibold text-ink")}

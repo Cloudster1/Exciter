@@ -67,7 +67,7 @@ test("alice signs in to all three, and a requirement follows its issue in Armatu
   const issue = issues[0]!.key;
   expect((await page.request.post(api(`/requirements/${key}-R1/armature-links`), { data: { issueKey: issue, relation: "implements" } })).ok()).toBe(true);
 
-  await page.goto(`${EXCITER}/p/${key}/r/${key}-R1`);
+  await page.goto(`${EXCITER}/projects/${key}/r/${key}-R1`);
   const chip = page.locator(`[data-armature-issue="${issue}"]`);
   await expect(chip).toBeVisible();
 

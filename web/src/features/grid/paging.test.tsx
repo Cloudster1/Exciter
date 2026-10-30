@@ -50,7 +50,7 @@ describe("the grid's pages", () => {
     "turns a window at a time, and starts again at the first for a new narrowing or order",
     async () => {
       const asked = stubPages();
-      await renderAt("/p/CHK/grid");
+      await renderAt("/projects/CHK/grid");
       expect(await screen.findByText("1 to 100 of 250 requirements")).toBeInTheDocument();
       expect(asked.at(-1)?.get("limit")).toBe(String(GRID_PAGE_SIZE));
       expect(asked.at(-1)?.get("offset")).toBe("0");

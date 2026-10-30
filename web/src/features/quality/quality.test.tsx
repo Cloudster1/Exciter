@@ -75,7 +75,7 @@ describe("a requirement's findings", () => {
         return { status: 200, body: { quality: afterwards } };
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("Quality 93")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Show findings" }));
     const list = await screen.findByRole("region", { name: "Writing rules" });
@@ -113,7 +113,7 @@ describe("a requirement's findings", () => {
         body: { check: { score: 93, language: "en", findings: [aFinding()], sentences: [], terms: [] } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const mark = await waitFor(
       () => {
@@ -177,9 +177,9 @@ describe("the quality page", () => {
         return { status: 200, body: { quality: summary } };
       },
     });
-    await renderAt("/p/CHK/quality");
+    await renderAt("/projects/CHK/quality");
     const table = await screen.findByRole("table", { name: "Lowest first" });
-    expect(within(table).getByRole("link", { name: /CHK-R2/ })).toHaveAttribute("href", "/p/CHK/r/CHK-R2");
+    expect(within(table).getByRole("link", { name: /CHK-R2/ })).toHaveAttribute("href", "/projects/CHK/r/CHK-R2");
     expect(within(table).getByText("Quality 31")).toBeInTheDocument();
     expect(within(table).getByText("4 open, 1 accepted")).toBeInTheDocument();
     expect(within(screen.getByRole("list", { name: "Requirements by score" })).getByText("20 to 39: 1")).toBeInTheDocument();
@@ -221,7 +221,7 @@ describe("the writing rules of a project", () => {
       "GET /quality-rules": { status: 200, body: { rules } },
       "PUT /projects/CHK/quality-settings": { status: 200, body: { settings: { ...settings, updatedAt: "2026-10-18T08:00:00Z" } } },
     });
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("form", { name: "Writing rules" });
     await userEvent.click(within(card).getByRole("checkbox", { name: "Check Passive voice" }));
     await userEvent.selectOptions(within(card).getByRole("combobox", { name: "Severity of Vague word" }), "error");
@@ -247,7 +247,7 @@ describe("the writing rules of a project", () => {
       "GET /quality-rules": { status: 200, body: { rules } },
       "PUT /projects/CHK/quality-settings": { status: 200, body: { settings: { ...settings, updatedAt: "2026-10-18T08:00:00Z" } } },
     });
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("form", { name: "Word lists" });
     const vague = within(card).getByRole("textbox", { name: "Vague word: words to add" });
     expect(vague).toHaveValue("snappy");
@@ -280,7 +280,7 @@ describe("the writing rules of a project", () => {
       "GET /projects/CHK/quality-settings": { status: 200, body: { settings } },
       "GET /quality-rules": { status: 200, body: { rules } },
     });
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("form", { name: "Writing rules" });
     expect(within(card).getByRole("checkbox", { name: "Check Vague word" })).toBeDisabled();
     expect(within(card).queryByRole("button", { name: "Save rules" })).toBeNull();

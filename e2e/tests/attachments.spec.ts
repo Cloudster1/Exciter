@@ -32,7 +32,7 @@ test.describe("attachments", { tag: "@desktop" }, () => {
   test("alice attaches files, shows a picture in the statement, and deletes both", async ({ page, api }) => {
     must(await api.POST("/projects", { body: { key: KEY, name: "Files" } }));
     must(await api.POST("/projects/{projectKey}/requirements", { params: { path: { projectKey: KEY } }, body: { title: "Show the basket" } }));
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = page.locator("[data-attachments]");
     await expect(panel).toContainText("No files are attached.");
 
@@ -72,7 +72,7 @@ test.describe("attachments", { tag: "@desktop" }, () => {
     await page.reload();
     await expect(page.locator(shown)).toBeVisible();
     await expect.poll(() => drawn(page, shown)).toBe(true);
-    await page.goto(`/p/${KEY}/r/${KEY}-R1/history?tab=activity`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1/history?tab=activity`);
     await expect(page.locator('[data-activity-entry="change"]').first()).toContainText("diagram.png");
   });
 });

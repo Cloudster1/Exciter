@@ -81,7 +81,7 @@ const panel = () => screen.findByRole("region", { name: "Approval" });
 describe("a requirement's approval", () => {
   it("says nothing is approved and lets an editor ask for the revision they read", async () => {
     const sent = stubRequirement([], { "POST /requirements/CHK-R1/reviews": { status: 201, body: { review: aReview() } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     expect(within(region).getByText("No revision is approved yet.")).toBeInTheDocument();
     await userEvent.click(await within(region).findByRole("button", { name: "Ask for review" }));
@@ -102,7 +102,7 @@ describe("a requirement's approval", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     await userEvent.click(await within(region).findByRole("button", { name: "Ask for review" }));
     await userEvent.click(within(region).getByRole("button", { name: "Ask" }));
@@ -113,7 +113,7 @@ describe("a requirement's approval", () => {
     const sent = stubRequirement([aReview()], {
       [`POST /reviews/${reviewId}/decisions`]: { status: 200, body: { review: aReview({ state: "approved", approvals: 2 }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     const pending = await within(region).findByText("Revision 1 is under review, asked by Bob Builder.");
     const box = pending.closest("[data-pending-review]") as HTMLElement;
@@ -131,7 +131,7 @@ describe("a requirement's approval", () => {
     const sent = stubRequirement([aReview({ can: { decide: false, withdraw: true } })], {
       [`POST /reviews/${reviewId}/withdraw`]: { status: 200, body: { review: aReview({ state: "withdrawn" }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     await within(region).findByText(/is under review/);
     expect(within(region).queryByRole("button", { name: "Approve" })).toBeNull();
@@ -142,7 +142,7 @@ describe("a requirement's approval", () => {
 
   it("says which revision was approved, and when it is no longer the current one", async () => {
     stubRequirement([aReview({ state: "approved", approvals: 2, finishedAt: "2026-10-02T09:00:00Z" })], {}, { approvedRevision: 1, current: true });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     expect(within(region).getByText("Revision 1 is approved.")).toBeInTheDocument();
     expect(await within(region).findByRole("list", { name: "Earlier reviews" })).toHaveTextContent("Approved");
@@ -173,7 +173,7 @@ describe("a project's approval rules", () => {
         return { status: 200, body: { rule } };
       },
     });
-    await renderAt("/p/CHK/settings?tab=approval");
+    await renderAt("/projects/CHK/settings/approval");
     expect(await screen.findByText("No rule yet, so no requirement of this project can be reviewed.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Add a rule" }));
     await userEvent.click(screen.getByRole("button", { name: "Save rule" }));
@@ -202,7 +202,7 @@ describe("a project's approval rules", () => {
       "GET /projects/CHK/types": { status: 200, body: { types: [] } },
       "GET /projects/CHK/approval-rules": { status: 200, body: { rules: [rule] } },
     });
-    await renderAt("/p/CHK/settings?tab=approval");
+    await renderAt("/projects/CHK/settings/approval");
     expect(await screen.findByText("Only the project's administrators set who approves.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add a rule" })).toBeNull();
     expect(await screen.findByRole("list", { name: "Approval rules" })).toHaveTextContent("Every type without its own rule");
@@ -216,10 +216,10 @@ describe("the reviews waiting on the reader", () => {
     await userEvent.click(await screen.findByRole("link", { name: /^Reviews.*1 review waits for you$/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/reviews"));
     const list = await screen.findByRole("list", { name: "Reviews" });
-    expect(within(list).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(within(list).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(list).toHaveTextContent("Asked by Bob Builder");
     expect(list).toHaveTextContent("1 of 2 approvals");
-    expect(within(list).getByRole("link", { name: "Review in the CHK document" })).toHaveAttribute("href", "/p/CHK/spec?waiting=true&changes=approved");
+    expect(within(list).getByRole("link", { name: "Review in the CHK document" })).toHaveAttribute("href", "/projects/CHK/spec?waiting=true&changes=approved");
     expect(await axeViolations()).toEqual([]);
   });
 
@@ -242,7 +242,7 @@ describe("a signed approval", () => {
     const sent = stubRequirement([aReview({ signed: true, meanings })], {
       [`POST /reviews/${reviewId}/decisions`]: { status: 200, body: { review: aReview({ state: "approved", approvals: 2 }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const region = await panel();
     await userEvent.type(await within(region).findByLabelText("Your comment"), "Agreed.");
     await userEvent.click(within(region).getByRole("button", { name: "Approve" }));
@@ -271,7 +271,7 @@ describe("a signed approval", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await within(await panel()).findByRole("button", { name: "Reject" }));
     const dialog = await screen.findByRole("dialog", { name: "Sign: reject" });
     expect(within(dialog).getByText(meanings.reject)).toBeInTheDocument();
@@ -281,9 +281,9 @@ describe("a signed approval", () => {
   });
 
   it("sends somebody who signs in at the provider there, keeping their comment", async () => {
-    window.history.replaceState(null, "", "/p/CHK/r/CHK-R1");
+    window.history.replaceState(null, "", "/projects/CHK/r/CHK-R1");
     stubRequirement([aReview({ signed: true, meanings })]);
-    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    await renderAt("/projects/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
     const region = await panel();
     await userEvent.type(await within(region).findByLabelText("Your comment"), "Agreed.");
     await userEvent.click(within(region).getByRole("button", { name: "Approve" }));
@@ -291,7 +291,7 @@ describe("a signed approval", () => {
     expect(within(dialog).queryByLabelText("Your password")).toBeNull();
     const link = within(dialog).getByRole("link", { name: "Sign in again to sign" });
     const next = new URL(link.getAttribute("href") ?? "", window.location.origin).searchParams.get("next");
-    expect(next).toBe(`/p/CHK/r/CHK-R1?sign=approve&review=${reviewId}`);
+    expect(next).toBe(`/projects/CHK/r/CHK-R1?sign=approve&review=${reviewId}`);
     // jsdom cannot follow the link; what matters is what the click keeps for the way back.
     link.addEventListener("click", (event) => event.preventDefault());
     await userEvent.click(link);
@@ -300,11 +300,11 @@ describe("a signed approval", () => {
 
   it("finishes the signature with the proof the provider brought back", async () => {
     sessionStorage.setItem("exciter.signing", JSON.stringify({ reviewId, decision: "approve", comment: "Agreed." }));
-    window.history.replaceState(null, "", `/p/CHK/r/CHK-R1?sign=approve&review=${reviewId}&signature=${proof}`);
+    window.history.replaceState(null, "", `/projects/CHK/r/CHK-R1?sign=approve&review=${reviewId}&signature=${proof}`);
     const sent = stubRequirement([aReview({ signed: true, meanings })], {
       [`POST /reviews/${reviewId}/decisions`]: { status: 200, body: { review: aReview({ state: "approved", approvals: 2 }) } },
     });
-    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    await renderAt("/projects/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
     const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
     expect(within(dialog).getByRole("status")).toHaveTextContent("You signed in again.");
     expect(window.location.search).toBe("");
@@ -315,9 +315,9 @@ describe("a signed approval", () => {
   });
 
   it("says why the provider brought no proof back", async () => {
-    window.history.replaceState(null, "", `/p/CHK/r/CHK-R1?sign=reject&review=${reviewId}&signature_error=someone_else`);
+    window.history.replaceState(null, "", `/projects/CHK/r/CHK-R1?sign=reject&review=${reviewId}&signature_error=someone_else`);
     stubRequirement([aReview({ signed: true, meanings })]);
-    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
+    await renderAt("/projects/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "provider" } });
     const dialog = await screen.findByRole("dialog", { name: "Sign: reject" });
     expect(within(dialog).getByText("The identity provider signed in somebody else. Sign in again as yourself.")).toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: "Sign in again to sign" })).toBeInTheDocument();
@@ -325,7 +325,7 @@ describe("a signed approval", () => {
 
   it("tells somebody with no way to prove who they are that they cannot sign", async () => {
     stubRequirement([aReview({ signed: true, meanings })]);
-    await renderAt("/p/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "" } });
+    await renderAt("/projects/CHK/r/CHK-R1", { me: { ...signedIn, signsWith: "" } });
     await userEvent.click(await within(await panel()).findByRole("button", { name: "Approve" }));
     const dialog = await screen.findByRole("dialog", { name: "Sign: approve" });
     expect(within(dialog).getByText(/so you cannot sign/)).toBeInTheDocument();
@@ -343,7 +343,7 @@ describe("a signed approval", () => {
     };
     const signedDecisions = aReview().decisions.map((each) => ({ ...each, signature }));
     stubRequirement([aReview({ signed: true, meanings, decisions: signedDecisions })]);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const decisions = await within(await panel()).findByRole("list", { name: "Decisions" });
     expect(decisions).toHaveTextContent(`with the password: ${meanings.approve}`);
   });
@@ -361,7 +361,7 @@ describe("an earlier review", () => {
       ],
     });
     stubRequirement([rejected]);
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const past = await within(await panel()).findByRole("list", { name: "Earlier reviews" });
     const row = past.querySelector('[data-past-review="rejected"]') as HTMLElement;
     expect(within(row).getByRole("list", { name: "Decisions" })).toHaveTextContent("Dave Decider rejected: Say how fast.");

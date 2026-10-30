@@ -34,7 +34,7 @@ test.describe("coverage", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/coverage`);
+    await page.goto(`/projects/${KEY}/coverage`);
     await expect(page.getByText("No rule yet, so coverage asks nothing.", { exact: false })).toBeVisible();
     const rules = page.getByRole("list", { name: "Rules" });
     // The box shows what the rule says once saved, so it turns when the answer comes, not on the click.

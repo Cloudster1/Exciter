@@ -383,7 +383,8 @@ describe("axe", () => {
     `${ACCESS_PATH}/members`,
     `${ACCESS_PATH}/groups`,
     `${ACCESS_PATH}/sso`,
-    "/p/CHK/permissions",
+    "/projects/CHK/settings/permissions",
+    "/projects/CHK/settings/trash",
     AUDIT_PATH,
     THEMES_PATH,
     `${THEMES_PATH}/new`,
@@ -393,8 +394,8 @@ describe("axe", () => {
     ARMATURE_ACCOUNT_PATH,
     STATOR_SETTINGS_PATH,
     STATOR_ACCOUNT_PATH,
-    "/p/CHK/settings",
-    "/p/OLD/settings",
+    "/projects/CHK/settings/details",
+    "/projects/OLD/settings/details",
   ])("finds nothing on %s", async (path) => {
     settingsApi();
     await renderAt(path);

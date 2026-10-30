@@ -64,7 +64,7 @@ function stubRequirement(more: Parameters<typeof stubApi>[0] = {}) {
 describe("a suspect link", () => {
   it("is marked, and checking it shows what changed before it is confirmed against both ends", async () => {
     const sent = stubRequirement({ [`POST /links/${moved.id}/clear`]: { status: 200, body: { link: { ...moved, suspect: [] } } } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Trace links" });
     const row = (await within(panel).findByRole("link", { name: "SYS-R2 Keep a ledger" })).closest("li")!;
     expect(within(row).getByText("Suspect")).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("a suspect link", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await userEvent.click(await screen.findByRole("button", { name: "Check the link to SYS-R2" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.type(within(dialog).getByLabelText("Why the link still holds"), "Fine.");
@@ -112,7 +112,7 @@ describe("a suspect link", () => {
         body: { requirement: aRequirement({ can: { edit: false, transition: false, delete: false, link: false, comment: false } }) },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     expect(await screen.findByText("Suspect")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Check the link/ })).toBeNull();
   });
@@ -135,11 +135,11 @@ describe("a project's suspect links", () => {
       "GET /requirements/SYS-R2/diff": { status: 200, body: { comparison } },
       [`GET /links/${moved.id}/clearances`]: { status: 200, body: { clearances: [] } },
     });
-    await renderAt("/p/CHK/suspects");
+    await renderAt("/projects/CHK/suspects");
     const list = await screen.findByRole("list", { name: "Suspect links" });
     const item = within(list).getByRole("listitem");
-    expect(within(item).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
-    expect(within(item).getByRole("link", { name: "SYS-R2 Keep a ledger" })).toHaveAttribute("href", "/p/SYS/r/SYS-R2");
+    expect(within(item).getByRole("link", { name: "CHK-R1 Pay the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
+    expect(within(item).getByRole("link", { name: "SYS-R2 Keep a ledger" })).toHaveAttribute("href", "/projects/SYS/r/SYS-R2");
     expect(item).toHaveTextContent("SYS-R2, revision 1 to 2");
     expect(item).toHaveTextContent(/Waiting since/);
     expect(await axeViolations()).toEqual([]);
@@ -152,7 +152,7 @@ describe("a project's suspect links", () => {
       "GET /projects/CHK": { status: 200, body: { project: aProject() } },
       "GET /projects/CHK/suspects": { status: 200, body: { links: [], total: 0, limit: 20, offset: 0 } },
     });
-    await renderAt("/p/CHK/suspects");
+    await renderAt("/projects/CHK/suspects");
     expect(await screen.findByText("No link waits to be checked.")).toBeInTheDocument();
   });
 });

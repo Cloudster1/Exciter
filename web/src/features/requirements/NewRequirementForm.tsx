@@ -33,8 +33,8 @@ export function NewRequirementForm({ project }: { project: Project }) {
       <PageHeader title={t.requirements.createTitle} meta={t.projects.projectAndKey(project.name, project.key)} />
       <RequirementCreate
         project={project}
-        onCreated={(made) => void navigate({ to: "/p/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: made.key } })}
-        onCancel={() => void navigate({ to: "/p/$projectKey", params: { projectKey: project.key } })}
+        onCreated={(made) => void navigate({ to: "/projects/$projectKey/r/$reqKey", params: { projectKey: project.key, reqKey: made.key } })}
+        onCancel={() => void navigate({ to: "/projects/$projectKey", params: { projectKey: project.key } })}
       />
     </Page>
   );

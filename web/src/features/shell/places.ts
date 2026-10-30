@@ -25,6 +25,7 @@ import {
   WATCHING_PATH,
 } from "@/config";
 import { t } from "@/i18n";
+import { projectSettingsPath, sectionOfPath } from "@/features/projects/settingsSections";
 
 /** Where a place is listed: the sidebar's places, the settings area's own pages, or the Admin area. */
 export type PlaceArea = "work" | "you" | "admin";
@@ -155,11 +156,18 @@ export interface PlaceCrumb {
   path?: string;
 }
 
+/** What a trail needs beyond the address, once it is known. */
+export interface CrumbNames {
+  projectName?: string;
+}
+
 /** The crumbs from the installation to the page at a path, the page itself last; empty for a path that is no place.
  *  In the settings area every trail passes Settings, which leads to its hub, and in Admin it passes Admin. */
-export function crumbsFor(pathname: string): PlaceCrumb[] {
+export function crumbsFor(pathname: string, names: CrumbNames = {}): PlaceCrumb[] {
   if (pathname === SETTINGS_PATH) return [{ label: t.nav.settings }];
   if (pathname === ADMIN_PATH) return [{ label: t.admin.title }];
+  const settings = projectSettingsCrumbs(pathname, names);
+  if (settings) return settings;
   const area: PlaceCrumb[] = inSettings(pathname)
     ? [{ label: t.nav.settings, path: SETTINGS_PATH }]
     : inAdmin(pathname)
@@ -173,7 +181,28 @@ export function crumbsFor(pathname: string): PlaceCrumb[] {
 }
 
 /** Where a project's own pages begin; they all lie under the projects. */
-export const PROJECT_PAGES_PREFIX = "/p/";
+export const PROJECT_PAGES_PREFIX = "/projects/";
+
+/** The project a path lies in, from its /projects/<key> prefix. */
+export function projectOfPath(pathname: string): string | undefined {
+  const match = /^\/projects\/([^/]+)\/settings(?=\/|$)/.exec(pathname);
+  return match ? decodeURIComponent(match[1]!) : undefined;
+}
+
+// A project's settings lie under the project, then Settings; a page below a
+// section, such as the workflow designer, under Settings as a link.
+function projectSettingsCrumbs(pathname: string, names: CrumbNames): PlaceCrumb[] | undefined {
+  const key = projectOfPath(pathname);
+  if (!key) return undefined;
+  const projects = allPlaces().find((each) => each.path === PROJECTS_PATH)!;
+  const parts = pathname.split("/").filter(Boolean);
+  const below = parts.length > 4;
+  return [
+    { label: projects.label, path: PROJECTS_PATH },
+    { label: names.projectName ?? key, path: `${PROJECT_PAGES_PREFIX}${key}` },
+    below ? { label: t.projects.settingsTitle, path: projectSettingsPath(key, sectionOfPath(pathname)) } : { label: t.projects.settingsTitle },
+  ];
+}
 
 /** The place a page lies under, such as Themes for one theme's editor, when the page is no place itself. */
 export function placeAbove(pathname: string): Place | undefined {

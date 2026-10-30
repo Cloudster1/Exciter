@@ -65,7 +65,7 @@ function stubCells(row: RequirementRow, more: Parameters<typeof stubApi>[0] = {}
   });
 }
 
-const at = `/p/CHK/grid?columns=${encodeURIComponent(JSON.stringify(columns))}`;
+const at = `/projects/CHK/grid?columns=${encodeURIComponent(JSON.stringify(columns))}`;
 const patches = (sent: { method: string; body: unknown }[]) => sent.filter((each) => each.method === "PATCH").map((each) => each.body);
 const saved = async (request: Request): Promise<Answer> => ({
   status: 200,

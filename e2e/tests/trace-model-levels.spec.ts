@@ -4,7 +4,7 @@ import { must } from "../fixtures/api";
 import { expect } from "../fixtures/auth";
 import { peopleTest as test } from "../fixtures/people";
 import { uniqueKey } from "../fixtures/seed";
-import { expectAccessible } from "../fixtures/shell";
+import { expectAccessible, toast, dismissToasts } from "../fixtures/shell";
 
 // The trace model's levels moved, removed and ending in tests or code, and the chains narrowed by level, downloaded
 // and shared as a view (#315).
@@ -40,7 +40,7 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
     must(await api.POST("/projects", { body: { key: MODEL_KEY, name: "Levels" } }));
     await makeTypes(api, MODEL_KEY, ["Need", "System"]);
 
-    await page.goto(`/p/${MODEL_KEY}/settings?tab=trace`);
+    await page.goto(`/projects/${MODEL_KEY}/settings/trace`);
     const names = page.getByLabel("Name");
     const holds = page.getByLabel("Holds");
     for (const [i, name] of ["Need", "System", "Check"].entries()) {
@@ -58,7 +58,7 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
     await expect(page.getByRole("button", { name: "Move Need up" })).toBeDisabled();
     await page.getByRole("button", { name: "Save the model" }).click();
     await expect(page.locator('[data-trace-level="1"]')).toContainText("Issues, pages, tests and code end a model; move this level to the end.");
-    await expect(page.getByText("The trace model is saved.")).toHaveCount(0);
+    await expect(toast(page, "The trace model is saved.")).toHaveCount(0);
     await expectAccessible(page);
 
     await page.getByRole("button", { name: "Move Check down" }).click();
@@ -66,7 +66,8 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
     await page.getByRole("button", { name: "Remove System" }).click();
     await expect(names).toHaveCount(2);
     await page.getByRole("button", { name: "Save the model" }).click();
-    await expect(page.getByText("The trace model is saved.")).toBeVisible();
+    await expect(toast(page, "The trace model is saved.")).toBeVisible();
+    await dismissToasts(page);
     await page.reload();
     await expect(names.nth(1)).toHaveValue("Check");
     await expect(holds.nth(1)).toHaveValue("tests");
@@ -78,7 +79,8 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
     await holds.nth(1).selectOption({ label: "Code" });
     await page.getByRole("group", { name: "Reached from the level before by: Check" }).getByRole("button", { name: "Implemented by" }).click();
     await page.getByRole("button", { name: "Save the model" }).click();
-    await expect(page.getByText("The trace model is saved.")).toBeVisible();
+    await expect(toast(page, "The trace model is saved.")).toBeVisible();
+    await dismissToasts(page);
     await page.reload();
     await expect(holds.nth(1)).toHaveValue("code");
     await expect(names).toHaveCount(2);
@@ -121,7 +123,7 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${CHAINS_KEY}/chains`);
+    await page.goto(`/projects/${CHAINS_KEY}/chains`);
     const table = page.getByRole("table", { name: "Chains" });
     await expect(table.getByRole("columnheader")).toHaveText(["Need", "System", "Test"]);
     await page.getByLabel("To level").selectOption({ label: "System" });
@@ -158,7 +160,7 @@ test.describe("trace model levels and chains", { tag: "@desktop" }, () => {
     await expect(page.getByRole("status").filter({ hasText: "Saved the view Systems down." })).toBeVisible();
 
     const bob = await pageAs("bob");
-    await bob.goto(`/p/${CHAINS_KEY}/chains`);
+    await bob.goto(`/projects/${CHAINS_KEY}/chains`);
     await bob.getByLabel("Views").selectOption({ label: "Systems down (Shared)" });
     await expect(bob.getByLabel("From level")).toHaveValue("1");
     await expect(bob.getByRole("table", { name: "Chains" }).getByRole("columnheader")).toHaveText(["System", "Test"]);

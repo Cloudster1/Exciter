@@ -50,7 +50,7 @@ const button = (name: string) => screen.getByRole("button", { name });
 describe("the trace model's levels", () => {
   it("move up and down within the model, the first never up and the last never down", async () => {
     stubCard(unset);
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     for (let i = 0; i < 3; i++) await userEvent.click(await screen.findByRole("button", { name: "Add a level" }));
     expect(button("Move Level 1 up")).toBeDisabled();
     expect(button("Move Level 1 down")).toBeEnabled();
@@ -62,7 +62,7 @@ describe("the trace model's levels", () => {
 
   it("removed, renumber the levels after it", async () => {
     stubCard(unset);
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     for (let i = 0; i < 3; i++) await userEvent.click(await screen.findByRole("button", { name: "Add a level" }));
     await userEvent.type(screen.getAllByLabelText("Name")[0]!, "Need");
     await userEvent.click(button("Remove Level 2"));
@@ -75,7 +75,7 @@ describe("the trace model's levels", () => {
 
   it("moved, are saved in their new order, the new first one reached by nothing", async () => {
     const sent = stubCard(model, { "PUT /projects/CHK/trace-model": { status: 200, body: { model } } });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     await userEvent.click(await screen.findByRole("button", { name: "Move System up" }));
     expect(screen.getAllByLabelText("Name").map((field) => (field as HTMLInputElement).value)).toEqual(["System", "Need"]);
     expect(button("Move System up")).toBeDisabled();
@@ -92,7 +92,7 @@ describe("the trace model's levels", () => {
 
   it("of issues are reached by relations rather than link types, and hold no types", async () => {
     const sent = stubCard(model, { "PUT /projects/CHK/trace-model": { status: 200, body: { model } } });
-    await renderAt("/p/CHK/settings?tab=trace");
+    await renderAt("/projects/CHK/settings/trace");
     await userEvent.click(await screen.findByRole("button", { name: "Add a level" }));
     await userEvent.type(screen.getAllByLabelText("Name")[2]!, "Work");
     await userEvent.selectOptions(screen.getAllByLabelText("Holds")[2]!, "Armature issues");

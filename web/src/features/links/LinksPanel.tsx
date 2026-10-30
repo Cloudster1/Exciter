@@ -52,7 +52,7 @@ export function LinksPanel({ requirement }: { requirement: Requirement }) {
                 {group.links.map((link) => (
                   <li key={link.id} className="flex flex-wrap items-center gap-2 text-sm" data-link={link.other.key}>
                     <Link
-                      to="/p/$projectKey/r/$reqKey"
+                      to="/projects/$projectKey/r/$reqKey"
                       params={{ projectKey: link.other.projectKey, reqKey: link.other.key }}
                       className="inline-flex items-baseline gap-2 hover:text-accent hover:underline"
                       title={t.links.linkedAt(link.sourceRevision, link.targetRevision)}

@@ -38,7 +38,7 @@ test.describe("what a token wrote", { tag: "@desktop" }, () => {
       await script.dispose();
     }
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1/history`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1/history`);
     const latest = page.locator('[data-revision-row="2"]');
     await expect(latest.locator('[data-via="token"]')).toContainText(`through ${TOKEN}`);
     await expect(page.locator('[data-revision-row="1"] [data-via]')).toHaveCount(0);
@@ -69,11 +69,11 @@ test.describe("what a token wrote", { tag: "@desktop" }, () => {
     must(await api.POST("/requirements/{reqKey}/comments", { ...byHand, body: said("Written by hand.") }));
     must(await api.POST("/requirements/{reqKey}/reviews", { ...byHand, body: { revision: 1 } }));
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator('[data-comment] [data-via="token"]')).toContainText(`through ${TOKEN}`);
     await expect(page.locator('[data-pending-review] [data-via="token"]')).toContainText(`through ${TOKEN}`);
     await expectAccessible(page);
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     await expect(page.locator("[data-comment]")).toContainText("Written by hand.");
     await expect(page.locator("[data-pending-review]")).toBeVisible();
     await expect(page.locator("[data-comment] [data-via], [data-pending-review] [data-via]")).toHaveCount(0);

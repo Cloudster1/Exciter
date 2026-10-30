@@ -121,7 +121,7 @@ func TestAMoveToAnotherProjectIsPostedOncePerRequirement(t *testing.T) {
 		from, toKey := p["fromKey"].(string), p["toKey"].(string)
 		seen[from]++
 		req := p["requirement"].(map[string]any)
-		if wanted[from] != toKey || req["key"] != toKey || !strings.HasSuffix(req["url"].(string), "/p/"+to+"/r/"+toKey) ||
+		if wanted[from] != toKey || req["key"] != toKey || !strings.HasSuffix(req["url"].(string), "/projects/"+to+"/r/"+toKey) ||
 			p["actor"].(map[string]any)["id"] != s.editor.user.String() {
 			t.Errorf("a move reads %s", d.Body)
 		}

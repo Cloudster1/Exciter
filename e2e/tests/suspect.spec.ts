@@ -42,9 +42,9 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
     );
 
     const links = page.getByRole("region", { name: "Trace links" });
-    await openUntil(page, `/p/${KEY}/r/${DOWNSTREAM}`, () => expect(links.getByText("Suspect")).toBeVisible(ONE_LOOK));
+    await openUntil(page, `/projects/${KEY}/r/${DOWNSTREAM}`, () => expect(links.getByText("Suspect")).toBeVisible(ONE_LOOK));
 
-    await page.goto(`/p/${KEY}/suspects`);
+    await page.goto(`/projects/${KEY}/suspects`);
     const list = page.getByRole("list", { name: "Suspect links" });
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list).toContainText(`${UPSTREAM}, revision 1 to 2`);
@@ -59,7 +59,7 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByText("No link waits to be checked.")).toBeVisible();
 
-    await page.goto(`/p/${KEY}/r/${DOWNSTREAM}`);
+    await page.goto(`/projects/${KEY}/r/${DOWNSTREAM}`);
     await expect(links.getByRole("link", { name: new RegExp(UPSTREAM) })).toBeVisible();
     await expect(links.getByText("Suspect")).toHaveCount(0);
   });
@@ -78,7 +78,7 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
     );
 
     const links = page.getByRole("region", { name: "Trace links" });
-    await openUntil(page, `/p/${KEY}/r/${DOWNSTREAM}`, () => expect(links.getByText("Suspect")).toBeVisible(ONE_LOOK));
+    await openUntil(page, `/projects/${KEY}/r/${DOWNSTREAM}`, () => expect(links.getByText("Suspect")).toBeVisible(ONE_LOOK));
     await links.getByRole("button", { name: `Check the link to ${UPSTREAM}` }).click();
     const dialog = page.getByRole("dialog", { name: `Check: ${DOWNSTREAM} derives from ${UPSTREAM}` });
     await expect(dialog.getByRole("region", { name: `${UPSTREAM}, revision 1 to 2` })).toContainText("Brakes engage within 80 ms");
@@ -89,7 +89,7 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
     await expect(links.getByText("Suspect")).toHaveCount(0);
     await expect(links.locator('[data-action="check-link"]')).toHaveCount(0);
 
-    await page.goto(`/p/${KEY}/suspects`);
+    await page.goto(`/projects/${KEY}/suspects`);
     await expect(page.getByText("No link waits to be checked.")).toBeVisible();
   });
 
@@ -119,7 +119,7 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
 
     const list = page.getByRole("list", { name: "Suspect links" });
     const range = page.getByRole("navigation", { name: "Suspect links" });
-    await openUntil(page, `/p/${KEY}/suspects`, () => expect(range).toContainText(`1 to ${PAGE} of ${WAITING}`, ONE_LOOK));
+    await openUntil(page, `/projects/${KEY}/suspects`, () => expect(range).toContainText(`1 to ${PAGE} of ${WAITING}`, ONE_LOOK));
     await expect(list.getByRole("listitem")).toHaveCount(PAGE);
     await expect(range.getByRole("button", { name: "Previous" })).toBeDisabled();
     await range.getByRole("button", { name: "Next" }).click();
@@ -131,7 +131,7 @@ test.describe("suspect links", { tag: "@desktop" }, () => {
     await expect(range).toContainText(`1 to ${PAGE} of ${WAITING}`);
 
     const reader = await pageAs("bob");
-    await openUntil(reader, `/p/${KEY}/suspects`, () =>
+    await openUntil(reader, `/projects/${KEY}/suspects`, () =>
       expect(reader.getByRole("list", { name: "Suspect links" }).getByRole("listitem")).toHaveCount(PAGE, ONE_LOOK),
     );
     await expect(reader.locator('[data-action="check-link"]')).toHaveCount(0);

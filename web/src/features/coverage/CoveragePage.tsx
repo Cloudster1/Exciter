@@ -29,7 +29,7 @@ export function CoveragePage({ project }: { project: Project }) {
         meta={t.coverage.intro}
         actions={
           <Link
-            to="/p/$projectKey/matrix"
+            to="/projects/$projectKey/matrix"
             params={{ projectKey: project.key }}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
             data-action="open-matrix"
@@ -113,7 +113,7 @@ function Report({ project }: { project: Project }) {
             {data.rows.map((row) => (
               <li key={row.requirement.id} className="flex flex-wrap items-center gap-2 py-2" data-coverage-row={row.requirement.key}>
                 <Link
-                  to="/p/$projectKey/r/$reqKey"
+                  to="/projects/$projectKey/r/$reqKey"
                   params={{ projectKey: project.key, reqKey: row.requirement.key }}
                   className="min-w-0 flex-1 truncate text-sm text-ink hover:text-accent hover:underline"
                 >

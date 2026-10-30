@@ -3,7 +3,7 @@ import { ApiError } from "@/api/client";
 import { useFieldRules, useSaveFieldRule, type FieldPermit, type FieldRule } from "@/api/attributes";
 import type { Project } from "@/api/projects";
 import { useStatuses, type Status } from "@/api/workflows";
-import { Button, Card, ErrorBanner, SectionTitle, Skeleton } from "@/components/ui";
+import { Button, Card, ErrorBanner, SectionTitle, Skeleton, useToast } from "@/components/ui";
 import { t } from "@/i18n";
 import { PermitsEditor, RequiredFrom } from "./FieldRuleControls";
 
@@ -21,7 +21,7 @@ export function FixedFieldRules({ project }: { project: Project }) {
       {!mayChange && <p className="text-sm text-ink-muted">{t.fieldRules.readOnlySettings}</p>}
       <div className="divide-y divide-border">
         {rules.map((rule) => (
-          // Keyed by the field alone: a key following the saved rule remounted the form and dropped its notice.
+          // Keyed by the field alone: a key following the saved rule would remount the form while it saves.
           <RuleForm key={rule.field} project={project} rule={rule} statuses={statuses ?? []} mayChange={mayChange} />
         ))}
       </div>
@@ -33,17 +33,16 @@ function RuleForm({ project, rule, statuses, mayChange }: { project: Project; ru
   const save = useSaveFieldRule(project.key);
   const [requiredFrom, setRequiredFrom] = useState<string | null>(rule.requiredFrom);
   const [permits, setPermits] = useState<FieldPermit[]>(rule.editableBy);
-  const [notice, setNotice] = useState("");
+  const toast = useToast();
   const fields = save.error instanceof ApiError ? save.error.fields : {};
   const always = rule.field === "title" || rule.field === "statement";
   const name = t.fieldRules.names[rule.field];
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setNotice("");
     save.mutate(
       { field: rule.field, requiredFrom: always ? null : requiredFrom, editableBy: permits },
-      { onSuccess: () => setNotice(t.fieldRules.saved(name)) },
+      { onSuccess: () => toast.success(t.fieldRules.saved(name)) },
     );
   }
 
@@ -70,9 +69,6 @@ function RuleForm({ project, rule, statuses, mayChange }: { project: Project; ru
           </Button>
         )}
       </fieldset>
-      <p role="status" className="text-sm text-ink-muted empty:hidden">
-        {notice}
-      </p>
     </form>
   );
 }

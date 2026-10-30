@@ -47,7 +47,7 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              to="/p/$projectKey/matrix"
+              to="/projects/$projectKey/matrix"
               params={{ projectKey: project.key }}
               className="text-sm font-medium text-accent hover:underline"
               data-action="open-matrix"
@@ -99,12 +99,7 @@ export function ChainsPage({ project, address, onAddress }: { project: Project; 
           title={t.chains.noModelReport}
           action={
             project.can.administer ? (
-              <Link
-                to="/p/$projectKey/settings"
-                params={{ projectKey: project.key }}
-                search={{ tab: "trace" }}
-                className="text-sm font-medium text-accent hover:underline"
-              >
+              <Link to="/projects/$projectKey/settings/trace" params={{ projectKey: project.key }} className="text-sm font-medium text-accent hover:underline">
                 {t.chains.setModel}
               </Link>
             ) : undefined
@@ -221,7 +216,7 @@ function Node({ project, node, title }: { project: Project; node: TraceChainNode
       {node.via && <span className="text-xs text-ink-subtle">{node.via}</span>}
       {node.requirement ? (
         <Link
-          to="/p/$projectKey/r/$reqKey"
+          to="/projects/$projectKey/r/$reqKey"
           params={{ projectKey: project.key, reqKey: node.requirement.key }}
           className="text-ink hover:text-accent hover:underline"
         >

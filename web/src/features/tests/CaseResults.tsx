@@ -29,7 +29,7 @@ export function CaseResults({ projectKey, caseKey }: { projectKey: string; caseK
               <tr key={`${r.executionId}-${r.iteration}`}>
                 <Td>
                   <Link
-                    to="/p/$projectKey/tests/executions/$executionId"
+                    to="/projects/$projectKey/tests/executions/$executionId"
                     params={{ projectKey, executionId: r.executionId }}
                     className="text-ink hover:underline"
                   >

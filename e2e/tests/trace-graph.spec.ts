@@ -32,7 +32,7 @@ test.describe("trace graph", { tag: "@desktop" }, () => {
     must(await link("R2", "derives", "R1"));
     must(await link("R3", "verifies", "R2"));
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await page.getByRole("link", { name: "Trace graph" }).click();
     await expect(page.getByRole("heading", { level: 1, name: `Trace graph of ${KEY}-R1` })).toBeVisible();
     const canvas = page.locator("[data-graph-canvas]");
@@ -44,7 +44,7 @@ test.describe("trace graph", { tag: "@desktop" }, () => {
     const chosen = page.locator(`[data-graph-chosen="${KEY}-R2"]`);
     await expect(chosen).toContainText("Brakes engage within 100 ms");
     await chosen.getByRole("button", { name: "Centre the graph here" }).click();
-    await expect(page).toHaveURL(new RegExp(`/p/${KEY}/r/${KEY}-R2/trace`));
+    await expect(page).toHaveURL(new RegExp(`/projects/${KEY}/r/${KEY}-R2/trace`));
     await expect(page.getByRole("heading", { level: 1, name: `Trace graph of ${KEY}-R2` })).toBeVisible();
     await expect(page.locator(`[data-impact-item="${KEY}-R1"]`)).toBeVisible();
     await expect(page.locator(`[data-impact-item="${KEY}-R3"]`)).toBeVisible();

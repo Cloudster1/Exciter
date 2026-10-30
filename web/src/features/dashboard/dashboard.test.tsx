@@ -83,10 +83,10 @@ describe("a dashboard", () => {
 
   it("draws its widgets, each value a link into the grid, and the numbers as a table too", async () => {
     stubDashboard();
-    await renderAt(`/p/CHK/dashboards/${dashboard.id}`);
+    await renderAt(`/projects/CHK/dashboards/${dashboard.id}`);
     const card = (await screen.findByText("By status")).closest("[data-widget-card]") as HTMLElement;
     const [draft] = await within(card).findAllByRole("link", { name: "Open the 3 with Draft in the grid" });
-    expect(draft!.getAttribute("href")).toContain("/p/CHK/grid?query=");
+    expect(draft!.getAttribute("href")).toContain("/projects/CHK/grid?query=");
     expect(decodeURIComponent(draft!.getAttribute("href")!.replace(/\+/g, " "))).toContain('(type = Functional) AND status = "Draft"');
     expect(within(card).getAllByText("None").length).toBeGreaterThan(0);
     const all = (await screen.findByText("All")).closest("[data-widget-card]") as HTMLElement;
@@ -100,7 +100,7 @@ describe("a dashboard", () => {
       [`PUT /dashboards/${dashboard.id}/order`]: { status: 200, body: { dashboard: { ...dashboard, widgets: [...dashboard.widgets].reverse() } } },
       [`PATCH /widgets/${id(11)}`]: { status: 200, body: { widget: { ...dashboard.widgets[0], width: 3 } } },
     });
-    await renderAt(`/p/CHK/dashboards/${dashboard.id}`);
+    await renderAt(`/projects/CHK/dashboards/${dashboard.id}`);
     await userEvent.click(await screen.findByRole("button", { name: "Arrange" }));
     await userEvent.click(screen.getByRole("button", { name: "Move By status later" }));
     await waitFor(() => expect(sent.find((r) => r.method === "PUT")?.body).toEqual({ widgets: [id(12), id(11)] }));
@@ -123,7 +123,7 @@ describe("a dashboard", () => {
       "POST /projects/CHK/dashboards": { status: 201, body: { dashboard: { ...dashboard, id: id(2), name: "Mine", shared: false } } },
       [`GET /dashboards/${id(2)}`]: { status: 200, body: { dashboard: { ...dashboard, id: id(2), name: "Mine", shared: false, widgets: [] } } },
     });
-    await renderAt("/p/CHK/dashboards");
+    await renderAt("/projects/CHK/dashboards");
     const shared = await screen.findByRole("region", { name: "Shared with the project" });
     expect(within(shared).getByRole("link", { name: "Brakes" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "New dashboard" }));

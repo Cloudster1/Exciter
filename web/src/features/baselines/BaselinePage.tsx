@@ -32,7 +32,7 @@ export function BaselinePage({ project, baselineId }: { project: Project; baseli
     <Page width="narrow" className="space-y-4" data-baseline-page={baseline.id}>
       <PageHeader
         crumb={
-          <Link to="/p/$projectKey/baselines" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
+          <Link to="/projects/$projectKey/baselines" params={{ projectKey: project.key }} className="hover:text-accent hover:underline">
             {t.baseline.back}
           </Link>
         }
@@ -143,7 +143,7 @@ function Actions({ project, baseline }: { project: Project; baseline: Baseline }
               remove.mutate(baseline.id, {
                 onSuccess: () => {
                   toast.success(t.baseline.deleted(baseline.name));
-                  void navigate({ to: "/p/$projectKey/baselines", params: { projectKey: project.key } });
+                  void navigate({ to: "/projects/$projectKey/baselines", params: { projectKey: project.key } });
                 },
               });
             }}
@@ -178,7 +178,7 @@ function ComparePicker({ project, baseline }: { project: Project; baseline: Base
         variant="secondary"
         onClick={() =>
           void navigate({
-            to: "/p/$projectKey/baselines/$baselineId/compare",
+            to: "/projects/$projectKey/baselines/$baselineId/compare",
             params: { projectKey: project.key, baselineId: baseline.id },
             search: { with: other },
           })
@@ -210,7 +210,7 @@ function Reading({ project, baseline }: { project: Project; baseline: Baseline }
                     <span className="font-mono text-ink-muted">{entry.outline}</span> {r.title || t.baseline.purged}
                   </span>
                   <Link
-                    to="/p/$projectKey/r/$reqKey"
+                    to="/projects/$projectKey/r/$reqKey"
                     params={{ projectKey: project.key, reqKey: r.key }}
                     className="font-mono text-xs text-ink-subtle hover:text-accent"
                   >

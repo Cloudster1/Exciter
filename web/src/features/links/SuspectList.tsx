@@ -14,7 +14,7 @@ const waitingSince = localDateFormat({ dateStyle: "medium" });
 function End({ end }: { end: SuspectLink["source"] }) {
   return (
     <Link
-      to="/p/$projectKey/r/$reqKey"
+      to="/projects/$projectKey/r/$reqKey"
       params={{ projectKey: end.projectKey, reqKey: end.key }}
       className="min-w-0 truncate text-sm font-medium text-ink hover:text-accent hover:underline"
     >

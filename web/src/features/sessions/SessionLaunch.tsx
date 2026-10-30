@@ -26,7 +26,7 @@ export function SessionBanner({ project, sessionId }: { project: Project; sessio
   if (!data) return null;
   return (
     <p role="status" className="mb-4 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm text-ink" data-reviewing-session={sessionId}>
-      <Link to="/p/$projectKey/sessions/$sessionId" params={{ projectKey: project.key, sessionId }} className="hover:text-accent hover:underline">
+      <Link to="/projects/$projectKey/sessions/$sessionId" params={{ projectKey: project.key, sessionId }} className="hover:text-accent hover:underline">
         {t.sessions.reviewingSession(data.title)}
       </Link>
     </p>

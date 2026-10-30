@@ -149,7 +149,7 @@ func (s *Service) FileIssue(ctx context.Context, actor, execution uuid.UUID, key
 		if err != nil {
 			return err
 		}
-		draft = failureDraft(e, c, in, keys, fmt.Sprintf("%s/p/%s/tests/executions/%s/run/%s", s.appURL, e.ProjectKey, execution, c.Run.Case.Key))
+		draft = failureDraft(e, c, in, keys, fmt.Sprintf("%s/projects/%s/tests/executions/%s/run/%s", s.appURL, e.ProjectKey, execution, c.Run.Case.Key))
 		return nil
 	}); err != nil {
 		return nil, 0, err

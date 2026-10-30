@@ -64,7 +64,7 @@ test.describe("the interface in German", () => {
           body: { title: "Bremsweg unter 40 m", statement: paragraph("Das Fahrzeug hält an.") },
         }),
       );
-      for (const place of ["/", "/projects", "/admin/access/members", "/admin/access/matrix", "/settings/themes", `/p/${KEY}/r/${KEY}-R1`]) {
+      for (const place of ["/", "/projects", "/admin/access/members", "/admin/access/matrix", "/settings/themes", `/projects/${KEY}/r/${KEY}-R1`]) {
         await test.step(place, async () => {
           await openShell(page, place);
           await expect(page.locator("html")).toHaveAttribute("lang", "de");

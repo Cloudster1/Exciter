@@ -164,7 +164,7 @@ func TestAFailureIsFiledWithTheStepItFailedAt(t *testing.T) {
 		Results: []StepResult{{Step: 1, Note: "Fine."}, {Step: 2, Note: "It slid on."}},
 	}
 	step := func(n int) *int { return &n }
-	const link = "http://exciter.test/p/BRK/tests/executions/x/run/BRK-R2"
+	const link = "http://exciter.test/projects/BRK/tests/executions/x/run/BRK-R2"
 
 	t.Run("without a summary it says which case failed where", func(t *testing.T) {
 		d := failureDraft(e, c, FailureIssueInput{ArmatureProject: "CP"}, []string{"BRK-R1"}, link)

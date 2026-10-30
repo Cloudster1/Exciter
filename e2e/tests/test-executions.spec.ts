@@ -50,7 +50,7 @@ test.describe("test executions", { tag: "@desktop" }, () => {
     ).requirement;
     const me = must(await api.GET("/auth/me")).user;
 
-    await page.goto(`/p/${KEY}/tests`);
+    await page.goto(`/projects/${KEY}/tests`);
     await page.getByRole("tab", { name: "Plans" }).click();
     await page.locator('[data-action="new-plan"]').click();
     const form = page.locator("[data-plan-form]");

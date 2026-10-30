@@ -71,7 +71,7 @@ export function CodeTagsPage({ project }: { project: Project }) {
                     <Td>
                       {tag.requirement && !tag.requirement.trashed ? (
                         <Link
-                          to="/p/$projectKey/r/$reqKey"
+                          to="/projects/$projectKey/r/$reqKey"
                           params={{ projectKey: project.key, reqKey: tag.requirement.key }}
                           className="text-ink hover:text-accent hover:underline"
                         >

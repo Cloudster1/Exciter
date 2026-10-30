@@ -38,7 +38,7 @@ describe("a requirement's history", () => {
         body: { revisions: [{ ...entry(2, "Later."), via: { kind: "token", name: "Nightly script" } }, entry(1, "First.")], total: 2, limit: 20, offset: 0 },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1/history");
+    await renderAt("/projects/CHK/r/CHK-R1/history");
     const rows = await screen.findAllByRole("row");
     expect(within(rows[1]!).getByText(/through Nightly script/)).toHaveAttribute("data-via", "token");
     expect(rows[2]!.querySelector("[data-via]")).toBeNull();
@@ -47,7 +47,7 @@ describe("a requirement's history", () => {
 
   it("lists its revisions, the latest first, and compares the two selected", async () => {
     stubApi(base);
-    const router = await renderAt("/p/CHK/r/CHK-R1/history");
+    const router = await renderAt("/projects/CHK/r/CHK-R1/history");
     const rows = await screen.findAllByRole("row");
     expect(rows[1]).toHaveAttribute("data-revision-row", "2");
     expect(within(rows[1]!).getByText("Latest")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("a requirement's history", () => {
       ],
     };
     stubApi({ ...base, "GET /requirements/CHK-R1/diff": { status: 200, body: { comparison } } });
-    await renderAt("/p/CHK/r/CHK-R1/history?from=1&to=2");
+    await renderAt("/projects/CHK/r/CHK-R1/history?from=1&to=2");
     const statement = await waitFor(() => {
       const found = document.querySelector<HTMLElement>('[data-diff-of="statement"]');
       expect(found).not.toBeNull();
@@ -107,7 +107,7 @@ describe("a requirement's history", () => {
         body: { requirement: aRequirement({ revision: 3 }), revision: { ...entry(3, "Back."), restoredFrom: 1 } },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1/history");
+    await renderAt("/projects/CHK/r/CHK-R1/history");
     const row = (await screen.findAllByRole("row")).find((r) => r.getAttribute("data-revision-row") === "1")!;
     await userEvent.click(within(row).getByRole("button", { name: "Restore" }));
     const dialog = screen.getByRole("dialog", { name: "Restore revision 1?" });
@@ -138,7 +138,7 @@ describe("a requirement's history", () => {
         },
       },
     });
-    await renderAt("/p/CHK/r/CHK-R1/history?tab=activity");
+    await renderAt("/projects/CHK/r/CHK-R1/history?tab=activity");
     const list = await screen.findByRole("list", { name: "Activity" });
     expect(within(list).getByText("changed the priority from nothing to must")).toBeInTheDocument();
     expect(within(list).getByText("wrote revision 2")).toBeInTheDocument();

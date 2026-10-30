@@ -93,7 +93,7 @@ function Definition({ id, termId, anchorRef, onClose }: { id: string; termId: st
           <p className="whitespace-pre-line text-ink-muted">{definition || l.term.noDefinition}</p>
           {term.synonyms.length > 0 && <p className="text-xs text-ink-subtle">{l.print.synonyms(term.synonyms.join(", "))}</p>}
           <Link
-            to="/p/$projectKey/glossary/$termId"
+            to="/projects/$projectKey/glossary/$termId"
             params={{ projectKey: term.projectKey, termId: term.id }}
             className="inline-block text-sm text-accent hover:underline"
             onClick={onClose}

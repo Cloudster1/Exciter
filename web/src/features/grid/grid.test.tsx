@@ -74,9 +74,9 @@ function stubGrid(more: Parameters<typeof stubApi>[0] = {}) {
 describe("the grid", () => {
   it("orders by a heading, and keeps the order in the address", async () => {
     const { asked } = stubGrid();
-    const router = await renderAt("/p/CHK/grid");
+    const router = await renderAt("/projects/CHK/grid");
     const table = await screen.findByRole("table", { name: "Requirements of the project, as the grid shows them" });
-    expect(within(table).getByRole("link", { name: "Pay the basket" })).toHaveAttribute("href", "/p/CHK/r/CHK-R1");
+    expect(within(table).getByRole("link", { name: "Pay the basket" })).toHaveAttribute("href", "/projects/CHK/r/CHK-R1");
     expect(screen.getByText("1 requirement")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
 
@@ -96,7 +96,7 @@ describe("the grid", () => {
         return { status: 200, body: { rows: [{ ...row, suspectLinks: 2 }], total: 1, limit: 100, offset: 0 } };
       },
     });
-    const router = await renderAt("/p/CHK/grid");
+    const router = await renderAt("/projects/CHK/grid");
     const table = await screen.findByRole("table", { name: "Requirements of the project, as the grid shows them" });
     expect(await within(table).findByText("2 suspect links")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Suspect links only" }));
@@ -107,7 +107,7 @@ describe("the grid", () => {
 
   it("narrows by an attribute condition and a field, and clears both", async () => {
     const { asked } = stubGrid();
-    const router = await renderAt("/p/CHK/grid?sort=title");
+    const router = await renderAt("/projects/CHK/grid?sort=title");
     await screen.findByRole("table");
     await userEvent.selectOptions(screen.getByLabelText("Attribute"), risk.id);
     await userEvent.selectOptions(screen.getByLabelText("Comparison"), "not");
@@ -126,7 +126,7 @@ describe("the grid", () => {
     const { sent } = stubGrid({
       "PATCH /requirements/CHK-R1": async (request) => ({ status: 200, body: { requirement: { ...pay, ...((await request.json()) as object) } } }),
     });
-    const router = await renderAt("/p/CHK/grid");
+    const router = await renderAt("/projects/CHK/grid");
     await screen.findByRole("table");
     await userEvent.click(screen.getByRole("button", { name: "Columns" }));
     await userEvent.click(screen.getByRole("checkbox", { name: "Risk" }));
@@ -148,7 +148,7 @@ describe("the grid", () => {
         body: { view: { ...team, id: "0195f000-0000-7000-8000-000000000f02", canEdit: true, ...((await request.json()) as object) } },
       }),
     });
-    const router = await renderAt("/p/CHK/grid");
+    const router = await renderAt("/projects/CHK/grid");
     await screen.findByRole("table");
     await userEvent.selectOptions(screen.getByLabelText("Views"), team.id);
     await waitFor(() =>

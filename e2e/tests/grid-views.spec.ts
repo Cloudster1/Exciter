@@ -64,7 +64,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
 
   test("alice narrows the grid by words, kind, status, owner, label and an attribute condition", async ({ page, api, people }) => {
     const { cost } = await makeProject(api, people.alice);
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     await shows(page, [1, 2, 3, 4], "4 requirements");
     const clear = page.locator('[data-action="clear-grid-filters"]');
 
@@ -110,7 +110,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
 
   test("alice edits a title and values in place, and a stale edit is refused without overwriting", async ({ page, api, people }) => {
     const { cost, note } = await makeProject(api, people.alice);
-    await page.goto(`/p/${KEY}/grid`);
+    await page.goto(`/projects/${KEY}/grid`);
     const pay = page.locator(`[data-grid-row="${KEY}-R2"]`);
     const notice = page.locator("[data-grid-notice]");
 
@@ -148,7 +148,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
     await expect(page.getByRole("alert").filter({ hasText: `Somebody saved a newer revision of ${KEY}-R2 while you were editing.` })).toBeVisible();
     expect((await read()).attributes[cost.id]).toBe(9);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R2`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R2`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pay the whole basket");
   });
 
@@ -159,7 +159,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
       { subject: { type: "user", id: people.bob.id }, role: "viewer" },
     ]);
     const name = "Team order";
-    await page.goto(`/p/${KEY}/grid?sort=title`);
+    await page.goto(`/projects/${KEY}/grid?sort=title`);
     await page.locator('[data-action="save-view"]').click();
     const dialog = page.getByRole("dialog", { name: "Save as a view" });
     await dialog.getByLabel("Name").fill(name);
@@ -171,7 +171,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
     // Bob reads from a replica, which may be a moment behind what alice saved.
     const bob = await pageAs("bob");
     await expect(async () => {
-      await bob.goto(`/p/${KEY}/grid`);
+      await bob.goto(`/projects/${KEY}/grid`);
       await bob.locator("[data-view-select]").selectOption({ label: `${name} (Shared)` }, { timeout: 1000 });
     }).toPass();
     await expect(bob).toHaveURL(/sort=title/);
@@ -192,7 +192,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-grid-notice]")).toHaveText(`Saved the view ${name}.`);
 
     await expect(async () => {
-      await bob.goto(`/p/${KEY}/grid`);
+      await bob.goto(`/projects/${KEY}/grid`);
       await bob.locator("[data-view-select]").selectOption({ label: `${name} (Shared)` });
       await expect(bob).toHaveURL(/desc=true/, { timeout: 1000 });
     }).toPass();
@@ -202,7 +202,7 @@ test.describe("the grid", { tag: "@desktop" }, () => {
     await expect(page.locator("[data-grid-notice]")).toHaveText(`Deleted the view ${name}.`);
     await expect(page.locator("[data-view-select]")).toHaveValue("");
     await expect(async () => {
-      await bob.goto(`/p/${KEY}/grid`);
+      await bob.goto(`/projects/${KEY}/grid`);
       await expect(bob.locator("[data-view-select] option")).toHaveText(["All requirements"], { timeout: 1000 });
     }).toPass();
   });

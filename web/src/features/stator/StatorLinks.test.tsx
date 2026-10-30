@@ -98,7 +98,7 @@ function stubPage({
 describe("a requirement's Stator pages", () => {
   it("shows each page live by relation, and a page Stator deleted", async () => {
     stubPage();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Stator pages" });
     const timing = await within(panel).findByRole("link", { name: /Brake timing/ });
     expect(timing).toHaveAttribute("href", `${BASE}/s/ENG/p/${TIMING}`);
@@ -120,7 +120,7 @@ describe("a requirement's Stator pages", () => {
         aLink(THREAT, { relation: "relates", sync: "pending" }),
       ],
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Stator pages" });
     await waitFor(() => expect(panel.querySelector(`[data-stator-link="${ONBOARDING}"]`)).toHaveTextContent("Not on the page"));
     expect(panel.querySelector(`[data-stator-link="${ONBOARDING}"]`)).toHaveTextContent("Stator did not let Bob put requirements on this page.");
@@ -135,7 +135,7 @@ describe("a requirement's Stator pages", () => {
       links: [link],
       more: { [`POST /stator-links/${link.id}/clear`]: { status: 200, body: { link: { ...link, suspect: false, pageVersionSeen: 3 } } } },
     });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Stator pages" });
     await waitFor(() => expect(panel.querySelector(`[data-stator-link="${TIMING}"]`)).toHaveTextContent("Suspect"));
     await userEvent.click(await within(panel).findByRole("button", { name: "Check the trace to Brake timing" }));
@@ -149,7 +149,7 @@ describe("a requirement's Stator pages", () => {
 
   it("shows a reader without a token the space and the stored version, and how to connect", async () => {
     const sent = stubPage({ account: withoutToken, edit: false });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const panel = await screen.findByRole("region", { name: "Stator pages" });
     await waitFor(() => expect(panel.querySelector(`[data-stator-page="${TIMING}"]`)).not.toBeNull());
     const chip = panel.querySelector<HTMLElement>(`[data-stator-page="${TIMING}"]`)!;
@@ -163,7 +163,7 @@ describe("a requirement's Stator pages", () => {
 
   it("is not there while Exciter has no Stator", async () => {
     stubPage({ account: { ...withoutToken, configured: false, baseUrl: "", status: "not_configured" } });
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await screen.findByRole("region", { name: "Trace links" });
     expect(screen.queryByRole("region", { name: "Stator pages" })).toBeNull();
   });
@@ -192,7 +192,7 @@ describe("a requirement's Stator pages", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     const form = await screen.findByRole("form", { name: "Link a Stator page" });
     await user.selectOptions(within(form).getByLabelText("Relation"), "relates");
     await user.type(within(form).getByRole("combobox", { name: "Page" }), "onboard");
@@ -219,7 +219,7 @@ describe("a requirement's Stator pages", () => {
       },
     });
     const user = userEvent.setup();
-    await renderAt("/p/CHK/r/CHK-R1");
+    await renderAt("/projects/CHK/r/CHK-R1");
     await user.click(await screen.findByRole("button", { name: "Remove Brake timing, Specified by the page" }));
     expect(await screen.findByText(/No page yet/)).toBeInTheDocument();
     expect(await screen.findByText("The link to Brake timing was removed.")).toBeInTheDocument();

@@ -56,12 +56,12 @@ describe("a notification row", () => {
     [
       "a review session's",
       aNotification({ kind: "session_invited", session: { id: "0195f000-0000-7000-8000-0000000005e1", title: "Brakes review", projectKey: "CHK" } }),
-      "/p/CHK/sessions/0195f000-0000-7000-8000-0000000005e1",
+      "/projects/CHK/sessions/0195f000-0000-7000-8000-0000000005e1",
     ],
     [
       "a test execution's",
       aNotification({ kind: "execution_assigned", execution: { id: "0195f000-0000-7000-8000-0000000006e1", title: "Night run", projectKey: "CHK" } }),
-      "/p/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1",
+      "/projects/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1",
     ],
     [
       "a code scan's",
@@ -69,7 +69,7 @@ describe("a notification row", () => {
         kind: "code_outdated",
         codeScan: { id: "0195f000-0000-7000-8000-0000000007e1", repository: "brakes", branch: "main", projectKey: "CHK" },
       }),
-      "/p/CHK/code-tags",
+      "/projects/CHK/code-tags",
     ],
   ])("leads %s to its page", async (_, notification, href) => {
     stubShell({ "GET /notifications": page([notification]) });
@@ -101,8 +101,8 @@ describe("a notification row", () => {
     const router = await renderAt("/projects");
     const panel = await openBell();
     await userEvent.click(within(panel).getByRole("link", { name: /Night run/ }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1"));
-    await arrival(router, "/p/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1"));
+    await arrival(router, "/projects/CHK/tests/executions/0195f000-0000-7000-8000-0000000006e1");
     expect(sent.some((each) => each.method === "POST" && each.path === "/notifications/read")).toBe(false);
   });
 });

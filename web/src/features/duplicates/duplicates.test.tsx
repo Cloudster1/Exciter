@@ -50,7 +50,7 @@ describe("the hint below the statement", () => {
         return { status: 200, body: { similar, threshold: 0.6 } };
       },
     });
-    await renderAt("/p/CHK/new");
+    await renderAt("/projects/CHK/new");
     const title = await screen.findByLabelText("Title");
     await userEvent.type(title, "Wipers");
     await waitFor(() => expect(sent.some((r) => r.path === "/projects/CHK/similar")).toBe(true), PAUSED);
@@ -82,7 +82,7 @@ describe("the hint below the statement", () => {
       "POST /requirements/LIB-R4/reuse": { status: 201, body: { requirement: reused, requirements: [reused] } },
       "GET /requirements/CHK-R7": { status: 200, body: { requirement: reused } },
     });
-    const router = await renderAt("/p/CHK/new");
+    const router = await renderAt("/projects/CHK/new");
     await userEvent.type(await screen.findByLabelText("Title"), "Brakes engage");
     const hint = await screen.findByRole("region", { name: "Similar requirements" }, PAUSED);
     expect(within(hint).getByText("Library")).toHaveAttribute("title", "From the library LIB");
@@ -92,8 +92,8 @@ describe("the hint below the statement", () => {
     const dialog = await screen.findByRole("dialog", { name: "Reuse LIB-R4" });
     expect(within(dialog).getByRole("combobox", { name: "Project" })).toHaveValue("CHK");
     await userEvent.click(within(dialog).getByRole("button", { name: "Reuse" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/p/CHK/r/CHK-R7"));
-    await arrival(router, "/p/CHK/r/CHK-R7");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/projects/CHK/r/CHK-R7"));
+    await arrival(router, "/projects/CHK/r/CHK-R7");
     expect(sent.find((r) => r.path === "/requirements/LIB-R4/reuse")?.body).toMatchObject({ projectKey: "CHK", children: true });
   });
 });
@@ -132,7 +132,7 @@ describe("the duplicates page", () => {
         return { status: 201, body: { decision: {} } };
       },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     expect(within(card).getByText("84% alike")).toBeInTheDocument();
     expect(screen.getByText("Listed from 60% alike, as the project's quality settings set it.")).toBeInTheDocument();
@@ -167,7 +167,7 @@ describe("the duplicates page", () => {
         body: { error: { code: "stale_revision", message: "One of the two changed since you read them. Read the pair again, then decide." } },
       },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     await userEvent.click(within(card).getByRole("button", { name: "Dismiss CHK-R1 and CHK-R2" }));
     const dialog = await screen.findByRole("dialog", { name: "Dismiss the pair" });
@@ -199,7 +199,7 @@ describe("the duplicates page", () => {
         };
       },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     await userEvent.click(within(card).getByRole("button", { name: "Merge CHK-R1 and CHK-R2" }));
     const dialog = await screen.findByRole("dialog", { name: "Merge the two" });
@@ -235,7 +235,7 @@ describe("the duplicates page", () => {
         return { status: 201, body: { decision: {} } };
       },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     await userEvent.click(within(card).getByRole("button", { name: "Link CHK-R1 and CHK-R2" }));
     const dialog = await screen.findByRole("dialog", { name: "Link the two" });
@@ -271,7 +271,7 @@ describe("the duplicates page", () => {
         body: { error: { code: "validation_failed", message: "Some fields are not valid.", fields: { linkTypeKey: refused } } },
       },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     await userEvent.click(within(card).getByRole("button", { name: "Link CHK-R1 and CHK-R2" }));
     const dialog = await screen.findByRole("dialog", { name: "Link the two" });
@@ -295,7 +295,7 @@ describe("the duplicates page", () => {
       "GET /requirements/CHK-R3": { status: 200, body: { requirement: aRequirement({ id: third.a.id, key: "CHK-R3", number: 3, title: third.a.title }) } },
       "GET /requirements/CHK-R4": { status: 200, body: { requirement: aRequirement({ id: third.b.id, key: "CHK-R4", number: 4, title: third.b.title }) } },
     });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     expect(asked[0]?.get("limit")).toBe(String(DUPLICATES_PAGE_SIZE));
     expect(asked[0]?.has("cursor")).toBe(false);
@@ -320,7 +320,7 @@ describe("the duplicates page", () => {
 
   it("lets a reader read the pairs without deciding", async () => {
     pageStubs(() => [pair], { "GET /projects/CHK": { status: 200, body: { project: reader } } });
-    await renderAt("/p/CHK/duplicates");
+    await renderAt("/projects/CHK/duplicates");
     const card = await screen.findByRole("region", { name: "CHK-R1 and CHK-R2" });
     expect(within(card).queryByRole("button", { name: /Dismiss|Link|Merge/ })).toBeNull();
     expect(screen.getByText("You can read the pairs. Deciding about them needs the right to edit the project.")).toBeInTheDocument();
@@ -344,7 +344,7 @@ describe("the threshold", () => {
 
   it("is set by an administrator in the quality settings", async () => {
     const sent = stubs();
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("form", { name: "Duplicates" });
     const threshold = within(card).getByRole("spinbutton", { name: "Similarity threshold in percent" });
     expect(threshold).toHaveValue(60);
@@ -360,7 +360,7 @@ describe("the threshold", () => {
 
   it("is only read by somebody who does not administer the project", async () => {
     stubs(aProject({ can: { view: true, comment: true, edit: true, approve: true, administer: false, purge: false } }));
-    await renderAt("/p/CHK/settings?tab=quality");
+    await renderAt("/projects/CHK/settings/quality");
     const card = await screen.findByRole("form", { name: "Duplicates" });
     expect(within(card).getByRole("spinbutton", { name: "Similarity threshold in percent" })).toBeDisabled();
     expect(within(card).queryByRole("button", { name: "Save threshold" })).toBeNull();

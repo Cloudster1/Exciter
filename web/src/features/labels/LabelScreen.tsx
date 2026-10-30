@@ -75,7 +75,7 @@ function Row({ requirement, current }: { requirement: LabelledRequirement; curre
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-ink-muted">{requirement.key}</span>
         <Link
-          to="/p/$projectKey/r/$reqKey"
+          to="/projects/$projectKey/r/$reqKey"
           params={{ projectKey: requirement.projectKey, reqKey: requirement.key }}
           className="font-medium text-accent hover:underline"
         >

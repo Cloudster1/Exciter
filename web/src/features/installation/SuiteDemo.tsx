@@ -85,7 +85,7 @@ function Progress({ demo }: { demo: Demo | null }) {
         <ul className="flex flex-wrap gap-3 text-sm" aria-label={t.suiteDemo.projects}>
           {demo.projectKeys.map((key) => (
             <li key={key}>
-              <Link to="/p/$projectKey" params={{ projectKey: key }} className="font-medium text-ink hover:text-accent hover:underline">
+              <Link to="/projects/$projectKey" params={{ projectKey: key }} className="font-medium text-ink hover:text-accent hover:underline">
                 {key}
               </Link>
             </li>

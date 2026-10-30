@@ -1,15 +1,15 @@
 import { useState } from "react";
 import type { Project } from "@/api/projects";
 import { useTrash, useTrashActions, type TrashItem } from "@/api/requirements";
-import { Button, Dialog, ErrorBanner, PageHeader, Skeleton, Table, Td, Th, useToast, Page } from "@/components/ui";
+import { Button, Dialog, ErrorBanner, SectionTitle, Skeleton, Table, Td, Th, useToast } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { t } from "@/i18n";
 import { localDateFormat } from "@/lib/format";
 
 const trashedAt = localDateFormat({ dateStyle: "medium", timeStyle: "short" });
 
-/** A project's trash: its editors restore, its administrators delete for good, one or all. */
-export function TrashPage({ project }: { project: Project }) {
+/** A project's trash, a section of its settings: its editors restore, its administrators delete for good, one or all. */
+export function TrashSection({ project }: { project: Project }) {
   const mayOpen = project.can.edit;
   const mayPurge = project.can.purge;
   const { data, error, refetch } = useTrash(project.key, mayOpen);
@@ -19,20 +19,15 @@ export function TrashPage({ project }: { project: Project }) {
   const failed = actions.restore.error ?? actions.purge.error ?? actions.empty.error;
 
   return (
-    <Page width="content" className="space-y-4" data-trash={project.key}>
-      <PageHeader
-        title={t.requirements.trashTitle}
-        meta={t.projects.projectAndKey(project.name, project.key)}
-        actions={
-          mayPurge &&
-          data &&
-          data.length > 0 && (
-            <Button variant="danger" icon={<Icon.Trash />} onClick={() => setPurging("all")} data-action="empty-trash">
-              {t.requirements.emptyTrash}
-            </Button>
-          )
-        }
-      />
+    <section aria-labelledby="project-trash-title" className="space-y-4" data-trash={project.key}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle id="project-trash-title">{t.requirements.trashTitle}</SectionTitle>
+        {mayPurge && data && data.length > 0 && (
+          <Button variant="danger" icon={<Icon.Trash />} onClick={() => setPurging("all")} data-action="empty-trash">
+            {t.requirements.emptyTrash}
+          </Button>
+        )}
+      </div>
       {!mayOpen ? (
         <p className="text-sm text-ink-muted">{t.requirements.readOnly}</p>
       ) : (
@@ -118,6 +113,6 @@ export function TrashPage({ project }: { project: Project }) {
           <p className="text-sm text-ink">{purging === "all" ? t.requirements.emptyTrashBody : t.requirements.purgeBody(purging.key)}</p>
         </Dialog>
       )}
-    </Page>
+    </section>
   );
 }

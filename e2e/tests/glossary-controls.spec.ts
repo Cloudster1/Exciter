@@ -72,7 +72,7 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
       }),
     );
 
-    await page.goto(`/p/${KEY}/glossary`);
+    await page.goto(`/projects/${KEY}/glossary`);
     await page.locator('[data-action="new-term"]').click();
     await page.getByLabel("Name", { exact: true }).fill("Brake pedal");
     await page.locator("#new-term-definition").click();
@@ -101,7 +101,7 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     await dismissToasts(page);
     await expect(page.getByText("The lever the driver presses to slow or hold the car.")).toBeVisible();
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const use = page.locator('[data-terms-panel] [data-requirement-term="Brake pedal"]');
     await expect(use).toHaveAttribute("data-suspect", "true");
     await expect(use.locator("[data-term-suspect]")).toHaveText("Suspect");
@@ -121,22 +121,22 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     const deleting = page.getByRole("dialog", { name: "Delete the term" });
     await expectAccessible(page);
     await deleting.locator('[data-action="confirm-delete-term"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/glossary`);
+    await expect(page).toHaveURL(`/projects/${KEY}/glossary`);
     await expect(page.locator('[data-term-row="Brake pedal"]')).toHaveCount(0);
     await expect(page.getByText("No terms yet.")).toBeVisible();
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-terms-panel]")).toContainText("This requirement uses no glossary term.");
   });
 
   test("alice's edit of a term another tab changed meanwhile loads the latest revision", async ({ page, api }) => {
     await project(api);
     const term = await brakePedal(api);
-    await page.goto(`/p/${KEY}/glossary/${term.id}`);
+    await page.goto(`/projects/${KEY}/glossary/${term.id}`);
     await page.locator('[data-action="edit-term"]').click();
 
     const other = await page.context().newPage();
     try {
-      await other.goto(`/p/${KEY}/glossary/${term.id}`);
+      await other.goto(`/projects/${KEY}/glossary/${term.id}`);
       await other.locator('[data-action="edit-term"]').click();
       await retype(other, "[data-term-form] [contenteditable=true]", "The lever the driver presses with a foot.");
       await other.locator('[data-action="save-term"]').click();
@@ -160,7 +160,7 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
   test("alice links words to a term by hand, and takes the link off again", async ({ page, api }) => {
     await project(api);
     await brakePedal(api);
-    await page.goto(`/p/${KEY}/new`);
+    await page.goto(`/projects/${KEY}/new`);
     await page.getByLabel("Title", { exact: true }).fill("Hold");
     const statement = page.locator("#new-statement");
     await statement.click();
@@ -175,7 +175,7 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
     await picker.getByRole("option", { name: "Brake pedal" }).click();
     await expect(picker).toBeHidden();
     await page.locator('[data-action="create-requirement"]').click();
-    await expect(page).toHaveURL(`/p/${KEY}/r/${KEY}-R1`);
+    await expect(page).toHaveURL(`/projects/${KEY}/r/${KEY}-R1`);
 
     const panel = await panelShows(page, '[data-requirement-term="Brake pedal"]');
     await expect(panel.locator('[data-requirement-term="Brake pedal"]')).toContainText("Linked");
@@ -210,22 +210,23 @@ test.describe("glossary in use", { tag: "@desktop" }, () => {
         body: { title: "Grip", statement: said("The calipers shall grip the disc.") },
       }),
     );
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     await expect(page.locator("[data-terms-panel]")).toContainText("This requirement uses no glossary term.");
 
-    await page.goto(`/p/${KEY}/settings?tab=quality`);
+    await page.goto(`/projects/${KEY}/settings/quality`);
     const card = page.locator("[data-glossaries-card]");
     await card.getByLabel("Add a library").selectOption(LIB);
     await card.locator('[data-action="add-glossary"]').click();
     await expect(card.locator(`[data-glossary-library="${LIB}"]`)).toBeVisible();
     await expectAccessible(page);
     await card.locator('[data-action="save-glossaries"]').click();
-    await expect(card.getByRole("status")).toHaveText("The library glossaries are saved.");
+    await expect(toast(page, "The library glossaries are saved.")).toBeVisible();
+    await dismissToasts(page);
 
-    await page.goto(`/p/${KEY}/r/${KEY}-R1`);
+    await page.goto(`/projects/${KEY}/r/${KEY}-R1`);
     const panel = await panelShows(page, '[data-requirement-term="Caliper"]');
     await expect(panel.locator('[data-requirement-term="Caliper"]')).toContainText(LIB);
-    await page.goto(`/p/${KEY}/glossary`);
+    await page.goto(`/projects/${KEY}/glossary`);
     await expect(page.getByRole("table", { name: "Glossary" }).locator('[data-term-row="Caliper"]')).toContainText(LIB);
     await expectAccessible(page);
   });

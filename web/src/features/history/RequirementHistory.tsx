@@ -67,7 +67,7 @@ function Header({ requirement, title }: { requirement: Requirement; title: strin
     <PageHeader
       crumb={
         <Link
-          to="/p/$projectKey/r/$reqKey"
+          to="/projects/$projectKey/r/$reqKey"
           params={{ projectKey: requirement.projectKey, reqKey: requirement.key }}
           className="hover:text-accent hover:underline"
         >
