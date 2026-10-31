@@ -29,6 +29,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The web tests pin vitest to exactly the version of its coverage provider,
   5.0.5, so a lock file refresh can no longer move one without the other
   (#468).
+- CI keeps every layer's coverage rows and the web coverage summary as one
+  `coverage` artifact for 30 days, so a local run can be compared with CI's
+  figures for the same commit. Both read the same: the point web coverage
+  seemed to lose in CI was measured on an older commit (#467).
 
 ### Fixed
 
