@@ -151,6 +151,7 @@ jobs:
       # Every layer's coverage rows in one place and kept longer than the reports, so a local run of the same
       # commit can be compared with CI's figures row by row (#467).
       - name: Keep the coverage figures
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -161,6 +162,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Keep the timings
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-timings

@@ -30,9 +30,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   5.0.5, so a lock file refresh can no longer move one without the other
   (#468).
 - CI keeps every layer's coverage rows and the web coverage summary as one
-  `coverage` artifact for 30 days, so a local run can be compared with CI's
-  figures for the same commit. Both read the same: the point web coverage
-  seemed to lose in CI was measured on an older commit (#467).
+  `coverage` artifact for 30 days, kept even when a layer fails, so the next
+  time CI's figures seem to differ from a local run they can be compared row
+  by row. The point web coverage seemed to lose in CI did not reproduce: CI's
+  run of the same commit read 87.11%, as the local run did. Nothing is fixed
+  by this; note that a pull request's run measures the merge of the branch
+  into main, not the branch's own head, so its figures can differ from a
+  local run of that head (#467).
 
 ### Fixed
 
