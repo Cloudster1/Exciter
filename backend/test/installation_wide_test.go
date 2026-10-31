@@ -151,6 +151,7 @@ var installationWide = map[string]string{
 	"TestASignatureAfterSigningInAgainAtTheProvider":                 singleSignOn,
 	"TestABaselineIsSignedAfterSigningInAgainAtTheProvider":          singleSignOn,
 	"TestSignInRefusals":                                             singleSignOn,
+	"TestASignInFinishesOnlyInTheBrowserThatStartedIt":               singleSignOn,
 	"TestSignInUpsertsBySubjectAndSyncsOnlyProviderGroups":           singleSignOn,
 	"TestOnlyExistingGroupsAreJoinedWhenCreationIsOff":               singleSignOn,
 	"TestTheProviderIsTheAdministratorsToConfigure":                  singleSignOn,

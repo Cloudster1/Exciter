@@ -215,8 +215,9 @@ func (s *Service) oauthConfig(p *Provider, discovered *coreoidc.Provider) *oauth
 	}
 }
 
-// Start begins a sign-in and returns the URL to send the browser to.
-func (s *Service) Start(ctx context.Context, redirect string) (string, error) {
+// Start begins a sign-in and returns the URL to send the browser to, with the secret that browser keeps to finish
+// it: only its digest is stored, and Exchange refuses a callback without it.
+func (s *Service) Start(ctx context.Context, redirect string) (target, binding string, err error) {
 	return s.start(ctx, redirect, nil)
 }
 
@@ -228,26 +229,32 @@ type reauth struct {
 
 // StartReauth begins a sign-in that proves again who a signed-in person is, for a signature (#46): the provider is
 // told to ask for their credentials whatever session it holds, and the callback opens no session.
-func (s *Service) StartReauth(ctx context.Context, userID, sessionID uuid.UUID, email, redirect string) (string, error) {
+func (s *Service) StartReauth(ctx context.Context, userID, sessionID uuid.UUID, email, redirect string) (target, binding string, err error) {
 	return s.start(ctx, redirect, &reauth{userID: userID, sessionID: sessionID, email: email})
 }
 
-func (s *Service) start(ctx context.Context, redirect string, again *reauth) (string, error) {
+func (s *Service) start(ctx context.Context, redirect string, again *reauth) (string, string, error) {
 	provider, err := s.signInProvider(ctx)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	discovered, err := s.discover(ctx, provider.Issuer)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	state, err := randomToken()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	nonce, err := randomToken()
 	if err != nil {
-		return "", err
+		return "", "", err
+	}
+	// The state travels through the provider and can be read off a link; the binding stays in the browser that
+	// started, so a callback carried to another browser finishes nothing there.
+	binding, bindingHash, err := auth.GenerateToken()
+	if err != nil {
+		return "", "", err
 	}
 	// The state ties the callback to this attempt, the nonce the id token, and
 	// the PKCE verifier proves whoever redeems the code is who asked for it.
@@ -264,19 +271,19 @@ func (s *Service) start(ctx context.Context, redirect string, again *reauth) (st
 			return err
 		}
 		_, err := tx.Exec(ctx, `
-			INSERT INTO oidc_login (state, nonce, code_verifier, redirect, expires_at, purpose, user_id, session_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-			state, nonce, verifier, redirect, time.Now().Add(howLongALoginMayTake), purpose, user, session)
+			INSERT INTO oidc_login (state, nonce, code_verifier, redirect, expires_at, purpose, user_id, session_id, browser_hash)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			state, nonce, verifier, redirect, time.Now().Add(HowLongALoginMayTake), purpose, user, session, bindingHash)
 		return err
 	}); err != nil {
-		return "", fmt.Errorf("remember this sign-in: %w", err)
+		return "", "", fmt.Errorf("remember this sign-in: %w", err)
 	}
 
 	config := s.oauthConfig(provider, discovered)
 	if again != nil {
-		return reauthURL(config, state, nonce, verifier, again.email), nil
+		return reauthURL(config, state, nonce, verifier, again.email), binding, nil
 	}
-	return authCodeURL(config, state, nonce, verifier), nil
+	return authCodeURL(config, state, nonce, verifier), binding, nil
 }
 
 // authCodeURL carries the state, the nonce and the S256 challenge; the verifier
@@ -294,23 +301,31 @@ func reauthURL(config *oauth2.Config, state, nonce, verifier, email string) stri
 }
 
 // Exchange trades the code for a verified id token and returns its identity, with the sign-in it answers: where the
-// browser was headed, and for a re-authentication whose session it proves.
-func (s *Service) Exchange(ctx context.Context, state, code string) (*Identity, *Login, error) {
+// browser was headed, and for a re-authentication whose session it proves. binding is what Start gave that browser.
+func (s *Service) Exchange(ctx context.Context, state, binding, code string) (*Identity, *Login, error) {
 	var (
 		nonce    string
 		verifier string
+		stored   []byte
 		login    Login
 	)
-	// Consumed as it is read: a state is good for exactly one sign-in, so a
-	// replayed callback cannot open a second session.
+	// Consumed as it is read: a state is good for exactly one sign-in, so a replayed callback cannot open a second
+	// session. Locked and kept when the browser is the wrong one, so a stray callback cannot spend somebody's sign-in.
 	_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
-			DELETE FROM oidc_login WHERE state = $1 AND expires_at > now()
-			RETURNING nonce, code_verifier, redirect, purpose, user_id, session_id, requested_at`, state,
-		).Scan(&nonce, &verifier, &login.Redirect, &login.Purpose, &login.UserID, &login.SessionID, &login.RequestedAt)
+			SELECT browser_hash, nonce, code_verifier, redirect, purpose, user_id, session_id, requested_at
+			FROM oidc_login WHERE state = $1 AND expires_at > now() FOR UPDATE`, state,
+		).Scan(&stored, &nonce, &verifier, &login.Redirect, &login.Purpose, &login.UserID, &login.SessionID, &login.RequestedAt)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrUnknownLogin
 		}
+		if err != nil {
+			return err
+		}
+		if subtle.ConstantTimeCompare(stored, auth.HashToken(binding)) != 1 {
+			return ErrOtherBrowser
+		}
+		_, err = tx.Exec(ctx, `DELETE FROM oidc_login WHERE state = $1`, state)
 		return err
 	})
 	if err != nil {

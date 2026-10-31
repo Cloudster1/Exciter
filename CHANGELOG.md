@@ -7,6 +7,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+
+- Single sign-on now finishes only in the browser that started it. A link
+  back from the identity provider opened in another browser signs nobody
+  in there and asks to start again, so nobody can sign somebody else's
+  browser in to their own account. A sign-in under way during the upgrade
+  has to be started again.
+
 ## [0.3.0] - 2026-10-30
 
 ### Added

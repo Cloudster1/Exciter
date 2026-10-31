@@ -131,9 +131,9 @@ var operations = []operation{
 	// Signing in with a password or through the installation's identity provider, and the session's own settings.
 	{method: "POST", path: "/auth/login", handler: "handleLogin", tag: "auth", summary: "Sign in a local account with email and password, and set the session cookie.", public: true,
 		request: loginRequest{}, responses: ok(meResponse{})},
-	{method: "GET", path: "/auth/oidc/start", handler: "handleOIDCStart", tag: "auth", summary: "Begin signing in through the installation's identity provider.", public: true, redirect: true,
+	{method: "GET", path: "/auth/oidc/start", handler: "handleOIDCStart", tag: "auth", summary: "Begin signing in through the installation's identity provider, and set the cookie its callback needs.", public: true, redirect: true,
 		query: []param{{name: "next", description: "A path of this application to land on afterwards."}}, responses: map[int]any{}},
-	{method: "GET", path: "/auth/oidc/callback", handler: "handleOIDCCallback", tag: "auth", summary: "Where the identity provider sends the browser back; sets the session cookie.", public: true, redirect: true,
+	{method: "GET", path: "/auth/oidc/callback", handler: "handleOIDCCallback", tag: "auth", summary: "Where the identity provider sends the browser back; in the browser that started the sign-in, sets the session cookie.", public: true, redirect: true,
 		query: []param{{name: "state"}, {name: "code"}, {name: "error"}}, responses: map[int]any{}},
 	{method: "GET", path: "/auth/oidc/reauthenticate", handler: "handleReauthStart", tag: "auth",
 		summary: "Sends a signed-in person to the identity provider to sign in again, prompt=login and max_age=0, for an electronic signature (#46); the browser comes back to next with signature, the re-authentication to sign with, or signature_error.",

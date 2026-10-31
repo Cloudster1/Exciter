@@ -37,7 +37,7 @@ func (h *harness) signInRows(t *testing.T, m member) uuid.UUID {
 		{`INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)`, []any{group, m.user}},
 		{`INSERT INTO oidc_provider (issuer, client_id, client_secret) VALUES ('https://id.test', 'exciter', '\x01'::bytea)`, nil},
 		{`INSERT INTO role_assignment (role, group_id) VALUES ('viewer', $1)`, []any{group}},
-		{`INSERT INTO oidc_login (state, nonce, code_verifier, expires_at) VALUES (gen_random_uuid()::text, 'n', 'v', now() + interval '1 hour')`, nil},
+		{`INSERT INTO oidc_login (state, nonce, code_verifier, expires_at, browser_hash) VALUES (gen_random_uuid()::text, 'n', 'v', now() + interval '1 hour', sha256('b'))`, nil},
 		{`INSERT INTO join_request (user_id) VALUES ($1)`, []any{m.user}},
 		{`INSERT INTO user_identity (issuer, subject, user_id) VALUES ('https://id.test', gen_random_uuid()::text, $1)`, []any{m.user}},
 		{`INSERT INTO user_session (user_id, token_hash, proof, expires_at) VALUES ($1, $2, 'oidc', $3)`, []any{m.user, digest, time.Now().Add(time.Hour)}},

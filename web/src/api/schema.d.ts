@@ -463,7 +463,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Where the identity provider sends the browser back; sets the session cookie. */
+        /** Where the identity provider sends the browser back; in the browser that started the sign-in, sets the session cookie. */
         get: operations["oIDCCallback"];
         put?: never;
         post?: never;
@@ -497,7 +497,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Begin signing in through the installation's identity provider. */
+        /** Begin signing in through the installation's identity provider, and set the cookie its callback needs. */
         get: operations["oIDCStart"];
         put?: never;
         post?: never;

@@ -2041,7 +2041,7 @@
     "/auth/oidc/callback": {
       "get": {
         "operationId": "oIDCCallback",
-        "summary": "Where the identity provider sends the browser back; sets the session cookie.",
+        "summary": "Where the identity provider sends the browser back; in the browser that started the sign-in, sets the session cookie.",
         "tags": [
           "auth"
         ],
@@ -2122,7 +2122,7 @@
     "/auth/oidc/start": {
       "get": {
         "operationId": "oIDCStart",
-        "summary": "Begin signing in through the installation's identity provider.",
+        "summary": "Begin signing in through the installation's identity provider, and set the cookie its callback needs.",
         "tags": [
           "auth"
         ],

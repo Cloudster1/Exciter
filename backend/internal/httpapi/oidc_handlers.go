@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/auth"
+	"github.com/cloudster1/exciter/backend/internal/config"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/oidc"
 )
@@ -27,13 +28,58 @@ func (s *Server) handleOIDCStart(w http.ResponseWriter, r *http.Request) {
 	}
 	// The browser arrived by navigation, so a refusal sends it back to the
 	// sign-in page with a reason it can show, like the callback does.
-	target, err := s.OIDC.Start(r.Context(), safeRedirect(r.URL.Query().Get("next")))
+	target, binding, err := s.OIDC.Start(r.Context(), safeRedirect(r.URL.Query().Get("next")))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a sign-in through an identity provider could not start", "error", err)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
 		return
 	}
+	s.setOIDCBrowserCookie(w, binding)
 	http.Redirect(w, r, target, http.StatusFound)
+}
+
+// oidcBrowserCookieSuffix names the cookie binding a sign-in to its browser after the session cookie, so two
+// installations sharing a host keep theirs apart the way they keep their sessions.
+const oidcBrowserCookieSuffix = "_oidc"
+
+// setOIDCBrowserCookie hands the browser the secret its callback must bring back: out of scripts' reach, Lax so the
+// provider's redirect carries it, sent only to the callback and gone when the sign-in could no longer finish.
+func (s *Server) setOIDCBrowserCookie(w http.ResponseWriter, binding string) {
+	http.SetCookie(w, s.oidcBrowserCookie(binding, int(oidc.HowLongALoginMayTake.Seconds())))
+}
+
+// clearOIDCBrowserCookie ends the binding whatever the callback answered: a binding is good for one callback.
+func (s *Server) clearOIDCBrowserCookie(w http.ResponseWriter) {
+	http.SetCookie(w, s.oidcBrowserCookie("", -1))
+}
+
+func (s *Server) oidcBrowserCookie(value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     s.CookieName + oidcBrowserCookieSuffix,
+		Value:    value,
+		Path:     s.oidcCallbackPath(),
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   s.Secure,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+// oidcCallbackPath is the callback's path as the browser sees it, which a proxy serving Exciter under a prefix
+// lengthens; the registered callback address is the one that says so.
+func (s *Server) oidcCallbackPath() string {
+	if registered, err := url.Parse(s.OIDCCallbackURL); err == nil && registered.Path != "" {
+		return registered.Path
+	}
+	return config.OIDCCallbackPath
+}
+
+// oidcBrowserBinding is the secret the browser was handed when its sign-in started, empty when it holds none.
+func (s *Server) oidcBrowserBinding(r *http.Request) string {
+	if c, err := r.Cookie(s.CookieName + oidcBrowserCookieSuffix); err == nil {
+		return c.Value
+	}
+	return ""
 }
 
 // handleOIDCCallback finishes a sign-in with a redirect rather than JSON: the
@@ -43,6 +89,8 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, errSignInOff)
 		return
 	}
+	binding := s.oidcBrowserBinding(r)
+	s.clearOIDCBrowserCookie(w)
 	query := r.URL.Query()
 	if refused := query.Get("error"); refused != "" {
 		loggerFrom(r.Context()).Info("the identity provider refused a sign-in", "error", refused, "description", query.Get("error_description"))
@@ -50,7 +98,7 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	identity, login, err := s.OIDC.Exchange(r.Context(), query.Get("state"), query.Get("code"))
+	identity, login, err := s.OIDC.Exchange(r.Context(), query.Get("state"), binding, query.Get("code"))
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a sign-in through an identity provider failed", "error", err)
 		s.landAfterSignIn(w, r, "", signInFailure(err))
@@ -108,6 +156,8 @@ func signInFailure(err error) string {
 		return "unverified_email"
 	case errors.Is(err, oidc.ErrUnknownLogin):
 		return "expired"
+	case errors.Is(err, oidc.ErrOtherBrowser):
+		return "other_browser"
 	case errors.Is(err, oidc.ErrNotConfigured):
 		return "not_configured"
 	case errors.Is(err, oidc.ErrUnreachable):
@@ -214,12 +264,13 @@ func (s *Server) handleReauthStart(w http.ResponseWriter, r *http.Request) {
 		landWithSignature(w, r, s.AppBaseURL, next, "", "session")
 		return
 	}
-	target, err := s.OIDC.StartReauth(r.Context(), p.UserID, *p.SessionID, p.Email, next)
+	target, binding, err := s.OIDC.StartReauth(r.Context(), p.UserID, *p.SessionID, p.Email, next)
 	if err != nil {
 		loggerFrom(r.Context()).Warn("a re-authentication could not start", "error", err)
 		landWithSignature(w, r, s.AppBaseURL, next, "", "unavailable")
 		return
 	}
+	s.setOIDCBrowserCookie(w, binding)
 	http.Redirect(w, r, target, http.StatusFound)
 }
 

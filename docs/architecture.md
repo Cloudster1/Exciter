@@ -428,7 +428,10 @@ app role holds no privilege on.
 - The installation has one OIDC provider (`oidc_provider`), its client
   secret sealed with `EXCITER_SECRET_KEY`. `internal/oidc` runs the
   authorization code flow with PKCE, a nonce and a single-use state
-  (`oidc_login`), verifies the id token against the issuer's keys, and
+  (`oidc_login`), bound to the browser that started it by an http-only
+  cookie sent only to the callback, of which `oidc_login` keeps the SHA-256;
+  a callback in another browser is refused and leaves the state for its
+  own. It verifies the id token against the issuer's keys, and
   matches a person by issuer and subject (`user_identity`), or by a verified
   address on their first sign-in. `EXCITER_OIDC_BACKCHANNEL` lets the api
   reach a provider at another address than the browser does, as in compose.

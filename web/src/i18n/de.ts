@@ -140,6 +140,8 @@ export const de: Messages = {
       "Ihr Identitätsanbieter kennt Sie, aber noch niemand hat Sie in Exciter aufgenommen. Ihre Anfrage wartet auf einen Administrator; melden Sie sich erneut an, sobald Sie aufgenommen wurden.",
     failures: {
       expired: "Diese Anmeldung hat zu lange gedauert oder wurde schon verwendet. Beginnen Sie sie erneut.",
+      other_browser:
+        "Diese Anmeldung wurde in einem anderen Browser begonnen, oder dieser Browser hat ihr Cookie nicht behalten. Beginnen Sie sie hier erneut.",
       not_configured:
         "Exciter meldet noch nicht über einen Identitätsanbieter an. Melden Sie sich mit einem Passwort an, oder bitten Sie einen Administrator, einen einzurichten.",
       no_email: "Ihr Identitätsanbieter hat keine E-Mail-Adresse gesendet. Bitten Sie seinen Administrator, Exciter die E-Mail-Angabe freizugeben.",
