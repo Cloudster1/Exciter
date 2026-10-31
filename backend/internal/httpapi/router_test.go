@@ -238,3 +238,13 @@ func TestRequestsAreCountedByRoutePattern(t *testing.T) {
 		}
 	}
 }
+
+func TestCORSMatchesAnOriginListedWithATrailingSlash(t *testing.T) {
+	h := newServer(t).Routes([]string{"https://a.example/"})
+	req := httptest.NewRequest(http.MethodOptions, APIPrefix+"/openapi.json", nil)
+	req.Header.Set("Origin", "https://a.example")
+	resp, _ := serve(t, h, req)
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://a.example" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want the origin allowed", got)
+	}
+}
