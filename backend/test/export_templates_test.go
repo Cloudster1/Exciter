@@ -208,9 +208,16 @@ func TestAWordExportGoesThroughATemplate(t *testing.T) {
 	}
 	theirBaseline := obj(t, want(t, owner.post(t, "/api/v1/projects/"+other+"/baselines", map[string]any{"name": "Theirs"}), http.StatusCreated, "take a baseline there"), "baseline")
 	refuse422(t, "changes since another project's baseline", owner.get(t, "/api/v1/projects/"+s.key+"/document.docx?template="+id+"&since="+theirBaseline["id"].(string)), "since")
+	// The owner wrote the requirement and never approves it, so somebody else must.
+	approver := s.f.h.addPerson(t, "member")
+	var sessionProject uuid.UUID
+	if err := s.f.h.super.QueryRow(t.Context(), `SELECT id FROM project WHERE key = $1`, s.key).Scan(&sessionProject); err != nil {
+		t.Fatal(err)
+	}
+	s.f.h.grantAs(t, sessionProject, approver, "reviewer")
 	session := obj(t, want(t, owner.post(t, "/api/v1/projects/"+s.key+"/review-sessions", map[string]any{
 		"title": "Round", "scope": map[string]any{"kind": "section", "rootKey": s.key + "-R1"}, "deadline": time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339),
-		"participants": []map[string]any{{"subjectType": "user", "userId": s.f.plain.user, "role": "approver"}},
+		"participants": []map[string]any{{"subjectType": "user", "userId": approver, "role": "approver"}},
 	}),
 		http.StatusCreated, "open a review session"), "session")
 	report := want(t, owner.get(t, "/api/v1/review-sessions/"+session["id"].(string)+"/report.docx?template="+id), http.StatusOK, "the session's report through it")
