@@ -2,6 +2,8 @@ package rql
 
 import (
 	"errors"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -257,4 +259,61 @@ func TestDistance(t *testing.T) {
 	if got := nearest("Statuss", sample().Fields()); got != "status" {
 		t.Errorf("got %q", got)
 	}
+}
+
+// A marker left behind would reach Postgres as text, and a count that disagrees with the highest $N would fail there.
+func TestEveryAttributeKindPlacesEveryMarker(t *testing.T) {
+	var queries []string
+	for _, name := range []string{"Risk", "Story points", "Due", "Reviewer", "Safety", "Notes", "Detail", "Tags"} {
+		for _, op := range []string{"IS EMPTY", "IS NOT EMPTY", "= x", "!= x", "~ x", "IN (x, y)", "NOT IN (x)", "> 3", "<= 3"} {
+			queries = append(queries, `"`+name+`" `+op)
+		}
+	}
+	queries = append(queries, `"Tags" = ui`, `"Safety" = true`, `"Due" < startOfMonth()`, `"Risk" = low ORDER BY "Risk", "Tags"`)
+	for _, in := range queries {
+		q, err := Parse(in)
+		if err != nil {
+			continue
+		}
+		c, err := q.Compile(sample(), Env{UserID: me, Now: testNow})
+		if err != nil {
+			continue // the operator does not fit the kind, which the catalog refuses
+		}
+		sql, args := c.SQL(1)
+		if strings.Contains(sql, markDelim) {
+			t.Errorf("%q left a marker in %s", in, sql)
+		}
+		if highest := highestParam(sql); highest != len(args) {
+			t.Errorf("%q binds %d values but uses up to $%d in %s", in, len(args), highest, sql)
+		}
+		for _, o := range c.PlaceOrder(func(any) string { return "$1" }) {
+			if strings.Contains(o.SQL, markDelim) {
+				t.Errorf("%q left a marker in order %s", in, o.SQL)
+			}
+		}
+	}
+}
+
+func highestParam(sql string) int {
+	highest := 0
+	for _, m := range regexp.MustCompile(`\$(\d+)`).FindAllStringSubmatch(sql, -1) {
+		n, _ := strconv.Atoi(m[1])
+		highest = max(highest, n)
+	}
+	return highest
+}
+
+func TestAFragmentWithALiteralQuestionMarkSurvivesPlacing(t *testing.T) {
+	if got := replace("a ?0 b ? c", []string{"$1"}); got != "a ?0 b ? c" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestAMarkerPastTheValuesIsABug(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil || !strings.Contains(r.(string), "bind marker 2 past 1 values") {
+			t.Errorf("recovered %v", r)
+		}
+	}()
+	replace(markDelim+"2"+markDelim, []string{"$1"})
 }
