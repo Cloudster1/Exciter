@@ -27,6 +27,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The development realm is Dynamo's again, now with the Rotor client and
   its administrators' group, so the gate's realm check passes (#482).
 
+### Fixed
+
+- A coverage floor goes down only through the commit that lowers it, with a
+  trailer of its own naming the floor and the value it sets, as
+  `Floor-lowered: web-lines 86 <reason>`, and, once the layer has run, only
+  to the measured total rounded down. One trailer no longer lets a floor fall
+  by any amount, or covers a later drop on the same branch (#466).
+
 ## [0.3.0] - 2026-10-30
 
 ### Added
