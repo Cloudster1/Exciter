@@ -304,7 +304,7 @@ func (s *Server) requireMCPAuth(next http.Handler) http.Handler {
 		if s.OAuth != nil {
 			if on, err := s.OAuth.Enabled(r.Context()); err == nil && on {
 				challenge := `Bearer resource_metadata="` + s.OAuth.ResourceMetadata() + `", scope="` + oauth.ScopeMCP + `"`
-				if credentialFrom(r, s.CookieName) != "" {
+				if secret, _ := credentialFrom(r, s.CookieName); secret != "" {
 					challenge += `, error="invalid_token"`
 				}
 				w.Header().Set("WWW-Authenticate", challenge)
