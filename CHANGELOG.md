@@ -26,6 +26,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 - The development realm is Dynamo's again, now with the Rotor client and
   its administrators' group, so the gate's realm check passes (#482).
+- The web tests pin vitest to exactly the version of its coverage provider,
+  5.0.5, so a lock file refresh can no longer move one without the other
+  (#468).
 
 ### Fixed
 

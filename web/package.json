@@ -52,7 +52,7 @@
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.71.0",
     "vite": "^6.4.5",
-    "vitest": "^5.0.5"
+    "vitest": "5.0.5"
   },
   "overrides": {
     "@tiptap/extension-bubble-menu": "3.31.3",
