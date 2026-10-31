@@ -126,7 +126,7 @@ func TestASessionDecisionAsksForTheApproveRight(t *testing.T) {
 }
 
 // The service's refusal is not the guard: an editor opening a session straight through SQL, naming a group of their
-// own to approve with a quorum of one, still may not decide its reviews.
+// own to approve with a quorum of one, may not pin a review for it, nor decide one it held the right for when pinned.
 func TestRawSQLRefusesASessionDecisionWithoutTheApproveRight(t *testing.T) {
 	s := newSessionScene(t, "RAQ")
 	ctx := context.Background()
@@ -148,12 +148,26 @@ func TestRawSQLRefusesASessionDecisionWithoutTheApproveRight(t *testing.T) {
 	if _, err := tx.Exec(ctx, `INSERT INTO review_session_round (session_id, number, started_by) VALUES ($1, 1, $2)`, session, s.bobID); err != nil {
 		t.Fatalf("bob starts the first round: %v", err)
 	}
+	if _, err := tx.Exec(ctx, `SAVEPOINT unreached`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `SELECT review_session_pin($1, $2)`, session, s.r3ID); !refusedBy(err, "review_session_approvers") {
+		t.Errorf("bob pinned R3 for a group nobody in which may approve: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `ROLLBACK TO SAVEPOINT unreached`); err != nil {
+		t.Fatal(err)
+	}
+	s.h.grantGroupAs(t, s.projectID, own, "reviewer")
 	if err := tx.QueryRow(ctx, `SELECT review_session_pin($1, $2)`, session, s.r3ID).Scan(&review); err != nil {
 		t.Fatalf("bob pins R3: %v", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.h.super.Exec(ctx, `DELETE FROM role_assignment WHERE project_id = $1 AND group_id = $2`, s.projectID, own); err != nil {
+		t.Fatal(err)
+	}
+	s.h.settle(t)
 
 	var decidable bool
 	if err := bob.QueryRow(ctx, `SELECT review_decidable($1, $2)`, review, s.bobID).Scan(&decidable); err != nil || decidable {

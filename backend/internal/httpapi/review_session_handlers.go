@@ -3,6 +3,7 @@ package httpapi
 import (
 	"cmp"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -30,12 +31,23 @@ func sessionError(err error) *APIError {
 		return &APIError{Status: http.StatusConflict, Code: "nothing_revised",
 			Message: "Nothing in the session was revised since its last round. Revise a requirement, then start the next round."}
 	case errors.Is(err, review.ErrApproversReachNobody):
-		return &APIError{Status: http.StatusConflict, Code: "approvers_reach_nobody",
-			Message: "The session's approvers reach nobody who may approve a requirement, perhaps because a group was emptied. Close the session, and open a new one with approvers."}
+		return &APIError{Status: http.StatusConflict, Code: "approvers_reach_nobody", Message: approversMessage(err)}
 	case errors.Is(err, review.ErrTooManyRounds):
 		return &APIError{Status: http.StatusConflict, Code: "too_many_rounds", Message: "The session has had every round it takes. Close it, and open a new one."}
 	}
 	return nil
+}
+
+// approversMessage says why a round finds nobody to decide a requirement, and what the moderator can do about it.
+func approversMessage(err error) string {
+	var nobody *review.ApproversError
+	switch {
+	case !errors.As(err, &nobody):
+		return "The session's approvers reach nobody who may approve. Close the session, and open a new one with approvers who may."
+	case nobody.Author:
+		return fmt.Sprintf("The session's approvers reach nobody who may approve %s but the author of its current revision, and nobody approves their own. Close the session, and open a new one that names another approver too.", nobody.Key)
+	}
+	return fmt.Sprintf("The session's approvers reach nobody who may approve %s any more, perhaps because a group was emptied or its members lost the approve right. Close the session, and open a new one with approvers who may approve it.", nobody.Key)
 }
 
 func sessionID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
