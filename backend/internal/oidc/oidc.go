@@ -100,6 +100,9 @@ var (
 	// ErrUnknownLogin is returned for a callback whose state matches no login
 	// this server started, which is what a forged or replayed callback is.
 	ErrUnknownLogin = errors.New("that sign-in did not start here, or it has expired")
+	// ErrOtherBrowser is a callback in a browser that did not start its sign-in, which is how somebody would sign
+	// another person's browser in as themselves.
+	ErrOtherBrowser = errors.New("that sign-in started in another browser")
 	// ErrNoEmail is returned when the token carries no email. Without one the
 	// person cannot be shown to anybody or matched to a bootstrap account.
 	ErrNoEmail = errors.New("the identity provider did not send an email address")
@@ -118,6 +121,6 @@ var (
 	ErrNotFresh = errors.New("the identity provider did not ask you to sign in again")
 )
 
-// howLongALoginMayTake is long enough to type a password and answer a second
+// HowLongALoginMayTake is long enough to type a password and answer a second
 // factor, short enough that a captured link is useless later.
-const howLongALoginMayTake = 15 * time.Minute
+const HowLongALoginMayTake = 15 * time.Minute

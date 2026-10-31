@@ -138,6 +138,8 @@ type browser struct {
 	*http.Client
 	api       *apiServer
 	callbacks []string
+	// holdCallback stops where the provider sends the browser back, the way somebody captures a callback to replay.
+	holdCallback bool
 }
 
 func newBrowser(t *testing.T, a *apiServer) *browser {
@@ -150,6 +152,9 @@ func newBrowser(t *testing.T, a *apiServer) *browser {
 	b.Client = &http.Client{Jar: jar, Timeout: browserTimeout, CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 		if strings.HasSuffix(req.URL.Path, "/auth/oidc/callback") {
 			b.callbacks = append(b.callbacks, req.URL.String())
+			if b.holdCallback {
+				return http.ErrUseLastResponse
+			}
 		}
 		if req.URL.Host == appHost {
 			return http.ErrUseLastResponse

@@ -16,6 +16,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   a sentence saying so on `participants`. Before, somebody who could only
   edit could name a group they belonged to as the approvers and approve
   other people's requirements themselves (GHSA-rwjj-wh7p-9w85).
+- Single sign-on now finishes only in the browser that started it. A link
+  back from the identity provider opened in another browser signs nobody
+  in there and asks to start again, so nobody can sign somebody else's
+  browser in to their own account. A sign-in under way during the upgrade
+  has to be started again (GHSA-w953-w6gw-546r).
 
 ## [0.3.0] - 2026-10-30
 

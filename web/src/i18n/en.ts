@@ -142,6 +142,7 @@ export const en = {
       "Your identity provider knows you, but nobody has let you into Exciter yet. Your request is waiting for an administrator; sign in again once they have let you in.",
     failures: {
       expired: "That sign-in took too long or was already used. Start it again.",
+      other_browser: "That sign-in started in another browser, or this browser did not keep its cookie. Start it again here.",
       not_configured: "Exciter does not sign in through an identity provider yet. Sign in with a password, or ask an administrator to set one up.",
       no_email: "Your identity provider did not send an email address. Ask its administrator to release the email claim to Exciter.",
       unverified_email: "Your identity provider has not verified your email address. Verify it there, then sign in again.",

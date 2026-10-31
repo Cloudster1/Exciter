@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -253,6 +254,131 @@ func TestSignInRefusals(t *testing.T) {
 		h.letIn(t, aliceEmail, "member")
 		if landing := newBrowser(t, a).signIn(t, "alice", alicePassword, "//evil.test/login"); landing != "http://"+appHost+"/" {
 			t.Fatalf("landed on %q, want the application's own start", landing)
+		}
+	})
+}
+
+// A callback finishes only in the browser that started its sign-in: somebody who signs in at the provider as
+// themselves and carries the callback to another browser signs nobody in there, and does not spend the sign-in.
+func TestASignInFinishesOnlyInTheBrowserThatStartedIt(t *testing.T) {
+	h := newHarness(t)
+	kc := newKeycloak(t)
+	a := newAPIServer(t, h)
+	h.singleSignOn(t)
+	configureProvider(t, a, kc.issuer(), false)
+	h.letIn(t, aliceEmail, "member")
+	ctx := context.Background()
+	bindingCookie := h.cfg.Auth.SessionCookie + "_oidc"
+	callbackPath := httpapi.APIPrefix + "/auth/oidc/callback"
+	leftFor := func(t *testing.T, state string) int {
+		t.Helper()
+		return h.countRows(t, `SELECT count(*) FROM oidc_login WHERE state = $1`, state)
+	}
+	callbackState := func(t *testing.T, callback string) string {
+		t.Helper()
+		u, err := url.Parse(callback)
+		if err != nil || u.Query().Get("state") == "" {
+			t.Fatalf("no state in the callback %q (%v)", callback, err)
+		}
+		return u.Query().Get("state")
+	}
+
+	t.Run("the start hands the browser a secret only the callback is sent, and keeps its digest", func(t *testing.T) {
+		b := newBrowser(t, a)
+		b.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		resp, _ := b.get(t, a.URL+httpapi.APIPrefix+"/auth/oidc/start")
+		var bound *http.Cookie
+		for _, c := range resp.Cookies() {
+			if c.Name == bindingCookie {
+				bound = c
+			}
+		}
+		if bound == nil || bound.Value == "" {
+			t.Fatalf("the start set no %s cookie: %q", bindingCookie, resp.Header.Values("Set-Cookie"))
+		}
+		if !bound.HttpOnly || bound.SameSite != http.SameSiteLaxMode || bound.Path != callbackPath ||
+			bound.MaxAge != int(oidc.HowLongALoginMayTake.Seconds()) {
+			t.Errorf("the cookie is %+v, want HttpOnly, Lax, only for %s and as long as a sign-in may take", bound, callbackPath)
+		}
+		target, _ := url.Parse(resp.Header.Get("Location"))
+		state := target.Query().Get("state")
+		if n := h.countRows(t, `SELECT count(*) FROM oidc_login WHERE state = $1 AND browser_hash = $2`, state, auth.HashToken(bound.Value)); n != 1 {
+			t.Fatalf("logins under the cookie's digest = %d", n)
+		}
+		if n := h.countRows(t, `SELECT count(*) FROM oidc_login WHERE position(convert_to($1, 'UTF8') in browser_hash) > 0`, bound.Value); n != 0 {
+			t.Fatalf("the raw secret is stored: %d", n)
+		}
+	})
+
+	t.Run("the database refuses a sign-in bound to no browser", func(t *testing.T) {
+		_, err := h.super.Exec(ctx, `
+			INSERT INTO oidc_login (state, nonce, code_verifier, expires_at) VALUES (gen_random_uuid()::text, 'n', 'v', now() + interval '1 hour')`)
+		if err == nil {
+			t.Fatal("a sign-in without a browser's digest was stored")
+		}
+	})
+
+	// The attacker goes the whole way at the provider as alice, then keeps the callback instead of following it.
+	attacker := newBrowser(t, a)
+	attacker.holdCallback = true
+	callback := attacker.signIn(t, "alice", alicePassword, "/settings/members")
+	if !strings.HasSuffix(strings.SplitN(callback, "?", 2)[0], callbackPath) {
+		t.Fatalf("the provider sent the browser to %q, want the callback", callback)
+	}
+	state := callbackState(t, callback)
+	refused := "http://" + appHost + "/login?sso=other_browser"
+
+	t.Run("a browser holding no secret is refused and signed in as nobody", func(t *testing.T) {
+		victim := newBrowser(t, a)
+		resp, _ := victim.get(t, callback)
+		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != refused {
+			t.Fatalf("the callback in another browser = %s to %q, want %q", resp.Status, resp.Header.Get("Location"), refused)
+		}
+		if victim.sessionCookie(t) != "" {
+			t.Fatal("the callback in another browser set a session cookie")
+		}
+		if n := leftFor(t, state); n != 1 {
+			t.Fatalf("the refused callback spent the sign-in: %d left", n)
+		}
+	})
+
+	t.Run("a browser holding the secret of a sign-in of its own is refused too", func(t *testing.T) {
+		victim := newBrowser(t, a)
+		victim.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		resp, _ := victim.get(t, a.URL+httpapi.APIPrefix+"/auth/oidc/start")
+		if resp.StatusCode != http.StatusFound {
+			t.Fatalf("the victim's own start = %s", resp.Status)
+		}
+		resp, _ = victim.get(t, callback)
+		if resp.Header.Get("Location") != refused {
+			t.Fatalf("the callback in a browser with its own sign-in went to %q, want %q", resp.Header.Get("Location"), refused)
+		}
+		if victim.sessionCookie(t) != "" {
+			t.Fatal("the callback in another browser set a session cookie")
+		}
+		if n := leftFor(t, state); n != 1 {
+			t.Fatalf("the refused callback spent the sign-in: %d left", n)
+		}
+	})
+
+	t.Run("the browser that started it signs in, and keeps no secret after", func(t *testing.T) {
+		attacker.holdCallback = false
+		resp, _ := attacker.get(t, callback)
+		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "http://"+appHost+"/settings/members" {
+			t.Fatalf("the callback in its own browser = %s to %q", resp.Status, resp.Header.Get("Location"))
+		}
+		h.settle(t)
+		if status, me := attacker.me(t); status != http.StatusOK {
+			t.Fatalf("/auth/me after the callback = %d %v", status, me)
+		}
+		u, _ := url.Parse(a.URL + callbackPath)
+		for _, c := range attacker.Jar.Cookies(u) {
+			if c.Name == bindingCookie {
+				t.Fatalf("the browser still holds %s after its callback", bindingCookie)
+			}
+		}
+		if n := leftFor(t, state); n != 0 {
+			t.Fatalf("the sign-in outlived its callback: %d left", n)
 		}
 	})
 }

@@ -39,6 +39,13 @@ describe("the sign-in page", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("That sign-in took too long or was already used. Start it again.");
   });
 
+  it("asks for a sign-in that came back to another browser to start again in this one", async () => {
+    stubApi({ "GET /auth/me": unauthorized });
+    await renderAt("/login?sso=other_browser", { me: null });
+    expect(await screen.findByRole("alert")).toHaveTextContent("That sign-in started in another browser");
+    expect(screen.getByRole("link", { name: "Continue with single sign-on" })).toBeInTheDocument();
+  });
+
   it("tells somebody not yet let in that their request waits for an administrator", async () => {
     stubApi({ "GET /auth/me": unauthorized });
     const router = await renderAt("/login?sso=not_a_member", { me: null });
