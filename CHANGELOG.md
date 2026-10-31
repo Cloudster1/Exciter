@@ -29,6 +29,10 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The Go coverage totals are rounded down to one decimal, as the web ones
+  are, so a total just below its floor fails: 75.96% no longer reads as 76.0
+  and passes a floor of 76. The web total is cut down the same way and reads
+  87.1 rather than 87.15 (#465).
 - A coverage floor goes down only through the commit that lowers it, with a
   trailer of its own naming the floor and the value it sets, as
   `Floor-lowered: web-lines 86 <reason>`, and, once the layer has run, only

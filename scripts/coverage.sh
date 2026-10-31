@@ -22,17 +22,19 @@ case "$kind" in
         pkg = $1; sub(/\/[^\/]*$/, "", pkg); sub(/^github.com\/cloudster1\/exciter\/backend\//, "", pkg)
         owner[key] = pkg
       }
+      # Cut down, never rounded up, so a total just below its floor cannot read as the floor (#465).
+      function down(c, t) { return t ? int(1000 * c / t) / 10 : 0 }
       END {
         for (k in stmts) { p = owner[k]; all[p] += stmts[k]; total += stmts[k]; if (k in hit) { got[p] += stmts[k]; covered += stmts[k] } }
-        printf "total\t%.1f\t%d\n", (total ? 100 * covered / total : 0), total
-        for (p in all) printf "%s\t%.1f\t%d\n", p, 100 * got[p] / all[p], all[p] | "sort"
+        printf "total\t%.1f\t%d\n", down(covered, total), total
+        for (p in all) printf "%s\t%.1f\t%d\n", p, down(got[p], all[p]), all[p] | "sort"
       }' "$source" > "$out"
     ;;
   web)
     # Lines per file, gathered by the folder under src/ a file sits in two levels down, as features/dashboard.
     jq -r '
       . as $all
-      | "total\t\($all.total.lines.pct)\t\($all.total.lines.total)",
+      | "total\t\(if $all.total.lines.total > 0 then (1000 * $all.total.lines.covered / $all.total.lines.total | floor) / 10 else 0 end)\t\($all.total.lines.total)",
         ([to_entries[] | select(.key != "total")
           | {dir: (.key | sub(".*/web/src/"; "") | split("/") | .[0:2] | map(select(test("\\.") | not)) | join("/") | if . == "" then "src" else . end),
              total: .value.lines.total, covered: .value.lines.covered}]
