@@ -263,13 +263,23 @@ func TestDistance(t *testing.T) {
 
 // A marker left behind would reach Postgres as text, and a count that disagrees with the highest $N would fail there.
 func TestEveryAttributeKindPlacesEveryMarker(t *testing.T) {
+	names := []string{"Risk", "Story points", "Due", "Reviewer", "Safety", "Notes", "Detail", "Tags"}
 	var queries []string
-	for _, name := range []string{"Risk", "Story points", "Due", "Reviewer", "Safety", "Notes", "Detail", "Tags"} {
+	for _, name := range names {
 		for _, op := range []string{"IS EMPTY", "IS NOT EMPTY", "= x", "!= x", "~ x", "IN (x, y)", "NOT IN (x)", "> 3", "<= 3"} {
 			queries = append(queries, `"`+name+`" `+op)
 		}
 	}
 	queries = append(queries, `"Tags" = ui`, `"Safety" = true`, `"Due" < startOfMonth()`, `"Risk" = low ORDER BY "Risk", "Tags"`)
+	// Queries the catalog refuses are skipped, so every attribute must still reach the check at least once.
+	compiled := map[string]bool{}
+	defer func() {
+		for _, name := range names {
+			if !compiled[name] {
+				t.Errorf("no query on %q compiled, so its markers were never checked", name)
+			}
+		}
+	}()
 	for _, in := range queries {
 		q, err := Parse(in)
 		if err != nil {
@@ -278,6 +288,11 @@ func TestEveryAttributeKindPlacesEveryMarker(t *testing.T) {
 		c, err := q.Compile(sample(), Env{UserID: me, Now: testNow})
 		if err != nil {
 			continue // the operator does not fit the kind, which the catalog refuses
+		}
+		for _, name := range names {
+			if strings.HasPrefix(in, `"`+name+`"`) {
+				compiled[name] = true
+			}
 		}
 		sql, args := c.SQL(1)
 		if strings.Contains(sql, markDelim) {
