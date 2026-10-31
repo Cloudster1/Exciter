@@ -29,6 +29,9 @@ func sessionError(err error) *APIError {
 	case errors.Is(err, review.ErrNothingRevised):
 		return &APIError{Status: http.StatusConflict, Code: "nothing_revised",
 			Message: "Nothing in the session was revised since its last round. Revise a requirement, then start the next round."}
+	case errors.Is(err, review.ErrApproversReachNobody):
+		return &APIError{Status: http.StatusConflict, Code: "approvers_reach_nobody",
+			Message: "The session's approvers reach nobody who may approve a requirement, perhaps because a group was emptied. Close the session, and open a new one with approvers."}
 	case errors.Is(err, review.ErrTooManyRounds):
 		return &APIError{Status: http.StatusConflict, Code: "too_many_rounds", Message: "The session has had every round it takes. Close it, and open a new one."}
 	}

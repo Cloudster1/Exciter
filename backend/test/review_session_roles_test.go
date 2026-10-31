@@ -499,3 +499,44 @@ func TestRawSQLKeepsASessionToItsOpening(t *testing.T) {
 		}
 	})
 }
+
+// Approvers who reach nobody would pin reviews that can never be decided, so the session is refused, and the
+// database refuses the pin too.
+func TestASessionsApproversMustReachSomebody(t *testing.T) {
+	s := newSessionScene(t, "RSN")
+	approvers := func(group uuid.UUID) map[string]any {
+		return s.body(map[string]any{"participants": []map[string]any{{"subjectType": "group", "groupId": group, "role": "approver"}}})
+	}
+	empty := s.h.makeGroup(t, "Nobody")
+	s.h.grantGroupAs(t, s.projectID, empty, "reviewer")
+	alone := s.h.makeGroup(t, "Only the author", s.ownerID)
+	s.h.grantGroupAs(t, s.projectID, alone, "reviewer")
+
+	for name, group := range map[string]uuid.UUID{"an empty group": empty, "a group of the requirements' author": alone} {
+		if msg := fieldError(t, s.open(t, s.bob, approvers(group)), "participants"); !strings.Contains(msg, "reach nobody") {
+			t.Errorf("%s: the refusal says %q", name, msg)
+		}
+	}
+	if n := s.sessionCount(t); n != 0 {
+		t.Errorf("the refusals opened %d sessions", n)
+	}
+
+	erinID := s.h.addPerson(t, "member")
+	if _, err := s.h.super.Exec(t.Context(), `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)`, empty, erinID); err != nil {
+		t.Fatal(err)
+	}
+	want(t, s.open(t, s.bob, approvers(empty)), http.StatusCreated, "a member makes the group reach somebody")
+
+	t.Run("straight through SQL", func(t *testing.T) {
+		pair := s.h.makeGroup(t, "Pair", s.ownerID, erinID)
+		s.h.grantGroupAs(t, s.projectID, pair, "reviewer")
+		session := obj(t, want(t, s.open(t, s.bob, approvers(pair)), http.StatusCreated, "bob opens a session"), "session")
+		if _, err := s.h.super.Exec(t.Context(), `DELETE FROM group_member WHERE group_id = $1 AND user_id = $2`, pair, erinID); err != nil {
+			t.Fatal(err)
+		}
+		bob := s.h.appConn(t, s.bobID)
+		if _, err := bob.Exec(t.Context(), `SELECT review_session_pin($1, $2)`, session["id"], s.r4ID); !refusedBy(err, "review_session_approvers") {
+			t.Errorf("a requirement was pinned for approvers who reach nobody: %v", err)
+		}
+	})
+}

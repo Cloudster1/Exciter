@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
@@ -46,6 +47,8 @@ var (
 	ErrNothingRevised = errors.New("nothing was revised since the last round")
 	// ErrTooManyRounds refuses a round past MaxSessionRounds.
 	ErrTooManyRounds = errors.New("the session has had every round it takes")
+	// ErrApproversReachNobody refuses pinning a requirement no approver could decide.
+	ErrApproversReachNobody = errors.New("the approvers reach nobody")
 )
 
 // SessionLimits bound a page of sessions.
@@ -259,6 +262,8 @@ func approversReached(ctx context.Context, tx db.DBTX, in []Participant) (int, e
 	return n, err
 }
 
+var errApproversReachNobody = &FieldError{Field: "participants", Message: "The approvers reach nobody. Name a person, or a group with members, who approves."}
+
 // OpenSession opens a review session over a scope, pinning each requirement it holds and asking its review of the
 // session's approvers, all in one transaction: either the session opens with every review, or nothing is written.
 func (s *Service) OpenSession(ctx context.Context, projectKey string, in SessionInput) (*Session, db.LSN, error) {
@@ -297,6 +302,8 @@ func (s *Service) OpenSession(ctx context.Context, projectKey string, in Session
 		}
 		if reached, err := approversReached(ctx, tx, in.Participants); err != nil {
 			return err
+		} else if reached == 0 {
+			return errApproversReachNobody
 		} else if reached > MaxSessionApprovers {
 			return &FieldError{Field: "participants", Message: fmt.Sprintf("The approvers reach %d people; a session takes at most %d.", reached, MaxSessionApprovers)}
 		}
@@ -342,7 +349,9 @@ func (s *Service) OpenSession(ctx context.Context, projectKey string, in Session
 				return fmt.Errorf("name who takes part: %w", err)
 			}
 		}
-		if err := pin(ctx, tx, actor, id, 1, "", kept); err != nil {
+		if err := pin(ctx, tx, actor, id, 1, "", kept); errors.Is(err, ErrApproversReachNobody) {
+			return errApproversReachNobody
+		} else if err != nil {
 			return err
 		}
 		if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionReviewSessionOpened, TargetType: "review_session", TargetID: &id, Actor: actor,
@@ -366,6 +375,10 @@ func pin(ctx context.Context, tx db.DBTX, actor, session uuid.UUID, round int, c
 	}
 	for _, it := range items {
 		if _, err := tx.Exec(ctx, `SELECT review_session_pin($1, $2)`, session, it.id); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.ConstraintName == "review_session_approvers" {
+				return ErrApproversReachNobody
+			}
 			return fmt.Errorf("pin %s: %w", it.key, err)
 		}
 	}

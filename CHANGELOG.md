@@ -7,6 +7,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A review session whose approvers reach nobody, such as an empty group or a
+  group whose only member wrote the requirements, is refused with a sentence
+  on `participants`, also straight in the database. Before, it opened with
+  reviews that could never be decided. A round started after a group was
+  emptied is refused the same way. (#463)
+
 ### Security
 
 - An approval or rejection in a review session now needs the approve right
