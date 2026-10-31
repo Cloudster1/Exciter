@@ -468,3 +468,122 @@ func TestTwoSendersPostEachDeliveryOnce(t *testing.T) {
 		}
 	}
 }
+
+// leaseHold keeps the bin answering long enough for a test to take a sender's deliveries over, inside sendTimeout.
+const leaseHold = 3 * time.Second
+
+// awaitPosts waits until the bin has taken n posts, and returns them.
+func awaitPosts(t *testing.T, bin string, n int) []received {
+	t.Helper()
+	deadline := time.Now().Add(deliveryWait)
+	for {
+		if got := binDeliveries(t, bin); len(got) >= n {
+			return got
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the bin took fewer than %d posts in %s", n, deliveryWait)
+		}
+		time.Sleep(workerIdle)
+	}
+}
+
+// A sender whose lease runs out mid-batch neither posts what another sender took over nor records an attempt it no
+// longer holds, so a failure is counted and retried once (#460).
+func TestASenderPastItsLeaseLeavesTheDeliveryToTheNext(t *testing.T) {
+	w := newCommentWorld(t, "HKC")
+	w.h.keepWebhooks(t)
+	h := w.h
+	ctx := context.Background()
+	// The world's own events would otherwise reach the webhook and add posts and failures to what is counted.
+	h.drained(t)
+	bin, address := hookBin(t)
+	binAnswersWith(t, bin, map[string]any{"status": http.StatusInternalServerError, "holdMs": leaseHold.Milliseconds()})
+	id, _ := makeHook(t, w.owner, "Slow", address, []string{w.key}, webhook.TopicRequirementRevised)
+	// Planted out of reach and made due together, so one sender claims both in one batch.
+	planted := []uuid.UUID{
+		plant(t, h, id, "pending", false, webhook.Version, 0, time.Hour),
+		plant(t, h, id, "pending", false, webhook.Version, 0, time.Hour),
+	}
+	svc := h.webhooks(t)
+	h.cleanupExec(t, h.super, `UPDATE webhook_delivery SET next_attempt_at = now() WHERE id = ANY($1)`, planted)
+	first := make(chan error, 1)
+	go func() {
+		_, err := svc.SendDue(ctx)
+		first <- err
+	}()
+
+	// While the first sender waits on one answer, both leases run out and another sender takes both over.
+	inFlight := awaitPosts(t, bin, 1)[0].Headers[webhook.DeliveryHeader]
+	h.cleanupExec(t, h.super, `UPDATE webhook_delivery SET next_attempt_at = now() WHERE id = ANY($1) AND state = 'pending'`, planted)
+	if _, err := svc.SendDue(ctx); err != nil {
+		t.Fatalf("the second sender failed: %v", err)
+	}
+	if err := <-first; err != nil {
+		t.Fatalf("the first sender failed: %v", err)
+	}
+	for _, d := range planted {
+		if state, _ := awaitDelivery(t, h, d); state != string(webhook.StateFailed) {
+			t.Errorf("delivery %s is %s, want failed", d, state)
+		}
+	}
+
+	seen := map[string]int{}
+	for _, d := range binDeliveries(t, bin) {
+		seen[d.Headers[webhook.DeliveryHeader]]++
+	}
+	for _, d := range planted {
+		// The post in flight when its lease ran out is the one sent again; the one still waiting is sent once.
+		wanted := 1
+		if d.String() == inFlight {
+			wanted = 2
+		}
+		if seen[d.String()] != wanted {
+			t.Errorf("delivery %s was posted %d times, want %d", d, seen[d.String()], wanted)
+		}
+	}
+	if n := failuresOf(t, h, id); n != len(planted) {
+		t.Errorf("the endpoint counts %d failures for %d failed deliveries", n, len(planted))
+	}
+	if n := h.countRows(t, `SELECT count(*) FROM webhook_delivery WHERE endpoint_id = $1 AND attempt = 2`, id); n != len(planted) {
+		t.Errorf("%d retries are queued for %d failed deliveries", n, len(planted))
+	}
+	if n := h.countRows(t, `SELECT count(*) FROM webhook_delivery WHERE endpoint_id = $1 AND attempt > 2`, id); n != 0 {
+		t.Errorf("%d attempts past the second are queued", n)
+	}
+}
+
+// An outcome recorded under a lease another sender has since taken writes nothing (#460).
+func TestRawSQLRecordsAnAttemptOnlyUnderTheLatestLease(t *testing.T) {
+	w := newCommentWorld(t, "HKG")
+	w.h.keepWebhooks(t)
+	h := w.h
+	ctx := context.Background()
+	_, address := hookBin(t)
+	id, _ := makeHook(t, w.owner, "Leased", address, []string{w.key}, webhook.TopicRequirementRevised)
+	delivery := plant(t, h, id, "pending", false, webhook.Version, 0, time.Hour)
+	var stale, current time.Time
+	if err := h.super.QueryRow(ctx, `SELECT next_attempt_at FROM webhook_delivery WHERE id = $1`, delivery).Scan(&stale); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.super.QueryRow(ctx, `UPDATE webhook_delivery SET next_attempt_at = next_attempt_at + interval '1 minute'
+		WHERE id = $1 RETURNING next_attempt_at`, delivery).Scan(&current); err != nil {
+		t.Fatal(err)
+	}
+	// The statement record runs, as backend/internal/webhook/deliver.go words it.
+	const recordAttempt = `
+		UPDATE webhook_delivery
+		SET state = 'failed', status = 500, error = 'x', next_attempt_at = NULL, attempted_at = now(), delivered_at = NULL
+		WHERE id = $1 AND state = 'pending' AND next_attempt_at = $2`
+	for _, c := range []struct {
+		lease time.Time
+		want  int64
+	}{{stale, 0}, {current, 1}, {current, 0}} {
+		tag, err := h.super.Exec(ctx, recordAttempt, delivery, c.lease)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tag.RowsAffected() != c.want {
+			t.Errorf("recording under the lease of %s wrote %d rows, want %d", c.lease, tag.RowsAffected(), c.want)
+		}
+	}
+}

@@ -7,6 +7,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A webhook delivery is posted once, and its failure counted once, when
+  more than one worker sends, as during a rollout. Before, a worker held up
+  by slow receivers could post deliveries another worker had already taken
+  over, so a receiver got them twice and an endpoint used up its retries and
+  was turned off sooner (#460).
+
 ### Security
 
 - An approval or rejection in a review session now needs the approve right
