@@ -260,8 +260,11 @@ func TestASessionsQuorumIsAShareOfItsApprovers(t *testing.T) {
 	s := newSessionScene(t, "RSU")
 	want(t, s.open(t, s.bob, s.body(nil)), http.StatusCreated, "a first session pins R3 and R4")
 	baselineID := obj(t, want(t, s.owner.post(t, s.baselines, map[string]any{"name": "Everything"}), http.StatusCreated, "take a baseline"), "baseline")["id"]
-	// The owner wrote R1 and is not counted, so the group's other two and dave make three.
-	group := s.h.makeGroup(t, "Approvers", s.ownerID, s.carolID, s.bobID)
+	// The owner wrote R1 and is not counted, so the group's other two and dave make three. Each member of an
+	// approver group approves in the project.
+	erinID := s.h.addPerson(t, "member")
+	s.h.grantAs(t, s.projectID, erinID, "reviewer")
+	group := s.h.makeGroup(t, "Approvers", s.ownerID, s.carolID, erinID)
 	session := obj(t, want(t, s.open(t, s.bob, s.body(map[string]any{
 		"scope":  map[string]any{"kind": "baseline", "baselineId": baselineID},
 		"quorum": 50,
