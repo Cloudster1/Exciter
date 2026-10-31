@@ -850,7 +850,8 @@ sign-in works in all three and Dynamo starts one Keycloak for its tests.
   development only; Keycloak refuses unknown top-level fields, so the README
   says so rather than the file.
 - **The partners' groups come along.** alice is also in
-  `armature-administrators` and `stator-administrators`, bob in `developers`,
+  `armature-administrators`, `rotor-administrators` and
+  `stator-administrators`, bob in `developers`,
   carol in `portal-owners` and `scrum-masters`, dave in `readers`. With
   `createGroups` Exciter makes those groups on sign-in; none is mapped to a
   role, so they change nobody's rights.

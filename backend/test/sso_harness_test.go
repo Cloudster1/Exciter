@@ -38,7 +38,7 @@ const (
 // alice's and carol's groups in the realm, sorted; the realm serves the whole suite, so the partners' groups
 // come along.
 var (
-	aliceGroups = []string{"armature-administrators", "engineering", "exciter-administrators", "stator-administrators"}
+	aliceGroups = []string{"armature-administrators", "engineering", "exciter-administrators", "rotor-administrators", "stator-administrators"}
 	carolGroups = []string{"portal-owners", "quality", "scrum-masters"}
 )
 
