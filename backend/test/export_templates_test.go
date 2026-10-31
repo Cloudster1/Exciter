@@ -210,7 +210,7 @@ func TestAWordExportGoesThroughATemplate(t *testing.T) {
 	refuse422(t, "changes since another project's baseline", owner.get(t, "/api/v1/projects/"+s.key+"/document.docx?template="+id+"&since="+theirBaseline["id"].(string)), "since")
 	session := obj(t, want(t, owner.post(t, "/api/v1/projects/"+s.key+"/review-sessions", map[string]any{
 		"title": "Round", "scope": map[string]any{"kind": "section", "rootKey": s.key + "-R1"}, "deadline": time.Now().Add(48 * time.Hour).UTC().Format(time.RFC3339),
-		"participants": []map[string]any{{"subjectType": "user", "userId": owner.user, "role": "approver"}},
+		"participants": []map[string]any{{"subjectType": "user", "userId": s.f.plain.user, "role": "approver"}},
 	}),
 		http.StatusCreated, "open a review session"), "session")
 	report := want(t, owner.get(t, "/api/v1/review-sessions/"+session["id"].(string)+"/report.docx?template="+id), http.StatusOK, "the session's report through it")

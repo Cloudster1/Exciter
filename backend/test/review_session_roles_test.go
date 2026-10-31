@@ -525,18 +525,13 @@ func TestASessionsApproversMustReachSomebody(t *testing.T) {
 	if _, err := s.h.super.Exec(t.Context(), `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2)`, empty, erinID); err != nil {
 		t.Fatal(err)
 	}
-	want(t, s.open(t, s.bob, approvers(empty)), http.StatusCreated, "a member makes the group reach somebody")
+	session := obj(t, want(t, s.open(t, s.bob, approvers(empty)), http.StatusCreated, "a member makes the group reach somebody"), "session")
 
-	t.Run("straight through SQL", func(t *testing.T) {
-		pair := s.h.makeGroup(t, "Pair", s.ownerID, erinID)
-		s.h.grantGroupAs(t, s.projectID, pair, "reviewer")
-		session := obj(t, want(t, s.open(t, s.bob, approvers(pair)), http.StatusCreated, "bob opens a session"), "session")
-		if _, err := s.h.super.Exec(t.Context(), `DELETE FROM group_member WHERE group_id = $1 AND user_id = $2`, pair, erinID); err != nil {
-			t.Fatal(err)
-		}
-		bob := s.h.appConn(t, s.bobID)
-		if _, err := bob.Exec(t.Context(), `SELECT review_session_pin($1, $2)`, session["id"], s.r4ID); !refusedBy(err, "review_session_approvers") {
-			t.Errorf("a requirement was pinned for approvers who reach nobody: %v", err)
-		}
-	})
+	// The group is emptied after the session opened, as a round would find it.
+	if _, err := s.h.super.Exec(t.Context(), `DELETE FROM group_member WHERE group_id = $1`, empty); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.h.appConn(t, s.bobID).Exec(t.Context(), `SELECT review_session_pin($1, $2)`, session["id"], s.r4ID); !refusedBy(err, "review_session_approvers") {
+		t.Errorf("a requirement was pinned for approvers who reach nobody: %v", err)
+	}
 }
