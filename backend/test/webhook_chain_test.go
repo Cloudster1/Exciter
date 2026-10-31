@@ -28,7 +28,7 @@ const (
 	sentenceTimeout   = "The receiver did not answer in time. Check that it is running, then send it again."
 	sentenceUnreached = "The receiver could not be reached. Check the address, then send it again."
 	sentenceNoSecret  = "The webhook's secret does not open with this server's key. Rotate the secret and give the receiver the new one."
-	sentenceBlocked   = "This address is inside the server's own network, so Exciter may not post to it. Use the receiver's public address, or ask the operator to add the host to EXCITER_OUTBOUND_ALLOW."
+	sentenceAnswered  = "The receiver answered %d. Check its log, then send it again."
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 	waitSlack = 5 * time.Second
 	// receiverHold keeps a bin from answering past the sender's ten second timeout.
 	receiverHold = 15 * time.Second
-	// innerAddress is where a redirect sends the sender: inside the network, which no allow list names.
+	// innerAddress is where a redirect points the sender: inside the network, which no allow list names.
 	innerAddress = "http://10.0.0.1/"
 	// sideBySide is how many due deliveries two senders share at once.
 	sideBySide = 50
@@ -394,7 +394,7 @@ func TestADeliveryInAnUnknownVersionIsNotRetried(t *testing.T) {
 	}
 }
 
-// A receiver that redirects into the network is refused there, and the log names no host or port inside it.
+// A receiver that redirects into the network is not followed there, and the log names no host or port inside it.
 func TestARedirectIntoTheNetworkIsRefused(t *testing.T) {
 	w := newCommentWorld(t, "HKZ")
 	w.h.keepWebhooks(t)
@@ -404,7 +404,8 @@ func TestARedirectIntoTheNetworkIsRefused(t *testing.T) {
 
 	sent := obj(t, want(t, w.owner.post(t, "/api/v1/webhooks/"+id+"/test", nil), http.StatusOK, "ping the bouncer"), "delivery")
 	why, _ := sent["error"].(string)
-	if sent["state"] != "failed" || sent["status"] != nil || why != sentenceBlocked {
+	if sent["state"] != "failed" || asNumber(sent["status"]) != http.StatusTemporaryRedirect ||
+		why != fmt.Sprintf(sentenceAnswered, http.StatusTemporaryRedirect) {
 		t.Errorf("a ping redirected into the network reads %v", sent)
 	}
 	for _, inner := range []string{"10.0.0.1", "armature-stub", ":8080", "/_hooks/"} {
@@ -585,5 +586,28 @@ func TestRawSQLRecordsAnAttemptOnlyUnderTheLatestLease(t *testing.T) {
 		if tag.RowsAffected() != c.want {
 			t.Errorf("recording under the lease of %s wrote %d rows, want %d", c.lease, tag.RowsAffected(), c.want)
 		}
+	}
+}
+
+// A receiver that redirects is answered as it answered: the delivery fails with its status, and the place it names
+// is never posted the signed body (#462).
+func TestARedirectIsNotFollowed(t *testing.T) {
+	w := newCommentWorld(t, "HKH")
+	w.h.keepWebhooks(t)
+	bin, address := hookBin(t)
+	elsewhere, onward := hookBin(t)
+	binAnswersWith(t, bin, map[string]any{"status": http.StatusTemporaryRedirect, "location": onward})
+	id, _ := makeHook(t, w.owner, "Forwarder", address, []string{w.key}, webhook.TopicRequirementRevised)
+
+	sent := obj(t, want(t, w.owner.post(t, "/api/v1/webhooks/"+id+"/test", nil), http.StatusOK, "ping the forwarder"), "delivery")
+	if sent["state"] != "failed" || asNumber(sent["status"]) != http.StatusTemporaryRedirect ||
+		sent["error"] != fmt.Sprintf(sentenceAnswered, http.StatusTemporaryRedirect) {
+		t.Errorf("a redirected ping reads %v", sent)
+	}
+	if got := binDeliveries(t, bin); len(got) != 1 {
+		t.Errorf("the forwarder was posted %d times, want once", len(got))
+	}
+	if got := binDeliveries(t, elsewhere); len(got) != 0 {
+		t.Errorf("the place the redirect names was posted %d times", len(got))
 	}
 }

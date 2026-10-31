@@ -84,6 +84,7 @@ var installationWide = map[string]string{
 	"TestTwoSendersPostEachDeliveryOnce":                         webhookEndpoints,
 	"TestASenderPastItsLeaseLeavesTheDeliveryToTheNext":          webhookEndpoints,
 	"TestRawSQLRecordsAnAttemptOnlyUnderTheLatestLease":          webhookEndpoints,
+	"TestARedirectIsNotFollowed":                                 webhookEndpoints,
 	"TestSavingAndRotatingAreAuditedWithoutTheSecret":            webhookEndpoints,
 	"TestWebhookOperationsRefuseABadIdAndAProjectsToken":         webhookEndpoints,
 	"TestAMoveReachesTheWebhooksOfBothProjects":                  webhookEndpoints,

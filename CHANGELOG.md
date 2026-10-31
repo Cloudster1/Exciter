@@ -14,6 +14,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
   by slow receivers could post deliveries another worker had already taken
   over, so a receiver got them twice and an endpoint used up its retries and
   was turned off sooner (#460).
+- A webhook delivery no longer follows a redirect. A receiver that answers
+  3xx has the delivery logged as failed with that status, and the signed
+  body is never posted to a host the webhook does not name (#462).
 
 ### Security
 

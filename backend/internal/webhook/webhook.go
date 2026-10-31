@@ -287,7 +287,10 @@ func NewService(cluster *db.Cluster, box *secret.Box, opts Options) *Service {
 		opts.Log = slog.Default()
 	}
 	opts.AppURL = strings.TrimSuffix(opts.AppURL, "/")
-	return &Service{db: cluster, box: box, client: netguard.Client(sendTimeout, opts.Allow), opts: opts, now: time.Now}
+	client := netguard.Client(sendTimeout, opts.Allow)
+	// A redirect would post the signed body to a host the endpoint does not name, so a 3xx is an answer, logged as one.
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return &Service{db: cluster, box: box, client: client, opts: opts, now: time.Now}
 }
 
 // sealContext binds a sealed secret to its installation and endpoint, so a copy onto another row does not open.
