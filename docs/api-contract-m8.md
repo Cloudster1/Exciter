@@ -384,7 +384,10 @@ what it reads already.
   - A group's members take part as the group's members are when they act,
     as review approvers do.
   - Somebody who may not view the project is 422 on `participants`, so is
-    an approver without the approve right.
+    an approver without the approve right, and a group with a member who
+    lacks the right its role asks for. Membership changes, so a decision
+    on a session's review asks for the approve right again when it is
+    made (`review_decidable`).
 - **The quorum** is the share of approvers each requirement needs, in
   percent, 1 to 100, 100 by default. Each review requires the ceiling of
   that share of the people the approvers reach when the session opens,

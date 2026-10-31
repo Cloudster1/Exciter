@@ -72,8 +72,8 @@ func checkDeadline(deadline *time.Time, now time.Time) error {
 	return nil
 }
 
-// checkParticipants holds participants to people who are members and groups that exist, each once in one role, with
-// at least one approver.
+// checkParticipants holds participants to members, and groups of members, who may do what their role asks in the
+// project, each named once in one role, with at least one approver.
 func checkParticipants(ctx context.Context, tx db.DBTX, projectID uuid.UUID, in []Participant) error {
 	if len(in) == 0 || len(in) > MaxSessionParticipants {
 		return &FieldError{Field: "participants", Message: fmt.Sprintf("Name 1 to %d people or groups who take part.", MaxSessionParticipants)}
@@ -93,7 +93,15 @@ func checkParticipants(ctx context.Context, tx db.DBTX, projectID uuid.UUID, in 
 			id, query = p.UserID, `SELECT EXISTS (SELECT 1 FROM app_user WHERE id = $1 AND role IS NOT NULL AND is_active)
 				AND perm_project_holds($2, $1, CASE WHEN $3 THEN 'approve' ELSE 'comment' END)`
 		case SubjectGroup:
-			id, query = p.GroupID, `SELECT EXISTS (SELECT 1 FROM groups WHERE id = $1) AND $2::uuid IS NOT NULL AND $3::boolean IS NOT NULL`
+			// The contract asks that everybody named can do what the session asks, and every member of an approver
+			// group counts towards the quorum, so one member without the right is enough to refuse the group. Who is
+			// in it may change later, which review_decidable answers when somebody decides. A member whose account
+			// cannot be read is held to the right too, so a hidden row never lets a group through.
+			id, query = p.GroupID, `SELECT EXISTS (SELECT 1 FROM groups WHERE id = $1) AND NOT EXISTS (
+				SELECT 1 FROM group_member m
+				WHERE m.group_id = $1
+				  AND NOT EXISTS (SELECT 1 FROM app_user u WHERE u.id = m.user_id AND (u.role IS NULL OR NOT u.is_active))
+				  AND NOT perm_project_holds($2, m.user_id, CASE WHEN $3 THEN 'approve' ELSE 'comment' END))`
 		default:
 			return &FieldError{Field: "participants", Message: "A participant is a person or a group."}
 		}
@@ -111,6 +119,9 @@ func checkParticipants(ctx context.Context, tx db.DBTX, projectID uuid.UUID, in 
 		var ok bool
 		if err := tx.QueryRow(ctx, query, *id, projectID, p.Role == RoleApprover).Scan(&ok); err != nil {
 			return err
+		}
+		if !ok && p.Type == SubjectGroup {
+			return &FieldError{Field: "participants", Message: "A group may not take part while one of its members may not: a reviewer comments in the project, and an approver approves in it. Pick another group, or ask an administrator to grant its members that right."}
 		}
 		if !ok {
 			return &FieldError{Field: "participants", Message: "A participant may not take part: a reviewer comments in the project, and an approver approves in it. Pick them again."}

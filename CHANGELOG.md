@@ -9,11 +9,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Security
 
+- An approval or rejection in a review session now needs the approve right
+  in the project, checked when the decision is made, also straight in the
+  database. A group named to approve, or to review, is refused when the
+  session opens unless every member holds the right its role asks for, with
+  a sentence saying so on `participants`. Before, somebody who could only
+  edit could name a group they belonged to as the approvers and approve
+  other people's requirements themselves (GHSA-rwjj-wh7p-9w85).
 - Single sign-on now finishes only in the browser that started it. A link
   back from the identity provider opened in another browser signs nobody
   in there and asks to start again, so nobody can sign somebody else's
   browser in to their own account. A sign-in under way during the upgrade
-  has to be started again.
+  has to be started again (GHSA-w953-w6gw-546r).
 
 ## [0.3.0] - 2026-10-30
 
