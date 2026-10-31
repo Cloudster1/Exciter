@@ -44,7 +44,7 @@ var (
 	ErrSection = errors.New("a section is not reviewed")
 	// ErrClosed refuses acting on a review no longer pending.
 	ErrClosed = errors.New("that review is no longer pending")
-	// ErrNotApprover refuses a decision by somebody the review does not name.
+	// ErrNotApprover refuses a decision by somebody the review does not name, or a session approver without approve.
 	ErrNotApprover = errors.New("only an approver the review names decides it")
 	// ErrOwnRevision refuses the author of the revision deciding on it when the rule does not allow it.
 	ErrOwnRevision = errors.New("the author of the revision may not decide on it")
@@ -677,8 +677,9 @@ func (s *Service) Decide(ctx context.Context, id uuid.UUID, in DecisionInput) (*
 		if err != nil {
 			return err
 		}
-		var named bool
-		if err := tx.QueryRow(ctx, `SELECT review_names($1, $2)`, id, actor).Scan(&named); err != nil {
+		// review_decidable also asks a session's approver for the approve right, which naming them does not prove.
+		var named, decidable bool
+		if err := tx.QueryRow(ctx, `SELECT review_names($1, $2), review_decidable($1, $2)`, id, actor).Scan(&named, &decidable); err != nil {
 			return err
 		}
 		switch {
@@ -690,6 +691,8 @@ func (s *Service) Decide(ctx context.Context, id uuid.UUID, in DecisionInput) (*
 			return ErrNotApprover
 		case !h.authorMayApprove && h.author != nil && *h.author == actor:
 			return ErrOwnRevision
+		case !decidable:
+			return ErrNotApprover
 		}
 		if signed {
 			if err := sign(ctx, tx, actor, id, h, in); err != nil {

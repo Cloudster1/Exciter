@@ -195,7 +195,7 @@ func importTitles(t *testing.T, c *client, projectKey string, titles []string) {
 	}
 }
 
-// crowd makes n people in one group, gone with the test.
+// crowd makes n people in one group who approve in the scene's project, gone with the test.
 func (s *sessionScene) crowd(t *testing.T, n int) uuid.UUID {
 	t.Helper()
 	rows, err := s.h.super.Query(t.Context(), `INSERT INTO app_user (email, name, role)
@@ -213,7 +213,9 @@ func (s *sessionScene) crowd(t *testing.T, n int) uuid.UUID {
 		ids = append(ids, id)
 	}
 	rows.Close()
-	return s.h.makeGroup(t, "Crowd", ids...)
+	group := s.h.makeGroup(t, "Crowd", ids...)
+	s.h.grantGroupAs(t, s.projectID, group, "reviewer")
+	return group
 }
 
 func TestASessionIsRefusedPastItsLimits(t *testing.T) {
