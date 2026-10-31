@@ -9,11 +9,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- A review session whose approvers reach nobody, such as an empty group or a
-  group whose only member wrote the requirements, is refused with a sentence
-  on `participants`, also straight in the database. Before, it opened with
-  reviews that could never be decided. A round started after a group was
-  emptied is refused the same way. (#463)
+- A review session whose approvers reach nobody who may decide, such as an
+  empty group, a group whose members are all deactivated, or only the
+  author of a requirement, is refused with a sentence on `participants`
+  that says which, also straight in the database. Before, it opened with
+  reviews that could never be decided. A round that finds a requirement so,
+  after a group was emptied or when its only approver revised it, is
+  refused with 409 `approvers_reach_nobody` naming the requirement. The
+  quorum now counts only the approvers who may decide. (#463)
 
 ### Security
 
