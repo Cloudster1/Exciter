@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tests for scripts/coverage.sh and tests/test-coverage-floors.sh: a total just below its floor fails (#465), and a
-# floor goes down only through its own commit's trailer at the value it sets (#466), on throwaway trees.
+# floor goes down only through its own commit's trailer, to the measured total rounded down (#466), on throwaway trees.
 set -u
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
@@ -122,14 +122,35 @@ floor_commit 84 "feat: something unrelated"
 check "a second, untrailed drop after a trailed one fails" "$(floors_check)" 1
 
 fresh
-floor_commit 85 "build: count lines differently
+(cd "${REPO}" && git rm -q coverage/web-lines.floor && git commit -qm "chore: drop the web floor") || fixture_failed "deleting a floor"
+check "a floor deleted since main fails" "$(floors_check)" 1
 
-Floor-lowered: web-lines 85 the provider counts fewer lines"
-mkdir -p "${REPO}/reports"
-printf 'total\t85.4\t100\nfloor\t85\n' > "${REPO}/reports/coverage-web-lines.tsv"
-check "a lowered floor at the measured total rounded down passes" "$(floors_check)" 0
-printf 'total\t86.3\t100\nfloor\t85\n' > "${REPO}/reports/coverage-web-lines.tsv"
-check "a lowered floor below the measured total rounded down fails" "$(floors_check)" 1
+echo "== scripts/coverage.sh holds a floor lowered since main to the measured total rounded down"
+
+# A repository whose main holds web-lines at 86, so the floor in the working tree can sit below it.
+LOWERED="${W}/lowered"
+mkdir -p "${LOWERED}/scripts" "${LOWERED}/coverage" || fixture_failed "creating the lowered repository"
+cp "${SRC}/scripts/coverage.sh" "${LOWERED}/scripts/" || fixture_failed "copying coverage.sh"
+(cd "${LOWERED}" && echo 86 > coverage/web-lines.floor && git init -q && git add -A && git commit -qm "chore: floors") \
+    || fixture_failed "committing main's floor"
+
+lowered_coverage() { # floor in the working tree, or "none", then covered lines of 1000
+    if [[ "$1" == none ]]; then rm -f "${LOWERED}/coverage/web-lines.floor"; else echo "$1" > "${LOWERED}/coverage/web-lines.floor"; fi
+    web_summary "$2" 1000 0 > "${W}/lowered.json"
+    (cd "${LOWERED}" && COVERAGE_FLOORS_BASE="$(git rev-parse HEAD)" REPORTS="${LOWERED}/reports" \
+        ./scripts/coverage.sh web web-lines "${W}/lowered.json" > "${W}/out" 2>&1)
+    echo $?
+}
+
+check "a floor lowered to the measured total rounded down passes" "$(lowered_coverage 85 854)" 0
+check "a floor lowered below the measured total rounded down fails" "$(lowered_coverage 84 853)" 1
+check "the failure names the value to set" "$(grep -o 'set it to [0-9.]*' "${W}/out")" "set it to 85"
+check "a floor lowered where the total needs none fails" "$(lowered_coverage 85 863)" 1
+check "the failure says to set it back up" "$(grep -o 'needs no lower floor. Set it to [0-9.]*' "${W}/out")" "needs no lower floor. Set it to 86"
+check "a floor lowered to 0 fails, whatever its trailer says" "$(lowered_coverage 0 853)" 1
+check "a floor kept at main's passes above the total rounded down" "$(lowered_coverage 86 871)" 0
+check "a floor raised above main's passes below the total rounded down" "$(lowered_coverage 87 885)" 0
+check "a floor missing where main has one fails" "$(lowered_coverage none 871)" 1
 
 echo
 if (( FAILED )); then echo "FAIL: coverage"; exit 1; fi

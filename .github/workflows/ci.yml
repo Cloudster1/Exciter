@@ -54,7 +54,7 @@ jobs:
             shard: 2/2
             npm-cache: e2e
     steps:
-      # The release tests read tags, which a shallow checkout does not carry.
+      # The release tests read tags, and coverage.sh main's floors, which a shallow checkout does not carry.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0

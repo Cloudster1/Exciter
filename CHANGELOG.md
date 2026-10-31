@@ -42,9 +42,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   87.1 rather than 87.15 (#465).
 - A coverage floor goes down only through the commit that lowers it, with a
   trailer of its own naming the floor and the value it sets, as
-  `Floor-lowered: web-lines 86 <reason>`, and, once the layer has run, only
-  to the measured total rounded down. One trailer no longer lets a floor fall
-  by any amount, or covers a later drop on the same branch (#466).
+  `Floor-lowered: web-lines 86 <reason>`, and only to the measured total
+  rounded down, which the layer that measures it checks against main's floor.
+  One trailer no longer lets a floor fall by any amount, or covers a later
+  drop on the same branch, and a floor file deleted since main fails rather
+  than reading as 0 (#466).
 
 ## [0.3.0] - 2026-10-30
 
