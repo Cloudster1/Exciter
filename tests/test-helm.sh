@@ -169,6 +169,10 @@ check "diagrams are drawn by a pinned Kroki in its secure mode, which the api re
     "http://${RELEASE}-exciter-kroki:8000 2 1 1"
 check "without Kroki, diagrams show as their source" \
     "$(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set kroki.enabled=false 2>&1 | grep -cE 'EXCITER_KROKI_URL|component: kroki')" "0"
+with_shared_kroki=$(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set kroki.enabled=false --set kroki.url=http://suite-kroki:8000 2>&1)
+check "pointed at a Kroki the installation runs elsewhere, the api draws through it and the chart runs none" \
+    "$(config_value "${with_shared_kroki}" EXCITER_KROKI_URL) $(config_value "${with_shared_kroki}" EXCITER_KROKI_TIMEOUT) $(grep -c 'component: kroki' <<<"${with_shared_kroki}")" \
+    "http://suite-kroki:8000 10s 0"
 check "the installation keeps the name Exciter until one is given" \
     "$(grep -c 'EXCITER_NAME' <<<"${RENDERED}") $(helm template "${RELEASE}" /chart --set cnpg.enabled=true "${VALKEY[@]}" --set installation.name=Acme 2>&1 | grep -c 'EXCITER_NAME: "Acme"')" \
     "0 1"
@@ -273,6 +277,8 @@ echo "== Session cookies outside development"
 refused "plain cookies in production" \
     "auth.secureCookies is false and env is production, so the api and the worker would refuse to start. Set auth.secureCookies to true outside development" \
     --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false
+refused "the chart's own Kroki and another together" "kroki.enabled and kroki.url are both set" \
+    --set database.host=db.example "${VALKEY[@]}" --set kroki.url=http://suite-kroki:8000
 refused "plain cookies in staging" "auth.secureCookies is false and env is staging" \
     --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=staging
 render "plain cookies in development" --set database.host=db.example "${VALKEY[@]}" --set auth.secureCookies=false --set env=development

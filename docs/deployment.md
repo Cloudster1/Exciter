@@ -46,6 +46,13 @@ api prints through it at `<release>-render:8090`, bounded by
 `render.timeout`, `render.concurrency` and `render.maxSize`. Without it a PDF
 download says export is off in a sentence, and Word export works either way.
 
+Diagrams are drawn by a Kroki the chart runs at `<release>-kroki:8000`, in
+its secure mode and reached only by the api. To draw through one the
+installation runs elsewhere instead, turn `kroki.enabled` off and name it at
+`kroki.url`; the chart refuses both at once. Run that Kroki in secure mode
+with no egress too, since the api sends it whatever diagram source people
+write.
+
 Passwords and the key that seals stored secrets are made once by the secrets
 Job, in Secrets that outlive the release. `jobs.bootstrap.enabled` makes the
 installation (`installation.name`), its first administrator and, when named,
@@ -61,6 +68,7 @@ through one Keycloak realm. The values that wire Exciter in:
 | `bootstrap.oidc.issuer`, `clientId`, `clientSecret` | Sign-in through the realm, such as `https://sso.example.com/realms/dynamo`; the client secret is read from a Secret. |
 | `auth.oidcBackchannel` | Where this release reaches Keycloak when that is not the address the browser uses. |
 | `armature.url`, `stator.url` | The partners as people open them. The bootstrap Job connects each where nothing is connected yet, before it answers too, and leaves a connection an administrator changed alone. |
+| `kroki.enabled`, `kroki.url` | Draw diagrams through the one Kroki the suite runs: `kroki.enabled` off and `kroki.url` at its address (#451). |
 | `armature.backchannel`, `stator.backchannel` | Where this release reaches each partner inside the cluster. |
 | `armature.tokenExchange`, `stator.tokenExchange` | Connect each person to the partner at sign-in through the shared realm (#274), as `EXCITER_ARMATURE_TOKEN_EXCHANGE` and `EXCITER_STATOR_TOKEN_EXCHANGE`. Off by default. Each also needs Exciter's client id and secret at the partner on the connection, which the setup job stores with `PUT /api/v1/armature/connection` and `PUT /api/v1/stator/connection` (`clientId`, `clientSecret`), and the partner to list `oauth.token-exchange@1`. |
 
