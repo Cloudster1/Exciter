@@ -4,6 +4,7 @@ package test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -20,6 +21,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/demo"
+	"github.com/cloudster1/exciter/backend/internal/events"
 	"github.com/cloudster1/exciter/backend/internal/httpapi"
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
@@ -329,6 +331,23 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 		}
 	})
 
+	t.Run("the worker's handler runs the step an event names as the person who asked", func(t *testing.T) {
+		handle := demo.Handler(svc)
+		if err := handle(home.ctx, events.Event{Topic: demoTopic, Payload: json.RawMessage(`{"actorId": 3`)}); err == nil {
+			t.Error("an event that cannot be read ran")
+		}
+		payload, err := json.Marshal(map[string]any{"actorId": home.user, "step": 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := handle(context.Background(), events.Event{Topic: demoTopic, Payload: payload}); err != nil {
+			t.Fatal(err)
+		}
+		if d := read(t); d.State != demo.StateQueued || d.Step != 0 {
+			t.Errorf("the demo is %s at step %d", d.State, d.Step)
+		}
+	})
+
 	t.Run("each step queues the next, and the last ends the run", func(t *testing.T) {
 		for at := range steps {
 			if err := svc.Step(home.ctx, home.user, at); err != nil {
@@ -596,4 +615,10 @@ func TestEveryDrawingOfTheSuiteDemoDraws(t *testing.T) {
 		}
 	}
 	t.Logf("%d drawings", drawn)
+}
+
+func TestTheSuiteDemoShipsSpecificationsThatPassItsLint(t *testing.T) {
+	for _, err := range demo.LintEmbedded() {
+		t.Error(err)
+	}
 }
