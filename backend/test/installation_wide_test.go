@@ -132,7 +132,7 @@ var installationWide = map[string]string{
 	"TestRawSQLWallsStatorRows":                              statorLink,
 	"TestRequirementsAreTracedToStatorPages":                 statorLink,
 
-	"TestTheSuiteDemoIsBuiltAndLinked":                              armatureLink,
+	"TestTheSuiteDemoIsBuiltLinkedAndRun":                           armatureLink,
 	"TestTheSuiteDemoIsAddedOnce":                                   suiteDemo,
 	"TestTheSuiteDemoIsBuiltAStepAtATime":                           suiteDemo,
 	"TestRawSQLKeepsTheSuiteDemoToAdministrators":                   suiteDemo,
