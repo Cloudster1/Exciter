@@ -27,17 +27,28 @@ Preconditions: A project with two boards and a tester who administers it.
 | Open the second board and configure swimlanes by assignee. | The second board shows a lane per assignee. |
 | Open the first board. | The first board shows no swimlanes. |
 
-### TC-IF-1 A remote link shows on its issue
+### TC-BRD-3 Old finished work leaves the kanban board
 type: Test case
-verifies: IF-1
+verifies: FR-BRD-3
 automated: yes
 result: passed
 
-Preconditions: An issue the tester may edit, and a token that may write it.
+Preconditions: A kanban board that keeps finished work for 7 days, with one issue finished 10 days ago and one finished today.
 
 | Action | Expected |
 |---|---|
-| Add a remote link to the issue through the REST API, with relation `relation`. | The API answers 201 with the link. |
-| Open the issue. | The link shows under its relation with its title. |
+| Open the board. | Only the issue finished today shows in the done lane. |
+| Read the done lane's work-in-progress count. | It counts the one issue. |
 
-Parameters: relation = implements, verifies
+### TC-BRD-4 A quick filter shows only matching cards
+type: Test case
+verifies: FR-BRD-4
+automated: yes
+result: passed
+
+Preconditions: A board with cards of two assignees.
+
+| Action | Expected |
+|---|---|
+| Choose the quick filter Mine. | Only the tester's cards show. |
+| Clear the filter. | All cards show again. |
