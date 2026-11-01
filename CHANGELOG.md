@@ -22,6 +22,13 @@ and the versioning [Semantic Versioning](https://semver.org/).
   browser in to their own account. A sign-in under way during the upgrade
   has to be started again (GHSA-w953-w6gw-546r).
 
+### Added
+
+- The chart can draw diagrams through a Kroki the installation runs
+  elsewhere, such as the one a suite shares: turn `kroki.enabled` off and
+  name it at `kroki.url`, and the chart runs no Kroki of its own. Setting
+  both is refused with a sentence saying to pick one (#451).
+
 ### Changed
 
 - The development realm is Dynamo's again, now with the Rotor client and

@@ -217,6 +217,9 @@ not here; exciter.secretEnv hands them over by reference.
 {{- if and (ne .Values.env "development") (not .Values.auth.secureCookies) -}}
 {{- fail (printf "auth.secureCookies is false and env is %s, so the api and the worker would refuse to start. Set auth.secureCookies to true outside development, so the session cookie never travels in clear." .Values.env) -}}
 {{- end -}}
+{{- if and .Values.kroki.enabled .Values.kroki.url -}}
+{{- fail "kroki.enabled and kroki.url are both set, so the api could draw through only one of the two. Turn kroki.enabled off to use the Kroki at kroki.url, or leave kroki.url blank to run the chart's own." -}}
+{{- end -}}
 EXCITER_ENV: {{ .Values.env | quote }}
 EXCITER_LOG_LEVEL: {{ .Values.logLevel | quote }}
 EXCITER_APP_URL: {{ include "exciter.appURL" . | quote }}
@@ -272,8 +275,8 @@ EXCITER_RENDER_TIMEOUT: {{ .Values.render.timeout | quote }}
 EXCITER_RENDER_CONCURRENCY: {{ .Values.render.concurrency | quote }}
 EXCITER_RENDER_MAX_SIZE: {{ .Values.render.maxSize | quote }}
 {{- end }}
-{{- if .Values.kroki.enabled }}
-EXCITER_KROKI_URL: {{ printf "http://%s-kroki:8000" (include "exciter.fullname" .) | quote }}
+{{- if or .Values.kroki.enabled .Values.kroki.url }}
+EXCITER_KROKI_URL: {{ .Values.kroki.url | default (printf "http://%s-kroki:8000" (include "exciter.fullname" .)) | quote }}
 EXCITER_KROKI_TIMEOUT: {{ .Values.kroki.timeout | quote }}
 EXCITER_KROKI_CONCURRENCY: {{ .Values.kroki.concurrency | quote }}
 {{- end }}

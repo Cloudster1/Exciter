@@ -188,6 +188,11 @@ kroki:
   # Disabled, diagrams show as their source with a sentence saying why, and a
   # Word export writes them as their source.
   enabled: true
+  # A Kroki the installation runs elsewhere, such as one a whole suite shares,
+  # as http://host:port; set it with enabled off and the chart runs none of its
+  # own. Run it in secure mode with no egress, as the chart's own, since the
+  # api sends it whatever diagram source people write.
+  url: ""
   replicas: 1
   # How long one drawing may take, waiting for a free slot included; below the
   # api's request timeout.
