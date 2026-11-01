@@ -20,6 +20,7 @@ rights of #12, and a project the caller may not view is 404, never 403.
 | 01360 to 01369 | Suite demo (#270) | `suite_demo` (the one demo: its state, step and counts, and the snapshot and keys it was made with), `suite_demo_requirement` (which issue or criterion a requirement came from), the guard `suite_demo_guard` and their policies |
 | 01380 to 01399 | Diagrams (#284) | `requirement_plain_blocks` reading a diagram's source, so search finds its words |
 | 01420 to 01439 | Narrower tokens (#235) | `oauth_token.exchanged` and `projects_only`, `oauth_token_project` (the projects a narrower token reaches), and the exchange among the grants any client may register for |
+| 01544 | Suite demo specifications (#488) | `suite_demo_requirement.spec_id`, the ID a specification file gives an item, in its key |
 
 Packages: `internal/reqifio` (#44); `internal/specdoc`, `internal/docx` and `internal/render` (#45); `internal/review/signing.go`
 and `internal/auth/reauth.go` (#46); `internal/rql` (#47); the sender in `internal/webhook` (#48); `internal/requirement/reuse.go` (#49). Worker topic:
@@ -469,30 +470,39 @@ until Stator ships it.
 | Operation | Needs | Answers |
 |---|---|---|
 | `GET /installation/suite-demo` | an administrator | `{demo}`, null while nobody added it |
-| `POST /installation/suite-demo` | an administrator | 202 `{demo}`; 409 when it was added; 422 `key` when a project holds `ARM`, `EXC` or `STA` |
+| `POST /installation/suite-demo` | an administrator | 202 `{demo}`; 409 when it was added; 422 `key` when a project holds `ARM`, `EXC`, `STA` or `ROT` |
 | `POST /installation/suite-demo/links` | an administrator | 202 `{demo}`; 404 when nobody added it; 409 while it is built or linked |
 
-- **The demo** is three projects from the `software` template, `ARM`, `EXC`
-  and `STA`, holding the requirements of Armature, Exciter and Stator from
-  the snapshot in `backend/internal/demo/snapshot` (`make demo-snapshot`).
-  Each issue with a user story is a requirement filed under its milestone,
-  under Functional requirements, with its acceptance criteria as children,
-  approved when the issue is closed; "Depends on" is a `relates` link, also
-  across projects; each project has an "About" requirement in its
-  Introduction and a baseline named `Snapshot <taken>`. Audited as
+- **The demo** (#488) is four projects, `ARM`, `EXC`, `STA` and `ROT`, each
+  holding a specification of its tool written by hand in
+  `backend/internal/demo/spec/<tool>/*.md`, in the format its parser
+  (`ParseSpec`) reads: a file a section path, a requirement or test case a
+  third-level heading with its fields. The projects are made from the
+  `software` template with the types Stakeholder need, Test case and Test
+  procedure beside its own, and the sections are the specification's, with
+  the drawings of `backend/internal/demo/architecture` after the
+  Introduction. A requirement whose issues in the snapshot
+  (`make demo-snapshot`) are all closed is Implemented, Verified when every
+  test case of it passed, and the rest Approved. Audited as
   `installation.suite_demo_added`.
 - **The run** is the worker's, as the caller: `suite_demo.requested` names a
-  step, which makes a project, files one milestone, links one project or
-  takes the baselines, and queues the next. `state` goes `queued`,
-  `running`, then `done` or `failed`, with `step` of `steps`, and `message`
-  saying why links wait.
-- **Links** are made with the caller's own Armature and Stator tokens: each
-  issue's requirement `implements` `<ARM|EXC|STA>-<number>`, and pages are
-  found by the label `demo-<arm|exc|sta>-<path>` (`GET /labels/{labelName}/pages`
-  in Stator); every requirement of milestone Mn `specifies` that tool's
-  `docs/api-contract-mn.md`, and the About requirement is `describes`d by its
-  README and `docs/architecture.md`. What a partner cannot take yet is
-  counted in `skipped`; `.../links` adds it later and nothing twice.
+  step, which makes a project, files one section of its specification, links
+  one project or runs one project's tests, and queues the next. `state` goes
+  `queued`, `running`, then `done` or `failed`, with `step` of `steps`, and
+  `message` saying why links wait.
+- **Links** are the trace links the files name (`refines`, `relates`,
+  `verifies`), and those made with the caller's own Armature and Stator
+  tokens: each requirement `implements` the issues its file names
+  (`<ARM|EXC|STA|ROT>-<number>`), and is `describes`d by its guide page,
+  found by the label `demo-<key>-guide-<name>` (`GET /labels/{labelName}/pages`
+  in Stator); a view of the architecture is described by the page of its
+  document. What a partner cannot take yet is counted in `skipped`;
+  `.../links` adds it later and nothing twice.
+- **The test run** of each project is the baseline "Demo baseline", the test
+  plan "Every test case" and the closed execution "Demo test run" against
+  it, with the result and note each test case's file records. `.../links`
+  runs this step again, which finishes a run that stopped and makes no
+  second.
 - **Armature and Stator** offer `POST` and `GET /installation/suite-demo` for
   their part (Cloudster1/Armature#300, praetorianer777/Stator#457), which
   `make suite-up DEMO=1` calls before Exciter's; one that answers 404 has no

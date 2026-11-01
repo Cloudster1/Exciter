@@ -72,7 +72,7 @@ describe("the installation page", () => {
       state,
       kind,
       taken: "2026-10-20",
-      projectKeys: ["ARM", "EXC", "STA"],
+      projectKeys: ["ARM", "EXC", "STA", "ROT"],
       step: state === "done" ? 40 : 0,
       steps: 40,
       requirements: state === "done" ? 1540 : 0,

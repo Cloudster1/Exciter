@@ -196,11 +196,11 @@ export const en = {
   suiteDemo: {
     title: "Suite demo",
     intro:
-      "The requirements of Armature, Exciter and Stator themselves, taken from their own issues, as three projects traced to those issues in Armature and to their documentation in Stator.",
+      "A written specification of Armature, Exciter, Stator and Rotor each, as four projects with test cases and a closed test execution, traced to the tools' issues in Armature and to their user guides in Stator.",
     add: "Add the suite demo",
     confirmTitle: "Add the suite demo?",
     confirmBody:
-      "This makes the projects ARM, EXC and STA with about 1,500 requirements, in your name, and links them with your Armature and Stator accounts. It is added once and takes a few minutes.",
+      "This makes the projects ARM, EXC, STA and ROT with their requirements, test cases and a test execution, in your name, and links them with your Armature and Stator accounts. It is added once and takes a few minutes.",
     confirm: "Add it",
     building: (step: number, steps: number) => `The demo is being built: step ${step} of ${steps}. This takes a few minutes.`,
     linking: "The demo is being linked to Armature and Stator.",

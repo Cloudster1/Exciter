@@ -3,6 +3,42 @@
 Newest first. Each entry says what was decided and why, so a later change can
 tell whether the reason still holds.
 
+## 2026-11-01: The suite demo holds a written specification of each tool (#488)
+
+The suite demo's projects, now four with Rotor's `ROT`, no longer derive
+their requirements from issue titles and acceptance criteria: each holds a
+specification written by hand for its tool, with test cases and one closed
+test run, so the demo shows requirements management done properly rather
+than a tracker read twice.
+
+- **Written as files, parsed by rule.** Each tool's specification is
+  Markdown in `backend/internal/demo/spec/<tool>`, a file per function area
+  or part, in a fixed format a writer can follow without Exciter: a section
+  path, then a heading and field lines per requirement or test case. The
+  parser says which file, line and ID is wrong and what to write instead,
+  as the architecture's does.
+- **Held by a lint, not by review alone.** A unit test reads every file and
+  refuses an ID given twice, a link to an ID no file defines, an issue the
+  snapshot lacks, a requirement no test case verifies and a failed result
+  that says nothing about it, so a mistake fails the gate and never an
+  administrator's run.
+- **The handle is the file's, the key is Exciter's.** `FR-BRD-1` names an
+  item for the links between files; Exciter gives it a key of its own, and
+  `suite_demo_requirement.spec_id` finds it again when the demo is linked
+  again.
+- **Status follows the snapshot and the run.** A requirement whose issues
+  are all closed is Implemented, and Verified when every test case of it
+  passed; anything else is Approved. The demo sets it once as an import
+  does, since a workflow walked step by step would say nothing more.
+- **The snapshot holds every issue.** Armature's demo holds every issue of
+  the four repositories, and the specifications name bugs as well as
+  features, so the snapshot keeps them all, without their bodies, which the
+  demo no longer reads.
+- **The run is a step of its own.** Each project's baseline, test plan and
+  execution are made after its links, so the baseline holds them; linking
+  again runs the step again, finding what a stopped run made and finishing
+  it rather than starting a second.
+
 ## 2026-10-30: Projects move to /projects/, and /p/ only redirects (#472)
 
 The suite's standard puts a project at `/projects/<key>`, as Armature does,

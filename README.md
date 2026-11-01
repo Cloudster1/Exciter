@@ -63,7 +63,11 @@ publishes one, and passes until then.
 To try the integration end to end, `make suite-up ARMATURE_DIR=<checkout>
 STATOR_DIR=<checkout>` runs Exciter, Armature and Stator side by side on that
 one realm, connected to each other; [docs/suite.md](docs/suite.md) says where
-everything is.
+everything is. Add `DEMO=1` for the suite demo, which an administrator also
+adds under Installation: a written specification of Armature, Exciter, Stator
+and Rotor each, as the projects `ARM`, `EXC`, `STA` and `ROT`, with test cases
+and a closed test run, traced to the tools' issues in Armature and their user
+guides in Stator.
 
 ## Installing
 

@@ -31,6 +31,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite demo holds a specification of each tool written by hand, now
+  with Rotor: four projects, `ARM`, `EXC`, `STA` and `ROT`, each with
+  stakeholder needs, functional requirements by function area,
+  non-functional requirements, interfaces and test cases with their steps.
+  Each requirement implements the issues that built it and is described by
+  its user guide page in Stator, and each project has a test plan and one
+  closed test run against the baseline "Demo baseline", so its coverage and
+  dashboards have something to show. Link the demo again also finishes a
+  test run that stopped (#488).
 - The quick switcher Ctrl K opens is called Quick search, and the list of
   everybody's tokens under Admin, Connected apps is called All access
   tokens, the names Armature and Stator use for the same things (#281).

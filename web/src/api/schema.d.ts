@@ -1127,7 +1127,7 @@ export interface paths {
         /** The suite demo: how far it got, what it made and why links wait; null while nobody added it. For administrators. */
         get: operations["getSuiteDemo"];
         put?: never;
-        /** Add the suite demo once: the requirements of Armature, Exciter and Stator from their own issues, built by the worker as the caller and linked to their issues and pages. For administrators. */
+        /** Add the suite demo once: a written specification of Armature, Exciter, Stator and Rotor each, with test cases and a test run, built by the worker as the caller and linked to their issues and guide pages. For administrators. */
         post: operations["addSuiteDemo"];
         delete?: never;
         options?: never;
@@ -1144,7 +1144,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Link the suite demo again, adding the links to Armature and Stator it is missing, as the caller. For administrators. */
+        /** Link the suite demo again, adding the links to Armature and Stator it is missing and finishing a test run that stopped, as the caller. For administrators. */
         post: operations["linkSuiteDemo"];
         delete?: never;
         options?: never;

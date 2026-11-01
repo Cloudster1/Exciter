@@ -84,21 +84,25 @@ single sign-on.
 
 ## The suite demo
 
-`make suite-up DEMO=1` (or `make suite-seed DEMO=1` on a running suite) also adds the suite demo (#270): the three
-tools' own development, each in the tool it belongs in.
+`make suite-up DEMO=1` (or `make suite-seed DEMO=1` on a running suite) also adds the suite demo (#270, #488): the
+four tools' own development, each in the tool it belongs in.
 
-- **Armature** holds the GitHub issues of all three under their numbers, in the projects `ARM`, `EXC` and `STA`
-  (Cloudster1/Armature#300).
-- **Stator** holds their documentation, each page labelled with the file it came from (praetorianer777/Stator#457).
-- **Exciter** holds their requirements in projects of the same keys, and links each to its issue and to the pages
-  that specify and describe it. Each project opens with its tool's architecture drawn in PlantUML (#286): its
-  parts, deployment, signing in and how it reaches the other two, written in `backend/internal/demo/architecture`.
+- **Armature** holds the GitHub issues of Armature, Exciter, Stator and Rotor under their numbers, in the projects
+  `ARM`, `EXC`, `STA` and `ROT` (Cloudster1/Armature#300, Cloudster1/Armature#486).
+- **Stator** holds a user guide of each tool and its documentation, each page labelled with its name or the file it
+  came from (praetorianer777/Stator#457).
+- **Exciter** holds a specification of each tool written by hand, in projects of the same keys: stakeholder needs,
+  functional requirements by function area, non-functional requirements, interfaces and test cases, written in
+  `backend/internal/demo/spec`. Each requirement implements the issues that built it and is described by its guide
+  page; each project has a test plan of all its test cases and one closed run against the baseline "Demo baseline".
+  Each project also holds its tool's architecture drawn in PlantUML (#286): its parts, deployment, signing in and
+  how it reaches the others, written in `backend/internal/demo/architecture`.
 
 `suite-seed` stores alice's Armature token and a fresh Stator token of Stator's administrator for Exciter's
 administrator, asks Armature and Stator for their demo, and then Exciter for its own, which it links with those
 tokens. A product that has no demo yet is said so and left out; once it has one, Link the demo again under
 Installation in Exciter adds what was missing. Open the project `EXC` in Exciter to start: each requirement's issue
-and pages are in its side panel.
+and guide page are in its side panel, and its coverage and test run show what is verified.
 
 ## Memory
 
