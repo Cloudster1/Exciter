@@ -17,8 +17,12 @@ import (
 //go:embed architecture/*.md
 var architectureFiles embed.FS
 
-// SectionArchitecture is the top-level section the drawings are filed in, after the introduction.
-const SectionArchitecture = "Architecture"
+// SectionArchitecture is the top-level section the drawings are filed in, after the introduction; each is a
+// requirement of TypeArchitectureView.
+const (
+	SectionArchitecture  = "Architecture"
+	TypeArchitectureView = "Architecture view"
+)
 
 const (
 	fieldCommit = "commit: "
@@ -120,6 +124,7 @@ func architectureSection(t Tool) *Section {
 	sec := &Section{Path: []string{SectionArchitecture}, Intro: a.Intro}
 	for _, v := range a.Views {
 		sec.Items = append(sec.Items, Item{
+			Type:      TypeArchitectureView,
 			Title:     v.Title,
 			Statement: v.Statement,
 			Rationale: "Drawn from " + doc + " and the code beside it.",

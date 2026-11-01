@@ -111,7 +111,7 @@ func (h *harness) keepSuiteDemo(t *testing.T) {
 // demoExcTree is Exciter's tree as the fixture files it: each section in the order of the files, the architecture
 // after the introduction, and each item with its type, its status and its priority.
 var demoExcTree = []string{
-	"Introduction", "Architecture", "  Components [Functional, Approved]", "Stakeholder needs", "  Know what a change touches [Stakeholder need, Approved, must]",
+	"Introduction", "Architecture", "  Components [Architecture view, Approved]", "Stakeholder needs", "  Know what a change touches [Stakeholder need, Approved, must]",
 	"Functional requirements", "  Traceability", "    Link two requirements [Functional, Verified, must]", "    Mark links suspect [Functional, Approved, must]",
 	"    Changes", "      Clear a suspect mark [Non-functional, Approved, could]", "Test specification",
 	"  Link and read back [Test case, Approved]", "  Change and clear [Test case, Approved]",
@@ -162,7 +162,7 @@ func TestTheSuiteDemoIsBuiltLinkedAndRun(t *testing.T) {
 		}
 		if types, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(types, []string{"Functional:requirement",
 			"Non-functional:requirement", "Interface:requirement", "Use case:requirement", "Stakeholder need:requirement", "Test case:testCase",
-			"Test procedure:requirement"}) {
+			"Test procedure:requirement", "Architecture view:requirement"}) {
 			t.Errorf("the types are %v (%v)", types, err)
 		}
 	})

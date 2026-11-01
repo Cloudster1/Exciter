@@ -10,7 +10,7 @@ SUITE_ARMATURE_WEB_PORT := 30020
 SUITE_STATOR_WEB_PORT := 30040
 SUITE_ENV_FILE := $(ROOT)/.cache/suite.env
 SUITE_SMOKE_CONFIG := playwright.suite.config.ts
-# DEMO=1 adds the suite demo to all three as well (#270): Armature's issues, Stator's pages, Exciter's requirements.
+# DEMO=1 adds the suite demo to all three as well (#270, #488): Armature's issues, Stator's guides and docs, Exciter's specifications.
 DEMO ?=
 
 # Every product's compose with its suite override, project name and ports; the rest of each port block follows the

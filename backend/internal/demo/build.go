@@ -26,12 +26,14 @@ const (
 	attributeVerification = "Verification method"
 	attributeComponent    = "Component"
 	attributeAutomated    = "Automated"
+	iconArchitecture      = "data"
+	colourArchitecture    = "#0369a1"
 	revisionComment       = "Added by the suite demo"
 	projectDescriptor     = "The specification of %s, written for the suite demo from its code, documentation and issues as of %s, with its test cases and a test run."
 )
 
-// Blueprint is the software template with stakeholder needs, test cases and test procedures beside its types; the
-// demo files its own sections, in the order of the specification.
+// Blueprint is the software template with stakeholder needs, test cases, test procedures and architecture views beside
+// its types; the demo files its own sections, in the order of the specification.
 func Blueprint() project.Blueprint {
 	b, _ := project.BlueprintOf(template)
 	needs, _ := project.BlueprintOf(templateNeeds)
@@ -48,6 +50,8 @@ func Blueprint() project.Blueprint {
 		b.TypeSpecs = append(b.TypeSpecs, t)
 		testTypes = append(testTypes, t.Name)
 	}
+	// A view of the architecture is neither implemented nor verified, so it takes a type no coverage rule asks of.
+	b.TypeSpecs = append(b.TypeSpecs, project.TypeSpec{Name: TypeArchitectureView, Icon: iconArchitecture, Colour: colourArchitecture})
 	b.AttributeSpecs = slices.Clone(b.AttributeSpecs)
 	for _, a := range tests.AttributeSpecs {
 		a.Types = testTypes
@@ -116,7 +120,7 @@ func (s *Service) makeProject(ctx context.Context, actor uuid.UUID, pr Project, 
 	var (
 		prev  *uuid.UUID
 		nodes []node
-		made  = map[string]bool{}
+		filed = map[string]bool{}
 	)
 	if pr.Architecture != nil && !slices.ContainsFunc(pr.Sections, func(sec Section) bool { return sec.Path[0] == sectionIntroduction }) {
 		if prev, nodes, err = b.architecture(ctx, pr.Tool, *pr.Architecture, nil); err != nil {
@@ -125,10 +129,10 @@ func (s *Service) makeProject(ctx context.Context, actor uuid.UUID, pr Project, 
 	}
 	for _, sec := range pr.Sections {
 		title := sec.Path[0]
-		if made[title] {
+		if filed[title] {
 			continue
 		}
-		made[title] = true
+		filed[title] = true
 		intro := ""
 		for _, other := range pr.Sections {
 			if len(other.Path) == 1 && other.Path[0] == title && intro == "" {
