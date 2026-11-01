@@ -98,13 +98,20 @@ func (s *Service) Handle(ctx context.Context, e events.Event) error {
 	return err
 }
 
+// lease is a claimed delivery and the next_attempt_at its claim set. Only the holder of the latest claim may post it or
+// record how it went, so a sender whose lease ran out and was taken over does neither.
+type lease struct {
+	id    uuid.UUID
+	token time.Time
+}
+
 // SendDue posts every delivery whose time has come, and says how many were
 // tried. Each is leased first, so senders in several workers never post one
 // twice.
 func (s *Service) SendDue(ctx context.Context) (int, error) {
 	tried := 0
 	for {
-		var found []uuid.UUID
+		var found []lease
 		_, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 			rows, err := tx.Query(ctx, `
 				UPDATE webhook_delivery d SET next_attempt_at = now() + make_interval(secs => $2)
@@ -116,29 +123,29 @@ func (s *Service) SendDue(ctx context.Context) (int, error) {
 				    FOR UPDATE SKIP LOCKED
 				) claimed
 				WHERE d.id = claimed.id
-				RETURNING d.id`, sendBatch, ClaimLease.Seconds())
+				RETURNING d.id, d.next_attempt_at`, sendBatch, ClaimLease.Seconds())
 			if err != nil {
 				return err
 			}
 			defer rows.Close()
 			for rows.Next() {
-				var id uuid.UUID
-				if err := rows.Scan(&id); err != nil {
+				var l lease
+				if err := rows.Scan(&l.id, &l.token); err != nil {
 					return err
 				}
-				found = append(found, id)
+				found = append(found, l)
 			}
 			return rows.Err()
 		})
 		if err != nil {
 			return tried, err
 		}
-		for _, id := range found {
+		for _, l := range found {
 			if ctx.Err() != nil {
 				return tried, nil
 			}
-			if _, _, err := s.attempt(ctx, id); err != nil {
-				s.opts.Log.Warn("a webhook attempt could not be recorded", "delivery", id, "error", err)
+			if _, _, err := s.attempt(ctx, l); err != nil {
+				s.opts.Log.Warn("a webhook attempt could not be recorded", "delivery", l.id, "error", err)
 			}
 		}
 		tried += len(found)
@@ -166,14 +173,14 @@ func (s *Service) Test(ctx context.Context, id uuid.UUID) (*WebhookDelivery, db.
 	if err := s.visible(ctx, id); err != nil {
 		return nil, 0, err
 	}
-	var made uuid.UUID
+	var made lease
 	system := asSystem(ctx)
 	lsn, err := s.db.WriteAdmin(system, func(ctx context.Context, tx db.DBTX) error {
 		err := tx.QueryRow(ctx, `
 			INSERT INTO webhook_delivery (endpoint_id, event_id, topic, event, occurred_at, manual, next_attempt_at, version)
 			SELECT id, $2, $3, '{}', now(), true, now() + make_interval(secs => $4), version
 			FROM webhook_endpoint WHERE id = $1
-			RETURNING id`, id, uuid.New(), TopicPing, ClaimLease.Seconds()).Scan(&made)
+			RETURNING id, next_attempt_at`, id, uuid.New(), TopicPing, ClaimLease.Seconds()).Scan(&made.id, &made.token)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -200,7 +207,7 @@ func (s *Service) Redeliver(ctx context.Context, webhookID, deliveryID uuid.UUID
 	if err != nil {
 		return nil, 0, err
 	}
-	var made uuid.UUID
+	var made lease
 	system := asSystem(ctx)
 	lsn, err := s.db.WriteAdmin(system, func(ctx context.Context, tx db.DBTX) error {
 		// A failure schedules its retry holding the endpoint's row, so taking it here keeps the two from numbering the
@@ -214,7 +221,7 @@ func (s *Service) Redeliver(ctx context.Context, webhookID, deliveryID uuid.UUID
 			       (SELECT max(attempt) FROM webhook_delivery x WHERE x.endpoint_id = d.endpoint_id AND x.event_id = d.event_id) + 1,
 			       true, now() + make_interval(secs => $2), d.version
 			FROM webhook_delivery d WHERE d.id = $1
-			RETURNING id`, deliveryID, ClaimLease.Seconds()).Scan(&made)
+			RETURNING id, next_attempt_at`, deliveryID, ClaimLease.Seconds()).Scan(&made.id, &made.token)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -275,10 +282,31 @@ type outcome struct {
 
 // attempt posts one logged delivery and records how it went: delivered,
 // withheld, cancelled, or failed with the next attempt due later.
-func (s *Service) attempt(ctx context.Context, id uuid.UUID) (*WebhookDelivery, db.LSN, error) {
+func (s *Service) attempt(ctx context.Context, l lease) (*WebhookDelivery, db.LSN, error) {
 	ctx = asSystem(ctx)
+	id := l.id
+	// The lease is renewed just before the post, so a batch that outlasts it posts nothing another sender took over.
+	held := true
+	renewed, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+		err := tx.QueryRow(ctx, `
+			UPDATE webhook_delivery SET next_attempt_at = now() + make_interval(secs => $3)
+			WHERE id = $1 AND state = 'pending' AND next_attempt_at = $2
+			RETURNING next_attempt_at`, id, l.token, ClaimLease.Seconds()).Scan(&l.token)
+		if errors.Is(err, pgx.ErrNoRows) {
+			held = false
+			return nil
+		}
+		return err
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	if !held {
+		done, err := s.read(ctx, id)
+		return done, 0, err
+	}
 	var c claimed
-	err := s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
+	err = s.db.ReadAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
 		return tx.QueryRow(ctx, `
 			SELECT (SELECT id FROM installation), d.endpoint_id, d.event_id, e.url, d.topic, e.secret_sealed, e.enabled, d.manual,
 			       -- An owner switched off has left as much as one deleted: nothing is read as them.
@@ -297,9 +325,10 @@ func (s *Service) attempt(ctx context.Context, id uuid.UUID) (*WebhookDelivery, 
 	}
 	if c.state != StatePending {
 		done, err := s.read(ctx, id)
-		return done, 0, err
+		return done, renewed, err
 	}
-	return s.record(ctx, id, c, s.send(ctx, id, c))
+	sent, recorded, err := s.record(ctx, l, c, s.send(ctx, id, c))
+	return sent, max(renewed, recorded), err
 }
 
 // send builds the body as the owner may read it, signs it and posts it.
@@ -358,17 +387,21 @@ func why(err error) string {
 
 // record writes how an attempt went, schedules the next after a failure,
 // and turns the endpoint off once it has failed for DisableAfter.
-func (s *Service) record(ctx context.Context, id uuid.UUID, c claimed, o outcome) (*WebhookDelivery, db.LSN, error) {
+func (s *Service) record(ctx context.Context, l lease, c claimed, o outcome) (*WebhookDelivery, db.LSN, error) {
+	id := l.id
 	var out *WebhookDelivery
 	lsn, err := s.db.WriteAdmin(ctx, func(ctx context.Context, tx db.DBTX) error {
-		if _, err := tx.Exec(ctx, `
+		tag, err := tx.Exec(ctx, `
 			UPDATE webhook_delivery
 			SET state = $2, status = $3, error = $4, next_attempt_at = NULL, attempted_at = now(),
 			    delivered_at = CASE WHEN $2 = 'delivered' THEN now() END
-			WHERE id = $1`, id, o.state, o.status, o.why); err != nil {
+			WHERE id = $1 AND state = 'pending' AND next_attempt_at = $5`, id, o.state, o.status, o.why, l.token)
+		if err != nil {
 			return err
 		}
 		switch {
+		// The lease ran out during the post and another sender holds the delivery now: its outcome is the one kept.
+		case tag.RowsAffected() == 0:
 		case o.state == StateDelivered:
 			if _, err := tx.Exec(ctx, `UPDATE webhook_endpoint SET failures = 0, failing_since = NULL WHERE id = $1`, c.endpointID); err != nil {
 				return err
@@ -393,7 +426,6 @@ func (s *Service) record(ctx context.Context, id uuid.UUID, c claimed, o outcome
 				}
 			}
 		}
-		var err error
 		out, err = scanDelivery(tx.QueryRow(ctx, selectDeliveries+` WHERE id = $1`, id))
 		return err
 	})
