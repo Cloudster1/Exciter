@@ -22,6 +22,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
   browser in to their own account. A sign-in under way during the upgrade
   has to be started again (GHSA-w953-w6gw-546r).
 
+### Changed
+
+- The development realm is Dynamo's again, now with the Rotor client and
+  its administrators' group, so the gate's realm check passes (#482).
+
 ## [0.3.0] - 2026-10-30
 
 ### Added

@@ -46,6 +46,10 @@
     {
       "name": "marketing",
       "path": "/marketing"
+    },
+    {
+      "name": "rotor-administrators",
+      "path": "/rotor-administrators"
     }
   ],
   "users": [
@@ -67,6 +71,7 @@
         "/armature-administrators",
         "/exciter-administrators",
         "/stator-administrators",
+        "/rotor-administrators",
         "/engineering"
       ]
     },
@@ -127,6 +132,23 @@
         "/readers",
         "/marketing"
       ]
+    },
+    {
+      "username": "service-account-rotor-control-plane",
+      "enabled": true,
+      "serviceAccountClientId": "rotor-control-plane",
+      "groups": []
+    },
+    {
+      "username": "service-account-rotor",
+      "enabled": true,
+      "serviceAccountClientId": "rotor",
+      "groups": [],
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
     }
   ],
   "clients": [
@@ -328,6 +350,88 @@
             "included.client.audience": "exciter",
             "id.token.claim": "false",
             "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "rotor",
+      "name": "Rotor",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "rotor-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [
+        "http://localhost:*",
+        "http://localhost/*",
+        "http://127.0.0.1:*",
+        "http://127.0.0.1/*",
+        "http://web/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256",
+        "backchannel.logout.url": "http://rotor-api:8080/api/v1/auth/oidc/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "basic",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "claim.name": "groups",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "frontchannelLogout": false
+    },
+    {
+      "clientId": "rotor-control-plane",
+      "name": "Rotor control plane",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "rotor-control-plane-dev-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "basic",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "openbao audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "openbao",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
             "introspection.token.claim": "true"
           }
         }
