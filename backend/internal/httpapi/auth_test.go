@@ -96,6 +96,28 @@ func TestAuthenticationActsForThePerson(t *testing.T) {
 	}
 }
 
+func TestADeadTokenDoesNotSignTheBrowserOut(t *testing.T) {
+	s := newServer(t)
+	person := uuid.New()
+	s.Auth = fakeAuth{"session": {UserID: person, Role: auth.RoleMember}}
+	h := authenticated(s)
+
+	req := bearer("dead")
+	req.AddCookie(&http.Cookie{Name: s.CookieName, Value: "session"})
+	resp, _ := serve(t, h, req)
+	for _, c := range resp.Cookies() {
+		if c.Name == s.CookieName {
+			t.Errorf("a dead bearer touched the session cookie: %v", c)
+		}
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: s.CookieName, Value: "session"})
+	if _, body := serve(t, h, req); body["signedIn"] != true {
+		t.Errorf("the cookie alone should still sign in: %v", body)
+	}
+}
+
 func TestASessionKeysItsOwnWrites(t *testing.T) {
 	s, f := freshServer(t)
 	session := uuid.New()
