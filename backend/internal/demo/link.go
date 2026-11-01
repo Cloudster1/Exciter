@@ -98,7 +98,7 @@ func (s *Service) mapped(ctx context.Context, keys map[string]string) (map[node]
 	}
 	out := map[node]made{}
 	err := s.db.ReadPrimary(ctx, func(ctx context.Context, tx db.DBTX) error {
-		rows, err := tx.Query(ctx, `SELECT d.requirement_id, d.tool, d.issue, d.criterion, p.key, r.number
+		rows, err := tx.Query(ctx, `SELECT d.requirement_id, d.tool, d.issue, d.criterion, d.spec_id, p.key, r.number
 			FROM suite_demo_requirement d JOIN requirement r ON r.id = d.requirement_id JOIN project p ON p.id = d.project_id
 			WHERE p.key = ANY($1) AND r.trashed_at IS NULL`, projectKeys)
 		if err != nil {
