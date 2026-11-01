@@ -184,7 +184,7 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     await makeProject(api);
     await openShell(page, "/projects");
     await page.keyboard.press("ControlOrMeta+k");
-    const palette = page.getByRole("dialog", { name: "Go to" });
+    const palette = page.getByRole("dialog", { name: "Quick search" });
     await page.locator("[data-quick-switcher-input]").fill("aud");
     const audit = palette.locator('[data-quick-switcher-option="place:/admin/audit"]');
     await expect(audit).toContainText("Admin / Audit log");
@@ -218,7 +218,7 @@ test.describe("the shell in a real browser", { tag: "@desktop" }, () => {
     const bob = await pageAs("bob");
     await openShell(bob, "/");
     await bob.keyboard.press("ControlOrMeta+k");
-    const palette = bob.getByRole("dialog", { name: "Go to" });
+    const palette = bob.getByRole("dialog", { name: "Quick search" });
     await bob.locator("[data-quick-switcher-input]").fill("members");
     const everything = palette.locator('[data-quick-switcher-option="search"]');
     await expect(everything).toContainText("Search everything for members");

@@ -232,10 +232,10 @@ describe("the quick switcher", () => {
     const home = within(document.querySelector<HTMLElement>("[data-sidebar]")!).getByRole("link", { name: "Home" });
     home.focus();
     await userEvent.keyboard("{Control>}k{/Control}");
-    expect(screen.getByRole("dialog", { name: "Go to" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Quick search" })).toBeInTheDocument();
     expect(screen.getByRole("combobox")).toHaveFocus();
     await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Quick search" })).toBeNull();
     expect(home).toHaveFocus();
   });
 
@@ -244,7 +244,7 @@ describe("the quick switcher", () => {
     const router = await renderAt("/");
     await userEvent.keyboard("{Control>}k{/Control}");
     const input = screen.getByRole("combobox");
-    const options = () => within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option");
+    const options = () => within(screen.getByRole("dialog", { name: "Quick search" })).getAllByRole("option");
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([
       "place:/",
       `place:${SEARCH_PATH}`,
@@ -270,7 +270,7 @@ describe("the quick switcher", () => {
       `place:${AUDIT_PATH}`,
       `place:${ADMIN_PATH}`,
     ]);
-    expect(within(screen.getByRole("dialog", { name: "Go to" })).getByRole("option", { name: /Admin \/ Audit log/ })).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Quick search" })).getByRole("option", { name: /Admin \/ Audit log/ })).toBeInTheDocument();
     expect(options()[0]).toHaveAttribute("aria-selected", "true");
     expect(input).toHaveAttribute("aria-activedescendant", options()[0]!.id);
 
@@ -289,7 +289,7 @@ describe("the quick switcher", () => {
     expect(options().map((o) => o.getAttribute("data-quick-switcher-option"))).toEqual([`place:${AUDIT_PATH}`, "search"]);
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(router.state.location.pathname).toBe(AUDIT_PATH));
-    expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Quick search" })).toBeNull();
   });
 
   it("offers only the places a member may go, and says when nothing matches", async () => {
@@ -299,11 +299,11 @@ describe("the quick switcher", () => {
     // watches, themes, tokens, connected apps, and Armature and Stator accounts.
     expect(within(screen.getByRole("listbox")).getAllByRole("option")).toHaveLength(13);
     await userEvent.type(screen.getByRole("combobox"), "prof");
-    expect(within(screen.getByRole("dialog", { name: "Go to" })).getAllByRole("option")[0]).toHaveTextContent("Your profile");
+    expect(within(screen.getByRole("dialog", { name: "Quick search" })).getAllByRole("option")[0]).toHaveTextContent("Your profile");
     await userEvent.clear(screen.getByRole("combobox"));
     await userEvent.type(screen.getByRole("combobox"), "zzz");
     // Only the full search is left to offer.
-    expect(within(screen.getByRole("dialog", { name: "Go to" })).getByRole("option")).toHaveTextContent("Search everything for zzz");
+    expect(within(screen.getByRole("dialog", { name: "Quick search" })).getByRole("option")).toHaveTextContent("Search everything for zzz");
     expect(screen.getByRole("status")).toHaveTextContent("1 place");
   });
 });
