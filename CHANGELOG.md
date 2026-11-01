@@ -29,6 +29,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - The query compiler marks a bound value with a character Postgres never
   accepts in SQL, and stops with a clear message if a marker has no value,
   instead of reading past its list (#459).
+- The web tests pin vitest to exactly the version of its coverage provider,
+  5.0.5, so a lock file refresh can no longer move one without the other
+  (#468).
+- CI keeps every layer's coverage rows and the web coverage summary as one
+  `coverage` artifact for 30 days, kept even when a layer fails, so the next
+  time CI's figures seem to differ from a local run they can be compared row
+  by row. The point web coverage seemed to lose in CI did not reproduce: CI's
+  run of the same commit read 87.11%, as the local run did. Nothing is fixed
+  by this; note that a pull request's run measures the merge of the branch
+  into main, not the branch's own head, so its figures can differ from a
+  local run of that head (#467).
 
 ### Fixed
 
@@ -54,6 +65,17 @@ and the versioning [Semantic Versioning](https://semver.org/).
   `EXCITER_CORS_ORIGINS` now matches the origin a browser sends, and an
   entry that is not an absolute URL stops the server at start with a
   sentence saying what to set (#464).
+- The Go coverage totals are rounded down to one decimal, as the web ones
+  are, so a total just below its floor fails: 75.96% no longer reads as 76.0
+  and passes a floor of 76. The web total is cut down the same way and reads
+  87.1 rather than 87.15 (#465).
+- A coverage floor goes down only through the commit that lowers it, with a
+  trailer of its own naming the floor and the value it sets, as
+  `Floor-lowered: web-lines 86 <reason>`, and only to the measured total
+  rounded down, which the layer that measures it checks against main's floor.
+  One trailer no longer lets a floor fall by any amount, or covers a later
+  drop on the same branch, and a floor file deleted since main fails rather
+  than reading as 0 (#466).
 
 ## [0.3.0] - 2026-10-30
 
