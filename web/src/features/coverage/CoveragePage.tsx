@@ -47,7 +47,7 @@ export function CoveragePage({ project }: { project: Project }) {
 
 const levelTone: Record<Level, string> = {
   full: "bg-success-subtle text-success",
-  partial: "bg-warning-subtle text-warning",
+  partial: "bg-warning-subtle text-ink",
   none: "bg-danger-subtle text-danger",
   na: "",
 };

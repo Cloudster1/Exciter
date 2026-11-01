@@ -62,6 +62,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A partly implemented requirement on the coverage page, and a changed link
+  in a baseline matrix, now read in the ink colour on their amber tint, which
+  meets the 4.5:1 contrast the accessibility check asks for in both themes.
 - A review session whose approvers reach nobody who may decide, such as an
   empty group, a group whose members are all deactivated, or only the
   author of a requirement, is refused with a sentence on `participants`
